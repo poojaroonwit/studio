@@ -1,5 +1,5 @@
 /**
- * Status mapping utilities for the candidate status migration
+ * Status mapping utilities for the Applicant status migration
  * This file provides helper functions to work with both old string statuses and new UUID statuses
  */
 

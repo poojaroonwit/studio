@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { validateUserSession } from '@/lib/auth';
@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
       `SELECT uq.*, p.title as position_title, cs.name as source_name, cs.logo as source_logo
        FROM upload_queue uq 
        LEFT JOIN "Position" p ON uq.position_id = p.id 
-       LEFT JOIN "CandidateSource" cs ON uq.source_id = cs.id
+       LEFT JOIN "ApplicantSource" cs ON uq.source_id = cs.id
        ${whereSQL} 
        ORDER BY ${safeSortExpr} ${sortDirection} 
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,

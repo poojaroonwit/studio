@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ error: 'Failed to export error analysis' }, { status: 500 });
   } finally {
-    // ✅ CRITICAL FIX: Always release the database client
+    // ? CRITICAL FIX: Always release the database client
     if (client) {
       try {
         client.release();

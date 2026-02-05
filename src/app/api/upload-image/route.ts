@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, ensureBucketExists, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { randomUUID } from 'crypto';
 import { sanitizeFilename } from '@/lib/fileUtils';
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       await ensureBucketExists();
       
       // SECURITY: Never set public read access - all files must be accessed via signed URLs
-      // console.log('[UPLOAD-IMAGE] ✅ SECURITY: Files uploaded with private access only');
+      // console.log('[UPLOAD-IMAGE] ? SECURITY: Files uploaded with private access only');
     } catch (minioError) {
       console.error('[UPLOAD-IMAGE] MinIO bucket error:', minioError);
       return NextResponse.json(
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split('.').pop() || 'jpg';
     let objectName: string;
     
-    if (type === 'candidate-source-logo') {
-      objectName = `candidate-source-logo/${timestamp}-${randomUUID()}.${extension}`;
+    if (type === 'Applicant-source-logo') {
+      objectName = `Applicant-source-logo/${timestamp}-${randomUUID()}.${extension}`;
     } else if (type === 'app-logo' || type === 'settings') {
       objectName = `settings/${timestamp}-${randomUUID()}.${extension}`;
     } else {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       // Note: CORS headers are set in HTTP response, not MinIO metadata
     });
 
-    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    // ?? SECURITY: Return web application URL instead of direct MinIO URL
     // Use preview endpoint for images displayed in img tags
     const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
     // console.log('[UPLOAD-IMAGE] File uploaded successfully:', webAppUrl);

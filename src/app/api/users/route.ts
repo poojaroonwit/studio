@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
               name: 'Recruiter',
               description: 'Standard recruiter access',
               permissions: [
-                'CANDIDATES_VIEW', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC',
+                'Applicants_VIEW', 'Applicants_CREATE', 'Applicants_EDIT_BASIC',
                 'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC',
                 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'DASHBOARD_VIEW',
                 'USER_PREFERENCES_MANAGE_OWN'

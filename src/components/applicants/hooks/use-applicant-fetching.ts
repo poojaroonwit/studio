@@ -1,0 +1,207 @@
+import { useCallback, useRef, useEffect } from 'react';
+import type { ApplicantFilterValues } from '@/components/applicants/ApplicantFilters';
+import type { Applicant } from '@/lib/types';
+import { safeFetch } from '@/lib/safe-fetch';
+
+interface UseApplicantFetchingProps {
+  sessionStatus: string;
+  serverAuthError: boolean;
+  serverPermissionError: boolean;
+  isClearingFilters: boolean;
+  hasInitialDataFetch: boolean;
+  searchParams: URLSearchParams;
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc' | null;
+  setFilteredApplicants: (applicants: Applicant[]) => void;
+  setTotal: (total: number) => void;
+  setTableError: (error: string | null) => void;
+  setTableLoading: (loading: boolean) => void;
+  setIsFetching: (fetching: boolean) => void;
+  setAuthError: (error: boolean) => void;
+  setPermissionError: (error: boolean) => void;
+  setFetchError: (error: string | null) => void;
+  setIsLoading: (loading: boolean) => void;
+  getShowPinSection: () => boolean;
+}
+
+export function useApplicantFetching({
+  sessionStatus,
+  serverAuthError,
+  serverPermissionError,
+  isClearingFilters,
+  hasInitialDataFetch,
+  searchParams,
+  sortColumn,
+  sortDirection,
+  setFilteredApplicants,
+  setTotal,
+  setTableError,
+  setTableLoading,
+  setIsFetching,
+  setAuthError,
+  setPermissionError,
+  setFetchError,
+  setIsLoading,
+  getShowPinSection
+}: UseApplicantFetchingProps) {
+  const currentRequestRef = useRef<string | null>(null);
+  const latestRequestIdRef = useRef<string | null>(null);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup function - no timeouts to clear
+    };
+  }, []);
+
+  const fetchTableData = useCallback(async (currentFilters: ApplicantFilterValues, currentPage: number, currentPageSize: number) => {
+    if (sessionStatus !== 'authenticated') {
+      return;
+    }
+    
+    // Generate a unique request ID for this request using crypto when available
+    const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID().replace(/-/g, '').substring(0, 13)
+      : Math.random().toString(36).substring(2, 15);
+    latestRequestIdRef.current = requestId;
+    
+    setIsFetching(true);
+    setTableLoading(true);
+    setTableError(null);
+    
+    try {
+      const query = new URLSearchParams();
+      
+      // Check if we have an advanced query from URL and pass it to the API
+      // When an advanced query is present, we intentionally ignore other sticky filters
+      // so that "View All" from the dashboard yields results consistent with the card.
+      const advancedQueryParam = searchParams.get('query');
+      if (advancedQueryParam) {
+        query.append('query', advancedQueryParam);
+      }
+
+      // Only append individual filters if NOT processing an advanced query
+      // Exception: Allow fit score filters to be combined with advanced queries
+      if (!advancedQueryParam && currentFilters.name) {
+        query.append('name', currentFilters.name);
+        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
+      }
+      if (!advancedQueryParam && currentFilters.email) {
+        query.append('email', currentFilters.email);
+        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
+      }
+      if (!advancedQueryParam && currentFilters.phone) {
+        query.append('phone', currentFilters.phone);
+        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
+      }
+      if (!advancedQueryParam && currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
+      if (!advancedQueryParam && currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
+      if (!advancedQueryParam && currentFilters.education) query.append('education', currentFilters.education);
+      
+      // Fit score filters can be combined with advanced queries
+      if (currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
+      if (currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
+      if (currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
+      if (currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
+      if (currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
+      if (currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
+      
+      if (!advancedQueryParam && currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      if (!advancedQueryParam && currentFilters.maxExperienceYears !== undefined && currentFilters.maxExperienceYears < 50) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
+      if (!advancedQueryParam && currentFilters.applicationDateStart) {
+        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
+      }
+      if (!advancedQueryParam && currentFilters.applicationDateEnd) {
+        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      }
+      if (!advancedQueryParam && currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
+      if (!advancedQueryParam && currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) query.append('sourceId', currentFilters.selectedSourceIds.join(','));
+      
+      // Handle custom field filters
+      if (!advancedQueryParam && currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
+        for (const [fieldCode, value] of Object.entries(currentFilters.customFieldFilters)) {
+          if (value !== undefined && value !== null && value !== '') {
+            query.append(`customField_${fieldCode}`, String(value));
+          }
+        }
+      }
+      
+      query.append('page', String(currentPage));
+      query.append('limit', String(currentPageSize));
+      // Add sorting
+      if (sortColumn) query.append('sortColumn', sortColumn);
+      // Send sortDirection - null/empty means unsorted, 'asc'/'desc' for explicit sorting
+      if (sortDirection) {
+        query.append('sortDirection', sortDirection);
+      } else {
+        // For unsorted state, send empty string to indicate no sorting
+        query.append('sortDirection', '');
+      }
+      // Add pin section setting - always send it to ensure proper sorting
+      query.append('showPinSection', String(getShowPinSection()));
+      
+      const apiUrl = `/api/applicants?${query.toString()}`;
+      
+      const result = await safeFetch<{ data: Applicant[]; pagination?: { total: number } }>(apiUrl, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        },
+        timeoutMs: 12000
+      });
+      
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/applicants:', result.error || result.status);
+        setTableError(`Failed to fetch applicants: ${result.error}`);
+        setFilteredApplicants([]);
+        setTotal(0);
+        return;
+      }
+      
+      const data = result.data;
+      
+      // Check if this is still the latest request
+      if (latestRequestIdRef.current !== requestId) {
+        return;
+      }
+      
+      if (data && Array.isArray(data.data)) {
+        setFilteredApplicants(data.data);
+        setTotal(data.pagination?.total || data.data.length);
+        setTableError(null);
+      } else {
+        setFilteredApplicants([]);
+        setTotal(0);
+        setTableError('Invalid data format received from server');
+        console.error('FETCH ERROR: Invalid data format:', data);
+      }
+    } catch (error) {
+      if (latestRequestIdRef.current !== requestId) {
+        return;
+      }
+      
+      console.error('FETCH ERROR: Error fetching applicants:', error);
+      setTableError((error as Error).message || 'Failed to fetch applicants');
+      setFilteredApplicants([]);
+      setTotal(0);
+    } finally {
+      if (latestRequestIdRef.current !== requestId) {
+        return;
+      }
+      
+      setTableLoading(false);
+      setIsFetching(false);
+    }
+  }, [sessionStatus, searchParams, sortColumn, sortDirection, getShowPinSection, setIsFetching, setTableLoading, setTableError, setFilteredApplicants, setTotal]);
+
+  // Create a debounced version for table refresh
+  const debouncedFetchTableData = useCallback((currentFilters: ApplicantFilterValues, currentPage: number, currentPageSize: number) => {
+    fetchTableData(currentFilters, currentPage, currentPageSize);
+  }, [fetchTableData]);
+
+  return {
+    fetchTableData,
+    debouncedFetchTableData,
+    currentRequestRef,
+    latestRequestIdRef
+  };
+}

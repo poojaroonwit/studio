@@ -1,11 +1,11 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 // src/app/api/transitions/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
-import { hasAnyPermission, canUpdateCandidatePipelineStage } from '@/lib/permissions';
+import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
+import { hasAnyPermission, canUpdateApplicantPipelineStage } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,12 +40,12 @@ export async function PUT(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving transition data
-  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_PIPELINE_STAGE_UPDATE']);
-  const hasOwnTransitionPermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
+  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'APPLICANTS_PIPELINE_STAGE_UPDATE']);
+  const hasOwnTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE_OWN']);
   
   if (!hasGlobalTransitionPermission && !hasOwnTransitionPermission) {
     await logAudit('WARN', `Forbidden attempt to update transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Update', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate transitions' }, { status: 403 });
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage Applicant transitions' }, { status: 403 });
   }
 
   let body;
@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest) {
   
   const client = await getPool().connect();
   try {
-    // First get the current transition record and candidate data for ownership check
+    // First get the current transition record and Applicant data for ownership check
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
     
     // Check ownership-based permissions for transition update
     if (!hasGlobalTransitionPermission) {
-      const transitionPermission = canUpdateCandidatePipelineStage(session.user, currentTransition.recruiterId, actingUserId);
+      const transitionPermission = canUpdateApplicantPipelineStage(session.user, currentTransition.recruiterId, actingUserId);
       if (!transitionPermission.canUpdate) {
         await logAudit('WARN', `Forbidden attempt to update transition by ${session.user.name || session.user.email || 'Unknown'}: ${transitionPermission.reason}`, 'API:Transitions:Update', actingUserId);
         return NextResponse.json({ message: `Forbidden: ${transitionPermission.reason}` }, { status: 403 });
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
     const updatedTransition = result.rows[0];
     
     // Broadcast the transition update
-    broadcastCandidateUpdate({
+    broadcastApplicantUpdate({
       candidateId: currentTransition.candidateId,
       transition: updatedTransition,
       action: 'update'
@@ -145,17 +145,17 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving transition data
-  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_PIPELINE_STAGE_UPDATE']);
-  const hasOwnTransitionPermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
+  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'APPLICANTS_PIPELINE_STAGE_UPDATE']);
+  const hasOwnTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE_OWN']);
   
   if (!hasGlobalTransitionPermission && !hasOwnTransitionPermission) {
     await logAudit('WARN', `Forbidden attempt to delete transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Delete', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate transitions' }, { status: 403 });
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage Applicant transitions' }, { status: 403 });
   }
   
   const client = await getPool().connect();
   try {
-    // First get the transition record and candidate data for ownership check
+    // First get the transition record and Applicant data for ownership check
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
@@ -172,7 +172,7 @@ export async function DELETE(request: NextRequest) {
     
     // Check ownership-based permissions for transition deletion
     if (!hasGlobalTransitionPermission) {
-      const transitionPermission = canUpdateCandidatePipelineStage(session.user, transitionToDelete.recruiterId, actingUserId);
+      const transitionPermission = canUpdateApplicantPipelineStage(session.user, transitionToDelete.recruiterId, actingUserId);
       if (!transitionPermission.canUpdate) {
         await logAudit('WARN', `Forbidden attempt to delete transition by ${session.user.name || session.user.email || 'Unknown'}: ${transitionPermission.reason}`, 'API:Transitions:Delete', actingUserId);
         return NextResponse.json({ message: `Forbidden: ${transitionPermission.reason}` }, { status: 403 });
@@ -187,7 +187,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Broadcast the transition deletion
-    broadcastCandidateUpdate({
+    broadcastApplicantUpdate({
       candidateId: transitionToDelete.candidateId,
       transition: transitionToDelete,
       action: 'delete'

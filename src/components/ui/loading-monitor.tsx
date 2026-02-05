@@ -60,14 +60,14 @@ export const LoadingMonitor: React.FC<LoadingMonitorProps> = ({
       <CardContent className="space-y-3">
         {candidateId && (
           <div className="text-xs text-muted-foreground">
-            Candidate ID: <code className="bg-muted px-1 rounded">{candidateId}</code>
+            Applicant ID: <code className="bg-muted px-1 rounded">{candidateId}</code>
           </div>
         )}
         
         {isLoading && (
           <div className="flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            <span className="text-sm">Loading candidate details...</span>
+            <span className="text-sm">Loading Applicant details...</span>
             <Badge variant="secondary" className="ml-auto">
               {formatTime(elapsedTime)}
             </Badge>

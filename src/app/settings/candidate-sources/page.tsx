@@ -43,10 +43,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
-import type { CandidateSource } from '@/lib/types';
+import type { ApplicantSource } from '@/lib/types';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
-const candidateSourceFormSchema = z.object({
+const ApplicantSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional(),
   email: z.string().optional(),
@@ -56,26 +56,26 @@ const candidateSourceFormSchema = z.object({
   logo: z.any().optional(), // For file upload
 });
 
-type CandidateSourceFormValues = z.infer<typeof candidateSourceFormSchema>;
+type ApplicantSourceFormValues = z.infer<typeof ApplicantSourceFormSchema>;
 
-export default function CandidateSourcesPage() {
+export default function ApplicantSourcesPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
 
-  const [sources, setSources] = useState<CandidateSource[]>([]);
+  const [sources, setSources] = useState<ApplicantSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSource, setEditingSource] = useState<CandidateSource | null>(null);
-  const [sourceToDelete, setSourceToDelete] = useState<CandidateSource | null>(null);
+  const [editingSource, setEditingSource] = useState<ApplicantSource | null>(null);
+  const [sourceToDelete, setSourceToDelete] = useState<ApplicantSource | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const form = useForm<CandidateSourceFormValues>({
-    resolver: zodResolver(candidateSourceFormSchema),
+  const form = useForm<ApplicantSourceFormValues>({
+    resolver: zodResolver(ApplicantSourceFormSchema),
     defaultValues: { 
       name: '', 
       description: '', 
@@ -90,7 +90,7 @@ export default function CandidateSourcesPage() {
     try {
       setIsLoading(true);
       setFetchError(null);
-      const response = await fetch('/api/settings/candidate-sources');
+      const response = await fetch('/api/settings/Applicant-sources');
       if (!response.ok) {
         throw new Error(`Failed to fetch sources: ${response.status}`);
       }
@@ -99,7 +99,7 @@ export default function CandidateSourcesPage() {
     } catch (error: any) {
       console.error('Failed to fetch sources:', error);
       setFetchError(error.message);
-      toast.error('Failed to load candidate sources');
+      toast.error('Failed to load Applicant sources');
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +153,7 @@ export default function CandidateSourcesPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', 'candidate-source-logo');
+      formData.append('type', 'Applicant-source-logo');
 
       const response = await fetch('/api/upload-image', {
         method: 'POST',
@@ -172,7 +172,7 @@ export default function CandidateSourcesPage() {
     }
   };
 
-  const handleSubmit = async (data: CandidateSourceFormValues) => {
+  const handleSubmit = async (data: ApplicantSourceFormValues) => {
     try {
       setIsUploading(true);
       
@@ -184,8 +184,8 @@ export default function CandidateSourcesPage() {
       }
 
       const url = editingSource 
-        ? `/api/settings/candidate-sources/${editingSource.id}`
-        : '/api/settings/candidate-sources';
+        ? `/api/settings/Applicant-sources/${editingSource.id}`
+        : '/api/settings/Applicant-sources';
       
       const method = editingSource ? 'PUT' : 'POST';
       
@@ -209,10 +209,10 @@ export default function CandidateSourcesPage() {
       
       if (editingSource) {
         setSources(prev => prev.map(s => s.id === editingSource.id ? result : s));
-        toast.success('Candidate source updated successfully');
+        toast.success('Applicant source updated successfully');
       } else {
         setSources(prev => [...prev, result]);
-        toast.success('Candidate source created successfully');
+        toast.success('Applicant source created successfully');
       }
 
       setIsModalOpen(false);
@@ -221,15 +221,15 @@ export default function CandidateSourcesPage() {
       form.reset();
     } catch (error: any) {
       console.error('Failed to save source:', error);
-      toast.error(error.message || 'Failed to save candidate source');
+      toast.error(error.message || 'Failed to save Applicant source');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDelete = async (source: CandidateSource) => {
+  const handleDelete = async (source: ApplicantSource) => {
     try {
-      const response = await fetch(`/api/settings/candidate-sources/${source.id}`, {
+      const response = await fetch(`/api/settings/Applicant-sources/${source.id}`, {
         method: 'DELETE',
       });
 
@@ -239,18 +239,18 @@ export default function CandidateSourcesPage() {
       }
 
       setSources(prev => prev.filter(s => s.id !== source.id));
-      toast.success('Candidate source deleted successfully');
+      toast.success('Applicant source deleted successfully');
       setSourceToDelete(null);
     } catch (error: any) {
       console.error('Failed to delete source:', error);
-      toast.error(error.message || 'Failed to delete candidate source');
+      toast.error(error.message || 'Failed to delete Applicant source');
     }
   };
 
   const handleReorder = async (sourceId: string, newSortOrder: number) => {
     try {
       setIsReordering(true);
-      const response = await fetch(`/api/settings/candidate-sources/${sourceId}`, {
+      const response = await fetch(`/api/settings/Applicant-sources/${sourceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sortOrder: newSortOrder }),
@@ -277,7 +277,7 @@ export default function CandidateSourcesPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (source: CandidateSource) => {
+  const openEditModal = (source: ApplicantSource) => {
     setEditingSource(source);
     setLogoPreview(source.logo || null);
     form.reset({
@@ -309,10 +309,10 @@ export default function CandidateSourcesPage() {
       <div className="flex justify-between items-center">
         <div>
           {!showLogoOnly && (
-            <h1 className="text-3xl font-bold tracking-tight">Candidate Sources</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Applicant Sources</h1>
           )}
           <p className="text-muted-foreground mt-2">
-            Manage candidate source options and settings for tracking where candidates come from.
+            Manage Applicant source options and settings for tracking where Applicants come from.
           </p>
         </div>
         <Button onClick={openCreateModal} className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export default function CandidateSourcesPage() {
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
           <ServerCrash className="h-5 w-5 text-destructive" />
           <div>
-            <p className="font-medium text-destructive">Failed to load candidate sources</p>
+            <p className="font-medium text-destructive">Failed to load Applicant sources</p>
             <p className="text-sm text-destructive/80">{fetchError}</p>
           </div>
           <Button variant="outline" size="sm" onClick={fetchSources}>
@@ -359,7 +359,7 @@ export default function CandidateSourcesPage() {
             ) : sources.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  No candidate sources found. Create your first source to get started.
+                  No Applicant sources found. Create your first source to get started.
                 </TableCell>
               </TableRow>
             ) : (
@@ -444,7 +444,7 @@ export default function CandidateSourcesPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Candidate Source</AlertDialogTitle>
+                            <AlertDialogTitle>Delete Applicant Source</AlertDialogTitle>
                             <AlertDialogDescription>
                               Are you sure you want to delete "{source.name}"? This action cannot be undone.
                             </AlertDialogDescription>
@@ -474,12 +474,12 @@ export default function CandidateSourcesPage() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {editingSource ? 'Edit Candidate Source' : 'Create Candidate Source'}
+              {editingSource ? 'Edit Applicant Source' : 'Create Applicant Source'}
             </DialogTitle>
             <DialogDescription>
               {editingSource 
-                ? 'Update the candidate source settings below.'
-                : 'Create a new candidate source to track where candidates come from.'
+                ? 'Update the Applicant source settings below.'
+                : 'Create a new Applicant source to track where Applicants come from.'
               }
             </DialogDescription>
           </DialogHeader>

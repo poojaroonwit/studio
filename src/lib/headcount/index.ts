@@ -2,11 +2,11 @@
  * Headcount Utilities Module
  * 
  * This module provides utilities for managing headcounts and their relationship
- * with positions and candidates. It includes:
+ * with positions and Applicants. It includes:
  * 
  * - Status checking functions
  * - Position automation (auto open/close based on headcount)
- * - Candidate assignment/unassignment
+ * - Applicant assignment/unassignment
  * - Validation functions
  * - Broadcast utilities
  * 
@@ -37,14 +37,14 @@ export {
 
 // Re-export validation functions
 export {
-  validateCandidateHiringStatus,
+  validateApplicantHiringStatus,
   checkHeadcountUnassignWarning,
 } from './validation';
 
 // Re-export assignment functions
 export {
-  assignCandidateToHeadcount,
-  unassignCandidateFromHeadcount,
+  assignApplicantToHeadcount,
+  unassignApplicantFromHeadcount,
 } from './assignment';
 
 // Re-export broadcast utilities

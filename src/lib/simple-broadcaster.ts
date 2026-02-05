@@ -4,38 +4,38 @@
 import { broadcast as broadcastAll } from './realtime';
 type UnifiedEventType = string;
 import { 
-  broadcastCandidateUpdateIfChanged, 
+  broadcastApplicantUpdateIfChanged, 
   broadcastPositionUpdateIfChanged, 
   broadcastUploadQueueUpdateIfChanged,
   broadcastDashboardUpdateIfChanged
 } from './data-change-tracker';
 import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority, forceBroadcast } from './aggressive-sse-optimizer';
 
-// Candidate-related broadcasts
-export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
+// Applicant-related broadcasts
+export function broadcastApplicantUpdate(Applicant: any, actingUserId?: string) {
   // Use smart change detection - only broadcast if data actually changed
-  broadcastCandidateUpdateIfChanged(candidate, actingUserId);
+  broadcastApplicantUpdateIfChanged(Applicant, actingUserId);
   
   // Also trigger dashboard refresh for real-time updates
-  broadcastDashboardRefresh('candidate_updated');
+  broadcastDashboardRefresh('Applicant_updated');
 }
 
-export function broadcastCandidateCreated(candidate: any, actingUserId?: string) {
-  // High priority for new candidates (always meaningful)
-  broadcastHighPriority('candidate_update', {
-    candidate,
+export function broadcastApplicantCreated(Applicant: any, actingUserId?: string) {
+  // High priority for new Applicants (always meaningful)
+  broadcastHighPriority('Applicant_update', {
+    Applicant,
     actingUserId,
     action: 'created',
     timestamp: new Date().toISOString()
   });
   
   // Also trigger dashboard refresh for real-time updates
-  broadcastDashboardRefresh('candidate_created');
+  broadcastDashboardRefresh('Applicant_created');
 }
 
-export function broadcastCandidateDeleted(candidateId: string, actingUserId?: string) {
+export function broadcastApplicantDeleted(candidateId: string, actingUserId?: string) {
   // High priority for deletions (always meaningful)
-  broadcastHighPriority('candidate_update', {
+  broadcastHighPriority('Applicant_update', {
     candidateId,
     actingUserId,
     action: 'deleted',
@@ -43,13 +43,13 @@ export function broadcastCandidateDeleted(candidateId: string, actingUserId?: st
   });
   
   // Also trigger dashboard refresh for real-time updates
-  broadcastDashboardRefresh('candidate_deleted');
+  broadcastDashboardRefresh('Applicant_deleted');
 }
 
-export function broadcastCandidateStatusChanged(candidate: any, oldStatus: string, newStatus: string, actingUserId?: string) {
+export function broadcastApplicantStatusChanged(Applicant: any, oldStatus: string, newStatus: string, actingUserId?: string) {
   // Force immediate broadcast for status changes (bypasses all optimizations)
-  forceBroadcast('candidate_update', {
-    candidate,
+  forceBroadcast('Applicant_update', {
+    Applicant,
     actingUserId,
     action: 'status_changed',
     oldStatus,
@@ -58,7 +58,7 @@ export function broadcastCandidateStatusChanged(candidate: any, oldStatus: strin
   });
   
   // Also trigger dashboard refresh for real-time updates
-  broadcastDashboardRefresh('candidate_status_changed');
+  broadcastDashboardRefresh('Applicant_status_changed');
 }
 
 // Position-related broadcasts
@@ -171,7 +171,7 @@ export function broadcastDashboardUpdate(data: any) {
   broadcastDashboardUpdateIfChanged(data, { minBroadcastInterval: 500 });
 }
 
-// Force dashboard refresh when candidates or positions change
+// Force dashboard refresh when Applicants or positions change
 export function broadcastDashboardRefresh(reason: string = 'data_changed') {
   // Force broadcast dashboard refresh without change detection
   forceBroadcast('dashboard_update', {

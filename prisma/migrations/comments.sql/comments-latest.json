@@ -607,6 +607,49 @@
       }
     ]
   },
+  "candidate_read_status": {
+    "table": {
+      "tableName": "candidate_read_status",
+      "comment": "CandidateReadStatus - Tracks read/unread status per user per candidate"
+    },
+    "columns": [
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "candidate_id",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "user_id",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "is_read",
+        "comment": "Whether the candidate has been read by this user"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "read_at",
+        "comment": "Timestamp when candidate was marked as read"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "created_at",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "candidate_read_status",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
   "RecruitmentStage": {
     "table": {
       "tableName": "RecruitmentStage",

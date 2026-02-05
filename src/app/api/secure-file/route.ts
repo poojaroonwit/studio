@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getSignedUrl } from '@/lib/minio';
 import prisma from '@/lib/prisma';
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to access files
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
+  if (!hasPermission(session.user, 'Applicants_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to access files' }, { status: 403 });
   }
 
@@ -31,30 +31,30 @@ export async function GET(request: NextRequest) {
   try {
     // Validate file access permissions based on context
     if (candidateId) {
-      // Check if user can access this candidate's files
-      const candidate = await prisma.candidate.findUnique({
+      // Check if user can access this Applicant's files
+      const applicant = await prisma.candidate.findUnique({
         where: { id: candidateId },
         select: { id: true, recruiterId: true }
       });
 
-      if (!candidate) {
-        return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+      if (!applicant) {
+        return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
       }
 
       // Check ownership-based permissions
-      const hasGlobalEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || 
-                                    session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-      const hasOwnEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || 
-                                 session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+      const hasGlobalEditPermission = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') || 
+                                    session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE');
+      const hasOwnEditPermission = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') || 
+                                 session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN');
 
       if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
-        return NextResponse.json({ error: 'Insufficient permissions to access candidate files' }, { status: 403 });
+        return NextResponse.json({ error: 'Insufficient permissions to access Applicant files' }, { status: 403 });
       }
 
       if (session.user.role !== 'Admin' && !hasGlobalEditPermission) {
         // Check ownership
-        if (candidate.recruiterId !== session.user.id) {
-          return NextResponse.json({ error: 'Access denied: You can only access files for your own candidates' }, { status: 403 });
+        if (applicant.recruiterId !== session.user.id) {
+          return NextResponse.json({ error: 'Access denied: You can only access files for your own Applicants' }, { status: 403 });
         }
       }
     } else if (headcountId) {

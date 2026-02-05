@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
-const createCandidateSourceSchema = z.object({
+const createApplicantSourceSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
@@ -19,17 +19,17 @@ const createCandidateSourceSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-const updateCandidateSourceSchema = createCandidateSourceSchema.partial().omit({ name: true });
+const updateApplicantSourceSchema = createApplicantSourceSchema.partial().omit({ name: true });
 
 /**
  * @openapi
- * /api/settings/candidate-sources:
+ * /api/settings/Applicant-sources:
  *   get:
- *     summary: Get candidate sources
- *     description: Returns all candidate sources ordered by sort order.
+ *     summary: Get Applicant sources
+ *     description: Returns all Applicant sources ordered by sort order.
  *     responses:
  *       200:
- *         description: List of candidate sources
+ *         description: List of Applicant sources
  *         content:
  *           application/json:
  *             schema:
@@ -41,8 +41,8 @@ const updateCandidateSourceSchema = createCandidateSourceSchema.partial().omit({
  *       500:
  *         description: Server error
  *   post:
- *     summary: Create a candidate source
- *     description: Creates a new candidate source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
+ *     summary: Create a Applicant source
+ *     description: Creates a new Applicant source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -66,7 +66,7 @@ const updateCandidateSourceSchema = createCandidateSourceSchema.partial().omit({
  *                 type: boolean
  *     responses:
  *       201:
- *         description: Candidate source created
+ *         description: Applicant source created
  *       400:
  *         description: Invalid input
  *       401:
@@ -82,15 +82,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  // Check if user has permission to view candidate sources
-  // Users should be able to view sources if they can view candidates (since sources are used for candidate management)
+  // Check if user has permission to view Applicant sources
+  // Users should be able to view sources if they can view Applicants (since sources are used for Applicant management)
   // Also allow Admin role to access
-  const hasViewPermission = hasPermission(session.user, 'CANDIDATES_VIEW') || 
+  const hasViewPermission = hasPermission(session.user, 'Applicants_VIEW') || 
                            session.user.role === 'Admin';
   
   if (!hasViewPermission) {
-    console.warn(`Permission denied for user ${session.user.id} (${session.user.name}) - missing CANDIDATES_VIEW permission`);
-    return NextResponse.json({ message: "Forbidden: Insufficient permissions to view candidate sources" }, { status: 403 });
+    console.warn(`Permission denied for user ${session.user.id} (${session.user.name}) - missing Applicants_VIEW permission`);
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions to view Applicant sources" }, { status: 403 });
   }
 
   try {
@@ -99,15 +99,15 @@ export async function GET(request: NextRequest) {
         id, name, description, email, logo, allow_sub_source as "allowSubSource", 
         sort_order as "sortOrder", is_active as "isActive", 
         "createdAt", "updatedAt"
-      FROM "CandidateSource"
+      FROM "ApplicantSource"
       ORDER BY sort_order ASC, name ASC
     `);
     
     return NextResponse.json(result.rows, { status: 200 });
   } catch (error: any) {
-    console.error("Failed to fetch candidate sources:", error);
-    await logAudit('ERROR', `Failed to fetch candidate sources. Error: ${error.message}`, 'API:CandidateSources:GetAll', session.user.id);
-    return NextResponse.json({ message: "Error fetching candidate sources", error: error.message }, { status: 500 });
+    console.error("Failed to fetch Applicant sources:", error);
+    await logAudit('ERROR', `Failed to fetch Applicant sources. Error: ${error.message}`, 'API:ApplicantSources:GetAll', session.user.id);
+    return NextResponse.json({ message: "Error fetching Applicant sources", error: error.message }, { status: 500 });
   }
 }
 
@@ -117,28 +117,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  // Check permissions - only admins can create/edit candidate sources
+  // Check permissions - only admins can create/edit Applicant sources
   if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT') && session.user.role !== 'Admin') {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 
   try {
     const body = await request.json();
-    const validatedData = createCandidateSourceSchema.parse(body);
+    const validatedData = createApplicantSourceSchema.parse(body);
 
     // Check if name already exists
     const existingResult = await getPool().query(
-      'SELECT id FROM "CandidateSource" WHERE name = $1',
+      'SELECT id FROM "ApplicantSource" WHERE name = $1',
       [validatedData.name]
     );
 
     if (existingResult.rows.length > 0) {
-      return NextResponse.json({ message: "A candidate source with this name already exists" }, { status: 409 });
+      return NextResponse.json({ message: "A Applicant source with this name already exists" }, { status: 409 });
     }
 
     const id = uuidv4();
     const result = await getPool().query(`
-      INSERT INTO "CandidateSource" (
+      INSERT INTO "ApplicantSource" (
         id, name, description, email, logo, allow_sub_source, sort_order, is_active, 
         "createdAt", "updatedAt"
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
@@ -158,15 +158,15 @@ export async function POST(request: NextRequest) {
 
     const newSource = result.rows[0];
     
-    await logAudit('INFO', `Created candidate source: ${validatedData.name}`, 'API:CandidateSources:Create', session.user.id);
+    await logAudit('INFO', `Created Applicant source: ${validatedData.name}`, 'API:ApplicantSources:Create', session.user.id);
     
     return NextResponse.json(newSource, { status: 201 });
   } catch (error: any) {
-    console.error("Failed to create candidate source:", error);
+    console.error("Failed to create Applicant source:", error);
     if (error.name === 'ZodError') {
       return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to create candidate source. Error: ${error.message}`, 'API:CandidateSources:Create', session.user.id);
-    return NextResponse.json({ message: "Error creating candidate source", error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to create Applicant source. Error: ${error.message}`, 'API:ApplicantSources:Create', session.user.id);
+    return NextResponse.json({ message: "Error creating Applicant source", error: error.message }, { status: 500 });
   }
 }

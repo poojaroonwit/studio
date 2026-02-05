@@ -195,10 +195,10 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All events</SelectItem>
-                  <SelectItem value="candidate.created">Candidate Created</SelectItem>
-                  <SelectItem value="candidate.updated">Candidate Updated</SelectItem>
-                  <SelectItem value="candidate.deleted">Candidate Deleted</SelectItem>
-                  <SelectItem value="candidate.stage_changed">Stage Changed</SelectItem>
+                  <SelectItem value="Applicant.created">Applicant Created</SelectItem>
+                  <SelectItem value="Applicant.updated">Applicant Updated</SelectItem>
+                  <SelectItem value="Applicant.deleted">Applicant Deleted</SelectItem>
+                  <SelectItem value="Applicant.stage_changed">Stage Changed</SelectItem>
                   <SelectItem value="position.created">Position Created</SelectItem>
                   <SelectItem value="position.updated">Position Updated</SelectItem>
                   <SelectItem value="position.deleted">Position Deleted</SelectItem>

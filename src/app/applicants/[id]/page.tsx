@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, ServerCrash, UserCircle } from 'lucide-react';
-import CandidateDetailView from '@/components/candidates/CandidateDetailView';
+import ApplicantDetailView from '@/components/applicants/ApplicantDetailView';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
-import type { Candidate } from '@/lib/types';
+import type { Applicant } from '@/lib/types';
 
 export default function ApplicantDetailPage() {
   const params = useParams();
@@ -31,16 +31,16 @@ export default function ApplicantDetailPage() {
     return null;
   }
 
-  // UUID validation removed - proceed with any candidate ID
+  // UUID validation removed - proceed with any Applicant ID
 
     return (
       <div className="h-full bg-background">
         <ErrorBoundary>
           <SafeComponentWrapper 
             fallbackTitle="Applicant Page Error"
-            fallbackDescription="There was an issue loading the applicant details. This may be due to a temporary initialization problem."
+            fallbackDescription="There was an issue loading the Applicant details. This may be due to a temporary initialization problem."
           >
-            <CandidateDetailView
+            <ApplicantDetailView
               candidateId={candidateId}
               isModal={false}
               onClose={() => router.push('/applicants')}

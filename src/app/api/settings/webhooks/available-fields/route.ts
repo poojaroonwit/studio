@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { WebhookBodyProcessor } from '@/lib/webhookBodyProcessor';
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     } else {
       // Get all available event types and their fields
       const allEventTypes = [
-        'candidate.created', 'candidate.updated', 'candidate.deleted', 'candidate.stage_changed',
+        'Applicant.created', 'Applicant.updated', 'Applicant.deleted', 'Applicant.stage_changed',
         'position.created', 'position.updated', 'position.deleted',
         'user.created', 'user.updated', 'user.deleted',
         'resume.uploaded', 'resume.processed',

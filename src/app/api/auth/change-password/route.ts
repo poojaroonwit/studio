@@ -1,4 +1,4 @@
-﻿// src/app/api/auth/change-password/route.ts
+// src/app/api/auth/change-password/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';

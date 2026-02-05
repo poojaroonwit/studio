@@ -41,15 +41,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = await getPool().connect();
   
   try {
-    // First check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // First check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    if (applicantResult.rows.length === 0) {
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Get job matches for this candidate
+    // Get job matches for this Applicant
     const jobMatchesQuery = `
       SELECT jm.*, p.title as "positionTitle"
       FROM "JobMatch" jm
@@ -98,13 +98,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     body = normalizePayloadTypes(body);
   } catch (error) {
     console.error('[JOB-MATCHES] JSON parse error:', error);
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobMatchesUpdateSchema.safeParse(body);
   if (!validationResult.success) {
     console.error('[JOB-MATCHES] Validation error:', validationResult.error.flatten());
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { job_matches } = validationResult.data;
@@ -112,12 +112,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     
     const result = await withDbTransaction(async (client) => {
-      // Check if candidate exists
-      const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-      const candidateResult = await client.query(candidateQuery, [id]);
+      // Check if Applicant exists
+      const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+      const applicantResult = await client.query(applicantQuery, [id]);
       
-      if (candidateResult.rows.length === 0) {
-        throw new Error('Candidate not found');
+      if (applicantResult.rows.length === 0) {
+        throw new Error('Applicant not found');
       }
 
 
@@ -207,8 +207,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     
     // Handle specific known errors
-    if ((error as Error).message === 'Candidate not found') {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    if ((error as Error).message === 'Applicant not found') {
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
     
     return new Response(JSON.stringify({ 
@@ -244,13 +244,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     body = normalizePayloadTypes(body);
   } catch (error) {
     console.error('[JOB-MATCHES] JSON parse error:', error);
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobMatchesUpdateSchema.safeParse(body);
   if (!validationResult.success) {
     console.error('[JOB-MATCHES] Validation error:', validationResult.error.flatten());
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { job_matches } = validationResult.data;
@@ -260,13 +260,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
     // Update existing job matches or insert new ones
@@ -366,12 +366,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobMatchesUpdateSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { job_matches } = validationResult.data;
@@ -380,16 +380,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Delete existing job matches for this candidate
+    // Delete existing job matches for this Applicant
     await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1', [id]);
 
     // Insert new job matches
@@ -453,16 +453,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Delete all job matches for this candidate
+    // Delete all job matches for this Applicant
     const deleteResult = await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1 RETURNING id', [id]);
     
     await client.query('COMMIT');

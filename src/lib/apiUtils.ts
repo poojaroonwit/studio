@@ -1,6 +1,6 @@
 // src/lib/apiUtils.ts
 import { getPool } from './db';
-import type { Position, RecruitmentStage, Candidate, UserProfile } from './types';
+import type { Position, RecruitmentStage, Applicant, UserProfile } from './types';
 import { normalizeFitScore } from './scoreUtils';
 
 export async function fetchAllPositionsDb(): Promise<Position[]> {
@@ -46,7 +46,7 @@ export async function fetchAllUsersDb(filterRole?: UserProfile['role']): Promise
   }
 }
 
-export async function fetchInitialDashboardCandidatesDb(limit: number = 10): Promise<Candidate[]> {
+export async function fetchInitialDashboardApplicantsDb(limit: number = 10): Promise<Applicant[]> {
   const pool = getPool();
   try {
     const query = `
@@ -56,12 +56,12 @@ export async function fetchInitialDashboardCandidatesDb(limit: number = 10): Pro
       LIMIT $1;
     `;
     const result = await pool.query(query, [limit]);
-    return result.rows.map((row: Candidate) => ({
+    return result.rows.map((row: Applicant) => ({
       ...row,
       fitScore: normalizeFitScore(row.fitScore),
     }));
   } catch (error) {
-    console.error("Error fetching initial dashboard candidates from DB:", error);
+    console.error("Error fetching initial dashboard Applicants from DB:", error);
     throw error;
   }
 }
@@ -82,7 +82,7 @@ export async function getAllUsers() {
   return result.rows;
 }
 
-export async function getAllCandidates() {
+export async function getAllApplicants() {
   const pool = getPool();
   const result = await pool.query(`
     SELECT c.*, p.title as "positionTitle", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl"
@@ -161,15 +161,15 @@ export function normalizePayloadTypes<T>(input: T): T {
 const FIELDS_TO_STRINGIFY = [
   // educationData & experienceData
   'GPA', 'startMonth', 'startYear', 'endMonth', 'endYear', 'isCurrent', 'major', 'university', 'company', 'position', 'description',
-  // candidate_info.personal_info
+  // applicant_info.personal_info
   'firstname', 'lastname', 'nickname', 'title_honorific', 'introduction_aboutme', 'location',
-  // candidate_info.contact_info
+  // applicant_info.contact_info
   'email', 'phone',
-  // candidate_info
+  // applicant_info
   'cv_language', 'status',
-  // candidate_info.job_suitable
+  // applicant_info.job_suitable
   'suitable_career', 'suitable_job_level', 'suitable_job_position', 'suitable_salary_bath_month',
-  // candidate_info.skills
+  // applicant_info.skills
   'segment_skill'
 ];
 

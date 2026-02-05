@@ -33,7 +33,7 @@ export async function checkPositionHeadcountStatus(positionId: string): Promise<
       };
     }
 
-    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
     const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null).length;
     const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null).length;
     const isFilled = vacantHeadcounts === 0 && filledHeadcounts > 0;

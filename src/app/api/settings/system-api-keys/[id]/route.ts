@@ -95,7 +95,7 @@ export async function GET(
  * {
  *   "name": "Updated Name",
  *   "description": "Updated description",
- *   "permissions": ["read:candidates"],
+ *   "permissions": ["read:applicants"],
  *   "role": "api_user",
  *   "isActive": true,
  *   "expiresAt": "2025-12-31T23:59:59Z" | null

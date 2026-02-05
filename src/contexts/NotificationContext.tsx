@@ -196,18 +196,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id, addNotification]);
 
-  const handleCandidateUpdate = useCallback((data: any) => {
-    if (data.type === 'candidate_update' && data.candidate) {
+  const handleApplicantUpdate = useCallback((data: any) => {
+    if (data.type === 'Applicant_update' && data.Applicant) {
       // Prevent self-notifications: don't show notifications about user's own actions
       if (data.actingUserId && data.actingUserId === session?.user?.id) {
         return; // Skip notifications about user's own actions
       }
       
       addNotification({
-        type: 'candidate_update',
-        title: 'Candidate Updated',
-        message: `Candidate ${data.candidate.name || data.candidate.email} has been updated`,
-        data: { candidateId: data.candidate.id, ...data },
+        type: 'Applicant_update',
+        title: 'Applicant Updated',
+        message: `Applicant ${data.applicant.name || data.applicant.email} has been updated`,
+        data: { candidateId: data.applicant.id, ...data },
       });
     }
   }, [session?.user?.id, addNotification]);

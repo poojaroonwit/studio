@@ -16,7 +16,7 @@ const customFieldOptionSchemaClient = z.object({
 });
 
 const customFieldFormSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
+  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
   field_key: z.string().min(1, "Field key is required").regex(/^[a-z0-9_]+$/, "Key must be lowercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
@@ -47,7 +47,7 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
       is_required: definition.is_required || false,
       sort_order: definition.sort_order || 0,
     } : {
-      model_name: 'Candidate',
+      model_name: 'Applicant',
       field_key: '',
       label: '',
       field_type: 'text',
@@ -77,7 +77,7 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
       });
       replaceOptions(definition.options || []);
     } else {
-      form.reset({ model_name: 'Candidate', field_key: '', label: '', field_type: 'text', options: [], is_required: false, sort_order: 0 });
+      form.reset({ model_name: 'Applicant', field_key: '', label: '', field_type: 'text', options: [], is_required: false, sort_order: 0 });
       replaceOptions([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,7 +110,7 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Model</label>
               <select {...form.register('model_name')} className="w-full border rounded p-2 bg-background">
-                <option value="Candidate">Candidate</option>
+                <option value="Candidate">Applicant</option>
                 <option value="Position">Position</option>
                 <option value="User">User</option>
                 <option value="Headcount">Headcount</option>

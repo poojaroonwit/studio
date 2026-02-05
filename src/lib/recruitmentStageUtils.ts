@@ -94,9 +94,9 @@ export async function getAllRecruitmentStages() {
 }
 
 /**
- * Update candidate status by stage name
+ * Update Applicant status by stage name
  */
-export async function updateCandidateStatus(
+export async function updateApplicantStatus(
   candidateId: string,
   stageName: string
 ): Promise<void> {
@@ -105,7 +105,7 @@ export async function updateCandidateStatus(
     throw new Error(`Recruitment stage '${stageName}' not found`);
   }
 
-  await prisma.candidate.update({
+  await prisma.Applicant.update({
     where: { id: candidateId },
     data: { statusId: stage }
   });
@@ -131,15 +131,15 @@ export async function getCommonStageIds() {
 }
 
 /**
- * Check if a candidate status matches a specific stage name
+ * Check if a Applicant status matches a specific stage name
  */
-export function isCandidateInStage(candidateStatus: string, stageName: string, stageIds: Record<string, string | undefined>): boolean {
+export function isApplicantInStage(ApplicantStatus: string, stageName: string, stageIds: Record<string, string | undefined>): boolean {
   const stageId = stageIds[stageName.toLowerCase() as keyof typeof stageIds];
-  return stageId ? candidateStatus === stageId : false;
+  return stageId ? ApplicantStatus === stageId : false;
 }
 
 /**
- * Get stage name from candidate status ID
+ * Get stage name from Applicant status ID
  */
 export async function getStageNameFromStatus(statusId: string): Promise<string | null> {
   return await getRecruitmentStageName(statusId);

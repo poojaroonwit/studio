@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/positions/export/route.ts
@@ -138,7 +138,7 @@ export async function GET() {
     });
     return NextResponse.json({ error: 'Failed to export positions' }, { status: 500 });
   } finally {
-    // ✅ CRITICAL FIX: Always release the database client
+    // ? CRITICAL FIX: Always release the database client
     if (client) {
       try {
         client.release();

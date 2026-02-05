@@ -101,7 +101,7 @@ Return ONLY the HTML-formatted job description without any additional text or ex
         throw new Error(`Gemini API error: ${data.error.message || JSON.stringify(data.error)}`);
       }
       
-      let generatedDescription = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      let generatedDescription = data.Applicants?.[0]?.content?.parts?.[0]?.text || "";
 
       if (!generatedDescription.trim()) {
         console.error('Empty response from Gemini API');

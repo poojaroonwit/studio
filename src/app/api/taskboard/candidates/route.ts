@@ -1,4 +1,4 @@
-﻿// Optimized API endpoint specifically for taskboard performance
+// Optimized API endpoint specifically for taskboard performance
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   let client: any = null;
 
   try {
-    const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
+    const { session, error } = await requireSessionAndPermission('Applicants_VIEW', request);
     if (error) return error;
 
     const { searchParams } = new URL(request.url);
@@ -143,17 +143,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Auto-filter for recruiters
-    const isRecruiterViewRestricted = !hasPermission(session.user, 'CANDIDATES_VIEW');
+    const isRecruiterViewRestricted = !hasPermission(session.user, 'Applicants_VIEW');
     if (isRecruiterViewRestricted && !filters.recruiterId && !filters.positionId) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
     }
 
-    // Filter for hiring managers: only show candidates for positions where they are assigned as interviewers
+    // Filter for hiring managers: only show Applicants for positions where they are assigned as interviewers
     const isHiringManager = session.user.role === 'Hiring Manager';
     if (isHiringManager) {
-      // Check if user has permission to view all candidates (overrides system setting)
-      const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
+      // Check if user has permission to view all Applicants (overrides system setting)
+      const hasViewAllPermission = hasPermission(session.user, 'Applicants_VIEW_ALL');
 
       if (!hasViewAllPermission) {
         // Check system setting to see if restriction is enabled
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
     const dataResult = await client.query(dataQuery, [...queryParams, limit, offset]);
 
     // Optimize data transformation - only essential fields for taskboard
-    const candidates = dataResult.rows.map((row: any) => ({
+    const Applicants = dataResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       email: row.email,
@@ -237,11 +237,11 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      data: candidates,
+      data: Applicants,
       pagination: {
         page,
         limit,
-        hasNext: candidates.length === limit,
+        hasNext: Applicants.length === limit,
         hasPrev: page > 1
       }
     }, { headers });
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     const responseTime = Date.now() - startTime;
 
     return NextResponse.json({
-      message: 'Error fetching taskboard candidates',
+      message: 'Error fetching taskboard Applicants',
       error: error.message,
       responseTime: `${responseTime}ms`
     }, { status: 500 });

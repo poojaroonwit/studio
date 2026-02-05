@@ -1,8 +1,8 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateCandidateHiringStatus } from '@/lib/headcountUtils';
+import { validateApplicantHiringStatus } from '@/lib/headcountUtils';
 
 import { auth } from '@/auth';
 export async function GET(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate headcount availability
-    const validationResult = await validateCandidateHiringStatus(candidateId, positionId);
+    const validationResult = await validateApplicantHiringStatus(candidateId, positionId);
 
     return NextResponse.json(validationResult);
   } catch (error) {

@@ -178,7 +178,7 @@ export class WebhookBodyProcessor {
       }
     });
 
-    // Handle nested object access like {{data.candidate.name}}
+    // Handle nested object access like {{data.applicant.name}}
     const nestedPattern = /\{\{([^}]+)\}\}/g;
     processed = processed.replace(nestedPattern, (match, path) => {
       const value = this.getNestedValue(variables, path);
@@ -273,20 +273,20 @@ export class WebhookBodyProcessor {
    */
   static getAvailableFields(eventType: string): string[] {
     const fieldMaps: Record<string, string[]> = {
-      'candidate.created': [
+      'Applicant.created': [
         'id', 'name', 'email', 'phone', 'status', 'positionId', 'applicationDate',
         'createdAt', 'updatedAt', 'resume', 'coverLetter', 'skills', 'experience'
       ],
-      'candidate.updated': [
+      'Applicant.updated': [
         'id', 'name', 'email', 'phone', 'status', 'positionId', 'applicationDate',
         'createdAt', 'updatedAt', 'resume', 'coverLetter', 'skills', 'experience',
         'changes', 'previousValues'
       ],
-      'candidate.deleted': [
+      'Applicant.deleted': [
         'id', 'name', 'email', 'phone', 'status', 'positionId', 'applicationDate',
         'createdAt', 'updatedAt', 'deletedAt'
       ],
-      'candidate.stage_changed': [
+      'Applicant.stage_changed': [
         'id', 'name', 'email', 'status', 'positionId', 'previousStage', 'newStage',
         'changedAt', 'changedBy', 'reason'
       ],
@@ -311,23 +311,23 @@ export class WebhookBodyProcessor {
         'id', 'name', 'email', 'role', 'deletedAt'
       ],
       'resume.uploaded': [
-        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'candidateName',
+        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'ApplicantName',
         'positionId', 'positionTitle'
       ],
       'resume.processed': [
-        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'candidateName',
+        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'ApplicantName',
         'positionId', 'positionTitle', 'processingResult', 'extractedData'
       ],
       'comment.created': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'candidateName',
+        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
         'createdAt', 'attachments'
       ],
       'comment.updated': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'candidateName',
+        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
         'createdAt', 'updatedAt', 'changes'
       ],
       'comment.deleted': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'candidateName',
+        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
         'deletedAt'
       ],
       'upload_queue.created': [
@@ -376,10 +376,10 @@ export class WebhookBodyProcessor {
    */
   static getSamplePayload(eventType: string): any {
     const sampleData: Record<string, any> = {
-      'candidate.created': {
+      'Applicant.created': {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        name: 'Sample Candidate',
-        email: 'candidate@example.com',
+        name: 'Sample Applicant',
+        email: 'Applicant@example.com',
         phone: '+1234567890',
         status: 'active',
         positionId: '456e7890-e89b-12d3-a456-426614174001',

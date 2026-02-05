@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 
@@ -58,8 +58,8 @@ export async function GET(
       }
     }
 
-    // Only prioritize pinned candidates if showPinSection is enabled
-    // This must come AFTER the fitScore handling to ensure pinned candidates are always on top
+    // Only prioritize pinned applicants if showPinSection is enabled
+    // This must come AFTER the fitScore handling to ensure pinned applicants are always on top
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
       // Use a placeholder for the table alias which will be replaced based on the type of query
@@ -76,7 +76,7 @@ export async function GET(
     try {
       client = await getPool().connect();
     } catch (connectionError: any) {
-      console.error(`[Position Candidates API] Failed to connect to database:`, connectionError);
+      console.error(`[Position Applicants API] Failed to connect to database:`, connectionError);
       return NextResponse.json({
         message: 'Database connection error',
         error: connectionError.message
@@ -93,9 +93,9 @@ export async function GET(
       // For hiring managers, verify they are assigned as an interviewer for this position
       const isHiringManager = session.user.role === 'Hiring Manager';
       if (isHiringManager) {
-        // Check if user has permission to view all candidates (overrides system setting)
+        // Check if user has permission to view all applicants (overrides system setting)
         const { hasPermission } = await import('@/lib/permissions');
-        const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
+        const hasViewAllPermission = hasPermission(session.user, 'APPLICANTS_VIEW_ALL');
 
         if (!hasViewAllPermission) {
           // Check system setting to see if restriction is enabled
@@ -122,7 +122,7 @@ export async function GET(
       let baseQuery = '';
 
       if (type === 'applied') {
-        // Only candidates who applied to this position
+        // Only applicants who applied to this position
         baseQuery = `
             SELECT 
               c.*, 
@@ -166,7 +166,7 @@ export async function GET(
             LIMIT $4 OFFSET $5;
           `;
       } else if (type === 'matched') {
-        // Only candidates who have job matches but didn't apply
+        // Only applicants who have job matches but didn't apply
         baseQuery = `
             SELECT 
               c.*, 
@@ -214,9 +214,9 @@ export async function GET(
             LIMIT $4 OFFSET $5;
           `;
       } else {
-        // All candidates (applied + matched)
+        // All applicants (applied + matched)
         baseQuery = `
-            WITH applied_candidates AS (
+            WITH applied_applicants AS (
               SELECT 
                 c.*, 
                 rs.name as "status",
@@ -256,7 +256,7 @@ export async function GET(
               WHERE c."positionId" = $1
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
             ),
-            matched_candidates AS (
+            matched_applicants AS (
               SELECT 
                 c.*, 
                 rs.name as "status",
@@ -301,16 +301,16 @@ export async function GET(
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
             )
             SELECT * FROM (
-              SELECT *, 1 as sort_order FROM applied_candidates
+              SELECT *, 1 as sort_order FROM applied_applicants
               UNION ALL
-              SELECT *, 2 as sort_order FROM matched_candidates
+              SELECT *, 2 as sort_order FROM matched_applicants
             ) combined_results
             ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
       }
 
-      const candidatesQuery = baseQuery
+      const applicantsQuery = baseQuery
         .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause)
         .replace(/__TABLE_ALIAS__\./g, type === 'all' ? 'combined_results.' : 'c.');
 
@@ -337,13 +337,13 @@ export async function GET(
          `;
       } else {
         countQuery = `
-           WITH applied_candidates AS (
+           WITH applied_applicants AS (
              SELECT c.id
              FROM "Candidate" c
              WHERE c."positionId" = $1
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
            ),
-           matched_candidates AS (
+           matched_applicants AS (
              SELECT c.id
              FROM "Candidate" c
              WHERE (c."positionId" IS NULL OR c."positionId" != $1)
@@ -353,7 +353,7 @@ export async function GET(
              )
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
            )
-           SELECT (SELECT COUNT(*) FROM applied_candidates) + (SELECT COUNT(*) FROM matched_candidates) as total;
+           SELECT (SELECT COUNT(*) FROM applied_applicants) + (SELECT COUNT(*) FROM matched_applicants) as total;
          `;
       }
 
@@ -361,13 +361,13 @@ export async function GET(
       const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
       const countParams = [positionId, searchTerm, searchPattern];
 
-      const [candidatesResult, countResult] = await Promise.all([
-        client.query(candidatesQuery, queryParams),
+      const [applicantsResult, countResult] = await Promise.all([
+        client.query(applicantsQuery, queryParams),
         client.query(countQuery, countParams)
       ]);
 
       const total = parseInt(countResult.rows[0].total, 10);
-      const candidates = candidatesResult.rows.map((row: any) => {
+      const applicants = applicantsResult.rows.map((row: any) => {
         let customAttributes = row.customAttributes || {};
         if (typeof customAttributes === 'string') {
           try {
@@ -439,7 +439,7 @@ export async function GET(
       });
 
       return NextResponse.json({
-        data: candidates,
+        data: applicants,
         pagination: {
           page,
           limit,
@@ -460,7 +460,7 @@ export async function GET(
       }
     }
   } catch (error: any) {
-    console.error('Error fetching position candidates:', error);
+    console.error('Error fetching position applicants:', error);
 
     // Log additional details for debugging
     const { id: positionId } = await params;
@@ -469,7 +469,7 @@ export async function GET(
     console.error('Error stack:', error.stack);
 
     return NextResponse.json({
-      message: 'Error fetching position candidates',
+      message: 'Error fetching position applicants',
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       positionId: positionId,

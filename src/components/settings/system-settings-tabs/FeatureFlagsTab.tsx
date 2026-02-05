@@ -84,7 +84,7 @@ export default function FeatureFlagsTab({
                                 <div className="space-y-0.5">
                                     <Label htmlFor="hiring-manager-restrict">Hiring Manager Access Control</Label>
                                     <p className="text-sm text-muted-foreground">
-                                        When enabled, hiring managers can only see positions and candidates for positions where they are assigned as interviewers. When disabled, hiring managers can see all positions and candidates.
+                                        When enabled, hiring managers can only see positions and Applicants for positions where they are assigned as interviewers. When disabled, hiring managers can see all positions and Applicants.
                                     </p>
                                 </div>
                                 <Switch

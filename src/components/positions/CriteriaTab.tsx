@@ -52,7 +52,7 @@ export function CriteriaTab({
                 <Target className="h-6 w-6" /> Match Criteria
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Requirements and criteria for candidate matching
+                Requirements and criteria for Applicant matching
               </p>
             </div>
             {!isEditMode ? (

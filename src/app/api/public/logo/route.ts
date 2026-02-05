@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Security: Only allow access to settings and logo images
-  const allowedPaths = ['settings/', 'candidate-source-logo/'];
+  const allowedPaths = ['settings/', 'Applicant-source-logo/'];
   const isAllowed = allowedPaths.some(path => filePath.toLowerCase().startsWith(path));
   
   if (!isAllowed) {

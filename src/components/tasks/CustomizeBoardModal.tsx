@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { List, LayoutGrid, Settings, Eye, EyeOff, Check, X, ChevronDown, ChevronUp, Ban, BarChart2, User, Briefcase, Target, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const candidateFields = [
+const ApplicantFields = [
   { key: 'none', label: 'None', icon: <Ban className="w-4 h-4" /> },
   { key: 'status', label: 'Status', icon: <BarChart2 className="w-4 h-4" /> },
   { key: 'recruiterId', label: 'Recruiter', icon: <User className="w-4 h-4" /> },
@@ -200,11 +200,11 @@ function MultiSelect({
   );
 }
 
-// Dynamically extract custom fields from candidates
-function getCustomFieldKeys(candidates: any[]): string[] {
+// Dynamically extract custom fields from Applicants
+function getCustomFieldKeys(Applicants: any[]): string[] {
   const keys = new Set<string>();
-  const safeCandidates = Array.isArray(candidates) ? candidates : [];
-  safeCandidates.forEach(c => {
+  const safeApplicants = Array.isArray(Applicants) ? Applicants : [];
+  safeApplicants.forEach(c => {
     if (c.customAttributes && typeof c.customAttributes === 'object') {
       Object.keys(c.customAttributes).forEach(k => keys.add(k));
     }
@@ -213,9 +213,9 @@ function getCustomFieldKeys(candidates: any[]): string[] {
 }
 
 // Helper to extract all unique keys (including nested) from parsedData using dot notation
-function getParsedDataKeys(candidates: any[]): string[] {
+function getParsedDataKeys(Applicants: any[]): string[] {
   const keys = new Set<string>();
-  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  const safeApplicants = Array.isArray(Applicants) ? Applicants : [];
   function extractKeys(obj: any, prefix = '') {
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
       Object.keys(obj).forEach(k => {
@@ -225,7 +225,7 @@ function getParsedDataKeys(candidates: any[]): string[] {
       });
     }
   }
-  safeCandidates.forEach(c => {
+  safeApplicants.forEach(c => {
     if (c.parsedData && typeof c.parsedData === 'object') {
       extractKeys(c.parsedData);
     }
@@ -249,7 +249,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [Applicants, setApplicants] = useState<any[]>([]);
 
   // Fetch actual data when modal opens
   useEffect(() => {
@@ -274,11 +274,11 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         if (!stagesRes.ok) throw new Error('Failed to fetch stages');
         const stagesData = await stagesRes.json();
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => ({ id: s.id, name: s.name })) : []);
-        // Fetch candidates to get unique values
-        const candidatesRes = await fetch('/api/candidates?limit=1000');
-        if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
-        const candidatesData = await candidatesRes.json();
-        setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));
+        // Fetch Applicants to get unique values
+        const ApplicantsRes = await fetch('/api/applicants?limit=1000');
+        if (!ApplicantsRes.ok) throw new Error('Failed to fetch Applicants');
+        const ApplicantsData = await ApplicantsRes.json();
+        setApplicants(Array.isArray(ApplicantsData) ? ApplicantsData : (ApplicantsData.data || []));
       } catch (error) {
         console.error('CustomizeBoardModal: Error fetching actual data:', error);
       } finally {
@@ -288,22 +288,22 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     fetchActualData();
   }, [open]);
 
-  // Always recalculate field options on every render so new candidates/fields are included
-  const customFieldKeys = getCustomFieldKeys(candidates);
-  const parsedDataKeys = getParsedDataKeys(candidates);
+  // Always recalculate field options on every render so new Applicants/fields are included
+  const customFieldKeys = getCustomFieldKeys(Applicants);
+  const parsedDataKeys = getParsedDataKeys(Applicants);
   const allFieldKeys = new Set([
-    ...candidateFields.map(f => f.key),
+    ...ApplicantFields.map(f => f.key),
     ...customFieldKeys
   ]);
   const parsedDataFieldObjs = parsedDataKeys
     .filter(key => !allFieldKeys.has(key))
     .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> }));
-  const dynamicCandidateFields = [
-    ...candidateFields,
+  const dynamicApplicantFields = [
+    ...ApplicantFields,
     ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),
     ...parsedDataFieldObjs
   ];
-  const validCandidateFields = dynamicCandidateFields.filter(f => f.key && f.key.trim() !== '');
+  const validApplicantFields = dynamicApplicantFields.filter(f => f.key && f.key.trim() !== '');
 
   
   // Get all possible values for each field type using actual data
@@ -318,8 +318,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       case 'positionId':
         return positions.length > 0 ? positions.map(p => p.title || p.id) : ['No positions available'];
       case 'fitScore':
-        if (candidates.length > 0) {
-          const scores = candidates.map(c => c.fitScore).filter(s => typeof s === 'number');
+        if (Applicants.length > 0) {
+          const scores = Applicants.map(c => c.fitScore).filter(s => typeof s === 'number');
           if (scores.length > 0) {
             const min = Math.min(...scores);
             const max = Math.max(...scores);
@@ -344,8 +344,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
       default:
         // For any other field, check both root and customAttributes
-        if (candidates.length > 0) {
-          const values = candidates.map(c => c[fieldKey] ?? c.customAttributes?.[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
+        if (Applicants.length > 0) {
+          const values = Applicants.map(c => c[fieldKey] ?? c.customAttributes?.[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
           const uniqueValues = [...new Set(values)];
           return uniqueValues.length > 0 ? uniqueValues : cleanRowFieldValues.length > 0 ? cleanRowFieldValues : ['Option 1', 'Option 2', 'Option 3'];
         }
@@ -436,7 +436,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   // Update visible values when data is loaded and fields change
   useEffect(() => {
-    if (open && !initializing && (recruiters.length > 0 || positions.length > 0 || stages.length > 0 || candidates.length > 0)) {
+    if (open && !initializing && (recruiters.length > 0 || positions.length > 0 || stages.length > 0 || Applicants.length > 0)) {
       // Only update if we have data and the modal is not initializing
       const rowValues = getAllPossibleValues(rowField);
       const colValues = getAllPossibleValues(columnField);
@@ -449,11 +449,11 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         setVisibleColumnValues(colValues);
       }
     }
-  }, [rowField, columnField, open, recruiters, positions, stages, candidates, initializing]);
+  }, [rowField, columnField, open, recruiters, positions, stages, Applicants, initializing]);
 
   // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
   const baseRowColumnFields = [
-    ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
+    ...ApplicantFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
     ...customFieldKeys
       .filter(key => !['name', 'email', 'phone'].includes(key))
       .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),
@@ -474,7 +474,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   // Debug logging
   
   
-  // For card fields: candidateFields + customFieldKeys + parsedDataFields
+  // For card fields: ApplicantFields + customFieldKeys + parsedDataFields
   const cardFields = [
     ...rowAndColumnFields,
     ...parsedDataFieldObjs.filter(f => ['name', 'email', 'phone'].includes(f.key))
@@ -503,7 +503,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       setRecruiter([]);
       setPositions([]);
       setStages([]);
-      setCandidates([]);
+      setApplicants([]);
     }
   }, [open]);
 
@@ -514,11 +514,11 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     try {
       const rowValuesToSave = rowField === 'none' ? [] : visibleRowValues;
       const prefs = [
-        { modelType: 'Candidate', attributeKey: 'mytasks_rowField', uiPreference: 'Standard', customNote: rowField },
-        { modelType: 'Candidate', attributeKey: 'mytasks_columnField', uiPreference: 'Standard', customNote: columnField },
-        { modelType: 'Candidate', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(rowValuesToSave) },
-        { modelType: 'Candidate', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify(visibleColumnValues) },
-        { modelType: 'Candidate', attributeKey: 'mytasks_visibleFields', uiPreference: 'Standard', customNote: JSON.stringify(visibleFields) },
+        { modelType: 'Applicant', attributeKey: 'mytasks_rowField', uiPreference: 'Standard', customNote: rowField },
+        { modelType: 'Applicant', attributeKey: 'mytasks_columnField', uiPreference: 'Standard', customNote: columnField },
+        { modelType: 'Applicant', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(rowValuesToSave) },
+        { modelType: 'Applicant', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify(visibleColumnValues) },
+        { modelType: 'Applicant', attributeKey: 'mytasks_visibleFields', uiPreference: 'Standard', customNote: JSON.stringify(visibleFields) },
       ];
       
       
@@ -583,15 +583,15 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   };
 
   const getFieldIcon = (key: string) => {
-    return dynamicCandidateFields.find(f => f.key === key)?.icon || <List className="w-4 h-4" />;
+    return dynamicApplicantFields.find(f => f.key === key)?.icon || <List className="w-4 h-4" />;
   };
 
   const getFieldLabel = (key: string) => {
-    return dynamicCandidateFields.find(f => f.key === key)?.label || key;
+    return dynamicApplicantFields.find(f => f.key === key)?.label || key;
   };
 
-  // Validate candidateFields before rendering
-  // validCandidateFields is now dynamic, so we can use it directly
+  // Validate ApplicantFields before rendering
+  // validApplicantFields is now dynamic, so we can use it directly
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -636,7 +636,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Choose which attribute to group your board rows by. Select "None" to show all candidates without row grouping.
+                  Choose which attribute to group your board rows by. Select "None" to show all Applicants without row grouping.
                 </p>
                 {rowField !== 'none' && (
                   <div className="mt-4">
@@ -677,7 +677,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Choose which attribute to group your board columns by. Select "None" to show all candidates without column grouping.
+                  Choose which attribute to group your board columns by. Select "None" to show all Applicants without column grouping.
                 </p>
                 {columnField !== 'none' && (
                   <div className="mt-4">
@@ -709,7 +709,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
               maxHeight="400px"
             />
             <p className="text-xs text-muted-foreground mt-2">
-              Choose which fields are visible on each candidate card in the board view. Drag to reorder in the future.
+              Choose which fields are visible on each Applicant card in the board view. Drag to reorder in the future.
             </p>
           </div>
         </div>

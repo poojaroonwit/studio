@@ -50,7 +50,7 @@ import type {
   CustomFieldType, 
   CustomFieldOption,
   RecruitmentStage,
-  CandidateSource 
+  ApplicantSource 
 } from '@/lib/types';
 import { CUSTOM_FIELD_TYPES } from '@/lib/types';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -61,8 +61,8 @@ import CustomFieldDrawer from '@/components/settings/CustomFieldDrawer';
 import CustomFieldModal from '@/components/settings/CustomFieldModal';
 import CustomFieldAlertDialog from '@/components/settings/CustomFieldAlertDialog';
 import StagesForm from '@/components/settings/StagesForm';
-import CandidateSourceModal from '@/components/settings/CandidateSourceModal';
-import CandidateSourceAlertDialog from '@/components/settings/CandidateSourceAlertDialog';
+import ApplicantSourceModal from '@/components/settings/ApplicantSourceModal';
+import ApplicantSourceAlertDialog from '@/components/settings/ApplicantSourceAlertDialog';
 import { HeadcountTypesTab } from './HeadcountTypesTab';
 import { GradesTab } from '@/components/settings/GradesTab';
 import { PositionLevelsTab } from '@/components/settings/PositionLevelsTab';
@@ -194,7 +194,7 @@ function CustomFieldsTab() {
           <div>
             <h2 className="text-lg font-semibold">Custom Field Definitions</h2>
             <p className="text-sm text-muted-foreground">
-              Define custom fields that can be associated with Candidates or Positions.
+              Define custom fields that can be associated with Applicants or Positions.
             </p>
           </div>
           <Button onClick={handleOpenModal} className="btn-primary-gradient">
@@ -394,7 +394,7 @@ function RecruitmentStagesTab() {
     if (!stageToDelete || !replacementStageName) return;
     
     try {
-      // First, migrate all candidates and transition records to the replacement stage
+      // First, migrate all Applicants and transition records to the replacement stage
       const migrateResponse = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}/migrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -598,7 +598,7 @@ function RecruitmentStagesTab() {
            <AlertDialogHeader>
              <AlertDialogTitle className="flex items-center"><AlertCircle className="mr-2 h-5 w-5 text-amber-500"/>Stage In Use</AlertDialogTitle>
              <AlertDialogDescription>
-               The stage &quot;<strong>{stageToDelete?.name}</strong>&quot; is currently in use by candidates or in transition history.
+               The stage &quot;<strong>{stageToDelete?.name}</strong>&quot; is currently in use by Applicants or in transition history.
                To delete it, please select a new stage to migrate all associated records to.
              </AlertDialogDescription>
            </AlertDialogHeader>
@@ -627,14 +627,14 @@ function RecruitmentStagesTab() {
    );
  }
 
-// Candidate Sources Tab Component
-function CandidateSourcesTab() {
-  const [sources, setSources] = useState<CandidateSource[]>([]);
+// Applicant Sources Tab Component
+function ApplicantSourcesTab() {
+  const [sources, setSources] = useState<ApplicantSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSource, setEditingSource] = useState<CandidateSource | null>(null);
-  const [sourceToDelete, setSourceToDelete] = useState<CandidateSource | null>(null);
+  const [editingSource, setEditingSource] = useState<ApplicantSource | null>(null);
+  const [sourceToDelete, setSourceToDelete] = useState<ApplicantSource | null>(null);
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -643,7 +643,7 @@ function CandidateSourcesTab() {
     try {
       setIsLoading(true);
       setFetchError(null);
-      const response = await fetch('/api/settings/candidate-sources');
+      const response = await fetch('/api/settings/Applicant-sources');
       if (!response.ok) {
         throw new Error(`Failed to fetch sources: ${response.status}`);
       }
@@ -652,7 +652,7 @@ function CandidateSourcesTab() {
     } catch (error: any) {
       console.error('Failed to fetch sources:', error);
       setFetchError(error.message);
-      toast.error('Failed to load candidate sources');
+      toast.error('Failed to load Applicant sources');
     } finally {
       setIsLoading(false);
     }
@@ -681,7 +681,7 @@ function CandidateSourcesTab() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', 'candidate-source-logo');
+      formData.append('type', 'Applicant-source-logo');
 
       const response = await fetch('/api/upload-image', {
         method: 'POST',
@@ -711,8 +711,8 @@ function CandidateSourcesTab() {
       }
 
       const url = editingSource 
-        ? `/api/settings/candidate-sources/${editingSource.id}`
-        : '/api/settings/candidate-sources';
+        ? `/api/settings/Applicant-sources/${editingSource.id}`
+        : '/api/settings/Applicant-sources';
       
       const method = editingSource ? 'PUT' : 'POST';
       
@@ -736,10 +736,10 @@ function CandidateSourcesTab() {
       
       if (editingSource) {
         setSources(prev => prev.map(s => s.id === editingSource.id ? result : s));
-        toast.success('Candidate source updated successfully');
+        toast.success('Applicant source updated successfully');
       } else {
         setSources(prev => [...prev, result]);
-        toast.success('Candidate source created successfully');
+        toast.success('Applicant source created successfully');
       }
 
       setIsModalOpen(false);
@@ -747,15 +747,15 @@ function CandidateSourcesTab() {
       setLogoPreview(null);
     } catch (error: any) {
       console.error('Failed to save source:', error);
-      toast.error(error.message || 'Failed to save candidate source');
+      toast.error(error.message || 'Failed to save Applicant source');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDelete = async (source: CandidateSource) => {
+  const handleDelete = async (source: ApplicantSource) => {
     try {
-      const response = await fetch(`/api/settings/candidate-sources/${source.id}`, {
+      const response = await fetch(`/api/settings/Applicant-sources/${source.id}`, {
         method: 'DELETE',
       });
 
@@ -765,11 +765,11 @@ function CandidateSourcesTab() {
       }
 
       setSources(prev => prev.filter(s => s.id !== source.id));
-      toast.success('Candidate source deleted successfully');
+      toast.success('Applicant source deleted successfully');
       setSourceToDelete(null);
     } catch (error: any) {
       console.error('Failed to delete source:', error);
-      toast.error(error.message || 'Failed to delete candidate source');
+      toast.error(error.message || 'Failed to delete Applicant source');
     }
   };
 
@@ -788,7 +788,7 @@ function CandidateSourcesTab() {
     setSources(updatedItems);
 
     try {
-      const response = await fetch('/api/settings/candidate-sources/reorder', {
+      const response = await fetch('/api/settings/Applicant-sources/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceIds: updatedItems.map(item => item.id) }),
@@ -798,7 +798,7 @@ function CandidateSourcesTab() {
         const errorData = await response.json().catch(() => ({}));
         
         if (response.status === 403) {
-          toast.error('Access denied: You do not have permission to reorder candidate sources. Please contact your administrator.');
+          toast.error('Access denied: You do not have permission to reorder Applicant sources. Please contact your administrator.');
         } else if (response.status === 401) {
           toast.error('Session expired: Please refresh the page and try again.');
         } else {
@@ -831,7 +831,7 @@ function CandidateSourcesTab() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (source: CandidateSource) => {
+  const openEditModal = (source: ApplicantSource) => {
     setEditingSource(source);
     setLogoPreview(source.logo || null);
     setIsModalOpen(true);
@@ -848,8 +848,8 @@ function CandidateSourcesTab() {
       }
 
       const url = editingSource 
-        ? `/api/settings/candidate-sources/${editingSource.id}`
-        : '/api/settings/candidate-sources';
+        ? `/api/settings/Applicant-sources/${editingSource.id}`
+        : '/api/settings/Applicant-sources';
       
       const method = editingSource ? 'PUT' : 'POST';
       
@@ -873,10 +873,10 @@ function CandidateSourcesTab() {
       
       if (editingSource) {
         setSources(prev => prev.map(s => s.id === editingSource.id ? result : s));
-        toast.success('Candidate source updated successfully');
+        toast.success('Applicant source updated successfully');
       } else {
         setSources(prev => [...prev, result]);
-        toast.success('Candidate source created successfully');
+        toast.success('Applicant source created successfully');
       }
 
       setIsModalOpen(false);
@@ -884,7 +884,7 @@ function CandidateSourcesTab() {
       setLogoPreview(null);
     } catch (error: any) {
       console.error('Failed to save source:', error);
-      toast.error(error.message || 'Failed to save candidate source');
+      toast.error(error.message || 'Failed to save Applicant source');
     } finally {
       setIsUploading(false);
     }
@@ -906,9 +906,9 @@ function CandidateSourcesTab() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold">Candidate Sources</h2>
+            <h2 className="text-lg font-semibold">Applicant Sources</h2>
             <p className="text-sm text-muted-foreground">
-              Manage candidate source options and settings for tracking where candidates come from.
+              Manage Applicant source options and settings for tracking where Applicants come from.
             </p>
           </div>
           <Button onClick={openCreateModal} className="flex items-center gap-2">
@@ -926,9 +926,9 @@ function CandidateSourcesTab() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-base font-semibold text-foreground mb-2">No Candidate Sources</h3>
+              <h3 className="text-base font-semibold text-foreground mb-2">No Applicant Sources</h3>
               <p className="text-sm text-muted-foreground text-center mb-4">
-                Create your first candidate source to get started.
+                Create your first Applicant source to get started.
               </p>
               <Button onClick={openCreateModal}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create First Source
@@ -1021,13 +1021,13 @@ function CandidateSourcesTab() {
              </div>
 
        {/* Modals */}
-       <CandidateSourceModal
+       <ApplicantSourceModal
          open={isModalOpen}
          onClose={() => setIsModalOpen(false)}
          onSubmit={handleModalSubmit}
          source={editingSource}
        />
-       <CandidateSourceAlertDialog
+       <ApplicantSourceAlertDialog
          open={!!sourceToDelete}
          onConfirm={() => sourceToDelete && handleDelete(sourceToDelete)}
          onCancel={() => setSourceToDelete(null)}
@@ -1054,7 +1054,7 @@ export default function DataConfigurationPage() {
   // Set default page based on permissions
   useEffect(() => {
     if (activePage === 'recruitment-stages' && !canManageStages) {
-      setActivePage('candidate-sources');
+      setActivePage('Applicant-sources');
     }
   }, [activePage, canManageStages]);
 
@@ -1097,7 +1097,7 @@ export default function DataConfigurationPage() {
   // Navigation Structure
   const navigationGroups = [
     {
-      title: 'Candidate',
+      title: 'Applicant',
       items: [
         ...(canManageStages ? [{
           id: 'recruitment-stages',
@@ -1105,8 +1105,8 @@ export default function DataConfigurationPage() {
           icon: KanbanSquare,
         }] : []),
         {
-          id: 'candidate-sources',
-          label: 'Candidate Sources',
+          id: 'Applicant-sources',
+          label: 'Applicant Sources',
           icon: MapPin,
         }
       ]
@@ -1151,7 +1151,7 @@ export default function DataConfigurationPage() {
           {!showLogoOnly && (
             <h1 className="text-2xl font-bold text-foreground">Data Configuration</h1>
           )}
-          <p className="text-muted-foreground">Manage custom fields, recruitment stages, and candidate sources</p>
+          <p className="text-muted-foreground">Manage custom fields, recruitment stages, and Applicant sources</p>
         </div>
       </div>
 
@@ -1213,7 +1213,7 @@ export default function DataConfigurationPage() {
           <div className="flex-1 overflow-hidden bg-card rounded-lg border shadow-sm">
             <div className="h-full p-6">
               {activePage === 'recruitment-stages' && canManageStages && <RecruitmentStagesTab />}
-              {activePage === 'candidate-sources' && <CandidateSourcesTab />}
+              {activePage === 'Applicant-sources' && <ApplicantSourcesTab />}
               
               {activePage === 'position-headcount' && <HeadcountTypesTab />}
               {activePage === 'position-grades' && <GradesTab />}

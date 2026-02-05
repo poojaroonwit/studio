@@ -616,26 +616,26 @@ export function UnifiedUserModal({
                   <TabsList className="h-12 bg-transparent p-0 gap-6 w-full justify-start overflow-x-auto no-scrollbar">
                     <TabsTrigger
                       value="personal"
-                      className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                     >
-                      Personal Info
+                       Personal Info
                     </TabsTrigger>
                     <TabsTrigger
                       value="account"
-                      className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                     >
                       Account
                     </TabsTrigger>
                     <TabsTrigger
                       value="security"
-                      className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                     >
                       Security
                     </TabsTrigger>
                     {(mode === 'profile' || (mode === 'edit' && user)) && (
                       <TabsTrigger
                         value="preferences"
-                        className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                       >
                         Preferences
                       </TabsTrigger>
@@ -643,7 +643,7 @@ export function UnifiedUserModal({
                     {user?.id && (
                       <TabsTrigger
                         value="hiring"
-                        className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                       >
                         Hiring
                       </TabsTrigger>
@@ -661,6 +661,7 @@ export function UnifiedUserModal({
                           <TabsContent value="personal" className="space-y-6 mt-0 focus-visible:ring-0 focus-visible:outline-none">
                             <ProfileTab
                               form={form}
+                              mode={mode}
                               user={user}
                               customFields={customFields}
                               customFieldDefinitions={customFieldDefinitions}

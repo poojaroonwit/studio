@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import DashboardPageClient, { DashboardMetrics } from '@/components/dashboard/DashboardPageClient';
 import { getPool } from '@/lib/db';
 import { safeJsonParse } from '@/lib/utils';
-import type { Candidate, Position, UserProfile } from '@/lib/types';
+import type { Applicant, Position, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
@@ -13,16 +13,16 @@ import { hasPermission } from '@/lib/permissions';
 import { fetchDashboardMetrics } from '@/lib/dashboard-metrics';
 
 export default async function DashboardPageServer() {
-  let initialCandidates: Candidate[] = [];
+  let initialApplicants: Applicant[] = [];
   let initialPositions: Position[] = [];
   let initialUsers: UserProfile[] = [];
   let initialMetrics: DashboardMetrics = {
     kpis: {
-      activeCandidates: 0,
+      activeApplicants: 0,
       openHeadcounts: 0,
       hiredThisMonth: 0,
       rejectedThisMonth: 0,
-      highScoreCandidates: 0,
+      highScoreApplicants: 0,
       applicationsThisWeek: 0,
       avgTimeToHire: '0.00'
     },
@@ -46,7 +46,7 @@ export default async function DashboardPageServer() {
               fallbackDescription="There was an issue loading the dashboard page."
             >
               <DashboardPageClient 
-                initialCandidates={[]} 
+                initialApplicants={[]} 
                 initialPositions={[]} 
                 initialUsers={[]} 
                 initialMetrics={initialMetrics}
@@ -65,13 +65,13 @@ export default async function DashboardPageServer() {
     
     try {
       const userId = session.user.id;
-      const canViewAll = hasPermission(session.user, 'CANDIDATES_VIEW');
+      const canViewAll = hasPermission(session.user, 'Applicants_VIEW');
 
       // Fetch optimized metrics
       initialMetrics = await fetchDashboardMetrics(client, userId, canViewAll);
 
       // Fetch other data in parallel
-      const candidatesQuery = `
+      const applicantsQuery = `
         SELECT c.id, c.name, c.email, c.phone, c."avatarUrl", c."dataAiHint", c."resumePath", c."parsedData", c."customAttributes", c."fitScore", c."applicationDate", c."createdAt", c."updatedAt",
                p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
@@ -89,15 +89,15 @@ export default async function DashboardPageServer() {
       const usersQuery = 'SELECT id, name, email, role, "avatarUrl", "createdAt", "updatedAt" FROM "User" ORDER BY "createdAt" DESC;';
       const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sort_order" ASC;';
 
-      const [candidatesResult, positionsResult, usersResult, stagesResult] = await Promise.all([
-        client.query(candidatesQuery, [canViewAll, userId]),
+      const [applicantsResult, positionsResult, usersResult, stagesResult] = await Promise.all([
+        client.query(applicantsQuery, [canViewAll, userId]),
         client.query(positionsQuery),
         client.query(usersQuery),
         client.query(stagesQuery)
       ]);
 
-      // Transform candidates data - omitting transitionHistory as it's expensive and now pre-calculated
-      initialCandidates = candidatesResult.rows.map((row: any) => ({
+      // Transform Applicants data - omitting transitionHistory as it's expensive and now pre-calculated
+      initialApplicants = applicantsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -182,7 +182,7 @@ export default async function DashboardPageServer() {
             fallbackDescription="There was an issue loading the dashboard page."
           >
             <DashboardPageClient 
-              initialCandidates={initialCandidates} 
+              initialApplicants={initialApplicants} 
               initialPositions={initialPositions} 
               initialUsers={initialUsers} 
               initialMetrics={initialMetrics}
@@ -205,7 +205,7 @@ export default async function DashboardPageServer() {
             fallbackDescription="There was an issue loading the dashboard page."
           >
             <DashboardPageClient 
-              initialCandidates={[]} 
+              initialApplicants={[]} 
               initialPositions={[]} 
               initialUsers={[]} 
               initialMetrics={initialMetrics}

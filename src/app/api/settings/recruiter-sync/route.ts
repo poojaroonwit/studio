@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -16,7 +16,7 @@ const syncRequestSchema = z.object({
  * @openapi
  * /api/settings/recruiter-sync:
  *   post:
- *     summary: Sync recruiter assignments between positions and candidates
+ *     summary: Sync recruiter assignments between positions and Applicants
  *     requestBody:
  *       required: true
  *       content:
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       
       const summary = {
         totalPositions: results.length,
-        totalCandidatesUpdated: results.reduce((sum, r) => sum + r.candidatesUpdated, 0),
-        totalCandidatesSkipped: results.reduce((sum, r) => sum + r.candidatesSkipped, 0),
+        totalApplicantsUpdated: results.reduce((sum, r) => sum + r.ApplicantsUpdated, 0),
+        totalApplicantsSkipped: results.reduce((sum, r) => sum + r.ApplicantsSkipped, 0),
         totalErrors: results.reduce((sum, r) => sum + r.errors.length, 0),
         results
       };

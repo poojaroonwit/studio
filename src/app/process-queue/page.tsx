@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListTodo, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import CandidateImportUploadQueue from '@/components/candidates/CandidateImportUploadQueue';
-import ProcessQueueAnalytics from '@/components/candidates/ProcessQueueAnalytics';
+import ApplicantImportUploadQueue from '@/components/applicants/ApplicantImportUploadQueue';
+import ProcessQueueAnalytics from '@/components/applicants/ProcessQueueAnalytics';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
@@ -61,7 +61,7 @@ export default function ProcessQueuePage() {
           </div>
           
           <div className="mt-3 md:mt-4">
-            {activeTab === 'queue' && <CandidateImportUploadQueue />}
+            {activeTab === 'queue' && <ApplicantImportUploadQueue />}
             {activeTab === 'analytics' && (
               <ErrorBoundary>
                 <ProcessQueueAnalytics />
@@ -77,7 +77,7 @@ export default function ProcessQueuePage() {
         onOpenChange={setIsBulkUploadModalOpen}
         onUploadSuccess={() => {
           // Refresh the queue data after successful upload
-          // The CandidateImportUploadQueue component will handle the refresh
+          // The ApplicantImportUploadQueue component will handle the refresh
         }}
       />
     </div>

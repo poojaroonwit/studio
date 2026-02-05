@@ -28,7 +28,7 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
     const isInitializationError = error.message.includes('Cannot access') && 
                                  error.message.includes('before initialization') &&
                                  (error.message.includes('tg') || 
-                                  error.message.includes('activeCandidateTab') ||
+                                  error.message.includes('activeApplicantTab') ||
                                   error.message.includes('ee') ||
                                   error.message.includes('tt') ||
                                   error.message.includes('nn'));
@@ -45,7 +45,7 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
     const isInitializationError = error.message.includes('Cannot access') && 
                                  error.message.includes('before initialization') &&
                                  (error.message.includes('tg') || 
-                                  error.message.includes('activeCandidateTab') ||
+                                  error.message.includes('activeApplicantTab') ||
                                   error.message.includes('ee') ||
                                   error.message.includes('tt') ||
                                   error.message.includes('nn'));
@@ -131,7 +131,7 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
       const isInitializationError = this.state.error.message.includes('Cannot access') && 
                                    this.state.error.message.includes('before initialization') &&
                                    (this.state.error.message.includes('tg') || 
-                                    this.state.error.message.includes('activeCandidateTab') ||
+                                    this.state.error.message.includes('activeApplicantTab') ||
                                     this.state.error.message.includes('ee') ||
                                     this.state.error.message.includes('tt') ||
                                     this.state.error.message.includes('nn'));

@@ -15,7 +15,7 @@ interface ClearDuplicatesRequest {
 interface DuplicateGroup {
   email: string;
   positionId: string | null;
-  candidates: Array<{
+  Applicants: Array<{
     id: string;
     name: string;
     email: string;
@@ -48,11 +48,11 @@ export async function POST(req: NextRequest) {
     // console.log('[Clear Duplicates] User authenticated:', user.id, user.role);
 
     // Check permissions
-    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_DELETE')) {
+    if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_DELETE')) {
       // console.log('[Clear Duplicates] Permission denied for user:', user.id);
       return NextResponse.json({
         success: false,
-        error: 'Insufficient permissions to manage candidates'
+        error: 'Insufficient permissions to manage Applicants'
       }, { status: 403, headers });
     }
 
@@ -97,16 +97,16 @@ export async function POST(req: NextRequest) {
       }, { status: 500, headers });
     }
 
-    // Fetch all candidates
-    // console.log('[Clear Duplicates] Fetching candidates from database...');
-    const candidates = await prisma.candidate.findMany({
+    // Fetch all Applicants
+    // console.log('[Clear Duplicates] Fetching Applicants from database...');
+    const Applicants = await prisma.candidate.findMany({
       where: whereClause,
       select: {
         id: true,
         name: true,
         email: true,
-        positionId: true,
-        fitScore: true,
+        positionId: true, // Assuming candidate also has positionId for filtering
+        fitScore: true, // Assuming candidate also has fitScore
         createdAt: true
       },
       orderBy: {
@@ -114,15 +114,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // console.log('[Clear Duplicates] Found candidates:', candidates.length);
+    // console.log('[Clear Duplicates] Found Applicants:', Applicants.length);
 
-    if (!candidates || candidates.length === 0) {
-      // console.log('[Clear Duplicates] No candidates found');
+    if (!Applicants || Applicants.length === 0) {
+      // console.log('[Clear Duplicates] No Applicants found');
       try {
-        await logAudit('AUDIT', `Clear duplicates completed - no candidates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+        await logAudit('AUDIT', `Clear duplicates completed - no Applicants found`, 'API:V1:Applicants:ClearDuplicates', user.id, {
           dryRun,
           positionId,
-          candidatesFound: 0
+          ApplicantsFound: 0
         });
       } catch (auditError) {
         console.error('[Clear Duplicates] Audit logging failed:', auditError);
@@ -132,42 +132,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          message: 'No candidates found',
+          message: 'No Applicants found',
           duplicatesFound: 0,
-          candidatesToDelete: 0,
+          ApplicantsToDelete: 0,
           dryRun
         }
       }, { headers });
     }
 
-    // Group candidates by email and positionId
-    // console.log('[Clear Duplicates] Grouping candidates...');
-    const candidateGroups = new Map<string, DuplicateGroup>();
+    // Group Applicants by email and positionId
+    // console.log('[Clear Duplicates] Grouping Applicants...');
+    const ApplicantGroups = new Map<string, DuplicateGroup>();
     
-    candidates.forEach((candidate: any) => {
-      const key = `${candidate.email.toLowerCase()}-${candidate.positionId || 'null'}`;
+    Applicants.forEach((Applicant: any) => {
+      const key = `${Applicant.email.toLowerCase()}-${Applicant.positionId || 'null'}`;
       
-      if (!candidateGroups.has(key)) {
-        candidateGroups.set(key, {
-          email: candidate.email,
-          positionId: candidate.positionId,
-          candidates: []
+      if (!ApplicantGroups.has(key)) {
+        ApplicantGroups.set(key, {
+          email: Applicant.email,
+          positionId: Applicant.positionId,
+          Applicants: []
         });
       }
       
-      candidateGroups.get(key)!.candidates.push(candidate);
+      ApplicantGroups.get(key)!.Applicants.push(Applicant);
     });
 
-    // Find duplicate groups (groups with more than one candidate)
-    const duplicateGroups = Array.from(candidateGroups.values())
-      .filter(group => group.candidates.length > 1);
+    // Find duplicate groups (groups with more than one Applicant)
+    const duplicateGroups = Array.from(ApplicantGroups.values())
+      .filter(group => group.Applicants.length > 1);
 
     // console.log('[Clear Duplicates] Found duplicate groups:', duplicateGroups.length);
 
     if (duplicateGroups.length === 0) {
       // console.log('[Clear Duplicates] No duplicates found');
       try {
-        await logAudit('AUDIT', `Clear duplicates dry run completed - no duplicates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+        await logAudit('AUDIT', `Clear duplicates dry run completed - no duplicates found`, 'API:V1:Applicants:ClearDuplicates', user.id, {
           dryRun,
           positionId,
           duplicatesFound: 0
@@ -180,22 +180,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          message: 'No duplicate candidates found',
+          message: 'No duplicate Applicants found',
           duplicatesFound: 0,
-          candidatesToDelete: 0,
+          ApplicantsToDelete: 0,
           dryRun
         }
       }, { headers });
     }
 
     // Process each duplicate group
-    const keptCandidates: any[] = [];
-    const candidatesToDelete: any[] = [];
+    const keptApplicants: any[] = [];
+    const ApplicantsToDelete: any[] = [];
     let totalToDelete = 0;
 
     for (const group of duplicateGroups) {
       // Sort by creation date (earliest first) and keep the first one
-      const sortedCandidates = group.candidates.sort((a, b) => {
+      const sortedApplicants = group.Applicants.sort((a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
         // Check if dates are valid before calling getTime()
@@ -205,11 +205,11 @@ export async function POST(req: NextRequest) {
         return dateA.getTime() - dateB.getTime();
       });
       
-      const keptCandidate = sortedCandidates[0];
-      const toDelete = sortedCandidates.slice(1);
+      const keptApplicant = sortedApplicants[0];
+      const toDelete = sortedApplicants.slice(1);
       
-      keptCandidates.push(keptCandidate);
-      candidatesToDelete.push(...toDelete);
+      keptApplicants.push(keptApplicant);
+      ApplicantsToDelete.push(...toDelete);
       totalToDelete += toDelete.length;
     }
 
@@ -218,11 +218,11 @@ export async function POST(req: NextRequest) {
     if (dryRun) {
       // console.log('[Clear Duplicates] Dry run mode - no actual deletion');
       try {
-        await logAudit('AUDIT', `Clear duplicates dry run completed`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+        await logAudit('AUDIT', `Clear duplicates dry run completed`, 'API:V1:Applicants:ClearDuplicates', user.id, {
           dryRun,
           positionId,
           duplicatesFound: duplicateGroups.length,
-          candidatesToDelete: totalToDelete
+          ApplicantsToDelete: totalToDelete
         });
       } catch (auditError) {
         console.error('[Clear Duplicates] Audit logging failed:', auditError);
@@ -234,9 +234,9 @@ export async function POST(req: NextRequest) {
         data: {
           message: 'Dry run completed - no changes made',
           duplicatesFound: duplicateGroups.length,
-          candidatesToDelete: totalToDelete,
-          keptCandidates,
-          candidatesToDeleteDetails: candidatesToDelete,
+          ApplicantsToDelete: totalToDelete,
+          keptApplicants,
+          ApplicantsToDeleteDetails: ApplicantsToDelete,
           dryRun
         }
       }, { headers });
@@ -244,11 +244,11 @@ export async function POST(req: NextRequest) {
 
     // Actually delete the duplicates
     // console.log('[Clear Duplicates] Starting actual deletion...');
-    const candidateIdsToDelete = candidatesToDelete.map(c => c.id);
+    const candidateIdsToDelete = ApplicantsToDelete.map(c => c.id);
     
     if (candidateIdsToDelete.length > 0) {
       try {
-        // console.log('[Clear Duplicates] Deleting candidates with IDs:', candidateIdsToDelete);
+        // console.log('[Clear Duplicates] Deleting Applicants with IDs:', candidateIdsToDelete);
         const deleteResult = await prisma.candidate.deleteMany({
           where: {
             id: {
@@ -258,12 +258,12 @@ export async function POST(req: NextRequest) {
         });
         // console.log('[Clear Duplicates] Delete operation completed:', deleteResult);
       } catch (deleteError) {
-        console.error('[Clear Duplicates] Error deleting candidates:', deleteError);
+        console.error('[Clear Duplicates] Error deleting Applicants:', deleteError);
         try {
-          await logAudit('ERROR', `Failed to delete duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+          await logAudit('ERROR', `Failed to delete duplicate Applicants`, 'API:V1:Applicants:ClearDuplicates', user.id, {
             dryRun,
             positionId,
-            candidatesToDelete: candidateIdsToDelete,
+            ApplicantsToDelete: candidateIdsToDelete,
             error: (deleteError as Error).message
           });
         } catch (auditError) {
@@ -272,18 +272,18 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
           success: false,
-          error: 'Failed to delete duplicate candidates'
+          error: 'Failed to delete duplicate Applicants'
         }, { status: 500, headers });
       }
     }
 
     // console.log('[Clear Duplicates] Successfully completed deletion');
     try {
-      await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
+      await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate Applicants`, 'API:V1:Applicants:ClearDuplicates', user.id, {
         dryRun,
         positionId,
         duplicatesFound: duplicateGroups.length,
-        candidatesDeleted: totalToDelete
+        ApplicantsDeleted: totalToDelete
       });
     } catch (auditError) {
       console.error('[Clear Duplicates] Audit logging failed:', auditError);
@@ -293,10 +293,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        message: `Successfully cleared ${totalToDelete} duplicate candidates`,
+        message: `Successfully cleared ${totalToDelete} duplicate Applicants`,
         duplicatesFound: duplicateGroups.length,
-        candidatesDeleted: totalToDelete,
-        keptCandidates,
+        ApplicantsDeleted: totalToDelete,
+        keptApplicants,
         dryRun
       }
     }, { headers });
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
     }
     
     try {
-      await logAudit('ERROR', `Failed to clear duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', userId, {
+      await logAudit('ERROR', `Failed to clear duplicate Applicants`, 'API:V1:Applicants:ClearDuplicates', userId, {
         error: (error as Error).message
       });
     } catch (auditError) {
@@ -327,7 +327,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to clear duplicate candidates'
+      error: 'Failed to clear duplicate Applicants'
     }, { status: 500, headers });
   }
 }

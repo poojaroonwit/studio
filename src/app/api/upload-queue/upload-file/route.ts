@@ -276,7 +276,7 @@ async function processFileUpload(
  *                 description: Source of the upload (e.g., 'bulk', 'manual')
  *               source_id:
  *                 type: string
- *                 description: Candidate source ID for tracking
+ *                 description: Applicant source ID for tracking
  *               sub_source:
  *                 type: string
  *                 description: Sub-source information (optional)

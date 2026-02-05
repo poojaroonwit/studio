@@ -43,8 +43,8 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EXPORT')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to export candidates' }), { status: 403, headers: handleCors(req) });
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('Applicants_EXPORT')) {
+    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to export Applicants' }), { status: 403, headers: handleCors(req) });
   }
 
   const client = await getPool().connect();
@@ -111,12 +111,12 @@ export async function GET(req: NextRequest) {
       headers: {
         ...handleCors(req),
         'Content-Type': 'text/csv',
-        'Content-Disposition': 'attachment; filename="candidates-export.csv"'
+        'Content-Disposition': 'attachment; filename="Applicants-export.csv"'
       }
     });
     
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error exporting candidates', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Error exporting Applicants', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();
   }

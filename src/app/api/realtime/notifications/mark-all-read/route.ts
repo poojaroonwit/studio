@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
   // Check if user ID is empty (invalid session)
   if (!actingUserId) {
-    console.error('❌ Empty user ID in session for user:', actingUserName);
+    console.error('? Empty user ID in session for user:', actingUserName);
     return NextResponse.json({ 
       error: 'Invalid session. Please sign in again.',
       details: 'User ID is missing from session'
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   // Validate UUID before proceeding
   if (!validateUuid(actingUserId)) {
-    console.error('❌ Invalid actingUserId UUID:', actingUserId);
+    console.error('? Invalid actingUserId UUID:', actingUserId);
     return NextResponse.json({ 
       error: 'Invalid user ID format',
       details: 'User ID is not a valid UUID'

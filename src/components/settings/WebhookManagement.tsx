@@ -84,14 +84,14 @@ interface WebhookFormData {
 // Enhanced event categories with better organization
 const WEBHOOK_EVENT_CATEGORIES = [
   {
-    category: 'Candidate Management',
+    category: 'Applicant Management',
     icon: <Database className="h-4 w-4" />,
     color: 'bg-blue-500',
     events: [
-      { id: 'candidate.created', label: 'Candidate Created', description: 'When a new candidate is added to the system' },
-      { id: 'candidate.updated', label: 'Candidate Updated', description: 'When candidate information is modified' },
-      { id: 'candidate.deleted', label: 'Candidate Deleted', description: 'When a candidate is removed from the system' },
-      { id: 'candidate.stage_changed', label: 'Stage Changed', description: 'When a candidate moves to a different stage' },
+      { id: 'Applicant.created', label: 'Applicant Created', description: 'When a new Applicant is added to the system' },
+      { id: 'Applicant.updated', label: 'Applicant Updated', description: 'When Applicant information is modified' },
+      { id: 'Applicant.deleted', label: 'Applicant Deleted', description: 'When a Applicant is removed from the system' },
+      { id: 'Applicant.stage_changed', label: 'Stage Changed', description: 'When a Applicant moves to a different stage' },
     ],
   },
   {
@@ -991,7 +991,7 @@ export default function WebhookManagement() {
                               <Input
                                 id="webhook-name"
                                 type="text"
-                                placeholder="e.g., Candidate Notifications"
+                                placeholder="e.g., Applicant Notifications"
                                 value={formData.name}
                                 onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                 required

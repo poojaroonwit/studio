@@ -6,37 +6,37 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban, FileText } from 'lucide-react';
-import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
+import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
-import { BlacklistBadge } from '@/components/candidates/BlacklistBadge';
-import type { Candidate } from '@/lib/types';
+import { BlacklistBadge } from '@/components/applicants/BlacklistBadge';
+import type { Applicant } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface PotentialCandidatesTableProps {
-  candidates: Candidate[];
+  applicants: Applicant[];
   sortColumn: string | null;
   sortDirection: 'asc' | 'desc';
   openMenu: string | null;
   stageNames: Record<string, string>;
   onSort: (column: string | null, direction?: 'asc' | 'desc' | null) => void;
   onOpenMenuChange: (menu: string | null) => void;
-  onCandidateClick: (candidateId: string) => void;
-  onPinToggle: (candidate: Candidate) => Promise<void>;
+  onApplicantClick: (candidateId: string) => void;
+  onPinToggle: (Applicant: Applicant) => Promise<void>;
 }
 
 export function PotentialCandidatesTable({
-  candidates,
+  applicants,
   sortColumn,
   sortDirection,
   openMenu,
   stageNames,
   onSort,
   onOpenMenuChange,
-  onCandidateClick,
+  onApplicantClick,
   onPinToggle,
 }: PotentialCandidatesTableProps) {
-  if (candidates.length === 0) {
+  if (applicants.length === 0) {
     return (
       <div className="text-center py-8">
         <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -97,38 +97,38 @@ export function PotentialCandidatesTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {candidates.map((candidate) => (
-          <TableRow key={candidate.id} className={candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}>
+        {applicants.map((applicant) => (
+          <TableRow key={applicant.id} className={applicant.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}>
             <TableCell>{rowNumber++}</TableCell>
             <TableCell>
               <div>
                 <div 
                   className={cn(
                     "font-medium cursor-pointer hover:text-primary hover:underline flex items-center gap-2",
-                    candidate.isBlacklisted && "text-destructive"
+                    applicant.isBlacklisted && "text-destructive"
                   )}
-                  onClick={() => onCandidateClick(candidate.id)}
+                  onClick={() => onApplicantClick(applicant.id)}
                 >
-                  {candidate.name}
-                  {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
+                  {applicant.name}
+                  {applicant.isBlacklisted && <Ban className="h-3 w-3" />}
                 </div>
-                <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                <div className="text-xs text-muted-foreground">{applicant.email}</div>
               </div>
             </TableCell>
             <TableCell>
-              {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                <ScoreBadge score={candidate.fitScore}>
-                  {formatScoreWithGrade(candidate.fitScore)}
+              {applicant.fitScore !== undefined && applicant.fitScore !== null ? (
+                <ScoreBadge score={applicant.fitScore}>
+                  {formatScoreWithGrade(applicant.fitScore)}
                 </ScoreBadge>
               ) : (
                 <Badge variant="outline">No Score</Badge>
               )}
             </TableCell>
             <TableCell>
-              {candidate.isBlacklisted ? (
+              {applicant.isBlacklisted ? (
                 <BlacklistBadge />
               ) : (
-                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                <StatusBadge statusId={applicant.statusId} stageNames={stageNames} />
               )}
             </TableCell>
             <TableCell>
@@ -136,7 +136,7 @@ export function PotentialCandidatesTable({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => onCandidateClick(candidate.id)}
+                  onClick={() => onApplicantClick(applicant.id)}
                   className="hover:bg-primary/10"
                 >
                   <Eye className="h-4 w-4" />
@@ -147,12 +147,12 @@ export function PotentialCandidatesTable({
                   size="icon"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await onPinToggle(candidate);
+                    await onPinToggle(applicant);
                   }}
-                  title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                  title={applicant.isPinned ? 'Unpin' : 'Pin'}
                   className="hover:bg-primary/10"
                 >
-                  {candidate.isPinned ? (
+                  {applicant.isPinned ? (
                     <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
                   ) : (
                     <PinIcon className="h-4 w-4 text-black rotate-45" />

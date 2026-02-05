@@ -215,29 +215,29 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/candidates': {
+      '/api/v1/Applicants': {
         get: {
-          summary: 'Get all candidates (v1 API)',
-          description: 'Returns a paginated list of candidates. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Get all Applicants (v1 API)',
+          description: 'Returns a paginated list of Applicants. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           parameters: [
             { name: 'page', in: 'query', description: 'Page number for pagination', schema: { type: 'integer', default: 1 } },
             { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 10 } },
-            { name: 'status', in: 'query', description: 'Filter by candidate status', schema: { type: 'string' } },
+            { name: 'status', in: 'query', description: 'Filter by Applicant status', schema: { type: 'string' } },
             { name: 'positionId', in: 'query', description: 'Filter by position ID', schema: { type: 'string' } },
             { name: 'recruiterId', in: 'query', description: 'Filter by recruiter ID', schema: { type: 'string' } },
             { name: 'search', in: 'query', description: 'Search term for name or email', schema: { type: 'string' } }
           ],
           responses: {
             '200': {
-              description: 'List of candidates',
+              description: 'List of Applicants',
               content: {
                 'application/json': {
                   schema: {
                     type: 'object',
                     properties: {
-                      candidates: { type: 'array', items: { $ref: '#/components/schemas/Candidate' } },
+                      Applicants: { type: 'array', items: { $ref: '#/components/schemas/Applicant' } },
                       total: { type: 'integer' },
                       page: { type: 'integer' },
                       limit: { type: 'integer' }
@@ -250,9 +250,9 @@ export function getSwaggerSpec() {
           }
         },
         post: {
-          summary: 'Create a new candidate (v1 API)',
-          description: 'Creates a new candidate with structured education and experience data.',
-          tags: ['V1 Candidates'],
+          summary: 'Create a new Applicant (v1 API)',
+          description: 'Creates a new Applicant with structured education and experience data.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -261,7 +261,7 @@ export function getSwaggerSpec() {
                 schema: {
                   type: 'object',
                   properties: {
-                    candidate_info: {
+                    applicant_info: {
                       type: 'object',
                       properties: {
                         personal_info: {
@@ -340,14 +340,14 @@ export function getSwaggerSpec() {
                       }
                     }
                   },
-                  required: ['candidate_info']
+                  required: ['applicant_info']
                 }
               }
             }
           },
           responses: {
             '200': {
-              description: 'Candidate created successfully',
+              description: 'Applicant created successfully',
               content: {
                 'application/json': {
                   schema: {
@@ -366,35 +366,35 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/candidates/{id}': {
+      '/api/v1/Applicants/{id}': {
         get: {
-          summary: 'Get candidate by ID (v1 API)',
-          description: 'Returns a specific candidate by ID. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Get Applicant by ID (v1 API)',
+          description: 'Returns a specific Applicant by ID. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           parameters: [
-            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string' } }
+            { name: 'id', in: 'path', required: true, description: 'Applicant ID', schema: { type: 'string' } }
           ],
           responses: {
             '200': {
-              description: 'Candidate details',
+              description: 'Applicant details',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/Candidate' }
+                  schema: { $ref: '#/components/schemas/Applicant' }
                 }
               }
             },
-            '404': { description: 'Candidate not found' },
+            '404': { description: 'Applicant not found' },
             '401': { description: 'Unauthorized' }
           }
         },
         put: {
-          summary: 'Update candidate (v1 API)',
-          description: 'Updates an existing candidate. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Update Applicant (v1 API)',
+          description: 'Updates an existing Applicant. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           parameters: [
-            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string' } }
+            { name: 'id', in: 'path', required: true, description: 'Applicant ID', schema: { type: 'string' } }
           ],
           requestBody: {
             required: true,
@@ -403,7 +403,7 @@ export function getSwaggerSpec() {
                 schema: {
                   type: 'object',
                   properties: {
-                    candidate_info: { type: 'object', additionalProperties: true },
+                    applicant_info: { type: 'object', additionalProperties: true },
                     educationData: { type: 'array', items: { type: 'object', additionalProperties: true } },
                     experienceData: { type: 'array', items: { type: 'object', additionalProperties: true } }
                   }
@@ -412,32 +412,32 @@ export function getSwaggerSpec() {
             }
           },
           responses: {
-            '200': { description: 'Candidate updated successfully' },
+            '200': { description: 'Applicant updated successfully' },
             '400': { description: 'Invalid input' },
             '401': { description: 'Unauthorized' },
-            '404': { description: 'Candidate not found' }
+            '404': { description: 'Applicant not found' }
           }
         },
         delete: {
-          summary: 'Delete candidate (v1 API)',
-          description: 'Deletes a candidate. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Delete Applicant (v1 API)',
+          description: 'Deletes a Applicant. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           parameters: [
-            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string' } }
+            { name: 'id', in: 'path', required: true, description: 'Applicant ID', schema: { type: 'string' } }
           ],
           responses: {
-            '200': { description: 'Candidate deleted successfully' },
+            '200': { description: 'Applicant deleted successfully' },
             '401': { description: 'Unauthorized' },
-            '404': { description: 'Candidate not found' }
+            '404': { description: 'Applicant not found' }
           }
         }
       },
-      '/api/v1/candidates/import': {
+      '/api/v1/Applicants/import': {
         post: {
-          summary: 'Import candidates (v1 API)',
-          description: 'Import candidates from CSV file. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Import Applicants (v1 API)',
+          description: 'Import Applicants from CSV file. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -454,17 +454,17 @@ export function getSwaggerSpec() {
             }
           },
           responses: {
-            '200': { description: 'Candidates imported successfully' },
+            '200': { description: 'Applicants imported successfully' },
             '400': { description: 'Invalid file format' },
             '401': { description: 'Unauthorized' }
           }
         }
       },
-      '/api/v1/candidates/bulk-upload-cv': {
+      '/api/v1/Applicants/bulk-upload-cv': {
         post: {
           summary: 'Upload CV with optional additional attachments (v1 API)',
-          description: 'Upload a single CV file for a candidate with optional additional attachments (e.g., cover letters, portfolios, certificates). Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          description: 'Upload a single CV file for a Applicant with optional additional attachments (e.g., cover letters, portfolios, certificates). Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -480,11 +480,11 @@ export function getSwaggerSpec() {
                     },
                     positionId: {
                       type: 'string',
-                      description: 'Position ID to assign the candidate to'
+                      description: 'Position ID to assign the Applicant to'
                     },
                     sourceId: {
                       type: 'string',
-                      description: 'Source ID for tracking the candidate source'
+                      description: 'Source ID for tracking the Applicant source'
                     },
                     additionalAttachments: {
                       type: 'array',
@@ -552,11 +552,11 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/candidates/clear-duplicates': {
+      '/api/v1/Applicants/clear-duplicates': {
         post: {
-          summary: 'Clear duplicate candidates (v1 API)',
-          description: 'Remove duplicate candidates from the system. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Clear duplicate Applicants (v1 API)',
+          description: 'Remove duplicate Applicants from the system. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           responses: {
             '200': { description: 'Duplicates cleared successfully' },
@@ -564,11 +564,11 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/candidates/bulk-action': {
+      '/api/v1/Applicants/bulk-action': {
         post: {
-          summary: 'Bulk action on candidates (v1 API)',
-          description: 'Perform bulk actions on multiple candidates. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          summary: 'Bulk action on Applicants (v1 API)',
+          description: 'Perform bulk actions on multiple Applicants. Requires Bearer token authentication.',
+          tags: ['V1 Applicants'],
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -652,7 +652,7 @@ export function getSwaggerSpec() {
                   schema: {
                     type: 'object',
                     properties: {
-                      totalCandidates: { type: 'integer' },
+                      totalApplicants: { type: 'integer' },
                       totalPositions: { type: 'integer' },
                       openPositions: { type: 'integer' },
                       recentApplications: { type: 'integer' }
@@ -712,8 +712,8 @@ export function getSwaggerSpec() {
       },
       '/api/v1/transitions': {
         get: {
-          summary: 'Get candidate transitions (v1 API)',
-          description: 'Returns candidate stage transitions. Requires Bearer token authentication.',
+          summary: 'Get Applicant transitions (v1 API)',
+          description: 'Returns Applicant stage transitions. Requires Bearer token authentication.',
           tags: ['V1 Transitions'],
           security: [{ bearerAuth: [] }],
           responses: {
@@ -780,10 +780,10 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/ai/search-candidates': {
+      '/api/v1/ai/search-Applicants': {
         post: {
-          summary: 'Search candidates using AI (V1 API)',
-          description: 'Search candidates using AI-powered semantic search. Requires Bearer token authentication.',
+          summary: 'Search Applicants using AI (V1 API)',
+          description: 'Search Applicants using AI-powered semantic search. Requires Bearer token authentication.',
           tags: ['V1 AI Search'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -851,7 +851,7 @@ export function getSwaggerSpec() {
                           }
                         }
                       },
-                      total: { type: 'integer', description: 'Total number of matching candidates' },
+                      total: { type: 'integer', description: 'Total number of matching Applicants' },
                       query: { type: 'string', description: 'The search query used' },
                       timestamp: { type: 'string', format: 'date-time' },
                       path: { type: 'string' },
@@ -918,7 +918,7 @@ export function getSwaggerSpec() {
         },
         post: {
           summary: 'Send notifications (V1 API)',
-          description: 'Send custom notifications. Supports both single and bulk notifications. Requires Bearer token authentication and CANDIDATES_EDIT_BASIC permission or Admin role.',
+          description: 'Send custom notifications. Supports both single and bulk notifications. Requires Bearer token authentication and Applicants_EDIT_BASIC permission or Admin role.',
           tags: ['V1 Notifications'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -1051,15 +1051,15 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/candidate-sources': {
+      '/api/v1/Applicant-sources': {
         get: {
-          summary: 'Get candidate sources (V1 API)',
-          description: 'Get all candidate sources for filtering and display. Requires Bearer token authentication.',
+          summary: 'Get Applicant sources (V1 API)',
+          description: 'Get all Applicant sources for filtering and display. Requires Bearer token authentication.',
           tags: ['V1 Source Management'],
           security: [{ bearerAuth: [] }],
           responses: {
             '200': {
-              description: 'Candidate sources list',
+              description: 'Applicant sources list',
               content: {
                 'application/json': {
                   schema: {
@@ -1167,7 +1167,7 @@ export function getSwaggerSpec() {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        Candidate: {
+        Applicant: {
           type: 'object',
           properties: {
             id: { type: 'string' },
@@ -1224,18 +1224,18 @@ export function getSwaggerSpec() {
     tags: [
       { name: 'V1 Authentication', description: 'External API authentication endpoints' },
       { name: 'V1 Positions', description: 'External API for positions' },
-      { name: 'V1 Candidates', description: 'External API for candidates' },
+      { name: 'V1 Applicants', description: 'External API for Applicants' },
       { name: 'V1 Users', description: 'External API for users' },
       { name: 'V1 Dashboard', description: 'External API for dashboard statistics' },
       { name: 'V1 Health', description: 'Health check endpoints' },
       { name: 'V1 Recruitment Stages', description: 'External API for recruitment stages' },
-      { name: 'V1 Transitions', description: 'External API for candidate stage transitions' },
+      { name: 'V1 Transitions', description: 'External API for Applicant stage transitions' },
       { name: 'V1 Settings', description: 'External API for system settings' },
       { name: 'V1 Logs', description: 'External API for system logs' },
-      { name: 'V1 AI Search', description: 'External API for AI-powered candidate search' },
+      { name: 'V1 AI Search', description: 'External API for AI-powered Applicant search' },
       { name: 'V1 Notifications', description: 'External API for user notifications' },
       { name: 'V1 Upload Queue', description: 'External API for upload queue management' },
-      { name: 'V1 Source Management', description: 'External API for candidate source management' },
+      { name: 'V1 Source Management', description: 'External API for Applicant source management' },
       { name: 'V1 Job Match Status', description: 'External API for job match function status' }
     ]
   };

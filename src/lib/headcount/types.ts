@@ -35,9 +35,9 @@ export interface ValidationResult {
 
 export interface UnassignWarning {
   hasWarning: boolean;
-  warningType?: 'CANDIDATE_STATUS_WILL_CHANGE';
+  warningType?: 'Applicant_STATUS_WILL_CHANGE';
   message?: string;
-  candidate?: any;
+  Applicant?: any;
   position?: any;
 }
 

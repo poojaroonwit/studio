@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Line } from 'react-chartjs-2';
 import { Chart } from 'chart.js';
 import { Loader2, TrendingUp, CalendarIcon, XCircle } from "lucide-react";
-import type { Candidate } from "@/lib/types";
+import type { Applicant } from "@/lib/types";
 import { format, subMonths, subWeeks, subYears, startOfMonth, startOfWeek, startOfYear, endOfMonth, endOfWeek, endOfYear, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, eachYearOfInterval, addDays } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { cn, isValidDate, safeGetTime, safeDateDiff, safeGetDateFromRange } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { useChartSetup } from '@/hooks/use-chart-setup';
 import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 
 interface NewApplicationsTimeSeriesChartProps {
-  candidates: Candidate[];
+  Applicants: Applicant[];
   initialData?: { date: string; count: number }[];
   isLoading?: boolean;
   dynamicHeight?: number;
@@ -43,7 +43,7 @@ const PERIOD_UNITS = [
   { label: 'Year(s)', value: 'year' },
 ];
 
-export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
+export function NewApplicationsTimeSeriesChart({ Applicants, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
@@ -281,7 +281,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       };
     }
 
-    if (!candidates || candidates.length === 0) {
+    if (!Applicants || Applicants.length === 0) {
       return { labels: [], datasets: [] };
     }
     
@@ -378,13 +378,13 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       if (intervalEnd > endDate) {
         intervalEnd = new Date(endDate);
       }
-      const count = candidates.filter(candidate => {
-        if (!candidate.applicationDate) return false;
+      const count = Applicants.filter(Applicant => {
+        if (!applicant.applicationDate) return false;
         try {
-          const appDate = parseISO(candidate.applicationDate);
+          const appDate = parseISO(applicant.applicationDate);
           return appDate >= intervalStart && appDate <= intervalEnd;
         } catch (error) {
-          console.error('Error parsing application date:', candidate.applicationDate, error);
+          console.error('Error parsing application date:', applicant.applicationDate, error);
           return false;
         }
       }).length;
@@ -490,10 +490,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       if (intervalEnd > comparisonEnd) {
         intervalEnd = new Date(comparisonEnd);
       }
-      const count = candidates.filter(candidate => {
-        if (!candidate.applicationDate) return false;
+      const count = Applicants.filter(Applicant => {
+        if (!applicant.applicationDate) return false;
         try {
-          const appDate = parseISO(candidate.applicationDate);
+          const appDate = parseISO(applicant.applicationDate);
           return appDate >= intervalStart && appDate <= intervalEnd;
         } catch {
           return false;
@@ -536,19 +536,19 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
       labels: currentPeriodCounts.map((item: any) => item.label),
       datasets,
     };
-  }, [candidates, startDate, endDate, intervalFunction, formatFunction, dateRange, periodType, periodUnit, periodN]);
+  }, [Applicants, startDate, endDate, intervalFunction, formatFunction, dateRange, periodType, periodUnit, periodN]);
 
   const totalApplications = useMemo(() => {
-    return candidates.filter(candidate => {
-      if (!candidate.applicationDate) return false;
+    return Applicants.filter(Applicant => {
+      if (!applicant.applicationDate) return false;
       try {
-        const appDate = parseISO(candidate.applicationDate);
+        const appDate = parseISO(applicant.applicationDate);
         return appDate >= startDate && appDate <= endDate;
       } catch {
         return false;
       }
     }).length;
-  }, [candidates, startDate, endDate]);
+  }, [Applicants, startDate, endDate]);
 
   const averageApplications = useMemo(() => {
     if (chartData.labels.length === 0) return 0;

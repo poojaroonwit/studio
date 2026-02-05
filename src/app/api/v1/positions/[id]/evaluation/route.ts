@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -19,13 +19,13 @@ export async function GET(
     if (session?.user) {
       isAuthorized = true;
     } else if (token) {
-      // Validate token for a candidate assigned to this position
-      const link = await prisma.candidateEvaluationLink.findFirst({
+      // Validate token for a Applicant assigned to this position
+      const link = await prisma.applicantEvaluationLink.findFirst({
         where: {
           token: token,
           revokedAt: null,
           expiresAt: { gt: new Date() },
-          candidate: {
+          Applicant: {
             positionId: positionId
           }
         }

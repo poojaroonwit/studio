@@ -197,13 +197,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('User not found'));
     }
 
-    // Check if user has assigned candidates
-    const candidatesResult = await client.query('SELECT COUNT(*) FROM "Candidate" WHERE "recruiterId" = $1', [id]);
-    const candidateCount = parseInt(candidatesResult.rows[0].count, 10);
+    // Check if user has assigned applicants
+    const applicantsResult = await client.query('SELECT COUNT(*) FROM "Candidate" WHERE "recruiterId" = $1', [id]);
+    const applicantCount = parseInt(applicantsResult.rows[0].count, 10);
     
-    if (candidateCount > 0) {
+    if (applicantCount > 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createValidationError(`Cannot delete user with assigned candidates. Found ${candidateCount} candidates assigned to this user.`));
+      return SimpleErrorHandler.handleApiError(req, createValidationError(`Cannot delete user with assigned applicants. Found ${applicantCount} applicants assigned to this user.`));
     }
 
     await client.query('DELETE FROM "User" WHERE id = $1', [id]);

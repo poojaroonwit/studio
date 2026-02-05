@@ -45,10 +45,10 @@ export const automationPaths = {
       }
     }
   },
-  '/api/automation/create-candidate-with-matches': {
+  '/api/automation/create-Applicant-with-matches': {
     post: {
-      summary: 'Create candidate with matches',
-      description: 'Create a candidate and automatically generate job matches. Requires Bearer token authentication.',
+      summary: 'Create Applicant with matches',
+      description: 'Create a Applicant and automatically generate job matches. Requires Bearer token authentication.',
       tags: ['Automation'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -58,7 +58,7 @@ export const automationPaths = {
             schema: {
               type: 'object',
               properties: {
-                candidate: {
+                Applicant: {
                   type: 'object',
                   properties: {
                     personal_info: { type: 'object' },
@@ -71,20 +71,20 @@ export const automationPaths = {
                 autoMatch: { type: 'boolean', default: true },
                 matchThreshold: { type: 'number', default: 0.7 }
               },
-              required: ['candidate']
+              required: ['Applicant']
             }
           }
         }
       },
       responses: {
         '201': {
-          description: 'Candidate created with matches successfully',
+          description: 'Applicant created with matches successfully',
           content: {
             'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  candidate: { $ref: '#/components/schemas/Candidate' },
+                  Applicant: { $ref: '#/components/schemas/Applicant' },
                   matches: {
                     type: 'array',
                     items: {
@@ -102,7 +102,7 @@ export const automationPaths = {
             }
           }
         },
-        '400': { description: 'Invalid candidate data' },
+        '400': { description: 'Invalid Applicant data' },
         '401': { description: 'Unauthorized' }
       }
     }

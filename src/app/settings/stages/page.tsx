@@ -214,7 +214,7 @@ export default function RecruitmentStagesPage() {
     if (!stageToDelete || !replacementStageName) return;
     
     try {
-      // First, migrate all candidates and transition records to the replacement stage
+      // First, migrate all Applicants and transition records to the replacement stage
       const migrateResponse = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}/migrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -458,7 +458,7 @@ export default function RecruitmentStagesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center"><AlertCircle className="mr-2 h-5 w-5 text-amber-500"/>Stage In Use</AlertDialogTitle>
             <AlertDialogDescription>
-              The stage &quot;<strong>{stageToDelete?.name}</strong>&quot; is currently in use by candidates or in transition history.
+              The stage &quot;<strong>{stageToDelete?.name}</strong>&quot; is currently in use by Applicants or in transition history.
               To delete it, please select a new stage to migrate all associated records to.
             </AlertDialogDescription>
           </AlertDialogHeader>

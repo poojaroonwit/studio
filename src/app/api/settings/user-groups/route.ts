@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/user-groups/route.ts
@@ -62,7 +62,7 @@ const userGroupSchema = z.object({
  *               value:
  *                 name: "Recruiter"
  *                 description: "Group for all recruiters"
- *                 permissions: ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"]
+ *                 permissions: ["Applicants_VIEW", "Applicants_MANAGE"]
  *     responses:
  *       201:
  *         description: User group created
@@ -77,7 +77,7 @@ const userGroupSchema = z.object({
  *                   id: "uuid"
  *                   name: "Recruiter"
  *                   description: "Group for all recruiters"
- *                   permissions: ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"]
+ *                   permissions: ["Applicants_VIEW", "Applicants_MANAGE"]
  *                   is_default: false
  *                   is_system_role: false
  *                   user_count: 1

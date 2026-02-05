@@ -125,7 +125,7 @@ export default function SystemSettingsPage() {
   // PWA Metadata state
   const [pwaName, setPwaName] = useState('FitScan - AI-Powered Recruitment Platform');
   const [pwaShortName, setPwaShortName] = useState('FitScan');
-  const [pwaDescription, setPwaDescription] = useState('Advanced AI-powered recruitment and candidate management platform');
+  const [pwaDescription, setPwaDescription] = useState('Advanced AI-powered recruitment and Applicant management platform');
   const [pwaThemeColor, setPwaThemeColor] = useState('#000000');
   const [pwaBackgroundColor, setPwaBackgroundColor] = useState('#171a26');
   const [pwaAppleMobileWebAppTitle, setPwaAppleMobileWebAppTitle] = useState('FitScan');
@@ -249,7 +249,7 @@ export default function SystemSettingsPage() {
       // Load email templates
       setEmailTemplateInterviewInvitation(settings.emailTemplateInterviewInvitation || '');
       setEmailTemplateInterviewInvitationSubject(settings.emailTemplateInterviewInvitationSubject || '');
-      setIcsDescriptionTemplate(settings.icsDescriptionTemplate || 'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}');
+      setIcsDescriptionTemplate(settings.icsDescriptionTemplate || 'Interview with {{ApplicantName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}');
       setEmailTemplateInterviewInvitationEditorMode(settings.emailTemplateInterviewInvitationEditorMode || 'wysiwyg');
 
       // Load organization information (Moved from system-preferences)
@@ -291,7 +291,7 @@ export default function SystemSettingsPage() {
       // Load PWA metadata settings
       setPwaName(settings.pwaName || 'FitScan - AI-Powered Recruitment Platform');
       setPwaShortName(settings.pwaShortName || 'FitScan');
-      setPwaDescription(settings.pwaDescription || 'Advanced AI-powered recruitment and candidate management platform');
+      setPwaDescription(settings.pwaDescription || 'Advanced AI-powered recruitment and Applicant management platform');
       setPwaThemeColor(settings.pwaThemeColor || '#000000');
       setPwaBackgroundColor(settings.pwaBackgroundColor || '#171a26');
       setPwaAppleMobileWebAppTitle(settings.pwaAppleMobileWebAppTitle || 'FitScan');
@@ -361,7 +361,7 @@ export default function SystemSettingsPage() {
       { key: 'pwaEnabled', value: pwaEnabled.toString() },
       { key: 'pwaName', value: pwaName || 'FitScan - AI-Powered Recruitment Platform' },
       { key: 'pwaShortName', value: pwaShortName || 'FitScan' },
-      { key: 'pwaDescription', value: pwaDescription || 'Advanced AI-powered recruitment and candidate management platform' },
+      { key: 'pwaDescription', value: pwaDescription || 'Advanced AI-powered recruitment and Applicant management platform' },
       { key: 'pwaThemeColor', value: pwaThemeColor || '#000000' },
       { key: 'pwaBackgroundColor', value: pwaBackgroundColor || '#171a26' },
       { key: 'pwaAppleMobileWebAppTitle', value: pwaAppleMobileWebAppTitle || 'FitScan' },

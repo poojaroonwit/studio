@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -8,7 +8,7 @@ import { getPool } from '../../../../../../lib/db';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const moveStageSchema = z.object({
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+        broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json({ message: 'Stage order updated successfully' }, { status: 200 });
 

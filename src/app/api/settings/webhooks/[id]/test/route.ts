@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -37,9 +37,9 @@ export async function POST(
         webhook_id: webhook.id,
         webhook_name: webhook.name,
         test_data: {
-          candidate: {
-            id: 'test-candidate-id',
-            name: 'Test Candidate',
+          Applicant: {
+            id: 'test-Applicant-id',
+            name: 'Test Applicant',
             email: 'test@example.com'
           },
           position: {

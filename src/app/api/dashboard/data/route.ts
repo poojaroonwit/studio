@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 
 import { auth } from '@/auth';
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       // Get basic dashboard statistics
       const statsRes = await client.query(`
         SELECT 
-          (SELECT COUNT(*) FROM "Candidate") as total_candidates,
+          (SELECT COUNT(*) FROM "Candidate") as total_Applicants,
           (SELECT COUNT(*) FROM "Position") as total_positions,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'queued') as queued_uploads,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess') as processing_uploads,
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       // Get recent activity
       const recentActivityRes = await client.query(`
         SELECT 
-          'candidate' as type,
+          'Applicant' as type,
           c.id,
           c.name,
           c."createdAt" as timestamp,
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({
         stats: {
-          total_candidates: Number(stats.total_candidates) || 0,
+          total_Applicants: Number(stats.total_Applicants) || 0,
           total_positions: Number(stats.total_positions) || 0,
           queued_uploads: Number(stats.queued_uploads) || 0,
           processing_uploads: Number(stats.processing_uploads) || 0,

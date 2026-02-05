@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';

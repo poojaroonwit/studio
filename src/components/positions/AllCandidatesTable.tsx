@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban } from 'lucide-react';
-import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
+import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
-import { BlacklistBadge } from '@/components/candidates/BlacklistBadge';
+import { BlacklistBadge } from '@/components/applicants/BlacklistBadge';
 import { Pagination } from '@/components/ui/pagination';
-import type { Candidate } from '@/lib/types';
+import type { Applicant } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-interface AllCandidatesTableProps {
-  candidates: Candidate[];
+interface AllApplicantsTableProps {
+  Applicants: Applicant[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
   sortColumn: string | null;
@@ -25,8 +25,8 @@ interface AllCandidatesTableProps {
   stageNames: Record<string, string>;
   onSort: (column: string | null, direction?: 'asc' | 'desc' | null) => void;
   onOpenMenuChange: (menu: string | null) => void;
-  onCandidateClick: (candidateId: string) => void;
-  onPinToggle: (candidate: Candidate) => Promise<void>;
+  onApplicantClick: (candidateId: string) => void;
+  onPinToggle: (Applicant: Applicant) => Promise<void>;
   total: number;
   currentPage: number;
   pageSize: number;
@@ -35,8 +35,8 @@ interface AllCandidatesTableProps {
   onPageSizeChange: (size: number) => void;
 }
 
-export function AllCandidatesTable({
-  candidates,
+export function AllApplicantsTable({
+  Applicants,
   searchTerm,
   onSearchChange,
   sortColumn,
@@ -45,7 +45,7 @@ export function AllCandidatesTable({
   stageNames,
   onSort,
   onOpenMenuChange,
-  onCandidateClick,
+  onApplicantClick,
   onPinToggle,
   total,
   currentPage,
@@ -53,7 +53,7 @@ export function AllCandidatesTable({
   totalPages,
   onPageChange,
   onPageSizeChange,
-}: AllCandidatesTableProps) {
+}: AllApplicantsTableProps) {
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
   let rowNumber = 1;
 
@@ -94,8 +94,8 @@ export function AllCandidatesTable({
     </TableHead>
   );
 
-  // Use sorted candidates for email order
-  const sortedEmailOrder = candidates
+  // Use sorted Applicants for email order
+  const sortedEmailOrder = Applicants
     .map((c) => c.email)
     .filter((email, index, arr) => email && arr.indexOf(email) === index);
 
@@ -106,7 +106,7 @@ export function AllCandidatesTable({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search candidates..."
+            placeholder="Search Applicants..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"
@@ -140,56 +140,56 @@ export function AllCandidatesTable({
           </TableHeader>
           <TableBody>
             {sortedEmailOrder.map((email) => {
-              const group = candidates.filter(c => c.email === email);
+              const group = Applicants.filter(c => c.email === email);
               if (!group || group.length === 0) return null;
 
               if (group.length === 1) {
-                const candidate = group[0];
+                const Applicant = group[0];
                 return (
                   <TableRow
-                    key={candidate.id}
-                    className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
+                    key={applicant.id}
+                    className={`hover:bg-muted/50 ${applicant.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
                   >
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                     <TableCell>
                       <div>
                         <div className={cn(
                           "font-medium flex items-center gap-2",
-                          candidate.isBlacklisted && "text-destructive"
+                          applicant.isBlacklisted && "text-destructive"
                         )}>
-                          {candidate.name}
-                          {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
+                          {applicant.name}
+                          {applicant.isBlacklisted && <Ban className="h-3 w-3" />}
                         </div>
-                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                        <div className="text-xs text-muted-foreground">{applicant.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                        <ScoreBadge score={candidate.fitScore}>
-                          {formatScoreWithGrade(candidate.fitScore)}
+                      {Applicant.fitScore !== undefined && Applicant.fitScore !== null ? (
+                        <ScoreBadge score={Applicant.fitScore}>
+                          {formatScoreWithGrade(Applicant.fitScore)}
                         </ScoreBadge>
                       ) : (
                         <Badge variant="outline">No Score</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {candidate.expectedSalary ? (
-                        <div className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</div>
+                      {applicant.expectedSalary ? (
+                        <div className="text-sm font-medium">฿{applicant.expectedSalary.toLocaleString()}</div>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {candidate.isBlacklisted ? (
+                      {applicant.isBlacklisted ? (
                         <BlacklistBadge />
                       ) : (
-                        <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                        <StatusBadge statusId={applicant.statusId} stageNames={stageNames} />
                       )}
                     </TableCell>
                     <TableCell>
-                      {candidate.applicationDate ? (
+                      {applicant.applicationDate ? (
                         <div className="text-sm">
-                          {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                          {new Date(applicant.applicationDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
@@ -203,7 +203,7 @@ export function AllCandidatesTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onCandidateClick(candidate.id)}
+                        onClick={() => onApplicantClick(applicant.id)}
                         className="hover:bg-primary/10"
                       >
                         <Eye className="h-4 w-4" />
@@ -213,7 +213,7 @@ export function AllCandidatesTable({
                   </TableRow>
                 );
               } else {
-                // Handle grouped candidates (same email)
+                // Handle grouped Applicants (same email)
                 const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
                 return (
                   <React.Fragment key={email}>
@@ -229,55 +229,55 @@ export function AllCandidatesTable({
                             {isExpanded ? <ChevronDown /> : <ChevronUp />}
                           </Button>
                           <span className="font-semibold">{email}</span>
-                          <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
+                          <span className="text-xs text-muted-foreground">({group.length} Applicants)</span>
                         </div>
                       </TableCell>
                     </TableRow>
-                    {isExpanded && group.map((candidate) => (
+                    {isExpanded && group.map((Applicant) => (
                       <TableRow
-                        key={candidate.id}
-                        className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
+                        key={applicant.id}
+                        className={`hover:bg-muted/50 ${applicant.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
                       >
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                         <TableCell>
                           <div>
                             <div className={cn(
                               "font-medium flex items-center gap-2",
-                              candidate.isBlacklisted && "text-destructive"
+                              applicant.isBlacklisted && "text-destructive"
                             )}>
-                              {candidate.name}
-                              {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
+                              {applicant.name}
+                              {applicant.isBlacklisted && <Ban className="h-3 w-3" />}
                             </div>
-                            <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                            <div className="text-xs text-muted-foreground">{applicant.email}</div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                            <ScoreBadge score={candidate.fitScore}>
-                              {formatScoreWithGrade(candidate.fitScore)}
+                          {Applicant.fitScore !== undefined && Applicant.fitScore !== null ? (
+                            <ScoreBadge score={Applicant.fitScore}>
+                              {formatScoreWithGrade(Applicant.fitScore)}
                             </ScoreBadge>
                           ) : (
                             <Badge variant="outline">No Score</Badge>
                           )}
                         </TableCell>
                         <TableCell>
-                          {candidate.expectedSalary ? (
-                            <div className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</div>
+                          {applicant.expectedSalary ? (
+                            <div className="text-sm font-medium">฿{applicant.expectedSalary.toLocaleString()}</div>
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          {candidate.isBlacklisted ? (
+                          {applicant.isBlacklisted ? (
                             <BlacklistBadge />
                           ) : (
-                            <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                            <StatusBadge statusId={applicant.statusId} stageNames={stageNames} />
                           )}
                         </TableCell>
                         <TableCell>
-                          {candidate.applicationDate ? (
+                          {applicant.applicationDate ? (
                             <div className="text-sm">
-                              {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                              {new Date(applicant.applicationDate).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric'
@@ -292,7 +292,7 @@ export function AllCandidatesTable({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => onCandidateClick(candidate.id)}
+                              onClick={() => onApplicantClick(applicant.id)}
                               className="hover:bg-primary/10"
                             >
                               <Eye className="h-4 w-4" />
@@ -303,12 +303,12 @@ export function AllCandidatesTable({
                               size="sm"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                await onPinToggle(candidate);
+                                await onPinToggle(Applicant);
                               }}
-                              title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                              title={applicant.isPinned ? 'Unpin' : 'Pin'}
                               className="hover:bg-primary/10"
                             >
-                              {candidate.isPinned ? (
+                              {applicant.isPinned ? (
                                 <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                               ) : (
                                 <PinIcon className="h-4 w-4 text-black rotate-45" />

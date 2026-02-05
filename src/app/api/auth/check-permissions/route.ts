@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasAnyPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';

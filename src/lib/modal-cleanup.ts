@@ -39,7 +39,7 @@ export function cleanupAllModals() {
   });
 
   // Clean up any remaining portal containers
-  const portalContainers = document.querySelectorAll('[data-candidate-modal-portal="true"]');
+  const portalContainers = document.querySelectorAll('[data-Applicant-modal-portal="true"]');
   portalContainers.forEach(container => {
     if (container.parentNode) {
       container.parentNode.removeChild(container);
@@ -177,7 +177,7 @@ export function emergencyModalCleanup() {
     '[data-radix-alert-dialog-overlay]',
     '[data-radix-dialog-content]',
     '[data-radix-alert-dialog-content]',
-    '[data-candidate-modal-portal]',
+    '[data-Applicant-modal-portal]',
     '[data-portal-container]',
     '.fixed[style*="z-index"]'
   ];

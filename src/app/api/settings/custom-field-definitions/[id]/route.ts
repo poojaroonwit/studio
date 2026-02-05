@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 // src/app/api/settings/custom-field-definitions/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ const customFieldOptionSchema = z.object({
 });
 
 const updateCustomFieldSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount']).optional(),
+  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount']).optional(),
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores.").optional(),
   label: z.string().min(1, "Label is required").optional(),
   field_type: z.enum(['text', 'textarea', 'number', 'boolean', 'date', 'select_single', 'select_multiple'] as const).optional(),
@@ -26,15 +26,15 @@ const updateCustomFieldSchema = z.object({
   
   // Visibility settings
   showInFilter: z.boolean().optional(),
-  showInCandidateDetail: z.boolean().optional(),
-  showInFullCandidateDetail: z.boolean().optional(),
+  showInApplicantDetail: z.boolean().optional(),
+  showInFullApplicantDetail: z.boolean().optional(),
   showInTaskBoardFilter: z.boolean().optional(),
   showInPositionSettings: z.boolean().optional(),
   showInHeadcountDetail: z.boolean().optional(),
   
   // Section selection for display settings
-  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional(),
-  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional(),
+  applicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional(),
+  positionDetailSection: z.enum(['details', 'criteria', 'applicants', 'headcount']).optional(),
   
   // Field properties
   is_required: z.boolean().optional(),
@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         id, model_name, field_key, field_code, label, field_type, options, 
         is_required, sort_order, attribute_code, attribute_label,
-        view_roles, edit_roles, show_in_filter, show_in_candidate_detail,
-        show_in_full_candidate_detail, show_in_task_board_filter,
-        show_in_position_settings, show_in_headcount_detail, candidate_detail_section, position_detail_section, allow_custom_options,
+        view_roles, edit_roles, show_in_filter, show_in_applicant_detail,
+        show_in_full_applicant_detail, show_in_task_board_filter,
+        show_in_position_settings, show_in_headcount_detail, applicant_detail_section, position_detail_section, allow_custom_options,
         "createdAt", "updatedAt"
       FROM "CustomFieldDefinition"
       WHERE id = $1
@@ -134,12 +134,12 @@ export async function GET(request: NextRequest) {
       viewRoles: field.view_roles || [],
       editRoles: field.edit_roles || [],
       showInFilter: field.show_in_filter || false,
-      showInCandidateDetail: field.show_in_candidate_detail || false,
-      showInFullCandidateDetail: field.show_in_full_candidate_detail || false,
+      showInApplicantDetail: field.show_in_applicant_detail || false,
+      showInFullApplicantDetail: field.show_in_full_applicant_detail || false,
       showInTaskBoardFilter: field.show_in_task_board_filter || false,
       showInPositionSettings: field.show_in_position_settings || false,
       showInHeadcountDetail: field.show_in_headcount_detail || false,
-      candidateDetailSection: field.candidate_detail_section,
+      applicantDetailSection: field.applicant_detail_section,
       positionDetailSection: field.position_detail_section,
       is_required: field.is_required,
       allowCustomOptions: field.allow_custom_options || false,
@@ -263,12 +263,12 @@ export async function PUT(request: NextRequest) {
       viewRoles: 'view_roles',
       editRoles: 'edit_roles',
       showInFilter: 'show_in_filter',
-      showInCandidateDetail: 'show_in_candidate_detail',
-      showInFullCandidateDetail: 'show_in_full_candidate_detail',
+      showInApplicantDetail: 'show_in_applicant_detail',
+      showInFullApplicantDetail: 'show_in_full_applicant_detail',
       showInTaskBoardFilter: 'show_in_task_board_filter',
       showInPositionSettings: 'show_in_position_settings',
       showInHeadcountDetail: 'show_in_headcount_detail',
-      candidateDetailSection: 'candidate_detail_section',
+      applicantDetailSection: 'applicant_detail_section',
       positionDetailSection: 'position_detail_section',
       is_required: 'is_required',
       allowCustomOptions: 'allow_custom_options',
@@ -314,12 +314,12 @@ export async function PUT(request: NextRequest) {
       viewRoles: updatedField.view_roles || [],
       editRoles: updatedField.edit_roles || [],
       showInFilter: updatedField.show_in_filter || false,
-      showInCandidateDetail: updatedField.show_in_candidate_detail || false,
-      showInFullCandidateDetail: updatedField.show_in_full_candidate_detail || false,
+      showInApplicantDetail: updatedField.show_in_applicant_detail || false,
+      showInFullApplicantDetail: updatedField.show_in_full_applicant_detail || false,
       showInTaskBoardFilter: updatedField.show_in_task_board_filter || false,
       showInPositionSettings: updatedField.show_in_position_settings || false,
       showInHeadcountDetail: updatedField.show_in_headcount_detail || false,
-      candidateDetailSection: updatedField.candidate_detail_section,
+      applicantDetailSection: updatedField.applicant_detail_section,
       positionDetailSection: updatedField.position_detail_section,
       is_required: updatedField.is_required,
       allowCustomOptions: updatedField.allow_custom_options || false,

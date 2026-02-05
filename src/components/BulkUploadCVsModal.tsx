@@ -12,12 +12,12 @@ import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
-import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
+import { PositionMultiSelectDropdown } from "@/components/applicants/PositionMultiSelectDropdown";
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 import { hasAnyPermission } from '@/lib/permissions';
-import type { CandidateSource } from '@/lib/types';
+import type { ApplicantSource } from '@/lib/types';
 import { createPortal } from 'react-dom';
-import { SourceSingleSelectDropdown } from '@/components/candidates/SourceSingleSelectDropdown';
+import { SourceSingleSelectDropdown } from '@/components/applicants/SourceSingleSelectDropdown';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -34,7 +34,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set());
   const [selectedSourceId, setSelectedSourceId] = useState<string>("");
   const [subSource, setSubSource] = useState<string>("");
-  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
+  const [availableSources, setAvailableSources] = useState<ApplicantSource[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const { data: session } = useSession();
@@ -57,10 +57,10 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     return hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
   }, [session?.user]);
 
-  // Fetch candidate sources
-  const fetchCandidateSources = useCallback(async () => {
+  // Fetch Applicant sources
+  const fetchApplicantSources = useCallback(async () => {
     try {
-      const response = await fetch('/api/settings/candidate-sources', {
+      const response = await fetch('/api/settings/Applicant-sources', {
         credentials: 'include'
       });
       if (response.ok) {
@@ -68,15 +68,15 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         setAvailableSources(sources);
       }
     } catch (error) {
-      console.error('Failed to fetch candidate sources:', error);
+      console.error('Failed to fetch Applicant sources:', error);
     }
   }, []);
 
   useEffect(() => {
     if (isOpen) {
-      fetchCandidateSources();
+      fetchApplicantSources();
     }
-  }, [isOpen, fetchCandidateSources]);
+  }, [isOpen, fetchApplicantSources]);
 
   useEffect(() => {
     if (selectedFiles.length > 0) {
@@ -285,7 +285,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   }
 
   const handleRefreshClick = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
+    window.dispatchEvent(new CustomEvent('refreshApplicantQueue'));
     onUploadSuccess?.();
   }, [onUploadSuccess]);
 
@@ -360,7 +360,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         
         // Refresh queue display
         if (onUploadSuccess) onUploadSuccess();
-        window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
+        window.dispatchEvent(new CustomEvent('refreshApplicantQueue'));
       }
     } catch (error) {
       console.error('Upload error:', error);

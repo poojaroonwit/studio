@@ -14,6 +14,26 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHE_SIZE = 100; // Maximum number of cached avatars
 
 /**
+ * Helper to safely parse any URL string, including relative paths.
+ * Returns a URL object and whether the original URL was relative.
+ */
+const parseUrlSafe = (url: string): { urlObj: URL; isRelative: boolean } | null => {
+  if (!url) return null;
+  
+  const isRelative = !url.startsWith('http:') && !url.startsWith('https:') && !url.startsWith('//');
+  try {
+    // For relative URLs, we need a base to avoid "Invalid URL" TypeError
+    const base = isRelative 
+      ? (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'))
+      : undefined;
+    const urlObj = new URL(url, base);
+    return { urlObj, isRelative };
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
  * Adds a cache-busting parameter to image URLs to prevent browser caching issues.
  *
  * Important behaviour:
@@ -30,9 +50,12 @@ const MAX_CACHE_SIZE = 100; // Maximum number of cached avatars
 export const addCacheBuster = (url: string, forceRefresh: boolean = false): string => {
   if (!url) return url;
 
-  try {
-    const urlObj = new URL(url);
+  const parsed = parseUrlSafe(url);
+  if (!parsed) return url;
 
+  const { urlObj, isRelative } = parsed;
+
+  try {
     const hasCb = urlObj.searchParams.has('cb');
 
     if (forceRefresh) {
@@ -40,8 +63,8 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
       const timestamp = Date.now();
       // Use crypto for secure random generation when available
       let random: string;
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        random = crypto.randomUUID().replace(/-/g, '').substring(0, 13);
+      if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
+        random = (crypto as any).randomUUID().replace(/-/g, '').substring(0, 13);
       } else {
         random = Math.random().toString(36).substring(2, 15);
       }
@@ -52,10 +75,18 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
       urlObj.searchParams.set('cb', '1');
     }
 
+    if (isRelative) {
+      const result = urlObj.pathname + urlObj.search + urlObj.hash;
+      // Handle cases where original was 'api/foo' but URL constructor makes it '/api/foo'
+      if (!url.startsWith('/') && result.startsWith('/')) {
+        return result.substring(1);
+      }
+      return result;
+    }
     return urlObj.toString();
   } catch (error) {
-    // If URL parsing fails, return original URL
-    console.warn('Failed to parse image URL for cache busting:', url, error);
+    // If something goes wrong during param manipulation, return original
+    console.warn('Error during image URL cache busting:', url, error);
     return url;
   }
 };
@@ -68,13 +99,24 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
 export const removeCacheBuster = (url: string): string => {
   if (!url) return url;
 
+  const parsed = parseUrlSafe(url);
+  if (!parsed) return url;
+
+  const { urlObj, isRelative } = parsed;
+
   try {
-    const urlObj = new URL(url);
     urlObj.searchParams.delete('cb');
+    
+    if (isRelative) {
+      const result = urlObj.pathname + urlObj.search + urlObj.hash;
+      if (!url.startsWith('/') && result.startsWith('/')) {
+        return result.substring(1);
+      }
+      return result;
+    }
     return urlObj.toString();
   } catch (error) {
-    // If URL parsing fails, return original URL
-    console.warn('Failed to parse image URL for cache buster removal:', url, error);
+    console.warn('Error during image URL cache buster removal:', url, error);
     return url;
   }
 };
@@ -87,8 +129,12 @@ export const removeCacheBuster = (url: string): string => {
 export const isValidImageUrl = (url: string): boolean => {
   if (!url) return false;
 
+  const parsed = parseUrlSafe(url);
+  if (!parsed) return false;
+
+  const { urlObj } = parsed;
+
   try {
-    const urlObj = new URL(url);
     const pathname = urlObj.pathname.toLowerCase();
     const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
 
@@ -149,22 +195,13 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
 
     // If it's a secure endpoint URL and we need public, convert it
     if (isPublic && url.includes('/api/secure-file/')) {
-      try {
-        // Handle both absolute and relative URLs
-        let urlObj: URL;
-        if (url.startsWith('http')) {
-          urlObj = new URL(url);
-        } else if (url.startsWith('/')) {
-          // Relative URL starting with /
-          urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'));
-        } else {
-          // Relative URL without /
-          urlObj = new URL(`/${url}`, typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'));
-        }
+      const parsed = parseUrlSafe(url);
+      if (parsed) {
+        const { urlObj } = parsed;
 
         const filePath = urlObj.searchParams.get('filePath');
         // Allow all settings images (logos, backgrounds, etc.) for public access
-        if (filePath && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
+        if (filePath && (filePath.startsWith('settings/') || filePath.startsWith('Applicant-source-logo/'))) {
           const baseUrl = typeof window !== 'undefined'
             ? window.location.origin
             : process.env.NEXTAUTH_URL || 'http://localhost:8021';
@@ -177,8 +214,6 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
           
           return publicUrl;
         }
-      } catch (urlError) {
-        console.warn('[IMAGE-UTILS] Failed to parse secure endpoint URL:', url, urlError);
       }
     }
 
@@ -199,13 +234,11 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
 
     // Check if it's a MinIO URL (contains the bucket path)
     // Handle both absolute and relative URLs
-    let urlObj: URL;
-    try {
-      urlObj = url.startsWith('http') ? new URL(url) : new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
-    } catch (urlError) {
-      console.warn('[IMAGE-UTILS] Failed to parse URL:', url, urlError);
+    const parsed = parseUrlSafe(url);
+    if (!parsed) {
       return url;
     }
+    const { urlObj } = parsed;
     const pathname = urlObj.pathname;
 
     // Extract file path from MinIO URL
@@ -221,7 +254,7 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
       // For public endpoints (login page), use public logo endpoint for all settings images
       // For authenticated endpoints, use secure-file preview
       const lowerFilePath = filePath.toLowerCase();
-      if (isPublic && (lowerFilePath.startsWith('settings/') || lowerFilePath.startsWith('candidate-source-logo/'))) {
+      if (isPublic && (lowerFilePath.startsWith('settings/') || lowerFilePath.startsWith('Applicant-source-logo/'))) {
         let publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
         return appendParams(publicUrl);
       }

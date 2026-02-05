@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has permission to view headcount data
-    // Users should be able to view headcount if they can view positions or candidates
+    // Users should be able to view headcount if they can view positions or Applicants
     if (!hasPermission(session.user, 'POSITIONS_VIEW') &&
-      !hasPermission(session.user, 'CANDIDATES_VIEW')) {
+      !hasPermission(session.user, 'Applicants_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
     }
 
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     // Validate that if status is 'filled', a candidateId must be provided
     if (status === 'filled' && !candidateId) {
-      return NextResponse.json({ error: 'Candidate ID is required when status is "filled"' }, { status: 400 });
+      return NextResponse.json({ error: 'Applicant ID is required when status is "filled"' }, { status: 400 });
     }
 
     // Verify position exists
@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Position not found' }, { status: 404 });
     }
 
-    // If candidateId is provided, verify candidate exists
+    // If candidateId is provided, verify Applicant exists
     if (candidateId) {
-      const candidate = await prisma.candidate.findUnique({
+      const applicant = await prisma.candidate.findUnique({
         where: { id: candidateId },
       });
 
-      if (!candidate) {
-        return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+      if (!applicant) {
+        return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
       }
     }
 

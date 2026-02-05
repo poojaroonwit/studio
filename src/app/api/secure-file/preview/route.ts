@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import prisma from '@/lib/prisma';
@@ -81,14 +81,14 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const filePath = url.searchParams.get('filePath') || '';
     const isSettingsImage = filePath.startsWith('settings/') ||
-      filePath.startsWith('candidate-source-logo/') ||
+      filePath.startsWith('Applicant-source-logo/') ||
       (filePath.startsWith('profile-images/') && !url.searchParams.get('candidateId'));
 
     // For settings images, allow any authenticated user
     // For other images, require view permissions
     if (!isSettingsImage) {
       const hasAnyViewPermission =
-        hasPermission(session.user, 'CANDIDATES_VIEW') ||
+        hasPermission(session.user, 'Applicants_VIEW') ||
         hasPermission(session.user, 'POSITIONS_VIEW') ||
         session.user.role === 'Admin';
 
@@ -122,27 +122,27 @@ export async function GET(request: NextRequest) {
 
   // Re-check if this is a settings image (already checked above, but need it here for contextual auth)
   const isSettingsImage = filePath.startsWith('settings/') ||
-    filePath.startsWith('candidate-source-logo/') ||
+    filePath.startsWith('Applicant-source-logo/') ||
     (filePath.startsWith('profile-images/') && !candidateId);
 
   // Skip contextual authorization for settings images - they're public to all authenticated users
   if (!isSettingsImage) {
-    // Contextual authorization for candidate/headcount specific files
+    // Contextual authorization for Applicant/headcount specific files
     try {
       if (candidateId) {
-        const candidate = await prisma.candidate.findUnique({
+        const applicant = await prisma.candidate.findUnique({
           where: { id: candidateId },
           select: { id: true, recruiterId: true }
         });
-        if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
-        const hasGlobalEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
-          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-        const hasOwnEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') ||
-          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+        if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
+        const hasGlobalEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE');
+        const hasOwnEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN');
         if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        if (session.user.role !== 'Admin' && !hasGlobalEdit && candidate.recruiterId !== session.user.id) {
+        if (session.user.role !== 'Admin' && !hasGlobalEdit && applicant.recruiterId !== session.user.id) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       } else if (headcountId) {

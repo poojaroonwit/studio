@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
       await ensureBucketExists();
       
       // SECURITY: Never set public read access - all files must be accessed via signed URLs
-      // console.log('[SETTINGS UPLOAD] ✅ SECURITY: Files uploaded with private access only');
+      // console.log('[SETTINGS UPLOAD] ? SECURITY: Files uploaded with private access only');
     } catch (minioError) {
       console.error('[SETTINGS UPLOAD] MinIO bucket error:', minioError);
       await logAudit('ERROR', `Settings image upload failed - MinIO bucket error: ${minioError}`, 'API:SystemSettings:UploadImage', session?.user?.id);
@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest) {
       'Cross-Origin-Resource-Policy': 'cross-origin'
       // Note: CORS headers are set in HTTP response, not MinIO metadata
     });
-    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    // ?? SECURITY: Return web application URL instead of direct MinIO URL
     // Use preview endpoint for images displayed in img tags
     const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
     

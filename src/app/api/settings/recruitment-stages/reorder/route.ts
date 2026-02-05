@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -6,7 +6,7 @@ import { getPool } from '../../../../../lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 import { auth } from '@/auth';
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     
     // Broadcast the updated stages list to all connected clients
     const updatedStages = await fetchAllRecruitmentStagesDb();
-    broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+    broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
     
     return NextResponse.json({ message: 'Recruitment stages reordered successfully' }, { status: 200 });
   } catch (error: any) {

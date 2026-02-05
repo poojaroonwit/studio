@@ -181,7 +181,7 @@ async function checkMigrationNeeds() {
         
         // Look for old broad permissions that need migration
         const oldBroadPermissions = [
-            'CANDIDATES_MANAGE',
+            'Applicants_MANAGE',
             'POSITIONS_MANAGE', 
             'USERS_MANAGE',
             'SYSTEM_MANAGE',

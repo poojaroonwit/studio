@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { auth } from '@/auth';
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
-import type { Candidate, Position, UserProfile } from '@/lib/types';
+import type { Applicant, Position, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { getPool } from '@/lib/db';
@@ -11,7 +11,7 @@ import { safeJsonParse } from '@/lib/utils';
 
 export default async function DashboardPageServer() {
   let session: any = null;
-  let initialCandidates: Candidate[] = [];
+  let initialApplicants: Applicant[] = [];
   let initialPositions: Position[] = [];
   let initialUsers: UserProfile[] = [];
   let fetchError: string | undefined = undefined;
@@ -23,7 +23,7 @@ export default async function DashboardPageServer() {
     session = await auth();
     if (!session?.user) {
       return <DashboardPageClient 
-               initialCandidates={[]} 
+               initialApplicants={[]} 
                initialPositions={[]} 
                initialUsers={[]} 
                authError={true} 
@@ -37,8 +37,8 @@ export default async function DashboardPageServer() {
     try {
       client = await getPool().connect();
       
-      // Fetch candidates
-      const candidatesQuery = `
+      // Fetch Applicants
+      const ApplicantsQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
                rs.id as "statusId", rs.name as "status",
@@ -58,7 +58,7 @@ export default async function DashboardPageServer() {
         ) AS th_data ON true
         ORDER BY c."applicationDate" DESC;
       `;
-      const candidatesResult = await client.query(candidatesQuery);
+      const ApplicantsResult = await client.query(ApplicantsQuery);
       
       // Fetch positions
       const positionsQuery = 'SELECT * FROM "Position" ORDER BY "createdAt" DESC;';
@@ -68,8 +68,8 @@ export default async function DashboardPageServer() {
       const usersQuery = 'SELECT * FROM "User" ORDER BY "createdAt" DESC;';
       const usersResult = await client.query(usersQuery);
 
-      // Transform candidates data
-      initialCandidates = candidatesResult.rows.map((row: any) => ({
+      // Transform Applicants data
+      initialApplicants = ApplicantsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -183,7 +183,7 @@ export default async function DashboardPageServer() {
     }
     
     return <DashboardPageClient 
-             initialCandidates={initialCandidates} 
+             initialApplicants={initialApplicants} 
              initialPositions={initialPositions} 
              initialUsers={initialUsers} 
              initialFetchError={fetchError}
@@ -194,7 +194,7 @@ export default async function DashboardPageServer() {
   } catch (error) {
     fetchError = (error as Error).message || "Failed to load initial dashboard data.";
     return <DashboardPageClient 
-             initialCandidates={[]} 
+             initialApplicants={[]} 
              initialPositions={[]} 
              initialUsers={[]} 
              initialFetchError={fetchError}

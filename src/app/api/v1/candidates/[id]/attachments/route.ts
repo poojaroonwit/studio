@@ -14,9 +14,9 @@ import { SimpleErrorHandler,
   createNotFoundError,
   createInternalServerError
 } from '@/lib/errors';;
-import { canEditCandidate, canUploadResumes } from '@/lib/permissions';
+import { canEditApplicant, canUploadResumes } from '@/lib/permissions';
 
-const ENDPOINT = '/api/v1/candidates/[id]/attachments';
+const ENDPOINT = '/api/v1/applicants/[id]/attachments';
 
 // Helper function to infer content type from file path
 function inferContentType(filePath: string): string {
@@ -289,7 +289,7 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
   }
 }
 
-// GET: List attachments for a candidate
+// GET: List attachments for a Applicant
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
@@ -310,26 +310,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   try {
-    // Get candidate data for ownership check
-    const candidate = await prisma.candidate.findUnique({
+    // Get Applicant data for ownership check
+    const applicant = await prisma.candidate.findUnique({
       where: { id },
       select: { id: true, recruiterId: true }
     });
     
-    if (!candidate) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    if (!applicant) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
     // Check ownership-based permissions for viewing attachments
-    const hasGlobalEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-    const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+    const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+    const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
     
     if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
       return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view attachments'));
     }
     
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }
@@ -374,9 +374,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD');
-  const hasOwnResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD');
+  const hasOwnResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
@@ -440,19 +440,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const ext = (file.name || 'pdf').split('.').pop();
     const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
     
-    // Get candidate data for ownership check
-    const candidate = await prisma.candidate.findUnique({
+    // Get Applicant data for ownership check
+    const applicant = await prisma.candidate.findUnique({
       where: { id },
       select: { id: true, recruiterId: true }
     });
     
-    if (!candidate) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    if (!applicant) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
     // Check ownership-based permissions for uploading attachments
     if (user.role !== 'Admin' && !hasGlobalResumePermission) {
-      const resumePermission = canUploadResumes(user, candidate.recruiterId, user.id);
+      const resumePermission = canUploadResumes(user, applicant.recruiterId, user.id);
       if (!resumePermission.canUpload) {
         return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${resumePermission.reason}`));
       }
@@ -509,9 +509,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD');
-  const hasOwnResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD');
+  const hasOwnResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
@@ -652,9 +652,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
@@ -672,19 +672,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   
   try {
-    // Get candidate data for ownership check
-    const candidate = await prisma.candidate.findUnique({
+    // Get Applicant data for ownership check
+    const applicant = await prisma.candidate.findUnique({
       where: { id },
       select: { id: true, recruiterId: true }
     });
     
-    if (!candidate) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    if (!applicant) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
     // Check ownership-based permissions for managing attachments
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }
@@ -711,9 +711,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));
@@ -731,19 +731,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
   
   try {
-    // Get candidate data for ownership check
-    const candidate = await prisma.candidate.findUnique({
+    // Get Applicant data for ownership check
+    const applicant = await prisma.candidate.findUnique({
       where: { id },
       select: { id: true, recruiterId: true }
     });
     
-    if (!candidate) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    if (!applicant) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
     // Check ownership-based permissions for deleting attachments
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }

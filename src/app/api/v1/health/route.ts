@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     // Get system statistics
     const statsClient = await getSafeDbClient();
-    const [candidatesResult, positionsResult, usersResult] = await Promise.all([
+    const [ApplicantsResult, positionsResult, usersResult] = await Promise.all([
       statsClient.query('SELECT COUNT(*) as count FROM "Candidate"'),
       statsClient.query('SELECT COUNT(*) as count FROM "Position"'),
       statsClient.query('SELECT COUNT(*) as count FROM "User"')
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         currentTime: dbResult.rows[0].current_time
       },
       statistics: {
-        candidates: parseInt(candidatesResult.rows[0].count, 10),
+        Applicants: parseInt(ApplicantsResult.rows[0].count, 10),
         positions: parseInt(positionsResult.rows[0].count, 10),
         users: parseInt(usersResult.rows[0].count, 10)
       },

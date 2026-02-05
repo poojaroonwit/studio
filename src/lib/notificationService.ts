@@ -93,23 +93,23 @@ export class NotificationService {
   }
 
   /**
-   * Create a notification when a candidate is added
+   * Create a notification when a Applicant is added
    */
-  static async notifyCandidateAdded(
+  static async notifyApplicantAdded(
     candidateId: string,
-    candidateName: string,
+    ApplicantName: string,
     positionId: string,
     positionTitle: string,
     recruiterId: string,
     addedByUserId: string
   ) {
     const notification: NotificationData = {
-      type: 'candidate_added',
-      title: 'New Candidate Added',
-      message: `A new candidate "${candidateName}" has been added to position "${positionTitle}"`,
+      type: 'Applicant_added',
+      title: 'New Applicant Added',
+      message: `A new Applicant "${ApplicantName}" has been added to position "${positionTitle}"`,
       data: {
         candidateId,
-        candidateName,
+        ApplicantName,
         positionId,
         positionTitle,
         addedBy: addedByUserId
@@ -120,11 +120,11 @@ export class NotificationService {
   }
 
   /**
-   * Create a notification when a candidate status changes
+   * Create a notification when a Applicant status changes
    */
-  static async notifyCandidateStatusChange(
+  static async notifyApplicantStatusChange(
     candidateId: string,
-    candidateName: string,
+    ApplicantName: string,
     oldStatus: string,
     newStatus: string,
     positionId: string,
@@ -133,12 +133,12 @@ export class NotificationService {
     changedByUserId: string
   ) {
     const notification: NotificationData = {
-      type: 'candidate_status_change',
-      title: 'Candidate Status Updated',
-      message: `Candidate "${candidateName}" status changed from "${oldStatus}" to "${newStatus}" for position "${positionTitle}"`,
+      type: 'Applicant_status_change',
+      title: 'Applicant Status Updated',
+      message: `Applicant "${ApplicantName}" status changed from "${oldStatus}" to "${newStatus}" for position "${positionTitle}"`,
       data: {
         candidateId,
-        candidateName,
+        ApplicantName,
         oldStatus,
         newStatus,
         positionId,

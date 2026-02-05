@@ -83,7 +83,7 @@ export function useEnhancedSSE() {
   };
 }
 
-export function useEnhancedCandidateUpdates() {
+export function useEnhancedApplicantUpdates() {
   const { isConnected, connectionStatus } = useEnhancedSSE();
   return { isConnected, hasMainSSE: connectionStatus.endpoints[0]?.isConnected };
 }

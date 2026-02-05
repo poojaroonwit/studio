@@ -1,4 +1,4 @@
-﻿// src/app/api/recruitment-stages/route.ts
+// src/app/api/recruitment-stages/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../lib/db';
 import { hasPermission } from '@/lib/permissions';
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has permission to view recruitment stages
-    // Users should be able to view stages if they can view candidates (for filtering purposes)
-    if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
+    // Users should be able to view stages if they can view Applicants (for filtering purposes)
+    if (!hasPermission(session.user, 'Applicants_VIEW')) {
         return NextResponse.json({ message: "Forbidden: Insufficient permissions to view recruitment stages" }, { status: 403 });
     }
 

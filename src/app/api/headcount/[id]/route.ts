@@ -1,7 +1,7 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import type { UpdateHeadcountRequest } from '@/lib/types';
-import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount, autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
+import { checkHeadcountUnassignWarning, unassignApplicantFromHeadcount, autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -84,17 +84,17 @@ export async function PUT(
 
     // Validate that if status is 'filled', a candidateId must be provided
     if (status === 'filled' && !candidateId) {
-      return NextResponse.json({ error: 'Candidate ID is required when status is "filled"' }, { status: 400 });
+      return NextResponse.json({ error: 'Applicant ID is required when status is "filled"' }, { status: 400 });
     }
 
-    // If candidateId is provided, verify candidate exists
+    // If candidateId is provided, verify Applicant exists
     if (candidateId) {
-      const candidate = await prisma.candidate.findUnique({
+      const applicant = await prisma.candidate.findUnique({
         where: { id: candidateId },
       });
 
-      if (!candidate) {
-        return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+      if (!applicant) {
+        return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
       }
     }
 
@@ -316,8 +316,8 @@ export async function PATCH(
       return NextResponse.json(warning);
     }
 
-    if (action === 'unassign_candidate') {
-      const result = await unassignCandidateFromHeadcount(
+    if (action === 'unassign_applicant') {
+      const result = await unassignApplicantFromHeadcount(
         id,
         session.user.id,
         session.user.name || session.user.email || 'System'

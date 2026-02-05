@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
-import { canEditCandidate } from '@/lib/permissions';
+import { canEditApplicant } from '@/lib/permissions';
 
 const jobAppliedSchema = z.object({
   fitScore: z.number().min(0).max(1),
@@ -27,24 +27,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = await getPool().connect();
   
   try {
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id, "parsedData", "assignmentJustification" FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id, "parsedData", "assignmentJustification" FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    if (applicantResult.rows.length === 0) {
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    const candidate = candidateResult.rows[0];
-    const parsedData = candidate.parsedData || {};
+    const applicant = applicantResult.rows[0];
+    const parsedData = applicant.parsedData || {};
     const jobApplied = parsedData.job_applied || null;
     
     // Ensure assignmentJustification is properly formatted as an array
-    const assignmentJustification = candidate.assignmentJustification
-      ? (Array.isArray(candidate.assignmentJustification)
-          ? candidate.assignmentJustification
-          : typeof candidate.assignmentJustification === 'string'
-            ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+    const assignmentJustification = applicant.assignmentJustification
+      ? (Array.isArray(applicant.assignmentJustification)
+          ? applicant.assignmentJustification
+          : typeof applicant.assignmentJustification === 'string'
+            ? applicant.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
 
@@ -67,9 +67,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
@@ -82,12 +82,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     body = await req.json();
     body = normalizePayloadTypes(body);
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobAppliedSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { fitScore, jobId, justification } = validationResult.data;
@@ -96,20 +96,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists and get recruiter info for ownership check
-    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists and get recruiter info for ownership check
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
     
-    const candidate = candidateResult.rows[0];
+    const applicant = applicantResult.rows[0];
     
     // Check ownership-based permissions for job applied data management
     if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         await client.query('ROLLBACK');
         return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    const parsedData = candidate.parsedData || {};
+    const parsedData = applicant.parsedData || {};
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const justificationArray = Array.isArray(justification) ? justification : 
                               (justification ? String(justification).split(/[\n\r]+/).filter((item: string) => item.trim() !== '') : []);
 
-    // Update candidate with new parsedData and top-level fields
+    // Update Applicant with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
       SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
@@ -150,16 +150,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await client.query('COMMIT');
     
-    const updatedCandidate = updateResult.rows[0];
-    const updatedParsedData = updatedCandidate.parsedData || {};
+    const updatedApplicant = updateResult.rows[0];
+    const updatedParsedData = updatedApplicant.parsedData || {};
     const jobApplied = updatedParsedData.job_applied || null;
     
     // Ensure assignmentJustification is properly formatted as an array
-    const assignmentJustification = updatedCandidate.assignmentJustification
-      ? (Array.isArray(updatedCandidate.assignmentJustification)
-          ? updatedCandidate.assignmentJustification
-          : typeof updatedCandidate.assignmentJustification === 'string'
-            ? updatedCandidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+    const assignmentJustification = updatedApplicant.assignmentJustification
+      ? (Array.isArray(updatedApplicant.assignmentJustification)
+          ? updatedApplicant.assignmentJustification
+          : typeof updatedApplicant.assignmentJustification === 'string'
+            ? updatedApplicant.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
     
@@ -186,9 +186,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
@@ -200,12 +200,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobAppliedSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { fitScore, jobId, justification } = validationResult.data;
@@ -214,20 +214,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists and get recruiter info for ownership check
-    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists and get recruiter info for ownership check
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
     
-    const candidate = candidateResult.rows[0];
+    const applicant = applicantResult.rows[0];
     
     // Check ownership-based permissions for job applied data management
     if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         await client.query('ROLLBACK');
         return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
@@ -243,7 +243,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    const parsedData = candidate.parsedData || {};
+    const parsedData = applicant.parsedData || {};
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
@@ -256,7 +256,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const justificationArray = Array.isArray(justification) ? justification : 
                               (justification ? String(justification).split(/[\n\r]+/).filter((item: string) => item.trim() !== '') : []);
 
-    // Update candidate with new parsedData and top-level fields
+    // Update Applicant with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
       SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
@@ -268,16 +268,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     await client.query('COMMIT');
     
-    const updatedCandidate = updateResult.rows[0];
-    const updatedParsedData = updatedCandidate.parsedData || {};
+    const updatedApplicant = updateResult.rows[0];
+    const updatedParsedData = updatedApplicant.parsedData || {};
     const jobApplied = updatedParsedData.job_applied || null;
     
     // Ensure assignmentJustification is properly formatted as an array
-    const assignmentJustification = updatedCandidate.assignmentJustification
-      ? (Array.isArray(updatedCandidate.assignmentJustification)
-          ? updatedCandidate.assignmentJustification
-          : typeof updatedCandidate.assignmentJustification === 'string'
-            ? updatedCandidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+    const assignmentJustification = updatedApplicant.assignmentJustification
+      ? (Array.isArray(updatedApplicant.assignmentJustification)
+          ? updatedApplicant.assignmentJustification
+          : typeof updatedApplicant.assignmentJustification === 'string'
+            ? updatedApplicant.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
     
@@ -304,9 +304,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
@@ -318,34 +318,34 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists and get recruiter info for ownership check
-    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists and get recruiter info for ownership check
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
     
-    const candidate = candidateResult.rows[0];
+    const applicant = applicantResult.rows[0];
     
     // Check ownership-based permissions for job applied data management
     if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
-      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
       if (!editPermission.canEdit) {
         await client.query('ROLLBACK');
         return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
       }
     }
 
-    const parsedData = candidate.parsedData || {};
+    const parsedData = applicant.parsedData || {};
     
     // Remove job_applied from parsedData
     if (parsedData.job_applied) {
       delete parsedData.job_applied;
     }
 
-    // Update candidate with new parsedData
+    // Update Applicant with new parsedData
     const updateQuery = `
       UPDATE "Candidate" 
       SET "parsedData" = $1

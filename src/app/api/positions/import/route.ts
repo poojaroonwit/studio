@@ -1,4 +1,4 @@
-﻿// src/app/api/positions/import/route.ts
+// src/app/api/positions/import/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';

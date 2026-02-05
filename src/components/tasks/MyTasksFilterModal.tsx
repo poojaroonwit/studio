@@ -12,7 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import { PositionSelectDropdown } from '@/components/applicants/PositionSelectDropdown';
 
 interface MyTasksFilterModalProps {
   open: boolean;
@@ -99,7 +99,7 @@ export function MyTasksFilterModal({
             Advanced Filters
           </DialogTitle>
           <DialogDescription className="text-base">
-            Refine your candidate search with detailed filters. All filters are applied in real-time.
+            Refine your Applicant search with detailed filters. All filters are applied in real-time.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,7 +127,7 @@ export function MyTasksFilterModal({
                   <Input
                     value={localFilters.name || ''}
                     onChange={e => setLocalFilters({ ...localFilters, name: e.target.value })}
-                    placeholder="Search by candidate name..."
+                    placeholder="Search by Applicant name..."
                     className="h-10"
                   />
                 </div>

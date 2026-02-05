@@ -234,7 +234,7 @@ export default function AiConfigurationTab() {
               AI Search System Prompt
             </CardTitle>
             <CardDescription>
-              Customize the system prompt for AI-powered candidate search
+              Customize the system prompt for AI-powered Applicant search
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -249,7 +249,7 @@ export default function AiConfigurationTab() {
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground">
-                This prompt will be used to guide the AI when searching for candidates.
+                This prompt will be used to guide the AI when searching for Applicants.
                 Leave empty to use the default prompt.
               </p>
             </div>

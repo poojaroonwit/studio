@@ -10,14 +10,14 @@ import { logAudit } from '@/lib/auditLog';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
 import { NotificationService } from '@/lib/notificationService';
-import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
-// Import the schemas from the main candidate route
-import { updateCandidateSchema } from '../[id]/route';
+import { hasAnyPermission, canUpdateApplicantPipelineStage, canAssignRecruiter, canEditApplicant } from '@/lib/permissions';
+// Import the schemas from the main Applicant route
+import { updateApplicantSchema } from '../[id]/route';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'update_status', 'assign_recruiter', 'assign_position']),
   candidateIds: z.array(z.string().uuid()),
-  data: updateCandidateSchema.optional(), // already uses updateCandidateSchema, which enforces candidate_info validity if present
+  data: updateApplicantSchema.optional(), // already uses updateApplicantSchema, which enforces applicant_info validity if present
 });
 
 export async function POST(req: NextRequest) {
@@ -48,16 +48,16 @@ export async function POST(req: NextRequest) {
 
   switch (actionType) {
     case 'assign_recruiter':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN']);
+      hasPermission = hasAnyPermission(user, ['Applicants_RECRUITER_ASSIGN', 'Applicants_RECRUITER_ASSIGN_OWN']);
       break;
     case 'assign_position':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN']);
+      hasPermission = hasAnyPermission(user, ['Applicants_EDIT_BASIC', 'Applicants_EDIT_BASIC_OWN']);
       break;
     case 'update_status':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
+      hasPermission = hasAnyPermission(user, ['Applicants_PIPELINE_STAGE_BULK_UPDATE', 'Applicants_PIPELINE_STAGE_UPDATE_OWN']);
       break;
     case 'delete':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_DELETE']);
+      hasPermission = hasAnyPermission(user, ['Applicants_DELETE']);
       break;
     default:
       hasPermission = false;
@@ -81,28 +81,28 @@ export async function POST(req: NextRequest) {
     let updateQuery = '';
     let queryParams: any[] = [];
 
-    // Get candidate data for ownership checks
-    const candidatesResult = await client.query('SELECT id, "recruiterId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
-    const candidates = candidatesResult.rows;
+    // Get Applicant data for ownership checks
+    const applicantsResult = await client.query('SELECT id, "recruiterId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
+    const applicants = applicantsResult.rows;
 
-    // Check ownership permissions for each candidate
-    const candidatesWithPermission = [];
-    const candidatesWithoutPermission = [];
+    // Check ownership permissions for each Applicant
+    const applicantsWithPermission = [];
+    const applicantsWithoutPermission = [];
 
-    for (const candidate of candidates) {
+    for (const applicant of applicants) {
       let hasPermission = false;
 
       switch (action) {
         case 'update_status':
-          const pipelinePermission = canUpdateCandidatePipelineStage(user, candidate.recruiterId, user.id);
+          const pipelinePermission = canUpdateApplicantPipelineStage(user, applicant.recruiterId, user.id);
           hasPermission = pipelinePermission.canUpdate;
           break;
         case 'assign_recruiter':
-          const recruiterPermission = canAssignRecruiter(user, candidate.recruiterId, user.id);
+          const recruiterPermission = canAssignRecruiter(user, applicant.recruiterId, user.id);
           hasPermission = recruiterPermission.canAssign;
           break;
         case 'assign_position':
-          const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+          const editPermission = canEditApplicant(user, applicant.recruiterId, user.id);
           hasPermission = editPermission.canEdit;
           break;
         case 'delete':
@@ -114,32 +114,32 @@ export async function POST(req: NextRequest) {
       }
 
       if (hasPermission) {
-        candidatesWithPermission.push(candidate);
+        applicantsWithPermission.push(applicant);
       } else {
-        candidatesWithoutPermission.push({
-          candidateId: candidate.id,
-          reason: 'No permission for this candidate'
+        applicantsWithoutPermission.push({
+          candidateId: applicant.id,
+          reason: 'No permission for this Applicant'
         });
       }
     }
 
-    // If any candidates don't have permission, return error
-    if (candidatesWithoutPermission.length > 0) {
+    // If any Applicants don't have permission, return error
+    if (applicantsWithoutPermission.length > 0) {
       await client.query('ROLLBACK');
-      const deniedCandidates = candidatesWithoutPermission.map(c => c.candidateId).join(', ');
-      await logAudit('WARN', `Bulk ${action} denied for candidates: ${deniedCandidates} by ${getActingUserName(user)}`, 'API:V1:Candidates:BulkAction', user.id);
+      const deniedApplicants = applicantsWithoutPermission.map(c => c.candidateId).join(', ');
+      await logAudit('WARN', `Bulk ${action} denied for Applicants: ${deniedApplicants} by ${getActingUserName(user)}`, 'API:V1:Applicants:BulkAction', user.id);
       return new Response(JSON.stringify({
-        error: `Forbidden: You don't have permission to perform ${action} on some candidates. Denied candidates: ${deniedCandidates}`,
-        deniedCandidates: candidatesWithoutPermission
+        error: `Forbidden: You don't have permission to perform ${action} on some Applicants. Denied Applicants: ${deniedApplicants}`,
+        deniedApplicants: applicantsWithoutPermission
       }), { status: 403, headers: handleCors(req) });
     }
 
-    // Use only candidates with permission
-    const candidateIdsWithPermission = candidatesWithPermission.map(c => c.id);
+    // Use only Applicants with permission
+    const candidateIdsWithPermission = applicantsWithPermission.map(c => c.id);
 
     switch (action) {
       case 'delete':
-        // Delete candidates
+        // Delete Applicants
         updateQuery = 'DELETE FROM "Candidate" WHERE id = ANY($1::uuid[])';
         queryParams = [candidateIdsWithPermission];
         break;
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       case 'update_status':
         if (!data?.status) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk update_status failed (missing status) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk update_status failed (missing status) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2::uuid[])';
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       case 'assign_recruiter':
         if (!data?.recruiterId) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2::uuid[])';
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       case 'assign_position':
         if (!data?.positionId) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2::uuid[])';
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
 
       default:
         await client.query('ROLLBACK');
-        await logAudit('ERROR', `Bulk action failed (invalid action) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds });
+        await logAudit('ERROR', `Bulk action failed (invalid action) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { action, candidateIds });
         return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: handleCors(req) });
     }
 
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
     // Auto-assign recruiters for assign_position action
     if (action === 'assign_position' && data?.positionId) {
       try {
-        // console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} candidates`);
+        // console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} Applicants`);
 
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -207,8 +207,8 @@ export async function POST(req: NextRequest) {
           let syncCount = 0;
           for (const candidateId of candidateIdsWithPermission) {
             try {
-              // Check if candidate already has a recruiter
-              const candidate = await prisma.candidate.findUnique({
+              // Check if Applicant already has a recruiter
+              const applicant = await prisma.candidate.findUnique({
                 where: { id: candidateId },
                 select: { recruiterId: true }
               });
@@ -268,15 +268,15 @@ export async function POST(req: NextRequest) {
 
               // Send notification to the assigned recruiter
               try {
-                const candidate = await prisma.candidate.findUnique({
+                const applicant = await prisma.candidate.findUnique({
                   where: { id: candidateId },
                   select: { name: true }
                 });
 
-                if (candidate) {
-                  await NotificationService.notifyCandidateAdded(
+                if (applicant) {
+                  await NotificationService.notifyApplicantAdded(
                     candidateId,
-                    candidate.name,
+                    applicant.name,
                     data.positionId,
                     position.title,
                     position.recruiterId,
@@ -284,13 +284,13 @@ export async function POST(req: NextRequest) {
                   );
                 }
               } catch (notificationError) {
-                console.error(`Failed to send notification for candidate ${candidateId}:`, notificationError);
+                console.error(`Failed to send notification for Applicant ${candidateId}:`, notificationError);
                 // Don't fail the bulk action if notification fails
               }
 
               syncCount++;
             } catch (syncError) {
-              console.error(`Failed to auto-assign recruiter for candidate ${candidateId}:`, syncError);
+              console.error(`Failed to auto-assign recruiter for Applicant ${candidateId}:`, syncError);
               // Don't fail the bulk action if sync fails
             }
           }
@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
+    await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Applicants:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
     return new Response(JSON.stringify({
       message: `Bulk action '${action}' completed successfully`,
       affectedCount: result.rowCount
@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    await logAudit('ERROR', `Bulk action '${action}' failed by ${getActingUserName(user)}. Error: ${(error as Error).message}`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, error: (error as Error).message });
+    await logAudit('ERROR', `Bulk action '${action}' failed by ${getActingUserName(user)}. Error: ${(error as Error).message}`, 'API:V1:Applicants:BulkAction', user.id, { action, candidateIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();

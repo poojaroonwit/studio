@@ -16,9 +16,9 @@ import {
   createInternalServerError
 } from '@/lib/errors';;
 import { normalizePayloadTypes } from '@/lib/apiUtils';
-import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
+import { ApplicantInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 import { logAudit } from '@/lib/auditLog';
-import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import { syncRecruiterForApplicant } from '@/lib/recruiterSync';
 import { createDateInTimezone } from '@/lib/dateUtils';
 import { NotificationService } from '@/lib/notificationService';
 
@@ -29,8 +29,8 @@ export const dynamic = 'force-dynamic';
 
 // These schemas are now imported from ./schemas.ts
 
-const createCandidateSchema = z.object({
-  candidate_info: candidateInfoSchema.optional().nullable(),
+const createApplicantschema = z.object({
+  applicant_info: ApplicantInfoSchema.optional().nullable(),
   educationData: z.array(structuredEducationSchema).optional().nullable(),
   experienceData: z.array(structuredExperienceSchema).optional().nullable(),
   job_applied: z.any().optional().nullable(),
@@ -39,9 +39,9 @@ const createCandidateSchema = z.object({
   subSource: z.string().optional().nullable(),
   expectedSalary: z.number().optional().nullable(),
 }).strict().transform((data) => {
-  // Ensure candidate_info is always an object
+  // Ensure applicant_info is always an object
   return {
-    candidate_info: data.candidate_info || {},
+    applicant_info: data.applicant_info || {},
     educationData: data.educationData || [],
     experienceData: data.experienceData || [],
     job_applied: data.job_applied,
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
-  if (!hasPermission(user, 'CANDIDATES_CREATE')) {
-    return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
+  if (!hasPermission(user, 'Applicants_CREATE')) {
+    return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to create Applicants'));
   }
 
   let body;
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
-  const validationResult = createCandidateSchema.safeParse(body);
+  const validationResult = createApplicantschema.safeParse(body);
   if (!validationResult.success) {
     const fieldErrors = validationResult.error.flatten().fieldErrors;
     const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
@@ -141,17 +141,17 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
-  const { candidate_info, educationData, experienceData, job_applied, job_matches, expectedSalary } = validationResult.data;
+  const { applicant_info, educationData, experienceData, job_applied, job_matches, expectedSalary } = validationResult.data;
 
   // Validate required fields from payload
-  const candidateInfo = candidate_info as any;
-  const personalInfo = candidateInfo.personal_info || {};
-  const contactInfo = candidateInfo.contact_info || {};
+  const ApplicantInfo = applicant_info as any;
+  const personalInfo = ApplicantInfo.personal_info || {};
+  const contactInfo = ApplicantInfo.contact_info || {};
 
   // Use firstname and lastname from payload, or empty strings if not provided
   const firstname = personalInfo.firstname || '';
   const lastname = personalInfo.lastname || '';
-  const name = `${firstname} ${lastname}`.trim() || 'Unknown Candidate';
+  const name = `${firstname} ${lastname}`.trim() || 'Unknown Applicant';
 
   // Use email from payload, or default to unknown@email.com if missing
   const email = contactInfo.email || 'unknown@email.com';
@@ -190,32 +190,32 @@ export async function POST(request: NextRequest) {
 
   // Flatten parsedData structure to match UI expectations
   const parsedData = {
-    ...candidate_info,
+    ...applicant_info,
     education: educationData || [],
     experience: experienceData || [],
-    job_applied: job_applied || candidateInfo.job_applied,
-    job_matches: job_matches || candidateInfo.job_matches || []
+    job_applied: job_applied || ApplicantInfo.job_applied,
+    job_matches: job_matches || ApplicantInfo.job_matches || []
   };
-  const newCandidateId = uuidv4();
+  const newcandidateId = uuidv4();
 
-  // Extract fitScore from candidate_info, candidate_info.job_applied, or top-level job_applied
+  // Extract fitScore from applicant_info, applicant_info.job_applied, or top-level job_applied
   let fitScore = undefined;
-  if (typeof candidateInfo.fitScore === 'number') {
-    fitScore = Math.round(candidateInfo.fitScore);
-  } else if (candidateInfo.job_applied && typeof candidateInfo.job_applied.fitScore === 'number') {
-    fitScore = Math.round(candidateInfo.job_applied.fitScore);
+  if (typeof ApplicantInfo.fitScore === 'number') {
+    fitScore = Math.round(ApplicantInfo.fitScore);
+  } else if (ApplicantInfo.job_applied && typeof ApplicantInfo.job_applied.fitScore === 'number') {
+    fitScore = Math.round(ApplicantInfo.job_applied.fitScore);
   } else if (job_applied && typeof job_applied.fitScore === 'number') {
     fitScore = Math.round(job_applied.fitScore);
   }
 
-  // Extract positionId from candidate_info.job_applied or job_matches, or from top-level job_applied/job_matches
+  // Extract positionId from applicant_info.job_applied or job_matches, or from top-level job_applied/job_matches
   let positionId = null;
-  if (candidateInfo.job_applied?.jobId) {
-    positionId = candidateInfo.job_applied.jobId;
+  if (ApplicantInfo.job_applied?.jobId) {
+    positionId = ApplicantInfo.job_applied.jobId;
   } else if (job_applied?.jobId) {
     positionId = job_applied.jobId;
-  } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
-    const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
+  } else if (ApplicantInfo.job_matches && Array.isArray(ApplicantInfo.job_matches) && ApplicantInfo.job_matches.length > 0) {
+    const matchWithJobId = ApplicantInfo.job_matches.find((m: any) => m && m.jobId);
     if (matchWithJobId) {
       positionId = matchWithJobId.jobId;
     }
@@ -236,8 +236,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const candidateData: any = {
-      id: newCandidateId,
+    const ApplicantData: any = {
+      id: newcandidateId,
       name: name,
       email: email.toLowerCase(),
       phone: contactInfo.phone || null,
@@ -248,28 +248,28 @@ export async function POST(request: NextRequest) {
       subSource: validationResult.data.subSource || null,
       expectedSalary: expectedSalary,
       applicationDate: createDateInTimezone(),
-      emailDate: (candidate_info as any).emailDate ? new Date((candidate_info as any).emailDate) : null,
-      emailSubject: (candidate_info as any).emailSubject || null,
-      emailId: (candidate_info as any).emailId || null,
-      emailMetadata: (candidate_info as any).emailMetadata || null,
+      emailDate: (applicant_info as any).emailDate ? new Date((applicant_info as any).emailDate) : null,
+      emailSubject: (applicant_info as any).emailSubject || null,
+      emailId: (applicant_info as any).emailId || null,
+      emailMetadata: (applicant_info as any).emailMetadata || null,
       createdAt: createDateInTimezone(),
       updatedAt: createDateInTimezone(),
     };
 
     // Only add position if positionId is valid
     if (positionId) {
-      candidateData.position = { connect: { id: positionId } };
+      ApplicantData.position = { connect: { id: positionId } };
     }
 
-    const newCandidate = await prisma.candidate.create({
-      data: candidateData,
+    const newApplicant = await prisma.candidate.create({
+      data: ApplicantData,
     });
 
     // Create initial transition record
     await prisma.transitionRecord.create({
       data: {
         id: uuidv4(),
-        candidate: { connect: { id: newCandidateId } },
+        Applicant: { connect: { id: newcandidateId } },
         stage: resolvedStageId,
         notes: 'Initial creation via API',
         actingUser: { connect: { id: user.id } },
@@ -277,15 +277,15 @@ export async function POST(request: NextRequest) {
       },
     });
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${name}' created by ${actingUserName}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
+    await logAudit('AUDIT', `Applicant '${name}' created by ${actingUserName}.`, 'API:V1:Applicants:Create', user.id, { candidateId: newcandidateId, name, email, status: resolvedStageId });
 
 
 
-    // Auto-assign recruiter if candidate has a position
-    let finalCandidate = newCandidate;
+    // Auto-assign recruiter if Applicant has a position
+    let finalApplicant = newApplicant;
     if (positionId) {
       try {
-        // console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
+        // console.log(`Attempting to auto-assign recruiter for Applicant ${newcandidateId} with positionId: ${positionId}`);
 
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -304,9 +304,9 @@ export async function POST(request: NextRequest) {
 
 
         if (position && position.recruiterId && position.recruiter) {
-          // Update candidate with recruiter using Prisma
-          const updatedCandidate = await prisma.candidate.update({
-            where: { id: newCandidateId },
+          // Update Applicant with recruiter using Prisma
+          const updatedApplicant = await prisma.candidate.update({
+            where: { id: newcandidateId },
             data: {
               recruiter: { connect: { id: position.recruiterId } },
               updatedAt: createDateInTimezone()
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
           await prisma.transitionRecord.create({
             data: {
               id: uuidv4(),
-              candidate: { connect: { id: newCandidateId } },
+              Applicant: { connect: { id: newcandidateId } },
               position: positionId ? { connect: { id: positionId } } : undefined,
               stage: resolvedStageId,
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
@@ -338,55 +338,55 @@ export async function POST(request: NextRequest) {
 
           // Send notification to the assigned recruiter
           try {
-            await NotificationService.notifyCandidateAdded(
-              newCandidateId,
+            await NotificationService.notifyApplicantAdded(
+              newcandidateId,
               name,
               positionId,
               position.title,
               position.recruiterId,
               user.id
             );
-            // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
+            // console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new Applicant ${name}`);
           } catch (notificationError) {
-            console.error('Failed to send candidate added notification:', notificationError);
+            console.error('Failed to send Applicant added notification:', notificationError);
             // Don't fail the entire operation if notification fails
           }
 
-          // Use the updated candidate for the response
-          finalCandidate = updatedCandidate;
+          // Use the updated Applicant for the response
+          finalApplicant = updatedApplicant;
         } else if (position && !position.recruiterId) {
           // console.log(`⚠️ Position ${positionId} exists but has no recruiter assigned`);
         } else if (!position) {
           // console.log(`❌ Position ${positionId} not found in database`);
         }
       } catch (syncError) {
-        console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
-        // Don't fail the candidate creation if sync fails
+        console.error('Failed to auto-assign recruiter after Applicant creation:', syncError);
+        // Don't fail the Applicant creation if sync fails
       }
     }
 
     return SimpleErrorHandler.createSuccessResponse(request, {
-      message: 'Candidate created successfully',
-      candidate: {
-        id: finalCandidate.id,
-        name: finalCandidate.name,
-        email: finalCandidate.email,
-        phone: finalCandidate.phone,
-        expectedSalary: (finalCandidate as any).expectedSalary,
+      message: 'Applicant created successfully',
+      Applicant: {
+        id: finalapplicant.id,
+        name: finalapplicant.name,
+        email: finalapplicant.email,
+        phone: finalapplicant.phone,
+        expectedSalary: (finalApplicant as any).expectedSalary,
         status: 'Applied', // Use default status since we don't have the actual status name
-        parsedData: finalCandidate.parsedData,
-        applicationDate: finalCandidate.applicationDate ? new Date(finalCandidate.applicationDate as any).toISOString() : new Date().toISOString(),
-        createdAt: finalCandidate.createdAt ? new Date(finalCandidate.createdAt as any).toISOString() : new Date().toISOString(),
-        updatedAt: finalCandidate.updatedAt ? new Date(finalCandidate.updatedAt as any).toISOString() : new Date().toISOString(),
-        recruiterId: finalCandidate.recruiterId,
+        parsedData: finalapplicant.parsedData,
+        applicationDate: finalapplicant.applicationDate ? new Date(finalapplicant.applicationDate as any).toISOString() : new Date().toISOString(),
+        createdAt: finalapplicant.createdAt ? new Date(finalapplicant.createdAt as any).toISOString() : new Date().toISOString(),
+        updatedAt: finalapplicant.updatedAt ? new Date(finalapplicant.updatedAt as any).toISOString() : new Date().toISOString(),
+        recruiterId: finalapplicant.recruiterId,
       }
     }, 201);
 
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
-    await logAudit('ERROR', `Failed to create candidate by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Candidates:Create', user?.id, { error: errorMessage, ...body });
-    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error creating candidate: ${errorMessage}`));
+    await logAudit('ERROR', `Failed to create Applicant by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Applicants:Create', user?.id, { error: errorMessage, ...body });
+    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error creating Applicant: ${errorMessage}`));
   }
 }
 
@@ -433,56 +433,56 @@ export async function GET(request: NextRequest) {
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].count);
 
-      // Get candidates with pagination
-      const candidatesQuery = `
+      // Get Applicants with pagination
+      const ApplicantsQuery = `
         SELECT c.*, rs.name as "statusName", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
                cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
-        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         ${whereClause}
         ORDER BY c."createdAt" DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
 
-      const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
+      const ApplicantsResult = await client.query(ApplicantsQuery, [...queryParams, limit, offset]);
 
-      const candidates = candidatesResult.rows.map((candidate: any) => ({
-        id: candidate.id,
-        name: candidate.name,
-        email: candidate.email,
-        phone: candidate.phone,
-        avatarUrl: candidate.avatarUrl,
-        positionId: candidate.positionId,
-        recruiterId: candidate.recruiterId,
-        sourceId: candidate.sourceId,
-        subSource: candidate.subSource,
-        fitScore: normalizeFitScore(candidate.fitScore),
-        status: candidate.statusName || 'Applied',
-        applicationDate: candidate.applicationDate,
-        createdAt: candidate.createdAt,
-        updatedAt: candidate.updatedAt,
-        position: candidate.positionId ? {
-          title: candidate.positionTitle,
-          department: candidate.positionDepartment
+      const Applicants = ApplicantsResult.rows.map((Applicant: any) => ({
+        id: Applicant.id,
+        name: Applicant.name,
+        email: Applicant.email,
+        phone: Applicant.phone,
+        avatarUrl: Applicant.avatarUrl,
+        positionId: Applicant.positionId,
+        recruiterId: Applicant.recruiterId,
+        sourceId: Applicant.sourceId,
+        subSource: Applicant.subSource,
+        fitScore: normalizeFitScore(Applicant.fitScore),
+        status: Applicant.statusName || 'Applied',
+        applicationDate: Applicant.applicationDate,
+        createdAt: Applicant.createdAt,
+        updatedAt: Applicant.updatedAt,
+        position: Applicant.positionId ? {
+          title: Applicant.positionTitle,
+          department: Applicant.positionDepartment
         } : null,
-        recruiter: candidate.recruiterId ? {
-          name: candidate.recruiterName,
-          avatarUrl: candidate.recruiterAvatarUrl || null
+        recruiter: Applicant.recruiterId ? {
+          name: Applicant.recruiterName,
+          avatarUrl: Applicant.recruiterAvatarUrl || null
         } : null,
-        source: candidate.sourceId ? {
-          id: candidate.sourceId,
-          name: candidate.sourceName,
-          description: candidate.sourceDescription,
-          email: candidate.sourceEmail,
-          logo: candidate.sourceLogo
+        source: Applicant.sourceId ? {
+          id: Applicant.sourceId,
+          name: Applicant.sourceName,
+          description: Applicant.sourceDescription,
+          email: Applicant.sourceEmail,
+          logo: Applicant.sourceLogo
         } : null
       }));
 
       return SimpleErrorHandler.createSuccessResponse(request, {
-        data: candidates,
+        data: Applicants,
         pagination: {
           page,
           limit,
@@ -496,7 +496,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error fetching candidates: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error fetching Applicants: ${errorMessage}`));
   }
 }
 

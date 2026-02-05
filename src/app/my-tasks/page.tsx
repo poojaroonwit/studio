@@ -18,10 +18,10 @@ export default async function MyTasksPageServer() {
     );
   }
 
-  // Allow access if user has TASK_BOARD_VIEW permission OR has CANDIDATES_VIEW permission
+  // Allow access if user has TASK_BOARD_VIEW permission OR has Applicants_VIEW permission
   const canAccessTaskBoard = hasAnyPermission(
     session.user,
-    ['TASK_BOARD_VIEW', 'CANDIDATES_VIEW']
+    ['TASK_BOARD_VIEW', 'Applicants_VIEW']
   );
 
   if (!canAccessTaskBoard) {

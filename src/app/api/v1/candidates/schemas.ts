@@ -30,7 +30,7 @@ const skillsEntrySchema = z.object({
   skill: z.array(z.string()).optional().nullable(),
 }).strict();
 
-export const candidateInfoSchema = z.union([
+export const ApplicantInfoSchema = z.union([
   z.object({
     contact_info: contactInfoSchema.optional().nullable(), // allowed to be null/undefined
     personal_info: personalInfoSchema.optional().nullable(), // allowed to be null/undefined

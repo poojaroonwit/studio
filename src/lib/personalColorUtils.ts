@@ -1,17 +1,17 @@
-import { Candidate, UserProfile } from '@/lib/types';
+import { Applicant, UserProfile } from '@/lib/types';
 
 /**
- * Get the personal color for a candidate based on their recruiter
- * @param candidate - The candidate object
+ * Get the personal color for a Applicant based on their recruiter
+ * @param Applicant - The Applicant object
  * @param recruiters - Array of recruiter objects with personal colors
  * @returns The personal color hex string or default blue
  */
-export function getCandidatePersonalColor(candidate: Candidate, recruiters?: UserProfile[]): string {
-  if (!candidate.recruiterId || !recruiters) {
+export function getApplicantPersonalColor(Applicant: Applicant, recruiters?: UserProfile[]): string {
+  if (!applicant.recruiterId || !recruiters) {
     return '#3B82F6'; // Default blue
   }
 
-  const recruiter = recruiters.find(r => r.id === candidate.recruiterId);
+  const recruiter = recruiters.find(r => r.id === applicant.recruiterId);
   return recruiter?.personalColor || '#3B82F6';
 }
 
@@ -25,12 +25,12 @@ export function getRecruiterPersonalColor(recruiter?: UserProfile): string {
 }
 
 /**
- * Apply personal color styles to a candidate card
+ * Apply personal color styles to a Applicant card
  * @param personalColor - The personal color hex string
  * @param isSelected - Whether the card is selected
  * @returns Style object for the card
  */
-export function getCandidateCardStyles(personalColor: string, isSelected: boolean = false) {
+export function getApplicantCardStyles(personalColor: string, isSelected: boolean = false) {
   if (!isSelected) {
     return {};
   }

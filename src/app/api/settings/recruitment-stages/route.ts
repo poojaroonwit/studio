@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/recruitment-stages/route.ts
@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 import { auth } from '@/auth';
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
 
     // Broadcast the updated stages list to all connected clients
     const updatedStages = await fetchAllRecruitmentStagesDb();
-    broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+    broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error: any) {

@@ -89,10 +89,10 @@ export class ErrorBoundary extends Component<Props, State> {
     if (error.stack) {
       const stackLines = error.stack.split('\n');
       const componentLine = stackLines.find(line => 
-        line.includes('CandidateKanbanView') || 
-        line.includes('CandidateTable') || 
+        line.includes('ApplicantKanbanView') || 
+        line.includes('ApplicantTable') || 
         line.includes('DashboardPageClient') ||
-        line.includes('CandidatesPageClient')
+        line.includes('ApplicantsPageClient')
       );
       if (componentLine) {
         context.component = componentLine.trim();
@@ -122,10 +122,10 @@ export class ErrorBoundary extends Component<Props, State> {
     const stackLines = this.state.error.stack.split('\n');
     const relevantLines = stackLines
       .filter(line => 
-        line.includes('CandidateKanbanView') || 
-        line.includes('CandidateTable') || 
+        line.includes('ApplicantKanbanView') || 
+        line.includes('ApplicantTable') || 
         line.includes('DashboardPageClient') ||
-        line.includes('CandidatesPageClient') ||
+        line.includes('ApplicantsPageClient') ||
         line.includes('useMemo') ||
         line.includes('useEffect') ||
         line.includes('filter')

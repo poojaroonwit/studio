@@ -7,7 +7,7 @@ import type { CustomFieldDefinition } from '@/lib/types';
 export function filterCustomFieldsBySection(
   customFields: CustomFieldDefinition[],
   section: string,
-  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount'
+  modelName: 'Applicant' | 'Position' | 'User' | 'Headcount'
 ): CustomFieldDefinition[] {
   return customFields.filter(field => {
     // Must match the model
@@ -15,23 +15,23 @@ export function filterCustomFieldsBySection(
 
     // Check visibility settings based on model and section
     switch (modelName) {
-      case 'Candidate':
-        // For candidate detail sections - only show fields assigned to the specific section
-        if (section === 'jobs' || section === 'candidate-info' || section === 'education' || section === 'experience' || section === 'job-suitability') {
+      case 'Applicant':
+        // For Applicant detail sections - only show fields assigned to the specific section
+        if (section === 'jobs' || section === 'Applicant-info' || section === 'education' || section === 'experience' || section === 'job-suitability') {
           // Only show custom fields that are specifically assigned to this section
-          if (field.candidateDetailSection) {
-            return field.candidateDetailSection === section;
+          if (field.ApplicantDetailSection) {
+            return field.ApplicantDetailSection === section;
           }
           
           // If no section is assigned, don't show the field in any section
           return false;
         }
-        // For regular candidate detail (not full detail)
-        return field.showInCandidateDetail && !field.showInFullCandidateDetail;
+        // For regular Applicant detail (not full detail)
+        return field.showInApplicantDetail && !field.showInFullApplicantDetail;
         
       case 'Position':
         // For position detail sections - show all custom fields regardless of visibility settings
-        if (section === 'details' || section === 'criteria' || section === 'candidates' || section === 'headcount') {
+        if (section === 'details' || section === 'criteria' || section === 'Applicants' || section === 'headcount') {
           // Show all custom fields for positions in edit mode
           // If section is specified, check if it matches (but don't require it)
           if (field.positionDetailSection && field.positionDetailSection !== section) {
@@ -61,7 +61,7 @@ export function filterCustomFieldsBySection(
  * Fetches custom field definitions for a specific model and section
  */
 export async function fetchCustomFieldsForSection(
-  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount',
+  modelName: 'Applicant' | 'Position' | 'User' | 'Headcount',
   section?: string
 ): Promise<CustomFieldDefinition[]> {
   try {
@@ -95,7 +95,7 @@ export async function fetchCustomFieldsForSection(
  * Fetches custom field definitions that are enabled for filtering
  */
 export async function fetchFilterableCustomFields(
-  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount'
+  modelName: 'Applicant' | 'Position' | 'User' | 'Headcount'
 ): Promise<CustomFieldDefinition[]> {
   try {
     const response = await fetch('/api/settings/custom-field-definitions');
@@ -119,7 +119,7 @@ export async function fetchFilterableCustomFields(
  * Fetches custom field definitions for task board filtering
  */
 export async function fetchTaskBoardFilterableCustomFields(
-  modelName: 'Candidate' | 'Position' | 'User' | 'Headcount'
+  modelName: 'Applicant' | 'Position' | 'User' | 'Headcount'
 ): Promise<CustomFieldDefinition[]> {
   try {
     const response = await fetch('/api/settings/custom-field-definitions');

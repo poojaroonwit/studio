@@ -1,4 +1,4 @@
-﻿// src/app/api/positions/bulk-action/route.ts
+// src/app/api/positions/bulk-action/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
@@ -160,15 +160,15 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
 
     if (action === 'delete') {
-      const candidateCheckQuery = 'SELECT DISTINCT "positionId" FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
-      const candidateCheckResult = await client.query(candidateCheckQuery, [positionIds]);
-      const positionsWithCandidates = new Set(candidateCheckResult.rows.map((r: any) => r.positionId));
+      const ApplicantCheckQuery = 'SELECT DISTINCT "positionId" FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
+      const ApplicantCheckResult = await client.query(ApplicantCheckQuery, [positionIds]);
+      const positionsWithApplicants = new Set(ApplicantCheckResult.rows.map((r: any) => r.positionId));
 
-      const positionsToDelete = positionIds.filter(id => !positionsWithCandidates.has(id));
-      const positionsNotDeleted = positionIds.filter(id => positionsWithCandidates.has(id));
+      const positionsToDelete = positionIds.filter(id => !positionsWithApplicants.has(id));
+      const positionsNotDeleted = positionIds.filter(id => positionsWithApplicants.has(id));
 
       positionsNotDeleted.forEach(id => {
-        failedDetails.push({ positionId: id, reason: "Position has associated candidates and cannot be deleted." });
+        failedDetails.push({ positionId: id, reason: "Position has associated Applicants and cannot be deleted." });
         failCount++;
       });
 

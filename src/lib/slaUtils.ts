@@ -104,7 +104,7 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
       return null;
     }
 
-    // Get the latest hired date from transition records for candidates in this position
+    // Get the latest hired date from transition records for Applicants in this position
     const latestHiredQuery = `
       SELECT tr.date
       FROM "TransitionRecord" tr
@@ -221,7 +221,7 @@ export async function getSLARemainingDaysForHeadcount(headcount: any): Promise<n
 }
 
 /**
- * Get the hired date for a specific headcount's candidate
+ * Get the hired date for a specific headcount's Applicant
  * @param headcount - The headcount object with candidateId
  * @returns The hired date or null if not found
  */

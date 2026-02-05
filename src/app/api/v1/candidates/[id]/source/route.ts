@@ -15,17 +15,17 @@ import { SimpleErrorHandler,
 } from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 
-const updateCandidateSourceSchema = z.object({
+const updateApplicantSourceSchema = z.object({
   sourceId: z.string().uuid().nullable().optional(),
   subSource: z.string().optional().nullable(),
 });
 
 /**
  * @openapi
- * /api/v1/candidates/{id}/source:
+ * /api/v1/applicants/{id}/source:
  *   get:
- *     summary: Get candidate source information
- *     description: Returns the current source information for a specific candidate.
+ *     summary: Get Applicant source information
+ *     description: Returns the current source information for a specific Applicant.
  *     parameters:
  *       - in: path
  *         name: id
@@ -35,16 +35,16 @@ const updateCandidateSourceSchema = z.object({
  *           format: uuid
  *     responses:
  *       200:
- *         description: Candidate source information
+ *         description: Applicant source information
  *       401:
  *         description: Unauthorized
  *       404:
- *         description: Candidate not found
+ *         description: Applicant not found
  *       500:
  *         description: Server error
  *   put:
- *     summary: Update candidate source
- *     description: Updates the source information for a specific candidate.
+ *     summary: Update Applicant source
+ *     description: Updates the source information for a specific Applicant.
  *     parameters:
  *       - in: path
  *         name: id
@@ -68,7 +68,7 @@ const updateCandidateSourceSchema = z.object({
  *                 nullable: true
  *     responses:
  *       200:
- *         description: Candidate source updated
+ *         description: Applicant source updated
  *       400:
  *         description: Invalid input
  *       401:
@@ -76,7 +76,7 @@ const updateCandidateSourceSchema = z.object({
  *       403:
  *         description: Forbidden (insufficient permissions)
  *       404:
- *         description: Candidate not found
+ *         description: Applicant not found
  *       500:
  *         description: Server error
  */
@@ -94,38 +94,38 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const client = await getPool().connect();
   
   try {
-    const candidateQuery = `
+    const applicantQuery = `
       SELECT c.id, c.name, c."sourceId", c."subSource",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1;
     `;
     
-    const candidateResult = await client.query(candidateQuery, [id]);
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    if (applicantResult.rows.length === 0) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
 
-    const candidate = candidateResult.rows[0];
+    const applicant = applicantResult.rows[0];
     
     return SimpleErrorHandler.createSuccessResponse(req, {
-      candidateId: candidate.id,
-      candidateName: candidate.name,
-      sourceId: candidate.sourceId,
-      subSource: candidate.subSource,
-      source: candidate.sourceId ? {
-        id: candidate.sourceId,
-        name: candidate.sourceName,
-        description: candidate.sourceDescription,
-        email: candidate.sourceEmail,
-        logo: candidate.sourceLogo
+      candidateId: applicant.id,
+      applicantName: applicant.name,
+      sourceId: applicant.sourceId,
+      subSource: applicant.subSource,
+      source: applicant.sourceId ? {
+        id: applicant.sourceId,
+        name: applicant.sourceName,
+        description: applicant.sourceDescription,
+        email: applicant.sourceEmail,
+        logo: applicant.sourceLogo
       } : null,
     }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching candidate source: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching Applicant source: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -136,8 +136,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_SOURCE_ASSIGN'))) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update candidate sources'));
+  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_SOURCE_ASSIGN'))) {
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant sources'));
   }
 
   const { id } = await params;
@@ -149,7 +149,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
-  const validationResult = updateCandidateSourceSchema.safeParse(body);
+  const validationResult = updateApplicantSourceSchema.safeParse(body);
   if (!validationResult.success) {
     const fieldErrors = validationResult.error.flatten().fieldErrors;
     const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
@@ -162,16 +162,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await client.query('BEGIN');
 
-    // Check if candidate exists
+    // Check if Applicant exists
     const existingResult = await client.query('SELECT id, name, "sourceId", "subSource" FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
 
-    const existingCandidate = existingResult.rows[0];
-    const oldSourceId = existingCandidate.sourceId;
-    const oldSubSource = existingCandidate.subSource;
+    const existingApplicant = existingResult.rows[0];
+    const oldSourceId = existingApplicant.sourceId;
+    const oldSubSource = existingApplicant.subSource;
 
     // Build update query
     const updateFields: string[] = [];
@@ -197,8 +197,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         message: 'No source fields to update',
         candidateId: id,
         currentSource: {
-          sourceId: existingCandidate.sourceId,
-          subSource: existingCandidate.subSource
+          sourceId: existingApplicant.sourceId,
+          subSource: existingApplicant.subSource
         }
       }, 200);
     }
@@ -213,18 +213,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     updateValues.push(id);
 
     const updateResult = await client.query(updateQuery, updateValues);
-    const updatedCandidate = updateResult.rows[0];
+    const updatedApplicant = updateResult.rows[0];
 
-    // Fetch updated candidate with source information
-    const updatedCandidateWithSource = await client.query(`
+    // Fetch updated Applicant with source information
+    const updatedApplicantWithSource = await client.query(`
       SELECT c.id, c.name, c."sourceId", c."subSource",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
       FROM "Candidate" c
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
 
-    const candidateWithSource = updatedCandidateWithSource.rows[0];
+    const applicantWithSource = updatedApplicantWithSource.rows[0];
 
     await client.query('COMMIT');
 
@@ -238,7 +238,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' source updated by ${actingUserName}. Changes: ${changeDescription.join(', ')}`, 'API:V1:Candidates:UpdateSource', user.id, { 
+    await logAudit('AUDIT', `Applicant '${updatedApplicant.name}' source updated by ${actingUserName}. Changes: ${changeDescription.join(', ')}`, 'API:V1:Applicants:UpdateSource', user.id, { 
       candidateId: id, 
       oldSourceId, 
       newSourceId: updateData.sourceId,
@@ -247,16 +247,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     return SimpleErrorHandler.createSuccessResponse(req, {
-      message: 'Candidate source updated successfully',
-      candidateId: candidateWithSource.id,
-      candidateName: candidateWithSource.name,
-      sourceId: candidateWithSource.sourceId,
-      subSource: candidateWithSource.subSource,
-      source: candidateWithSource.sourceId ? {
-        id: candidateWithSource.sourceId,
-        name: candidateWithSource.sourceName,
-        description: candidateWithSource.sourceDescription,
-        logo: candidateWithSource.sourceLogo
+      message: 'Applicant source updated successfully',
+      candidateId: applicantWithSource.id,
+      applicantName: applicantWithSource.name,
+      sourceId: applicantWithSource.sourceId,
+      subSource: applicantWithSource.subSource,
+      source: applicantWithSource.sourceId ? {
+        id: applicantWithSource.sourceId,
+        name: applicantWithSource.sourceName,
+        description: applicantWithSource.sourceDescription,
+        logo: applicantWithSource.sourceLogo
       } : null,
       changes: {
         sourceId: updateData.sourceId !== undefined ? { from: oldSourceId, to: updateData.sourceId } : undefined,
@@ -267,12 +267,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update candidate source (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:UpdateSource', user?.id, { 
+    await logAudit('ERROR', `Failed to update Applicant source (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UpdateSource', user?.id, { 
       candidateId: id, 
       error: errorMessage, 
       requestBody: body 
     });
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating candidate source: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating Applicant source: ${errorMessage}`));
   } finally {
     client.release();
   }

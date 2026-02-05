@@ -51,7 +51,7 @@ export async function middleware(req: NextRequest) {
         rateLimitResult = applyRateLimit(req, authRateLimiter);
       } else if (pathname.includes('/upload') || pathname.includes('/file')) {
         rateLimitResult = applyRateLimit(req, uploadRateLimiter);
-      } else if (pathname.includes('/search') || pathname.includes('/candidates')) {
+      } else if (pathname.includes('/search') || pathname.includes('/applicants')) {
         rateLimitResult = applyRateLimit(req, searchRateLimiter);
       } else {
         rateLimitResult = applyRateLimit(req, apiRateLimiter);
@@ -85,7 +85,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Allow access to evaluate page with token parameter (for external evaluators)
-    if (pathname.includes('/candidates/') && pathname.includes('/evaluate')) {
+    if (pathname.includes('/applicants/') && pathname.includes('/evaluate')) {
       const token = req.nextUrl.searchParams.get('token');
       if (token) {
         // Allow access with evaluation token

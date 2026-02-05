@@ -46,7 +46,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [sseConnected, setSseConnected] = useState(false);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
+  // Use shared SSE connection for realtime updates (aligned with Applicant page and dashboard)
   const { isConnected: sharedSseConnected, subscribeToEvents } = useSharedSSE();
 
   const fetchAssignedPositions = useCallback(async (isInitialLoad = false) => {

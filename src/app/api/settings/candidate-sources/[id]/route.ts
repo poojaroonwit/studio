@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -8,7 +8,7 @@ import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 
-const updateCandidateSourceSchema = z.object({
+const updateApplicantSourceSchema = z.object({
   name: z.string().min(1, "Source name is required").optional(),
   description: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
@@ -20,10 +20,10 @@ const updateCandidateSourceSchema = z.object({
 
 /**
  * @openapi
- * /api/settings/candidate-sources/{id}:
+ * /api/settings/Applicant-sources/{id}:
  *   get:
- *     summary: Get candidate source by ID
- *     description: Returns a specific candidate source by ID.
+ *     summary: Get Applicant source by ID
+ *     description: Returns a specific Applicant source by ID.
  *     parameters:
  *       - in: path
  *         name: id
@@ -33,16 +33,16 @@ const updateCandidateSourceSchema = z.object({
  *           format: uuid
  *     responses:
  *       200:
- *         description: Candidate source details
+ *         description: Applicant source details
  *       404:
- *         description: Candidate source not found
+ *         description: Applicant source not found
  *       401:
  *         description: Unauthorized
  *       500:
  *         description: Server error
  *   put:
- *     summary: Update candidate source
- *     description: Updates a candidate source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
+ *     summary: Update Applicant source
+ *     description: Updates a Applicant source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -73,7 +73,7 @@ const updateCandidateSourceSchema = z.object({
  *                 type: boolean
  *     responses:
  *       200:
- *         description: Candidate source updated
+ *         description: Applicant source updated
  *       400:
  *         description: Invalid input
  *       401:
@@ -81,12 +81,12 @@ const updateCandidateSourceSchema = z.object({
  *       403:
  *         description: Forbidden (insufficient permissions)
  *       404:
- *         description: Candidate source not found
+ *         description: Applicant source not found
  *       500:
  *         description: Server error
  *   delete:
- *     summary: Delete candidate source
- *     description: Deletes a candidate source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
+ *     summary: Delete Applicant source
+ *     description: Deletes a Applicant source. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
  *     parameters:
  *       - in: path
  *         name: id
@@ -96,13 +96,13 @@ const updateCandidateSourceSchema = z.object({
  *           format: uuid
  *     responses:
  *       200:
- *         description: Candidate source deleted
+ *         description: Applicant source deleted
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden (insufficient permissions)
  *       404:
- *         description: Candidate source not found
+ *         description: Applicant source not found
  *       500:
  *         description: Server error
  */
@@ -122,19 +122,19 @@ export async function GET(
         id, name, description, email, logo, allow_sub_source as "allowSubSource", 
         sort_order as "sortOrder", is_active as "isActive", 
         "createdAt", "updatedAt"
-      FROM "CandidateSource"
+      FROM "ApplicantSource"
       WHERE id = $1
     `, [id]);
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ message: "Candidate source not found" }, { status: 404 });
+      return NextResponse.json({ message: "Applicant source not found" }, { status: 404 });
     }
 
     return NextResponse.json(result.rows[0], { status: 200 });
   } catch (error: any) {
-    console.error("Failed to fetch candidate source:", error);
-    await logAudit('ERROR', `Failed to fetch candidate source. Error: ${error.message}`, 'API:CandidateSources:GetById', session.user.id);
-    return NextResponse.json({ message: "Error fetching candidate source", error: error.message }, { status: 500 });
+    console.error("Failed to fetch Applicant source:", error);
+    await logAudit('ERROR', `Failed to fetch Applicant source. Error: ${error.message}`, 'API:ApplicantSources:GetById', session.user.id);
+    return NextResponse.json({ message: "Error fetching Applicant source", error: error.message }, { status: 500 });
   }
 }
 
@@ -155,27 +155,27 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const validatedData = updateCandidateSourceSchema.parse(body);
+    const validatedData = updateApplicantSourceSchema.parse(body);
 
     // Check if source exists
     const existingResult = await getPool().query(
-      'SELECT id, name FROM "CandidateSource" WHERE id = $1',
+      'SELECT id, name FROM "ApplicantSource" WHERE id = $1',
       [id]
     );
 
     if (existingResult.rows.length === 0) {
-      return NextResponse.json({ message: "Candidate source not found" }, { status: 404 });
+      return NextResponse.json({ message: "Applicant source not found" }, { status: 404 });
     }
 
     // If name is being updated, check for duplicates
     if (validatedData.name && validatedData.name !== existingResult.rows[0].name) {
       const duplicateResult = await getPool().query(
-        'SELECT id FROM "CandidateSource" WHERE name = $1 AND id != $2',
+        'SELECT id FROM "ApplicantSource" WHERE name = $1 AND id != $2',
         [validatedData.name, id]
       );
 
       if (duplicateResult.rows.length > 0) {
-        return NextResponse.json({ message: "A candidate source with this name already exists" }, { status: 409 });
+        return NextResponse.json({ message: "A Applicant source with this name already exists" }, { status: 409 });
       }
     }
 
@@ -221,7 +221,7 @@ export async function PUT(
     updateValues.push(id);
 
     const result = await getPool().query(`
-      UPDATE "CandidateSource"
+      UPDATE "ApplicantSource"
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING id, name, description, email, logo, allow_sub_source as "allowSubSource", 
@@ -231,16 +231,16 @@ export async function PUT(
 
     const updatedSource = result.rows[0];
     
-    await logAudit('INFO', `Updated candidate source: ${updatedSource.name}`, 'API:CandidateSources:Update', session.user.id);
+    await logAudit('INFO', `Updated Applicant source: ${updatedSource.name}`, 'API:ApplicantSources:Update', session.user.id);
     
     return NextResponse.json(updatedSource, { status: 200 });
   } catch (error: any) {
-    console.error("Failed to update candidate source:", error);
+    console.error("Failed to update Applicant source:", error);
     if (error.name === 'ZodError') {
       return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to update candidate source. Error: ${error.message}`, 'API:CandidateSources:Update', session.user.id);
-    return NextResponse.json({ message: "Error updating candidate source", error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to update Applicant source. Error: ${error.message}`, 'API:ApplicantSources:Update', session.user.id);
+    return NextResponse.json({ message: "Error updating Applicant source", error: error.message }, { status: 500 });
   }
 }
 
@@ -262,40 +262,40 @@ export async function DELETE(
     const { id } = await params;
     // Check if source exists and get its name for audit log
     const existingResult = await getPool().query(
-      'SELECT id, name FROM "CandidateSource" WHERE id = $1',
+      'SELECT id, name FROM "ApplicantSource" WHERE id = $1',
       [id]
     );
 
     if (existingResult.rows.length === 0) {
-      return NextResponse.json({ message: "Candidate source not found" }, { status: 404 });
+      return NextResponse.json({ message: "Applicant source not found" }, { status: 404 });
     }
 
     const sourceName = existingResult.rows[0].name;
 
-    // Check if any candidates are using this source
-    const candidatesResult = await getPool().query(
+    // Check if any applicants are using this source
+    const applicantsResult = await getPool().query(
       'SELECT COUNT(*) as count FROM "Candidate" WHERE "sourceId" = $1',
       [id]
     );
 
-    if (parseInt(candidatesResult.rows[0].count) > 0) {
+    if (parseInt(applicantsResult.rows[0].count) > 0) {
       return NextResponse.json({ 
-        message: "Cannot delete candidate source that is being used by candidates. Please reassign or remove the source from candidates first." 
+        message: "Cannot delete Applicant source that is being used by applicants. Please reassign or remove the source from applicants first." 
       }, { status: 400 });
     }
 
     // Delete the source
     await getPool().query(
-      'DELETE FROM "CandidateSource" WHERE id = $1',
+      'DELETE FROM "ApplicantSource" WHERE id = $1',
       [id]
     );
 
-    await logAudit('INFO', `Deleted candidate source: ${sourceName}`, 'API:CandidateSources:Delete', session.user.id);
+    await logAudit('INFO', `Deleted Applicant source: ${sourceName}`, 'API:ApplicantSources:Delete', session.user.id);
     
-    return NextResponse.json({ message: "Candidate source deleted successfully" }, { status: 200 });
+    return NextResponse.json({ message: "Applicant source deleted successfully" }, { status: 200 });
   } catch (error: any) {
-    console.error("Failed to delete candidate source:", error);
-    await logAudit('ERROR', `Failed to delete candidate source. Error: ${error.message}`, 'API:CandidateSources:Delete', session.user.id);
-    return NextResponse.json({ message: "Error deleting candidate source", error: error.message }, { status: 500 });
+    console.error("Failed to delete Applicant source:", error);
+    await logAudit('ERROR', `Failed to delete Applicant source. Error: ${error.message}`, 'API:ApplicantSources:Delete', session.user.id);
+    return NextResponse.json({ message: "Error deleting Applicant source", error: error.message }, { status: 500 });
   }
 }

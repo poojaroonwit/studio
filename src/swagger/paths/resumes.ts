@@ -15,7 +15,7 @@ export const resumesPaths = {
               type: 'object',
               properties: {
                 file: { type: 'string', format: 'binary', description: 'Resume file' },
-                candidateId: { type: 'string', description: 'Candidate ID to associate with' },
+                candidateId: { type: 'string', description: 'Applicant ID to associate with' },
                 title: { type: 'string', description: 'Resume title' },
                 isPrimary: { type: 'boolean', default: false, description: 'Set as primary resume' }
               },

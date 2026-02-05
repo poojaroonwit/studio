@@ -12,19 +12,19 @@ import {
   createInternalServerError
 } from '@/lib/errors';;
 import { z } from 'zod';
-import { searchCandidatesAIChat } from '@/ai/flows/search-candidates-flow';
+import { searchApplicantsAIChat } from '@/ai/flows/candidates-search-flow';
 import { logAudit } from '@/lib/auditLog';
 
 /**
- * Generate match reasons for a candidate based on the search query and AI reasoning
+ * Generate match reasons for a Applicant based on the search query and AI reasoning
  */
-function generateMatchReasons(query: string, candidate: any, aiReasoning?: string): string[] {
+function generateMatchReasons(query: string, applicant: any, aiReasoning?: string): string[] {
   const reasons: string[] = [];
   const queryLower = query.toLowerCase();
 
   // Check for skill matches in parsed data
-  if (candidate.parsedData) {
-    const parsedData = candidate.parsedData;
+  if (applicant.parsedData) {
+    const parsedData = applicant.parsedData;
 
     // Check skills
     if (parsedData.skills && Array.isArray(parsedData.skills)) {
@@ -61,24 +61,24 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
   }
 
   // Check position match
-  if (candidate.positionTitle && queryLower.includes(candidate.positionTitle.toLowerCase())) {
-    reasons.push(`Applied for ${candidate.positionTitle} position`);
+  if (applicant.positionTitle && queryLower.includes(applicant.positionTitle.toLowerCase())) {
+    reasons.push(`Applied for ${applicant.positionTitle} position`);
   }
 
   // Check fit score if mentioned in query
   if (queryLower.includes('fit score') || queryLower.includes('score')) {
-    const score = candidate.fitScore < 1 ? Math.round(candidate.fitScore * 100) : candidate.fitScore;
+    const score = applicant.fitScore < 1 ? Math.round(applicant.fitScore * 100) : applicant.fitScore;
     reasons.push(`Fit score: ${score}%`);
   }
 
   // Check status if mentioned in query
-  if (candidate.status && queryLower.includes(candidate.status.toLowerCase())) {
-    reasons.push(`Status: ${candidate.status}`);
+  if (applicant.status && queryLower.includes(applicant.status.toLowerCase())) {
+    reasons.push(`Status: ${applicant.status}`);
   }
 
   // Check recruiter if mentioned in query
-  if (candidate.recruiterName && queryLower.includes(candidate.recruiterName.toLowerCase())) {
-    reasons.push(`Assigned to ${candidate.recruiterName}`);
+  if (applicant.recruiterName && queryLower.includes(applicant.recruiterName.toLowerCase())) {
+    reasons.push(`Assigned to ${applicant.recruiterName}`);
   }
 
   // If no specific reasons found, use AI reasoning or generic match
@@ -101,7 +101,7 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
   return reasons;
 }
 
-const searchCandidatesSchema = z.object({
+const searchApplicantsSchema = z.object({
   query: z.string().min(1, 'Search query is required'),
   positionId: z.string().uuid().optional(),
   limit: z.number().min(1).max(100).default(20),
@@ -110,10 +110,10 @@ const searchCandidatesSchema = z.object({
 
 /**
  * @openapi
- * /api/v1/ai/search-candidates:
+ * /api/v1/ai/search-Applicants:
  *   post:
- *     summary: Search candidates using AI (V1 API)
- *     description: Search candidates using AI-powered semantic search. Requires Bearer token authentication.
+ *     summary: Search Applicants using AI (V1 API)
+ *     description: Search Applicants using AI-powered semantic search. Requires Bearer token authentication.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -182,16 +182,16 @@ const searchCandidatesSchema = z.object({
  *                         type: object
  *                 total:
  *                   type: integer
- *                   description: Total number of matching candidates
+ *                   description: Total number of matching Applicants
  *                 query:
  *                   type: string
  *                   description: The search query used
  *                 aiReasoning:
  *                   type: string
- *                   description: AI explanation of why these candidates were matched
+ *                   description: AI explanation of why these Applicants were matched
  *                 recordCount:
  *                   type: integer
- *                   description: Total number of candidates analyzed by AI
+ *                   description: Total number of Applicants analyzed by AI
  *                 timestamp:
  *                   type: string
  *                   format: date-time
@@ -208,7 +208,7 @@ const searchCandidatesSchema = z.object({
  *                   success: true
  *                   data:
  *                     - id: "123e4567-e89b-12d3-a456-426614174000"
- *                       name: "Sample Candidate"
+ *                       name: "Sample Applicant"
  *                       email: "john.doe@example.com"
  *                       phone: "+1234567890"
  *                       status: "Applied"
@@ -218,7 +218,7 @@ const searchCandidatesSchema = z.object({
  *                   total: 1
  *                   query: "software engineer with React experience"
  *                   timestamp: "2024-01-01T00:00:00.000Z"
- *                   path: "/api/v1/ai/search-candidates"
+ *                   path: "/api/v1/ai/search-Applicants"
  *                   method: "POST"
  *                   statusCode: 200
  *       400:
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
 
     // Parse and validate request body
     const body = await req.json();
-    const validationResult = searchCandidatesSchema.safeParse(body);
+    const validationResult = searchApplicantsSchema.safeParse(body);
 
     if (!validationResult.success) {
       return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid request body'));
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
     const { query, positionId, limit, offset } = validationResult.data;
 
     // Log the search request
-    await logAudit('INFO', `AI search request: "${query}"${positionId ? ` for position ${positionId}` : ''}`, 'AI:SearchCandidates', user.id, {
+    await logAudit('INFO', `AI search request: "${query}"${positionId ? ` for position ${positionId}` : ''}`, 'AI:SearchApplicants', user.id, {
       query,
       positionId,
       limit,
@@ -274,22 +274,22 @@ export async function POST(req: NextRequest) {
     });
 
     // Execute AI search using the existing flow
-    const aiSearchResult = await searchCandidatesAIChat({ query });
+    const aiSearchResult = await searchApplicantsAIChat({ query });
 
-    if (!aiSearchResult.matchedCandidateIds || aiSearchResult.matchedCandidateIds.length === 0) {
+    if (!aiSearchResult.matchedcandidateIds || aiSearchResult.matchedcandidateIds.length === 0) {
       return SimpleErrorHandler.createSuccessResponse(req, {
         data: [],
         total: 0,
         query: query,
-        aiReasoning: aiSearchResult.aiReasoning || 'No candidates found matching the search criteria'
+        aiReasoning: aiSearchResult.aiReasoning || 'No Applicants found matching the search criteria'
       }, 200);
     }
 
-    // Get detailed candidate information for matched candidates
+    // Get detailed Applicant information for matched Applicants
     const client = await getPool().connect();
     try {
-      // Build the query to get candidate details
-      let candidateQuery = `
+      // Build the query to get Applicant details
+      let ApplicantQuery = `
         SELECT 
           c.id,
           c.name,
@@ -314,24 +314,24 @@ export async function POST(req: NextRequest) {
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" u ON c."recruiterId" = u.id
-        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
         WHERE c.id = ANY($1::uuid[])
       `;
 
-      const queryParams: any[] = [aiSearchResult.matchedCandidateIds];
+      const queryParams: any[] = [aiSearchResult.matchedcandidateIds];
 
       // Add position filter if specified
       if (positionId) {
-        candidateQuery += ` AND c."positionId" = $2`;
+        ApplicantQuery += ` AND c."positionId" = $2`;
         queryParams.push(positionId);
       }
 
       // Add ordering and pagination
-      candidateQuery += ` ORDER BY c."createdAt" DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+      ApplicantQuery += ` ORDER BY c."createdAt" DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
       queryParams.push(limit, offset);
 
-      const candidateResult = await client.query(candidateQuery, queryParams);
-      const candidates = candidateResult.rows;
+      const ApplicantResult = await client.query(ApplicantQuery, queryParams);
+      const Applicants = ApplicantResult.rows;
 
       // Get total count for pagination
       let countQuery = `
@@ -339,7 +339,7 @@ export async function POST(req: NextRequest) {
         FROM "Candidate" c
         WHERE c.id = ANY($1::uuid[])
       `;
-      const countParams: any[] = [aiSearchResult.matchedCandidateIds];
+      const countParams: any[] = [aiSearchResult.matchedcandidateIds];
 
       if (positionId) {
         countQuery += ` AND c."positionId" = $2`;
@@ -350,36 +350,36 @@ export async function POST(req: NextRequest) {
       const total = parseInt(countResult.rows[0].total);
 
       // Format the response data
-      const formattedCandidates = candidates.map((candidate: any) => {
+      const formattedApplicants = Applicants.map((applicant: any) => {
         // Parse match reasons from AI reasoning or generate based on query
-        const matchReasons = generateMatchReasons(query, candidate, aiSearchResult.aiReasoning);
+        const matchReasons = generateMatchReasons(query, applicant, aiSearchResult.aiReasoning);
 
         return {
-          id: candidate.id,
-          name: candidate.name,
-          email: candidate.email,
-          phone: candidate.phone,
-          status: candidate.status,
-          fitScore: candidate.fitScore,
+          id: applicant.id,
+          name: applicant.name,
+          email: applicant.email,
+          phone: applicant.phone,
+          status: applicant.status,
+          fitScore: applicant.fitScore,
           matchReasons,
-          parsedData: candidate.parsedData,
-          customAttributes: candidate.customAttributes,
-          applicationDate: candidate.applicationDate,
-          createdAt: candidate.createdAt,
-          updatedAt: candidate.updatedAt,
-          isPinned: candidate.isPinned,
-          pinnedAt: candidate.pinnedAt,
-          positionTitle: candidate.positionTitle,
-          positionDepartment: candidate.positionDepartment,
-          recruiterName: candidate.recruiterName,
-          recruiterEmail: candidate.recruiterEmail,
-          sourceName: candidate.sourceName,
-          sourceLogo: candidate.sourceLogo
+          parsedData: applicant.parsedData,
+          customAttributes: applicant.customAttributes,
+          applicationDate: applicant.applicationDate,
+          createdAt: applicant.createdAt,
+          updatedAt: applicant.updatedAt,
+          isPinned: applicant.isPinned,
+          pinnedAt: applicant.pinnedAt,
+          positionTitle: applicant.positionTitle,
+          positionDepartment: applicant.positionDepartment,
+          recruiterName: applicant.recruiterName,
+          recruiterEmail: applicant.recruiterEmail,
+          sourceName: applicant.sourceName,
+          sourceLogo: applicant.sourceLogo
         };
       });
 
       const response = {
-        data: formattedCandidates,
+        data: formattedApplicants,
         total: total,
         query: query,
         aiReasoning: aiSearchResult.aiReasoning,

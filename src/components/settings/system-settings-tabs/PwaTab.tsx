@@ -129,7 +129,7 @@ export default function PwaTab({
                                                     id="pwa-description"
                                                     value={pwaDescription}
                                                     onChange={(e) => setPwaDescription(e.target.value)}
-                                                    placeholder="Advanced AI-powered recruitment and candidate management platform"
+                                                    placeholder="Advanced AI-powered recruitment and Applicant management platform"
                                                     disabled={isSaving}
                                                 />
                                                 <p className="text-xs text-muted-foreground">Description of your PWA</p>

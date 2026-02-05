@@ -6,31 +6,31 @@ import { WebhookService } from './webhookService';
  */
 export class WebhookEvents {
   /**
-   * Candidate Events
+   * Applicant Events
    */
-  static async candidateCreated(candidate: any): Promise<void> {
-    await WebhookService.sendCandidateWebhook('candidate.created', candidate);
+  static async ApplicantCreated(Applicant: any): Promise<void> {
+    await WebhookService.sendApplicantWebhook('Applicant.created', Applicant);
   }
 
-  static async candidateUpdated(candidate: any): Promise<void> {
-    await WebhookService.sendCandidateWebhook('candidate.updated', candidate);
+  static async ApplicantUpdated(Applicant: any): Promise<void> {
+    await WebhookService.sendApplicantWebhook('Applicant.updated', Applicant);
   }
 
-  static async candidateDeleted(candidate: any): Promise<void> {
-    await WebhookService.sendCandidateWebhook('candidate.deleted', candidate);
+  static async ApplicantDeleted(Applicant: any): Promise<void> {
+    await WebhookService.sendApplicantWebhook('Applicant.deleted', Applicant);
   }
 
-  static async candidateStageChanged(candidate: any, oldStage: string, newStage: string): Promise<void> {
-    await WebhookService.sendWebhooks('candidate.stage_changed', {
-      candidate: {
-        id: candidate.id,
-        name: candidate.name,
-        email: candidate.email,
-        status: candidate.statusId || candidate.status || candidate.statusName || 'Unknown',
-        position_id: candidate.positionId,
-        application_date: candidate.applicationDate,
-        createdAt: candidate.createdAt,
-        updatedAt: candidate.updatedAt
+  static async ApplicantstageChanged(Applicant: any, oldStage: string, newStage: string): Promise<void> {
+    await WebhookService.sendWebhooks('Applicant.stage_changed', {
+      Applicant: {
+        id: Applicant.id,
+        name: Applicant.name,
+        email: Applicant.email,
+        status: Applicant.statusId || Applicant.status || Applicant.statusName || 'Unknown',
+        position_id: Applicant.positionId,
+        application_date: Applicant.applicationDate,
+        createdAt: Applicant.createdAt,
+        updatedAt: Applicant.updatedAt
       },
       stage_change: {
         old_stage: oldStage,
@@ -77,7 +77,7 @@ export class WebhookEvents {
     await WebhookService.sendWebhooks('resume.uploaded', {
       resume: {
         id: resume.id,
-        candidate_id: resume.candidateId,
+        Applicant_id: resume.candidateId,
         file_name: resume.fileName,
         file_path: resume.filePath,
         uploaded_at: resume.uploadedAt,
@@ -90,7 +90,7 @@ export class WebhookEvents {
     await WebhookService.sendWebhooks('resume.processed', {
       resume: {
         id: resume.id,
-        candidate_id: resume.candidateId,
+        Applicant_id: resume.candidateId,
         file_name: resume.fileName,
         file_path: resume.filePath,
         uploaded_at: resume.uploadedAt,

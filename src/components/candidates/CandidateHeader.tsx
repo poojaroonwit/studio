@@ -4,27 +4,27 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Pin, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
-import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Pin, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
+import { formatApplicantNameWithLang } from "@/lib/applicantUtils";
 import { useToast } from '@/hooks/use-toast';
-import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
-import { CandidateRecruiterCell } from './CandidateRecruiterCell';
-import { CandidateSourceCell } from './CandidateSourceCell';
-import { BlacklistBadge } from './BlacklistBadge';
-import { StatusBadge } from './CandidateKanbanView';
+import type { Applicant, UserProfile, RecruitmentStage, ApplicantSource } from '@/lib/types';
+import { ApplicantRecruiterCell } from '../applicants/ApplicantRecruiterCell';
+import { ApplicantSourceCell } from '../applicants/ApplicantSourceCell';
+import { BlacklistBadge } from '../applicants/BlacklistBadge';
+import { StatusBadge } from '../applicants/ApplicantKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 import { getCachedAvatarUrl, convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { sanitizeUrl } from '@/lib/utils';
 
 interface CandidateHeaderProps {
-  candidate: Candidate;
+  candidate: Applicant; // Using Applicant type but named candidate
   isModal?: boolean;
   onClose?: () => void;
   isEditing: boolean;
   availableStages: RecruitmentStage[];
   availableRecruiter: UserProfile[];
-  availableSources: CandidateSource[];
+  availableSources: ApplicantSource[];
   isAssigningRecruiter: boolean;
   isAssigningSource: boolean;
   onAssignRecruiter: (recruiterId: string | null) => void;
@@ -40,6 +40,7 @@ interface CandidateHeaderProps {
   onDelete: () => void;
   onTogglePin?: () => void;
   onToggleBlacklist: () => void;
+  onToggleRead?: () => void;
   avatarInputRef: React.RefObject<HTMLInputElement>;
   avatarUploading: boolean;
   avatarError: string | null;
@@ -73,6 +74,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onDelete,
   onTogglePin,
   onToggleBlacklist,
+  onToggleRead,
   avatarInputRef,
   avatarUploading,
   avatarError,
@@ -81,8 +83,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   realtimeConnected
 }) => {
   const { success: toastSuccess } = useToast();
-  const { contentZIndex } = useDynamicZIndex('candidate-header', 'overlay');
-  const nameInfo = formatCandidateNameWithLang(candidate);
+  const { contentZIndex } = useDynamicZIndex('applicant-header', 'overlay');
+  const nameInfo = formatApplicantNameWithLang(candidate);
   const stageId = candidate.statusId || candidate.status || '';
   const { stageColors } = useStageColors(stageId ? [stageId] : []);
   const stageNames = React.useMemo(() => {
@@ -197,7 +199,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
           </div>
         )}
 
-        {/* Column 1: Candidate Header (7 cols) */}
+        {/* Column 1: Applicant Header (7 cols) */}
         <div className="lg:col-span-7">
           <div className="flex flex-col md:flex-row items-center gap-6">
             {/* Avatar */}
@@ -337,12 +339,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
         {/* Column 2: Source and Recruiter Assignment (3 cols) */}
         <div className="lg:col-span-3">
           <div className="flex items-center justify-end gap-4 mt-8">
-            {/* Candidate Source */}
+            {/* Applicant Source */}
             <div className="border border-border rounded-lg">
-              <CandidateSourceCell
-                candidate={candidate}
+              <ApplicantSourceCell
+                applicant={candidate}
                 availableSources={availableSources}
-                canManageCandidates={true}
+                canManageApplicants={true}
                 isAssigning={isAssigningSource}
                 onAssignSource={onAssignSource}
                 onResetAssigning={onResetSourceAssigning}
@@ -351,12 +353,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
 
             {/* Recruiter Assignment */}
             <div className="border border-border rounded-lg">
-              <CandidateRecruiterCell
-                candidate={candidate}
+              <ApplicantRecruiterCell
+                applicant={candidate}
                 availableRecruiter={availableRecruiter}
-                canManageCandidates={true}
+                canManageApplicants={true}
                 isAssigning={isAssigningRecruiter}
-                onAssignRecruiter={(candidateId, recruiterId) => onAssignRecruiter(recruiterId)}
+                onAssignRecruiter={(candidateId: string, recruiterId: string | null) => onAssignRecruiter(recruiterId)}
                 onResetAssigning={onResetAssigning}
               />
             </div>
@@ -403,6 +405,24 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                           <>
                             <Pin className="mr-2 h-4 w-4 text-muted-foreground rotate-45" />
                             Pin to top
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {onToggleRead && (
+                      <DropdownMenuItem
+                        onClick={onToggleRead}
+                        className="text-sm py-2 cursor-pointer"
+                      >
+                        {candidate.isRead === false ? (
+                          <>
+                            <EnvelopeOpenIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                            Mark as Read
+                          </>
+                        ) : (
+                          <>
+                            <EnvelopeIcon className="mr-2 h-4 w-4 text-blue-600" />
+                            Mark as Unread
                           </>
                         )}
                       </DropdownMenuItem>

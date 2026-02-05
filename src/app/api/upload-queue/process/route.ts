@@ -405,7 +405,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (alreadyProcessed) {
-      // console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate candidates`);
+      // console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate Applicants`);
       status = 'success';
       error = null;
       error_details = 'Skipped - file already processed by another job';

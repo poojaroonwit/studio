@@ -66,14 +66,14 @@ import { SimpleErrorHandler,
  *                   data:
  *                     - id: "123e4567-e89b-12d3-a456-426614174000"
  *                       name: "Applied"
- *                       description: "Candidate has applied"
+ *                       description: "Applicant has applied"
  *                       sort_order: 1
  *                       color_complete: "#4CAF50"
  *                       color_badge: "#2E7D32"
  *                       is_system: true
  *                     - id: "123e4567-e89b-12d3-a456-426614174001"
  *                       name: "Interview"
- *                       description: "Candidate in interview process"
+ *                       description: "Applicant in interview process"
  *                       sort_order: 2
  *                       color_complete: "#FF9800"
  *                       color_badge: "#E65100"

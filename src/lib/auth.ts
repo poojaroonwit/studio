@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NextAuth v5 Migration - Compatibility Layer
  * 
  * This file provides backward compatibility for code that still uses

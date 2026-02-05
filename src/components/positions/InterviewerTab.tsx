@@ -291,7 +291,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
             Interviewers
           </h2>
           <p className="text-muted-foreground mt-1">
-            Manage users assigned to interview candidates for this position
+            Manage users assigned to interview Applicants for this position
           </p>
         </div>
 

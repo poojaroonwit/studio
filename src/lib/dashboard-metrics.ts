@@ -1,5 +1,5 @@
 import { PoolClient } from 'pg';
-import { ACTIVE_CANDIDATE_STATUSES } from '@/lib/types';
+import { ACTIVE_APPLICANT_STATUSES } from '@/lib/types';
 
 export async function fetchDashboardMetrics(client: PoolClient, userId: string, canViewAll: boolean) {
   const now = new Date();
@@ -9,18 +9,18 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   // 1. KPI Queries
   const kpiQuery = `
     SELECT
-      COUNT(CASE WHEN c.status = ANY($1) THEN 1 END) as "activeCandidates",
+      COUNT(CASE WHEN c.status = ANY($1) THEN 1 END) as "activeApplicants",
       (SELECT COUNT(*) FROM "Headcount" h JOIN "Position" p ON h."positionId" = p.id WHERE p."isOpen" = true AND h.status != 'filled') as "openHeadcounts",
       COUNT(CASE WHEN c.status = 'Hired' AND c."updatedAt" >= $2 THEN 1 END) as "hiredThisMonth",
       COUNT(CASE WHEN c.status = 'Rejected' AND c."updatedAt" >= $2 THEN 1 END) as "rejectedThisMonth",
-      COUNT(CASE WHEN c."fitScore" >= 80 AND c.status = ANY($1) THEN 1 END) as "highScoreCandidates",
+      COUNT(CASE WHEN c."fitScore" >= 80 AND c.status = ANY($1) THEN 1 END) as "highScoreApplicants",
       COUNT(CASE WHEN c."applicationDate" >= $3 THEN 1 END) as "applicationsThisWeek"
     FROM "Candidate" c
     WHERE ($4 = true OR c."recruiterId" = $5)
   `;
   
   const kpisResult = await client.query(kpiQuery, [
-    ACTIVE_CANDIDATE_STATUSES,
+    ACTIVE_APPLICANT_STATUSES,
     firstDayOfMonth,
     last7Days,
     canViewAll,
@@ -67,7 +67,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     GROUP BY range
     ORDER BY range ASC
   `;
-  const scoreDistResult = await client.query(scoreDistQuery, [ACTIVE_CANDIDATE_STATUSES, canViewAll, userId]);
+  const scoreDistResult = await client.query(scoreDistQuery, [ACTIVE_APPLICANT_STATUSES, canViewAll, userId]);
 
   // 5. On-Process by Stage
   const stageDistQuery = `
@@ -80,7 +80,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     GROUP BY stage
     ORDER BY count DESC
   `;
-  const stageDistResult = await client.query(stageDistQuery, [ACTIVE_CANDIDATE_STATUSES, canViewAll, userId]);
+  const stageDistResult = await client.query(stageDistQuery, [ACTIVE_APPLICANT_STATUSES, canViewAll, userId]);
 
   // 6. On-Process by Recruiter
   const recruiterDistQuery = `
@@ -94,15 +94,15 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     GROUP BY recruiter
     ORDER BY count DESC
   `;
-  const recruiterDistResult = await client.query(recruiterDistQuery, [ACTIVE_CANDIDATE_STATUSES, canViewAll, userId]);
+  const recruiterDistResult = await client.query(recruiterDistQuery, [ACTIVE_APPLICANT_STATUSES, canViewAll, userId]);
 
   return {
     kpis: {
-      activeCandidates: parseInt(kpisResult.rows[0]?.activeCandidates || '0', 10),
+      activeApplicants: parseInt(kpisResult.rows[0]?.activeApplicants || '0', 10),
       openHeadcounts: parseInt(kpisResult.rows[0]?.openHeadcounts || '0', 10),
       hiredThisMonth: parseInt(kpisResult.rows[0]?.hiredThisMonth || '0', 10),
       rejectedThisMonth: parseInt(kpisResult.rows[0]?.rejectedThisMonth || '0', 10),
-      highScoreCandidates: parseInt(kpisResult.rows[0]?.highScoreCandidates || '0', 10),
+      highScoreApplicants: parseInt(kpisResult.rows[0]?.highScoreApplicants || '0', 10),
       applicationsThisWeek: parseInt(kpisResult.rows[0]?.applicationsThisWeek || '0', 10),
       avgTimeToHire: parseFloat(avgTimeResult.rows[0]?.avgDays || '0').toFixed(2)
     },

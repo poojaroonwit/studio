@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 
 const generateContentSchema = z.object({
-  candidateId: z.string().min(1, 'Candidate ID is required'),
+  candidateId: z.string().min(1, 'Applicant ID is required'),
   systemPrompt: z.string().min(1, 'System prompt is required'),
   promptName: z.string().optional(),
   promptCategory: z.string().optional(),
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
   const { candidateId, systemPrompt, promptName, promptCategory } = validationResult.data;
 
   try {
-    // Get comprehensive candidate data including job and matching information
-    async function getCandidateData(candidateId: string) {
+    // Get comprehensive Applicant data including job and matching information
+    async function getApplicantData(candidateId: string) {
       const client = await getPool().connect();
       try {
-        // Get candidate basic information including education and experience
-        const candidateQuery = `
+        // Get Applicant basic information including education and experience
+        const ApplicantQuery = `
           SELECT 
             c.id,
             c.name,
@@ -84,16 +84,16 @@ export async function POST(request: NextRequest) {
           WHERE c.id = $1
         `;
         
-        const candidateResult = await client.query(candidateQuery, [candidateId]);
+        const ApplicantResult = await client.query(ApplicantQuery, [candidateId]);
         
-        if (candidateResult.rows.length === 0) {
-          throw new Error('Candidate not found');
+        if (ApplicantResult.rows.length === 0) {
+          throw new Error('Applicant not found');
         }
         
-        const candidate = candidateResult.rows[0];
+        const Applicant = ApplicantResult.rows[0];
         
-        // Get candidate comments (from CandidateComment table)
-        const candidateCommentsQuery = `
+        // Get Applicant comments (from ApplicantComment table)
+        const ApplicantCommentsQuery = `
           SELECT 
             cc.content,
             cc."createdAt",
@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
           LIMIT 10
         `;
         
-        const candidateCommentsResult = await client.query(candidateCommentsQuery, [candidateId]);
+        const ApplicantCommentsResult = await client.query(ApplicantCommentsQuery, [candidateId]);
         
-        // Get candidate transition records
+        // Get Applicant transition records
         const transitionRecordsQuery = `
           SELECT 
             tr.stage,
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         
         const transitionRecordsResult = await client.query(transitionRecordsQuery, [candidateId]);
         
-        // Get candidate attachments
+        // Get Applicant attachments
         const attachmentsQuery = `
           SELECT 
             a."fileName",
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         
 
         
-        // Get all job matches for the candidate (not just the applied position)
+        // Get all job matches for the Applicant (not just the applied position)
         const matchesQuery = `
           SELECT 
             jm."fitScore",
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
         
         // Get the applied position data separately
         let appliedPositionData = null;
-        if (candidate.positionId) {
+        if (Applicant.positionId) {
           const appliedPositionQuery = `
             SELECT 
               p.id,
@@ -190,19 +190,19 @@ export async function POST(request: NextRequest) {
             WHERE p.id = $1
           `;
           
-          const appliedPositionResult = await client.query(appliedPositionQuery, [candidate.positionId]);
+          const appliedPositionResult = await client.query(appliedPositionQuery, [Applicant.positionId]);
           if (appliedPositionResult.rows.length > 0) {
             appliedPositionData = appliedPositionResult.rows[0];
           }
         }
         
         return {
-          candidate,
-          comments: candidateCommentsResult.rows,
+          Applicant,
+          comments: ApplicantCommentsResult.rows,
           transitions: transitionRecordsResult.rows,
-          resumes: [], // No separate Resume table, resumes are stored in Candidate.resumePath
+          resumes: [], // No separate Resume table, resumes are stored in applicant.resumePath
           attachments: attachmentsResult.rows,
-          candidateComments: candidateCommentsResult.rows,
+          ApplicantComments: ApplicantCommentsResult.rows,
           transitionRecords: transitionRecordsResult.rows,
           jobMatches,
           appliedPositionData
@@ -212,27 +212,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch comprehensive candidate data
-    const candidateData = await getCandidateData(candidateId);
-    const { candidate, comments, transitions, resumes, attachments, candidateComments, transitionRecords, jobMatches, appliedPositionData } = candidateData;
+    // Fetch comprehensive Applicant data
+    const ApplicantData = await getApplicantData(candidateId);
+    const { Applicant, comments, transitions, resumes, attachments, ApplicantComments, transitionRecords, jobMatches, appliedPositionData } = ApplicantData;
 
     // Create comprehensive context data for AI
-    const candidateContext = {
+    const ApplicantContext = {
       basicInfo: {
-        name: candidate.name,
-        email: candidate.email,
-        phone: candidate.phone,
-        status: candidate.currentStage || 'Unknown',
-        applicationDate: candidate.applicationDate,
-        fitScore: candidate.fitScore,
-        dataAiHint: candidate.dataAiHint,
-        customAttributes: candidate.customAttributes,
-        parsedData: candidate.parsedData,
-        assignmentJustification: candidate.assignmentJustification,
-        avatarUrl: candidate.avatarUrl
+        name: Applicant.name,
+        email: Applicant.email,
+        phone: Applicant.phone,
+        status: Applicant.currentStage || 'Unknown',
+        applicationDate: Applicant.applicationDate,
+        fitScore: Applicant.fitScore,
+        dataAiHint: Applicant.dataAiHint,
+        customAttributes: Applicant.customAttributes,
+        parsedData: Applicant.parsedData,
+        assignmentJustification: Applicant.assignmentJustification,
+        avatarUrl: Applicant.avatarUrl
       },
-      education: candidate.educationData || [],
-      experience: candidate.experienceData || [],
+      education: Applicant.educationData || [],
+      experience: Applicant.experienceData || [],
       position: appliedPositionData ? {
         id: appliedPositionData.id,
         title: appliedPositionData.title,
@@ -245,22 +245,22 @@ export async function POST(request: NextRequest) {
         createdAt: appliedPositionData.createdAt,
         updatedAt: appliedPositionData.updatedAt
       } : null,
-      recruiter: candidate.recruiterName ? {
-        name: candidate.recruiterName,
-        email: candidate.recruiterEmail
+      recruiter: Applicant.recruiterName ? {
+        name: Applicant.recruiterName,
+        email: Applicant.recruiterEmail
       } : null,
       currentStage: {
-        name: candidate.currentStage,
-        description: candidate.stageDescription,
-        color: candidate.stageColor
+        name: Applicant.currentStage,
+        description: Applicant.stageDescription,
+        color: Applicant.stageColor
       },
       documents: {
-        resumePath: candidate.resumePath,
+        resumePath: Applicant.resumePath,
         attachments: attachments
       },
       history: {
         comments: comments,
-        candidateComments: candidateComments,
+        ApplicantComments: ApplicantComments,
         transitions: transitions,
         transitionRecords: transitionRecords,
         jobMatches: jobMatches
@@ -328,17 +328,17 @@ export async function POST(request: NextRequest) {
     };
 
     // Create a comprehensive prompt for AI generation
-    const contextInfo = `for candidate: ${candidate.name}`;
+    const contextInfo = `for Applicant: ${Applicant.name}`;
     const detailedContext = `
-CANDIDATE CONTEXT:
-${JSON.stringify(candidateContext, null, 2)}
+Applicant CONTEXT:
+${JSON.stringify(ApplicantContext, null, 2)}
 
 SYSTEM PROMPT:
 ${systemPrompt}
 
-Please generate professional, well-formatted content based on the system prompt above, using all the comprehensive candidate and job data provided. 
+Please generate professional, well-formatted content based on the system prompt above, using all the comprehensive Applicant and job data provided. 
 
-IMPORTANT: Pay special attention to the candidate's education and experience data, as these are crucial for understanding their qualifications and background. Consider:
+IMPORTANT: Pay special attention to the Applicant's education and experience data, as these are crucial for understanding their qualifications and background. Consider:
 
 - Education history, degrees, institutions, and graduation dates
 - Work experience, job titles, companies, responsibilities, and duration
@@ -347,34 +347,34 @@ IMPORTANT: Pay special attention to the candidate's education and experience dat
 - Career progression and growth patterns
 - Parsed data from resumes and documents
 - Assignment justification and reasoning
-- Custom attributes and additional candidate information
+- Custom attributes and additional Applicant information
 - Resume file path and uploaded attachments
 - Detailed transition history and stage progression
 - All comments and feedback from recruiters and team members
 - Job matching scores and criteria
 
 POSITION AND OPPORTUNITY ANALYSIS:
-- The candidate's applied position and its specific requirements, including detailed match criteria
+- The Applicant's applied position and its specific requirements, including detailed match criteria
 - All potential job matches with fit scores and match reasons
 - Top 3 highest-scoring position matches (fit score > 70%)
 - Alternative career opportunities and growth paths
-- How the candidate's profile aligns with different positions and departments
+- How the Applicant's profile aligns with different positions and departments
 - Recommendations for position transitions or career development
-- Analysis of the candidate's fit across multiple positions and career trajectories
-- Insights into the candidate's potential for different roles and responsibilities
+- Analysis of the Applicant's fit across multiple positions and career trajectories
+- Insights into the Applicant's potential for different roles and responsibilities
 - Strategic recommendations for career advancement opportunities
 
 MATCH CRITERIA AND JOB DESCRIPTION ANALYSIS:
 - Detailed analysis of the applied position's match criteria and requirements
-- Comparison of candidate qualifications against specific position criteria
-- Analysis of job descriptions and how they align with candidate experience
+- Comparison of Applicant qualifications against specific position criteria
+- Analysis of job descriptions and how they align with Applicant experience
 - Evaluation of match criteria across different positions and departments
 - Identification of skill gaps and areas for development
-- Assessment of how well the candidate meets each position's specific requirements
+- Assessment of how well the Applicant meets each position's specific requirements
 - Recommendations based on match criteria alignment and job description fit
-- Strategic insights into the candidate's suitability for different role types
+- Strategic insights into the Applicant's suitability for different role types
 
-Also consider the candidate's background, position requirements, matching scores, comments, transition history, and all available context to provide the most relevant and insightful analysis.
+Also consider the Applicant's background, position requirements, matching scores, comments, transition history, and all available context to provide the most relevant and insightful analysis.
 
 Format the response in HTML with appropriate headings (h2, h3) and bullet points (ul, li) where appropriate. Make it comprehensive and professional.
 
@@ -425,7 +425,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
         throw new Error(`Gemini API error: ${data.error.message || JSON.stringify(data.error)}`);
       }
       
-      let generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      let generatedContent = data.Applicants?.[0]?.content?.parts?.[0]?.text || "";
 
       if (!generatedContent.trim()) {
         console.error('Generative AI: Empty response from Gemini API');
@@ -460,10 +460,10 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     // Log the AI generation activity
     await logAudit(
       'AUDIT',
-      `AI content generated using prompt: ${promptName} (${promptCategory}) for candidate: ${candidate.name}`,
+      `AI content generated using prompt: ${promptName} (${promptCategory}) for Applicant: ${Applicant.name}`,
       'API:AI:GenerateContent',
       session.user.id,
-      { candidateId, candidateName: candidate.name, promptName, promptCategory }
+      { candidateId, ApplicantName: Applicant.name, promptName, promptCategory }
     );
 
     return NextResponse.json({ 

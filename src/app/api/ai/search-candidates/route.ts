@@ -1,9 +1,9 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// src/app/api/ai/search-candidates/route.ts
+// src/app/api/ai/search-Applicants/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { searchCandidatesAIChat } from '@/ai/flows/search-candidates-flow';
+import { searchApplicantsAIChat } from '@/ai/flows/search-candidates-flow';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { auth } from '@/auth';
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to use AI search
-  // Users should be able to use AI search if they can view candidates or have AI-specific permissions
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && 
+  // Users should be able to use AI search if they can view Applicants or have AI-specific permissions
+  if (!hasPermission(session.user, 'Applicants_VIEW') && 
       !hasPermission(session.user, 'AI_INTEGRATION_VIEW')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to use AI search" }, { status: 403 });
   }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { query } = validation.data;
-    const result = await searchCandidatesAIChat({ query });
+    const result = await searchApplicantsAIChat({ query });
 
     // Log audit asynchronously to avoid blocking the response
     logAudit('AUDIT', `User performed an AI search. Query: "${query}"`, 'AI Search', session.user.id, { query })

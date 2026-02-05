@@ -27,9 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC');
-  const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC');
+  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload avatars'));
@@ -82,26 +82,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Use preview endpoint for images displayed in img tags
     const avatarUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
 
-    // Update candidate in DB
+    // Update Applicant in DB
     const client = await getPool().connect();
     try {
       await client.query('BEGIN');
       
-      // Check if candidate exists first and get recruiter info for ownership check
-      const candidateCheck = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [candidateId]);
-      if (candidateCheck.rows.length === 0) {
+      // Check if Applicant exists first and get recruiter info for ownership check
+      const applicantCheck = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [candidateId]);
+      if (applicantCheck.rows.length === 0) {
         await client.query('ROLLBACK');
-        return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+        return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
       }
       
-      const candidate = candidateCheck.rows[0];
+      const applicant = applicantCheck.rows[0];
       
       // Check ownership-based permissions for avatar upload
       if (user.role !== 'Admin' && !hasGlobalEditPermission) {
-        const isOwnCandidate = candidate.recruiterId === user.id;
-        if (!isOwnCandidate || !hasOwnEditPermission) {
+        const isOwnApplicant = applicant.recruiterId === user.id;
+        if (!isOwnApplicant || !hasOwnEditPermission) {
           await client.query('ROLLBACK');
-          return SimpleErrorHandler.handleApiError(req, createForbiddenError('You can only upload avatars for candidates assigned to you'));
+          return SimpleErrorHandler.handleApiError(req, createForbiddenError('You can only upload avatars for applicants assigned to you'));
         }
       }
 
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       
       if (result.rows.length === 0) {
         await client.query('ROLLBACK');
-        return SimpleErrorHandler.handleApiError(req, createInternalServerError('Failed to update candidate'));
+        return SimpleErrorHandler.handleApiError(req, createInternalServerError('Failed to update Applicant'));
       }
 
       await client.query('COMMIT');
@@ -119,9 +119,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return SimpleErrorHandler.createSuccessResponse(req, { 
         message: 'Avatar uploaded successfully', 
         avatar_url: avatarUrl,
-        candidate: {
+        Applicant: {
           id: candidateId,
-          name: candidateCheck.rows[0].name,
+          name: applicantCheck.rows[0].name,
           avatarUrl: avatarUrl
         }
       }, 200);
@@ -155,7 +155,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const result = await client.query('SELECT "avatarUrl" FROM "Candidate" WHERE id = $1', [candidateId]);
     if (result.rows.length === 0) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
     return SimpleErrorHandler.createSuccessResponse(req, { 

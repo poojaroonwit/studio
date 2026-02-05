@@ -219,7 +219,7 @@ export function getRateLimitConfig(endpoint: string) {
     return rateLimits.auth;
   } else if (endpoint.includes('/upload') || endpoint.includes('/file')) {
     return rateLimits.upload;
-  } else if (endpoint.includes('/search') || endpoint.includes('/candidates')) {
+  } else if (endpoint.includes('/search') || endpoint.includes('/applicants')) {
     return rateLimits.search;
   } else {
     return rateLimits.api;

@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
 import { minioClient, MINIO_BUCKET } from '@/lib/minio'
 import prisma from '@/lib/prisma'
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 		// Basic permission gate - allow if user has any view permission
 		// This is more lenient for image display
 		const hasAnyViewPermission = 
-			hasPermission(session.user, 'CANDIDATES_VIEW') || 
+			hasPermission(session.user, 'Applicants_VIEW') || 
 			hasPermission(session.user, 'POSITIONS_VIEW') ||
 			session.user.role === 'Admin'
 		
@@ -86,12 +86,12 @@ export async function GET(request: NextRequest) {
 	// Contextual authorization
 	try {
 		if (candidateId) {
-			const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { id: true, recruiterId: true } })
-			if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
-			const hasGlobalEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')
-			const hasOwnEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN')
+			const applicant = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { id: true, recruiterId: true } })
+			if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
+			const hasGlobalEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') || session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE')
+			const hasOwnEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') || session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN')
 			if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-			if (session.user.role !== 'Admin' && !hasGlobalEdit && candidate.recruiterId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+			if (session.user.role !== 'Admin' && !hasGlobalEdit && applicant.recruiterId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 		} else if (headcountId) {
 			const headcount = await prisma.headcount.findUnique({ where: { id: headcountId }, select: { id: true, position: { select: { recruiterId: true } } } })
 			if (!headcount) return NextResponse.json({ error: 'Headcount not found' }, { status: 404 })

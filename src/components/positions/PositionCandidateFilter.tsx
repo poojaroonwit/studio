@@ -6,18 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Filter, X } from 'lucide-react';
-import { StatusMultiSelectDropdown } from '@/components/candidates/StatusMultiSelectDropdown';
-import { SourceMultiSelectDropdown } from '@/components/candidates/SourceMultiSelectDropdown';
-import { RecruiterMultiSelectDropdown } from '@/components/candidates/RecruiterMultiSelectDropdown';
-import type { CandidateFilterValues, RecruitmentStage, CandidateSource, UserProfile } from '@/lib/types';
+import { StatusMultiSelectDropdown } from '@/components/applicants/StatusMultiSelectDropdown';
+import { SourceMultiSelectDropdown } from '@/components/applicants/SourceMultiSelectDropdown';
+import { RecruiterMultiSelectDropdown } from '@/components/applicants/RecruiterMultiSelectDropdown';
+import type { ApplicantFilterValues, RecruitmentStage, ApplicantSource, UserProfile } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 interface PositionCandidateFilterProps {
-  filters: CandidateFilterValues;
-  onFilterChange: (filters: CandidateFilterValues) => void;
+  filters: ApplicantFilterValues;
+  onFilterChange: (filters: ApplicantFilterValues) => void;
   availableStages: RecruitmentStage[];
-  availableSources: CandidateSource[];
+  availableSources: ApplicantSource[];
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
 }
 
@@ -31,7 +31,7 @@ export function PositionCandidateFilter({
   const [open, setOpen] = useState(false);
 
   // Local state for the form
-  const [localFilters, setLocalFilters] = useState<CandidateFilterValues>(filters);
+  const [localFilters, setLocalFilters] = useState<ApplicantFilterValues>(filters);
 
   // Update local state when prop changes (external change)
   React.useEffect(() => {
@@ -44,7 +44,7 @@ export function PositionCandidateFilter({
   };
 
   const handleClear = () => {
-    const emptyFilters: CandidateFilterValues = {};
+    const emptyFilters: ApplicantFilterValues = {};
     setLocalFilters(emptyFilters);
     onFilterChange(emptyFilters);
     setOpen(false);
@@ -100,18 +100,18 @@ export function PositionCandidateFilter({
             <div className="space-y-2">
               <Label>Status</Label>
               <StatusMultiSelectDropdown
-                selectedStatuses={localFilters.selectedStatuses || []}
-                setSelectedStatuses={(statuses) => setLocalFilters({ ...localFilters, selectedStatuses: statuses })}
-                recruitmentStages={availableStages}
+                selectedIds={new Set(localFilters.selectedStatuses || [])}
+                onSelectionChange={(ids: Set<string>) => setLocalFilters({ ...localFilters, selectedStatuses: Array.from(ids) })}
+                stages={availableStages}
               />
             </div>
 
             <div className="space-y-2">
               <Label>Source</Label>
               <SourceMultiSelectDropdown
-                selectedSourceIds={localFilters.selectedSourceIds || []}
-                setSelectedSourceIds={(ids) => setLocalFilters({ ...localFilters, selectedSourceIds: ids })}
-                candidateSources={availableSources}
+                selectedSourceIds={new Set(localFilters.selectedSourceIds || [])}
+                onSelectionChange={(ids: Set<string>) => setLocalFilters({ ...localFilters, selectedSourceIds: Array.from(ids) })}
+                availableSources={availableSources}
               />
             </div>
           </div>

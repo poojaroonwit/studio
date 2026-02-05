@@ -55,14 +55,13 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
   const getPageDisplayName = (pathname: string) => {
     const pathMap: Record<string, string> = {
       '/': 'Dashboard',
-      '/candidates': 'Candidates', // Legacy
       '/applicants': 'Applicants',
       '/positions': 'Positions',
       '/my-tasks': 'My Tasks',
       '/settings': 'Settings',
       '/settings/users': 'User Management',
       '/settings/user-groups': 'User Groups',
-      '/settings/candidate-sources': 'Candidate Sources',
+      '/settings/Applicant-sources': 'Applicant Sources',
       '/settings/recruitment-stages': 'Recruitment Stages',
       '/settings/system': 'System Settings',
     };
@@ -73,8 +72,8 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
     }
 
     // Check for dynamic routes
-    if (pathname.startsWith('/candidates/')) {
-      return 'Candidate Details';
+    if (pathname.startsWith('/applicants/')) {
+      return 'Applicant Details';
     }
     if (pathname.startsWith('/positions/')) {
       return 'Position Details';

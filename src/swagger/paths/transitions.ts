@@ -4,11 +4,11 @@ export const transitionsPaths = {
   '/api/v1/transitions': {
     get: {
       summary: 'Get all transitions (v1 API)',
-      description: 'Returns all candidate transitions. Requires Bearer token authentication.',
+      description: 'Returns all Applicant transitions. Requires Bearer token authentication.',
       tags: ['V1 Transitions'],
       security: [{ bearerAuth: [] }],
       parameters: [
-        { name: 'candidateId', in: 'query', description: 'Filter by candidate ID', schema: { type: 'string' } },
+        { name: 'candidateId', in: 'query', description: 'Filter by Applicant ID', schema: { type: 'string' } },
         { name: 'fromStage', in: 'query', description: 'Filter by from stage', schema: { type: 'string' } },
         { name: 'toStage', in: 'query', description: 'Filter by to stage', schema: { type: 'string' } },
         { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 20 } },
@@ -34,7 +34,7 @@ export const transitionsPaths = {
     },
     post: {
       summary: 'Create a new transition (v1 API)',
-      description: 'Creates a new candidate transition. Requires Bearer token authentication.',
+      description: 'Creates a new Applicant transition. Requires Bearer token authentication.',
       tags: ['V1 Transitions'],
       security: [{ bearerAuth: [] }],
       requestBody: {

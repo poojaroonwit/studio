@@ -13,7 +13,7 @@ import { SimpleErrorHandler,
 import { z } from 'zod';
 
 const createTransitionSchema = z.object({
-  candidateId: z.string().uuid('Invalid candidate ID'),
+  candidateId: z.string().uuid('Invalid Applicant ID'),
   fromStageId: z.string().uuid('Invalid from stage ID'),
   toStageId: z.string().uuid('Invalid to stage ID'),
   notes: z.string().optional(),
@@ -24,8 +24,8 @@ const createTransitionSchema = z.object({
  * @openapi
  * /api/v1/transitions:
  *   get:
- *     summary: Get candidate transitions (V1 API)
- *     description: Returns a list of candidate stage transitions. Requires Bearer token authentication.
+ *     summary: Get Applicant transitions (V1 API)
+ *     description: Returns a list of Applicant stage transitions. Requires Bearer token authentication.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -34,7 +34,7 @@ const createTransitionSchema = z.object({
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Filter by candidate ID
+ *         description: Filter by Applicant ID
  *       - in: query
  *         name: limit
  *         schema:
@@ -116,7 +116,7 @@ const createTransitionSchema = z.object({
  *                       toStageId: "123e4567-e89b-12d3-a456-426614174003"
  *                       fromStageName: "Applied"
  *                       toStageName: "Interview"
- *                       notes: "Candidate passed initial screening"
+ *                       notes: "Applicant passed initial screening"
  *                       transitionDate: "2024-01-01T00:00:00.000Z"
  *                       createdBy: "123e4567-e89b-12d3-a456-426614174004"
  *                       createdByName: "Sample User"
@@ -139,8 +139,8 @@ const createTransitionSchema = z.object({
  *       500:
  *         description: Internal server error
  *   post:
- *     summary: Create a candidate transition (V1 API)
- *     description: Create a new candidate stage transition. Requires Bearer token authentication.
+ *     summary: Create a Applicant transition (V1 API)
+ *     description: Create a new Applicant stage transition. Requires Bearer token authentication.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -153,7 +153,7 @@ const createTransitionSchema = z.object({
  *               candidateId:
  *                 type: string
  *                 format: uuid
- *                 description: Candidate ID
+ *                 description: Applicant ID
  *                 example: "123e4567-e89b-12d3-a456-426614174001"
  *               fromStageId:
  *                 type: string
@@ -168,7 +168,7 @@ const createTransitionSchema = z.object({
  *               notes:
  *                 type: string
  *                 description: Optional transition notes
- *                 example: "Candidate passed initial screening"
+ *                 example: "Applicant passed initial screening"
  *               transitionDate:
  *                 type: string
  *                 format: date-time
@@ -270,7 +270,7 @@ export async function GET(req: NextRequest) {
       let paramIndex = 1;
 
       if (candidateId) {
-        whereConditions.push(`t.candidate_id = $${paramIndex++}`);
+        whereConditions.push(`t.Applicant_id = $${paramIndex++}`);
         queryParams.push(candidateId);
       }
 
@@ -279,7 +279,7 @@ export async function GET(req: NextRequest) {
       // Get total count
       const countQuery = `
         SELECT COUNT(*) as total 
-        FROM "CandidateTransition" t
+        FROM "ApplicantTransition" t
         ${whereClause}
       `;
       const countResult = await client.query(countQuery, queryParams);
@@ -289,7 +289,7 @@ export async function GET(req: NextRequest) {
       const transitionsQuery = `
         SELECT 
           t.id,
-          t.candidate_id as "candidateId",
+          t.Applicant_id as "candidateId",
           t.from_stage_id as "fromStageId",
           t.to_stage_id as "toStageId",
           fs.name as "fromStageName",
@@ -299,7 +299,7 @@ export async function GET(req: NextRequest) {
           t.created_by as "createdBy",
           u.name as "createdByName",
           t.created_at as "createdAt"
-        FROM "CandidateTransition" t
+        FROM "ApplicantTransition" t
         LEFT JOIN "RecruitmentStage" fs ON t.from_stage_id = fs.id
         LEFT JOIN "RecruitmentStage" ts ON t.to_stage_id = ts.id
         LEFT JOIN "User" u ON t.created_by = u.id
@@ -367,8 +367,8 @@ export async function POST(req: NextRequest) {
     try {
       // Create transition
       const insertQuery = `
-        INSERT INTO "CandidateTransition" (
-          id, candidate_id, from_stage_id, to_stage_id, notes, transition_date, created_by, created_at
+        INSERT INTO "ApplicantTransition" (
+          id, Applicant_id, from_stage_id, to_stage_id, notes, transition_date, created_by, created_at
         ) VALUES (
           gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()
         ) RETURNING *
@@ -381,7 +381,7 @@ export async function POST(req: NextRequest) {
 
       const newTransition = result.rows[0];
 
-      // Update candidate status
+      // Update Applicant status
       await client.query(
         'UPDATE "Candidate" SET "statusId" = $1 WHERE id = $2',
         [toStageId, candidateId]
@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
         message: 'Transition created successfully',
         data: {
           id: newTransition.id,
-          candidateId: newTransition.candidate_id,
+          candidateId: newTransition.Applicant_id,
           fromStageId: newTransition.from_stage_id,
           toStageId: newTransition.to_stage_id,
           notes: newTransition.notes,

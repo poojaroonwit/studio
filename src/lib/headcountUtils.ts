@@ -29,12 +29,12 @@ export {
   checkAndAutoCloseAllPositions,
   
   // Validation functions
-  validateCandidateHiringStatus,
+  validateApplicantHiringStatus,
   checkHeadcountUnassignWarning,
   
   // Assignment functions
-  assignCandidateToHeadcount,
-  unassignCandidateFromHeadcount,
+  assignApplicantToHeadcount,
+  unassignApplicantFromHeadcount,
   
   // Broadcast utilities
   broadcastPositionStats,

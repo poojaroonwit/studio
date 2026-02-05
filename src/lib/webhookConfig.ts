@@ -18,7 +18,7 @@ export const webhookConfig = {
   // Enable/disable specific webhook types
   types: {
     uploadQueue: process.env.WEBHOOK_UPLOAD_QUEUE_ENABLED !== 'false',
-    candidate: process.env.WEBHOOK_CANDIDATE_ENABLED !== 'false',
+    Applicant: process.env.WEBHOOK_Applicant_ENABLED !== 'false',
     position: process.env.WEBHOOK_POSITION_ENABLED !== 'false',
     user: process.env.WEBHOOK_USER_ENABLED !== 'false',
     resume: process.env.WEBHOOK_RESUME_ENABLED !== 'false',

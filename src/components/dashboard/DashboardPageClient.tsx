@@ -7,25 +7,25 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
-import { getActiveCandidateStatusesQuery, ACTIVE_CANDIDATE_STATUSES, type CoreCandidateStatus } from "@/lib/types";
+import type { Applicant, Position, ApplicantStatus, UserProfile } from "@/lib/types";
+import { getActiveApplicantStatusesQuery, ACTIVE_APPLICANT_STATUSES, type CoreApplicantStatus } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
+import { ApplicantAvatarCompact } from "@/components/ui/applicant-avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
-import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { formatApplicantName, formatApplicantNameWithLang } from "@/lib/applicantUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
-import { CandidatesPerPositionChart } from '@/components/dashboard/CandidatesPerPositionChart';
+import { ApplicantsPerPositionChart } from '@/components/dashboard/ApplicantsPerPositionChart';
 import { CandidateScoreDistributionChart } from '@/components/dashboard/CandidateScoreDistributionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
+import { StatusBadge } from "@/components/applicants/ApplicantKanbanView";
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
@@ -48,11 +48,11 @@ import '../../app/dashboard/dashboard.css';
 
 export interface DashboardMetrics {
   kpis: {
-    activeCandidates: number;
+    activeApplicants: number;
     openHeadcounts: number;
     hiredThisMonth: number;
     rejectedThisMonth: number;
-    highScoreCandidates: number;
+    highScoreApplicants: number;
     applicationsThisWeek: number;
     avgTimeToHire: string;
   };
@@ -62,8 +62,24 @@ export interface DashboardMetrics {
   pipelineRecruiters: { recruiter: string; count: number }[];
 }
 
+const DEFAULT_METRICS: DashboardMetrics = {
+  kpis: {
+    activeApplicants: 0,
+    openHeadcounts: 0,
+    hiredThisMonth: 0,
+    rejectedThisMonth: 0,
+    highScoreApplicants: 0,
+    applicationsThisWeek: 0,
+    avgTimeToHire: '0.00'
+  },
+  timeSeries: [],
+  scoreDistribution: [],
+  pipelineStages: [],
+  pipelineRecruiters: []
+};
+
 interface DashboardPageClientProps {
-  initialCandidates: Candidate[];
+  initialApplicants: Applicant[];
   initialPositions: Position[];
   initialUsers: UserProfile[]; // Or a simplified version like Pick<UserProfile, 'id' | 'role'>
   initialMetrics: DashboardMetrics;
@@ -74,11 +90,11 @@ interface DashboardPageClientProps {
   initialStageNames: Record<string, string>;
 }
 
-const BACKLOG_EXCLUSION_STATUSES: CandidateStatus[] = []; // Will be populated with stage IDs
-const INTERVIEW_STATUSES: CandidateStatus[] = []; // Will be populated with stage IDs
+const BACKLOG_EXCLUSION_STATUSES: ApplicantStatus[] = []; // Will be populated with stage IDs
+const INTERVIEW_STATUSES: ApplicantStatus[] = []; // Will be populated with stage IDs
 
 export default function DashboardPageClient({
-  initialCandidates,
+  initialApplicants,
   initialPositions,
   initialUsers,
   initialMetrics,
@@ -88,7 +104,7 @@ export default function DashboardPageClient({
   initialStageIds,
   initialStageNames,
 }: DashboardPageClientProps) {
-  const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
+  const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics || DEFAULT_METRICS);
   // Use stage IDs from props instead of fetching them
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
@@ -159,11 +175,11 @@ export default function DashboardPageClient({
     maxHeight: 1200
   });
 
-  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>(initialCandidates || []);
-  const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
+  const [filteredApplicants, setFilteredApplicants] = useState<Applicant[]>(initialApplicants || []);
+  const [myAssignedApplicants, setMyAssignedApplicants] = useState<Applicant[]>(initialApplicants || []); // For Recruiter, initialApplicants *are* their assigned ones
   const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
   const [allUsers, setAllUsers] = useState<UserProfile[]>(initialUsers || []);
-  const [myBacklogCandidates, setMyBacklogCandidates] = useState<Candidate[]>([]);
+  const [myBacklogApplicants, setMyBacklogApplicants] = useState<Applicant[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Client-side loading for subsequent actions if any
   const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
   const [authError, setAuthError] = useState(serverAuthError);
@@ -173,7 +189,7 @@ export default function DashboardPageClient({
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
 
-  // Unassigned candidates pagination state
+  // Unassigned Applicants pagination state
   const [unassignedPage, setUnassignedPage] = useState(1);
   const [unassignedPageSize] = useState(5); // Keep showing 5 per page as before
 
@@ -182,12 +198,12 @@ export default function DashboardPageClient({
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
-  // Fetch stage names when filteredCandidates changes
+  // Fetch stage names when filteredApplicants changes
   useEffect(() => {
     const fetchStageNames = async () => {
       try {
-        // Get all unique stage IDs from candidates
-        const uniqueStageIds = [...new Set(filteredCandidates.map(c => c.status))];
+        // Get all unique stage IDs from Applicants
+        const uniqueStageIds = [...new Set(filteredApplicants.map(c => c.status))];
         if (uniqueStageIds.length > 0) {
           const response = await fetch(`/api/settings/recruitment-stages?ids=${uniqueStageIds.join(',')}`);
           if (response.ok) {
@@ -207,7 +223,7 @@ export default function DashboardPageClient({
     };
 
     fetchStageNames();
-  }, [filteredCandidates]);
+  }, [filteredApplicants]);
 
   // Placeholder for removed performance monitoring hooks
 
@@ -217,8 +233,8 @@ export default function DashboardPageClient({
   const canViewDashboard = hasPermission(session?.user, 'DASHBOARD_VIEW');
   const canGenerateReports = hasPermission(session?.user, 'REPORTS_GENERATE');
 
-  // Check if user can view all candidates (for conditional rendering)
-  const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
+  // Check if user can view all Applicants (for conditional rendering)
+  const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
 
 
 
@@ -245,7 +261,7 @@ export default function DashboardPageClient({
       const fetchOptions = { credentials: 'include' as const, timeoutMs: 10000 };
       const promises = [];
       // Check permissions to determine what data to fetch
-      const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
+      const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
       const canViewAllUsers = hasPermission(session?.user, 'USERS_VIEW') ||
         hasPermission(session?.user, 'USERS_CREATE') ||
         hasPermission(session?.user, 'USERS_EDIT') ||
@@ -254,11 +270,11 @@ export default function DashboardPageClient({
 
       // Debug: Dashboard permissions check (remove in production if not needed)
 
-      if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?limit=200', fetchOptions));
+      if (canViewAllApplicants) {
+        promises.push(safeFetch('/api/applicants?limit=200', fetchOptions));
       } else {
-        // User can only see their assigned candidates
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=200`, fetchOptions));
+        // User can only see their assigned Applicants
+        promises.push(safeFetch(`/api/applicants?recruiterId=${userId}&limit=200`, fetchOptions));
       }
 
       if (canViewAllUsers) {
@@ -273,27 +289,27 @@ export default function DashboardPageClient({
       // Metrics are now central
       promises.push(safeFetch('/api/dashboard/metrics', fetchOptions));
 
-      const [candidatesRes, usersRes, positionsRes, metricsRes] = await safeAll(promises);
+      const [ApplicantsRes, usersRes, positionsRes, metricsRes] = await safeAll(promises);
 
-      if (!candidatesRes.ok) {
-        console.warn('Skipping failed endpoint /api/candidates:', candidatesRes.error || candidatesRes.status);
-        accumulatedFetchError += `Failed to fetch candidates: ${candidatesRes.error}. `;
-        if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
-      } else if (candidatesRes.data) {
-        const candidatesData: Candidate[] = Array.isArray((candidatesRes.data as any)?.data) ? (candidatesRes.data as any).data : (Array.isArray(candidatesRes.data) ? candidatesRes.data : []);
+      if (!ApplicantsRes.ok) {
+        console.warn('Skipping failed endpoint /api/applicants:', ApplicantsRes.error || ApplicantsRes.status);
+        accumulatedFetchError += `Failed to fetch Applicants: ${ApplicantsRes.error}. `;
+        if (canViewAllApplicants) setFilteredApplicants([]); else setMyAssignedApplicants([]);
+      } else if (ApplicantsRes.data) {
+        const ApplicantsData: Applicant[] = Array.isArray((ApplicantsRes.data as any)?.data) ? (ApplicantsRes.data as any).data : (Array.isArray(ApplicantsRes.data) ? ApplicantsRes.data : []);
         
-        const backlogData = candidatesData.filter((c: Candidate) => {
+        const backlogData = ApplicantsData.filter((c: Applicant) => {
           const statusName = c?.statusId ? stageNames[c.statusId] : (c?.status || '');
-          return c && ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+          return c && ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus);
         });
 
-        if (canViewAllCandidates) {
-          setFilteredCandidates(candidatesData);
-          setMyAssignedCandidates(candidatesData); 
-          setMyBacklogCandidates(backlogData); 
+        if (canViewAllApplicants) {
+          setFilteredApplicants(ApplicantsData);
+          setMyAssignedApplicants(ApplicantsData); 
+          setMyBacklogApplicants(backlogData); 
         } else {
-          setMyAssignedCandidates(candidatesData);
-          setMyBacklogCandidates(backlogData);
+          setMyAssignedApplicants(ApplicantsData);
+          setMyBacklogApplicants(backlogData);
         }
       }
 
@@ -327,7 +343,7 @@ export default function DashboardPageClient({
     } catch (error) {
       const genericMessage = (error as Error).message || "An unexpected error occurred.";
       setFetchError(genericMessage);
-      setFilteredCandidates([]); setMyAssignedCandidates([]); setAllPositions([]); setAllUsers([]); setMyBacklogCandidates([]);
+      setFilteredApplicants([]); setMyAssignedApplicants([]); setAllPositions([]); setAllUsers([]); setMyBacklogApplicants([]);
     } finally {
       setIsLoading(false);
     }
@@ -386,8 +402,8 @@ export default function DashboardPageClient({
   }, []);
 
   // FIXED: Stabilize callback functions to prevent infinite loops and temporal dead zone issues
-  const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
-    // Refresh dashboard data when candidates are updated
+  const handleApplicantUpdate = useCallback((updatedapplicant: any) => {
+    // Refresh dashboard data when Applicants are updated
     // Use setTimeout to prevent rapid successive calls
     setTimeout(() => {
       if (status === 'authenticated' && session?.user?.id) {
@@ -434,18 +450,18 @@ export default function DashboardPageClient({
 
   useEffect(() => {
     // Handle initial state passed from server component
-    setFilteredCandidates(initialCandidates || []);
+    setFilteredApplicants(initialApplicants || []);
 
-    // Check if user can view all candidates or only their assigned ones
-    const canViewAllCandidates = hasPermission(session?.user, 'CANDIDATES_VIEW');
+    // Check if user can view all Applicants or only their assigned ones
+    const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
 
-    if (!canViewAllCandidates) {
-      // User can only see their assigned candidates
-      setMyAssignedCandidates(initialCandidates || []);
-      setMyAssignedCandidates(initialCandidates || []);
-      setMyBacklogCandidates((initialCandidates || []).filter((c: Candidate) => {
+    if (!canViewAllApplicants) {
+      // User can only see their assigned Applicants
+      setMyAssignedApplicants(initialApplicants || []);
+      setMyAssignedApplicants(initialApplicants || []);
+      setMyBacklogApplicants((initialApplicants || []).filter((c: Applicant) => {
         const statusName = c.statusId ? stageNames[c.statusId] : (c.status || '');
-        return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+        return ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus);
       }));
     }
     setAllPositions(initialPositions || []);
@@ -462,21 +478,21 @@ export default function DashboardPageClient({
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, modulePermissions, stageIds.hired, stageIds.rejected]);
+  }, [initialApplicants, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, modulePermissions, stageIds.hired, stageIds.rejected]);
 
   // REMOVED: Automatic permission refresh - this was causing the loop
   // Users can manually refresh permissions if needed using the button in the UI
 
   // Add error boundary for filter operations
-  const safeFilterCandidates = useCallback((candidates: any[], filterFn: (c: any) => boolean) => {
+  const safeFilterApplicants = useCallback((Applicants: any[], filterFn: (c: any) => boolean) => {
     try {
-      if (!Array.isArray(candidates)) {
-        console.warn('[DASHBOARD] safeFilterCandidates: candidates is not an array:', candidates);
+      if (!Array.isArray(Applicants)) {
+        console.warn('[DASHBOARD] safeFilterApplicants: Applicants is not an array:', Applicants);
         return [];
       }
-      return candidates.filter(filterFn);
+      return Applicants.filter(filterFn);
     } catch (error) {
-      console.error('[DASHBOARD] Error filtering candidates:', error);
+      console.error('[DASHBOARD] Error filtering Applicants:', error);
       return [];
     }
   }, []);
@@ -490,7 +506,7 @@ export default function DashboardPageClient({
 
     if (status === 'authenticated' && session?.user?.id && isInitialMount) {
       // ONLY fetch if we REALLY don't have data from server
-      const hasInitialData = (initialCandidates && initialCandidates.length > 0) || 
+      const hasInitialData = (initialApplicants && initialApplicants.length > 0) || 
                             (initialPositions && initialPositions.length > 0);
       
       if (!hasInitialData) {
@@ -498,7 +514,7 @@ export default function DashboardPageClient({
       }
       isInitialMount = false;
     }
-  }, [status, session?.user?.id, initialCandidates, initialPositions]);
+  }, [status, session?.user?.id, initialApplicants, initialPositions]);
 
   // Fetch headcount data when positions are available
   useEffect(() => {
@@ -531,7 +547,7 @@ export default function DashboardPageClient({
 
 
       // Handle different event types with improved debouncing and rate limiting
-      if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
+      if (event.type === 'Applicant_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
 
         // Special handling for dashboard refresh events
@@ -592,152 +608,152 @@ export default function DashboardPageClient({
 
   // Optimized dashboard computations - combined related calculations to reduce render overhead
   // Note: Dashboard counts may differ from "View All" due to:
-  // 1. Limited server-side data (filteredCandidates) vs full API dataset
+  // 1. Limited server-side data (filteredApplicants) vs full API dataset
   // 2. Different filtering logic between client-side and API queries
   // 3. Real-time updates via SSE vs static initial data
   const dashboardStats = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
-    const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
-    const safeMyBacklogCandidates = Array.isArray(myBacklogCandidates) ? myBacklogCandidates : [];
+    const safeMyAssignedApplicants = Array.isArray(myAssignedApplicants) ? myAssignedApplicants : [];
+    const safeMyBacklogApplicants = Array.isArray(myBacklogApplicants) ? myBacklogApplicants : [];
 
     const now = new Date();
 
-    // Use pre-calculated metrics for high-level statistics
-    const totalActiveCandidates = metrics.kpis.activeCandidates;
-    const hiredThisMonthAdmin = metrics.kpis.hiredThisMonth;
-    const rejectedThisMonthAdmin = metrics.kpis.rejectedThisMonth;
+    // Use pre-calculated metrics for high-level statistics with safety fallbacks
+    const totalActiveApplicants = metrics?.kpis?.activeApplicants ?? 0;
+    const hiredThisMonthAdmin = metrics?.kpis?.hiredThisMonth ?? 0;
+    const rejectedThisMonthAdmin = metrics?.kpis?.rejectedThisMonth ?? 0;
 
     // Combined position statistics
     const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
-    const totalOpenPositions = metrics.kpis.openHeadcounts; // preferring the headcount count
+    const totalOpenPositions = metrics?.kpis?.openHeadcounts ?? 0; // preferring the headcount count
 
     // Combined recruiter statistics
-    const totalActiveRecruiter = metrics.pipelineRecruiters.length;
+    const totalActiveRecruiter = (metrics?.pipelineRecruiters || []).length;
 
     // Combined today's statistics
-    const newCandidatesTodayAdminList = safeAllCandidates.filter((c: Candidate) => {
+    const newApplicantsTodayAdminList = safeAllApplicants.filter((c: Applicant) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
         return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
 
-    const openPositionsWithNoCandidates = openPositions.filter((position: Position) => {
-      return !safeAllCandidates.some(candidate => candidate.positionId === position.id);
+    const openPositionsWithNoApplicants = openPositions.filter((position: Position) => {
+      return !safeAllApplicants.some(app => app.positionId === position.id);
     });
 
-    // Combined my candidates statistics - still need some filtering for UI lists
-    const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => {
+    // Combined my Applicants statistics - still need some filtering for UI lists
+    const myActiveApplicantsList = safeMyAssignedApplicants.filter((c: Applicant) => {
       const statusName = c.status || '';
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+      return ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus);
     });
     
-    // Use metrics for this if possible, but keep list-based count for UI consistency in my candidates section
-    const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => {
+    // Use metrics for this if possible, but keep list-based count for UI consistency in my Applicants section
+    const myApplicantsInInterviewCount = myActiveApplicantsList.filter((c: Applicant) => {
       const statusName = c.status || '';
       return statusName === 'Interview Scheduled' || statusName === 'Interviewing';
     }).length;
 
-    const newCandidatesAssignedToMeTodayList = myActiveCandidatesList.filter((c: Candidate) => {
+    const newApplicantsAssignedToMeTodayList = myActiveApplicantsList.filter((c: Applicant) => {
       try {
         if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
         return isToday(parseISO(c.applicationDate));
       } catch { return false; }
     });
 
-    const myActionItemsList = safeMyBacklogCandidates.filter((c: Candidate) => {
+    const myActionItemsList = safeMyBacklogApplicants.filter((c: Applicant) => {
       return c && c.recruiterId === session?.user?.id;
     });
 
     return {
-      totalActiveCandidates,
+      totalActiveApplicants,
       totalOpenPositions,
       openPositions,
       hiredThisMonthAdmin,
       rejectedThisMonthAdmin,
       totalActiveRecruiter,
-      newCandidatesTodayAdminList,
-      openPositionsWithNoCandidates,
-      myActiveCandidatesList,
-      myCandidatesInInterviewCount,
-      newCandidatesAssignedToMeTodayList,
+      newApplicantsTodayAdminList,
+      openPositionsWithNoApplicants,
+      myActiveApplicantsList,
+      myApplicantsInInterviewCount,
+      newApplicantsAssignedToMeTodayList,
       myActionItemsList
     };
-  }, [filteredCandidates, allPositions, allUsers, myAssignedCandidates, myBacklogCandidates, session?.user?.id]);
+  }, [filteredApplicants, allPositions, allUsers, myAssignedApplicants, myBacklogApplicants, session?.user?.id]);
 
   // Destructure for backward compatibility
   const {
-    totalActiveCandidates,
+    totalActiveApplicants,
     totalOpenPositions,
     openPositions,
     hiredThisMonthAdmin,
     rejectedThisMonthAdmin,
     totalActiveRecruiter,
-    newCandidatesTodayAdminList,
-    openPositionsWithNoCandidates,
-    myActiveCandidatesList,
-    myCandidatesInInterviewCount,
-    newCandidatesAssignedToMeTodayList,
+    newApplicantsTodayAdminList,
+    openPositionsWithNoApplicants,
+    myActiveApplicantsList,
+    myApplicantsInInterviewCount,
+    newApplicantsAssignedToMeTodayList,
     myActionItemsList
   } = dashboardStats;
 
   // Derived statistics from processed data
-  const candidateScoreRanges = useMemo(() => {
-    return metrics.scoreDistribution.map(item => ({
+  const ApplicantscoreRanges = useMemo(() => {
+    return (metrics?.scoreDistribution || []).map(item => ({
       label: item.range,
       count: item.count,
       letter: item.range.charAt(0)
     }));
-  }, [metrics.scoreDistribution]);
+  }, [metrics?.scoreDistribution]);
 
-  const unassignedCandidatesCount = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
+  const unassignedApplicantsCount = useMemo(() => {
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
+    return safeAllApplicants.filter((c: Applicant) => {
       const statusName = c.status || '';
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus) && !c.recruiterId;
+      return ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus) && !c.recruiterId;
     }).length;
-  }, [filteredCandidates]);
+  }, [filteredApplicants]);
 
-  const unassignedCandidatesList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
+  const unassignedApplicantsList = useMemo(() => {
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
+    return safeAllApplicants.filter((c: Applicant) => {
       const statusName = c.status || '';
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus) && !c.recruiterId;
+      return ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus) && !c.recruiterId;
     });
-  }, [filteredCandidates]);
+  }, [filteredApplicants]);
 
-  // Paginated unassigned candidates for display
-  const paginatedUnassignedCandidates = useMemo(() => {
+  // Paginated unassigned Applicants for display
+  const paginatedUnassignedApplicants = useMemo(() => {
     const startIndex = (unassignedPage - 1) * unassignedPageSize;
     const endIndex = startIndex + unassignedPageSize;
-    return unassignedCandidatesList.slice(startIndex, endIndex);
-  }, [unassignedCandidatesList, unassignedPage, unassignedPageSize]);
+    return unassignedApplicantsList.slice(startIndex, endIndex);
+  }, [unassignedApplicantsList, unassignedPage, unassignedPageSize]);
 
-  // Calculate total pages for unassigned candidates
-  const unassignedTotalPages = Math.ceil(unassignedCandidatesList.length / unassignedPageSize);
+  // Calculate total pages for unassigned Applicants
+  const unassignedTotalPages = Math.ceil(unassignedApplicantsList.length / unassignedPageSize);
 
   // Calculate Average Time to Hire (in days)
   const averageTimeToHire = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    const hiredCandidates = safeAllCandidates.filter((c: Candidate) => {
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
+    const hiredApplicants = safeAllApplicants.filter((c: Applicant) => {
       const statusName = c.status || '';
       return statusName === 'Hired' && c.applicationDate && typeof c.applicationDate === 'string';
     });
 
-    if (hiredCandidates.length === 0) return 0;
+    if (hiredApplicants.length === 0) return 0;
 
-    const totalDays = hiredCandidates.reduce((total, candidate) => {
+    const totalDays = hiredApplicants.reduce((total, app) => {
       try {
-        const applicationDate = parseISO(candidate.applicationDate);
+        const applicationDate = parseISO(app.applicationDate);
         // Validate application date
         if (!applicationDate || isNaN(applicationDate.getTime())) {
           return total;
         }
 
         // Find the last transition to 'Hired'
-        const hiredTransition = candidate.transitionHistory
+        const hiredTransition = app.transitionHistory
           .filter(transition => stageIds.hired && transition.stage === stageIds.hired)
           .sort((itemA, itemB) => {
             const dateA = new Date(itemA.date);
@@ -760,34 +776,35 @@ export default function DashboardPageClient({
     }, 0);
 
     // Return float with two decimals
-    return parseFloat((totalDays / hiredCandidates.length).toFixed(2));
-  }, [filteredCandidates]);
+    return parseFloat((totalDays / hiredApplicants.length).toFixed(2));
+  }, [filteredApplicants]);
 
-  const highPriorityCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
-      // High score calculation should include ALL candidates, not just active ones
-      // This matches the API query minAppliedJobFitScore:80 which applies to all candidates
+  const highPriorityApplicants = useMemo(() => {
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
+    return safeAllApplicants.filter((c: Applicant) => {
+      // High score calculation should include ALL Applicants, not just active ones
+      // This matches the API query minAppliedJobFitScore:80 which applies to all Applicants
 
       // Use same logic as API: only check c.fitScore from database
       // API normalizes fit scores to 0-100 range, so 80% = 80
       if (typeof c.fitScore !== 'number') return false;
       return c.fitScore >= 80; // 80% threshold
     });
-  }, [filteredCandidates]);
+  }, [filteredApplicants]);
 
   const recentApplications = useMemo(() => {
     // Fill with pre-calculated count for the badge/indicator
-    return Array(metrics.kpis.applicationsThisWeek).fill(null);
-  }, [metrics.kpis.applicationsThisWeek]);
+    const count = metrics?.kpis?.applicationsThisWeek ?? 0;
+    return Array(count).fill(null);
+  }, [metrics?.kpis?.applicationsThisWeek]);
 
-  // New candidates assigned to me today (for recruiter) - optimized
-  const newCandidatesAssignedToMeToday = useMemo(() => {
-    const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
+  // New Applicants assigned to me today (for recruiter) - optimized
+  const newApplicantsAssignedToMeToday = useMemo(() => {
+    const safeMyAssignedApplicants = Array.isArray(myAssignedApplicants) ? myAssignedApplicants : [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return safeMyAssignedCandidates.filter((c: Candidate) => {
+    return safeMyAssignedApplicants.filter((c: Applicant) => {
       if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
       try {
         const appDate = parseISO(c.applicationDate);
@@ -800,41 +817,41 @@ export default function DashboardPageClient({
         return false;
       }
     });
-  }, [myAssignedCandidates]);
+  }, [myAssignedApplicants]);
 
-  // On-process candidates filtered list (for UI components that need actual candidate objects)
-  const onProcessCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
+  // On-process Applicants filtered list (for UI components that need actual Applicant objects)
+  const onProcessApplicants = useMemo(() => {
+    const safeAllApplicants = Array.isArray(filteredApplicants) ? filteredApplicants : [];
+    return safeAllApplicants.filter((c: Applicant) => {
       const statusName = c.status || '';
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+      return ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus);
     });
-  }, [filteredCandidates]);
+  }, [filteredApplicants]);
 
   // Consolidated Pipeline Data from Metrics
   const stageSummary = useMemo(() => {
-    return metrics.pipelineStages.map(item => ({
+    return (metrics?.pipelineStages || []).map(item => ({
       stage: item.stage,
       stageId: item.stage, // Using stage name as ID for compatibility
       count: item.count
     }));
-  }, [metrics.pipelineStages]);
+  }, [metrics?.pipelineStages]);
 
   const onProcessByStage = useMemo(() => {
     const counts: Record<string, number> = {};
-    metrics.pipelineStages.forEach(item => {
+    (metrics?.pipelineStages || []).forEach(item => {
       counts[item.stage] = item.count;
     });
     return counts;
-  }, [metrics.pipelineStages]);
+  }, [metrics?.pipelineStages]);
 
   const onProcessByRecruiter = useMemo(() => {
     const counts: Record<string, number> = {};
-    metrics.pipelineRecruiters.forEach(item => {
+    (metrics?.pipelineRecruiters || []).forEach(item => {
       counts[item.recruiter] = item.count;
     });
     return counts;
-  }, [metrics.pipelineRecruiters]);
+  }, [metrics?.pipelineRecruiters]);
 
 
 
@@ -860,7 +877,7 @@ export default function DashboardPageClient({
     // Determine the best fallback route based on permissions
     const canAccessMyTasks = hasPermission(session?.user, 'TASK_BOARD_MANAGE_OWN') ||
       hasPermission(session?.user, 'TASK_BOARD_VIEW') ||
-      hasPermission(session?.user, 'CANDIDATES_VIEW');
+      hasPermission(session?.user, 'Applicants_VIEW');
     const canViewPositions = hasPermission(session?.user, 'POSITIONS_VIEW');
 
     let redirectTo = '/applicants'; // Default fallback
@@ -935,7 +952,7 @@ export default function DashboardPageClient({
   }
 
   // Show loading state only for initial load, not for statistics calculations
-  if (isLoading && (!filteredCandidates.length && !allPositions.length)) {
+  if (isLoading && (!filteredApplicants.length && !allPositions.length)) {
     return (
       <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -972,7 +989,7 @@ export default function DashboardPageClient({
                 color: "text-blue-500 dark:text-blue-400",
                 bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
                 borderColor: "border-blue-200 dark:border-blue-800",
-                description: "New candidates this week",
+                description: "New Applicants this week",
                 button: {
                   label: "View All",
                   onClick: () => {
@@ -1010,7 +1027,7 @@ export default function DashboardPageClient({
                 color: "text-red-500 dark:text-red-400",
                 bgColor: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50",
                 borderColor: "border-red-200 dark:border-red-800",
-                description: "Declined candidates",
+                description: "Declined Applicants",
                 button: {
                   label: "View All",
                   onClick: () => {
@@ -1088,21 +1105,21 @@ export default function DashboardPageClient({
           <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[ // Row 2 Recruiter cards array
               {
-                title: "Active Candidates",
-                value: metrics.kpis.activeCandidates,
+                title: "Active Applicants",
+                value: metrics?.kpis?.activeApplicants ?? 0,
                 icon: Users,
                 color: "text-blue-500 dark:text-blue-400",
                 bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
                 borderColor: "border-blue-200 dark:border-blue-800",
-                description: "On process candidates",
+                description: "On process Applicants",
                 button: {
                   label: "View All",
-                  onClick: () => router.push('/applicants?query=' + encodeURIComponent('status:' + getActiveCandidateStatusesQuery()))
+                  onClick: () => router.push('/applicants?query=' + encodeURIComponent('status:' + getActiveApplicantStatusesQuery()))
                 }
               },
               {
                 title: "Number of Open Headcount",
-                value: metrics.kpis.openHeadcounts,
+                value: metrics?.kpis?.openHeadcounts ?? 0,
                 icon: Briefcase,
                 color: "text-emerald-500 dark:text-emerald-400",
                 bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50",
@@ -1115,7 +1132,7 @@ export default function DashboardPageClient({
               },
               { // High Priority
                 title: "High Score (80+)",
-                value: metrics.kpis.highScoreCandidates,
+                value: metrics?.kpis?.highScoreApplicants ?? 0,
                 icon: UserRoundSearch,
                 color: "text-yellow-500 dark:text-yellow-400",
                 bgColor: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50",
@@ -1197,23 +1214,23 @@ export default function DashboardPageClient({
           {/* Separator */}
           <div className="border-t border-border/50 my-4 sm:my-6 md:my-8"></div>
 
-          {/* New Applications + Candidate Scoring Analysis + SLA Monitoring Layout */}
+          {/* New Applications + Applicant Scoring Analysis + SLA Monitoring Layout */}
           <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 lg:grid-cols-12">
             {/* Left side - 2 rows */}
             <div className="lg:col-span-7 space-y-3 sm:space-y-4 md:space-y-6">
               {/* Row 1: New Applications Over Time */}
               <div>
                 <NewApplicationsTimeSeriesChart
-                  candidates={filteredCandidates}
+                  Applicants={filteredApplicants}
                   isLoading={isLoading}
                   dynamicHeight={sharedHeight - 380}
                 />
               </div>
 
-              {/* Row 2: Candidate Scoring Analysis */}
+              {/* Row 2: Applicant Scoring Analysis */}
               <div>
                 <CandidateScoreDistributionChart
-                  candidates={filteredCandidates}
+                  candidates={filteredApplicants}
                   isLoading={isLoading}
                   dynamicHeight={sharedHeight - 380}
                 />
@@ -1224,7 +1241,7 @@ export default function DashboardPageClient({
             <div className="lg:col-span-5" ref={sharedRef}>
               <div className="relative space-y-4 overflow-y-auto h-full" >
                 <SLAViolationsWidget onDataUpdate={fetchDataClientSide} />
-                {!canViewAllCandidates && session?.user?.id && (
+                {!canViewAllApplicants && session?.user?.id && (
                   <SLAViolationsWidget recruiterId={session.user.id} onDataUpdate={fetchDataClientSide} />
                 )}
               </div>
@@ -1235,8 +1252,8 @@ export default function DashboardPageClient({
         {/* Separator */}
         <div className="border-t border-border/50 my-4 sm:my-6 md:my-8"></div>
 
-        {/* Section 3: Personal Performance (if user can't view all candidates) */}
-        {!canViewAllCandidates && (
+        {/* Section 3: Personal Performance (if user can't view all Applicants) */}
+        {!canViewAllApplicants && (
           <div className="space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div className="flex items-center space-x-2 sm:space-x-3">
@@ -1255,8 +1272,8 @@ export default function DashboardPageClient({
             <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 {
-                  title: "Active Candidates",
-                  value: myActiveCandidatesList.length,
+                  title: "Active Applicants",
+                  value: myActiveApplicantsList.length,
                   icon: Users,
                   color: "text-purple-600",
                   bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
@@ -1264,12 +1281,12 @@ export default function DashboardPageClient({
                   description: "In my pipeline",
                   button: {
                     label: "View All",
-                    onClick: () => router.push(`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:${getActiveCandidateStatusesQuery()}`)}`)
+                    onClick: () => router.push(`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:${getActiveApplicantStatusesQuery()}`)}`)
                   }
                 },
                 {
                   title: "In Interview",
-                  value: myCandidatesInInterviewCount,
+                  value: myApplicantsInInterviewCount,
                   icon: UserRoundSearch,
                   color: "text-indigo-600",
                   bgColor: "bg-gradient-to-br from-indigo-50 to-indigo-100",
@@ -1282,7 +1299,7 @@ export default function DashboardPageClient({
                 },
                 {
                   title: "New Today",
-                  value: newCandidatesAssignedToMeTodayList.length,
+                  value: newApplicantsAssignedToMeTodayList.length,
                   icon: CalendarClock,
                   color: "text-cyan-600",
                   bgColor: "bg-gradient-to-br from-cyan-50 to-cyan-100",
@@ -1335,7 +1352,7 @@ export default function DashboardPageClient({
                         </div>
                         {!isLoading && (
                           <div className="text-xs text-muted-foreground">
-                            candidates
+                            Applicants
                           </div>
                         )}
                       </div>
@@ -1369,7 +1386,7 @@ export default function DashboardPageClient({
             <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <CardHeader className="relative pb-3">
-                <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Stage</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Applicants by Stage</CardTitle>
                 <CardDescription className="text-muted-foreground/70 text-xs">Current pipeline distribution</CardDescription>
               </CardHeader>
               <CardContent className="relative">
@@ -1461,7 +1478,7 @@ export default function DashboardPageClient({
             <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <CardHeader className="relative pb-3">
-                <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Recruiter</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Applicants by Recruiter</CardTitle>
                 <CardDescription className="text-muted-foreground/70 text-xs">Current recruiter workload</CardDescription>
               </CardHeader>
               <CardContent className="relative">
@@ -1595,9 +1612,9 @@ export default function DashboardPageClient({
                           {headcount.position.positionLevel && (
                             <span>Level: {headcount.position.positionLevel}</span>
                           )}
-                          {headcount.candidate && (
+                          {headcount.Applicant && (
                             <span className="ml-4">
-                              Candidate: {headcount.candidate.name}
+                              Applicant: {headcount.applicant.name}
                             </span>
                           )}
                         </div>
@@ -1615,8 +1632,8 @@ export default function DashboardPageClient({
           </div>
         </div>
 
-        {/* Section 6: Personal Action Items (if user can't view all candidates) */}
-        {!canViewAllCandidates && (
+        {/* Section 6: Personal Action Items (if user can't view all Applicants) */}
+        {!canViewAllApplicants && (
           <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center space-x-2">
               <div className="h-5 sm:h-6 w-1 bg-red-500 rounded-full"></div>
@@ -1629,10 +1646,10 @@ export default function DashboardPageClient({
                     <ListChecks className="mr-2 h-5 w-5 text-red-500" />
                     My Action Items ({myActionItemsList.length})
                   </CardTitle>
-                  <CardDescription>Active candidates assigned to you requiring attention.</CardDescription>
-                  {/* View button for my assigned candidates */}
+                  <CardDescription>Active Applicants assigned to you requiring attention.</CardDescription>
+                  {/* View button for my assigned Applicants */}
                   <Link href={`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`} passHref>
-                    <Button variant="outline" size="sm" className="mt-2">View My Candidates</Button>
+                    <Button variant="outline" size="sm" className="mt-2">View My Applicants</Button>
                   </Link>
                 </CardHeader>
                 <CardContent>
@@ -1641,7 +1658,7 @@ export default function DashboardPageClient({
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Candidate</TableHead>
+                            <TableHead>Applicant</TableHead>
                             <TableHead>Position</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Applied Fit Score</TableHead>
@@ -1649,19 +1666,19 @@ export default function DashboardPageClient({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {myActionItemsList.slice(0, 5).map(candidate => (
-                            <TableRow key={candidate.id} className="hover:bg-muted/50">
+                          {myActionItemsList.slice(0, 5).map(applicant => (
+                            <TableRow key={applicant.id} className="hover:bg-muted/50">
                               <TableCell>
                                 {(() => {
-                                  const nameInfo = formatCandidateNameWithLang(candidate);
+                                  const nameInfo = formatApplicantNameWithLang(applicant);
                                   return (
-                                    <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                                      <CandidateAvatarCompact
+                                    <Link href={`/applicants/${applicant.id}`} className="flex items-center space-x-3 hover:underline">
+                                      <ApplicantAvatarCompact
                                         user={{
-                                          id: candidate.id,
+                                          id: applicant.id,
                                           name: nameInfo.name,
-                                          avatarUrl: candidate.avatarUrl,
-                                          email: candidate.email
+                                          avatarUrl: applicant.avatarUrl,
+                                          email: applicant.email
                                         }}
                                         size="sm"
                                       />
@@ -1675,12 +1692,12 @@ export default function DashboardPageClient({
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
+                              <TableCell>{applicant.position?.title || 'N/A'}</TableCell>
                               <TableCell>
-                                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
+                                <StatusBadge statusId={applicant.statusId} className="capitalize" stageNames={stageNames} />
                               </TableCell>
-                              <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
-                              <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
+                              <TableCell className={getScoreColor(applicant.fitScore)}>{formatScoreWithGrade(applicant.fitScore)}</TableCell>
+                              <TableCell>{applicant.applicationDate ? new Date(applicant.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -1695,40 +1712,40 @@ export default function DashboardPageClient({
                 </CardContent>
               </Card>
 
-              {newCandidatesAssignedToMeTodayList.length > 0 && (
+              {newApplicantsAssignedToMeTodayList.length > 0 && (
                 <Card className="shadow-sm hover:shadow-md transition-all duration-200">
                   <CardHeader>
                     <CardTitle className="flex items-center text-lg">
                       <UserPlus className="mr-2 h-5 w-5 text-red-500" />
-                      New Candidates Assigned Today ({newCandidatesAssignedToMeTodayList.length})
+                      New Applicants Assigned Today ({newApplicantsAssignedToMeTodayList.length})
                     </CardTitle>
-                    <CardDescription>Candidates assigned to you that applied today.</CardDescription>
+                    <CardDescription>Applicants assigned to you that applied today.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto -mx-2 sm:mx-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Candidate</TableHead>
+                            <TableHead>Applicant</TableHead>
                             <TableHead>Position</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Applied Fit Score</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {newCandidatesAssignedToMeTodayList.slice(0, 5).map(candidate => (
-                            <TableRow key={candidate.id} className="hover:bg-muted/50">
+                          {newApplicantsAssignedToMeTodayList.slice(0, 5).map(applicant => (
+                            <TableRow key={applicant.id} className="hover:bg-muted/50">
                               <TableCell>
                                 {(() => {
-                                  const nameInfo = formatCandidateNameWithLang(candidate);
+                                  const nameInfo = formatApplicantNameWithLang(applicant);
                                   return (
-                                    <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                                      <CandidateAvatarCompact
+                                    <Link href={`/applicants/${applicant.id}`} className="flex items-center space-x-3 hover:underline">
+                                      <ApplicantAvatarCompact
                                         user={{
-                                          id: candidate.id,
+                                          id: applicant.id,
                                           name: nameInfo.name,
-                                          avatarUrl: candidate.avatarUrl,
-                                          email: candidate.email
+                                          avatarUrl: applicant.avatarUrl,
+                                          email: applicant.email
                                         }}
                                         size="sm"
                                       />
@@ -1742,11 +1759,11 @@ export default function DashboardPageClient({
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
+                              <TableCell>{applicant.position?.title || 'N/A'}</TableCell>
                               <TableCell>
-                                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
+                                <StatusBadge statusId={applicant.statusId} className="capitalize" stageNames={stageNames} />
                               </TableCell>
-                              <TableCell>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
+                              <TableCell>{formatScoreWithGrade(applicant.fitScore)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

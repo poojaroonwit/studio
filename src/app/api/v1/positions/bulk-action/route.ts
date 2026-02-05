@@ -54,16 +54,16 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case 'delete':
-        // Check if positions have candidates before deleting
-        const candidatesQuery = 'SELECT COUNT(*) FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
-        const candidatesResult = await client.query(candidatesQuery, [positionIds]);
-        const candidateCount = parseInt(candidatesResult.rows[0].count, 10);
+        // Check if positions have Applicants before deleting
+        const ApplicantsQuery = 'SELECT COUNT(*) FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
+        const ApplicantsResult = await client.query(ApplicantsQuery, [positionIds]);
+        const ApplicantCount = parseInt(ApplicantsResult.rows[0].count, 10);
 
-        if (candidateCount > 0) {
+        if (ApplicantCount > 0) {
           await client.query('ROLLBACK');
-          await logAudit('WARN', `Bulk delete attempt for positions with assigned candidates by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, candidateCount });
+          await logAudit('WARN', `Bulk delete attempt for positions with assigned Applicants by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, ApplicantCount });
           return new Response(JSON.stringify({
-            error: `Cannot delete positions with assigned candidates. Found ${candidateCount} candidates assigned to these positions.`
+            error: `Cannot delete positions with assigned Applicants. Found ${ApplicantCount} Applicants assigned to these positions.`
           }), { status: 400, headers: handleCors(req) });
         }
 

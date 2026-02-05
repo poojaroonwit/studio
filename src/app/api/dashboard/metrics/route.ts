@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const canViewAll = hasPermission(session.user, 'CANDIDATES_VIEW');
+    const canViewAll = hasPermission(session.user, 'Applicants_VIEW');
     
     const pool = getPool();
     const client = await pool.connect();

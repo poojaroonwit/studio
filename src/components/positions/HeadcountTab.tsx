@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CandidateAvatar } from '@/components/ui/candidate-avatar';
+import { ApplicantAvatar } from '@/components/ui/applicant-avatar';
 import {
   Plus,
   Edit,
@@ -19,13 +19,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
-import type { Headcount, HeadcountType, HeadcountStatus, Candidate, CustomFieldDefinition } from '@/lib/types';
+import type { Headcount, HeadcountType, HeadcountStatus, Applicant, CustomFieldDefinition } from '@/lib/types';
 import { HeadcountModal } from './HeadcountModal';
 import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
 
 interface HeadcountTabProps {
   positionId: string;
-  candidates: Candidate[];
+  Applicants: Applicant[];
   onHeadcountChange?: () => void;
 }
 
@@ -34,7 +34,7 @@ const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: 
   { value: 'filled', label: 'Filled', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' },
 ];
 
-export function HeadcountTab({ positionId, candidates, onHeadcountChange }: HeadcountTabProps) {
+export function HeadcountTab({ positionId, Applicants, onHeadcountChange }: HeadcountTabProps) {
   // Headcount type options will be fetched from API
   const [headcountTypeOptions, setHeadcountTypeOptions] = useState<{ value: HeadcountType; label: string; color: string }[]>([]);
   const [headcounts, setHeadcounts] = useState<Headcount[]>([]);
@@ -248,7 +248,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
   };
 
   const getStatusBadge = (headcount: Headcount) => {
-    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
     const actualStatus = (headcount.status === 'filled' && headcount.candidateId !== null) ? 'filled' : 'vacant';
     const option = HEADCOUNT_STATUS_OPTIONS.find(opt => opt.value === actualStatus);
     return (
@@ -446,7 +446,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
               <TableHead>Request Date</TableHead>
               <TableHead>Onboarding Date</TableHead>
               <TableHead>SLA</TableHead>
-              <TableHead>Candidate</TableHead>
+              <TableHead>Applicant</TableHead>
               <TableHead>Memo</TableHead>
               <TableHead>Emp ID</TableHead>
               {customFieldDefinitions.map((definition) => (
@@ -503,20 +503,20 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                       {getSLABadge(headcount.id)}
                     </TableCell>
                     <TableCell>
-                      {headcount.candidate ? (
+                      {headcount.Applicant ? (
                         <div className="flex items-center gap-2">
-                          <CandidateAvatar
-                            user={headcount.candidate}
+                          <ApplicantAvatar
+                            user={headcount.Applicant}
                             size="sm"
                             className="h-6 w-6"
                           />
                           <div>
-                            <div className="font-medium text-sm">{headcount.candidate.name}</div>
-                            <div className="text-xs text-muted-foreground">{headcount.candidate.email}</div>
+                            <div className="font-medium text-sm">{headcount.applicant.name}</div>
+                            <div className="text-xs text-muted-foreground">{headcount.applicant.email}</div>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground text-sm">No candidate assigned</span>
+                        <span className="text-muted-foreground text-sm">No Applicant assigned</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -596,7 +596,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         headcount={editingHeadcount}
-        candidates={candidates}
+        Applicants={Applicants}
         positionId={positionId}
         onSave={handleModalSave}
         onClose={handleModalClose}

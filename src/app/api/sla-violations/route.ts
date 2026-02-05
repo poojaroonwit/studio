@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { auth } from '@/auth';
 import { 
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to view SLA violations
-  // Users should be able to view SLA data if they can view candidates or have SLA-specific permissions
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW') &&
+  // Users should be able to view SLA data if they can view Applicants or have SLA-specific permissions
+  if (!hasPermission(session.user, 'Applicants_VIEW') &&
       !hasPermission(session.user, 'SLA_MONITORING_VIEW')) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view SLA violations' }, { status: 403 });
   }

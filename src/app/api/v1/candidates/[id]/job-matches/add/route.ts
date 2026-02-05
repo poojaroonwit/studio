@@ -51,13 +51,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
     // Check if position exists
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Check if job match already exists for this candidate and position
+    // Check if job match already exists for this Applicant and position
     const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE "candidateId" = $1 AND "jobId" = $2';
     const existingMatchResult = await client.query(existingMatchQuery, [id, jobId]);
     
     if (existingMatchResult.rows.length > 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Job match already exists for this candidate and position' }), { status: 409, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Job match already exists for this Applicant and position' }), { status: 409, headers: handleCors(req) });
     }
 
     // Insert new job match

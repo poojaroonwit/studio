@@ -29,7 +29,7 @@ export default function RecruiterSyncPage() {
           <h1 className="text-3xl font-bold tracking-tight">Recruiter Assignment Sync</h1>
         )}
         <p className="text-muted-foreground">
-          Manage automatic synchronization of recruiter assignments between positions and candidates.
+          Manage automatic synchronization of recruiter assignments between positions and Applicants.
         </p>
       </div>
 

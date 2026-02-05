@@ -39,8 +39,8 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 
 export const metadata = {
   title: 'FitScan - AI-Powered Recruitment Platform',
-  description: 'Advanced AI-powered recruitment and candidate management platform',
-  keywords: 'recruitment, AI, candidate management, HR, hiring',
+  description: 'Advanced AI-powered recruitment and Applicant management platform',
+  keywords: 'recruitment, AI, Applicant management, HR, hiring',
   authors: [{ name: 'FitScan' }],
   creator: 'FitScan',
   publisher: 'FitScan',
@@ -52,7 +52,7 @@ export const metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   openGraph: {
     title: 'FitScan - AI-Powered Recruitment Platform',
-    description: 'Advanced AI-powered recruitment and candidate management platform',
+    description: 'Advanced AI-powered recruitment and Applicant management platform',
     url: '/',
     siteName: 'FitScan',
     locale: 'en_US',
@@ -61,7 +61,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'FitScan - AI-Powered Recruitment Platform',
-    description: 'Advanced AI-powered recruitment and candidate management platform',
+    description: 'Advanced AI-powered recruitment and Applicant management platform',
   },
   robots: {
     index: false,

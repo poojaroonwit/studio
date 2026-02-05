@@ -5,7 +5,7 @@
  * 
  * This script:
  * 1. Applies database indexes for fit score queries
- * 2. Optimizes database performance for candidate matching
+ * 2. Optimizes database performance for Applicant matching
  * 3. Analyzes and reports on fit score query performance
  */
 
@@ -57,7 +57,7 @@ async function applyFitScoreIndexes() {
         const existingIndexesResult = await client.query(`
             SELECT indexname 
             FROM pg_indexes 
-            WHERE tablename = 'Candidate' 
+            WHERE tablename = 'Applicant' 
             AND indexname LIKE '%fit_score%'
         `);
         
@@ -67,20 +67,20 @@ async function applyFitScoreIndexes() {
         // Define the indexes we want to create
         const indexes = [
             {
-                name: 'idx_candidate_fit_score_position',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_candidate_fit_score_position ON "Candidate" ("fitScore", "positionId") WHERE "fitScore" IS NOT NULL'
+                name: 'idx_Applicant_fit_score_position',
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_position ON "Candidate" ("fitScore", "positionId") WHERE "fitScore" IS NOT NULL'
             },
             {
-                name: 'idx_candidate_fit_score_updated',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_candidate_fit_score_updated ON "Candidate" ("fitScore", "updatedAt") WHERE "fitScore" IS NOT NULL'
+                name: 'idx_Applicant_fit_score_updated',
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_updated ON "Candidate" ("fitScore", "updatedAt") WHERE "fitScore" IS NOT NULL'
             },
             {
-                name: 'idx_candidate_position_fit_score',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_candidate_position_fit_score ON "Candidate" ("positionId", "fitScore") WHERE "fitScore" IS NOT NULL'
+                name: 'idx_Applicant_position_fit_score',
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_position_fit_score ON "Candidate" ("positionId", "fitScore") WHERE "fitScore" IS NOT NULL'
             },
             {
-                name: 'idx_candidate_status_fit_score',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_candidate_status_fit_score ON "Candidate" ("status", "fitScore") WHERE "fitScore" IS NOT NULL'
+                name: 'idx_Applicant_status_fit_score',
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_status_fit_score ON "Candidate" ("status", "fitScore") WHERE "fitScore" IS NOT NULL'
             }
         ];
         
@@ -133,8 +133,8 @@ async function analyzeFitScorePerformance() {
         // Get statistics about fit scores
         const statsResult = await client.query(`
             SELECT 
-                COUNT(*) as total_candidates,
-                COUNT("fitScore") as candidates_with_fit_score,
+                COUNT(*) as total_Applicants,
+                COUNT("fitScore") as Applicants_with_fit_score,
                 ROUND(AVG("fitScore")::numeric, 2) as avg_fit_score,
                 MIN("fitScore") as min_fit_score,
                 MAX("fitScore") as max_fit_score,
@@ -145,7 +145,7 @@ async function analyzeFitScorePerformance() {
         
         const stats = statsResult.rows[0];
         logInfo(`Fit Score Statistics:`);
-        logInfo(`  - Total candidates with fit scores: ${stats.candidates_with_fit_score}`);
+        logInfo(`  - Total Applicants with fit scores: ${stats.Applicants_with_fit_score}`);
         logInfo(`  - Average fit score: ${stats.avg_fit_score}`);
         logInfo(`  - Fit score range: ${stats.min_fit_score} - ${stats.max_fit_score}`);
         logInfo(`  - Unique positions: ${stats.unique_positions}`);
@@ -170,26 +170,26 @@ async function analyzeFitScorePerformance() {
         
         logInfo(`Fit Score Distribution:`);
         for (const row of distributionResult.rows) {
-            logInfo(`  - ${row.score_range}: ${row.count} candidates`);
+            logInfo(`  - ${row.score_range}: ${row.count} Applicants`);
         }
         
-        // Check for positions with many candidates
+        // Check for positions with many Applicants
         const topPositionsResult = await client.query(`
             SELECT 
                 p.title as position_title,
-                COUNT(c.id) as candidate_count,
+                COUNT(c.id) as Applicant_count,
                 ROUND(AVG(c."fitScore")::numeric, 2) as avg_fit_score
             FROM "Candidate" c
             JOIN "Position" p ON c."positionId" = p.id
             WHERE c."fitScore" IS NOT NULL
             GROUP BY p.id, p.title
-            ORDER BY candidate_count DESC
+            ORDER BY Applicant_count DESC
             LIMIT 10
         `);
         
-        logInfo(`Top 10 Positions by Candidate Count:`);
+        logInfo(`Top 10 Positions by Applicant Count:`);
         for (const row of topPositionsResult.rows) {
-            logInfo(`  - ${row.position_title}: ${row.candidate_count} candidates (avg: ${row.avg_fit_score})`);
+            logInfo(`  - ${row.position_title}: ${row.Applicant_count} Applicants (avg: ${row.avg_fit_score})`);
         }
         
         logSuccess('Fit score performance analysis completed');
@@ -219,7 +219,7 @@ async function optimizeFitScoreCalculations() {
         
         logSuccess('Updated table statistics for better query planning');
         
-        // Check for candidates with outdated fit scores
+        // Check for Applicants with outdated fit scores
         // Note: Since there's no fitScoreUpdatedAt column, we'll check if fit scores exist
         const outdatedResult = await client.query(`
             SELECT COUNT(*) as count
@@ -229,10 +229,10 @@ async function optimizeFitScoreCalculations() {
         
         const fitScoreCount = outdatedResult.rows[0].count;
         if (fitScoreCount > 0) {
-            logInfo(`Found ${fitScoreCount} candidates with fit scores`);
+            logInfo(`Found ${fitScoreCount} Applicants with fit scores`);
             logInfo('Note: Cannot determine if fit scores are outdated without fitScoreUpdatedAt column');
         } else {
-            logInfo('No candidates with fit scores found');
+            logInfo('No Applicants with fit scores found');
         }
         
         return true;

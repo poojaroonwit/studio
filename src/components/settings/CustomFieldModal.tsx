@@ -31,7 +31,7 @@ const customFieldOptionSchema = z.object({
 });
 
 const customFieldFormSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
+  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
@@ -42,8 +42,8 @@ const customFieldFormSchema = z.object({
   
   // Visibility settings
   showInFilter: z.boolean().default(false),
-  showInCandidateDetail: z.boolean().default(false),
-  showInFullCandidateDetail: z.boolean().default(false),
+  showInApplicantDetail: z.boolean().default(false),
+  showInFullApplicantDetail: z.boolean().default(false),
   showInTaskBoardFilter: z.boolean().default(false),
   showInPositionSettings: z.boolean().default(false),
   showInHeadcountDetail: z.boolean().default(false),
@@ -79,7 +79,7 @@ const FIELD_TYPE_ICONS = {
 };
 
 const MODEL_ICONS = {
-  Candidate: User,
+  Applicant: User,
   Position: Building,
   User: User,
   Headcount: Building,
@@ -119,15 +119,15 @@ export default function CustomFieldModal({
   const form = useForm<CustomFieldFormValues>({
     resolver: zodResolver(customFieldFormSchema),
     defaultValues: {
-      model_name: 'Candidate',
+      model_name: 'Applicant',
       field_code: '',
       label: '',
       field_type: 'text',
       viewRoles: [],
       editRoles: [],
       showInFilter: false,
-      showInCandidateDetail: false,
-      showInFullCandidateDetail: false,
+      showInApplicantDetail: false,
+      showInFullApplicantDetail: false,
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
       showInHeadcountDetail: false,
@@ -150,15 +150,15 @@ export default function CustomFieldModal({
   useEffect(() => {
     if (open) {
       form.reset({
-        model_name: 'Candidate',
+        model_name: 'Applicant',
         field_code: '',
         label: '',
         field_type: 'text',
         viewRoles: [],
         editRoles: [],
         showInFilter: false,
-        showInCandidateDetail: false,
-        showInFullCandidateDetail: false,
+        showInApplicantDetail: false,
+        showInFullApplicantDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
         showInHeadcountDetail: false,
@@ -251,7 +251,7 @@ export default function CustomFieldModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent selectId="custom-field-entity-select">
-                              <SelectItem value="Candidate">Candidate</SelectItem>
+                              <SelectItem value="Candidate">Applicant</SelectItem>
                               <SelectItem value="Position">Position</SelectItem>
                               <SelectItem value="User">User</SelectItem>
                               <SelectItem value="Headcount">Headcount</SelectItem>
@@ -447,7 +447,7 @@ export default function CustomFieldModal({
 
                     <FormField
                       control={form.control}
-                      name="showInCandidateDetail"
+                      name="showInApplicantDetail"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
@@ -457,9 +457,9 @@ export default function CustomFieldModal({
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Show in Candidate Detail</FormLabel>
+                            <FormLabel>Show in Applicant Detail</FormLabel>
                             <FormDescription>
-                              Display in candidate detail view
+                              Display in Applicant detail view
                             </FormDescription>
                           </div>
                         </FormItem>
@@ -468,7 +468,7 @@ export default function CustomFieldModal({
 
                     <FormField
                       control={form.control}
-                      name="showInFullCandidateDetail"
+                      name="showInFullApplicantDetail"
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
@@ -478,9 +478,9 @@ export default function CustomFieldModal({
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Show in Full Candidate Detail</FormLabel>
+                            <FormLabel>Show in Full Applicant Detail</FormLabel>
                             <FormDescription>
-                              Display in full candidate detail page
+                              Display in full Applicant detail page
                             </FormDescription>
                           </div>
                         </FormItem>

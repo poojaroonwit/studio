@@ -24,7 +24,7 @@ interface HiringDetails {
             department: string;
         };
     } | null;
-    candidate: {
+    Applicant: {
         id: string;
         name: string;
         email: string;
@@ -92,7 +92,7 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
         );
     }
 
-    const hasData = data?.headcount || data?.candidate;
+    const hasData = data?.headcount || data?.Applicant;
 
     if (!hasData) {
         return (
@@ -100,7 +100,7 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                 <Briefcase className="h-12 w-12 text-muted-foreground/50 mb-3" />
                 <h3 className="text-lg font-medium">No Hiring Record Found</h3>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                    We couldn't link this user to any active Candidate or Headcount records based on their Employee ID, Email, or Phone number.
+                    We couldn't link this user to any active Applicant or Headcount records based on their Employee ID, Email, or Phone number.
                 </p>
             </div>
         );
@@ -156,23 +156,23 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                     </Card>
                 )}
 
-                {/* Candidate Section */}
-                {data?.candidate && (
+                {/* Applicant Section */}
+                {data?.Applicant && (
                     <Card>
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <User className="h-4 w-4 text-primary" />
-                                    Candidate Profile
+                                    Applicant Profile
                                 </CardTitle>
-                                {data.candidate.recruitmentStage && (
+                                {data.applicant.recruitmentStage && (
                                     <Badge
                                         className="capitalize"
                                         style={{
-                                            backgroundColor: data.candidate.recruitmentStage.color_badge || undefined
+                                            backgroundColor: data.applicant.recruitmentStage.color_badge || undefined
                                         }}
                                     >
-                                        {data.candidate.recruitmentStage.name}
+                                        {data.applicant.recruitmentStage.name}
                                     </Badge>
                                 )}
                             </div>
@@ -180,16 +180,16 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                         <CardContent className="space-y-4">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <h4 className="font-semibold text-lg">{data.candidate.name}</h4>
+                                    <h4 className="font-semibold text-lg">{data.applicant.name}</h4>
                                     <div className="flex flex-col gap-1 mt-1 text-sm text-muted-foreground">
                                         <div className="flex items-center gap-2">
                                             <Mail className="h-3 w-3" />
-                                            {data.candidate.email}
+                                            {data.applicant.email}
                                         </div>
-                                        {data.candidate.phone && (
+                                        {data.applicant.phone && (
                                             <div className="flex items-center gap-2">
                                                 <Phone className="h-3 w-3" />
-                                                {data.candidate.phone}
+                                                {data.applicant.phone}
                                             </div>
                                         )}
                                     </div>
@@ -202,26 +202,26 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                                 <div>
                                     <div className="text-muted-foreground text-xs mb-1">Applied For</div>
                                     <div className="font-medium">
-                                        {data.candidate.position ? data.candidate.position.title : 'General Application'}
+                                        {data.applicant.position ? data.applicant.position.title : 'General Application'}
                                     </div>
                                 </div>
                                 <div>
                                     <div className="text-muted-foreground text-xs mb-1">Application Date</div>
-                                    <div>{format(new Date(data.candidate.applicationDate), 'MMM dd, yyyy')}</div>
+                                    <div>{format(new Date(data.applicant.applicationDate), 'MMM dd, yyyy')}</div>
                                 </div>
                             </div>
 
                             <div className="pt-2">
                                 <Button asChild variant="default" className="w-full sm:w-auto">
                                     <Link
-                                        href={data.candidate.positionId
-                                            ? `/positions/${data.candidate.positionId}?candidateId=${data.candidate.id}`
-                                            : `/candidates?candidateId=${data.candidate.id}` // Fallback if no position
+                                        href={data.applicant.positionId
+                                            ? `/positions/${data.applicant.positionId}?candidateId=${data.applicant.id}`
+                                            : `/Applicants?candidateId=${data.applicant.id}` // Fallback if no position
                                         }
                                         target="_blank"
                                     >
                                         <ExternalLink className="mr-2 h-4 w-4" />
-                                        View Full Candidate Profile
+                                        View Full Applicant Profile
                                     </Link>
                                 </Button>
                             </div>

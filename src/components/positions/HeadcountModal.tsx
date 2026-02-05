@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { CandidateAvatar } from '@/components/ui/candidate-avatar';
+import { ApplicantAvatar } from '@/components/ui/applicant-avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   User,
@@ -18,14 +18,14 @@ import {
 
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import type { Headcount, HeadcountType, HeadcountStatus, Candidate } from '@/lib/types';
+import type { Headcount, HeadcountType, HeadcountStatus, Applicant } from '@/lib/types';
 import { HeadcountCustomFields } from './HeadcountCustomFields';
 
 interface HeadcountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   headcount?: Headcount | null;
-  candidates: Candidate[];
+  Applicants: Applicant[];
   positionId: string;
   onSave: (data: any) => Promise<void>;
   onClose: () => void;
@@ -40,7 +40,7 @@ export function HeadcountModal({
   open,
   onOpenChange,
   headcount,
-  candidates,
+  Applicants,
   positionId,
   onSave,
   onClose
@@ -103,7 +103,7 @@ export function HeadcountModal({
       setFormData({
         type: 'new',
         status: 'vacant', // Default to vacant
-        candidateId: null, // No candidate assignment for new headcount
+        candidateId: null, // No Applicant assignment for new headcount
         onboardingDate: '',
         requestDate: new Date().toISOString().split('T')[0], // Default to today
         notes: '',
@@ -124,7 +124,7 @@ export function HeadcountModal({
 
     // Validate that if status is 'filled', a candidateId must be provided
     if (formData.status === 'filled' && !formData.candidateId) {
-      toast.error('A candidate must be assigned when status is "filled". Please assign the candidate through the candidate details page first.');
+      toast.error('A Applicant must be assigned when status is "filled". Please assign the Applicant through the Applicant details page first.');
       return;
     }
 
@@ -156,7 +156,7 @@ export function HeadcountModal({
     onClose();
   };
 
-  const selectedCandidate = formData.candidateId ? candidates.find(c => c.id === formData.candidateId) : null;
+  const selectedApplicant = formData.candidateId ? Applicants.find(c => c.id === formData.candidateId) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,14 +209,14 @@ export function HeadcountModal({
                       disabled={option.value === 'filled' && !formData.candidateId}
                     >
                       {option.label}
-                      {option.value === 'filled' && !formData.candidateId && ' (requires candidate assignment)'}
+                      {option.value === 'filled' && !formData.candidateId && ' (requires Applicant assignment)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {formData.status === 'filled' && !formData.candidateId && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Note: Status "filled" requires a candidate assignment. Assign the candidate through the candidate details page first.
+                  Note: Status "filled" requires a Applicant assignment. Assign the Applicant through the Applicant details page first.
                 </p>
               )}
             </div>
@@ -246,30 +246,30 @@ export function HeadcountModal({
             </div>
           </div>
 
-          {/* Candidate Assignment - Only show in edit mode and display current assignment */}
+          {/* Applicant Assignment - Only show in edit mode and display current assignment */}
           {isEdit && (
             <div className="space-y-2">
-              <Label>Candidate Assignment</Label>
+              <Label>Applicant Assignment</Label>
               <div className="p-3 border rounded-lg bg-muted/50">
-                {selectedCandidate ? (
+                {selectedApplicant ? (
                   <div className="flex items-center gap-3">
-                    <CandidateAvatar
-                      user={selectedCandidate}
+                    <ApplicantAvatar
+                      user={selectedapplicant}
                       size="md"
                       className="h-8 w-8"
                     />
                     <div className="flex-1">
-                      <div className="font-medium">{selectedCandidate.name}</div>
-                      <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
+                      <div className="font-medium">{selectedapplicant.name}</div>
+                      <div className="text-sm text-muted-foreground">{selectedapplicant.email}</div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      (Assignment managed via candidate details)
+                      (Assignment managed via Applicant details)
                     </div>
                   </div>
                 ) : (
                   <div className="text-center text-muted-foreground">
-                    <div className="text-sm">No candidate assigned</div>
-                    <div className="text-xs mt-1">Assign candidates through candidate details page</div>
+                    <div className="text-sm">No Applicant assigned</div>
+                    <div className="text-xs mt-1">Assign Applicants through Applicant details page</div>
                   </div>
                 )}
               </div>

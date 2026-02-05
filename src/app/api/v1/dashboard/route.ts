@@ -33,7 +33,7 @@ import {
  *                 data:
  *                   type: object
  *                   properties:
- *                     candidates:
+ *                     Applicants:
  *                       type: object
  *                       properties:
  *                         total:
@@ -106,7 +106,7 @@ import {
  *                 value:
  *                   success: true
  *                   data:
- *                     candidates:
+ *                     Applicants:
  *                       total: 150
  *                       new: 25
  *                       inProgress: 45
@@ -125,8 +125,8 @@ import {
  *                       active: 6
  *                     recentActivity:
  *                       - id: "123e4567-e89b-12d3-a456-426614174000"
- *                         type: "candidate_created"
- *                         message: "New candidate Sample Candidate added"
+ *                         type: "Applicant_created"
+ *                         message: "New Applicant Sample Applicant added"
  *                         timestamp: "2024-01-01T00:00:00.000Z"
  *                         userId: "123e4567-e89b-12d3-a456-426614174001"
  *                         userName: "Jane Smith"
@@ -160,8 +160,8 @@ export async function GET(req: NextRequest) {
 
     const client = await getPool().connect();
     try {
-      // Get candidate statistics
-      const candidateStats = await client.query(`
+      // Get Applicant statistics
+      const applicantStats = await client.query(`
         SELECT 
           COUNT(*) as total,
           COUNT(CASE WHEN status = 'new' THEN 1 END) as new,
@@ -213,12 +213,12 @@ export async function GET(req: NextRequest) {
       `);
 
       const dashboardData = {
-        candidates: {
-          total: parseInt(candidateStats.rows[0]?.total || '0', 10),
-          new: parseInt(candidateStats.rows[0]?.new || '0', 10),
-          inProgress: parseInt(candidateStats.rows[0]?.inProgress || '0', 10),
-          hired: parseInt(candidateStats.rows[0]?.hired || '0', 10),
-          rejected: parseInt(candidateStats.rows[0]?.rejected || '0', 10)
+        Applicants: {
+          total: parseInt(applicantStats.rows[0]?.total || '0', 10),
+          new: parseInt(applicantStats.rows[0]?.new || '0', 10),
+          inProgress: parseInt(applicantStats.rows[0]?.inProgress || '0', 10),
+          hired: parseInt(applicantStats.rows[0]?.hired || '0', 10),
+          rejected: parseInt(applicantStats.rows[0]?.rejected || '0', 10)
         },
         positions: {
           total: parseInt(positionStats.rows[0]?.total || '0', 10),

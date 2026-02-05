@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
                 select: {
                   id: true,
                   title: true,
+                  department: true // Added department if needed, consistent with other queries
                 }
               }
             }
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
         },
         createdBy: it.createdBy,
         token: it.token,
-        url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/candidates/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
+        url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/applicants/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
         expiresAt: it.expiresAt,
         revokedAt: it.revokedAt,
         requireLogin: it.requireLogin,

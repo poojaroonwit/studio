@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -36,7 +36,7 @@ export async function GET(
 
     const candidateId = (await params).id;
 
-    // Get the latest evaluation for the candidate
+    // Get the latest evaluation for the Applicant
     const evaluation = await prisma.candidateEvaluation.findFirst({
       where: { candidateId },
       include: {
@@ -84,7 +84,7 @@ export async function GET(
     // Return null instead of 404 - "no evaluation" is a valid state, not an error
     return NextResponse.json(evaluation || null);
   } catch (error) {
-    console.error('Error fetching candidate evaluation:', error);
+    console.error('Error fetching Applicant evaluation:', error);
     return NextResponse.json(
       { error: 'Failed to fetch evaluation' },
       { status: 500 }
@@ -110,14 +110,14 @@ export async function POST(
     // Determine evaluatorId: use provided evaluatorId or fall back to session user
     const evaluatorId = validatedData.evaluatorId || session.user.id;
 
-    // Check if candidate exists
-    const candidate = await prisma.candidate.findUnique({
+    // Check if Applicant exists
+    const applicant = await prisma.candidate.findUnique({
       where: { id: candidateId }
     });
 
-    if (!candidate) {
+    if (!applicant) {
       return NextResponse.json(
-        { error: 'Candidate not found' },
+        { error: 'Applicant not found' },
         { status: 404 }
       );
     }
@@ -150,7 +150,7 @@ export async function POST(
       }
     }
 
-    // Check if evaluation already exists for this candidate and evaluator
+    // Check if evaluation already exists for this Applicant and evaluator
     const existingEvaluation = await prisma.candidateEvaluation.findFirst({
       where: {
         candidateId,
@@ -302,10 +302,10 @@ export async function POST(
         }
       });
 
-    // If expertise scores were provided, update ALL evaluations for this candidate with the same expertise scores
+    // If expertise scores were provided, update ALL evaluations for this Applicant with the same expertise scores
     // This ensures expertise/test scores are shared across all interviewers, not separate per interviewer
     if (uniqueExpertiseScores && uniqueExpertiseScores.length > 0) {
-      // Find all other evaluations for this candidate
+      // Find all other evaluations for this Applicant
       const allEvaluations = await prisma.candidateEvaluation.findMany({
         where: {
           candidateId,
@@ -380,7 +380,7 @@ export async function POST(
       }
     }
 
-    console.error('Error creating/updating candidate evaluation:', error);
+    console.error('Error creating/updating Applicant evaluation:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Failed to update evaluation', message: errorMessage },

@@ -68,7 +68,7 @@ export const sidebarConfigData = [
         label: "Applicants",
         icon: "Users",
         href: "/applicants",
-        description: "Manage candidate profiles"
+        description: "Manage Applicant profiles"
       },
       {
         label: "Positions",
@@ -80,7 +80,7 @@ export const sidebarConfigData = [
         label: "Process queue",
         icon: "UploadCloud",
         href: "/process-queue",
-        description: "Monitor and manage candidate import queue"
+        description: "Monitor and manage Applicant import queue"
       },
     ],
   },
@@ -97,7 +97,7 @@ export const sidebarConfigData = [
         label: "Interview",
         icon: "ClipboardCheck",
         href: "/interview",
-        description: "Candidate interview portal"
+        description: "Applicant interview portal"
       },
       {
         label: "SLA Monitoring",

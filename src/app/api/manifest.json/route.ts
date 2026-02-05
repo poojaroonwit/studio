@@ -21,7 +21,7 @@ export async function GET() {
     const manifest = {
       name: settings.pwaName || 'FitScan - AI-Powered Recruitment Platform',
       short_name: settings.pwaShortName || 'FitScan',
-      description: settings.pwaDescription || 'Advanced AI-powered recruitment and candidate management platform',
+      description: settings.pwaDescription || 'Advanced AI-powered recruitment and Applicant management platform',
       start_url: '/',
       display: 'standalone',
       background_color: settings.pwaBackgroundColor || '#171a26',
@@ -79,7 +79,7 @@ export async function GET() {
     return NextResponse.json({
       name: 'FitScan - AI-Powered Recruitment Platform',
       short_name: 'FitScan',
-      description: 'Advanced AI-powered recruitment and candidate management platform',
+      description: 'Advanced AI-powered recruitment and Applicant management platform',
       start_url: '/',
       display: 'standalone',
       background_color: '#171a26',

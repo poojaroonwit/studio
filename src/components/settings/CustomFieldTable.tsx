@@ -48,7 +48,7 @@ const FIELD_TYPE_ICONS = {
 };
 
 const MODEL_ICONS = {
-  Candidate: User,
+  Applicant: User,
   Position: Building,
   User: User,
   Headcount: Building,
@@ -120,7 +120,7 @@ export default function CustomFieldTable({
       );
     }
     
-    if (field.showInCandidateDetail) {
+    if (field.showInApplicantDetail) {
       badges.push(
         <Badge key="detail" variant="secondary" className="text-xs">
           <Eye className="h-3 w-3 mr-1" />
@@ -129,7 +129,7 @@ export default function CustomFieldTable({
       );
     }
     
-    if (field.showInFullCandidateDetail) {
+    if (field.showInFullApplicantDetail) {
       badges.push(
         <Badge key="full-detail" variant="secondary" className="text-xs">
           <Eye className="h-3 w-3 mr-1" />
@@ -176,7 +176,7 @@ export default function CustomFieldTable({
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Candidate Fields</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Applicant Fields</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -190,14 +190,14 @@ export default function CustomFieldTable({
                   
                   return fields.filter(f => {
                     try {
-                      return f && f.model_name === 'Candidate';
+                      return f && f.model_name === 'Applicant';
                     } catch (error) {
-                      console.warn('CustomFieldTable: Error filtering candidate field:', error, f);
+                      console.warn('CustomFieldTable: Error filtering Applicant field:', error, f);
                       return false;
                     }
                   }).length;
                 } catch (error) {
-                  console.error('CustomFieldTable: Error counting candidate fields:', error);
+                  console.error('CustomFieldTable: Error counting Applicant fields:', error);
                   return 0;
                 }
               })()}

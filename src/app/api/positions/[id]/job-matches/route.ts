@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { getSystemSetting } from '@/lib/systemSettings';
@@ -76,8 +76,8 @@ export async function GET(
       }
     }
 
-    // Only prioritize pinned candidates if showPinSection is enabled
-    // This must come AFTER the matchScore handling to ensure pinned candidates are always on top
+    // Only prioritize pinned applicants if showPinSection is enabled
+    // This must come AFTER the matchScore handling to ensure pinned applicants are always on top
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
       sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
@@ -110,7 +110,7 @@ export async function GET(
        const params = [positionId];
        let paramIndex = 2;
 
-       // Only show candidates who haven't applied to this position
+       // Only show applicants who haven't applied to this position
        if (notApplied) {
          whereConditions.push('(c."positionId" IS NULL OR c."positionId" != $1)');
        }
@@ -127,8 +127,8 @@ export async function GET(
 
       const whereClause = whereConditions.join(' AND ');
 
-      // Query to get candidates who have job matches for this position but haven't applied
-      const candidatesQuery = `
+      // Query to get applicants who have job matches for this position but haven't applied
+      const applicantsQuery = `
         SELECT 
           c.*, 
           c."isPinned",
@@ -186,13 +186,13 @@ export async function GET(
       // Add limit and offset to params for the main query
       const queryParams = [...params, limit, offset];
 
-             const [candidatesResult, countResult] = await Promise.all([
-         client.query(candidatesQuery, queryParams),
+             const [applicantsResult, countResult] = await Promise.all([
+         client.query(applicantsQuery, queryParams),
          client.query(countQuery, params)
        ]);
 
       const total = parseInt(countResult.rows[0].total, 10);
-      const candidates = candidatesResult.rows.map((row: any) => {
+      const applicants = applicantsResult.rows.map((row: any) => {
         let customAttributes = row.customAttributes || {};
         if (typeof customAttributes === 'string') {
           try {
@@ -242,7 +242,7 @@ export async function GET(
       });
 
       return NextResponse.json({
-        data: candidates,
+        data: applicants,
         pagination: {
           page,
           limit,

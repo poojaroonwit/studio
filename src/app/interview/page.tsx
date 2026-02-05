@@ -17,14 +17,14 @@ import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink,
 import { MobileEvaluateCalendar, DesktopEvaluateCalendar } from '@/components/ui/evaluate-calendar';
 import { Switch } from '@/components/ui/switch';
 import { QRCodeCanvas } from 'qrcode.react';
-import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
-import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
+import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
+import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import { CreateEvaluateLinkModal } from '@/components/candidates/CreateEvaluateLinkModal';
+import { CreateEvaluateLinkModal } from '@/components/applicants/CreateEvaluateLinkModal';
 
-interface CandidateWithEvaluationLink {
+interface ApplicantWithEvaluationLink {
   id: string;
   name: string;
   email: string | null;
@@ -40,7 +40,7 @@ interface CandidateWithEvaluationLink {
   };
 }
 
-interface SearchCandidate {
+interface SearchApplicant {
   id: string;
   name: string;
   email: string | null;
@@ -64,16 +64,16 @@ export default function EvaluatePage() {
   const query = searchParams.get('q');
   const isMobile = useIsMobile();
   const { data: session, status: sessionStatus } = useSession();
-  const [candidates, setCandidates] = useState<CandidateWithEvaluationLink[]>([]);
+  const [Applicants, setApplicants] = useState<ApplicantWithEvaluationLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Create link modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchCandidate[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchApplicant[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<SearchCandidate | null>(null);
+  const [selectedApplicant, setSelectedApplicant] = useState<SearchApplicant | null>(null);
   const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
   const [expireDays, setExpireDays] = useState(7);
   const [requireLogin, setRequireLogin] = useState(true);
@@ -90,7 +90,7 @@ export default function EvaluatePage() {
   // QR Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
-  const [qrCandidateId, setQrCandidateId] = useState<string | null>(null);
+  const [qrcandidateId, setQrcandidateId] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
 
   // Edit evaluation link state
@@ -126,7 +126,7 @@ export default function EvaluatePage() {
   useEffect(() => {
     // Only fetch data if user is authenticated
     if (sessionStatus === 'authenticated') {
-      fetchCandidatesWithEvaluationLinks();
+      fetchApplicantsWithEvaluationLinks();
       // Fetch QR code logo (prefer qrCodeLogo, fallback to appLogoDataUrl)
       fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl')
         .then(res => res.json())
@@ -139,7 +139,7 @@ export default function EvaluatePage() {
     }
   }, [sessionStatus, query]);
 
-  const fetchCandidatesWithEvaluationLinks = async () => {
+  const fetchApplicantsWithEvaluationLinks = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -154,7 +154,7 @@ export default function EvaluatePage() {
 
       if (!response.ok) {
         // Try to get error message from response
-        let errorMessage = 'Failed to fetch candidates with evaluation links';
+        let errorMessage = 'Failed to fetch Applicants with evaluation links';
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
@@ -176,15 +176,15 @@ export default function EvaluatePage() {
 
       const data = await response.json();
 
-      // Transform the data to include candidate info
-      const candidatesWithLinks: CandidateWithEvaluationLink[] = (data.data || [])
-        .filter((item: any) => item.candidate && item.url)
+      // Transform the data to include Applicant info
+      const ApplicantsWithLinks: ApplicantWithEvaluationLink[] = (data.data || [])
+        .filter((item: any) => item.Applicant && item.url)
         .map((item: any) => ({
-          id: item.candidate.id,
-          name: item.candidate.name || 'Unknown',
-          email: item.candidate.email,
-          avatarUrl: item.candidate.avatarUrl || null,
-          position: item.candidate.position || null,
+          id: item.applicant.id,
+          name: item.applicant.name || 'Unknown',
+          email: item.applicant.email,
+          avatarUrl: item.applicant.avatarUrl || null,
+          position: item.applicant.position || null,
           evaluationLink: {
             url: item.url,
             expiresAt: item.expiresAt,
@@ -195,17 +195,17 @@ export default function EvaluatePage() {
           }
         }));
 
-      setCandidates(candidatesWithLinks);
+      setApplicants(ApplicantsWithLinks);
     } catch (err) {
-      console.error('Error fetching candidates:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load candidates');
+      console.error('Error fetching Applicants:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load Applicants');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Search for candidates
-  const searchCandidates = useCallback(async (query: string) => {
+  // Search for Applicants
+  const searchApplicants = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -215,14 +215,14 @@ export default function EvaluatePage() {
       setIsSearching(true);
       // Search by name (contains) - API supports name filter with contains operator
       const searchParam = encodeURIComponent(query);
-      const response = await fetch(`/api/candidates?name=${searchParam}&nameOperator=contains&limit=20`, {
+      const response = await fetch(`/api/applicants?name=${searchParam}&nameOperator=contains&limit=20`, {
         credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        const candidateList = Array.isArray(data) ? data : (data.data || []);
-        setSearchResults(candidateList.map((c: any) => ({
+        const ApplicantList = Array.isArray(data) ? data : (data.data || []);
+        setSearchResults(ApplicantList.map((c: any) => ({
           id: c.id,
           name: c.name || 'Unknown',
           email: c.email,
@@ -232,7 +232,7 @@ export default function EvaluatePage() {
         })));
       }
     } catch (err) {
-      console.error('Error searching candidates:', err);
+      console.error('Error searching Applicants:', err);
     } finally {
       setIsSearching(false);
     }
@@ -319,18 +319,18 @@ export default function EvaluatePage() {
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      searchCandidates(searchQuery);
+      searchApplicants(searchQuery);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, searchCandidates]);
+  }, [searchQuery, searchApplicants]);
 
-  // Validate position when candidate is selected
+  // Validate position when Applicant is selected
   useEffect(() => {
-    if (selectedCandidate) {
-      const positionId = selectedCandidate.positionId || selectedCandidate.position?.id;
+    if (selectedApplicant) {
+      const positionId = selectedapplicant.positionId || selectedapplicant.position?.id;
       if (positionId) {
-        validatePosition(positionId, selectedCandidate.position?.title || null);
+        validatePosition(positionId, selectedapplicant.position?.title || null);
       } else {
         setPositionValidation({
           hasInterviewers: false,
@@ -338,7 +338,7 @@ export default function EvaluatePage() {
           positionId: null,
           positionTitle: null,
           isLoading: false,
-          error: 'Candidate has no assigned position'
+          error: 'Applicant has no assigned position'
         });
       }
     } else {
@@ -351,15 +351,15 @@ export default function EvaluatePage() {
         error: null
       });
     }
-  }, [selectedCandidate, validatePosition]);
+  }, [selectedApplicant, validatePosition]);
 
-  // Create evaluation link for selected candidate
+  // Create evaluation link for selected Applicant
   const createEvaluationLink = async () => {
-    if (!selectedCandidate) return;
+    if (!selectedApplicant) return;
 
     try {
       setIsCreatingLink(true);
-      const response = await fetch(`/api/v1/candidates/${selectedCandidate.id}/evaluation-link`, {
+      const response = await fetch(`/api/v1/Applicants/${selectedapplicant.id}/evaluation-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -378,20 +378,20 @@ export default function EvaluatePage() {
       setIsCreateModalOpen(false);
 
       // Open QR Modal immediately
-      if (data.url && selectedCandidate) {
+      if (data.url && selectedApplicant) {
         setQrData({
-          name: selectedCandidate.name,
+          name: selectedapplicant.name,
           url: data.url,
-          avatarUrl: selectedCandidate.avatarUrl || null,
+          avatarUrl: selectedapplicant.avatarUrl || null,
           expiresAt: data.expiresAt
         });
         setQrModalOpen(true);
       }
 
-      setSelectedCandidate(null);
+      setSelectedApplicant(null);
       setSearchQuery('');
       setSearchResults([]);
-      fetchCandidatesWithEvaluationLinks();
+      fetchApplicantsWithEvaluationLinks();
 
       // Optionally copy link to clipboard
       if (data.url) {
@@ -407,23 +407,23 @@ export default function EvaluatePage() {
     }
   };
 
-  const handleCandidateClick = (candidateId: string) => {
-    const candidate = candidates.find(c => c.id === candidateId);
-    if (candidate && candidate.evaluationLink?.url) {
+  const handleApplicantClick = (candidateId: string) => {
+    const Applicant = Applicants.find(c => c.id === candidateId);
+    if (Applicant && Applicant.evaluationLink?.url) {
       setQrData({
-        name: candidate.name,
-        url: candidate.evaluationLink.url,
-        avatarUrl: candidate.avatarUrl,
-        expiresAt: candidate.evaluationLink.expiresAt
+        name: Applicant.name,
+        url: Applicant.evaluationLink.url,
+        avatarUrl: Applicant.avatarUrl,
+        expiresAt: Applicant.evaluationLink.expiresAt
       });
-      setQrCandidateId(candidateId);
+      setQrcandidateId(candidateId);
       setQrModalOpen(true);
     }
   };
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
-    setSelectedCandidate(null);
+    setSelectedApplicant(null);
     setSearchQuery('');
     setSearchResults([]);
     setExpireDays(7);
@@ -450,15 +450,15 @@ export default function EvaluatePage() {
   };
 
   const handleConfigurePosition = () => {
-    if (selectedCandidate && positionValidation.positionId) {
-      // Navigate to applicant detail page with the position
-      router.push(`/applicants/${selectedCandidate.id}`);
+    if (selectedApplicant && positionValidation.positionId) {
+      // Navigate to Applicant detail page with the position
+      router.push(`/applicants/${selectedapplicant.id}`);
       setIsCreateModalOpen(false);
     }
   };
 
   // Check if can create link
-  const canCreateLink = selectedCandidate &&
+  const canCreateLink = selectedApplicant &&
     !positionValidation.isLoading &&
     positionValidation.hasInterviewers &&
     positionValidation.hasSkills &&
@@ -466,7 +466,7 @@ export default function EvaluatePage() {
     (!sendAppointment || selectedInterviewerIds.size > 0);
 
   // Check if showing warning
-  const showValidationWarning = selectedCandidate &&
+  const showValidationWarning = selectedApplicant &&
     !positionValidation.isLoading &&
     (!positionValidation.hasInterviewers || !positionValidation.hasSkills || positionValidation.error);
 
@@ -517,7 +517,7 @@ export default function EvaluatePage() {
           </p>
           <div className="space-y-2">
             <Button
-              onClick={fetchCandidatesWithEvaluationLinks}
+              onClick={fetchApplicantsWithEvaluationLinks}
               className="w-full"
               size={isMobile ? "default" : "lg"}
             >
@@ -537,9 +537,9 @@ export default function EvaluatePage() {
   // Render Create Link Modal Content
   const renderCreateLinkContent = () => (
     <div className="space-y-4 py-4">
-      {/* Candidate Search */}
+      {/* Applicant Search */}
       <div className="space-y-2">
-        <Label>Search Candidate</Label>
+        <Label>Search Applicant</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -555,43 +555,43 @@ export default function EvaluatePage() {
       </div>
 
       {/* Search Results */}
-      {searchQuery && searchResults.length > 0 && !selectedCandidate && (
+      {searchQuery && searchResults.length > 0 && !selectedApplicant && (
         <div className="border rounded-md max-h-48 overflow-y-auto">
-          {searchResults.map((candidate) => {
-            const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+          {searchResults.map((Applicant) => {
+            const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
             return (
               <div
-                key={candidate.id}
+                key={applicant.id}
                 className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                 onClick={() => {
-                  setSelectedCandidate(candidate);
+                  setSelectedApplicant(Applicant);
                   setSearchQuery('');
                   setSearchResults([]);
                   setIsCreateModalOpen(false);
                   setShowCreateLinkModal(true);
                 }}
               >
-                <CandidateAvatarCompact
+                <ApplicantAvatarCompact
                   user={{
-                    id: candidate.id,
-                    name: candidate.name,
-                    avatarUrl: candidate.avatarUrl,
-                    email: candidate.email || undefined
+                    id: Applicant.id,
+                    name: Applicant.name,
+                    avatarUrl: Applicant.avatarUrl,
+                    email: Applicant.email || undefined
                   }}
                   size="sm"
                 />
                 <div className="flex-1 min-w-0">
                   <div className={cn("font-medium text-sm truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-                    {candidate.name}
+                    {applicant.name}
                   </div>
-                  {candidate.email && (
+                  {applicant.email && (
                     <div className="text-xs text-muted-foreground truncate">
-                      {candidate.email}
+                      {applicant.email}
                     </div>
                   )}
-                  {candidate.position?.title && (
+                  {applicant.position?.title && (
                     <div className="text-xs text-muted-foreground truncate">
-                      Position: {candidate.position.title}
+                      Position: {applicant.position.title}
                     </div>
                   )}
                 </div>
@@ -602,33 +602,33 @@ export default function EvaluatePage() {
       )}
 
       {/* No Results */}
-      {searchQuery && searchResults.length === 0 && !isSearching && !selectedCandidate && (
+      {searchQuery && searchResults.length === 0 && !isSearching && !selectedApplicant && (
         <div className="text-center py-4 text-sm text-muted-foreground">
-          No candidates found
+          No Applicants found
         </div>
       )}
 
-      {/* Selected Candidate */}
-      {selectedCandidate && (
+      {/* Selected Applicant */}
+      {selectedApplicant && (
         <div className="border rounded-md p-3 bg-muted/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CandidateAvatarCompact
+              <ApplicantAvatarCompact
                 user={{
-                  id: selectedCandidate.id,
-                  name: selectedCandidate.name,
-                  avatarUrl: selectedCandidate.avatarUrl,
-                  email: selectedCandidate.email || undefined
+                  id: selectedapplicant.id,
+                  name: selectedapplicant.name,
+                  avatarUrl: selectedapplicant.avatarUrl,
+                  email: selectedapplicant.email || undefined
                 }}
                 size="sm"
               />
               <div>
-                <div className="font-medium text-sm">{selectedCandidate.name}</div>
-                {selectedCandidate.email && (
-                  <div className="text-xs text-muted-foreground">{selectedCandidate.email}</div>
+                <div className="font-medium text-sm">{selectedapplicant.name}</div>
+                {selectedapplicant.email && (
+                  <div className="text-xs text-muted-foreground">{selectedapplicant.email}</div>
                 )}
-                {selectedCandidate.position?.title && (
-                  <div className="text-xs text-muted-foreground">Position: {selectedCandidate.position.title}</div>
+                {selectedapplicant.position?.title && (
+                  <div className="text-xs text-muted-foreground">Position: {selectedapplicant.position.title}</div>
                 )}
               </div>
             </div>
@@ -637,7 +637,7 @@ export default function EvaluatePage() {
               size="icon"
               className="h-8 w-8"
               onClick={() => {
-                setSelectedCandidate(null);
+                setSelectedApplicant(null);
                 setSearchQuery('');
               }}
             >
@@ -648,7 +648,7 @@ export default function EvaluatePage() {
       )}
 
       {/* Position Validation Loading */}
-      {selectedCandidate && positionValidation.isLoading && (
+      {selectedApplicant && positionValidation.isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Checking position configuration...
@@ -690,7 +690,7 @@ export default function EvaluatePage() {
       )}
 
       {/* Link Options - Only show if validation passes */}
-      {selectedCandidate && !positionValidation.isLoading && positionValidation.hasInterviewers && positionValidation.hasSkills && (
+      {selectedApplicant && !positionValidation.isLoading && positionValidation.hasInterviewers && positionValidation.hasSkills && (
         <div className="space-y-4">
           {/* Expire Date/Time */}
           <div className="space-y-2">
@@ -763,26 +763,26 @@ export default function EvaluatePage() {
               />
             </div>
 
-            {/* Show Candidate Card and Interviewers when toggle is ON */}
+            {/* Show Applicant Card and Interviewers when toggle is ON */}
             {sendAppointment && (
               <div className="space-y-4 pt-2 border-t">
-                {/* Candidate Card */}
+                {/* Applicant Card */}
                 <div className="bg-muted/50 rounded-md p-3">
-                  <p className="text-xs text-muted-foreground mb-2">Candidate</p>
+                  <p className="text-xs text-muted-foreground mb-2">Applicant</p>
                   <div className="flex items-center gap-3">
-                    <CandidateAvatarCompact
+                    <ApplicantAvatarCompact
                       user={{
-                        id: selectedCandidate.id,
-                        name: selectedCandidate.name,
-                        avatarUrl: selectedCandidate.avatarUrl,
-                        email: selectedCandidate.email || undefined
+                        id: selectedapplicant.id,
+                        name: selectedapplicant.name,
+                        avatarUrl: selectedapplicant.avatarUrl,
+                        email: selectedapplicant.email || undefined
                       }}
                       size="sm"
                     />
                     <div>
-                      <div className="font-medium text-sm">{selectedCandidate.name}</div>
-                      {selectedCandidate.email && (
-                        <div className="text-xs text-muted-foreground">{selectedCandidate.email}</div>
+                      <div className="font-medium text-sm">{selectedapplicant.name}</div>
+                      {selectedapplicant.email && (
+                        <div className="text-xs text-muted-foreground">{selectedapplicant.email}</div>
                       )}
                     </div>
                   </div>
@@ -886,9 +886,9 @@ export default function EvaluatePage() {
           </div>
         </div>
 
-        {/* Candidate Name below QR */}
+        {/* Applicant Name below QR */}
         <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-1">Candidate</p>
+          <p className="text-sm text-muted-foreground mb-1">Applicant</p>
           <h3 className="font-semibold text-lg">{qrData.name}</h3>
           {qrData.expiresAt && (() => {
             const expiresAt = new Date(qrData.expiresAt);
@@ -972,16 +972,16 @@ export default function EvaluatePage() {
             onClick={() => {
               // Close QR modal and open edit modal with existing data
               setQrModalOpen(false);
-              if (qrCandidateId) {
-                const candidate = candidates.find(c => c.id === qrCandidateId);
-                if (candidate) {
-                  setSelectedCandidate({
-                    id: candidate.id,
-                    name: candidate.name,
-                    email: candidate.email,
-                    avatarUrl: candidate.avatarUrl,
-                    position: candidate.position,
-                    positionId: candidate.position?.id
+              if (qrcandidateId) {
+                const Applicant = Applicants.find(c => c.id === qrcandidateId);
+                if (Applicant) {
+                  setSelectedApplicant({
+                    id: Applicant.id,
+                    name: Applicant.name,
+                    email: Applicant.email,
+                    avatarUrl: Applicant.avatarUrl,
+                    position: Applicant.position,
+                    positionId: Applicant.position?.id
                   });
                   setIsEditEvalLinkModalOpen(true);
                 }
@@ -1038,7 +1038,7 @@ export default function EvaluatePage() {
           </Button>
         </div>
 
-        {candidates.length === 0 ? (
+        {Applicants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <FileCheck className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
@@ -1057,20 +1057,20 @@ export default function EvaluatePage() {
             {/* Mobile Calendar View - Default to list, can toggle to calendar */}
             {isMobile ? (
               <MobileEvaluateCalendar
-                candidates={candidates}
+                Applicants={Applicants}
                 selectedDate={selectedDate}
                 onDateSelect={(date) => setSelectedDate(date)}
-                onCandidateClick={handleCandidateClick}
+                onApplicantClick={handleApplicantClick}
                 isMobile={true}
                 defaultView="list"
               />
             ) : (
               /* Desktop Calendar View - Full page month calendar with side panel */
               <DesktopEvaluateCalendar
-                candidates={candidates}
+                Applicants={Applicants}
                 selectedDate={selectedDate}
                 onDateSelect={(date) => setSelectedDate(date)}
-                onCandidateClick={handleCandidateClick}
+                onApplicantClick={handleApplicantClick}
                 isMobile={false}
               />
             )}
@@ -1137,27 +1137,27 @@ export default function EvaluatePage() {
       )}
 
       {/* Create Evaluate Link Modal - Using new unified component */}
-      {selectedCandidate && (
+      {selectedApplicant && (
         <CreateEvaluateLinkModal
           isOpen={showCreateLinkModal}
           onOpenChange={(open) => {
             setShowCreateLinkModal(open);
             if (!open) {
-              setSelectedCandidate(null);
+              setSelectedApplicant(null);
             }
           }}
-          candidate={{
-            id: selectedCandidate.id,
-            name: selectedCandidate.name,
-            email: selectedCandidate.email,
-            avatarUrl: selectedCandidate.avatarUrl,
-            positionId: selectedCandidate.positionId,
-            position: selectedCandidate.position,
+          Applicant={{
+            id: selectedapplicant.id,
+            name: selectedapplicant.name,
+            email: selectedapplicant.email,
+            avatarUrl: selectedapplicant.avatarUrl,
+            positionId: selectedapplicant.positionId,
+            position: selectedapplicant.position,
           }}
           onSuccess={(linkData) => {
-            fetchCandidatesWithEvaluationLinks();
+            fetchApplicantsWithEvaluationLinks();
             setShowCreateLinkModal(false);
-            setSelectedCandidate(null);
+            setSelectedApplicant(null);
           }}
         />
       )}
@@ -1201,22 +1201,22 @@ export default function EvaluatePage() {
       )}
 
       {/* Edit Evaluation Link Modal */}
-      {selectedCandidate && (
+      {selectedApplicant && (
         <CreateEvaluateLinkModal
           isOpen={isEditEvalLinkModalOpen}
           onOpenChange={(open) => {
             setIsEditEvalLinkModalOpen(open);
             if (!open) {
-              setSelectedCandidate(null);
-              fetchCandidatesWithEvaluationLinks();
+              setSelectedApplicant(null);
+              fetchApplicantsWithEvaluationLinks();
             }
           }}
-          candidate={{
-            id: selectedCandidate.id,
-            name: selectedCandidate.name,
-            email: selectedCandidate.email || null,
-            avatarUrl: selectedCandidate.avatarUrl || null,
-            position: selectedCandidate.position || null
+          Applicant={{
+            id: selectedapplicant.id,
+            name: selectedapplicant.name,
+            email: selectedapplicant.email || null,
+            avatarUrl: selectedapplicant.avatarUrl || null,
+            position: selectedapplicant.position || null
           }}
           editMode={true}
         />

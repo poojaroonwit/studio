@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -359,7 +359,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
 
-    // Auto-assign recruiters to unassigned candidates if position recruiter changed
+    // Auto-assign recruiters to unassigned applicants if position recruiter changed
     let syncResult = null;
     if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
       try {
@@ -410,8 +410,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         syncResult = {
           positionId: id,
           positionTitle: enrichedPosition.title,
-          candidatesUpdated: 0,
-          candidatesSkipped: 0,
+          applicantsUpdated: 0,
+          applicantsSkipped: 0,
           errors: [syncError instanceof Error ? syncError.message : 'Unknown sync error']
         };
       }
@@ -510,21 +510,21 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     await client.query('BEGIN');
 
-    // Check if position has candidates
+    // Check if position has applicants
     const currentPosition = await client.query('SELECT * FROM "Position" WHERE id = $1', [id]);
     if (currentPosition.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
     }
 
-    const positionQuery = 'SELECT p.id, p.title, COUNT(c.id) as "candidateCount" FROM "Position" p LEFT JOIN "Candidate" c ON p.id = c."positionId" WHERE p.id = $1 GROUP BY p.id, p.title;';
-    const candidateCountResult = await client.query(positionQuery, [id]);
-    const candidateCount = parseInt(candidateCountResult.rows[0]?.candidateCount || '0', 10);
+    const positionQuery = 'SELECT p.id, p.title, COUNT(c.id) as "applicantCount" FROM "Position" p LEFT JOIN "Candidate" c ON p.id = c."positionId" WHERE p.id = $1 GROUP BY p.id, p.title;';
+    const applicantCountResult = await client.query(positionQuery, [id]);
+    const applicantCount = parseInt(applicantCountResult.rows[0]?.applicantCount || '0', 10);
 
-    if (candidateCount > 0) {
+    if (applicantCount > 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({
-        message: `Cannot delete position. It has ${candidateCount} associated candidate(s).`
+        message: `Cannot delete position. It has ${applicantCount} associated Applicant(s).`
       }, { status: 409 });
     }
 

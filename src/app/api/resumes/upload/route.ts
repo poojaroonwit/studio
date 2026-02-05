@@ -1,4 +1,4 @@
-﻿import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';
@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalResumePermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_RESUMES_UPLOAD']);
-  const hasOwnResumePermission = hasAnyPermission(session.user, ['CANDIDATES_RESUMES_UPLOAD_OWN']);
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalResumePermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'Applicants_RESUMES_UPLOAD']);
+  const hasOwnResumePermission = hasAnyPermission(session.user, ['Applicants_RESUMES_UPLOAD_OWN']);
 
   if (!hasGlobalResumePermission && !hasOwnResumePermission) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate resumes' }, { status: 403 });
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage Applicant resumes' }, { status: 403 });
   }
 
   try {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Handle sourceId properly - convert string "null" to actual null
     const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw : null;
     if (!file || typeof file === 'string') {
-      await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for candidate ${candidateId}`, 'API:Resumes:Upload', actingUserId, { candidateId });
+      await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for Applicant ${candidateId}`, 'API:Resumes:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
     }
     if (!positionId) {
@@ -102,26 +102,26 @@ export async function POST(request: NextRequest) {
       'x-amz-meta-originalname': sanitizeFilename(originalName),
     });
 
-    // Update candidate in DB
+    // Update Applicant in DB
     const pool = getPool();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Get candidate data for ownership check
-      const candidateQuery = `SELECT "recruiterId" FROM "Candidate" WHERE id = $1`;
-      const candidateResult = await client.query(candidateQuery, [candidateId]);
-      if (candidateResult.rows.length === 0) {
+      // Get Applicant data for ownership check
+      const ApplicantQuery = `SELECT "recruiterId" FROM "Candidate" WHERE id = $1`;
+      const ApplicantResult = await client.query(ApplicantQuery, [candidateId]);
+      if (ApplicantResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        await logAudit('ERROR', `Resume upload failed - candidate not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: originalName });
-        return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+        await logAudit('ERROR', `Resume upload failed - Applicant not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: originalName });
+        return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
       }
 
-      const candidate = candidateResult.rows[0];
+      const applicant = ApplicantResult.rows[0];
 
       // Check ownership-based permissions for resume upload
       if (!hasGlobalResumePermission) {
-        const resumePermission = canUploadResumes(session.user, candidate.recruiterId, actingUserId);
+        const resumePermission = canUploadResumes(session.user, applicant.recruiterId, actingUserId);
         if (!resumePermission.canUpload) {
           await client.query('ROLLBACK');
           await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}: ${resumePermission.reason}`, 'API:Resumes:Upload', actingUserId);
@@ -129,10 +129,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Update candidate's resume path
+      // Update Applicant's resume path
       const updateQuery = `UPDATE "Candidate" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
       const result = await client.query(updateQuery, [objectName, candidateId]);
-      const updatedCandidate = result.rows[0];
+      const updatedApplicant = result.rows[0];
 
       // Create attachment entry for resume history
       const historyQuery = `
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
       const webhookPayload = {
         inputs: {
           cv_url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }),
-          candidate_id: candidateId,
-          jobId: updatedCandidate.positionid || updatedCandidate.positionId || null, // support both casings
+          Applicant_id: candidateId,
+          jobId: updatedApplicant.positionid || updatedApplicant.positionId || null, // support both casings
           filename: originalName,
           mimetype: file.type
         },
@@ -179,15 +179,15 @@ export async function POST(request: NextRequest) {
 
       await client.query('COMMIT');
 
-      await logAudit('AUDIT', `Resume '${originalName}' uploaded for candidate '${candidate.name}' by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, {
+      await logAudit('AUDIT', `Resume '${originalName}' uploaded for Applicant '${applicant.name}' by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, {
         candidateId,
-        candidateName: candidate.name,
+        ApplicantName: applicant.name,
         fileName: originalName,
         fileSize: buffer.length,
         filePath: objectName
       });
 
-      return NextResponse.json({ message: 'Resume uploaded', candidate, file_path: objectName, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) });
+      return NextResponse.json({ message: 'Resume uploaded', applicant, file_path: objectName, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

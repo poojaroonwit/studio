@@ -111,7 +111,7 @@ const settingsItems = [
     href: "/settings/data-configuration", 
     label: "Data Configuration", 
     icon: Database, 
-    description: "Manage custom fields, recruitment stages, and candidate sources.", 
+    description: "Manage custom fields, recruitment stages, and Applicant sources.", 
     permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },

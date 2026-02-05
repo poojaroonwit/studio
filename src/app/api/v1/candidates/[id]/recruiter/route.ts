@@ -40,21 +40,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     `;
     const result = await client.query(query, [id]);
     if (result.rows.length === 0) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
-    const candidate = result.rows[0];
+    const applicant = result.rows[0];
     return SimpleErrorHandler.createSuccessResponse(req, {
-      candidateId: candidate.id,
-      recruiter: candidate.recruiterId ? {
-        id: candidate.recruiterId,
-        name: candidate.recruiterName,
-        email: candidate.recruiterEmail
+      candidateId: applicant.id,
+      recruiter: applicant.recruiterId ? {
+        id: applicant.recruiterId,
+        name: applicant.recruiterName,
+        email: applicant.recruiterEmail
       } : null
     }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching candidate recruiter: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching Applicant recruiter: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -64,12 +64,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalRecruiterPermission = user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN');
-  const hasOwnRecruiterPermission = user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalRecruiterPermission = user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN');
+  const hasOwnRecruiterPermission = user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN_OWN');
   
   if (!user || (user.role !== 'Admin' && !hasGlobalRecruiterPermission && !hasOwnRecruiterPermission)) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update candidate recruiter'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant recruiter'));
   }
   
   const { id } = await params;
@@ -93,19 +93,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateResult = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
-    if (candidateResult.rows.length === 0) {
+    // Check if Applicant exists
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
-    const candidate = candidateResult.rows[0];
-    const oldRecruiterId = candidate.recruiterId;
+    const applicant = applicantResult.rows[0];
+    const oldRecruiterId = applicant.recruiterId;
     
     // Check ownership-based permissions for recruiter assignment
     if (user.role !== 'Admin' && !hasGlobalRecruiterPermission) {
-      const recruiterPermission = canAssignRecruiter(user, candidate.recruiterId, user.id);
+      const recruiterPermission = canAssignRecruiter(user, applicant.recruiterId, user.id);
       if (!recruiterPermission.canAssign) {
         await client.query('ROLLBACK');
         return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${recruiterPermission.reason}`));
@@ -129,7 +129,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
     
-    // Update the candidate's recruiter
+    // Update the Applicant's recruiter
     const updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *';
     const updateResult = await client.query(updateQuery, [recruiterId, id]);
     
@@ -164,7 +164,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     await client.query('COMMIT');
     
-    // Fetch updated candidate with recruiter information
+    // Fetch updated Applicant with recruiter information
     const fetchQuery = `
       SELECT c.*, u.name as "recruiterName", u.email as "recruiterEmail"
       FROM "Candidate" c
@@ -172,24 +172,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       WHERE c.id = $1;
     `;
     const fetchResult = await client.query(fetchQuery, [id]);
-    const updatedCandidate = fetchResult.rows[0];
+    const updatedApplicant = fetchResult.rows[0];
     
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter updated by ${actingUserName}.`, 'API:V1:Candidates:UpdateRecruiter', user.id, { 
+    await logAudit('AUDIT', `Applicant '${applicant.name}' recruiter updated by ${actingUserName}.`, 'API:V1:Applicants:UpdateRecruiter', user.id, { 
       candidateId: id, 
       oldRecruiterId, 
       newRecruiterId: recruiterId 
     });
     
     return SimpleErrorHandler.createSuccessResponse(req, {
-      message: 'Candidate recruiter updated successfully',
-      candidate: {
-        id: updatedCandidate.id,
-        name: updatedCandidate.name,
-        recruiter: updatedCandidate.recruiterId ? {
-          id: updatedCandidate.recruiterId,
-          name: updatedCandidate.recruiterName,
-          email: updatedCandidate.recruiterEmail
+      message: 'Applicant recruiter updated successfully',
+      Applicant: {
+        id: updatedApplicant.id,
+        name: updatedApplicant.name,
+        recruiter: updatedApplicant.recruiterId ? {
+          id: updatedApplicant.recruiterId,
+          name: updatedApplicant.recruiterName,
+          email: updatedApplicant.recruiterEmail
         } : null
       }
     }, 200);
@@ -197,12 +197,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update candidate recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:UpdateRecruiter', user?.id, { 
+    await logAudit('ERROR', `Failed to update Applicant recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UpdateRecruiter', user?.id, { 
       candidateId: id, 
       error: errorMessage, 
       ...body 
     });
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating candidate recruiter: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating Applicant recruiter: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -212,8 +212,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN'))) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to unassign candidate recruiter'));
+  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN'))) {
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to unassign Applicant recruiter'));
   }
   
   const { id } = await params;
@@ -222,17 +222,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists and has a recruiter
-    const candidateResult = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
-    if (candidateResult.rows.length === 0) {
+    // Check if Applicant exists and has a recruiter
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
-    const candidate = candidateResult.rows[0];
-    if (!candidate.recruiterId) {
+    const applicant = applicantResult.rows[0];
+    if (!applicant.recruiterId) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createValidationError('Candidate has no recruiter assigned'));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Applicant has no recruiter assigned'));
     }
     
     // Remove the recruiter assignment
@@ -261,23 +261,23 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query('COMMIT');
     
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter unassigned by ${actingUserName}.`, 'API:V1:Candidates:UnassignRecruiter', user.id, { 
+    await logAudit('AUDIT', `Applicant '${applicant.name}' recruiter unassigned by ${actingUserName}.`, 'API:V1:Applicants:UnassignRecruiter', user.id, { 
       candidateId: id, 
-      oldRecruiterId: candidate.recruiterId 
+      oldRecruiterId: applicant.recruiterId 
     });
     
     return SimpleErrorHandler.createSuccessResponse(req, {
-      message: 'Candidate recruiter unassigned successfully'
+      message: 'Applicant recruiter unassigned successfully'
     }, 200);
     
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to unassign candidate recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:UnassignRecruiter', user?.id, { 
+    await logAudit('ERROR', `Failed to unassign Applicant recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UnassignRecruiter', user?.id, { 
       candidateId: id, 
       error: errorMessage 
     });
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error unassigning candidate recruiter: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error unassigning Applicant recruiter: ${errorMessage}`));
   } finally {
     client.release();
   }

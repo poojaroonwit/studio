@@ -409,7 +409,7 @@ export async function POST(request: NextRequest) {
                 hiringManagerGroupId,
                 'Hiring Manager',
                 'View-only access for hiring decisions',
-                ['CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
+                ['Applicants_VIEW', 'Applicants_VIEW_DETAILED', 'Applicants_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
                 false,
                 false
               ]

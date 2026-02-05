@@ -92,9 +92,9 @@ export default function AiPromptsTab({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Candidate Evaluation Criteria (Coming Soon)</CardTitle>
+              <CardTitle className="text-base">Applicant Evaluation Criteria (Coming Soon)</CardTitle>
               <CardDescription>
-                Customize how AI evaluates candidates against job requirements.
+                Customize how AI evaluates Applicants against job requirements.
               </CardDescription>
             </div>
             <Badge variant="outline">Planned</Badge>

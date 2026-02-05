@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
       let totalVacant = 0;
       recruiterPositions.forEach((position: any) => {
-        // A headcount is only considered vacant if status is 'vacant' OR no candidate assigned
+        // A headcount is only considered vacant if status is 'vacant' OR no Applicant assigned
         const vacantHeadcounts = position.headcounts.filter((headcount: any) =>
           headcount.status === 'vacant' || !headcount.candidateId
         );
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const unassignedPositions = allPositions.filter((position: any) => !position.recruiterId);
     let totalUnassignedVacant = 0;
     unassignedPositions.forEach((position: any) => {
-      // A headcount is only considered vacant if status is 'vacant' OR no candidate assigned
+      // A headcount is only considered vacant if status is 'vacant' OR no Applicant assigned
       const vacantHeadcounts = position.headcounts.filter((headcount: any) =>
         headcount.status === 'vacant' || !headcount.candidateId
       );

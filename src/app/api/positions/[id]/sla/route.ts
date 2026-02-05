@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { checkSLAViolation, getSLARemainingDays } from '@/lib/slaUtils';
 import { getPool } from '@/lib/db';
 

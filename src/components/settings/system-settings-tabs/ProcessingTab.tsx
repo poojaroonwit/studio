@@ -119,7 +119,7 @@ export default function ProcessingTab({
                             <Zap className="h-5 w-5 text-primary" />
                             <div className="text-left">
                                 <div className="font-semibold">PDF Processing Webhook</div>
-                                <div className="text-xs text-muted-foreground font-normal">Configure webhook for all PDF processing including resume uploads and automated candidate creation</div>
+                                <div className="text-xs text-muted-foreground font-normal">Configure webhook for all PDF processing including resume uploads and automated Applicant creation</div>
                             </div>
                         </div>
                     </AccordionTrigger>

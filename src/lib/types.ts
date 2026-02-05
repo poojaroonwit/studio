@@ -12,7 +12,7 @@ import { auth } from '@/auth';
 
 // Define platform module IDs with categories
 export const PLATFORM_MODULE_CATEGORIES = {
-  CANDIDATE_MANAGEMENT: "Candidate Management",
+  APPLICANT_MANAGEMENT: "Applicant Management",
   POSITION_MANAGEMENT: "Position Management",
   USER_ACCESS_CONTROL: "User Access Control",
   SYSTEM_CONFIGURATION: "System Configuration",
@@ -35,118 +35,118 @@ export interface PlatformModule {
 }
 
 export const PLATFORM_MODULES: PlatformModule[] = [
-  // ===== CANDIDATE MANAGEMENT =====
+  // ===== Applicant MANAGEMENT =====
 
   // View Permissions
   {
-    id: 'CANDIDATES_VIEW',
-    label: 'View Candidates',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View basic candidate profiles",
-    detailedDescription: "Allows users to view the list of candidates and their basic profile information. Does not include access to sensitive data.",
-    impact: "Basic read access to candidate list.",
+    id: 'Applicants_VIEW',
+    label: 'View Applicants',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "View basic Applicant profiles",
+    detailedDescription: "Allows users to view the list of Applicants and their basic profile information. Does not include access to sensitive data.",
+    impact: "Basic read access to Applicant list.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_VIEW_ALL',
-    label: 'View All Candidates (Unrestricted)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View all candidates regardless of position assignment",
-    detailedDescription: "For hiring managers: allows viewing all candidates in the system, not just those for positions where the user is assigned as an interviewer. Overrides the system-wide restriction setting.",
-    impact: "Can view all candidates regardless of position assignment. Important for senior hiring managers who need oversight.",
+    id: 'Applicants_VIEW_ALL',
+    label: 'View All Applicants (Unrestricted)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "View all Applicants regardless of position assignment",
+    detailedDescription: "For hiring managers: allows viewing all Applicants in the system, not just those for positions where the user is assigned as an interviewer. Overrides the system-wide restriction setting.",
+    impact: "Can view all Applicants regardless of position assignment. Important for senior hiring managers who need oversight.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_VIEW_DETAILED',
+    id: 'Applicants_VIEW_DETAILED',
     label: 'View Detailed Info',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View resumes and interview notes",
-    detailedDescription: "Grant access to sensitive candidate details such as resumes, cover letters, interview notes, and salary expectations.",
+    detailedDescription: "Grant access to sensitive Applicant details such as resumes, cover letters, interview notes, and salary expectations.",
     impact: "Access to sensitive personal data.",
     riskLevel: 'MEDIUM'
   },
 
   // Create/Edit Permissions
   {
-    id: 'CANDIDATES_CREATE',
-    label: 'Create New Candidates',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Add new candidate profiles to the system",
-    detailedDescription: "Ability to create new candidate profiles, add basic information, and initiate the recruitment process for new candidates.",
-    impact: "Can add new candidates to the recruitment pipeline. Affects data quality and system integrity.",
+    id: 'Applicants_CREATE',
+    label: 'Create New Applicants',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Add new Applicant profiles to the system",
+    detailedDescription: "Ability to create new Applicant profiles, add basic information, and initiate the recruitment process for new Applicants.",
+    impact: "Can add new Applicants to the recruitment pipeline. Affects data quality and system integrity.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_EDIT_BASIC',
-    label: 'Edit Candidates',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    id: 'Applicants_EDIT_BASIC',
+    label: 'Edit Applicants',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit main contact details",
-    detailedDescription: "Allows editing of basic candidate information like name, email, and phone number.",
+    detailedDescription: "Allows editing of basic Applicant information like name, email, and phone number.",
     impact: "Can modify contact info.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_EDIT_SENSITIVE',
-    label: 'Edit Sensitive Candidate Information',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit sensitive candidate data including salary and notes",
-    detailedDescription: "Ability to modify sensitive candidate information including salary expectations, interview notes, internal comments, and assessment scores.",
-    impact: "Can modify critical candidate data that affects hiring decisions. High impact on recruitment process.",
+    id: 'Applicants_EDIT_SENSITIVE',
+    label: 'Edit Sensitive Applicant Information',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit sensitive Applicant data including salary and notes",
+    detailedDescription: "Ability to modify sensitive Applicant information including salary expectations, interview notes, internal comments, and assessment scores.",
+    impact: "Can modify critical Applicant data that affects hiring decisions. High impact on recruitment process.",
     riskLevel: 'HIGH'
   },
 
   // Ownership-based Edit Permissions
   {
-    id: 'CANDIDATES_EDIT_BASIC_OWN',
+    id: 'Applicants_EDIT_BASIC_OWN',
     label: 'Edit Basic Information (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit basic candidate details for candidates assigned to you",
-    detailedDescription: "Ability to modify basic candidate information (name, email, phone, general profile) only for candidates assigned to you as recruiter.",
-    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit basic Applicant details for Applicants assigned to you",
+    detailedDescription: "Ability to modify basic Applicant information (name, email, phone, general profile) only for Applicants assigned to you as recruiter.",
+    impact: "Limited to own assigned Applicants. Lower risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_EDIT_SENSITIVE_OWN',
+    id: 'Applicants_EDIT_SENSITIVE_OWN',
     label: 'Edit Sensitive Information (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit sensitive candidate data for candidates assigned to you",
-    detailedDescription: "Ability to modify sensitive candidate information (salary, interview notes, internal comments, assessment scores) only for candidates assigned to you as recruiter.",
-    impact: "Limited to own assigned candidates. Medium risk as scope is restricted but includes sensitive data.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit sensitive Applicant data for Applicants assigned to you",
+    detailedDescription: "Ability to modify sensitive Applicant information (salary, interview notes, internal comments, assessment scores) only for Applicants assigned to you as recruiter.",
+    impact: "Limited to own assigned Applicants. Medium risk as scope is restricted but includes sensitive data.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_EDIT_BASIC_ALL',
-    label: 'Edit Basic Information (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit basic candidate details for all candidates",
-    detailedDescription: "Ability to modify basic candidate information (name, email, phone, general profile) for any candidate in the system, regardless of assignment.",
-    impact: "Full access to all candidate basic information. Higher risk as scope includes all candidates.",
+    id: 'Applicants_EDIT_BASIC_ALL',
+    label: 'Edit Basic Information (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit basic Applicant details for all Applicants",
+    detailedDescription: "Ability to modify basic Applicant information (name, email, phone, general profile) for any Applicant in the system, regardless of assignment.",
+    impact: "Full access to all Applicant basic information. Higher risk as scope includes all Applicants.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_EDIT_SENSITIVE_ALL',
-    label: 'Edit Sensitive Information (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit sensitive candidate data for all candidates",
-    detailedDescription: "Ability to modify sensitive candidate information (salary, interview notes, internal comments, assessment scores) for any candidate in the system, regardless of assignment.",
-    impact: "Full access to all candidate sensitive information. High risk as scope includes all candidates and sensitive data.",
+    id: 'Applicants_EDIT_SENSITIVE_ALL',
+    label: 'Edit Sensitive Information (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit sensitive Applicant data for all Applicants",
+    detailedDescription: "Ability to modify sensitive Applicant information (salary, interview notes, internal comments, assessment scores) for any Applicant in the system, regardless of assignment.",
+    impact: "Full access to all Applicant sensitive information. High risk as scope includes all Applicants and sensitive data.",
     riskLevel: 'HIGH'
   },
 
   // Delete Permissions
   {
-    id: 'CANDIDATES_DELETE',
-    label: 'Delete Candidate Profiles',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Permanently remove candidate profiles from the system",
-    detailedDescription: "Ability to permanently delete candidate profiles and all associated data including resumes, notes, and history. This action cannot be undone.",
+    id: 'Applicants_DELETE',
+    label: 'Delete Applicant Profiles',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Permanently remove Applicant profiles from the system",
+    detailedDescription: "Ability to permanently delete Applicant profiles and all associated data including resumes, notes, and history. This action cannot be undone.",
     impact: "Permanent data loss. Affects audit trails and compliance requirements.",
     riskLevel: 'CRITICAL',
     requiresApproval: true
@@ -156,238 +156,238 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // File Management
   {
-    id: 'CANDIDATES_RESUMES_UPLOAD',
-    label: 'Upload Candidate Resumes',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Upload and manage candidate resumes and documents",
-    detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents.",
-    impact: "Controls access to candidate documentation. Critical for recruitment process.",
+    id: 'Applicants_RESUMES_UPLOAD',
+    label: 'Upload Applicant Resumes',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Upload and manage Applicant resumes and documents",
+    detailedDescription: "Ability to upload, replace, and manage Applicant resumes, cover letters, and other supporting documents.",
+    impact: "Controls access to Applicant documentation. Critical for recruitment process.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_RESUMES_UPLOAD_OWN',
+    id: 'Applicants_RESUMES_UPLOAD_OWN',
     label: 'Upload Resumes (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Upload resumes for candidates assigned to you",
-    detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents only for candidates assigned to you as recruiter.",
-    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Upload resumes for Applicants assigned to you",
+    detailedDescription: "Ability to upload, replace, and manage Applicant resumes, cover letters, and other supporting documents only for Applicants assigned to you as recruiter.",
+    impact: "Limited to own assigned Applicants. Lower risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_RESUMES_UPLOAD_ALL',
-    label: 'Upload Resumes (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Upload resumes for any candidate",
-    detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents for any candidate in the system, regardless of assignment.",
-    impact: "Full access to candidate documentation. Medium risk as affects all candidate profiles.",
+    id: 'Applicants_RESUMES_UPLOAD_ALL',
+    label: 'Upload Resumes (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Upload resumes for any Applicant",
+    detailedDescription: "Ability to upload, replace, and manage Applicant resumes, cover letters, and other supporting documents for any Applicant in the system, regardless of assignment.",
+    impact: "Full access to Applicant documentation. Medium risk as affects all Applicant profiles.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_RESUMES_DELETE',
-    label: 'Delete Candidate Documents',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Remove candidate resumes and attachments",
-    detailedDescription: "Ability to delete candidate resumes, cover letters, and other uploaded documents. Permanent action.",
-    impact: "Permanent loss of candidate documentation. Affects compliance and audit trails.",
+    id: 'Applicants_RESUMES_DELETE',
+    label: 'Delete Applicant Documents',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Remove Applicant resumes and attachments",
+    detailedDescription: "Ability to delete Applicant resumes, cover letters, and other uploaded documents. Permanent action.",
+    impact: "Permanent loss of Applicant documentation. Affects compliance and audit trails.",
     riskLevel: 'HIGH'
   },
 
   // Comments and Notes
   {
-    id: 'CANDIDATES_COMMENTS_VIEW',
-    label: 'View Candidate Comments',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View comments and notes on candidate profiles",
-    detailedDescription: "Access to view all comments, notes, and internal feedback on candidate profiles.",
-    impact: "Read-only access to candidate feedback and internal communications.",
+    id: 'Applicants_COMMENTS_VIEW',
+    label: 'View Applicant Comments',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "View comments and notes on Applicant profiles",
+    detailedDescription: "Access to view all comments, notes, and internal feedback on Applicant profiles.",
+    impact: "Read-only access to Applicant feedback and internal communications.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_COMMENTS_ADD',
-    label: 'Add Candidate Comments',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Add comments and notes to candidate profiles",
-    detailedDescription: "Ability to add comments, notes, and feedback to candidate profiles. Cannot edit or delete existing comments.",
-    impact: "Can contribute to candidate feedback and internal communications.",
+    id: 'Applicants_COMMENTS_ADD',
+    label: 'Add Applicant Comments',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Add comments and notes to Applicant profiles",
+    detailedDescription: "Ability to add comments, notes, and feedback to Applicant profiles. Cannot edit or delete existing comments.",
+    impact: "Can contribute to Applicant feedback and internal communications.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_COMMENTS_ADD_OWN',
+    id: 'Applicants_COMMENTS_ADD_OWN',
     label: 'Add Comments (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Add comments to candidates assigned to you",
-    detailedDescription: "Ability to add comments, notes, and feedback only to candidate profiles assigned to you as recruiter.",
-    impact: "Limited to own assigned candidates. Very low risk as scope is restricted to personal workload.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Add comments to Applicants assigned to you",
+    detailedDescription: "Ability to add comments, notes, and feedback only to Applicant profiles assigned to you as recruiter.",
+    impact: "Limited to own assigned Applicants. Very low risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_COMMENTS_ADD_ALL',
-    label: 'Add Comments (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Add comments to any candidate",
-    detailedDescription: "Ability to add comments, notes, and feedback to any candidate profile in the system, regardless of assignment.",
-    impact: "Full access to candidate communication. Medium risk as affects all candidate profiles.",
+    id: 'Applicants_COMMENTS_ADD_ALL',
+    label: 'Add Comments (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Add comments to any Applicant",
+    detailedDescription: "Ability to add comments, notes, and feedback to any Applicant profile in the system, regardless of assignment.",
+    impact: "Full access to Applicant communication. Medium risk as affects all Applicant profiles.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_COMMENTS_EDIT',
-    label: 'Edit Candidate Comments',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit and delete candidate comments and notes",
-    detailedDescription: "Ability to edit and delete existing comments, notes, and feedback on candidate profiles.",
+    id: 'Applicants_COMMENTS_EDIT',
+    label: 'Edit Applicant Comments',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Edit and delete Applicant comments and notes",
+    detailedDescription: "Ability to edit and delete existing comments, notes, and feedback on Applicant profiles.",
     impact: "Can modify internal communications and feedback history.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_COMMENTS_VIEW_REMARK_ONLY',
+    id: 'Applicants_COMMENTS_VIEW_REMARK_ONLY',
     label: 'View Remarks to HM Only',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Only allowed to view 'Remark to HM' comments",
     detailedDescription: "Restricts the user to only see comments specifically marked as 'Remark to HM'. General comments and internal notes remain hidden.",
-    impact: "Restricted access to candidate communication.",
+    impact: "Restricted access to Applicant communication.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_ACTIVITIES_VIEW',
-    label: 'View Candidate Activities',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    id: 'Applicants_ACTIVITIES_VIEW',
+    label: 'View Applicant Activities',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View activity logs and status changes",
-    detailedDescription: "Access to view the history of candidate status changes, resume uploads, and other system-logged activities.",
-    impact: "Read-only access to candidate history and workflow progression.",
+    detailedDescription: "Access to view the history of Applicant status changes, resume uploads, and other system-logged activities.",
+    impact: "Read-only access to Applicant history and workflow progression.",
     riskLevel: 'LOW'
   },
 
   // Source Assignment
   {
-    id: 'CANDIDATES_SOURCE_ASSIGN',
-    label: 'Assign Candidate Source',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign and change candidate source (e.g., LinkedIn, Referral, Job Board)",
-    detailedDescription: "Ability to assign and modify the source of candidates (where they came from). Important for tracking recruitment effectiveness and attribution.",
+    id: 'Applicants_SOURCE_ASSIGN',
+    label: 'Assign Applicant Source',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign and change Applicant source (e.g., LinkedIn, Referral, Job Board)",
+    detailedDescription: "Ability to assign and modify the source of Applicants (where they came from). Important for tracking recruitment effectiveness and attribution.",
     impact: "Affects recruitment analytics and source tracking. Important for measuring channel effectiveness.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_SOURCE_ASSIGN_BULK',
+    id: 'Applicants_SOURCE_ASSIGN_BULK',
     label: 'Bulk Source Assignment',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign source for multiple candidates at once",
-    detailedDescription: "Ability to assign or change the source for multiple candidates simultaneously. Useful for batch corrections.",
-    impact: "Can affect multiple candidate source attributions at once. Affects analytics accuracy.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign source for multiple Applicants at once",
+    detailedDescription: "Ability to assign or change the source for multiple Applicants simultaneously. Useful for batch corrections.",
+    impact: "Can affect multiple Applicant source attributions at once. Affects analytics accuracy.",
     riskLevel: 'MEDIUM'
   },
 
   // Recruiter Assignment
   {
-    id: 'CANDIDATES_RECRUITER_ASSIGN',
+    id: 'Applicants_RECRUITER_ASSIGN',
     label: 'Assign Recruiters',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign candidates to recruiters",
-    detailedDescription: "Allows assigning or reassigning candidates to specific recruiters to manage workload.",
-    impact: "Changes candidate ownership.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign Applicants to recruiters",
+    detailedDescription: "Allows assigning or reassigning Applicants to specific recruiters to manage workload.",
+    impact: "Changes Applicant ownership.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_RECRUITER_ASSIGN_OWN',
-    label: 'Assign Own Candidates to Recruiter',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign only your own candidates to other recruiters",
-    detailedDescription: "Ability to reassign candidates that are currently assigned to you to other recruiters. Cannot assign candidates assigned to others.",
-    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload management.",
+    id: 'Applicants_RECRUITER_ASSIGN_OWN',
+    label: 'Assign Own Applicants to Recruiter',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign only your own Applicants to other recruiters",
+    detailedDescription: "Ability to reassign Applicants that are currently assigned to you to other recruiters. Cannot assign Applicants assigned to others.",
+    impact: "Limited to own assigned Applicants. Lower risk as scope is restricted to personal workload management.",
     riskLevel: 'LOW'
   },
 
   {
-    id: 'CANDIDATES_RECRUITER_ASSIGN_ALL',
-    label: 'Assign All Candidates to Recruiter',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign any candidate to recruiters",
-    detailedDescription: "Ability to assign or reassign any candidate in the system to any recruiter, regardless of current assignment.",
-    impact: "Full access to candidate ownership management. High risk as affects all candidate assignments.",
+    id: 'Applicants_RECRUITER_ASSIGN_ALL',
+    label: 'Assign All Applicants to Recruiter',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign any Applicant to recruiters",
+    detailedDescription: "Ability to assign or reassign any Applicant in the system to any recruiter, regardless of current assignment.",
+    impact: "Full access to Applicant ownership management. High risk as affects all Applicant assignments.",
     riskLevel: 'HIGH'
   },
 
   {
-    id: 'CANDIDATES_RECRUITER_ASSIGN_BULK',
+    id: 'Applicants_RECRUITER_ASSIGN_BULK',
     label: 'Bulk Recruiter Assignment',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign multiple candidates to recruiters at once",
-    detailedDescription: "Ability to assign multiple candidates to recruiters simultaneously. Useful for workload balancing.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Assign multiple Applicants to recruiters at once",
+    detailedDescription: "Ability to assign multiple Applicants to recruiters simultaneously. Useful for workload balancing.",
     impact: "Can affect multiple recruiter workloads at once. Requires careful planning.",
     riskLevel: 'HIGH'
   },
 
   // Pipeline Stage Management
   {
-    id: 'CANDIDATES_PIPELINE_STAGE_UPDATE',
-    label: 'Move Candidates',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Advance candidates in pipeline",
-    detailedDescription: "Allows moving candidates between different stages of the hiring process (e.g., from Interview to Offer).",
+    id: 'Applicants_PIPELINE_STAGE_UPDATE',
+    label: 'Move Applicants',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Advance Applicants in pipeline",
+    detailedDescription: "Allows moving Applicants between different stages of the hiring process (e.g., from Interview to Offer).",
     impact: "Advances the recruitment workflow.",
     riskLevel: 'HIGH'
   },
 
   {
-    id: 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN',
+    id: 'Applicants_PIPELINE_STAGE_UPDATE_OWN',
     label: 'Update Pipeline Stage (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Move own assigned candidates through pipeline stages",
-    detailedDescription: "Ability to move candidates assigned to you through different stages of the recruitment pipeline. Cannot update stages for candidates assigned to other recruiters.",
-    impact: "Limited to own assigned candidates. Medium risk as scope is restricted but affects workflow progression.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Move own assigned Applicants through pipeline stages",
+    detailedDescription: "Ability to move Applicants assigned to you through different stages of the recruitment pipeline. Cannot update stages for Applicants assigned to other recruiters.",
+    impact: "Limited to own assigned Applicants. Medium risk as scope is restricted but affects workflow progression.",
     riskLevel: 'MEDIUM'
   },
 
   {
-    id: 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL',
-    label: 'Update Pipeline Stage (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Move any candidate through pipeline stages",
-    detailedDescription: "Ability to move any candidate in the system through different stages of the recruitment pipeline, regardless of assignment.",
-    impact: "Full access to candidate workflow progression. High risk as affects all candidate pipeline management.",
+    id: 'Applicants_PIPELINE_STAGE_UPDATE_ALL',
+    label: 'Update Pipeline Stage (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Move any Applicant through pipeline stages",
+    detailedDescription: "Ability to move any Applicant in the system through different stages of the recruitment pipeline, regardless of assignment.",
+    impact: "Full access to Applicant workflow progression. High risk as affects all Applicant pipeline management.",
     riskLevel: 'HIGH'
   },
 
   {
-    id: 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE',
+    id: 'Applicants_PIPELINE_STAGE_BULK_UPDATE',
     label: 'Bulk Pipeline Stage Updates',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Update pipeline stage for multiple candidates at once",
-    detailedDescription: "Ability to move multiple candidates through pipeline stages simultaneously. Useful for batch processing but requires careful oversight.",
-    impact: "Can affect multiple candidates' progression at once. High potential for unintended changes.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Update pipeline stage for multiple Applicants at once",
+    detailedDescription: "Ability to move multiple Applicants through pipeline stages simultaneously. Useful for batch processing but requires careful oversight.",
+    impact: "Can affect multiple Applicants' progression at once. High potential for unintended changes.",
     riskLevel: 'HIGH',
     requiresApproval: true
   },
 
   // Import/Export
   {
-    id: 'CANDIDATES_IMPORT',
-    label: 'Import Candidate Data',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Bulk import candidate data from external sources",
-    detailedDescription: "Ability to import candidate data from CSV files, spreadsheets, or other external sources. Can create multiple candidate profiles at once.",
+    id: 'Applicants_IMPORT',
+    label: 'Import Applicant Data',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Bulk import Applicant data from external sources",
+    detailedDescription: "Ability to import Applicant data from CSV files, spreadsheets, or other external sources. Can create multiple Applicant profiles at once.",
     impact: "Can add large volumes of data quickly. Risk of data quality issues and duplicates.",
     riskLevel: 'HIGH',
     requiresApproval: true
   },
 
   {
-    id: 'CANDIDATES_EXPORT',
-    label: 'Export Candidate Data',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Export candidate data to external formats",
-    detailedDescription: "Ability to export candidate data to CSV, Excel, or other formats. Includes personal and sensitive information.",
+    id: 'Applicants_EXPORT',
+    label: 'Export Applicant Data',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Export Applicant data to external formats",
+    detailedDescription: "Ability to export Applicant data to CSV, Excel, or other formats. Includes personal and sensitive information.",
     impact: "Data can be taken outside the system. Important for data security and compliance.",
     riskLevel: 'MEDIUM'
   },
@@ -440,7 +440,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT,
     description: "Edit detailed position requirements and parameters",
     detailedDescription: "Ability to edit detailed job position information including requirements, salary ranges, status, and recruitment parameters.",
-    impact: "Can modify recruitment requirements and parameters. Affects candidate matching and hiring process.",
+    impact: "Can modify recruitment requirements and parameters. Affects Applicant matching and hiring process.",
     riskLevel: 'MEDIUM'
   },
 
@@ -460,7 +460,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT,
     description: "Remove job positions from the system",
     detailedDescription: "Ability to delete job positions and all associated data. Affects active recruitment campaigns.",
-    impact: "Can terminate recruitment campaigns. Affects active candidates and hiring plans.",
+    impact: "Can terminate recruitment campaigns. Affects active Applicants and hiring plans.",
     riskLevel: 'HIGH',
     requiresApproval: true
   },
@@ -630,7 +630,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     label: 'Edit Recruitment Stages',
     category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION,
     description: "Modify recruitment pipeline stages",
-    detailedDescription: "Ability to add, edit, and remove recruitment pipeline stages. Affects workflow for all candidates.",
+    detailedDescription: "Ability to add, edit, and remove recruitment pipeline stages. Affects workflow for all Applicants.",
     impact: "Can modify recruitment workflow. Affects all active recruitment processes.",
     riskLevel: 'HIGH',
     requiresApproval: true
@@ -641,7 +641,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     label: 'View Custom Fields',
     category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION,
     description: "View custom field definitions",
-    detailedDescription: "Access to view custom field definitions for candidates and positions.",
+    detailedDescription: "Access to view custom field definitions for Applicants and positions.",
     impact: "Read-only access to field definitions. No ability to modify.",
     riskLevel: 'LOW'
   },
@@ -651,7 +651,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     label: 'Edit Custom Fields',
     category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION,
     description: "Create and modify custom fields",
-    detailedDescription: "Ability to create, edit, and delete custom fields for candidates and positions. Affects data structure.",
+    detailedDescription: "Ability to create, edit, and delete custom fields for Applicants and positions. Affects data structure.",
     impact: "Can modify data structure and collection. Affects data integrity and reporting.",
     riskLevel: 'HIGH',
     requiresApproval: true
@@ -695,8 +695,8 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     label: 'Edit AI Integration Settings',
     category: PLATFORM_MODULE_CATEGORIES.AUTOMATION_INTEGRATION,
     description: "Configure AI service integrations",
-    detailedDescription: "Ability to configure AI services like Gemini for candidate analysis and automation.",
-    impact: "Can modify AI service configurations. Affects automated candidate processing.",
+    detailedDescription: "Ability to configure AI services like Gemini for Applicant analysis and automation.",
+    impact: "Can modify AI service configurations. Affects automated Applicant processing.",
     riskLevel: 'HIGH',
     requiresApproval: true
   },
@@ -725,8 +725,8 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     id: 'BULK_UPLOAD_EXECUTE',
     label: 'Execute Bulk Uploads',
     category: PLATFORM_MODULE_CATEGORIES.AUTOMATION_INTEGRATION,
-    description: "Perform bulk candidate uploads",
-    detailedDescription: "Ability to execute bulk upload operations for candidates and documents.",
+    description: "Perform bulk Applicant uploads",
+    detailedDescription: "Ability to execute bulk upload operations for Applicants and documents.",
     impact: "Can add large volumes of data quickly. Risk of data quality issues.",
     riskLevel: 'HIGH',
     requiresApproval: true
@@ -801,9 +801,9 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'TASK_BOARD_VIEW',
     label: 'View Task Board',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View task board and workflow",
-    detailedDescription: "Access to view the task board for managing candidate tasks and workflow.",
+    detailedDescription: "Access to view the task board for managing Applicant tasks and workflow.",
     impact: "Read-only access to task management. No ability to modify tasks.",
     riskLevel: 'LOW'
   },
@@ -811,7 +811,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'TASK_BOARD_MANAGE_OWN',
     label: 'Manage Own Tasks',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Manage tasks assigned to self",
     detailedDescription: "Ability to create, edit, and complete tasks assigned to the current user.",
     impact: "Can manage personal task workflow. Limited to own tasks only.",
@@ -821,7 +821,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'TASK_BOARD_MANAGE_ALL',
     label: 'Manage All Tasks',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Manage tasks for all users",
     detailedDescription: "Ability to create, edit, assign, and manage tasks for all users in the system.",
     impact: "Can control task workflow for all users. Affects team productivity and coordination.",
@@ -833,9 +833,9 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'JOB_MATCH_VIEW',
     label: 'View Job Matches',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View candidate-job matching results",
-    detailedDescription: "Access to view job matching results and candidate-position compatibility scores.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "View Applicant-job matching results",
+    detailedDescription: "Access to view job matching results and Applicant-position compatibility scores.",
     impact: "Read-only access to matching data. No ability to modify.",
     riskLevel: 'LOW'
   },
@@ -843,10 +843,10 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'JOB_MATCH_MANAGE',
     label: 'Manage Job Matches',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Create and modify job matches",
-    detailedDescription: "Ability to create, edit, and delete job matches between candidates and positions.",
-    impact: "Can control candidate-position matching. Affects recruitment strategy.",
+    detailedDescription: "Ability to create, edit, and delete job matches between Applicants and positions.",
+    impact: "Can control Applicant-position matching. Affects recruitment strategy.",
     riskLevel: 'MEDIUM'
   },
 
@@ -879,8 +879,8 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'EVALUATION_LINKS_VIEW',
     label: 'View Evaluation Links',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View evaluation links for candidates",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "View evaluation links for Applicants",
     detailedDescription: "Access to view evaluation links including URL, expiration date, and owner information. Cannot create or modify links.",
     impact: "Read-only access to evaluation links. No ability to create or modify.",
     riskLevel: 'LOW'
@@ -889,40 +889,40 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   {
     id: 'EVALUATION_LINKS_CREATE_OWN',
     label: 'Create Evaluation Links (Own Assigned)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Create evaluation links for candidates assigned to you",
-    detailedDescription: "Ability to create evaluation links only for candidates assigned to you as recruiter. Can set expiration and login requirements.",
-    impact: "Limited to own assigned candidates. Medium risk as controls access to candidate evaluation.",
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Create evaluation links for Applicants assigned to you",
+    detailedDescription: "Ability to create evaluation links only for Applicants assigned to you as recruiter. Can set expiration and login requirements.",
+    impact: "Limited to own assigned Applicants. Medium risk as controls access to Applicant evaluation.",
     riskLevel: 'MEDIUM'
   },
 
   {
     id: 'EVALUATION_LINKS_CREATE_ALL',
-    label: 'Create Evaluation Links (All Candidates)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Create evaluation links for any candidate",
-    detailedDescription: "Ability to create evaluation links for any candidate in the system, regardless of assignment. Can set expiration and login requirements.",
-    impact: "Full access to create evaluation links. High risk as controls access to all candidate evaluations.",
+    label: 'Create Evaluation Links (All Applicants)',
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
+    description: "Create evaluation links for any Applicant",
+    detailedDescription: "Ability to create evaluation links for any Applicant in the system, regardless of assignment. Can set expiration and login requirements.",
+    impact: "Full access to create evaluation links. High risk as controls access to all Applicant evaluations.",
     riskLevel: 'HIGH'
   },
 
   {
     id: 'EVALUATION_LINKS_MANAGE_OWN',
     label: 'Manage Evaluation Links (Own Created)',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Manage evaluation links created by you",
     detailedDescription: "Ability to update, extend, or revoke evaluation links that you created. Can modify expiration dates and login requirements.",
-    impact: "Limited to own created links. Medium risk as controls access to candidate evaluation.",
+    impact: "Limited to own created links. Medium risk as controls access to Applicant evaluation.",
     riskLevel: 'MEDIUM'
   },
 
   {
     id: 'EVALUATION_LINKS_MANAGE_ALL',
     label: 'Manage All Evaluation Links',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Manage all evaluation links in the system",
     detailedDescription: "Ability to update, extend, or revoke any evaluation link in the system, regardless of creator. Can modify expiration dates and login requirements.",
-    impact: "Full access to manage all evaluation links. High risk as controls access to all candidate evaluations.",
+    impact: "Full access to manage all evaluation links. High risk as controls access to all Applicant evaluations.",
     riskLevel: 'HIGH'
   },
 ];
@@ -971,7 +971,7 @@ declare module "next-auth/jwt" {
 
 // Core system statuses - these might still be useful for specific logic,
 // but the full list of available stages will come from the RecruitmentStage table.
-export type CoreCandidateStatus =
+export type CoreApplicantStatus =
   | 'Applied'
   | 'Screening'
   | 'Shortlisted'
@@ -984,10 +984,10 @@ export type CoreCandidateStatus =
   | 'On Hold';
 
 // This type will represent any stage name, whether core or custom.
-export type CandidateStatus = string;
+export type ApplicantStatus = string;
 
-// Active candidate statuses - candidates that are not hired or rejected
-export const ACTIVE_CANDIDATE_STATUSES: CoreCandidateStatus[] = [
+// Active Applicant statuses - Applicants that are not hired or rejected
+export const ACTIVE_APPLICANT_STATUSES: CoreApplicantStatus[] = [
   'Applied',
   'Screening',
   'Shortlisted',
@@ -998,9 +998,9 @@ export const ACTIVE_CANDIDATE_STATUSES: CoreCandidateStatus[] = [
   'On Hold'
 ];
 
-// Utility function to get active candidate statuses as a comma-separated string for queries
-export function getActiveCandidateStatusesQuery(): string {
-  return ACTIVE_CANDIDATE_STATUSES.join(',');
+// Utility function to get active Applicant statuses as a comma-separated string for queries
+export function getActiveApplicantStatusesQuery(): string {
+  return ACTIVE_APPLICANT_STATUSES.join(',');
 }
 
 export interface RecruitmentStage {
@@ -1012,14 +1012,14 @@ export interface RecruitmentStage {
   createdAt?: string;
   updatedAt?: string;
   color_complete?: string | null; // Custom color for completed stage node
-  color_badge?: string | null; // Custom color for badge on candidate list
+  color_badge?: string | null; // Custom color for badge on Applicant list
 }
 
 export interface TransitionRecord {
   id: string;
   candidateId?: string;
   date: string;
-  stage: CandidateStatus; // Now a string to accommodate custom stages
+  stage: ApplicantStatus; // Now a string to accommodate custom stages
   notes?: string;
   actingUserId?: string | null;
   actingUserName?: string | null; // For display purposes, populated by JOIN
@@ -1123,7 +1123,7 @@ export interface AutomationJobMatch {
   is_applied_job?: boolean;
 }
 
-export interface CandidateDetails {
+export interface ApplicantDetails {
   cv_language?: string;
   personal_info: PersonalInfo;
   contact_info: ContactInfo;
@@ -1140,8 +1140,8 @@ export interface CandidateDetails {
   job_matches?: AutomationJobMatch[];
 }
 
-export interface AutomationCandidateWebhookEntry {
-  candidate_info: CandidateDetails;
+export interface AutomationApplicantWebhookEntry {
+  applicant_info: ApplicantDetails;
   jobs?: AutomationJobMatch[];
   targetPositionId?: string | null;
   targetPositionTitle?: string | null;
@@ -1155,7 +1155,7 @@ export interface AutomationCandidateWebhookEntry {
   } | null;
 }
 
-export type AutomationWebhookPayload = AutomationCandidateWebhookEntry;
+export type AutomationWebhookPayload = AutomationApplicantWebhookEntry;
 
 export interface OldParsedResumeData {
   name?: string;
@@ -1199,10 +1199,10 @@ export interface Position {
   customFields?: { [fieldCode: string]: any }; // Custom field values
   createdAt?: string;
   updatedAt?: string;
-  candidates?: Candidate[];
+  applicants?: Applicant[];
   webhook_payload?: any;
   upload_id?: string;
-  candidateStats?: {
+  applicantStats?: {
     totalApplied: number;
     appliedStatusCount: number;
     totalMatching: number;
@@ -1243,7 +1243,7 @@ export interface UserTeam {
   updatedAt?: string;
 }
 
-export interface CandidateSource {
+export interface ApplicantSource {
   id: string;
   name: string;
   description?: string | null;
@@ -1256,16 +1256,16 @@ export interface CandidateSource {
   updatedAt?: string;
 }
 
-export interface Candidate {
+export interface Applicant {
   id: string;
   name: string;
   email: string;
   phone?: string | null;
   expectedSalary?: number | null;
-  avatarUrl?: string | null; // For candidate profile image
-  dataAiHint?: string | null; // For candidate profile image
+  avatarUrl?: string | null; // For Applicant profile image
+  dataAiHint?: string | null; // For Applicant profile image
   resumePath?: string | null; // Current/primary resume
-  parsedData: CandidateDetails | OldParsedResumeData | null;
+  parsedData: ApplicantDetails | OldParsedResumeData | null;
   positionId: string | null;
   position?: Position | null;
   fitScore: number;
@@ -1276,7 +1276,7 @@ export interface Candidate {
   recruiterId?: string | null;
   recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;
   sourceId?: string | null;
-  source?: CandidateSource | null;
+  source?: ApplicantSource | null;
   subSource?: string | null;
   customFields?: { [fieldCode: string]: any }; // Custom field values
   customAttributes?: Record<string, any> | null;
@@ -1286,7 +1286,8 @@ export interface Candidate {
   isPinned?: boolean;
   pinnedAt?: string | null;
   isBlacklisted?: boolean;
-  emailDate?: string | null; // Date from email when candidate applied via email
+  isRead?: boolean | null; // Per-user read status (null if not set for current user)
+  emailDate?: string | null; // Date from email when Applicant applied via email
   emailSubject?: string | null; // Subject line of the application email
   emailId?: string | null; // Unique email message ID
   emailMetadata?: Record<string, any> | null; // Additional email metadata (headers, etc.)
@@ -1294,7 +1295,7 @@ export interface Candidate {
   educationData?: StructuredEducationEntry[];
   experienceData?: StructuredExperienceEntry[];
   jobMatches?: JobMatch[]; // Job matches from the JobMatch table
-  associationType?: 'applied' | 'matched' | 'applied_and_matched'; // For position-specific candidate lists
+  associationType?: 'applied' | 'matched' | 'applied_and_matched'; // For position-specific Applicant lists
 }
 
 export interface ResumeHistoryEntry {
@@ -1429,7 +1430,7 @@ export interface CustomFieldOption {
 
 export interface CustomFieldDefinition {
   id: string;
-  model_name: 'Candidate' | 'Position' | 'User' | 'Headcount';
+  model_name: 'Applicant' | 'Position' | 'User' | 'Headcount';
   field_key: string;
   field_code: string;
   label: string;
@@ -1447,15 +1448,15 @@ export interface CustomFieldDefinition {
 
   // Visibility settings
   showInFilter?: boolean;
-  showInCandidateDetail?: boolean;
-  showInFullCandidateDetail?: boolean;
+  showInApplicantDetail?: boolean;
+  showInFullApplicantDetail?: boolean;
   showInTaskBoardFilter?: boolean;
   showInPositionSettings?: boolean;
   showInHeadcountDetail?: boolean;
 
   // Section selection for display settings
-  candidateDetailSection?: 'jobs' | 'candidate-info' | 'education' | 'experience' | 'job-suitability';
-  positionDetailSection?: 'details' | 'criteria' | 'candidates' | 'headcount';
+  ApplicantDetailSection?: 'jobs' | 'Applicant-info' | 'education' | 'experience' | 'job-suitability';
+  positionDetailSection?: 'details' | 'criteria' | 'Applicants' | 'headcount';
 
   // For select/multiselect fields
   allowCustomOptions?: boolean;
@@ -1628,18 +1629,18 @@ export interface SettingsNavigationItem {
 
 export interface FilterableAttribute {
   path: string; // e.g., "name", "parsedData.personal_info.location"
-  label: string; // e.g., "Candidate Name", "Location (Resume)"
+  label: string; // e.g., "Applicant Name", "Location (Resume)"
   type: 'string' | 'number' | 'date' | 'boolean' | 'array_string'; // To guide potential future UI or backend logic
 }
 
 // For Bulk Actions
-export type CandidateBulkAction = 'delete' | 'change_status' | 'assign_recruiter';
+export type ApplicantBulkAction = 'delete' | 'change_status' | 'assign_recruiter';
 export type PositionBulkAction = 'delete' | 'change_status'; // Added 'change_status'
 
-export interface CandidateBulkActionPayload {
-  action: CandidateBulkAction;
+export interface ApplicantBulkActionPayload {
+  action: ApplicantBulkAction;
   candidateIds: string[];
-  newStatus?: CandidateStatus; // For 'change_status'
+  newStatus?: ApplicantStatus; // For 'change_status'
   notes?: string | null; // For 'change_status' transition notes
   newRecruiterId?: string | null; // For 'assign_recruiter'
 }
@@ -1683,7 +1684,7 @@ export interface User {
   contactInfo?: any; // To store full contact details JSON
 }
 
-export interface CandidateFilterValues {
+export interface ApplicantFilterValues {
   name?: string;
   nameOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   email?: string;
@@ -1757,7 +1758,7 @@ export interface Headcount {
   createdAt: string;
   updatedAt: string;
   position?: Position;
-  candidate?: Candidate;
+  Applicant?: Applicant;
   attachments?: Attachment[];
 }
 

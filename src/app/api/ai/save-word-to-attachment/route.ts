@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
-import { hasAnyPermission, canEditCandidate } from '@/lib/permissions';
+import { hasAnyPermission, canEditApplicant } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,12 +16,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasGlobalEditPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE']);
-  const hasOwnEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_EDIT_SENSITIVE_OWN']);
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasGlobalEditPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'Applicants_EDIT_BASIC', 'Applicants_EDIT_SENSITIVE']);
+  const hasOwnEditPermission = hasAnyPermission(session.user, ['Applicants_EDIT_BASIC_OWN', 'Applicants_EDIT_SENSITIVE_OWN']);
   
   if (!hasGlobalEditPermission && !hasOwnEditPermission) {
-    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage candidate attachments' }, { status: 403 });
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage Applicant attachments' }, { status: 403 });
   }
 
   try {
@@ -32,19 +32,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: candidateId and content' }, { status: 400 });
     }
 
-    // Validate candidate exists and get recruiter info for ownership check
-    const candidate = await prisma.candidate.findUnique({
+    // Validate Applicant exists and get recruiter info for ownership check
+    const applicant = await prisma.candidate.findUnique({
       where: { id: candidateId },
       select: { id: true, name: true, recruiterId: true }
     });
 
-    if (!candidate) {
-      return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+    if (!applicant) {
+      return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
     }
     
     // Check ownership-based permissions for attachment management
     if (!hasGlobalEditPermission) {
-      const editPermission = canEditCandidate(session.user, candidate.recruiterId, session.user.id);
+      const editPermission = canEditApplicant(session.user, applicant.recruiterId, session.user.id);
       if (!editPermission.canEdit) {
         return NextResponse.json({ error: `Forbidden: ${editPermission.reason}` }, { status: 403 });
       }
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         ...newAttachment,
         url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' })
       },
-      message: 'Word document saved to candidate attachments successfully'
+      message: 'Word document saved to Applicant attachments successfully'
     }, { status: 201 });
 
   } catch (error) {

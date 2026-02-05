@@ -212,19 +212,19 @@ export class WebhookService {
   }
 
   /**
-   * Send webhook for candidate events
+   * Send webhook for Applicant events
    */
-  static async sendCandidateWebhook(event: string, candidate: any): Promise<void> {
+  static async sendApplicantWebhook(event: string, Applicant: any): Promise<void> {
     await this.sendWebhooks(event, {
-      candidate: {
-        id: candidate.id,
-        name: candidate.name,
-        email: candidate.email,
-        status: candidate.statusId || candidate.status || candidate.statusName || 'Unknown',
-        position_id: candidate.positionId,
-        application_date: candidate.applicationDate,
-        createdAt: candidate.createdAt,
-        updatedAt: candidate.updatedAt
+      Applicant: {
+        id: Applicant.id,
+        name: Applicant.name,
+        email: Applicant.email,
+        status: Applicant.statusId || Applicant.status || Applicant.statusName || 'Unknown',
+        position_id: Applicant.positionId,
+        application_date: Applicant.applicationDate,
+        createdAt: Applicant.createdAt,
+        updatedAt: Applicant.updatedAt
       }
     });
   }
@@ -299,7 +299,7 @@ export class WebhookService {
         id: comment.id,
         content: comment.content,
         author_id: comment.authorId,
-        candidate_id: comment.candidateId,
+        Applicant_id: comment.candidateId,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt
       }

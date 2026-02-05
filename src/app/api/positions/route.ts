@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @openapi
  * /api/positions:
  *   get:
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeStats = searchParams.get('includeStats') === 'true';
-    const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
+    const includeapplicantStats = searchParams.get('includeapplicantStats') === 'true';
     const includeHeadcount = searchParams.get('includeHeadcount') === 'true';
 
     // Parse custom field filters
@@ -362,16 +362,16 @@ export async function GET(request: NextRequest) {
         return position;
       });
 
-      // Include candidate statistics for each position if requested
-      if (includeCandidateStats && positions.length > 0) {
+      // Include Applicant statistics for each position if requested
+      if (includeapplicantStats && positions.length > 0) {
         // Check if job match feature is enabled
         const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
         const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
 
         const positionIds = positions.map((p: any) => p.id);
 
-        // Get candidate statistics for all positions
-        const candidateStatsQuery = `
+        // Get Applicant statistics for all positions
+        const applicantStatsQuery = `
           WITH position_applied AS (
             SELECT 
               p.id as position_id,
@@ -404,7 +404,7 @@ export async function GET(request: NextRequest) {
 
         let statsResult;
         try {
-          statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
+          statsResult = await getPool().query(applicantStatsQuery, [positionIds]);
         } catch (statsError) {
           // Continue without statistics rather than failing the entire request
           statsResult = { rows: [] };
@@ -419,10 +419,10 @@ export async function GET(request: NextRequest) {
           });
         });
 
-        // Add candidate statistics to each position
+        // Add Applicant statistics to each position
         positions = positions.map((position: any) => ({
           ...position,
-          candidateStats: statsMap.get(position.id) || {
+          applicantStats: statsMap.get(position.id) || {
             totalApplied: 0,
             appliedStatusCount: 0,
             totalMatching: 0

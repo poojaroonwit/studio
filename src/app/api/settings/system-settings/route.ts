@@ -1,4 +1,4 @@
-﻿// src/app/api/settings/system-settings/route.ts
+// src/app/api/settings/system-settings/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';

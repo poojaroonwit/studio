@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
   const getActingUserName = (u: any) => (u?.name || u?.email || u?.id || 'System') as string;
 
   // Check if user has permission to send notifications
-  // Users should be able to send notifications if they can edit candidates (basic interaction)
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
+  // Users should be able to send notifications if they can edit Applicants (basic interaction)
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_EDIT_BASIC')) {
     return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to send notifications'));
   }
 

@@ -141,7 +141,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
 
     
-    // Get targetPositionId, candidate_id, sourceId, and additionalAttachment(s) from webhook_payload if available
+    // Get targetPositionId, Applicant_id, sourceId, and additionalAttachment(s) from webhook_payload if available
     let targetPositionId = null;
     let candidateId = null;
     let sourceId = null;
@@ -149,7 +149,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     let additionalAttachments = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
-      candidateId = job.webhook_payload.candidate_id || null;
+      candidateId = job.webhook_payload.Applicant_id || null;
       sourceId = job.webhook_payload.sourceId || null; // Extract sourceId from webhook payload
       additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload (single)
       additionalAttachments = job.webhook_payload.additionalAttachments || null; // Extract additional attachments from webhook payload (array)
@@ -212,8 +212,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
     
     // Build webhook inputs payload
-    // NOTE: upload_date should be used as the candidate's applicationDate in the automation
-    // The automation should pass upload_date as either 'applicationDate' or 'uploadDate' when creating the candidate
+    // NOTE: upload_date should be used as the Applicant's applicationDate in the automation
+    // The automation should pass upload_date as either 'applicationDate' or 'uploadDate' when creating the Applicant
     const inputs = {
       cv_url: publicUrl,
       applied_position_id: finalPositionId,
@@ -221,11 +221,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       meta: job.meta,
       filename: job.filename,
       mimetype: job.mimetype,
-      candidate_id: candidateId, // Include candidate ID in webhook payload
+      Applicant_id: candidateId, // Include Applicant ID in webhook payload
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
-      upload_date: job.upload_date, // Queue upload date - should be used as applicationDate for the candidate
-      email_date: job.email_date || null, // Email date if candidate applied via email
+      upload_date: job.upload_date, // Queue upload date - should be used as applicationDate for the Applicant
+      email_date: job.email_date || null, // Email date if Applicant applied via email
       email_subject: job.email_subject || null, // Email subject line
       email_id: job.email_id || null, // Unique email message ID
       email_metadata: job.email_metadata || null, // Additional email metadata

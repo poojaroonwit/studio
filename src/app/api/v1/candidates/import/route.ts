@@ -13,8 +13,8 @@ import { parse as parseCsv } from 'csv-parse/sync';
 import ExcelJS from 'exceljs';
 import prisma from '@/lib/prisma';
 import { NotificationService } from '@/lib/notificationService';
-// Import the schemas from the main candidate route
-import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
+// Import the schemas from the main Applicant route
+import { ApplicantInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
 
 async function resolveStageIdFromInput(input: string | undefined | null): Promise<string | null> {
   if (!input || typeof input !== 'string') return null;
@@ -52,11 +52,11 @@ async function resolveStageIdFromInput(input: string | undefined | null): Promis
   }
 }
 
-const candidateImportSchema = z.object({
-  candidates: z.array(
+const ApplicantImportSchema = z.object({
+  Applicants: z.array(
     z.union([
       z.object({
-        candidate_info: candidateInfoSchema,
+        applicant_info: ApplicantInfoSchema,
         educationData: z.array(structuredEducationSchema).optional(),
         experienceData: z.array(structuredExperienceSchema).optional(),
       }),
@@ -86,8 +86,8 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import candidates' }), { status: 403, headers: handleCors(req) });
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_IMPORT')) {
+    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import Applicants' }), { status: 403, headers: handleCors(req) });
   }
 
   // Check if export/import feature is enabled
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Export/Import feature is disabled' }), { status: 403, headers: handleCors(req) });
   }
 
-  let candidates: any[] = [];
+  let Applicants: any[] = [];
   const contentType = req.headers.get('content-type') || '';
 
   if (contentType.includes('multipart/form-data')) {
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         // Parse CSV
         const csvString = buffer.toString('utf-8');
         const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
-        candidates = records.map((row: any) => ({
+        Applicants = records.map((row: any) => ({
           name: String(row.name || row.Name || ''),
           email: String(row.email || row.Email || ''),
           phone: row.phone || row.Phone ? String(row.phone || row.Phone) : null,
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
           json.push(rowData);
         });
 
-        candidates = json.map((row: any) => ({
+        Applicants = json.map((row: any) => ({
           name: String(row.name || row.Name || ''),
           email: String(row.email || row.Email || ''),
           phone: row.phone || row.Phone ? String(row.phone || row.Phone) : null,
@@ -195,18 +195,18 @@ export async function POST(req: NextRequest) {
     // Handle JSON body
     try {
       const body = await req.json();
-      const validationResult = candidateImportSchema.safeParse(body);
+      const validationResult = ApplicantImportSchema.safeParse(body);
       if (!validationResult.success) {
         return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
       }
-      candidates = validationResult.data.candidates;
+      Applicants = validationResult.data.Applicants;
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
     }
   }
 
-  // Validate candidates
-  const validationResult = candidateImportSchema.safeParse({ candidates });
+  // Validate Applicants
+  const validationResult = ApplicantImportSchema.safeParse({ Applicants });
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
@@ -222,23 +222,23 @@ export async function POST(req: NextRequest) {
       errors: [] as string[]
     };
 
-    for (const candidate of candidates) {
+    for (const Applicant of Applicants) {
       try {
-        // Extract fitScore from candidate, candidate_info, or candidate_info.job_applied
+        // Extract fitScore from Applicant, applicant_info, or applicant_info.job_applied
         let fitScore = null;
-        if (typeof candidate.fitScore === 'number') {
-          fitScore = Math.max(0, Math.min(1, candidate.fitScore / 100));
-        } else if (candidate.candidate_info && typeof candidate.candidate_info.fitScore === 'number') {
-          fitScore = Math.max(0, Math.min(1, candidate.candidate_info.fitScore / 100));
-        } else if (candidate.candidate_info && candidate.candidate_info.job_applied && typeof candidate.candidate_info.job_applied.fitScore === 'number') {
-          fitScore = Math.max(0, Math.min(1, candidate.candidate_info.job_applied.fitScore / 100));
+        if (typeof Applicant.fitScore === 'number') {
+          fitScore = Math.max(0, Math.min(1, Applicant.fitScore / 100));
+        } else if (Applicant.applicant_info && typeof Applicant.applicant_info.fitScore === 'number') {
+          fitScore = Math.max(0, Math.min(1, Applicant.applicant_info.fitScore / 100));
+        } else if (Applicant.applicant_info && Applicant.applicant_info.job_applied && typeof Applicant.applicant_info.job_applied.fitScore === 'number') {
+          fitScore = Math.max(0, Math.min(1, Applicant.applicant_info.job_applied.fitScore / 100));
         }
 
         const candidateId = uuidv4();
         // Resolve status to stage UUID with backward-compat for names
-        const resolvedStatusId = await resolveStageIdFromInput(candidate.status || candidate?.candidate_info?.status || undefined);
+        const resolvedStatusId = await resolveStageIdFromInput(applicant.status || Applicant?.applicant_info?.status || undefined);
         if (!resolvedStatusId) {
-          return new Response(JSON.stringify({ error: 'Unable to resolve a valid recruitment stage for a candidate' }), { status: 400, headers: handleCors(req) });
+          return new Response(JSON.stringify({ error: 'Unable to resolve a valid recruitment stage for a Applicant' }), { status: 400, headers: handleCors(req) });
         }
 
         const insertQuery = `
@@ -247,23 +247,23 @@ export async function POST(req: NextRequest) {
         `;
         await client.query(insertQuery, [
           candidateId,
-          candidate.name,
-          candidate.email,
-          candidate.phone || null,
+          applicant.name,
+          applicant.email,
+          applicant.phone || null,
           resolvedStatusId,
-          candidate.positionId || null,
-          candidate.recruiterId || null,
+          applicant.positionId || null,
+          applicant.recruiterId || null,
           fitScore,
-          candidate.custom_attributes || {},
-          candidate.parsedData || null,
-          candidate.resumePath || null
+          Applicant.custom_attributes || {},
+          applicant.parsedData || null,
+          applicant.resumePath || null
         ]);
 
-        // Auto-assign recruiter if candidate has a position but no recruiter
-        if (candidate.positionId && !candidate.recruiterId) {
+        // Auto-assign recruiter if Applicant has a position but no recruiter
+        if (applicant.positionId && !applicant.recruiterId) {
           try {
             const position = await prisma.position.findUnique({
-              where: { id: candidate.positionId },
+              where: { id: Applicant.positionId },
               include: { recruiter: { select: { id: true, name: true, email: true } } }
             });
 
@@ -276,8 +276,8 @@ export async function POST(req: NextRequest) {
               await prisma.transitionRecord.create({
                 data: {
                   id: uuidv4(),
-                  candidate: { connect: { id: candidateId } },
-                  position: candidate.positionId ? { connect: { id: candidate.positionId } } : undefined,
+                  Applicant: { connect: { id: candidateId } },
+                  position: Applicant.positionId ? { connect: { id: Applicant.positionId } } : undefined,
                   stage: resolvedStatusId,
                   notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
                   actingUser: { connect: { id: user.id } },
@@ -286,26 +286,26 @@ export async function POST(req: NextRequest) {
               });
 
               try {
-                await NotificationService.notifyCandidateAdded(
+                await NotificationService.notifyApplicantAdded(
                   candidateId,
-                  candidate.name,
-                  candidate.positionId,
+                  applicant.name,
+                  applicant.positionId,
                   position.title,
                   position.recruiterId,
                   user.id
                 );
               } catch (notificationError) {
-                console.error('Failed to send candidate added notification:', notificationError);
+                console.error('Failed to send Applicant added notification:', notificationError);
               }
             }
           } catch (syncError) {
-            console.error('Failed to auto-assign recruiter after candidate import:', syncError);
+            console.error('Failed to auto-assign recruiter after Applicant import:', syncError);
           }
         }
 
         results.imported++;
       } catch (error) {
-        results.errors.push(`Failed to import ${candidate.email}: ${(error as Error).message}`);
+        results.errors.push(`Failed to import ${applicant.email}: ${(error as Error).message}`);
       }
     }
 
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error importing candidates', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Error importing Applicants', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();
   }
@@ -335,9 +335,9 @@ export async function GET(req: NextRequest) {
 
   // Return import template
   const template = {
-    candidates: [
+    Applicants: [
       {
-        name: "Sample Candidate",
+        name: "Sample Applicant",
         email: "john.doe@example.com",
         phone: "+1234567890",
         status: "Applied", // Backward-compat example; will be resolved to UUID at runtime

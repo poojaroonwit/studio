@@ -15,7 +15,7 @@ export const dashboardPaths = {
               schema: {
                 type: 'object',
                 properties: {
-                  totalCandidates: { type: 'number' },
+                  totalApplicants: { type: 'number' },
                   totalPositions: { type: 'number' },
                   activeRecruitments: { type: 'number' },
                   recentActivity: { type: 'array', items: { type: 'object' } }

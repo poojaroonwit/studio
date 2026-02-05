@@ -9,15 +9,15 @@ import { toast } from 'react-hot-toast';
 interface RecruiterSyncResult {
   positionId: string;
   positionTitle: string;
-  candidatesUpdated: number;
-  candidatesSkipped: number;
+  ApplicantsUpdated: number;
+  ApplicantsSkipped: number;
   errors: string[];
 }
 
 interface SyncSummary {
   totalPositions: number;
-  totalCandidatesUpdated: number;
-  totalCandidatesSkipped: number;
+  totalApplicantsUpdated: number;
+  totalApplicantsSkipped: number;
   totalErrors: number;
   results: RecruiterSyncResult[];
 }
@@ -60,7 +60,7 @@ export function RecruiterSyncCard() {
           Recruiter Assignment Sync
         </CardTitle>
                  <CardDescription>
-           Automatically assign recruiters to candidates who don't have one, using the recruiter from their applied position.
+           Automatically assign recruiters to Applicants who don't have one, using the recruiter from their applied position.
            Existing recruiter assignments are preserved and will not be changed.
          </CardDescription>
       </CardHeader>
@@ -69,7 +69,7 @@ export function RecruiterSyncCard() {
           <div className="space-y-1">
             <p className="text-sm font-medium">Bulk Sync</p>
                          <p className="text-xs text-muted-foreground">
-               Assign recruiters to candidates who don't have one, using their position's recruiter
+               Assign recruiters to Applicants who don't have one, using their position's recruiter
              </p>
           </div>
           <Button 
@@ -97,10 +97,10 @@ export function RecruiterSyncCard() {
                     {lastSyncResult.totalPositions} positions
                   </Badge>
                   <Badge variant="default">
-                    {lastSyncResult.totalCandidatesUpdated} candidates updated
+                    {lastSyncResult.totalApplicantsUpdated} Applicants updated
                   </Badge>
                   <Badge variant="outline">
-                    {lastSyncResult.totalCandidatesSkipped} candidates skipped
+                    {lastSyncResult.totalApplicantsSkipped} Applicants skipped
                   </Badge>
                   {lastSyncResult.totalErrors > 0 && (
                     <Badge variant="destructive">
@@ -116,10 +116,10 @@ export function RecruiterSyncCard() {
         <div className="rounded-lg border bg-muted/50 p-4">
           <h4 className="font-medium text-sm mb-2">How it works:</h4>
                      <ul className="text-xs text-muted-foreground space-y-1">
-             <li>• Only candidates without a recruiter will be assigned one from their position</li>
+             <li>• Only Applicants without a recruiter will be assigned one from their position</li>
              <li>• Existing recruiter assignments are preserved and will not be changed</li>
-             <li>• When a candidate is assigned to a position, they get the position's recruiter if they don't have one</li>
-             <li>• All assignments are logged in the candidate's transition history</li>
+             <li>• When a Applicant is assigned to a position, they get the position's recruiter if they don't have one</li>
+             <li>• All assignments are logged in the Applicant's transition history</li>
            </ul>
         </div>
 
@@ -129,7 +129,7 @@ export function RecruiterSyncCard() {
                          <div className="text-xs text-blue-800">
                <p className="font-medium mb-1">Automatic Assignment</p>
                <p>
-                 Recruiter are automatically assigned to candidates without one when they are assigned to a position. 
+                 Recruiter are automatically assigned to Applicants without one when they are assigned to a position. 
                  This manual sync is only needed for bulk operations or to fix inconsistencies.
                </p>
              </div>

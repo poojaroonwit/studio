@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn, sanitizeHtml } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
+import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -28,7 +28,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
-import type { Position, Candidate, Grade } from '@/lib/types';
+import type { Position, Applicant, Grade } from '@/lib/types';
 import { usePositionLevels } from '@/hooks/use-position-levels';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
@@ -38,17 +38,17 @@ import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
-import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
+import ApplicantDetailModal from '@/components/applicants/ApplicantDetailModal';
 import { HeadcountTab } from './HeadcountTab';
 import { InterviewerTab } from './InterviewerTab';
 import { EvaluationConfigTab } from './EvaluationConfigTab';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
-import { AppliedCandidatesTable } from './AppliedCandidatesTable';
-import { PotentialCandidatesTable } from './PotentialCandidatesTable';
-import { AllCandidatesTable } from './AllCandidatesTable';
+import { AppliedApplicantsTable } from './AppliedApplicantsTable';
+import { PotentialApplicantsTable } from './PotentialApplicantsTable';
+import { AllApplicantsTable } from './AllApplicantsTable';
 import { DetailsTab } from './DetailsTab';
 import { CriteriaTab } from './CriteriaTab';
-import { CandidatesTab } from './CandidatesTab';
+import { ApplicantsTab } from './ApplicantsTab';
 
 // Form schema
 const editPositionFormSchema = z.object({
@@ -63,7 +63,7 @@ const editPositionFormSchema = z.object({
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
 
-import type { CandidateFilterValues, CandidateSource, UserProfile } from '@/lib/types'; // Import filter types
+import type { ApplicantFilterValues, ApplicantSource, UserProfile } from '@/lib/types'; // Import filter types
 
 interface PositionDetailDrawerProps {
   isOpen: boolean;
@@ -85,44 +85,44 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, []);
 
   // Debounce refs for search
-  const allCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const appliedCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const potentialCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const allApplicantsSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const appliedApplicantsSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const potentialApplicantsSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // State for position and general data
   const [position, setPosition] = useState<Position | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // State for candidates
-  const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
-  const [allCandidatesPage, setFilteredCandidatesPage] = useState(1);
-  const [allCandidatesPageSize, setFilteredCandidatesPageSize] = useState(100);
-  const [allCandidatesTotal, setFilteredCandidatesTotal] = useState(0);
-  const [allCandidatesSearchTerm, setFilteredCandidatesSearchTerm] = useState('');
-  const [allCandidatesSortColumn, setFilteredCandidatesSortColumn] = useState<string | null>('fitScore');
-  const [allCandidatesSortDirection, setFilteredCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
+  // State for Applicants
+  const [filteredApplicants, setFilteredApplicants] = useState<Applicant[]>([]);
+  const [allApplicantsPage, setFilteredApplicantsPage] = useState(1);
+  const [allApplicantsPageSize, setFilteredApplicantsPageSize] = useState(100);
+  const [allApplicantsTotal, setFilteredApplicantsTotal] = useState(0);
+  const [allApplicantsSearchTerm, setFilteredApplicantsSearchTerm] = useState('');
+  const [allApplicantsSortColumn, setFilteredApplicantsSortColumn] = useState<string | null>('fitScore');
+  const [allApplicantsSortDirection, setFilteredApplicantsSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for headcount
   const [headcounts, setHeadcounts] = useState<any[]>([]);
   const [headcountsTotal, setHeadcountsTotal] = useState(0);
 
 
-  // State for applied candidates
-  const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
-  const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
-  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(100);
-  const [appliedCandidatesTotal, setAppliedCandidatesTotal] = useState(0);
-  const [appliedCandidatesSearchTerm, setAppliedCandidatesSearchTerm] = useState('');
-  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('fitScore');
-  const [appliedCandidatesSortDirection, setAppliedCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
+  // State for applied Applicants
+  const [appliedApplicants, setAppliedApplicants] = useState<Applicant[]>([]);
+  const [appliedApplicantsPage, setAppliedApplicantsPage] = useState(1);
+  const [appliedApplicantsPageSize, setAppliedApplicantsPageSize] = useState(100);
+  const [appliedApplicantsTotal, setAppliedApplicantsTotal] = useState(0);
+  const [appliedApplicantsSearchTerm, setAppliedApplicantsSearchTerm] = useState('');
+  const [appliedApplicantsSortColumn, setAppliedApplicantsSortColumn] = useState<string | null>('fitScore');
+  const [appliedApplicantsSortDirection, setAppliedApplicantsSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // State for potential candidates
-  const [potentialCandidates, setPotentialCandidates] = useState<Candidate[]>([]);
-  const [potentialCandidatesPage, setPotentialCandidatesPage] = useState(1);
-  const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(100);
-  const [potentialCandidatesTotal, setPotentialCandidatesTotal] = useState(0);
-  const [potentialCandidatesSearchTerm, setPotentialCandidatesSearchTerm] = useState('');
+  // State for potential Applicants
+  const [potentialApplicants, setPotentialApplicants] = useState<Applicant[]>([]);
+  const [potentialApplicantsPage, setPotentialApplicantsPage] = useState(1);
+  const [potentialApplicantsPageSize, setPotentialApplicantsPageSize] = useState(100);
+  const [potentialApplicantsTotal, setPotentialApplicantsTotal] = useState(0);
+  const [potentialApplicantsSearchTerm, setPotentialApplicantsSearchTerm] = useState('');
   
   // State for Microsoft AD Users
   const [adUsers, setAdUsers] = useState<any[]>([]);
@@ -130,8 +130,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [adUsersError, setAdUsersError] = useState<string | null>(null);
 
   // Modal states
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
-  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
+  const [selectedcandidateId, setSelectedcandidateId] = useState<string | null>(null);
+  const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
   const manualCloseRequested = useRef(false);
 
   // Edit states
@@ -140,11 +140,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
 
   // Filter state
-  const [candidateFilters, setCandidateFilters] = useState<CandidateFilterValues>({});
+  const [ApplicantFilters, setApplicantFilters] = useState<ApplicantFilterValues>({});
   
   // Available data for filters
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
-  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
+  const [availableSources, setAvailableSources] = useState<ApplicantSource[]>([]);
 
   // Reset edit mode when drawer opens/closes
   useEffect(() => {
@@ -164,30 +164,30 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [grades, setGrades] = useState<Grade[]>([]);
   const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
 
-  // Sorting state for applied candidates table
-  const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
+  // Sorting state for applied Applicants table
+  const [appliedApplicantsOpenMenu, setAppliedApplicantsOpenMenu] = useState<string | null>(null);
 
-  // Sorting state for potential candidates table
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('matchScore');
-  const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
+  // Sorting state for potential Applicants table
+  const [potentialApplicantsSortColumn, setPotentialApplicantsSortColumn] = useState<string | null>('matchScore');
+  const [potentialApplicantsSortDirection, setPotentialApplicantsSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [potentialApplicantsOpenMenu, setPotentialApplicantsOpenMenu] = useState<string | null>(null);
 
-  // Sorting state for all candidates table
-  const [allCandidatesOpenMenu, setFilteredCandidatesOpenMenu] = useState<string | null>(null);
+  // Sorting state for all Applicants table
+  const [allApplicantsOpenMenu, setFilteredApplicantsOpenMenu] = useState<string | null>(null);
 
   // State for recruitment stages
   const [recruitmentStages, setRecruitmentStages] = useState<any[]>([]);
 
   // Tab states - declare these before using them in useEffect
   const [activeTab, setActiveTab] = useState('details');
-  const [activeCandidateTab, setActiveCandidateTab] = useState('applied');
+  const [activeApplicantTab, setActiveApplicantTab] = useState('applied');
 
   // When Job Match is disabled, ensure we don't show or stay on the potential tab
   useEffect(() => {
-    if (!isJobMatchEnabled && activeCandidateTab !== 'applied') {
-      setActiveCandidateTab('applied');
+    if (!isJobMatchEnabled && activeApplicantTab !== 'applied') {
+      setActiveApplicantTab('applied');
     }
-  }, [isJobMatchEnabled, activeCandidateTab]);
+  }, [isJobMatchEnabled, activeApplicantTab]);
 
   const handleManualClose = useCallback(() => {
     manualCloseRequested.current = true;
@@ -234,76 +234,76 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   });
 
   // Sorting handlers (memoized to avoid changing references on each render)
-  const handleAppliedCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
+  const handleAppliedApplicantsSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
-      setAppliedCandidatesSortColumn(null);
-      setAppliedCandidatesSortDirection('asc');
+      setAppliedApplicantsSortColumn(null);
+      setAppliedApplicantsSortDirection('asc');
       return;
     }
-    if (appliedCandidatesSortColumn === column && (direction === null || direction === undefined)) {
-      setAppliedCandidatesSortDirection(appliedCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    if (appliedApplicantsSortColumn === column && (direction === null || direction === undefined)) {
+      setAppliedApplicantsSortDirection(appliedApplicantsSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setAppliedCandidatesSortColumn(column);
-      setAppliedCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
+      setAppliedApplicantsSortColumn(column);
+      setAppliedApplicantsSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  }, [appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
+  }, [appliedApplicantsSortColumn, appliedApplicantsSortDirection]);
 
-  const handlePotentialCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
+  const handlePotentialApplicantsSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
-      setPotentialCandidatesSortColumn(null);
-      setPotentialCandidatesSortDirection('asc');
+      setPotentialApplicantsSortColumn(null);
+      setPotentialApplicantsSortDirection('asc');
       return;
     }
-    if (potentialCandidatesSortColumn === column && (direction === null || direction === undefined)) {
-      setPotentialCandidatesSortDirection(potentialCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    if (potentialApplicantsSortColumn === column && (direction === null || direction === undefined)) {
+      setPotentialApplicantsSortDirection(potentialApplicantsSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setPotentialCandidatesSortColumn(column);
-      setPotentialCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
+      setPotentialApplicantsSortColumn(column);
+      setPotentialApplicantsSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  }, [potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
+  }, [potentialApplicantsSortColumn, potentialApplicantsSortDirection]);
 
-  const handleAllCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
+  const handleAllApplicantsSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
-      setFilteredCandidatesSortColumn(null);
-      setFilteredCandidatesSortDirection('asc');
+      setFilteredApplicantsSortColumn(null);
+      setFilteredApplicantsSortDirection('asc');
       return;
     }
-    if (allCandidatesSortColumn === column && (direction === null || direction === undefined)) {
-      setFilteredCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    if (allApplicantsSortColumn === column && (direction === null || direction === undefined)) {
+      setFilteredApplicantsSortDirection(allApplicantsSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setFilteredCandidatesSortColumn(column);
-      setFilteredCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
+      setFilteredApplicantsSortColumn(column);
+      setFilteredApplicantsSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  }, [allCandidatesSortColumn, allCandidatesSortDirection]);
+  }, [allApplicantsSortColumn, allApplicantsSortDirection]);
 
   // Sortable value getters
-  const getSortableValue = (candidate: Candidate, column: string) => {
+  const getSortableValue = (Applicant: Applicant, column: string) => {
     switch (column) {
-      case 'name': return candidate.name?.toLowerCase() || '';
-      case 'email': return candidate.email?.toLowerCase() || '';
-      case 'fitScore': return candidate.fitScore || 0;
-      case 'status': return (candidate.statusId || candidate.status)?.toLowerCase() || '';
+      case 'name': return applicant.name?.toLowerCase() || '';
+      case 'email': return applicant.email?.toLowerCase() || '';
+      case 'fitScore': return Applicant.fitScore || 0;
+      case 'status': return (applicant.statusId || Applicant.status)?.toLowerCase() || '';
       case 'applicationDate':
-        return candidate.applicationDate ? new Date(candidate.applicationDate).getTime() : 0;
+        return applicant.applicationDate ? new Date(applicant.applicationDate).getTime() : 0;
       default: return '';
     }
   };
 
   // Calculate total pages for pagination
-  const allCandidatesTotalPages = useMemo(() =>
-    Math.max(1, Math.ceil(allCandidatesTotal / allCandidatesPageSize)),
-    [allCandidatesTotal, allCandidatesPageSize]
+  const allApplicantsTotalPages = useMemo(() =>
+    Math.max(1, Math.ceil(allApplicantsTotal / allApplicantsPageSize)),
+    [allApplicantsTotal, allApplicantsPageSize]
   );
 
-  const potentialCandidatesTotalPages = useMemo(() =>
-    Math.max(1, Math.ceil(potentialCandidatesTotal / potentialCandidatesPageSize)),
-    [potentialCandidatesTotal, potentialCandidatesPageSize]
+  const potentialApplicantsTotalPages = useMemo(() =>
+    Math.max(1, Math.ceil(potentialApplicantsTotal / potentialApplicantsPageSize)),
+    [potentialApplicantsTotal, potentialApplicantsPageSize]
   );
 
-  // Calculate applied candidates count
-  const appliedCandidatesCount = useMemo(() =>
-    appliedCandidatesTotal,
-    [appliedCandidatesTotal]
+  // Calculate applied Applicants count
+  const appliedApplicantsCount = useMemo(() =>
+    appliedApplicantsTotal,
+    [appliedApplicantsTotal]
   );
 
   // Create stageNames mapping for StatusBadge components
@@ -317,52 +317,52 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     return mapping;
   }, [recruitmentStages]);
 
-  // Sorted candidates - use server-side sorting for fitScore, client-side for others
-  const sortedAppliedCandidates = useMemo(() => {
-    if (!appliedCandidatesSortColumn) return appliedCandidates;
+  // Sorted Applicants - use server-side sorting for fitScore, client-side for others
+  const sortedAppliedApplicants = useMemo(() => {
+    if (!appliedApplicantsSortColumn) return appliedApplicants;
 
     // Skip client-side sorting for fitScore since server already sorts it
-    if (appliedCandidatesSortColumn === 'fitScore') {
-      return appliedCandidates;
+    if (appliedApplicantsSortColumn === 'fitScore') {
+      return appliedApplicants;
     }
 
-    return [...appliedCandidates].sort((a, b) => {
-      const aValue = getSortableValue(a, appliedCandidatesSortColumn);
-      const bValue = getSortableValue(b, appliedCandidatesSortColumn);
-      if (aValue < bValue) return appliedCandidatesSortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return appliedCandidatesSortDirection === 'asc' ? 1 : -1;
+    return [...appliedApplicants].sort((a, b) => {
+      const aValue = getSortableValue(a, appliedApplicantsSortColumn);
+      const bValue = getSortableValue(b, appliedApplicantsSortColumn);
+      if (aValue < bValue) return appliedApplicantsSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return appliedApplicantsSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [appliedCandidates, appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
+  }, [appliedApplicants, appliedApplicantsSortColumn, appliedApplicantsSortDirection]);
 
-  const sortedPotentialCandidates = useMemo(() => {
-    if (!potentialCandidatesSortColumn) return potentialCandidates;
+  const sortedPotentialApplicants = useMemo(() => {
+    if (!potentialApplicantsSortColumn) return potentialApplicants;
 
-    return [...potentialCandidates].sort((a, b) => {
-      const aValue = getSortableValue(a, potentialCandidatesSortColumn);
-      const bValue = getSortableValue(b, potentialCandidatesSortColumn);
-      if (aValue < bValue) return potentialCandidatesSortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return potentialCandidatesSortDirection === 'asc' ? 1 : -1;
+    return [...potentialApplicants].sort((a, b) => {
+      const aValue = getSortableValue(a, potentialApplicantsSortColumn);
+      const bValue = getSortableValue(b, potentialApplicantsSortColumn);
+      if (aValue < bValue) return potentialApplicantsSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return potentialApplicantsSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [potentialCandidates, potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
+  }, [potentialApplicants, potentialApplicantsSortColumn, potentialApplicantsSortDirection]);
 
-  const sortedAllCandidates = useMemo(() => {
-    if (!allCandidatesSortColumn) return filteredCandidates;
+  const sortedAllApplicants = useMemo(() => {
+    if (!allApplicantsSortColumn) return filteredApplicants;
 
     // Skip client-side sorting for fitScore since server already sorts it
-    if (allCandidatesSortColumn === 'fitScore') {
-      return filteredCandidates;
+    if (allApplicantsSortColumn === 'fitScore') {
+      return filteredApplicants;
     }
 
-    return [...filteredCandidates].sort((a, b) => {
-      const aValue = getSortableValue(a, allCandidatesSortColumn);
-      const bValue = getSortableValue(b, allCandidatesSortColumn);
-      if (aValue < bValue) return allCandidatesSortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return allCandidatesSortDirection === 'asc' ? 1 : -1;
+    return [...filteredApplicants].sort((a, b) => {
+      const aValue = getSortableValue(a, allApplicantsSortColumn);
+      const bValue = getSortableValue(b, allApplicantsSortColumn);
+      if (aValue < bValue) return allApplicantsSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return allApplicantsSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredCandidates, allCandidatesSortColumn, allCandidatesSortDirection]);
+  }, [filteredApplicants, allApplicantsSortColumn, allApplicantsSortDirection]);
 
   // Level options
 
@@ -429,130 +429,130 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, []);
 
-  // Fetch applied candidates for this position
-  const fetchAppliedCandidates = useCallback(async () => {
+  // Fetch applied Applicants for this position
+  const fetchAppliedApplicants = useCallback(async () => {
     if (!positionId) return;
 
     try {
       const query = new URLSearchParams();
-      query.append('page', String(appliedCandidatesPage));
-      query.append('limit', String(appliedCandidatesPageSize));
+      query.append('page', String(appliedApplicantsPage));
+      query.append('limit', String(appliedApplicantsPageSize));
       query.append('type', 'applied');
-      if (appliedCandidatesSearchTerm) {
-        query.append('searchTerm', appliedCandidatesSearchTerm);
+      if (appliedApplicantsSearchTerm) {
+        query.append('searchTerm', appliedApplicantsSearchTerm);
       }
-      query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
-      query.append('limit', String(appliedCandidatesPageSize));
+      query.append('sortColumn', appliedApplicantsSortColumn || 'fitScore');
+      query.append('limit', String(appliedApplicantsPageSize));
       query.append('type', 'applied');
-      if (appliedCandidatesSearchTerm) {
-        query.append('searchTerm', appliedCandidatesSearchTerm);
+      if (appliedApplicantsSearchTerm) {
+        query.append('searchTerm', appliedApplicantsSearchTerm);
       }
-      query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
-      query.append('sortDirection', appliedCandidatesSortDirection || 'desc');
+      query.append('sortColumn', appliedApplicantsSortColumn || 'fitScore');
+      query.append('sortDirection', appliedApplicantsSortDirection || 'desc');
 
       // Add filters
-      if (candidateFilters) {
-        if (candidateFilters.selectedStatuses && candidateFilters.selectedStatuses.length > 0) {
-          query.append('status', candidateFilters.selectedStatuses.join(','));
+      if (ApplicantFilters) {
+        if (ApplicantFilters.selectedStatuses && ApplicantFilters.selectedStatuses.length > 0) {
+          query.append('status', ApplicantFilters.selectedStatuses.join(','));
         }
-        if (candidateFilters.selectedRecruiterIds && candidateFilters.selectedRecruiterIds.length > 0) {
-          query.append('recruiterId', candidateFilters.selectedRecruiterIds.join(','));
+        if (ApplicantFilters.selectedRecruiterIds && ApplicantFilters.selectedRecruiterIds.length > 0) {
+          query.append('recruiterId', ApplicantFilters.selectedRecruiterIds.join(','));
         }
-        if (candidateFilters.selectedSourceIds && candidateFilters.selectedSourceIds.length > 0) {
-          query.append('sourceId', candidateFilters.selectedSourceIds.join(','));
+        if (ApplicantFilters.selectedSourceIds && ApplicantFilters.selectedSourceIds.length > 0) {
+          query.append('sourceId', ApplicantFilters.selectedSourceIds.join(','));
         } // Add other filters as needed
       }
 
       query.append('showPinSection', 'true');
 
-      const url = `/api/positions/${positionId}/candidates?${query.toString()}`;
+      const url = `/api/positions/${positionId}/Applicants?${query.toString()}`;
 
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch applied candidates');
+      if (!response.ok) throw new Error('Failed to fetch applied Applicants');
 
       const data = await response.json();
 
-      const candidates = Array.isArray(data.data) ? data.data : [];
+      const Applicants = Array.isArray(data.data) ? data.data : [];
 
-      setAppliedCandidates(candidates);
-      setAppliedCandidatesTotal(data.pagination?.total || candidates.length);
+      setAppliedApplicants(Applicants);
+      setAppliedApplicantsTotal(data.pagination?.total || Applicants.length);
     } catch (error) {
-      setAppliedCandidates([]);
-      setAppliedCandidatesTotal(0);
+      setAppliedApplicants([]);
+      setAppliedApplicantsTotal(0);
     }
-  }, [positionId, appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, sessionStatus]);
+  }, [positionId, appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, sessionStatus]);
 
-  // Fetch all candidates related to this position
-  const fetchAllCandidates = useCallback(async () => {
+  // Fetch all Applicants related to this position
+  const fetchAllApplicants = useCallback(async () => {
     if (!positionId) return;
 
     try {
       const query = new URLSearchParams();
-      query.append('page', String(allCandidatesPage));
-      query.append('limit', String(allCandidatesPageSize));
-      query.append('type', 'all'); // Explicitly request all candidates (applied and matched)
-      if (allCandidatesSearchTerm) {
-        query.append('searchTerm', allCandidatesSearchTerm);
+      query.append('page', String(allApplicantsPage));
+      query.append('limit', String(allApplicantsPageSize));
+      query.append('type', 'all'); // Explicitly request all Applicants (applied and matched)
+      if (allApplicantsSearchTerm) {
+        query.append('searchTerm', allApplicantsSearchTerm);
       }
-      query.append('sortColumn', allCandidatesSortColumn || 'fitScore');
-      query.append('sortDirection', allCandidatesSortDirection || 'desc');
+      query.append('sortColumn', allApplicantsSortColumn || 'fitScore');
+      query.append('sortDirection', allApplicantsSortDirection || 'desc');
 
       query.append('showPinSection', 'true');
 
-      const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch all candidates');
+      const response = await fetch(`/api/positions/${positionId}/Applicants?${query.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch all Applicants');
 
       const data = await response.json();
-      const candidates = Array.isArray(data.data) ? data.data : [];
+      const Applicants = Array.isArray(data.data) ? data.data : [];
 
-      setFilteredCandidates(candidates);
-      setFilteredCandidatesTotal(data.pagination?.total || candidates.length);
+      setFilteredApplicants(Applicants);
+      setFilteredApplicantsTotal(data.pagination?.total || Applicants.length);
     } catch (error) {
-      setFilteredCandidates([]);
-      setFilteredCandidatesTotal(0);
+      setFilteredApplicants([]);
+      setFilteredApplicantsTotal(0);
     }
-  }, [positionId, allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, sessionStatus]);
+  }, [positionId, allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, sessionStatus]);
 
-  // Fetch potential candidates (candidates with job matches for this position but not applied)
-  const fetchPotentialCandidates = useCallback(async () => {
+  // Fetch potential Applicants (Applicants with job matches for this position but not applied)
+  const fetchPotentialApplicants = useCallback(async () => {
     if (!positionId || !isJobMatchEnabled) return;
 
     try {
       const query = new URLSearchParams();
-      query.append('page', String(potentialCandidatesPage));
-      query.append('limit', String(potentialCandidatesPageSize));
-      query.append('hasJobMatch', 'true'); // Only candidates with job matches
-      query.append('notApplied', 'true'); // Exclude candidates who already applied
-      if (potentialCandidatesSearchTerm) {
-        query.append('searchTerm', potentialCandidatesSearchTerm);
+      query.append('page', String(potentialApplicantsPage));
+      query.append('limit', String(potentialApplicantsPageSize));
+      query.append('hasJobMatch', 'true'); // Only Applicants with job matches
+      query.append('notApplied', 'true'); // Exclude Applicants who already applied
+      if (potentialApplicantsSearchTerm) {
+        query.append('searchTerm', potentialApplicantsSearchTerm);
       }
-      query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
-      query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
-      query.append('sortDirection', potentialCandidatesSortDirection || 'desc');
+      query.append('sortColumn', potentialApplicantsSortColumn || 'matchScore');
+      query.append('sortColumn', potentialApplicantsSortColumn || 'matchScore');
+      query.append('sortDirection', potentialApplicantsSortDirection || 'desc');
       
       // Add filters
-      if (candidateFilters) {
-        if (candidateFilters.selectedStatuses && candidateFilters.selectedStatuses.length > 0) {
-           query.append('status', candidateFilters.selectedStatuses.join(','));
+      if (ApplicantFilters) {
+        if (ApplicantFilters.selectedStatuses && ApplicantFilters.selectedStatuses.length > 0) {
+           query.append('status', ApplicantFilters.selectedStatuses.join(','));
         } // Add other filters as needed
       }
 
       query.append('showPinSection', 'true');
 
-      // Fetch candidates who have job matches associated with this position but haven't applied
+      // Fetch Applicants who have job matches associated with this position but haven't applied
       const response = await fetch(`/api/positions/${positionId}/job-matches?${query.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch potential candidates');
+      if (!response.ok) throw new Error('Failed to fetch potential Applicants');
 
       const data = await response.json();
-      const candidates = Array.isArray(data.data) ? data.data : [];
+      const Applicants = Array.isArray(data.data) ? data.data : [];
 
-      setPotentialCandidates(candidates);
-      setPotentialCandidatesTotal(data.pagination?.total || candidates.length);
+      setPotentialApplicants(Applicants);
+      setPotentialApplicantsTotal(data.pagination?.total || Applicants.length);
     } catch (error) {
-      setPotentialCandidates([]);
-      setPotentialCandidatesTotal(0);
+      setPotentialApplicants([]);
+      setPotentialApplicantsTotal(0);
     }
-  }, [positionId, potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, isJobMatchEnabled]);
+  }, [positionId, potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, isJobMatchEnabled]);
 
   // Fetch headcount count for this position
   const fetchHeadcountCount = useCallback(async () => {
@@ -647,10 +647,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, [activeTab, position?.title, fetchAdUsers]);
 
-  // Handle candidate click
-  const handleCandidateClick = (candidateId: string) => {
-    setSelectedCandidateId(candidateId);
-    setIsCandidateModalOpen(true);
+  // Handle Applicant click
+  const handleApplicantClick = (candidateId: string) => {
+    setSelectedcandidateId(candidateId);
+    setIsApplicantModalOpen(true);
   };
 
   // Calculate SLA days left
@@ -804,23 +804,23 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   };
 
-  // Helper: Group candidates by email (same as position detail page)
-  const candidatesByEmail = useMemo(() => {
-    const groups: Record<string, Candidate[]> = {};
-    sortedAllCandidates.forEach((c) => {
+  // Helper: Group Applicants by email (same as position detail page)
+  const ApplicantsByEmail = useMemo(() => {
+    const groups: Record<string, Applicant[]> = {};
+    sortedAllApplicants.forEach((c) => {
       if (!c.email) return;
       if (!groups[c.email]) groups[c.email] = [];
       groups[c.email].push(c);
     });
     return groups;
-  }, [sortedAllCandidates]);
+  }, [sortedAllApplicants]);
 
   const emailOrder = useMemo(() => {
     const seen = new Set<string>();
-    return sortedAllCandidates
+    return sortedAllApplicants
       .map((c) => c.email)
       .filter((email) => email && !seen.has(email) && seen.add(email));
-  }, [sortedAllCandidates]);
+  }, [sortedAllApplicants]);
 
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
 
@@ -849,9 +849,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     if (isOpen && positionId && sessionStatus === 'authenticated') {
       fetchPosition();
       fetchGrades();
-      fetchAppliedCandidates();
-      fetchAllCandidates();
-      fetchPotentialCandidates();
+      fetchAppliedApplicants();
+      fetchAllApplicants();
+      fetchPotentialApplicants();
       fetchHeadcountCount();
       fetchRecruitmentStages();
       fetchRecruiters();
@@ -880,9 +880,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
       // Debug: SSE event received (remove in production)
 
-      // Always log candidate_update events for debugging
-      if (event.type === 'candidate_update') {
-        // Debug: Candidate update event (remove in production)
+      // Always log Applicant_update events for debugging
+      if (event.type === 'Applicant_update') {
+        // Debug: Applicant update event (remove in production)
       }
 
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -890,7 +890,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
 
       // Handle different event types with improved debouncing and rate limiting
-      if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'candidate_update') {
+      if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'Applicant_update') {
         const now = Date.now();
 
         // Rate limit updates to prevent excessive reloading
@@ -917,13 +917,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             fetchPosition();
             fetchHeadcountCount();
 
-            // Also refresh candidate data when candidate updates are received
-            if (event.type === 'candidate_update') {
-              // Always refresh candidate data for candidate updates, especially status changes
-              // Debug: Refreshing candidate data (remove in production)
-              fetchAppliedCandidates();
-              fetchAllCandidates();
-              fetchPotentialCandidates();
+            // Also refresh Applicant data when Applicant updates are received
+            if (event.type === 'Applicant_update') {
+              // Always refresh Applicant data for Applicant updates, especially status changes
+              // Debug: Refreshing Applicant data (remove in production)
+              fetchAppliedApplicants();
+              fetchAllApplicants();
+              fetchPotentialApplicants();
             }
           }
         }, 500); // 500ms debounce for better responsiveness
@@ -937,131 +937,131 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       unsubscribe();
     };
-  }, [sessionStatus, positionId, isOpen, subscribeToEvents, fetchPosition, fetchHeadcountCount, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
+  }, [sessionStatus, positionId, isOpen, subscribeToEvents, fetchPosition, fetchHeadcountCount, fetchAppliedApplicants, fetchAllApplicants, fetchPotentialApplicants]);
 
   // Reset state when drawer closes
   useEffect(() => {
     if (!isOpen) {
       setPosition(null);
-      setFilteredCandidates([]);
-      setFilteredCandidatesTotal(0);
-      setAppliedCandidates([]);
-      setAppliedCandidatesTotal(0);
-      setPotentialCandidates([]);
-      setPotentialCandidatesTotal(0);
+      setFilteredApplicants([]);
+      setFilteredApplicantsTotal(0);
+      setAppliedApplicants([]);
+      setAppliedApplicantsTotal(0);
+      setPotentialApplicants([]);
+      setPotentialApplicantsTotal(0);
       setHeadcountsTotal(0);
       setFetchError(null);
-      setFilteredCandidatesSearchTerm('');
-      setFilteredCandidatesPage(1);
-      setAppliedCandidatesSearchTerm('');
-      setAppliedCandidatesPage(1);
-      setPotentialCandidatesSearchTerm('');
-      setPotentialCandidatesPage(1);
+      setFilteredApplicantsSearchTerm('');
+      setFilteredApplicantsPage(1);
+      setAppliedApplicantsSearchTerm('');
+      setAppliedApplicantsPage(1);
+      setPotentialApplicantsSearchTerm('');
+      setPotentialApplicantsPage(1);
       setIsEditMode(false);
       setIsDrawerReady(false);
       setRecruitmentStages([]);
       form.reset();
 
       // Reset sorting state to default
-      setAppliedCandidatesSortColumn('fitScore');
-      setAppliedCandidatesSortDirection('desc');
-      setAppliedCandidatesOpenMenu(null);
-      setPotentialCandidatesSortColumn('fitScore');
-      setPotentialCandidatesSortDirection('desc');
-      setPotentialCandidatesOpenMenu(null);
-      setFilteredCandidatesOpenMenu(null);
-      setFilteredCandidatesOpenMenu(null);
+      setAppliedApplicantsSortColumn('fitScore');
+      setAppliedApplicantsSortDirection('desc');
+      setAppliedApplicantsOpenMenu(null);
+      setPotentialApplicantsSortColumn('fitScore');
+      setPotentialApplicantsSortDirection('desc');
+      setPotentialApplicantsOpenMenu(null);
+      setFilteredApplicantsOpenMenu(null);
+      setFilteredApplicantsOpenMenu(null);
       // Reset filters
-      setCandidateFilters({});
+      setApplicantFilters({});
     }
   }, [isOpen, form]);
 
-  // Debounced search for applied candidates
+  // Debounced search for applied Applicants
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
 
     // Clear existing timeout
-    if (appliedCandidatesSearchTimeoutRef.current) {
-      clearTimeout(appliedCandidatesSearchTimeoutRef.current);
+    if (appliedApplicantsSearchTimeoutRef.current) {
+      clearTimeout(appliedApplicantsSearchTimeoutRef.current);
     }
 
     // Set new timeout for search with debounce
-    appliedCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+    appliedApplicantsSearchTimeoutRef.current = setTimeout(async () => {
       try {
-        await fetchAppliedCandidates();
+        await fetchAppliedApplicants();
       } catch (error) {
-        console.error('Error fetching applied candidates:', error);
+        console.error('Error fetching applied Applicants:', error);
       } finally {
-        appliedCandidatesSearchTimeoutRef.current = null;
+        appliedApplicantsSearchTimeoutRef.current = null;
       }
     }, 500);
 
     // Cleanup timeout on unmount or dependency change
     return () => {
-      if (appliedCandidatesSearchTimeoutRef.current) {
-        clearTimeout(appliedCandidatesSearchTimeoutRef.current);
-        appliedCandidatesSearchTimeoutRef.current = null;
+      if (appliedApplicantsSearchTimeoutRef.current) {
+        clearTimeout(appliedApplicantsSearchTimeoutRef.current);
+        appliedApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, fetchAppliedCandidates, candidateFilters]); // Added candidateFilters
+  }, [appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, positionId, sessionStatus, fetchAppliedApplicants, ApplicantFilters]); // Added ApplicantFilters
 
-  // Debounced search for all candidates
+  // Debounced search for all Applicants
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
 
     // Clear existing timeout
-    if (allCandidatesSearchTimeoutRef.current) {
-      clearTimeout(allCandidatesSearchTimeoutRef.current);
+    if (allApplicantsSearchTimeoutRef.current) {
+      clearTimeout(allApplicantsSearchTimeoutRef.current);
     }
 
     // Set new timeout for search with debounce
-    allCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+    allApplicantsSearchTimeoutRef.current = setTimeout(async () => {
       try {
-        await fetchAllCandidates();
+        await fetchAllApplicants();
       } catch (error) {
-        console.error('Error fetching all candidates:', error);
+        console.error('Error fetching all Applicants:', error);
       } finally {
-        allCandidatesSearchTimeoutRef.current = null;
+        allApplicantsSearchTimeoutRef.current = null;
       }
     }, 500);
 
     // Cleanup timeout on unmount or dependency change
     return () => {
-      if (allCandidatesSearchTimeoutRef.current) {
-        clearTimeout(allCandidatesSearchTimeoutRef.current);
-        allCandidatesSearchTimeoutRef.current = null;
+      if (allApplicantsSearchTimeoutRef.current) {
+        clearTimeout(allApplicantsSearchTimeoutRef.current);
+        allApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, fetchAllCandidates]);
+  }, [allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, positionId, sessionStatus, fetchAllApplicants]);
 
-  // Debounced search for potential candidates
+  // Debounced search for potential Applicants
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
 
     // Clear existing timeout
-    if (potentialCandidatesSearchTimeoutRef.current) {
-      clearTimeout(potentialCandidatesSearchTimeoutRef.current);
+    if (potentialApplicantsSearchTimeoutRef.current) {
+      clearTimeout(potentialApplicantsSearchTimeoutRef.current);
     }
 
     // Set new timeout for search with debounce
-    potentialCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+    potentialApplicantsSearchTimeoutRef.current = setTimeout(async () => {
       try {
-        await fetchPotentialCandidates();
+        await fetchPotentialApplicants();
       } catch (error) {
-        console.error('Error fetching potential candidates:', error);
+        console.error('Error fetching potential Applicants:', error);
       } finally {
-        potentialCandidatesSearchTimeoutRef.current = null;
+        potentialApplicantsSearchTimeoutRef.current = null;
       }
     }, 500);
 
     // Cleanup timeout on unmount or dependency change
     return () => {
-      if (potentialCandidatesSearchTimeoutRef.current) {
-        clearTimeout(potentialCandidatesSearchTimeoutRef.current);
-        potentialCandidatesSearchTimeoutRef.current = null;
+      if (potentialApplicantsSearchTimeoutRef.current) {
+        clearTimeout(potentialApplicantsSearchTimeoutRef.current);
+        potentialApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, fetchPotentialCandidates, candidateFilters]); // Added candidateFilters
+  }, [potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, positionId, sessionStatus, fetchPotentialApplicants, ApplicantFilters]); // Added ApplicantFilters
 
   // Update form when position changes
   useEffect(() => {
@@ -1090,56 +1090,56 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, [isEditMode, position]);
 
-  // Handle pin toggle for applied candidates
-  const handleAppliedCandidatePinToggle = useCallback(async (candidate: Candidate) => {
+  // Handle pin toggle for applied Applicants
+  const handleAppliedApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
     try {
-      await fetch(`/api/candidates/${candidate.id}`, {
+      await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPinned: !candidate.isPinned })
+        body: JSON.stringify({ isPinned: !applicant.isPinned })
       });
-      candidate.isPinned = !candidate.isPinned;
-      setAppliedCandidates((prev) => [...prev]);
+      applicant.isPinned = !applicant.isPinned;
+      setAppliedApplicants((prev) => [...prev]);
     } catch { }
   }, []);
 
-  // Handle pin toggle for potential candidates
-  const handlePotentialCandidatePinToggle = useCallback(async (candidate: Candidate) => {
+  // Handle pin toggle for potential Applicants
+  const handlePotentialApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
     try {
-      await fetch(`/api/candidates/${candidate.id}`, {
+      await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPinned: !candidate.isPinned })
+        body: JSON.stringify({ isPinned: !applicant.isPinned })
       });
-      if (candidate.isPinned) {
-        candidate.isPinned = false;
+      if (applicant.isPinned) {
+        applicant.isPinned = false;
       } else {
-        candidate.isPinned = true;
+        applicant.isPinned = true;
       }
-      setAppliedCandidates((prev) => [...prev]);
-      setPotentialCandidates((prev) => [...prev]);
+      setAppliedApplicants((prev) => [...prev]);
+      setPotentialApplicants((prev) => [...prev]);
     } catch { }
   }, []);
 
-  // Handle pin toggle for all candidates
-  const handleAllCandidatePinToggle = useCallback(async (candidate: Candidate) => {
+  // Handle pin toggle for all Applicants
+  const handleAllApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
     try {
-      const response = await fetch(`/api/candidates/${candidate.id}`, {
+      const response = await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPinned: !candidate.isPinned })
+        body: JSON.stringify({ isPinned: !applicant.isPinned })
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
+        throw new Error(`Failed to ${applicant.isPinned ? 'unpin' : 'pin'} Applicant`);
       }
 
-      // Update the candidate in the appropriate list
-      const updateCandidate = (prev: Candidate[]) =>
-        prev.map(c => c.id === candidate.id ? { ...c, isPinned: !c.isPinned } : c);
+      // Update the Applicant in the appropriate list
+      const updateApplicant = (prev: Applicant[]) =>
+        prev.map(c => c.id === applicant.id ? { ...c, isPinned: !c.isPinned } : c);
 
-      setAppliedCandidates(updateCandidate);
-      setPotentialCandidates(updateCandidate);
+      setAppliedApplicants(updateApplicant);
+      setPotentialApplicants(updateApplicant);
     } catch (error) {
       console.error('Error toggling pin status:', error);
     }
@@ -1197,16 +1197,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   AI Match Criteria
                 </div>
                 <div
-                  onClick={() => setActiveTab('candidates')}
+                  onClick={() => setActiveTab('Applicants')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
-                    activeTab === 'candidates'
+                    activeTab === 'Applicants'
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
                 >
                   <Users className="h-4 w-4" />
-                  Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
+                  Applicants ({isJobMatchEnabled ? allApplicantsTotal : appliedApplicantsTotal})
                 </div>
                 <div
                   onClick={() => setActiveTab('headcount')}
@@ -1298,49 +1298,49 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               />
             )}
 
-            {activeTab === 'candidates' && (
+            {activeTab === 'Applicants' && (
               <div className="flex-1 overflow-hidden">
-                <CandidatesTab
+                <ApplicantsTab
                   isMobile={isMobile}
                   isJobMatchEnabled={isJobMatchEnabled}
-                  activeCandidateTab={activeCandidateTab as 'applied' | 'potential'}
-                  onActiveCandidateTabChange={(tab) => setActiveCandidateTab(tab)}
-                  appliedCandidates={appliedCandidates}
-                  sortedAppliedCandidates={sortedAppliedCandidates}
-                  appliedCandidatesSearchTerm={appliedCandidatesSearchTerm}
-                  appliedCandidatesSortColumn={appliedCandidatesSortColumn}
-                  appliedCandidatesSortDirection={appliedCandidatesSortDirection}
-                  appliedCandidatesOpenMenu={appliedCandidatesOpenMenu}
-                  appliedCandidatesPage={appliedCandidatesPage}
-                  appliedCandidatesPageSize={appliedCandidatesPageSize}
-                  appliedCandidatesTotal={appliedCandidatesTotal}
-                  appliedCandidatesCount={appliedCandidatesCount}
-                  onAppliedCandidatesSearchChange={setAppliedCandidatesSearchTerm}
-                  onAppliedCandidatesSort={handleAppliedCandidatesSort}
-                  onAppliedCandidatesOpenMenuChange={setAppliedCandidatesOpenMenu}
-                  onAppliedCandidatesPageChange={setAppliedCandidatesPage}
-                  onAppliedCandidatesPageSizeChange={setAppliedCandidatesPageSize}
-                  onAppliedCandidatePinToggle={handleAppliedCandidatePinToggle}
-                  potentialCandidates={potentialCandidates}
-                  sortedPotentialCandidates={sortedPotentialCandidates}
-                  potentialCandidatesSearchTerm={potentialCandidatesSearchTerm}
-                  potentialCandidatesSortColumn={potentialCandidatesSortColumn}
-                  potentialCandidatesSortDirection={potentialCandidatesSortDirection}
-                  potentialCandidatesOpenMenu={potentialCandidatesOpenMenu}
-                  potentialCandidatesPage={potentialCandidatesPage}
-                  potentialCandidatesPageSize={potentialCandidatesPageSize}
-                  potentialCandidatesTotal={potentialCandidatesTotal}
-                  onPotentialCandidatesSearchChange={setPotentialCandidatesSearchTerm}
-                  onPotentialCandidatesSort={handlePotentialCandidatesSort}
-                  onPotentialCandidatesOpenMenuChange={setPotentialCandidatesOpenMenu}
-                  onPotentialCandidatesPageChange={setPotentialCandidatesPage}
-                  onPotentialCandidatesPageSizeChange={setPotentialCandidatesPageSize}
-                  onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
+                  activeApplicantTab={activeApplicantTab as 'applied' | 'potential'}
+                  onActiveApplicantTabChange={(tab) => setActiveApplicantTab(tab)}
+                  appliedApplicants={appliedApplicants}
+                  sortedAppliedApplicants={sortedAppliedApplicants}
+                  appliedApplicantsSearchTerm={appliedApplicantsSearchTerm}
+                  appliedApplicantsSortColumn={appliedApplicantsSortColumn}
+                  appliedApplicantsSortDirection={appliedApplicantsSortDirection}
+                  appliedApplicantsOpenMenu={appliedApplicantsOpenMenu}
+                  appliedApplicantsPage={appliedApplicantsPage}
+                  appliedApplicantsPageSize={appliedApplicantsPageSize}
+                  appliedApplicantsTotal={appliedApplicantsTotal}
+                  appliedApplicantsCount={appliedApplicantsCount}
+                  onAppliedApplicantsSearchChange={setAppliedApplicantsSearchTerm}
+                  onAppliedApplicantsSort={handleAppliedApplicantsSort}
+                  onAppliedApplicantsOpenMenuChange={setAppliedApplicantsOpenMenu}
+                  onAppliedApplicantsPageChange={setAppliedApplicantsPage}
+                  onAppliedApplicantsPageSizeChange={setAppliedApplicantsPageSize}
+                  onAppliedApplicantPinToggle={handleAppliedApplicantPinToggle}
+                  potentialApplicants={potentialApplicants}
+                  sortedPotentialApplicants={sortedPotentialApplicants}
+                  potentialApplicantsSearchTerm={potentialApplicantsSearchTerm}
+                  potentialApplicantsSortColumn={potentialApplicantsSortColumn}
+                  potentialApplicantsSortDirection={potentialApplicantsSortDirection}
+                  potentialApplicantsOpenMenu={potentialApplicantsOpenMenu}
+                  potentialApplicantsPage={potentialApplicantsPage}
+                  potentialApplicantsPageSize={potentialApplicantsPageSize}
+                  potentialApplicantsTotal={potentialApplicantsTotal}
+                  onPotentialApplicantsSearchChange={setPotentialApplicantsSearchTerm}
+                  onPotentialApplicantsSort={handlePotentialApplicantsSort}
+                  onPotentialApplicantsOpenMenuChange={setPotentialApplicantsOpenMenu}
+                  onPotentialApplicantsPageChange={setPotentialApplicantsPage}
+                  onPotentialApplicantsPageSizeChange={setPotentialApplicantsPageSize}
+                  onPotentialApplicantPinToggle={handlePotentialApplicantPinToggle}
                   stageNames={stageNames}
-                  onCandidateClick={handleCandidateClick}
+                  onApplicantClick={handleApplicantClick}
                   // Filter Props
-                  candidateFilters={candidateFilters}
-                  onFilterChange={setCandidateFilters}
+                  ApplicantFilters={ApplicantFilters}
+                  onFilterChange={setApplicantFilters}
                   availableRecruiters={availableRecruiters}
                   availableStages={recruitmentStages}
                   availableSources={availableSources}
@@ -1355,7 +1355,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   <div className={cn(isMobile ? "p-4 pb-48" : "p-6")}>
                     <HeadcountTab
                       positionId={positionId!}
-                      candidates={filteredCandidates}
+                      Applicants={filteredApplicants}
                       onHeadcountChange={fetchHeadcountCount}
                     />
 
@@ -1533,14 +1533,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           </div>
         )}
 
-        {/* Candidate Detail Modal */}
-        {selectedCandidateId && isCandidateModalOpen && (
-          <CandidateDetailModal
-            candidateId={selectedCandidateId}
-            open={isCandidateModalOpen}
+        {/* Applicant Detail Modal */}
+        {selectedcandidateId && isApplicantModalOpen && (
+          <ApplicantDetailModal
+            candidateId={selectedcandidateId}
+            open={isApplicantModalOpen}
             onClose={() => {
-              setIsCandidateModalOpen(false);
-              setSelectedCandidateId(null);
+              setIsApplicantModalOpen(false);
+              setSelectedcandidateId(null);
             }}
             onRefresh={() => {
               if (positionId) fetchPosition();
@@ -1565,8 +1565,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           if (!open && preventClose) {
             return;
           }
-          // Prevent closing the drawer when the candidate modal is open
-          if (!open && isCandidateModalOpen) {
+          // Prevent closing the drawer when the Applicant modal is open
+          if (!open && isApplicantModalOpen) {
             return;
           }
           handleSheetOpenChange(open);
@@ -1615,19 +1615,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </DialogContent>
       </Dialog>
 
-      {/* Candidate Detail Modal */}
-      {selectedCandidateId && isCandidateModalOpen && (
-        <CandidateDetailModal
-          candidateId={selectedCandidateId}
-          open={isCandidateModalOpen}
+      {/* Applicant Detail Modal */}
+      {selectedcandidateId && isApplicantModalOpen && (
+        <ApplicantDetailModal
+          candidateId={selectedcandidateId}
+          open={isApplicantModalOpen}
           onClose={() => {
-            setIsCandidateModalOpen(false);
-            setSelectedCandidateId(null);
+            setIsApplicantModalOpen(false);
+            setSelectedcandidateId(null);
           }}
           onRefresh={() => {
-            fetchAppliedCandidates();
-            fetchAllCandidates();
-            fetchPotentialCandidates();
+            fetchAppliedApplicants();
+            fetchAllApplicants();
+            fetchPotentialApplicants();
           }}
         />
       )}

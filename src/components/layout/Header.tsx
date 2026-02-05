@@ -39,12 +39,12 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     return [{ label: "Dashboard", href: "/" }];
   }
 
-  if (pathname.startsWith("/candidates") || pathname.startsWith("/applicants")) {
-    // Always show Candidates breadcrumb to allow realtime indicator to appear
+  if (pathname.startsWith("/applicants")) {
+    // Always show Applicants breadcrumb to allow realtime indicator to appear
     items.push({ label: "Applicants", href: "/applicants" });
 
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
-      items.push({ label: "Candidate Details", href: pathname });
+      items.push({ label: "Applicant Details", href: pathname });
     }
   }
 
@@ -463,13 +463,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     if (!pathname) return false;
     const parts = pathname.split('/').filter(Boolean);
 
-    // Check for candidate/applicant detail (e.g., /applicants/[id])
-    const isCandidateDetail = (parts[0] === 'candidates' || parts[0] === 'applicants') && parts.length >= 2;
+    // Check for Applicant/Applicant detail (e.g., /applicants/[id])
+    const isApplicantDetail = (parts[0] === 'Applicants' || parts[0] === 'applicants') && parts.length >= 2;
 
     // Check for position detail (e.g., /positions/[id])
     const isPositionDetail = parts[0] === 'positions' && parts.length >= 2;
 
-    return isCandidateDetail || isPositionDetail;
+    return isApplicantDetail || isPositionDetail;
   }, [pathname]);
 
   // Hide header on mobile for detail pages
@@ -866,12 +866,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             >
               <VisuallyHidden>
                 <DialogTitle>
-                  {pathname === '/positions' ? 'Search Positions' : 'Search Candidates'}
+                  {pathname === '/positions' ? 'Search Positions' : 'Search Applicants'}
                 </DialogTitle>
               </VisuallyHidden>
               <DialogHeader className="border-b px-4 pt-6 pb-4 flex-shrink-0">
                 <DialogTitle className="text-lg font-semibold text-center">
-                  {pathname === '/positions' ? 'Search Positions' : 'Search Candidates'}
+                  {pathname === '/positions' ? 'Search Positions' : 'Search Applicants'}
                 </DialogTitle>
               </DialogHeader>
               <div className="p-4 flex flex-col gap-4">

@@ -64,28 +64,28 @@ export async function GET(
             });
         }
 
-        // 4. Find associated Candidate
-        let candidate = null;
+        // 4. Find associated Applicant
+        let applicant = null;
 
-        // Build OR conditions for candidate search
-        const candidateOrConditions = [];
+        // Build OR conditions for Applicant search
+        const applicantOrConditions = [];
 
         if (searchCriteria.emails.length > 0) {
-            candidateOrConditions.push({
+            applicantOrConditions.push({
                 email: { in: searchCriteria.emails, mode: 'insensitive' as const }
             });
         }
 
         if (searchCriteria.phones.length > 0) {
-            candidateOrConditions.push({
+            applicantOrConditions.push({
                 phone: { in: searchCriteria.phones }
             });
         }
 
-        if (candidateOrConditions.length > 0) {
-            candidate = await prisma.candidate.findFirst({
+        if (applicantOrConditions.length > 0) {
+            applicant = await prisma.candidate.findFirst({
                 where: {
-                    OR: candidateOrConditions
+                    OR: applicantOrConditions
                 },
                 include: {
                     position: {
@@ -105,11 +105,11 @@ export async function GET(
 
         return NextResponse.json({
             headcount,
-            candidate,
+            applicant,
             matchCriteria: {
                 matchedByEmployeeId: !!headcount,
-                matchedByEmail: candidate ? searchCriteria.emails.includes(candidate.email) : false,
-                matchedByPhone: candidate?.phone ? searchCriteria.phones.includes(candidate.phone) : false,
+                matchedByEmail: applicant ? searchCriteria.emails.includes(applicant.email) : false,
+                matchedByPhone: applicant?.phone ? searchCriteria.phones.includes(applicant.phone) : false,
             }
         });
 

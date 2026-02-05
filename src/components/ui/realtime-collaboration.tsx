@@ -93,8 +93,8 @@ export function RealtimeCollaboration({
   }, [session?.user?.id]);
 
   // FIXED: Stabilize callback functions to prevent infinite loops
-  const handleCandidateUpdate = useCallback((data: any) => {
-    // Handle candidate updates as collaboration events
+  const handleApplicantUpdate = useCallback((data: any) => {
+    // Handle Applicant updates as collaboration events
     setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
     setLastUpdate(new Date());
   }, [maxItems]);
@@ -162,7 +162,7 @@ export function RealtimeCollaboration({
   // Get event icon
   const getEventIcon = (type: string) => {
     switch (type) {
-      case 'candidate_update':
+      case 'Applicant_update':
         return <Users className="w-4 h-4" />;
       case 'position_update':
         return <Activity className="w-4 h-4" />;

@@ -32,7 +32,7 @@ const customFieldOptionSchema = z.object({
 });
 
 const customFieldFormSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
+  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
@@ -43,15 +43,15 @@ const customFieldFormSchema = z.object({
   
   // Visibility settings
   showInFilter: z.boolean().default(false),
-  showInCandidateDetail: z.boolean().default(false),
-  showInFullCandidateDetail: z.boolean().default(false),
+  showInApplicantDetail: z.boolean().default(false),
+  showInFullApplicantDetail: z.boolean().default(false),
   showInTaskBoardFilter: z.boolean().default(false),
   showInPositionSettings: z.boolean().default(false),
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  candidateDetailSection: z.enum(['jobs', 'candidate-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
-  positionDetailSection: z.enum(['details', 'criteria', 'candidates', 'headcount']).optional().nullable(),
+  ApplicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  positionDetailSection: z.enum(['details', 'criteria', 'Applicants', 'headcount']).optional().nullable(),
   
   // Field properties
   is_required: z.boolean().default(false),
@@ -83,7 +83,7 @@ const FIELD_TYPE_ICONS = {
 };
 
 const MODEL_ICONS = {
-  Candidate: User,
+  Applicant: User,
   Position: Building,
   User: User,
   Headcount: Building,
@@ -126,19 +126,19 @@ export default function CustomFieldDrawer({
   const form = useForm<CustomFieldFormValues>({
     resolver: zodResolver(customFieldFormSchema),
     defaultValues: {
-      model_name: 'Candidate',
+      model_name: 'Applicant',
       field_code: '',
       label: '',
       field_type: 'text',
       viewRoles: [],
       editRoles: [],
       showInFilter: false,
-      showInCandidateDetail: false,
-      showInFullCandidateDetail: false,
+      showInApplicantDetail: false,
+      showInFullApplicantDetail: false,
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
       showInHeadcountDetail: false,
-      candidateDetailSection: undefined,
+      ApplicantDetailSection: undefined,
       positionDetailSection: undefined,
       is_required: false,
       allowCustomOptions: false,
@@ -154,8 +154,8 @@ export default function CustomFieldDrawer({
 
   const watchFieldType = form.watch("field_type");
   const watchModelName = form.watch("model_name");
-  const watchShowInFullCandidateDetail = form.watch("showInFullCandidateDetail");
-  const watchShowInCandidateDetail = form.watch("showInCandidateDetail");
+  const watchShowInFullApplicantDetail = form.watch("showInFullApplicantDetail");
+  const watchShowInApplicantDetail = form.watch("showInApplicantDetail");
   const watchShowInPositionSettings = form.watch("showInPositionSettings");
   const isSelectType = watchFieldType === 'select_single' || watchFieldType === 'select_multiple';
 
@@ -169,11 +169,11 @@ export default function CustomFieldDrawer({
         viewRoles: Array.isArray(definition.viewRoles) ? definition.viewRoles : [],
         editRoles: Array.isArray(definition.editRoles) ? definition.editRoles : [],
         showInFilter: definition.showInFilter || false,
-        showInCandidateDetail: definition.showInCandidateDetail || false,
-        showInFullCandidateDetail: definition.showInFullCandidateDetail || false,
+        showInApplicantDetail: definition.showInApplicantDetail || false,
+        showInFullApplicantDetail: definition.showInFullApplicantDetail || false,
         showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
         showInPositionSettings: definition.showInPositionSettings || false,
-        candidateDetailSection: definition.candidateDetailSection || undefined,
+        ApplicantDetailSection: definition.ApplicantDetailSection || undefined,
         positionDetailSection: definition.positionDetailSection || undefined,
         showInHeadcountDetail: definition.showInHeadcountDetail || false,
         is_required: definition.is_required || false,
@@ -183,19 +183,19 @@ export default function CustomFieldDrawer({
       });
     } else if (!definition && open) {
       form.reset({
-        model_name: 'Candidate',
+        model_name: 'Applicant',
         field_code: '',
         label: '',
         field_type: 'text',
         viewRoles: [],
         editRoles: [],
         showInFilter: false,
-        showInCandidateDetail: false,
-        showInFullCandidateDetail: false,
+        showInApplicantDetail: false,
+        showInFullApplicantDetail: false,
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
         showInHeadcountDetail: false,
-        candidateDetailSection: undefined,
+        ApplicantDetailSection: undefined,
         positionDetailSection: undefined,
         is_required: false,
         allowCustomOptions: false,
@@ -377,7 +377,7 @@ export default function CustomFieldDrawer({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="Candidate">Candidate</SelectItem>
+                                    <SelectItem value="Candidate">Applicant</SelectItem>
                                     <SelectItem value="Position">Position</SelectItem>
                                     <SelectItem value="User">User</SelectItem>
                                     <SelectItem value="Headcount">Headcount</SelectItem>
@@ -641,7 +641,7 @@ export default function CustomFieldDrawer({
 
                           <FormField
                             control={form.control}
-                            name="showInCandidateDetail"
+                            name="showInApplicantDetail"
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>
@@ -651,9 +651,9 @@ export default function CustomFieldDrawer({
                                   />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Candidate Detail</FormLabel>
+                                  <FormLabel>Show in Applicant Detail</FormLabel>
                                   <FormDescription>
-                                    Display in candidate detail view
+                                    Display in Applicant detail view
                                   </FormDescription>
                                 </div>
                               </FormItem>
@@ -662,7 +662,7 @@ export default function CustomFieldDrawer({
 
                           <FormField
                             control={form.control}
-                            name="showInFullCandidateDetail"
+                            name="showInFullApplicantDetail"
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>
@@ -672,9 +672,9 @@ export default function CustomFieldDrawer({
                                   />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Full Candidate Detail</FormLabel>
+                                  <FormLabel>Show in Full Applicant Detail</FormLabel>
                                   <FormDescription>
-                                    Display in full candidate detail page
+                                    Display in full Applicant detail page
                                   </FormDescription>
                                 </div>
                               </FormItem>
@@ -748,15 +748,15 @@ export default function CustomFieldDrawer({
                             />
                           )}
 
-                          {/* Section Selection for Candidate Detail */}
-                          {watchModelName === 'Candidate' && (watchShowInFullCandidateDetail || watchShowInCandidateDetail) && (
+                          {/* Section Selection for Applicant Detail */}
+                          {watchModelName === 'Applicant' && (watchShowInFullApplicantDetail || watchShowInApplicantDetail) && (
                             <div className="space-y-3">
                               <Separator />
                               <div className="space-y-2">
                                 <Label className="text-sm font-medium">Display Section</Label>
                                 <FormField
                                   control={form.control}
-                                  name="candidateDetailSection"
+                                  name="ApplicantDetailSection"
                                   render={({ field }) => (
                                     <FormItem>
                                       <Select value={field.value || ''} onValueChange={field.onChange}>
@@ -765,7 +765,7 @@ export default function CustomFieldDrawer({
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="jobs">Jobs Tab</SelectItem>
-                                          <SelectItem value="candidate-info">Candidate Info Tab</SelectItem>
+                                          <SelectItem value="Applicant-info">Applicant Info Tab</SelectItem>
                                           <SelectItem value="education">Education Tab</SelectItem>
                                           <SelectItem value="experience">Experience Tab</SelectItem>
                                           <SelectItem value="job-suitability">Job Suitability Tab</SelectItem>
@@ -799,7 +799,7 @@ export default function CustomFieldDrawer({
                                         <SelectContent>
                                           <SelectItem value="details">Details Tab</SelectItem>
                                           <SelectItem value="criteria">Match Criteria Tab</SelectItem>
-                                          <SelectItem value="candidates">Candidates Tab</SelectItem>
+                                          <SelectItem value="Applicants">Applicants Tab</SelectItem>
                                           <SelectItem value="headcount">Headcount Tab</SelectItem>
                                         </SelectContent>
                                       </Select>

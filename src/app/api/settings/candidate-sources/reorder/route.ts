@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -8,16 +8,16 @@ import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
-const reorderCandidateSourcesSchema = z.object({
+const reorderApplicantSourcesSchema = z.object({
   sourceIds: z.array(z.string().uuid()),
 });
 
 /**
  * @openapi
- * /api/settings/candidate-sources/reorder:
+ * /api/settings/Applicant-sources/reorder:
  *   post:
- *     summary: Reorder candidate sources
- *     description: Updates the sort order of candidate sources based on the provided array of IDs. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
+ *     summary: Reorder Applicant sources
+ *     description: Updates the sort order of Applicant sources based on the provided array of IDs. Requires Admin or SYSTEM_SETTINGS_MANAGE permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -32,7 +32,7 @@ const reorderCandidateSourcesSchema = z.object({
  *                   format: uuid
  *     responses:
  *       200:
- *         description: Candidate sources reordered successfully
+ *         description: Applicant sources reordered successfully
  *       400:
  *         description: Invalid input
  *       401:
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { sourceIds } = reorderCandidateSourcesSchema.parse(body);
+    const { sourceIds } = reorderApplicantSourcesSchema.parse(body);
 
     if (sourceIds.length === 0) {
       return NextResponse.json({ message: "No source IDs provided" }, { status: 400 });
@@ -64,20 +64,20 @@ export async function POST(request: NextRequest) {
     // Update sort order for each source
     for (let i = 0; i < sourceIds.length; i++) {
       await getPool().query(
-        'UPDATE "CandidateSource" SET sort_order = $1, "updatedAt" = NOW() WHERE id = $2',
+        'UPDATE "ApplicantSource" SET sort_order = $1, "updatedAt" = NOW() WHERE id = $2',
         [i + 1, sourceIds[i]]
       );
     }
 
-    await logAudit('INFO', `Reordered ${sourceIds.length} candidate sources`, 'API:CandidateSources:Reorder', session.user.id);
+    await logAudit('INFO', `Reordered ${sourceIds.length} Applicant sources`, 'API:ApplicantSources:Reorder', session.user.id);
     
-    return NextResponse.json({ message: "Candidate sources reordered successfully" }, { status: 200 });
+    return NextResponse.json({ message: "Applicant sources reordered successfully" }, { status: 200 });
   } catch (error: any) {
-    console.error("Failed to reorder candidate sources:", error);
+    console.error("Failed to reorder Applicant sources:", error);
     if (error.name === 'ZodError') {
       return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to reorder candidate sources. Error: ${error.message}`, 'API:CandidateSources:Reorder', session.user.id);
-    return NextResponse.json({ message: "Error reordering candidate sources", error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to reorder Applicant sources. Error: ${error.message}`, 'API:ApplicantSources:Reorder', session.user.id);
+    return NextResponse.json({ message: "Error reordering Applicant sources", error: error.message }, { status: 500 });
   }
 }

@@ -33,7 +33,7 @@ export function NetworkDiagnostics({ className, onClose }: NetworkDiagnosticsPro
       // Check API endpoints
       const apiEndpoints = [
         '/api/health',
-        '/api/candidates',
+        '/api/applicants',
         '/api/positions',
         '/api/stages'
       ];
@@ -154,7 +154,7 @@ export function NetworkDiagnostics({ className, onClose }: NetworkDiagnosticsPro
         <Alert>
           <WifiOff className="w-4 h-4" />
           <AlertDescription>
-            Network connectivity issues detected. This may be causing the "Failed to update candidate status" error. 
+            Network connectivity issues detected. This may be causing the "Failed to update Applicant status" error. 
             Try refreshing the page or checking your internet connection.
           </AlertDescription>
         </Alert>

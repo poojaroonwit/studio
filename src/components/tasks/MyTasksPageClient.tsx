@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from "@/components/candidates/CandidateKanbanView";
-import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
+import { StatusBadge } from "@/components/applicants/ApplicantKanbanView";
+import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -26,8 +26,8 @@ import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationS
 
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
-import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import ApplicantDetailModal from '@/components/applicants/ApplicantDetailModal';
+import { PositionSelectDropdown } from '@/components/applicants/PositionSelectDropdown';
 
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch, safeAll } from '@/lib/safe-fetch';
@@ -74,7 +74,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const viewModeInitializedRef = useRef(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban'); // Default to kanban
   const [filters, setFilters] = useState<any>({});
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [Applicants, setApplicants] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string, description?: string, sortOrder?: number, colorComplete?: string, colorBadge?: string, isSystem?: boolean}>>([]);
   const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
@@ -90,7 +90,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
-  const [totalCandidates, setTotalCandidates] = useState(0);
+  const [totalApplicants, setTotalApplicants] = useState(0);
   
   // Admin users can access my-tasks page - no automatic redirect
   
@@ -104,23 +104,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     selectedStages: [] 
   });
 
-  // Enhanced candidate update handler with conflict resolution
-  const handleCandidateUpdate = useCallback((updateData: any) => {
+  // Enhanced Applicant update handler with conflict resolution
+  const handleApplicantUpdate = useCallback((updateData: any) => {
     
     
-    const updatedCandidate = updateData?.candidate || updateData;
+    const updatedApplicant = updateData?.Applicant || updateData;
     
-    if (!updatedCandidate || !updatedCandidate.id) {
+    if (!updatedApplicant || !updatedapplicant.id) {
       
       return;
     }
     
     
     
-    setCandidates(prevCandidates => {
-      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+    setApplicants(prevApplicants => {
+      const existingIndex = prevApplicants.findIndex(c => c.id === updatedapplicant.id);
       if (existingIndex !== -1) {
-        const updated = [...prevCandidates];
+        const updated = [...prevApplicants];
         const existing = updated[existingIndex];
         
         
@@ -128,18 +128,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         // Merge updates while preserving any local changes that haven't been confirmed
         const merged = { 
           ...existing, 
-          ...updatedCandidate,
+          ...updatedApplicant,
           // Preserve local status if it's different from the updated one (might be a pending change)
-          status: existing.status !== updatedCandidate.status ? existing.status : updatedCandidate.status
+          status: existing.status !== updatedapplicant.status ? existing.status : updatedapplicant.status
         };
         
         updated[existingIndex] = merged;
         
         return updated;
       } else {
-        // Add new candidate if not found
+        // Add new Applicant if not found
         
-        return [...prevCandidates, updatedCandidate];
+        return [...prevApplicants, updatedApplicant];
       }
     });
   }, []);
@@ -179,7 +179,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       }
       
       // Handle different event types with improved debouncing and rate limiting
-      if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
+      if (event.type === 'Applicant_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
         
         // Rate limit updates to prevent excessive reloading
@@ -224,7 +224,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Handle refresh trigger from realtime updates
   useEffect(() => {
     if (refreshTrigger > 0) {
-      const fetchCandidates = async () => {
+      const fetchApplicants = async () => {
         setLoading(true);
         try {
           const params = new URLSearchParams();
@@ -233,20 +233,20 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           
-          const result = await safeFetch(`/api/taskboard/candidates?${params.toString()}`, { timeoutMs: 6000 });
+          const result = await safeFetch(`/api/taskboard/Applicants?${params.toString()}`, { timeoutMs: 6000 });
           if (result.ok && result.data) {
-            setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
+            setApplicants(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
           } else {
-            console.warn('Skipping failed endpoint /api/candidates:', result.error || result.status);
-            setCandidates([]);
+            console.warn('Skipping failed endpoint /api/applicants:', result.error || result.status);
+            setApplicants([]);
           }
         } catch (e) {
-          console.error('Error fetching candidates:', e);
+          console.error('Error fetching Applicants:', e);
         } finally {
           setLoading(false);
         }
       };
-      fetchCandidates();
+      fetchApplicants();
     }
   }, [refreshTrigger, filters.name, filters.positionId, filters.stage, filters.recruiterId]);
 
@@ -256,10 +256,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     if (!session?.user?.id) return;
     
     const interval = setInterval(() => {
-      // Only refresh if not currently loading and we have candidates
-      if (!loading && candidates.length > 0) {
+      // Only refresh if not currently loading and we have Applicants
+      if (!loading && Applicants.length > 0) {
         
-        const refreshCandidates = async () => {
+        const refreshApplicants = async () => {
           try {
             const params = new URLSearchParams();
             if (filters.name) params.append('name', filters.name);
@@ -267,18 +267,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             if (filters.stage) params.append('status', filters.stage);
             if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
             
-            const result = await safeFetch(`/api/taskboard/candidates?${params.toString()}`, { timeoutMs: 6000 });
+            const result = await safeFetch(`/api/taskboard/Applicants?${params.toString()}`, { timeoutMs: 6000 });
             if (result.ok && result.data) {
-              const newCandidates = Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []);
+              const newApplicants = Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []);
             
               // Only update if the data has actually changed
-              if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
-                  JSON.stringify(candidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
-                setCandidates(newCandidates);
-                // console.log('[MyTasksPageClient] Periodic refresh updated candidates');
+              if (JSON.stringify(newApplicants.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
+                  JSON.stringify(Applicants.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
+                setApplicants(newApplicants);
+                // console.log('[MyTasksPageClient] Periodic refresh updated Applicants');
               }
             } else {
-              console.warn('Skipping failed endpoint /api/candidates (periodic):', result.error || result.status);
+              console.warn('Skipping failed endpoint /api/applicants (periodic):', result.error || result.status);
             }
           } catch (error) {
             console.error('[MyTasksPageClient] Error in periodic refresh:', error);
@@ -286,24 +286,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           }
         };
         
-        refreshCandidates();
+        refreshApplicants();
       }
     }, 10000); // Reduced from 30 seconds to 10 seconds for better responsiveness
     
     return () => clearInterval(interval);
-  }, [session?.user?.id, loading, candidates, filters, realtimeConnected]);
+  }, [session?.user?.id, loading, Applicants, filters, realtimeConnected]);
 
 
 
 
-  // Permission check: If user is a recruiter (not Admin and doesn't have CANDIDATES_VIEW permission), 
-  // only show their assigned candidates
+  // Permission check: If user is a recruiter (not Admin and doesn't have Applicants_VIEW permission), 
+  // only show their assigned Applicants
   const isRecruiter = userSession?.role === 'Recruiter' && 
-    !userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
+    !userSession?.modulePermissions?.includes('Applicants_VIEW');
 
-  // Check if user can see all recruiters (has USERS_VIEW or CANDIDATES_VIEW permission)
+  // Check if user can see all recruiters (has USERS_VIEW or Applicants_VIEW permission)
   const canSeeAllRecruiter = userSession?.modulePermissions?.includes('USERS_VIEW') || 
-    userSession?.modulePermissions?.includes('CANDIDATES_VIEW');
+    userSession?.modulePermissions?.includes('Applicants_VIEW');
 
   // Set initial recruiter filter for recruiters (but not when no stages are selected)
   useEffect(() => {
@@ -454,11 +454,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   useEffect(() => {
     const fetchTotalCount = async () => {
       try {
-        const result = await safeFetch('/api/candidates?forCounts=true', { timeoutMs: 8000 });
+        const result = await safeFetch('/api/applicants?forCounts=true', { timeoutMs: 8000 });
         if (result.ok && result.data) {
-          setTotalCandidates((result.data as any)?.total || 0);
+          setTotalApplicants((result.data as any)?.total || 0);
         } else {
-          console.warn('Skipping failed endpoint /api/candidates (counts):', result.error || result.status);
+          console.warn('Skipping failed endpoint /api/applicants (counts):', result.error || result.status);
         }
       } catch (e) {
         console.error('Error fetching total count:', e);
@@ -467,29 +467,29 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetchTotalCount();
   }, []);
 
-  // Initial load of candidates (with pagination for better performance)
+  // Initial load of Applicants (with pagination for better performance)
   useEffect(() => {
-    const fetchCandidates = async () => {
+    const fetchApplicants = async () => {
       setLoading(true);
       try {
-        // Use optimized taskboard endpoint for faster loading - request all candidates
-        const result = await safeFetch('/api/taskboard/candidates?limit=50000&page=1', { timeoutMs: 6000 });
+        // Use optimized taskboard endpoint for faster loading - request all Applicants
+        const result = await safeFetch('/api/taskboard/Applicants?limit=50000&page=1', { timeoutMs: 6000 });
         if (result.ok && result.data) {
-          setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
+          setApplicants(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
         } else {
-          console.warn('Skipping failed endpoint /api/candidates (initial):', result.error || result.status);
-          setCandidates([]);
+          console.warn('Skipping failed endpoint /api/applicants (initial):', result.error || result.status);
+          setApplicants([]);
         }
       } catch (e) {
-        console.error('Error fetching candidates:', e);
+        console.error('Error fetching Applicants:', e);
       } finally {
         setLoading(false);
       }
     };
-    fetchCandidates();
+    fetchApplicants();
   }, []); // Only run on mount
 
-  // Debounced fetch candidates when filters change
+  // Debounced fetch Applicants when filters change
   useEffect(() => {
     // Clear existing timeout
     if (searchTimeoutRef.current) {
@@ -498,7 +498,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
     // Set new timeout for search
     searchTimeoutRef.current = setTimeout(() => {
-      const fetchCandidates = async () => {
+      const fetchApplicants = async () => {
         setLoading(true);
         try {
           const params = new URLSearchParams();
@@ -507,35 +507,35 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
           
-          // If no filters are applied, use the same endpoint as initial load to get all candidates
+          // If no filters are applied, use the same endpoint as initial load to get all Applicants
           // Recruiter filter should apply even when no stages are selected
           const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
           const shouldShowAll = !hasFilters;
-          // Request all candidates - pagination is handled by "See More" button in UI
+          // Request all Applicants - pagination is handled by "See More" button in UI
           if (!params.has('limit')) {
-            params.append('limit', '50000'); // Request all candidates (no practical limit)
+            params.append('limit', '50000'); // Request all Applicants (no practical limit)
           }
           const endpoint = shouldShowAll
-            ? '/api/taskboard/candidates?limit=50000&page=1' // Get all candidates when showing all
-            : `/api/taskboard/candidates?${params.toString()}`;
+            ? '/api/taskboard/Applicants?limit=50000&page=1' // Get all Applicants when showing all
+            : `/api/taskboard/Applicants?${params.toString()}`;
           
-          // console.log('Fetching candidates with endpoint:', endpoint);
+          // console.log('Fetching Applicants with endpoint:', endpoint);
           
           const result = await safeFetch(endpoint, { timeoutMs: 6000 });
           if (result.ok && result.data) {
-            setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
-            // console.log('Successfully loaded candidates:', Array.isArray(result.data) ? result.data.length : ((result.data as any)?.data || []).length);
+            setApplicants(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
+            // console.log('Successfully loaded Applicants:', Array.isArray(result.data) ? result.data.length : ((result.data as any)?.data || []).length);
           } else {
-            console.warn('Skipping failed endpoint /api/candidates (filtered):', result.error || result.status);
-            setCandidates([]);
+            console.warn('Skipping failed endpoint /api/applicants (filtered):', result.error || result.status);
+            setApplicants([]);
           }
         } catch (e) {
-          console.error('Error fetching candidates:', e);
+          console.error('Error fetching Applicants:', e);
         } finally {
           setLoading(false);
         }
       };
-      fetchCandidates();
+      fetchApplicants();
     }, 300); // 300ms delay
 
     // Cleanup timeout on unmount
@@ -558,73 +558,73 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [selectedStages]);
 
-  // Filter candidates based on user role and permissions
-  const filteredCandidates = useMemo(() => {
+  // Filter Applicants based on user role and permissions
+  const filteredApplicants = useMemo(() => {
     // Defensive check to prevent temporal dead zone issues
-    if (!Array.isArray(candidates)) {
-      console.warn('MyTasksPageClient: candidates is not an array:', candidates);
+    if (!Array.isArray(Applicants)) {
+      console.warn('MyTasksPageClient: Applicants is not an array:', Applicants);
       return [];
     }
     
     try {
-      // The API already handles permission-based filtering, so we just return all candidates
-      // that the API returned. The API will only return candidates the user has permission to see.
-      return candidates;
+      // The API already handles permission-based filtering, so we just return all Applicants
+      // that the API returned. The API will only return Applicants the user has permission to see.
+      return Applicants;
     } catch (error) {
-      console.error('MyTasksPageClient: Error in filteredCandidates useMemo:', error);
+      console.error('MyTasksPageClient: Error in filteredApplicants useMemo:', error);
       return [];
     }
-  }, [candidates]);
+  }, [Applicants]);
 
   // Filtering logic (for fitScore, if not supported by API)
-  const displayedCandidates = useMemo(() => {
+  const displayedApplicants = useMemo(() => {
     try {
       // Defensive check to prevent filter errors
-      if (!Array.isArray(filteredCandidates)) {
-        console.warn('MyTasksPageClient: filteredCandidates is not an array:', filteredCandidates);
+      if (!Array.isArray(filteredApplicants)) {
+        console.warn('MyTasksPageClient: filteredApplicants is not an array:', filteredApplicants);
         return [];
       }
       
-      return filteredCandidates.filter((c) => {
+      return filteredApplicants.filter((c) => {
         try {
           if (filters.minFitScore !== undefined && c.fitScore < filters.minFitScore) return false;
           if (filters.maxFitScore !== undefined && c.fitScore > filters.maxFitScore) return false;
           return true;
         } catch (error) {
-          console.warn('MyTasksPageClient: Error filtering candidate by fitScore:', error, c);
+          console.warn('MyTasksPageClient: Error filtering Applicant by fitScore:', error, c);
           return false;
         }
       });
     } catch (error) {
-      console.error('MyTasksPageClient: Error in displayedCandidates useMemo:', error);
+      console.error('MyTasksPageClient: Error in displayedApplicants useMemo:', error);
       return [];
     }
-  }, [filteredCandidates, filters]);
+  }, [filteredApplicants, filters]);
 
-  // Convert candidates to tasks for the task board
-  const convertCandidatesToTasks = (candidates: any[]): Task[] => {
-    return candidates.map(candidate => {
+  // Convert Applicants to tasks for the task board
+  const convertApplicantsToTasks = (Applicants: any[]): Task[] => {
+    return Applicants.map(Applicant => {
       const task = {
-        id: candidate.id,
-        title: candidate.name,
-        description: candidate.parsedData?.summary || '', // Only use summary, don't fallback to email
-        email: candidate.email, // Always include email separately
-        status: candidate.statusId,
-        priority: (candidate.fitScore > 0.8 ? 'high' : candidate.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
-        assignee: candidate.recruiter ? {
-          id: candidate.recruiter.id,
-          name: candidate.recruiter.name,
-          avatarUrl: candidate.recruiter.avatarUrl
+        id: Applicant.id,
+        title: Applicant.name,
+        description: Applicant.parsedData?.summary || '', // Only use summary, don't fallback to email
+        email: Applicant.email, // Always include email separately
+        status: Applicant.statusId,
+        priority: (Applicant.fitScore > 0.8 ? 'high' : Applicant.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
+        assignee: Applicant.recruiter ? {
+          id: Applicant.recruiter.id,
+          name: Applicant.recruiter.name,
+          avatarUrl: Applicant.recruiter.avatarUrl
         } : undefined,
-        dueDate: candidate.applicationDate,
-        tags: candidate.position?.title ? [candidate.position.title] : [],
-        createdAt: candidate.createdAt,
-        updatedAt: candidate.updatedAt,
-        fitScore: candidate.fitScore,
-        avatarUrl: candidate.avatarUrl,
-        skills: candidate.parsedData?.skills || [],
-        // Keep original candidate data for backward compatibility
-        originalCandidate: candidate
+        dueDate: Applicant.applicationDate,
+        tags: Applicant.position?.title ? [Applicant.position.title] : [],
+        createdAt: Applicant.createdAt,
+        updatedAt: Applicant.updatedAt,
+        fitScore: Applicant.fitScore,
+        avatarUrl: Applicant.avatarUrl,
+        skills: Applicant.parsedData?.skills || [],
+        // Keep original Applicant data for backward compatibility
+        originalapplicant: Applicant
       };
       
 
@@ -639,7 +639,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       id: stage.id,
       name: stage.name,
       color: stage.colorBadge || '#6b7280', // Use colorBadge if available, otherwise default
-      description: stage.description || `Candidates in ${stage.name} stage`,
+      description: stage.description || `Applicants in ${stage.name} stage`,
       sortOrder: stage.sortOrder || index, // Use sortOrder if available, otherwise default
       colorComplete: stage.colorComplete,
       isSystem: stage.isSystem
@@ -653,10 +653,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
     
-    // Find the original candidate
-    const candidate = candidates.find(c => c.id === task.id);
-    if (!candidate) {
-      toast.error('Candidate not found');
+    // Find the original Applicant
+    const Applicant = Applicants.find(c => c.id === task.id);
+    if (!Applicant) {
+      toast.error('Applicant not found');
       return;
     }
 
@@ -666,22 +666,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
     try {
       // Show loading state
-      toast.loading(`Moving ${candidate.name} to ${stageName}...`, { id: `move-${candidate.id}` });
+      toast.loading(`Moving ${applicant.name} to ${stageName}...`, { id: `move-${applicant.id}` });
       
-      // Update the candidate status
-      const result = await safeFetch('/api/candidates/bulk-action', {
+      // Update the Applicant status
+      const result = await safeFetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'change_status',
-          candidateIds: [candidate.id],
+          candidateIds: [Applicant.id],
           newStatus: newStatus
         }),
         timeoutMs: 10000
       });
 
       if (!result.ok) {
-        console.warn('Skipping failed endpoint /api/candidates/bulk-action:', result.error || result.status);
+        console.warn('Skipping failed endpoint /api/applicants/bulk-action:', result.error || result.status);
         throw new Error(`Failed to update status: ${result.error}`);
       }
 
@@ -690,23 +690,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       // Only update local state if the API call was successful
       if ((responseData as any)?.updatedCount > 0) {
         // Update local state optimistically but let real-time updates handle the final state
-        setCandidates((prev) =>
+        setApplicants((prev) =>
           prev.map((c) =>
-            c.id === candidate.id
+            c.id === applicant.id
               ? { ...c, statusId: newStatus }
               : c
           )
         );
         
-        toast.success(`Moved ${candidate.name} to ${stageName}`, { id: `move-${candidate.id}` });
+        toast.success(`Moved ${applicant.name} to ${stageName}`, { id: `move-${applicant.id}` });
       } else {
-        // If no candidates were updated, show error
-        toast.error(`Failed to move ${candidate.name}: No candidates updated`, { id: `move-${candidate.id}` });
+        // If no Applicants were updated, show error
+        toast.error(`Failed to move ${applicant.name}: No Applicants updated`, { id: `move-${applicant.id}` });
       }
       
     } catch (error) {
-      console.error('Error updating candidate status:', error);
-      toast.error(`Failed to update candidate status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${candidate.id}` });
+      console.error('Error updating Applicant status:', error);
+      toast.error(`Failed to update Applicant status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${applicant.id}` });
       
       // Revert the visual change if the API call failed
       // The real-time update will handle the final state
@@ -821,9 +821,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         <div className="px-6 py-4 space-y-4">
                      {/* Main Controls Row */}
            <div className="flex flex-wrap items-center gap-3 justify-between">
-             {/* Left: Candidate Count and Search */}
+             {/* Left: Applicant Count and Search */}
              <div className="flex flex-wrap items-center gap-3 flex-1">
-               {/* Candidate Count Badge */}
+               {/* Applicant Count Badge */}
                <div className="flex items-center gap-2">
                  <Badge variant="secondary" className="h-9 px-3 text-sm font-medium">
                    {loading ? (
@@ -839,18 +839,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                          const hasManualFilters = filters.name || filters.positionId || filters.stage || filters.recruiterId || 
                                                   filters.minFitScore !== undefined || filters.maxFitScore !== undefined;
                          
-                         // If no manual filters and user can view all candidates, show simple count
+                         // If no manual filters and user can view all Applicants, show simple count
                          if (!hasManualFilters && !isRecruiter) {
-                           return `${totalCandidates} candidates`;
+                           return `${totalApplicants} Applicants`;
                          }
                          
                          // If no manual filters but user has limited permissions, show permission-based count
                          if (!hasManualFilters && isRecruiter) {
-                           return `${totalCandidates} total candidates (${displayedCandidates.length} assigned to you)`;
+                           return `${totalApplicants} total Applicants (${displayedApplicants.length} assigned to you)`;
                          }
                          
                          // If manual filters are applied, show filtered count
-                         return `${totalCandidates} total candidates (${displayedCandidates.length} filtered)`;
+                         return `${totalApplicants} total Applicants (${displayedApplicants.length} filtered)`;
                        })()}
                      </div>
                    )}
@@ -866,7 +866,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                  )}
                  <Input
                    className="pl-10 h-9 w-48 text-sm"
-                   placeholder="Search candidates..."
+                   placeholder="Search Applicants..."
                    value={filters.name || ''}
                    onChange={e => setFilters((f: any) => ({ ...f, name: e.target.value }))}
                    disabled={loading}
@@ -1146,18 +1146,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               </div>
             )}
           </div>
-        ) : displayedCandidates.length === 0 ? (
+        ) : displayedApplicants.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="w-16 h-16 flex items-center justify-center">
                 <Users className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-foreground">No candidates found</h3>
+                <h3 className="text-lg font-medium text-foreground">No Applicants found</h3>
                 <p className="text-muted-foreground text-sm">
                   {Object.keys(filters).length > 0 
                     ? "Try adjusting your filters to see more results."
-                    : "No candidates are currently assigned to you."
+                    : "No Applicants are currently assigned to you."
                   }
                 </p>
               </div>
@@ -1179,10 +1179,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               <div className="h-full">
 
                 <TaskBoard
-                  tasks={convertCandidatesToTasks(displayedCandidates)}
+                  tasks={convertApplicantsToTasks(displayedApplicants)}
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
-                  onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
+                  onTaskClick={(task) => setSelectedTask(task.originalApplicant)}
                   cardPreferences={{
                     cardWidth: memoizedPreferences.cardWidth,
                     customCardWidth: memoizedPreferences.customCardWidth,
@@ -1197,7 +1197,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 />
               </div>
             ) : (
-              // Table View (styled like candidate list)
+              // Table View (styled like Applicant list)
               <div className="border rounded-lg shadow overflow-hidden min-w-max">
                 <Table>
                   <TableHeader>
@@ -1214,44 +1214,44 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                     {loading ? (
                       <SkeletonTableRows rows={10} columns={6} />
                     ) : (
-                      displayedCandidates.map((candidate, index) => (
+                      displayedApplicants.map((Applicant, index) => (
                       <TableRow 
-                        key={candidate.id} 
+                        key={applicant.id} 
                         className="cursor-pointer hover:bg-muted/40 content-fade-in"
                         style={{ animationDelay: `${index * 20}ms` }}
                         onClick={() => {
                        
-                        setSelectedTask(candidate);
+                        setSelectedTask(Applicant);
                       }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <CandidateAvatarCompact
+                            <ApplicantAvatarCompact
                               user={{
-                                id: candidate.id,
-                                name: candidate.name,
-                                avatarUrl: candidate.avatarUrl,
-                                email: candidate.email
+                                id: Applicant.id,
+                                name: Applicant.name,
+                                avatarUrl: Applicant.avatarUrl,
+                                email: Applicant.email
                               }}
                               size="lg"
                               className=""
                             />
                             <div>
-                              <span className="font-medium text-foreground hover:underline cursor-pointer">{candidate.name}</span>
-                              <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                              <span className="font-medium text-foreground hover:underline cursor-pointer">{applicant.name}</span>
+                              <div className="text-xs text-muted-foreground">{applicant.email}</div>
                             </div>
                           </div>
                         </TableCell>
                                                   <TableCell>
-                            <StatusBadge statusId={candidate.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
+                            <StatusBadge statusId={applicant.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
                           </TableCell>
-                        <TableCell className="text-foreground">{candidate.position?.title || candidate.positionId}</TableCell>
-                        <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(candidate.fitScore)}</TableCell>
+                        <TableCell className="text-foreground">{applicant.position?.title || Applicant.positionId}</TableCell>
+                        <TableCell className="text-foreground">{applicant.recruiter?.name || Applicant.recruiterId}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(Applicant.fitScore)}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
                            
-                            setSelectedTask(candidate); 
+                            setSelectedTask(Applicant); 
                           }}>
                             View
                           </Button>
@@ -1270,7 +1270,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       {/* Modals */}
       {selectedTask && (
         <>
-          <CandidateDetailModal
+          <ApplicantDetailModal
             candidateId={selectedTask.id}
             open={!!selectedTask}
             onClose={() => {

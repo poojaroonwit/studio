@@ -72,7 +72,7 @@ const customFieldOptionSchemaClient = z.object({
 });
 
 const customFieldFormSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
+  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
   field_key: z.string().min(1, "Field key is required").regex(/^[a-z0-9_]+$/, "Key must be lowercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
@@ -225,7 +225,7 @@ export default function CustomFieldsPage() {
           <div>
             <h2 className="flex items-center text-2xl"><Settings2 className="mr-3 h-6 w-6 text-primary"/>Custom Field Definitions</h2>
             <p>
-              Define custom fields that can be associated with Candidates, Positions, Users, or Headcount records.
+              Define custom fields that can be associated with Applicants, Positions, Users, or Headcount records.
               These fields are stored in a flexible JSONB column. The actual rendering of these fields on forms is a future enhancement.
             </p>
           </div>

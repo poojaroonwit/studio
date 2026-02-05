@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
  * {
  *   "name": "My Integration",
  *   "description": "API key for n8n integration",
- *   "permissions": ["read:candidates", "write:candidates"],
+ *   "permissions": ["read:Applicants", "write:Applicants"],
  *   "role": "api_user",
  *   "expiresAt": "2025-12-31T23:59:59Z" | null (never expires)
  * }

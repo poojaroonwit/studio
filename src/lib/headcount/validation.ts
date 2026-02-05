@@ -8,12 +8,12 @@ import { getRecruitmentStageByName } from '../recruitmentStageUtils';
 import type { ValidationResult, UnassignWarning } from './types';
 
 /**
- * Validate if a candidate can be set to "Hired" status based on headcount availability
- * @param candidateId - The candidate ID to validate
+ * Validate if a Applicant can be set to "Hired" status based on headcount availability
+ * @param candidateId - The Applicant ID to validate
  * @param positionId - The position ID to check headcounts for
  * @returns Object with validation result and details
  */
-export async function validateCandidateHiringStatus(
+export async function validateApplicantHiringStatus(
   candidateId: string, 
   positionId: string
 ): Promise<ValidationResult> {
@@ -32,7 +32,7 @@ export async function validateCandidateHiringStatus(
       return {
         canHire: false,
         reason: 'NO_HEADCOUNT',
-        message: 'This position has no headcount defined. Cannot hire candidate without available headcount.',
+        message: 'This position has no headcount defined. Cannot hire Applicant without available headcount.',
         headcountStatus: {
           hasHeadcounts: false,
           totalHeadcounts: 0,
@@ -42,7 +42,7 @@ export async function validateCandidateHiringStatus(
       };
     }
 
-    // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
+    // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
     const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
     const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
 
@@ -50,7 +50,7 @@ export async function validateCandidateHiringStatus(
       return {
         canHire: false,
         reason: 'NO_VACANT_HEADCOUNT',
-        message: 'All headcounts for this position are already filled. Cannot hire candidate without available headcount.',
+        message: 'All headcounts for this position are already filled. Cannot hire Applicant without available headcount.',
         headcountStatus: {
           hasHeadcounts: true,
           totalHeadcounts: headcounts.length,
@@ -60,13 +60,13 @@ export async function validateCandidateHiringStatus(
       };
     }
 
-    // Check if candidate is already assigned to a headcount
+    // Check if Applicant is already assigned to a headcount
     const existingAssignment = headcounts.find((h: any) => h.candidateId === candidateId);
     if (existingAssignment) {
       return {
         canHire: true,
         reason: 'ALREADY_ASSIGNED',
-        message: 'Candidate is already assigned to a headcount.',
+        message: 'Applicant is already assigned to a headcount.',
         headcountId: existingAssignment.id,
         headcountStatus: {
           hasHeadcounts: true,
@@ -90,13 +90,13 @@ export async function validateCandidateHiringStatus(
       },
     };
   } catch (error) {
-    console.error('Error validating candidate hiring status:', error);
+    console.error('Error validating Applicant hiring status:', error);
     throw error;
   }
 }
 
 /**
- * Check if unassigning a candidate from headcount would affect their status
+ * Check if unassigning a Applicant from headcount would affect their status
  * @param headcountId - The headcount ID to check
  * @returns Object with warning details if applicable
  */
@@ -105,7 +105,7 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
     const headcount = await prisma.headcount.findUnique({
       where: { id: headcountId },
       include: {
-        candidate: {
+        Applicant: {
           select: {
             id: true,
             name: true,
@@ -122,28 +122,28 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
       },
     });
 
-    if (!headcount || !headcount.candidate) {
+    if (!headcount || !headcount.Applicant) {
       return {
         hasWarning: false,
       };
     }
 
-    // Check if candidate status is "Hired" and this is their only headcount assignment
+    // Check if Applicant status is "Hired" and this is their only headcount assignment
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    if (hiredStageId && headcount.candidate.statusId === hiredStageId) {
-      const candidateHeadcounts = await prisma.headcount.findMany({
+    if (hiredStageId && headcount.applicant.statusId === hiredStageId) {
+      const ApplicantHeadcounts = await prisma.headcount.findMany({
         where: {
-          candidateId: headcount.candidate.id,
+          candidateId: headcount.applicant.id,
           status: 'filled',
         },
       });
 
-      if (candidateHeadcounts.length <= 1) {
+      if (ApplicantHeadcounts.length <= 1) {
         return {
           hasWarning: true,
-          warningType: 'CANDIDATE_STATUS_WILL_CHANGE',
-          message: `Unassigning this candidate will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
-          candidate: headcount.candidate,
+          warningType: 'Applicant_STATUS_WILL_CHANGE',
+          message: `Unassigning this Applicant will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
+          Applicant: headcount.Applicant,
           position: headcount.position,
         };
       }

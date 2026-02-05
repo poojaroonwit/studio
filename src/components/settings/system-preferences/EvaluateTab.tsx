@@ -60,7 +60,7 @@ export function EvaluateTab({
                             Evaluate Page Settings
                         </CardTitle>
                         <CardDescription>
-                            Customize the appearance of the candidates evaluation page
+                            Customize the appearance of the Applicants evaluation page
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">

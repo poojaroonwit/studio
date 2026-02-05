@@ -264,25 +264,25 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 <TabsList className="h-12 bg-transparent p-0 gap-6 w-full justify-start overflow-x-auto no-scrollbar">
                   <TabsTrigger 
                     value="appearance"
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                    className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                   >
                     Appearance
                   </TabsTrigger>
                   <TabsTrigger 
                     value="taskBoard"
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                    className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                   >
                     Task Board
                   </TabsTrigger>
                   <TabsTrigger 
                     value="positions"
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                    className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                   >
                     Positions
                   </TabsTrigger>
                   <TabsTrigger 
                     value="sidebar"
-                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                    className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
                   >
                     Sidebar
                   </TabsTrigger>

@@ -127,6 +127,7 @@ model User {
   createdEvaluationLinks      CandidateEvaluationLink[]
   activityLogs                UserActivityLog[]           @relation("UserActivityLogs")
   sessions                    UserSession[]               @relation("UserSessions")
+  candidateReadStatuses       CandidateReadStatus[]       @relation("UserCandidateReadStatuses")
 
   @@index([email])
   @@index([role])
@@ -354,6 +355,7 @@ model Candidate {
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
   evaluationLinks         CandidateEvaluationLink[]
+  readStatuses            CandidateReadStatus[]
 
   @@index([email])
   @@index([positionId])
@@ -364,6 +366,34 @@ model Candidate {
   @@index([statusId])
   @@index([isPinned])
   @@index([pinnedAt])
+}
+
+
+/// CandidateReadStatus - Tracks read/unread status per user per candidate
+model CandidateReadStatus {
+  /// Unique identifier
+  id          String    @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
+  candidateId String    @map("candidate_id") @db.Uuid
+  /// Reference to user
+  userId      String    @map("user_id") @db.Uuid
+  /// Whether the candidate has been read by this user
+  isRead      Boolean   @default(false) @map("is_read")
+  /// Timestamp when candidate was marked as read
+  readAt      DateTime? @map("read_at")
+  /// Record creation timestamp
+  createdAt   DateTime  @default(now()) @map("created_at")
+  /// Last update timestamp
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  user        User      @relation("UserCandidateReadStatuses", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, userId])
+  @@index([candidateId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("candidate_read_status")
 }
 
 

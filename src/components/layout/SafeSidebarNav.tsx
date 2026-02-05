@@ -27,7 +27,7 @@ import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  candidates: { href: "/applicants", label: "Applicants", icon: Users },
+  Applicants: { href: "/applicants", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   evaluate: { href: "/interview", label: "Interview", icon: ClipboardCheck },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
@@ -279,7 +279,7 @@ const FallbackNav = React.memo(() => {
           <Link href="/applicants" className="w-full">
             <SidebarMenuButton className="w-full justify-start" size="default">
               <Users className="h-5 w-5" />
-              <span className="truncate">Candidates</span>
+              <span className="truncate">Applicants</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
@@ -354,7 +354,7 @@ const getSafeNavigationItems = (
       items.push(NAV_ITEMS.myTasks);
     }
 
-    items.push(NAV_ITEMS.candidates);
+    items.push(NAV_ITEMS.Applicants);
 
     if (canViewPositions) {
       items.push(NAV_ITEMS.positions);
@@ -367,7 +367,7 @@ const getSafeNavigationItems = (
     return items;
   } catch (error) {
     console.error('Error generating navigation items:', error);
-    return [NAV_ITEMS.dashboard, NAV_ITEMS.candidates, NAV_ITEMS.positions, NAV_ITEMS.evaluate];
+    return [NAV_ITEMS.dashboard, NAV_ITEMS.Applicants, NAV_ITEMS.positions, NAV_ITEMS.evaluate];
   }
 };
 
@@ -393,7 +393,7 @@ const getSafeSessionInfo = (session: any) => {
     const canAccessMyTasks = isAdmin ||
       modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
       modulePermissions.includes('TASK_BOARD_VIEW') ||
-      modulePermissions.includes('CANDIDATES_VIEW');
+      modulePermissions.includes('Applicants_VIEW');
 
     const canViewPositions = isAdmin || modulePermissions.includes('POSITIONS_VIEW');
 
@@ -553,7 +553,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     </OptimizedLink>
                   </MenuItemWithTooltip>
                 </SidebarMenuItem>
-                {/* Add separator between My Task Board and Candidates */}
+                {/* Add separator between My Task Board and Applicants */}
                 {canAccessMyTasks && item.href === '/my-tasks' && (
                   <SidebarSeparator className="my-2 bg-border/50" />
                 )}
@@ -628,7 +628,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                   </OptimizedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
-              {/* Add separator between My Task Board and Candidates */}
+              {/* Add separator between My Task Board and Applicants */}
               {canAccessMyTasks && item.href === '/my-tasks' && (
                 <SidebarSeparator className="my-2 bg-border/50" />
               )}

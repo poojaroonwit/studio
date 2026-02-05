@@ -11,11 +11,11 @@ import { cn } from '@/lib/utils';
 import { Search, X, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
-import type { Candidate, CandidateSource, Position, RecruitmentStage, UserProfile, CandidateFilterValues } from '@/lib/types';
+import type { Applicant, ApplicantSource, Position, RecruitmentStage, UserProfile, ApplicantFilterValues } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PositionCandidateFilter } from './PositionCandidateFilter';
-import { FunnelIcon } from '@heroicons/react/24/outline'; // Or lucide-react Filter
-import { CandidateFilters } from '@/components/candidates/CandidateFilters';
+import { FunnelIcon } from '@heroicons/react/24/outline';
+import { ApplicantFilters as ApplicantFiltersComponent } from '@/components/applicants/ApplicantFilters';
 
 interface CandidatesTabProps {
   isMobile: boolean;
@@ -23,9 +23,9 @@ interface CandidatesTabProps {
   activeCandidateTab: 'applied' | 'potential';
   onActiveCandidateTabChange: (tab: 'applied' | 'potential') => void;
 
-  // Applied candidates
-  appliedCandidates: Candidate[];
-  sortedAppliedCandidates: Candidate[];
+  // Applied Candidates
+  appliedCandidates: Applicant[];
+  sortedAppliedCandidates: Applicant[];
   appliedCandidatesSearchTerm: string;
   appliedCandidatesSortColumn: string | null;
   appliedCandidatesSortDirection: 'asc' | 'desc';
@@ -39,11 +39,11 @@ interface CandidatesTabProps {
   onAppliedCandidatesOpenMenuChange: (menu: string | null) => void;
   onAppliedCandidatesPageChange: (page: number) => void;
   onAppliedCandidatesPageSizeChange: (size: number) => void;
-  onAppliedCandidatePinToggle: (candidate: Candidate) => Promise<void>;
+  onAppliedCandidatePinToggle: (candidate: Applicant) => Promise<void>;
 
-  // Potential candidates
-  potentialCandidates: Candidate[];
-  sortedPotentialCandidates: Candidate[];
+  // Potential Candidates
+  potentialCandidates: Applicant[];
+  sortedPotentialCandidates: Applicant[];
   potentialCandidatesSearchTerm: string;
   potentialCandidatesSortColumn: string | null;
   potentialCandidatesSortDirection: 'asc' | 'desc';
@@ -56,18 +56,18 @@ interface CandidatesTabProps {
   onPotentialCandidatesOpenMenuChange: (menu: string | null) => void;
   onPotentialCandidatesPageChange: (page: number) => void;
   onPotentialCandidatesPageSizeChange: (size: number) => void;
-  onPotentialCandidatePinToggle: (candidate: Candidate) => Promise<void>;
+  onPotentialCandidatePinToggle: (candidate: Applicant) => Promise<void>;
 
   // Common
   stageNames: Record<string, string>;
   onCandidateClick: (candidateId: string) => void;
 
   // Filters
-  candidateFilters: CandidateFilterValues;
-  onFilterChange: (filters: CandidateFilterValues) => void;
+  candidateFilters: ApplicantFilterValues;
+  onFilterChange: (filters: ApplicantFilterValues) => void;
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
   availableStages: RecruitmentStage[];
-  availableSources: CandidateSource[];
+  availableSources: ApplicantSource[];
   availablePositions: Position[];
 }
 
@@ -167,9 +167,9 @@ export function CandidatesTab({
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search applied candidates..."
+                    placeholder="Search applied Candidates..."
                     value={appliedCandidatesSearchTerm}
-                    onChange={(e) => onAppliedCandidatesSearchChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAppliedCandidatesSearchChange(e.target.value)}
                     className="pl-10"
                   />
                   {appliedCandidatesSearchTerm && (
@@ -200,16 +200,16 @@ export function CandidatesTab({
                   <PopoverContent className="w-[800px] p-0" align="end">
                      <ScrollArea className="h-[500px]">
                         <div className="p-4">
-                           <CandidateFilters
-                              initialFilters={candidateFilters}
-                              onFilterChange={onFilterChange}
-                              onAiSearch={() => {}} // Not implemented here
-                              onClearAllFilters={() => onFilterChange({})}
-                              availablePositions={availablePositions}
-                              availableStages={availableStages}
-                              availableRecruiter={availableRecruiters}
-                              availableSources={availableSources}
-                              isLoading={false}
+                           <ApplicantFiltersComponent
+                               initialFilters={candidateFilters}
+                               onFilterChange={onFilterChange}
+                               onAiSearch={() => {}} // Not implemented here
+                               onClearAllFilters={() => onFilterChange({})}
+                               availablePositions={availablePositions}
+                               availableStages={availableStages}
+                               availableRecruiter={availableRecruiters}
+                               availableSources={availableSources}
+                               isLoading={false}
                            />
                         </div>
                      </ScrollArea>
@@ -228,31 +228,31 @@ export function CandidatesTab({
                     <DropdownMenuSeparator />
                     <DropdownMenuCheckboxItem
                       checked={visibleColumns.name}
-                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, name: checked }))}
+                      onCheckedChange={(checked: boolean) => setVisibleColumns((prev) => ({ ...prev, name: checked }))}
                     >
                       Candidate
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={visibleColumns.fitScore}
-                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, fitScore: checked }))}
+                      onCheckedChange={(checked: boolean) => setVisibleColumns((prev) => ({ ...prev, fitScore: checked }))}
                     >
                       Fit Score
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={visibleColumns.expectedSalary}
-                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, expectedSalary: checked }))}
+                      onCheckedChange={(checked: boolean) => setVisibleColumns((prev) => ({ ...prev, expectedSalary: checked }))}
                     >
                       Expected Salary
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={visibleColumns.status}
-                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, status: checked }))}
+                      onCheckedChange={(checked: boolean) => setVisibleColumns((prev) => ({ ...prev, status: checked }))}
                     >
                       Status
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem
                       checked={visibleColumns.applicationDate}
-                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, applicationDate: checked }))}
+                      onCheckedChange={(checked: boolean) => setVisibleColumns((prev) => ({ ...prev, applicationDate: checked }))}
                     >
                       Applied Date
                     </DropdownMenuCheckboxItem>
@@ -265,14 +265,14 @@ export function CandidatesTab({
                 <ScrollArea className="h-full">
                   <div className={isMobile ? "pb-40" : ""}>
                     <AppliedCandidatesTable
-                      candidates={sortedAppliedCandidates}
+                      applicants={sortedAppliedCandidates}
                       sortColumn={appliedCandidatesSortColumn}
                       sortDirection={appliedCandidatesSortDirection}
                       openMenu={appliedCandidatesOpenMenu}
                       stageNames={stageNames}
                       onSort={onAppliedCandidatesSort}
                       onOpenMenuChange={onAppliedCandidatesOpenMenuChange}
-                      onCandidateClick={onCandidateClick}
+                      onApplicantClick={onCandidateClick}
                       onPinToggle={onAppliedCandidatePinToggle}
                       visibleColumns={visibleColumns}
                     />
@@ -303,7 +303,7 @@ export function CandidatesTab({
                   <Input
                     placeholder="Search job matches..."
                     value={potentialCandidatesSearchTerm}
-                    onChange={(e) => onPotentialCandidatesSearchChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPotentialCandidatesSearchChange(e.target.value)}
                     className="pl-10"
                   />
                 </div>
@@ -324,16 +324,16 @@ export function CandidatesTab({
                   <PopoverContent className="w-[800px] p-0" align="end">
                      <ScrollArea className="h-[500px]">
                         <div className="p-4">
-                           <CandidateFilters
-                              initialFilters={candidateFilters}
-                              onFilterChange={onFilterChange}
-                              onAiSearch={() => {}} 
-                              onClearAllFilters={() => onFilterChange({})}
-                              availablePositions={availablePositions}
-                              availableStages={availableStages}
-                              availableRecruiter={availableRecruiters}
-                              availableSources={availableSources}
-                              isLoading={false}
+                           <ApplicantFiltersComponent
+                               initialFilters={candidateFilters}
+                               onFilterChange={onFilterChange}
+                               onAiSearch={() => {}} 
+                               onClearAllFilters={() => onFilterChange({})}
+                               availablePositions={availablePositions}
+                               availableStages={availableStages}
+                               availableRecruiter={availableRecruiters}
+                               availableSources={availableSources}
+                               isLoading={false}
                            />
                         </div>
                      </ScrollArea>
@@ -346,14 +346,14 @@ export function CandidatesTab({
                 <ScrollArea className="h-full">
                   <div className={isMobile ? "pb-40" : ""}>
                     <PotentialCandidatesTable
-                      candidates={sortedPotentialCandidates}
+                      applicants={sortedPotentialCandidates}
                       sortColumn={potentialCandidatesSortColumn}
                       sortDirection={potentialCandidatesSortDirection}
                       openMenu={potentialCandidatesOpenMenu}
                       stageNames={stageNames}
                       onSort={onPotentialCandidatesSort}
                       onOpenMenuChange={onPotentialCandidatesOpenMenuChange}
-                      onCandidateClick={onCandidateClick}
+                      onApplicantClick={onCandidateClick}
                       onPinToggle={onPotentialCandidatePinToggle}
                     />
                   </div>
@@ -378,4 +378,3 @@ export function CandidatesTab({
     </div>
   );
 }
-

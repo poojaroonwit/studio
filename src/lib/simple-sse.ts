@@ -8,7 +8,7 @@ const connections = new Map<string, ReadableStreamDefaultController>();
 
 // Event types
 export type SSEEventType = 
-  | 'candidate_update'
+  | 'Applicant_update'
   | 'position_update'
   | 'notification'
   | 'upload_queue_update'

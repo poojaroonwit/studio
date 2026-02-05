@@ -1,10 +1,10 @@
-// src/app/candidates/page.tsx - Server Component
+// src/app/Applicants/page.tsx - Server Component
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { CandidatesPageClient } from '@/components/candidates/CandidatesPageClient';
-import type { Candidate, Position, RecruitmentStage, UserProfile } from '@/lib/types';
+import { ApplicantsPageClient } from '@/components/applicants/ApplicantsPageClient';
+import type { Applicant, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
@@ -14,7 +14,7 @@ import { safeJsonParse } from '@/lib/utils';
 export default async function ApplicantsPageServer() {
   const session = await auth();
 
-  let initialCandidates: Candidate[] = [];
+  let initialApplicants: Applicant[] = [];
   let initialAvailablePositions: Position[] = [];
   let initialAvailableStages: RecruitmentStage[] = [];
   let initialFetchError: string | undefined = undefined;
@@ -26,11 +26,11 @@ export default async function ApplicantsPageServer() {
       client = await getPool().connect();
 
       // OPTIMIZED: Fetch only essential data for filters and initial display
-      let candidatesResult, positionsResult, stagesResult;
+      let ApplicantsResult, positionsResult, stagesResult;
 
       try {
-        // Simplified query - only fetch basic candidate data needed for filters
-        candidatesResult = await client.query(`
+        // Simplified query - only fetch basic Applicant data needed for filters
+        ApplicantsResult = await client.query(`
           SELECT 
             c.id,
             c.name,
@@ -52,13 +52,13 @@ export default async function ApplicantsPageServer() {
           FROM "Candidate" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" r ON c."recruiterId" = r.id
-          LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+          LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
           LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
           ORDER BY c."applicationDate" DESC
           LIMIT 50; -- Only fetch first 50 for initial display
         `);
       } catch (error) {
-        console.error('Error fetching candidates:', error);
+        console.error('Error fetching Applicants:', error);
         throw error;
       }
 
@@ -95,9 +95,9 @@ export default async function ApplicantsPageServer() {
         throw error;
       }
 
-      // Transform candidates data - minimal transformation
-      const candidateRows = Array.isArray(candidatesResult?.rows) ? candidatesResult.rows : []
-      initialCandidates = candidateRows.map((row: any) => ({
+      // Transform Applicants data - minimal transformation
+      const ApplicantRows = Array.isArray(ApplicantsResult?.rows) ? ApplicantsResult.rows : []
+      initialApplicants = ApplicantRows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -179,8 +179,8 @@ export default async function ApplicantsPageServer() {
           fallbackDescription="There was an issue loading the applicants page. This may be due to a temporary initialization problem."
         >
           <ErrorBoundary>
-            <CandidatesPageClient
-              initialCandidates={initialCandidates}
+            <ApplicantsPageClient
+              initialApplicants={initialApplicants}
               initialAvailablePositions={initialAvailablePositions}
               initialAvailableStages={initialAvailableStages}
               initialFetchError={initialFetchError}

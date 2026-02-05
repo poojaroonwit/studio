@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { auth } from '@/auth';
 import { 
@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to update presence
-  // Users should be able to update their own presence if they can view candidates (basic access)
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
+  // Users should be able to update their own presence if they can view Applicants (basic access)
+  if (!hasPermission(session.user, 'Applicants_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to update presence' }, { status: 403 });
   }
 
@@ -137,8 +137,8 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Check if user has permission to remove presence
-  // Users should be able to remove their own presence if they can view candidates (basic access)
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
+  // Users should be able to remove their own presence if they can view Applicants (basic access)
+  if (!hasPermission(session.user, 'Applicants_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to remove presence' }, { status: 403 });
   }
 
@@ -170,8 +170,8 @@ export async function GET() {
   }
 
   // Check if user has permission to view presence data
-  // Users should be able to view presence if they can view candidates (basic access)
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW')) {
+  // Users should be able to view presence if they can view Applicants (basic access)
+  if (!hasPermission(session.user, 'Applicants_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view presence data' }, { status: 403 });
   }
 

@@ -17,7 +17,7 @@ export async function GET(
 
     const candidateId = (await params).id;
 
-    // Get all evaluations for the candidate
+    // Get all evaluations for the Applicant
     const evaluations = await prisma.candidateEvaluation.findMany({
       where: { candidateId },
       include: {
@@ -67,7 +67,7 @@ export async function GET(
 
     return NextResponse.json(evaluations);
   } catch (error) {
-    console.error('Error fetching candidate evaluations:', error);
+    console.error('Error fetching Applicant evaluations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch evaluations' },
       { status: 500 }

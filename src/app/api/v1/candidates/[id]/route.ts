@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
-import { canEditCandidate, canUpdateCandidatePipelineStage } from '@/lib/permissions';
+import { canEditApplicant, canUpdateApplicantPipelineStage } from '@/lib/permissions';
 import { v4 as uuidv4 } from 'uuid';
 import { handleCors } from '@/lib/cors';
 
@@ -19,7 +19,7 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 
-const updateCandidateSchema = z.object({
+const updateApplicantSchema = z.object({
   // Legacy fields for backward compatibility
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
@@ -37,8 +37,8 @@ const updateCandidateSchema = z.object({
   sourceId: z.string().uuid().nullable().optional(),
   subSource: z.string().optional().nullable(),
   
-  // New candidate_info format
-  candidate_info: z.object({
+  // New applicant_info format
+  applicant_info: z.object({
     personal_info: z.object({
       title_honorific: z.string().optional().nullable(),
       firstname: z.string().min(1).optional(),
@@ -75,7 +75,7 @@ const updateCandidateSchema = z.object({
   }).optional(),
 });
 
-export { updateCandidateSchema };
+export { updateApplicantSchema };
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authHeader = req.headers.get('authorization');
@@ -87,21 +87,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const client = await getPool().connect();
   try {
-    const candidateQuery = `
+    const applicantQuery = `
       SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1;
     `;
-    const candidateResult = await client.query(candidateQuery, [id]);
-    if (candidateResult.rows.length === 0) {
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+    const applicantResult = await client.query(applicantQuery, [id]);
+    if (applicantResult.rows.length === 0) {
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
-    const candidate = candidateResult.rows[0];
-    // Get job matches for this candidate
+    const Applicant = applicantResult.rows[0];
+    // Get job matches for this Applicant
     const jobMatchesQuery = `
       SELECT 
         jm.*,
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-    // Get resume history for this candidate (using Attachment table)
+    // Get resume history for this Applicant (using Attachment table)
     const resumeHistoryQuery = `
       SELECT 
         a.id,
@@ -133,22 +133,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
     return SimpleErrorHandler.createSuccessResponse(req, {
-      ...candidate,
-      custom_attributes: candidate.customAttributes || {},
-      position: candidate.positionId ? {
-        title: candidate.positionTitle,
-        department: candidate.positionDepartment
+      ...Applicant,
+      custom_attributes: Applicant.customAttributes || {},
+      position: Applicant.positionId ? {
+        title: Applicant.positionTitle,
+        department: Applicant.positionDepartment
       } : null,
-      recruiter: candidate.recruiterId ? { 
-        name: candidate.recruiterName,
-        avatarUrl: candidate.recruiterAvatarUrl || null
+      recruiter: Applicant.recruiterId ? { 
+        name: Applicant.recruiterName,
+        avatarUrl: Applicant.recruiterAvatarUrl || null
       } : null,
-      source: candidate.sourceId ? {
-        id: candidate.sourceId,
-        name: candidate.sourceName,
-        description: candidate.sourceDescription,
-        email: candidate.sourceEmail,
-        logo: candidate.sourceLogo
+      source: Applicant.sourceId ? {
+        id: Applicant.sourceId,
+        name: Applicant.sourceName,
+        description: Applicant.sourceDescription,
+        email: Applicant.sourceEmail,
+        logo: Applicant.sourceLogo
       } : null,
       jobMatches: jobMatchesResult.rows.map((match: any) => ({
         ...match,
@@ -160,7 +160,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching candidate: ${errorMessage}`));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching Applicant: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -170,13 +170,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
-  const hasBasicEditPermission = user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN');
-  const hasSensitiveEditPermission = user?.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE') || user?.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
-  const hasPipelineUpdatePermission = user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE_OWN');
+  // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
+  const hasBasicEditPermission = user?.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user?.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN');
+  const hasSensitiveEditPermission = user?.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE') || user?.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasPipelineUpdatePermission = user?.modulePermissions?.includes('APPLICANTS_PIPELINE_STAGE_UPDATE') || user?.modulePermissions?.includes('APPLICANTS_PIPELINE_STAGE_UPDATE_OWN');
   
   if (!user || (user.role !== 'Admin' && !hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission)) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update candidates'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update applicants'));
   }
   const { id } = await params;
   let body;
@@ -185,7 +185,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch {
     return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
-  const validationResult = updateCandidateSchema.safeParse(body);
+  const validationResult = updateApplicantSchema.safeParse(body);
   if (!validationResult.success) {
     const fieldErrors = validationResult.error.flatten().fieldErrors;
     const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
@@ -200,26 +200,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     
-    const existingCandidate = existingResult.rows[0];
-    const oldStatus = existingCandidate.statusId;
-    const existingParsedData = existingCandidate.parsedData || {};
+    const existingApplicant = existingResult.rows[0];
+    const oldStatus = existingApplicant.statusId;
+    const existingParsedData = existingApplicant.parsedData || {};
 
     // Detailed ownership-based permission check
-    const editPermission = canEditCandidate(user, existingCandidate.recruiterId, user.id);
+    const editPermission = canEditApplicant(user, existingApplicant.recruiterId, user.id);
     if (!editPermission.canEdit) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createForbiddenError(editPermission.reason || 'Insufficient permissions to edit this candidate'));
+      return SimpleErrorHandler.handleApiError(req, createForbiddenError(editPermission.reason || 'Insufficient permissions to edit this Applicant'));
     }
 
     // Check pipeline stage update permission if status is being changed
     if (updateData.status !== undefined && updateData.status !== oldStatus) {
-      const pipelinePermission = canUpdateCandidatePipelineStage(user, existingCandidate.recruiterId, user.id);
+      const pipelinePermission = canUpdateApplicantPipelineStage(user, existingApplicant.recruiterId, user.id);
       if (!pipelinePermission.canUpdate) {
         await client.query('ROLLBACK');
-        return SimpleErrorHandler.handleApiError(req, createForbiddenError(pipelinePermission.reason || 'Insufficient permissions to update pipeline stage for this candidate'));
+        return SimpleErrorHandler.handleApiError(req, createForbiddenError(pipelinePermission.reason || 'Insufficient permissions to update pipeline stage for this Applicant'));
       }
     }
     
@@ -296,14 +296,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updateValues.push(updateData.subSource);
     }
     
-    // Handle new candidate_info format
+    // Handle new applicant_info format
     let newParsedData = { ...existingParsedData };
     let hasParsedDataChanges = false;
     
-    if (updateData.candidate_info) {
-      newParsedData.candidate_info = {
-        ...(newParsedData.candidate_info || {}),
-        ...updateData.candidate_info
+    if (updateData.applicant_info) {
+      newParsedData.applicant_info = {
+        ...(newParsedData.applicant_info || {}),
+        ...updateData.applicant_info
       };
       hasParsedDataChanges = true;
     }
@@ -343,9 +343,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await client.query('ROLLBACK');
       return SimpleErrorHandler.createSuccessResponse(req, { 
         message: 'No fields to update',
-        candidate: {
-          ...existingCandidate,
-          custom_attributes: existingCandidate.customAttributes || {},
+        Applicant: {
+          ...existingApplicant,
+          custom_attributes: existingApplicant.customAttributes || {},
         }
       }, 200);
     }
@@ -391,21 +391,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       await client.query(insertTransitionQuery, [
-        uuidv4(), id, updateData.positionId || existingCandidate.positionId, updateData.status, 'Status changed via API', user.id
+        uuidv4(), id, updateData.positionId || existingApplicant.positionId, updateData.status, 'Status changed via API', user.id
       ]);
     }
     
     await client.query('COMMIT');
-    const updatedCandidate = updateResult.rows[0];
+    const updatedApplicant = updateResult.rows[0];
     
     // Auto-assign recruiter if position changed
-    const oldPositionId = existingCandidate.positionId;
+    const oldPositionId = existingApplicant.positionId;
     const newPositionId = updateData.positionId !== undefined ? updateData.positionId : oldPositionId;
     const hasPositionChanged = updateData.positionId !== undefined && updateData.positionId !== oldPositionId;
     
     if (hasPositionChanged && newPositionId) {
       try {
-        // console.log(`Position changed for candidate ${id}: ${oldPositionId} -> ${newPositionId}`);
+        // console.log(`Position changed for Applicant ${id}: ${oldPositionId} -> ${newPositionId}`);
         
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
@@ -426,7 +426,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         if (position && position.recruiterId && position.recruiter) {
           // Always assign recruiter when position is assigned, regardless of existing recruiter
           // This ensures the position's recruiter takes precedence
-          const updatedCandidateWithRecruiter = await prisma.candidate.update({
+          const updatedApplicantWithRecruiter = await prisma.candidate.update({
             where: { id },
             data: { 
               recruiter: { connect: { id: position.recruiterId } },
@@ -468,7 +468,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           await prisma.transitionRecord.create({
             data: {
               id: uuidv4(),
-              candidate: { connect: { id: id } },
+              Applicant: { connect: { id: id } },
               position: { connect: { id: newPositionId } },
               stage: appliedStageId || 'Applied', // Fallback to string only if DB lookup fails
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
@@ -477,45 +477,45 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             },
           });
 
-          // console.log(`✅ Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
+          // console.log(`✅ Recruiter auto-assigned to Applicant ${id} from position ${newPositionId}`);
           // console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
         } else if (position && !position.recruiterId) {
           // console.log(`⚠️ New position ${newPositionId} exists but has no recruiter assigned`);
         } else if (!position) {
           // console.log(`❌ New position ${newPositionId} not found in database`);
-        } else if (updatedCandidate.recruiterId) {
-          // console.log(`ℹ️ Candidate ${id} already has a recruiter assigned, skipping auto-assignment`);
+        } else if (updatedApplicant.recruiterId) {
+          // console.log(`ℹ️ Applicant ${id} already has a recruiter assigned, skipping auto-assignment`);
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after position update:', syncError);
-        // Don't fail the candidate update if sync fails
+        // Don't fail the Applicant update if sync fails
       }
     }
     
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${actingUserName}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
+    await logAudit('AUDIT', `Applicant '${updatedApplicant.name}' updated by ${actingUserName}.`, 'API:V1:Applicants:Update', user.id, { candidateId: id, updatedFields: updateData });
     
-    // Fetch updated candidate with source information for response
-    const updatedCandidateWithSource = await client.query(`
+    // Fetch updated Applicant with source information for response
+    const updatedApplicantWithSource = await client.query(`
       SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
       FROM "Candidate" c
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
     
-    const candidateWithSource = updatedCandidateWithSource.rows[0];
+    const applicantWithSource = updatedApplicantWithSource.rows[0];
     
     return SimpleErrorHandler.createSuccessResponse(req, {
-      message: 'Candidate updated successfully',
-      candidate: {
-        ...candidateWithSource,
-        custom_attributes: candidateWithSource.customAttributes || {},
-        source: candidateWithSource.sourceId ? {
-          id: candidateWithSource.sourceId,
-          name: candidateWithSource.sourceName,
-          description: candidateWithSource.sourceDescription,
-          email: candidateWithSource.sourceEmail,
-          logo: candidateWithSource.sourceLogo
+      message: 'Applicant updated successfully',
+      Applicant: {
+        ...applicantWithSource,
+        custom_attributes: applicantWithSource.customAttributes || {},
+        source: applicantWithSource.sourceId ? {
+          id: applicantWithSource.sourceId,
+          name: applicantWithSource.sourceName,
+          description: applicantWithSource.sourceDescription,
+          email: applicantWithSource.sourceEmail,
+          logo: applicantWithSource.sourceLogo
         } : null,
       },
       updated_fields: Object.keys(updateData).filter(key => updateData[key as keyof typeof updateData] !== undefined)
@@ -524,8 +524,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update candidate (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:Update', user?.id, { candidateId: id, error: errorMessage, ...body });
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating candidate: ${errorMessage}`));
+    await logAudit('ERROR', `Failed to update Applicant (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:Update', user?.id, { candidateId: id, error: errorMessage, ...body });
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating Applicant: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -535,8 +535,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_DELETE'))) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete candidates'));
+  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_DELETE'))) {
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete applicants'));
   }
   const { id } = await params;
   const client = await getPool().connect();
@@ -545,18 +545,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
     await client.query('DELETE FROM "Candidate" WHERE id = $1', [id]);
     await client.query('COMMIT');
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Candidate '${existingResult.rows[0].name}' deleted by ${actingUserName}.`, 'API:V1:Candidates:Delete', user.id, { candidateId: id });
-    return SimpleErrorHandler.createSuccessResponse(req, { message: 'Candidate deleted successfully' }, 200);
+    await logAudit('AUDIT', `Applicant '${existingResult.rows[0].name}' deleted by ${actingUserName}.`, 'API:V1:Applicants:Delete', user.id, { candidateId: id });
+    return SimpleErrorHandler.createSuccessResponse(req, { message: 'Applicant deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to delete candidate (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:Delete', user?.id, { candidateId: id, error: errorMessage });
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting candidate: ${errorMessage}`));
+    await logAudit('ERROR', `Failed to delete Applicant (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:Delete', user?.id, { candidateId: id, error: errorMessage });
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting Applicant: ${errorMessage}`));
   } finally {
     client.release();
   }

@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -18,12 +18,12 @@ const createSchema = z.object({
 
 function buildEvaluateUrl(candidateId: string, token: string): string {
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021'
-  return `${baseUrl}/candidates/${encodeURIComponent(candidateId)}/evaluate?token=${encodeURIComponent(token)}`
+  return `${baseUrl}/applicants/${encodeURIComponent(candidateId)}/evaluate?token=${encodeURIComponent(token)}`
 }
 
 async function getActiveLink(candidateId: string) {
   const now = new Date()
-  const model = (prisma as any).candidateEvaluationLink
+  const model = prisma.candidateEvaluationLink
   if (!model) {
     throw new Error('CandidateEvaluationLink model not available. Run prisma generate and database migrations.');
   }
@@ -59,9 +59,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const candidateId = (await params).id
 
-    // Ensure candidate exists
-    const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } })
-    if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
+    // Ensure Applicant exists
+    const applicant = await prisma.candidate.findUnique({ where: { id: candidateId } })
+    if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
 
     const link = await getActiveLink(candidateId)
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -92,19 +92,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json().catch(() => ({}))
     const { days = 7, force = false, requireLogin = true, interviewDateTime, interviewLocation } = createSchema.parse(body)
 
-    // Ensure candidate exists
-    const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } })
-    if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
+    // Ensure Applicant exists
+    const applicant = await prisma.candidate.findUnique({ where: { id: candidateId } })
+    if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
 
     // Check permission to create evaluation link
-    const { canCreate, reason } = canCreateEvaluationLink(session.user, candidate.recruiterId, session.user.id)
+    const { canCreate, reason } = canCreateEvaluationLink(session.user, applicant.recruiterId, session.user.id)
     if (!canCreate) {
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
 
-    // Save interview details to candidate customAttributes if provided
+    // Save interview details to Applicant customAttributes if provided
     if (interviewDateTime || interviewLocation) {
-        const currentAttrs = (candidate.customAttributes as any) || {}
+        const currentAttrs = (applicant.customAttributes as any) || {}
         await prisma.candidate.update({
             where: { id: candidateId },
             data: {
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const token = crypto.randomBytes(24).toString('hex')
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
 
-    const model = (prisma as any).candidateEvaluationLink
+    const model = prisma.candidateEvaluationLink
     if (!model) {
       throw new Error('CandidateEvaluationLink model not available. Run prisma generate and database migrations.');
     }
@@ -207,7 +207,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
 
-    const model = (prisma as any).candidateEvaluationLink
+    const model = prisma.candidateEvaluationLink
     if (!model) {
       throw new Error('CandidateEvaluationLink model not available. Run prisma generate and database migrations.');
     }
@@ -243,7 +243,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
 
-    const model = (prisma as any).candidateEvaluationLink
+    const model = prisma.candidateEvaluationLink
     if (!model) {
       throw new Error('CandidateEvaluationLink model not available. Run prisma generate and database migrations.')
     }

@@ -4,10 +4,10 @@ import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon, ListBulletIcon as List, ClockIcon as Clock, MapPinIcon as MapPin, UsersIcon as Users, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
-import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { ApplicantAvatarCompact } from "@/components/ui/applicant-avatar";
+import { formatApplicantNameWithLang } from "@/lib/applicantUtils";
 
-export interface EvaluationCandidate {
+export interface EvaluationApplicant {
   id: string;
   name: string;
   email: string | null;
@@ -24,10 +24,10 @@ export interface EvaluationCandidate {
 }
 
 export interface EvaluateCalendarProps {
-  candidates: EvaluationCandidate[];
+  Applicants: EvaluationApplicant[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
-  onCandidateClick: (candidateId: string) => void;
+  onApplicantClick: (candidateId: string) => void;
   isMobile?: boolean;
 }
 
@@ -47,10 +47,10 @@ function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 1).getDay();
 }
 
-// Helper to get candidates for a specific date
-function getCandidatesForDate(candidates: EvaluationCandidate[], date: Date): EvaluationCandidate[] {
+// Helper to get Applicants for a specific date
+function getApplicantsForDate(Applicants: EvaluationApplicant[], date: Date): EvaluationApplicant[] {
   const dateStr = date.toDateString();
-  return candidates.filter(c => {
+  return Applicants.filter(c => {
     const expireDate = new Date(c.evaluationLink.expiresAt).toDateString();
     const interviewDate = c.evaluationLink.interviewDateTime
       ? new Date(c.evaluationLink.interviewDateTime).toDateString()
@@ -59,27 +59,27 @@ function getCandidatesForDate(candidates: EvaluationCandidate[], date: Date): Ev
   });
 }
 
-// Day cell component with candidate badges
+// Day cell component with Applicant badges
 function DayCell({
   date,
   isSelected,
   isToday,
   isOutsideMonth,
-  candidates,
+  Applicants,
   onClick,
-  onCandidateClick,
+  onApplicantClick,
   compact = false,
 }: {
   date: Date;
   isSelected: boolean;
   isToday: boolean;
   isOutsideMonth: boolean;
-  candidates: EvaluationCandidate[];
+  Applicants: EvaluationApplicant[];
   onClick: () => void;
-  onCandidateClick?: (candidateId: string) => void;
+  onApplicantClick?: (candidateId: string) => void;
   compact?: boolean;
 }) {
-  const hasEvents = candidates.length > 0;
+  const hasEvents = Applicants.length > 0;
 
   return (
     <button
@@ -104,53 +104,53 @@ function DayCell({
         {date.getDate()}
       </span>
 
-      {/* Candidate badges */}
+      {/* Applicant badges */}
       {hasEvents && !compact && (
         <div className="flex flex-col gap-0.5 w-full overflow-hidden">
-          {candidates.slice(0, 3).map((candidate, idx) => {
-            const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+          {Applicants.slice(0, 3).map((Applicant, idx) => {
+            const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
             const now = new Date();
-            const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
-            const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
-            const interviewDateTime = candidate.evaluationLink.interviewDateTime
-              ? new Date(candidate.evaluationLink.interviewDateTime)
-              : new Date(candidate.evaluationLink.expiresAt);
+            const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
+            const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = Applicant.evaluationLink.interviewDateTime
+              ? new Date(Applicant.evaluationLink.interviewDateTime)
+              : new Date(Applicant.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
 
             return (
               <div
-                key={`${candidate.id}-${idx}`}
+                key={`${applicant.id}-${idx}`}
                 className={cn(
                   "flex items-center gap-1 rounded px-1 py-0.5 text-[10px] truncate cursor-pointer",
                   isInactive
                     ? "bg-muted/50 opacity-60 hover:bg-muted/70"
                     : "bg-primary/20 hover:bg-primary/30"
                 )}
-                title={candidate.name}
+                title={applicant.name}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onCandidateClick?.(candidate.id);
+                  onApplicantClick?.(applicant.id);
                 }}
               >
-                <CandidateAvatarCompact
+                <ApplicantAvatarCompact
                   user={{
-                    id: candidate.id,
-                    name: candidate.name,
-                    avatarUrl: candidate.avatarUrl,
-                    email: candidate.email || undefined,
+                    id: Applicant.id,
+                    name: Applicant.name,
+                    avatarUrl: Applicant.avatarUrl,
+                    email: Applicant.email || undefined,
                   }}
                   size="sm"
                 />
                 <span className={cn("truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-                  {candidate.name.split(' ')[0]}
+                  {applicant.name.split(' ')[0]}
                 </span>
               </div>
             );
           })}
-          {candidates.length > 3 && (
+          {Applicants.length > 3 && (
             <span className="text-[9px] text-muted-foreground text-center">
-              +{candidates.length - 3} more
+              +{Applicants.length - 3} more
             </span>
           )}
         </div>
@@ -159,13 +159,13 @@ function DayCell({
       {/* Compact badge indicator */}
       {hasEvents && compact && (
         <div className="flex gap-0.5 mt-0.5">
-          {candidates.slice(0, 3).map((candidate, idx) => {
+          {Applicants.slice(0, 3).map((Applicant, idx) => {
             const now = new Date();
-            const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
-            const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
-            const interviewDateTime = candidate.evaluationLink.interviewDateTime
-              ? new Date(candidate.evaluationLink.interviewDateTime)
-              : new Date(candidate.evaluationLink.expiresAt);
+            const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
+            const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = Applicant.evaluationLink.interviewDateTime
+              ? new Date(Applicant.evaluationLink.interviewDateTime)
+              : new Date(Applicant.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
 
@@ -179,10 +179,10 @@ function DayCell({
               />
             );
           })}
-          {candidates.length > 3 && (
+          {Applicants.length > 3 && (
             <span className={cn(
               "text-[8px]",
-              candidates.some(c => {
+              Applicants.some(c => {
                 const now = new Date();
                 const isExpired = new Date(c.evaluationLink.expiresAt) < now;
                 const isRevoked = c.evaluationLink.revokedAt !== null && c.evaluationLink.revokedAt !== undefined;
@@ -193,7 +193,7 @@ function DayCell({
                 return isExpired || isRevoked || isPast;
               }) ? "text-muted-foreground opacity-50" : "text-primary"
             )}>
-              +{candidates.length - 3}
+              +{Applicants.length - 3}
             </span>
           )}
         </div>
@@ -202,18 +202,18 @@ function DayCell({
   );
 }
 
-// Candidate list item component
-function CandidateListItem({
-  candidate,
+// Applicant list item component
+function ApplicantListItem({
+  Applicant,
   onClick,
 }: {
-  candidate: EvaluationCandidate;
+  Applicant: EvaluationApplicant;
   onClick: () => void;
 }) {
-  const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
-  const interviewDateTime = candidate.evaluationLink.interviewDateTime
-    ? new Date(candidate.evaluationLink.interviewDateTime)
-    : new Date(candidate.evaluationLink.expiresAt);
+  const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
+  const interviewDateTime = Applicant.evaluationLink.interviewDateTime
+    ? new Date(Applicant.evaluationLink.interviewDateTime)
+    : new Date(Applicant.evaluationLink.expiresAt);
   const interviewTime = interviewDateTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -222,8 +222,8 @@ function CandidateListItem({
 
   // Check if link is expired or revoked
   const now = new Date();
-  const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
-  const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
+  const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
+  const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
 
   // Check if interview date/time has passed
   const isPast = interviewDateTime < now;
@@ -258,46 +258,46 @@ function CandidateListItem({
           )}
         </div>
 
-        {/* Right: Candidate Info */}
+        {/* Right: Applicant Info */}
         <div className="flex-1 min-w-0">
-          {/* Candidate Name */}
+          {/* Applicant Name */}
           <div className="flex items-center gap-2 mb-1">
-            <CandidateAvatarCompact
+            <ApplicantAvatarCompact
               user={{
-                id: candidate.id,
-                name: candidate.name,
-                avatarUrl: candidate.avatarUrl,
-                email: candidate.email || undefined,
+                id: Applicant.id,
+                name: Applicant.name,
+                avatarUrl: Applicant.avatarUrl,
+                email: Applicant.email || undefined,
               }}
               size="sm"
             />
             <h4 className={cn("font-semibold text-sm truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-              {candidate.name}
+              {applicant.name}
             </h4>
           </div>
 
           {/* Position */}
-          {candidate.position?.title && (
+          {applicant.position?.title && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <span className="font-medium">Position:</span>
-              <span className="truncate">{candidate.position.title}</span>
+              <span className="truncate">{applicant.position.title}</span>
             </div>
           )}
 
           {/* Location */}
-          {candidate.evaluationLink.interviewLocation && (
+          {Applicant.evaluationLink.interviewLocation && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{candidate.evaluationLink.interviewLocation}</span>
+              <span className="truncate">{Applicant.evaluationLink.interviewLocation}</span>
             </div>
           )}
 
           {/* Interviewers */}
-          {candidate.evaluationLink.interviewers && candidate.evaluationLink.interviewers.length > 0 && (
+          {Applicant.evaluationLink.interviewers && Applicant.evaluationLink.interviewers.length > 0 && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Users className="h-3 w-3" />
               <span className="truncate">
-                {candidate.evaluationLink.interviewers.map(i => i.name).join(', ')}
+                {Applicant.evaluationLink.interviewers.map(i => i.name).join(', ')}
               </span>
             </div>
           )}
@@ -309,10 +309,10 @@ function CandidateListItem({
 
 // Mobile Calendar with collapsible feature
 export function MobileEvaluateCalendar({
-  candidates,
+  Applicants,
   selectedDate,
   onDateSelect,
-  onCandidateClick,
+  onApplicantClick,
   defaultView = 'list',
 }: EvaluateCalendarProps & { defaultView?: 'list' | 'calendar' }) {
   const [viewMode, setViewMode] = React.useState<'list' | 'calendar'>(defaultView);
@@ -323,7 +323,7 @@ export function MobileEvaluateCalendar({
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const candidatesForSelectedDate = getCandidatesForDate(candidates, selectedDate);
+  const ApplicantsForSelectedDate = getApplicantsForDate(Applicants, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -334,29 +334,29 @@ export function MobileEvaluateCalendar({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  // Get all candidates sorted by date/time
-  const allCandidatesSorted = React.useMemo(() => {
-    return [...candidates].sort((a, b) => {
+  // Get all Applicants sorted by date/time
+  const allApplicantsSorted = React.useMemo(() => {
+    return [...Applicants].sort((a, b) => {
       const dateA = a.evaluationLink.interviewDateTime || a.evaluationLink.expiresAt;
       const dateB = b.evaluationLink.interviewDateTime || b.evaluationLink.expiresAt;
       return new Date(dateA).getTime() - new Date(dateB).getTime();
     });
-  }, [candidates]);
+  }, [Applicants]);
 
-  // Group candidates by date for list view
-  const candidatesByDate = React.useMemo(() => {
-    const grouped: Record<string, EvaluationCandidate[]> = {};
-    allCandidatesSorted.forEach(candidate => {
-      const dateStr = candidate.evaluationLink.interviewDateTime
-        ? new Date(candidate.evaluationLink.interviewDateTime).toDateString()
-        : new Date(candidate.evaluationLink.expiresAt).toDateString();
+  // Group Applicants by date for list view
+  const ApplicantsByDate = React.useMemo(() => {
+    const grouped: Record<string, EvaluationApplicant[]> = {};
+    allApplicantsSorted.forEach(Applicant => {
+      const dateStr = Applicant.evaluationLink.interviewDateTime
+        ? new Date(Applicant.evaluationLink.interviewDateTime).toDateString()
+        : new Date(Applicant.evaluationLink.expiresAt).toDateString();
       if (!grouped[dateStr]) {
         grouped[dateStr] = [];
       }
-      grouped[dateStr].push(candidate);
+      grouped[dateStr].push(Applicant);
     });
     return grouped;
-  }, [allCandidatesSorted]);
+  }, [allApplicantsSorted]);
 
   if (viewMode === 'list') {
     return (
@@ -377,7 +377,7 @@ export function MobileEvaluateCalendar({
 
         {/* List View */}
         <div className="flex-1 overflow-y-auto space-y-4">
-          {Object.entries(candidatesByDate).map(([dateStr, dateCandidates]) => {
+          {Object.entries(ApplicantsByDate).map(([dateStr, dateApplicants]) => {
             const date = new Date(dateStr);
             const isToday = date.toDateString() === new Date().toDateString();
 
@@ -393,15 +393,15 @@ export function MobileEvaluateCalendar({
                     })}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    ({dateCandidates.length} candidate{dateCandidates.length > 1 ? 's' : ''})
+                    ({dateApplicants.length} Applicant{dateApplicants.length > 1 ? 's' : ''})
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {dateCandidates.map(candidate => (
-                    <CandidateListItem
-                      key={candidate.id}
-                      candidate={candidate}
-                      onClick={() => onCandidateClick(candidate.id)}
+                  {dateApplicants.map(Applicant => (
+                    <ApplicantListItem
+                      key={applicant.id}
+                      Applicant={Applicant}
+                      onClick={() => onApplicantClick(applicant.id)}
                     />
                   ))}
                 </div>
@@ -409,7 +409,7 @@ export function MobileEvaluateCalendar({
             );
           })}
 
-          {Object.keys(candidatesByDate).length === 0 && (
+          {Object.keys(ApplicantsByDate).length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No scheduled evaluations</p>
             </div>
@@ -482,7 +482,7 @@ export function MobileEvaluateCalendar({
           {monthDays.map(date => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
-            const dateCandidates = getCandidatesForDate(candidates, date);
+            const dateApplicants = getApplicantsForDate(Applicants, date);
 
             return (
               <DayCell
@@ -491,9 +491,9 @@ export function MobileEvaluateCalendar({
                 isSelected={isSelected}
                 isToday={isToday}
                 isOutsideMonth={false}
-                candidates={dateCandidates}
+                Applicants={dateApplicants}
                 onClick={() => onDateSelect(date)}
-                onCandidateClick={onCandidateClick}
+                onApplicantClick={onApplicantClick}
                 compact={isCollapsed}
               />
             );
@@ -512,18 +512,18 @@ export function MobileEvaluateCalendar({
           })}
         </h3>
         <span className="text-sm text-muted-foreground">
-          ({candidatesForSelectedDate.length} candidate{candidatesForSelectedDate.length !== 1 ? 's' : ''})
+          ({ApplicantsForSelectedDate.length} Applicant{ApplicantsForSelectedDate.length !== 1 ? 's' : ''})
         </span>
       </div>
 
-      {/* Candidates for Selected Date */}
+      {/* Applicants for Selected Date */}
       <div className="flex-1 overflow-y-auto space-y-2">
-        {candidatesForSelectedDate.length > 0 ? (
-          candidatesForSelectedDate.map(candidate => (
-            <CandidateListItem
-              key={candidate.id}
-              candidate={candidate}
-              onClick={() => onCandidateClick(candidate.id)}
+        {ApplicantsForSelectedDate.length > 0 ? (
+          ApplicantsForSelectedDate.map(Applicant => (
+            <ApplicantListItem
+              key={applicant.id}
+              Applicant={Applicant}
+              onClick={() => onApplicantClick(applicant.id)}
             />
           ))
         ) : (
@@ -538,10 +538,10 @@ export function MobileEvaluateCalendar({
 
 // Desktop Calendar with full month view and side panel
 export function DesktopEvaluateCalendar({
-  candidates,
+  Applicants,
   selectedDate,
   onDateSelect,
-  onCandidateClick,
+  onApplicantClick,
 }: EvaluateCalendarProps) {
   const [currentMonth, setCurrentMonth] = React.useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 
@@ -549,7 +549,7 @@ export function DesktopEvaluateCalendar({
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const candidatesForSelectedDate = getCandidatesForDate(candidates, selectedDate);
+  const ApplicantsForSelectedDate = getApplicantsForDate(Applicants, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -612,7 +612,7 @@ export function DesktopEvaluateCalendar({
             {monthDays.map(date => {
               const isSelected = date.toDateString() === selectedDate.toDateString();
               const isToday = date.toDateString() === new Date().toDateString();
-              const dateCandidates = getCandidatesForDate(candidates, date);
+              const dateApplicants = getApplicantsForDate(Applicants, date);
 
               return (
                 <DayCell
@@ -621,9 +621,9 @@ export function DesktopEvaluateCalendar({
                   isSelected={isSelected}
                   isToday={isToday}
                   isOutsideMonth={false}
-                  candidates={dateCandidates}
+                  Applicants={dateApplicants}
                   onClick={() => onDateSelect(date)}
-                  onCandidateClick={onCandidateClick}
+                  onApplicantClick={onApplicantClick}
                 />
               );
             })}
@@ -651,18 +651,18 @@ export function DesktopEvaluateCalendar({
             </h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            {candidatesForSelectedDate.length} evaluation{candidatesForSelectedDate.length !== 1 ? 's' : ''} scheduled
+            {ApplicantsForSelectedDate.length} evaluation{ApplicantsForSelectedDate.length !== 1 ? 's' : ''} scheduled
           </p>
         </div>
 
-        {/* Candidates List */}
+        {/* Applicants List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {candidatesForSelectedDate.length > 0 ? (
-            candidatesForSelectedDate.map(candidate => (
-              <CandidateListItem
-                key={candidate.id}
-                candidate={candidate}
-                onClick={() => onCandidateClick(candidate.id)}
+          {ApplicantsForSelectedDate.length > 0 ? (
+            ApplicantsForSelectedDate.map(Applicant => (
+              <ApplicantListItem
+                key={applicant.id}
+                Applicant={Applicant}
+                onClick={() => onApplicantClick(applicant.id)}
               />
             ))
           ) : (

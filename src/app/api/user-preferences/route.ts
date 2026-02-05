@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
       sidebar: {
         showAssignedPositions: boolean;
       };
-      candidates: {
-        showCandidateColumn: boolean;
+      Applicants: {
+        showApplicantColumn: boolean;
         showAppliedJobColumn: boolean;
         showJobMatchesColumn: boolean;
         showFitScoreColumn: boolean;
@@ -137,8 +137,8 @@ export async function GET(request: NextRequest) {
       sidebar: {
         showAssignedPositions: true,
       },
-      candidates: {
-        showCandidateColumn: true,
+      Applicants: {
+        showApplicantColumn: true,
         showAppliedJobColumn: true,
         showJobMatchesColumn: true,
         showFitScoreColumn: true,
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
         showLastUpdateColumn: true,
         showCreatedDateColumn: false,
         columnOrder: [
-          'candidate',
+          'Applicant',
           'appliedJob',
           'jobMatches',
           'fitScore',
@@ -270,56 +270,56 @@ export async function GET(request: NextRequest) {
               transformedPreferences.appearance.themePreference = value as 'light' | 'dark' | 'system';
               break;
           }
-        } else if (pref.modelType === 'candidates') {
+        } else if (pref.modelType === 'Applicants') {
           switch (pref.attributeKey) {
-            case 'showCandidateColumn':
-              transformedPreferences.candidates.showCandidateColumn = value === 'true';
+            case 'showApplicantColumn':
+              transformedPreferences.Applicants.showApplicantColumn = value === 'true';
               break;
             case 'showAppliedJobColumn':
-              transformedPreferences.candidates.showAppliedJobColumn = value === 'true';
+              transformedPreferences.Applicants.showAppliedJobColumn = value === 'true';
               break;
             case 'showJobMatchesColumn':
-              transformedPreferences.candidates.showJobMatchesColumn = value === 'true';
+              transformedPreferences.Applicants.showJobMatchesColumn = value === 'true';
               break;
             case 'showFitScoreColumn':
-              transformedPreferences.candidates.showFitScoreColumn = value === 'true';
+              transformedPreferences.Applicants.showFitScoreColumn = value === 'true';
               break;
             case 'showRecruiterColumn':
-              transformedPreferences.candidates.showRecruiterColumn = value === 'true';
+              transformedPreferences.Applicants.showRecruiterColumn = value === 'true';
               break;
             case 'showSourceColumn':
-              transformedPreferences.candidates.showSourceColumn = value === 'true';
+              transformedPreferences.Applicants.showSourceColumn = value === 'true';
               break;
             case 'showStatusColumn':
-              transformedPreferences.candidates.showStatusColumn = value === 'true';
+              transformedPreferences.Applicants.showStatusColumn = value === 'true';
               break;
             case 'showAppliedDateColumn':
-              transformedPreferences.candidates.showAppliedDateColumn = value === 'true';
+              transformedPreferences.Applicants.showAppliedDateColumn = value === 'true';
               break;
             case 'showLastUpdateColumn':
-              transformedPreferences.candidates.showLastUpdateColumn = value === 'true';
+              transformedPreferences.Applicants.showLastUpdateColumn = value === 'true';
               break;
             case 'showCreatedDateColumn':
-              transformedPreferences.candidates.showCreatedDateColumn = value === 'true';
+              transformedPreferences.Applicants.showCreatedDateColumn = value === 'true';
               break;
             case 'showFilters':
-              transformedPreferences.candidates.showFilters = value === 'true';
+              transformedPreferences.Applicants.showFilters = value === 'true';
               break;
             case 'showHorizontalFitScoreFilters':
-              transformedPreferences.candidates.showHorizontalFitScoreFilters = value === 'true';
+              transformedPreferences.Applicants.showHorizontalFitScoreFilters = value === 'true';
               break;
             case 'fitScoreType':
-              transformedPreferences.candidates.fitScoreType = value as 'applied' | 'matching';
+              transformedPreferences.Applicants.fitScoreType = value as 'applied' | 'matching';
               break;
             case 'fitScoreFilterMode':
-              transformedPreferences.candidates.fitScoreFilterMode = value as 'single' | 'multi';
+              transformedPreferences.Applicants.fitScoreFilterMode = value as 'single' | 'multi';
               break;
             case 'rowHeight':
-              transformedPreferences.candidates.rowHeight = value as 'compact' | 'normal' | 'comfortable';
+              transformedPreferences.Applicants.rowHeight = value as 'compact' | 'normal' | 'comfortable';
               break;
             case 'columnOrder':
-              transformedPreferences.candidates.columnOrder = value ? JSON.parse(value) : [
-                'candidate',
+              transformedPreferences.Applicants.columnOrder = value ? JSON.parse(value) : [
+                'Applicant',
                 'appliedJob',
                 'jobMatches',
                 'fitScore',
@@ -331,16 +331,16 @@ export async function GET(request: NextRequest) {
               ];
               break;
             case 'showPinSection':
-              transformedPreferences.candidates.showPinSection = value === 'true';
+              transformedPreferences.Applicants.showPinSection = value === 'true';
               break;
             case 'pageSize':
-              transformedPreferences.candidates.pageSize = parseInt(value) || 20;
+              transformedPreferences.Applicants.pageSize = parseInt(value) || 20;
               break;
             case 'sortColumn':
-              transformedPreferences.candidates.sortColumn = value || 'applicationDate';
+              transformedPreferences.Applicants.sortColumn = value || 'applicationDate';
               break;
             case 'sortDirection':
-              transformedPreferences.candidates.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
+              transformedPreferences.Applicants.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
               break;
           }
         } else if (pref.modelType === 'sidebar') {
@@ -383,9 +383,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate modelType
-    if (!['taskBoard', 'positions', 'appearance', 'candidates', 'sidebar'].includes(modelType)) {
+    if (!['taskBoard', 'positions', 'appearance', 'Applicants', 'sidebar'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "candidates", or "sidebar"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
         { status: 400 }
       );
     }
@@ -441,9 +441,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const modelType = searchParams.get('modelType');
 
-    if (modelType && !['taskBoard', 'positions', 'appearance', 'candidates', 'sidebar'].includes(modelType)) {
+    if (modelType && !['taskBoard', 'positions', 'appearance', 'Applicants', 'sidebar'].includes(modelType)) {
       return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "candidates", or "sidebar"' },
+        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
         { status: 400 }
       );
     }

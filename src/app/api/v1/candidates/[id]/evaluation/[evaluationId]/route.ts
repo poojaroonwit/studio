@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -204,10 +204,10 @@ export async function PUT(
       }
     });
 
-    // If expertise scores were provided, update ALL evaluations for this candidate with the same expertise scores
+    // If expertise scores were provided, update ALL evaluations for this Applicant with the same expertise scores
     // This ensures expertise/test scores are shared across all interviewers, not separate per interviewer
     if (uniqueExpertiseScores && uniqueExpertiseScores.length > 0) {
-      // Find all other evaluations for this candidate
+      // Find all other evaluations for this Applicant
       const allEvaluations = await prisma.candidateEvaluation.findMany({
         where: {
           candidateId: existingEvaluation.candidateId,

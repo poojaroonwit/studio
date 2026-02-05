@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
         
         await client.query('BEGIN');
         
-        // Migrate candidates using UUIDs
-        const candidateResult = await client.query(
+        // Migrate applicants using UUIDs
+        const applicantResult = await client.query(
             'UPDATE "Candidate" SET "statusId" = $1 WHERE "statusId" = $2 RETURNING id',
             [replacementStageId, stageId]
         );
@@ -81,22 +81,22 @@ export async function POST(request: NextRequest) {
             [replacementStageId, stageId]
         );
         
-        const migratedCandidates = candidateResult.rowCount;
+        const migratedApplicants = applicantResult.rowCount;
         const migratedTransitions = transitionResult.rowCount;
         
         await client.query('COMMIT');
         
-        await logAudit('AUDIT', `Migrated ${migratedCandidates} candidates and ${migratedTransitions} transition records from stage "${stageName}" to "${replacementStageName}".`, 'API:RecruitmentStages:Migrate', actingUserId, { 
+        await logAudit('AUDIT', `Migrated ${migratedApplicants} applicants and ${migratedTransitions} transition records from stage "${stageName}" to "${replacementStageName}".`, 'API:RecruitmentStages:Migrate', actingUserId, { 
             stageId: id, 
             oldStageName: stageName, 
             newStageName: replacementStageName,
-            migratedCandidates,
+            migratedApplicants,
             migratedTransitions
         });
         
         return NextResponse.json({ 
-            message: `Successfully migrated ${migratedCandidates} candidates and ${migratedTransitions} transition records to "${replacementStageName}"`,
-            migratedCandidates,
+            message: `Successfully migrated ${migratedApplicants} applicants and ${migratedTransitions} transition records to "${replacementStageName}"`,
+            migratedApplicants,
             migratedTransitions
         });
 

@@ -38,8 +38,8 @@ interface QueueItem {
   process_date?: string;
   url?: string;
   progress?: number;
-  total_candidates?: number;
-  processed_candidates?: number;
+  total_applicants?: number;
+  processed_applicants?: number;
   user_id: string;
   user_email?: string;
 }
@@ -171,15 +171,15 @@ export function UploadQueueStatus() {
   // Listen for custom refresh events (fallback for upload completion)
   useEffect(() => {
     const handleRefreshEvent = () => {
-      // console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
+      // console.log('[UploadQueueStatus] Received refreshApplicantQueue event, refreshing queue');
       fetchQueue(page, pageSize);
       setLastUpdate(new Date());
     };
 
-    window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
+    window.addEventListener('refreshApplicantQueue', handleRefreshEvent);
     
     return () => {
-      window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
+      window.removeEventListener('refreshApplicantQueue', handleRefreshEvent);
     };
   }, [fetchQueue, page, pageSize]);
 
@@ -408,9 +408,9 @@ export function UploadQueueStatus() {
                     </div>
                   )}
                   
-                  {item.processed_candidates !== undefined && item.total_candidates !== undefined && (
+                  {item.processed_Applicants !== undefined && item.total_Applicants !== undefined && (
                     <div className="mt-2 text-sm text-muted-foreground">
-                      Processed: {item.processed_candidates} / {item.total_candidates} candidates
+                      Processed: {item.processed_Applicants} / {item.total_Applicants} Applicants
                     </div>
                   )}
                 </div>
@@ -515,11 +515,11 @@ export function UploadQueueStatus() {
                 </div>
               )}
               
-              {selectedItem.processed_candidates !== undefined && selectedItem.total_candidates !== undefined && (
+              {selectedItem.processed_Applicants !== undefined && selectedItem.total_Applicants !== undefined && (
                 <div>
-                  <Label className="text-sm font-medium">Candidates Processed</Label>
+                  <Label className="text-sm font-medium">Applicants Processed</Label>
                   <p className="text-sm">
-                    {selectedItem.processed_candidates} of {selectedItem.total_candidates} candidates
+                    {selectedItem.processed_Applicants} of {selectedItem.total_Applicants} Applicants
                   </p>
                 </div>
               )}

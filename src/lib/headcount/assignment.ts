@@ -1,6 +1,6 @@
 /**
  * Headcount Assignment Functions
- * Functions for assigning/unassigning candidates to headcounts
+ * Functions for assigning/unassigning Applicants to headcounts
  */
 
 import prisma from '@/lib/prisma';
@@ -12,21 +12,21 @@ import { broadcastPositionUpdates } from './broadcast';
 import type { AssignmentResult, UnassignmentResult } from './types';
 
 /**
- * Automatically assign candidate to headcount when status changes to "Hired"
- * @param candidateId - The candidate ID
+ * Automatically assign Applicant to headcount when status changes to "Hired"
+ * @param candidateId - The Applicant ID
  * @param positionId - The position ID
  * @param actingUserId - The user ID performing the action
  * @param actingUserName - The user name performing the action
  * @returns Object with assignment result
  */
-export async function assignCandidateToHeadcount(
+export async function assignApplicantToHeadcount(
   candidateId: string,
   positionId: string,
   actingUserId: string,
   actingUserName: string
 ): Promise<AssignmentResult> {
   try {
-    // Find vacant headcount for this position (status is vacant OR no candidate assigned)
+    // Find vacant headcount for this position (status is vacant OR no Applicant assigned)
     const vacantHeadcount = await prisma.headcount.findFirst({
       where: {
         positionId,
@@ -47,7 +47,7 @@ export async function assignCandidateToHeadcount(
       };
     }
 
-    // Update the headcount to assign this candidate
+    // Update the headcount to assign this Applicant
     await prisma.headcount.update({
       where: { id: vacantHeadcount.id },
       data: {
@@ -59,7 +59,7 @@ export async function assignCandidateToHeadcount(
     // Log the assignment
     await logAudit(
       'AUDIT', 
-      `Candidate assigned to headcount automatically when status changed to "Hired" by ${actingUserName}.`, 
+      `Applicant assigned to headcount automatically when status changed to "Hired" by ${actingUserName}.`, 
       'Headcount:AutoAssign', 
       actingUserId, 
       {
@@ -87,24 +87,24 @@ export async function assignCandidateToHeadcount(
 
     return {
       success: true,
-      message: 'Candidate automatically assigned to headcount',
+      message: 'Applicant automatically assigned to headcount',
       headcountId: vacantHeadcount.id,
       autoCloseResult,
     };
   } catch (error) {
-    console.error('Error assigning candidate to headcount:', error);
+    console.error('Error assigning Applicant to headcount:', error);
     throw error;
   }
 }
 
 /**
- * Unassign candidate from headcount and update their status if needed
+ * Unassign Applicant from headcount and update their status if needed
  * @param headcountId - The headcount ID
  * @param actingUserId - The user ID performing the action
  * @param actingUserName - The user name performing the action
  * @returns Object with unassign result
  */
-export async function unassignCandidateFromHeadcount(
+export async function unassignApplicantFromHeadcount(
   headcountId: string,
   actingUserId: string,
   actingUserName: string
@@ -113,7 +113,7 @@ export async function unassignCandidateFromHeadcount(
     const headcount = await prisma.headcount.findUnique({
       where: { id: headcountId },
       include: {
-        candidate: {
+        Applicant: {
           select: {
             id: true,
             name: true,
@@ -130,18 +130,18 @@ export async function unassignCandidateFromHeadcount(
       },
     });
 
-    if (!headcount || !headcount.candidate) {
+    if (!headcount || !headcount.Applicant) {
       return {
         success: false,
-        message: 'Headcount not found or no candidate assigned',
+        message: 'Headcount not found or no Applicant assigned',
       };
     }
 
-    const candidateId = headcount.candidate.id;
+    const candidateId = headcount.applicant.id;
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    const wasHired = hiredStageId && headcount.candidate.statusId === hiredStageId;
+    const wasHired = hiredStageId && headcount.applicant.statusId === hiredStageId;
 
-    // Update the headcount to remove candidate assignment
+    // Update the headcount to remove Applicant assignment
     await prisma.headcount.update({
       where: { id: headcountId },
       data: {
@@ -150,7 +150,7 @@ export async function unassignCandidateFromHeadcount(
       },
     });
 
-    // Check if candidate has any other headcount assignments
+    // Check if Applicant has any other headcount assignments
     const remainingHeadcounts = await prisma.headcount.findMany({
       where: {
         candidateId,
@@ -159,11 +159,11 @@ export async function unassignCandidateFromHeadcount(
     });
 
     let statusUpdateResult = null;
-    // If candidate was "Hired" and has no other headcount assignments, change status to "Applied"
+    // If Applicant was "Hired" and has no other headcount assignments, change status to "Applied"
     if (wasHired && remainingHeadcounts.length === 0) {
       const appliedStageId = await getRecruitmentStageByName('Applied');
       if (appliedStageId) {
-        await prisma.candidate.update({
+        await prisma.Applicant.update({
           where: { id: candidateId },
           data: { recruitmentStage: { connect: { id: appliedStageId } } },
         });
@@ -173,7 +173,7 @@ export async function unassignCandidateFromHeadcount(
         await prisma.transitionRecord.create({
           data: {
             id: newTransitionId,
-            candidate: { connect: { id: candidateId } },
+            Applicant: { connect: { id: candidateId } },
             position: { connect: { id: headcount.position.id } },
             stage: appliedStageId,
             notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
@@ -196,7 +196,7 @@ export async function unassignCandidateFromHeadcount(
     // Log the unassignment
     await logAudit(
       'AUDIT', 
-      `Candidate unassigned from headcount by ${actingUserName}.`, 
+      `Applicant unassigned from headcount by ${actingUserName}.`, 
       'Headcount:Unassign', 
       actingUserId, 
       {
@@ -212,11 +212,11 @@ export async function unassignCandidateFromHeadcount(
 
     return {
       success: true,
-      message: 'Candidate unassigned from headcount successfully',
+      message: 'Applicant unassigned from headcount successfully',
       statusUpdateResult,
     };
   } catch (error) {
-    console.error('Error unassigning candidate from headcount:', error);
+    console.error('Error unassigning Applicant from headcount:', error);
     throw error;
   }
 }

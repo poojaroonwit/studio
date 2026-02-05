@@ -8,8 +8,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/v1/candidate-sources
- * Get all candidate sources
+ * GET /api/v1/Applicant-sources
+ * Get all Applicant sources
  */
 export async function GET(req: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
  
 
-    // Get candidate sources from database
+    // Get Applicant sources from database
     const client = await getPool().connect();
     try {
       const result = await client.query(`
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
           id, name, description, email, logo, allow_sub_source as "allowSubSource", 
           sort_order as "sortOrder", is_active as "isActive", 
           "createdAt", "updatedAt"
-        FROM "CandidateSource"
+        FROM "ApplicantSource"
         ORDER BY sort_order ASC, name ASC
       `);
       
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       client.release();
     }
   } catch (error) {
-    console.error('Error fetching candidate sources:', error);
+    console.error('Error fetching Applicant sources:', error);
     return SimpleErrorHandler.createErrorResponse(req, 'Internal server error', 500);
   }
 }

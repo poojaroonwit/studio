@@ -38,12 +38,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     client = await getPool().connect();
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    if (applicantResult.rows.length === 0) {
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
     // Get specific job match
@@ -119,13 +119,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
     // Check if job match exists
@@ -206,13 +206,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
+    // Check if Applicant exists
+    const applicantQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+    const applicantResult = await client.query(applicantQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
     }
 
     // Check if job match exists

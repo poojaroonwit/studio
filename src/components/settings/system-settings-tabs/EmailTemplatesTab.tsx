@@ -57,7 +57,7 @@ export default function EmailTemplatesTab({
   
   <p>Dear {{interviewerName}},</p>
   
-  <p>You have been assigned to conduct an interview with <strong>{{candidateName}}</strong> for the <strong>{{positionTitle}}</strong> position.</p>
+  <p>You have been assigned to conduct an interview with <strong>{{ApplicantName}}</strong> for the <strong>{{positionTitle}}</strong> position.</p>
   
   <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
     <p style="margin: 5px 0;"><strong>Date:</strong> {{interviewDate}}</p>
@@ -65,7 +65,7 @@ export default function EmailTemplatesTab({
     <p style="margin: 5px 0;"><strong>Location:</strong> {{interviewLocation}}</p>
   </div>
   
-  <p>Please review the candidate's profile and prepare your evaluation questions accordingly.</p>
+  <p>Please review the Applicant's profile and prepare your evaluation questions accordingly.</p>
   
   <!-- Evaluation Access Section -->
   <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
@@ -85,7 +85,7 @@ export default function EmailTemplatesTab({
   <p style="margin-top: 30px;">Best regards,<br/>Recruitment Team</p>
 </div>`;
         setEmailTemplateInterviewInvitation(defaultTemplate);
-        setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
+        setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{ApplicantName}} - {{positionTitle}}');
     };
 
     return (
@@ -97,7 +97,7 @@ export default function EmailTemplatesTab({
                             <Mail className="h-5 w-5 text-primary" />
                             <div className="text-left">
                                 <div className="font-semibold">Email Templates</div>
-                                <div className="text-xs text-muted-foreground font-normal">Configure email templates for interview invitations. Use template variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}</div>
+                                <div className="text-xs text-muted-foreground font-normal">Configure email templates for interview invitations. Use template variables: {'{'}ApplicantName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}</div>
                             </div>
                         </div>
                     </AccordionTrigger>
@@ -108,7 +108,7 @@ export default function EmailTemplatesTab({
                                 <Input
                                     id="email-template-subject"
                                     type="text"
-                                    placeholder="Interview Invitation: {{candidateName}} - {{positionTitle}}"
+                                    placeholder="Interview Invitation: {{ApplicantName}} - {{positionTitle}}"
                                     value={emailTemplateInterviewInvitationSubject}
                                     onChange={(e) => setEmailTemplateInterviewInvitationSubject(e.target.value)}
                                     disabled={isSaving}
@@ -194,7 +194,7 @@ export default function EmailTemplatesTab({
                                 />
                             )}
                             <p className="text-xs text-muted-foreground">
-                                {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                                {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}ApplicantName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
                             </p>
 
                             <div className="space-y-2">
@@ -204,11 +204,11 @@ export default function EmailTemplatesTab({
                                     className="w-full min-h-[120px] p-3 border rounded-md font-mono text-sm bg-background"
                                     value={icsDescriptionTemplate}
                                     onChange={(e) => setIcsDescriptionTemplate(e.target.value)}
-                                    placeholder="Interview with {{candidateName}} for position {{positionTitle}}.&#10;&#10;Location: {{interviewLocation}}&#10;Interviewer: {{interviewerName}}"
+                                    placeholder="Interview with {{ApplicantName}} for position {{positionTitle}}.&#10;&#10;Location: {{interviewLocation}}&#10;Interviewer: {{interviewerName}}"
                                     disabled={isSaving}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Template for the ICS calendar file description. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}. Use \n for line breaks.
+                                    Template for the ICS calendar file description. Available variables: {'{'}ApplicantName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}. Use \n for line breaks.
                                 </p>
                             </div>
 
@@ -216,7 +216,7 @@ export default function EmailTemplatesTab({
                                 <p className="text-xs text-blue-900 dark:text-blue-100">
                                     <strong>Template Variables:</strong>
                                     <br />
-                                    • {'{'}candidateName{'}'} - Candidate's full name
+                                    • {'{'}ApplicantName{'}'} - Applicant's full name
                                     <br />
                                     • {'{'}positionTitle{'}'} - Job position title
                                     <br />
@@ -226,7 +226,7 @@ export default function EmailTemplatesTab({
                                     <br />
                                     • {'{'}interviewLocation{'}'} - Interview location
                                     <br />
-                                    • {'{'}evaluationLink{'}'} - Link to candidate evaluation
+                                    • {'{'}evaluationLink{'}'} - Link to Applicant evaluation
                                     <br />
                                     • {'{'}interviewerName{'}'} - Interviewer's name
                                 </p>

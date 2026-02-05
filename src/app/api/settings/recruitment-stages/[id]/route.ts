@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import type { RecruitmentStage } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
-import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
+import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const updateRecruitmentStageSchema = z.object({
@@ -190,7 +190,7 @@ export async function PUT(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+        broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json(result.rows[0]);
 
@@ -251,8 +251,8 @@ export async function DELETE(request: NextRequest) {
             }, { status: 400 });
         }
         
-        // Check if the stage is currently in use by candidates or transition records
-        const candidateCount = await client.query(
+        // Check if the stage is currently in use by applicants or transition records
+        const applicantCount = await client.query(
             'SELECT COUNT(*) as count FROM "Candidate" WHERE "statusId" = $1',
             [id]
         );
@@ -262,7 +262,7 @@ export async function DELETE(request: NextRequest) {
             [stageName]
         );
         
-        const totalUsage = parseInt(candidateCount.rows[0].count) + parseInt(transitionCount.rows[0].count);
+        const totalUsage = parseInt(applicantCount.rows[0].count) + parseInt(transitionCount.rows[0].count);
         
         if (totalUsage > 0) {
             return NextResponse.json({ 
@@ -279,7 +279,7 @@ export async function DELETE(request: NextRequest) {
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+        broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
         
         return NextResponse.json({ message: "Recruitment stage deleted successfully" });
 

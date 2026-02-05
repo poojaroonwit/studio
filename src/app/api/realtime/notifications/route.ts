@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 import { broadcastNotification } from '@/lib/simple-broadcaster';

@@ -203,7 +203,7 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
       {/* Custom Fields for Job Suitability Section */}
       {isEditing ? (
         <CustomFieldEdit
-          modelName="Candidate"
+          modelName="Applicant"
           section="job-suitability"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
@@ -212,7 +212,7 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
         />
       ) : (
         <CustomFieldDisplay
-          modelName="Candidate"
+          modelName="Applicant"
           section="job-suitability"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}

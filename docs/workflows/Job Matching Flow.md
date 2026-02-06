@@ -19,9 +19,9 @@ sequenceDiagram
     participant Gemini as Gemini AI API
     participant DB as PostgreSQL
 
-    Rec->>App: Clicks "Match Candidates"
+    Rec->>App: Clicks "Match applicants"
     App->>DB: Fetch Position Match Criteria
-    App->>DB: Fetch Candidate Parsed Data (JSON)
+    App->>DB: Fetch applicant Parsed Data (JSON)
     
     App->>Gemini: POST /generateContent
     Note over Gemini: Analyzes skills vs requirements
@@ -29,7 +29,7 @@ sequenceDiagram
     Gemini-->>App: { "fitScore": 0.82, "reasons": ["..."] }
     
     App->>DB: Insert/Update JobMatch table
-    App->>DB: Update Candidate.fitScore (Primary Job)
+    App->>DB: Update applicant.fitScore (Primary Job)
     
     App-->>Rec: Show Top-Matched Jobs in UI
 ```
@@ -45,7 +45,7 @@ Every `Position` has a `matchCriteria` field (JSONB) containing:
 - Years of experience required for specific technologies.
 
 ### 2. JobMatch Table
-Unlike a simple one-to-one link, the `JobMatch` table allows a candidate to be scored against **multiple positions**:
+Unlike a simple one-to-one link, the `JobMatch` table allows a applicant to be scored against **multiple positions**:
 - **Fit Score**: A value from 0 to 1 representing the alignment.
 - **Match Reasons**: AI-generated bullet points justifying the score.
 - **Job Description Summary**: A shortened, AI-optimized version of the job requirements.

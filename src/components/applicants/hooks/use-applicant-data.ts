@@ -422,9 +422,9 @@ export function useApplicantData({
     return 0;
   };
 
-  const fetchApplicantById = useCallback(async (candidateId: string): Promise<Applicant | null> => {
+  const fetchApplicantById = useCallback(async (applicantId: string): Promise<Applicant | null> => {
     try {
-      const result = await safeFetch<Applicant>(`/api/applicants/${candidateId}`, { timeoutMs: 8000 });
+      const result = await safeFetch<Applicant>(`/api/applicants/${applicantId}`, { timeoutMs: 8000 });
       if (!result.ok) {
         return null;
       }
@@ -434,16 +434,16 @@ export function useApplicantData({
     }
   }, []);
 
-  const refreshApplicantInList = useCallback(async (candidateId: string, fetchTableData: (filters: ApplicantFilterValues, page: number, pageSize: number) => void, filters: ApplicantFilterValues, page: number, pageSize: number, aiMatchedApplicantIds: string[] | null) => {
+  const refreshApplicantInList = useCallback(async (applicantId: string, fetchTableData: (filters: ApplicantFilterValues, page: number, pageSize: number) => void, filters: ApplicantFilterValues, page: number, pageSize: number, aiMatchedApplicantIds: string[] | null) => {
     if (aiMatchedApplicantIds !== null) {
         toast('AI Search Active: Please clear AI search or re-run it to see specific updates.');
         return;
     }
 
-    const updatedApplicant = await fetchApplicantById(candidateId);
+    const updatedApplicant = await fetchApplicantById(applicantId);
     if (updatedApplicant) {
-      stableSetFilteredApplicants(prev => prev.map(c => c.id === candidateId ? updatedApplicant : c));
-      stableSetAllApplicantsForCounts(prev => prev.map(c => c.id === candidateId ? updatedApplicant : c));
+      stableSetFilteredApplicants(prev => prev.map(c => c.id === applicantId ? updatedApplicant : c));
+      stableSetAllApplicantsForCounts(prev => prev.map(c => c.id === applicantId ? updatedApplicant : c));
     } else {
       toast.error('Could not refresh data for applicant. Attempting full list refresh.');
       fetchTableData(filters, page, pageSize);
@@ -451,26 +451,26 @@ export function useApplicantData({
   }, [fetchApplicantById, stableSetFilteredApplicants, stableSetAllApplicantsForCounts]);
 
   // Optimistic update helper function
-  const applyOptimisticUpdate = useCallback((candidateId: string, updates: Partial<Applicant>) => {
+  const applyOptimisticUpdate = useCallback((applicantId: string, updates: Partial<Applicant>) => {
     stableSetFilteredApplicants(prev => prev.map(applicant => 
-      applicant.id === candidateId 
+      applicant.id === applicantId 
         ? { ...applicant, ...updates, updatedAt: new Date().toISOString() }
         : applicant
     ));
     stableSetAllApplicantsForCounts(prev => prev.map(applicant => 
-      applicant.id === candidateId 
+      applicant.id === applicantId 
         ? { ...applicant, ...updates, updatedAt: new Date().toISOString() }
         : applicant
     ));
   }, [stableSetFilteredApplicants, stableSetAllApplicantsForCounts]);
 
   // Revert optimistic update helper function
-  const revertOptimisticUpdate = useCallback((candidateId: string, originalApplicant: Applicant) => {
+  const revertOptimisticUpdate = useCallback((applicantId: string, originalApplicant: Applicant) => {
     stableSetFilteredApplicants(prev => prev.map(applicant => 
-      applicant.id === candidateId ? originalApplicant : applicant
+      applicant.id === applicantId ? originalApplicant : applicant
     ));
     stableSetAllApplicantsForCounts(prev => prev.map(applicant => 
-      applicant.id === candidateId ? originalApplicant : applicant
+      applicant.id === applicantId ? originalApplicant : applicant
     ));
   }, [stableSetFilteredApplicants, stableSetAllApplicantsForCounts]);
 

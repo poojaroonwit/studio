@@ -7,12 +7,12 @@
 | **What** | A personal Kanban board dedicated to your daily to-dos and reminders. |
 | **Who** | **All Users** (Recruiters, Hiring Managers). |
 | **When** | Daily, to track follow-ups like "Call John" or "Review Portfolio". |
-| **Why** | To separate "Candidate Pipeline" movements from "Personal To-Dos". |
+| **Why** | To separate "applicant Pipeline" movements from "Personal To-Dos". |
 | **Where** | **My Tasks** in the main navigation sidebar (separate from the Home Dashboard). |
 | **How** | 1. Navigate to **My Tasks** <br> 2. Click **"New Task"** <br> 3. Fill details <br> 4. Drag card to **"Done"** |
 
 ## 1. The Personal Board
-Unlike the Candidate Pipeline (which tracks people), this board tracks **Actions**.
+Unlike the applicant Pipeline (which tracks people), this board tracks **Actions**.
 *   **Columns**: TODO, IN PROGRESS, DONE.
 *   **Drag & Drop**: Move cards to capture accurate status.
 

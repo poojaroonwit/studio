@@ -17,7 +17,7 @@ interface FileViewerModalProps {
     updatedAt?: string;
     fileSize?: number | string;
     filePath?: string; // For secure file access
-    candidateId?: string; // For permission checking
+    applicantId?: string; // For permission checking
     headcountId?: string; // For permission checking
   } | null;
 }
@@ -120,7 +120,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       // Use filePath to build preview URL
       const params = new URLSearchParams({ filePath: file.filePath });
       if (file.fileName) params.set('fileName', file.fileName);
-      if (file.candidateId) params.set('candidateId', file.candidateId);
+      if (file.applicantId) params.set('applicantId', file.applicantId);
       if (file.headcountId) params.set('headcountId', file.headcountId);
       return `/api/secure-file/preview?${params.toString()}`;
     } else {

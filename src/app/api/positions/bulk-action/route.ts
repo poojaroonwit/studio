@@ -160,9 +160,9 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
 
     if (action === 'delete') {
-      const ApplicantCheckQuery = 'SELECT DISTINCT "positionId" FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
-      const ApplicantCheckResult = await client.query(ApplicantCheckQuery, [positionIds]);
-      const positionsWithApplicants = new Set(ApplicantCheckResult.rows.map((r: any) => r.positionId));
+      const applicantCheckQuery = 'SELECT DISTINCT "positionId" FROM "applicant" WHERE "positionId" = ANY($1::uuid[])';
+      const applicantCheckResult = await client.query(applicantCheckQuery, [positionIds]);
+      const positionsWithApplicants = new Set(applicantCheckResult.rows.map((r: any) => r.positionId));
 
       const positionsToDelete = positionIds.filter(id => !positionsWithApplicants.has(id));
       const positionsNotDeleted = positionIds.filter(id => positionsWithApplicants.has(id));

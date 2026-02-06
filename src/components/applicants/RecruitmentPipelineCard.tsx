@@ -18,7 +18,7 @@ interface RecruitmentPipelineCardProps {
   onStageClick: (stageName: string) => void;
   editableNotes: boolean;
   onNoteEdit: (transitionId: string, newNote: string) => Promise<void>;
-  candidateId: string;
+  applicantId: string;
 }
 
 export function RecruitmentPipelineCard({
@@ -28,7 +28,7 @@ export function RecruitmentPipelineCard({
   onStageClick,
   editableNotes,
   onNoteEdit,
-  candidateId
+  applicantId
 }: RecruitmentPipelineCardProps) {
   // Map stage name to all transition records for that stage
   const stageToRecords: Record<string, TransitionRecord[]> = {};

@@ -27,7 +27,7 @@ export const ApplicantInfoTab: React.FC<ApplicantInfoTabProps> = ({
   control
 }) => {
   // Debug logging
-  console.log('ApplicantInfoTab render:', { isEditing, applicant: !!Applicant, control: !!control, register: !!register });
+  console.log('ApplicantInfoTab render:', { isEditing, applicant: !!applicant, control: !!control, register: !!register });
   
   // Debug form values
   const watchedEmail = watch?.('email');

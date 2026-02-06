@@ -44,14 +44,14 @@ function replaceTemplateVariables(
  * Get or create evaluation link for Applicant
  */
 async function getOrCreateEvaluationLink(
-  candidateId: string,
+  applicantId: string,
   userId: string
 ): Promise<string | null> {
   try {
     // Check for existing active link
-    const existingLink = await prisma.candidateEvaluationLink.findFirst({
+    const existingLink = await prisma.applicantEvaluationLink.findFirst({
       where: {
-        candidateId,
+        applicantId: applicantId,
         revokedAt: null,
         expiresAt: {
           gt: new Date(),
@@ -62,16 +62,16 @@ async function getOrCreateEvaluationLink(
 
     if (existingLink) {
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021';
-      return `${baseUrl}/applicants/${encodeURIComponent(candidateId)}/evaluate?token=${encodeURIComponent(existingLink.token)}`;
+      return `${baseUrl}/applicants/${encodeURIComponent(applicantId)}/evaluate?token=${encodeURIComponent(existingLink.token)}`;
     }
 
     // Create new link
     const token = require('crypto').randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    await prisma.candidateEvaluationLink.create({
+    await prisma.applicantEvaluationLink.create({
       data: {
-        candidateId,
+        applicantId: applicantId,
         token,
         expiresAt,
         createdById: userId,
@@ -80,7 +80,7 @@ async function getOrCreateEvaluationLink(
     });
 
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021';
-    return `${baseUrl}/applicants/${encodeURIComponent(candidateId)}/evaluate?token=${encodeURIComponent(token)}`;
+    return `${baseUrl}/applicants/${encodeURIComponent(applicantId)}/evaluate?token=${encodeURIComponent(token)}`;
   } catch (error) {
     console.error('[Send Interview Invitation] Error getting evaluation link:', error);
     return null;
@@ -113,7 +113,7 @@ export async function POST(
     );
   }
 
-  const { id: candidateId } = await params;
+  const { id: applicantId } = await params;
 
   // Validate request body
   let body;
@@ -156,8 +156,8 @@ export async function POST(
 
     // Get Applicant information
     const applicantResult = await client.query(
-      'SELECT id, name, email, "positionId" FROM "Candidate" WHERE id = $1',
-      [candidateId]
+      'SELECT id, name, email, "positionId" FROM "applicant" WHERE id = $1',
+      [applicantId]
     );
 
     if (applicantResult.rows.length === 0) {
@@ -252,7 +252,7 @@ export async function POST(
 
     // Get or create evaluation link
     const evaluationLink = await getOrCreateEvaluationLink(
-      candidateId,
+      applicantId,
       session.user.id
     );
 
@@ -425,7 +425,7 @@ export async function POST(
             'API:Applicants:SendInterviewInvitation',
             session.user.id,
             {
-              candidateId,
+              applicantId,
               interviewerId: interviewer.userId,
               interviewDate: interviewDateTime.toISOString(),
               interviewTime,
@@ -503,10 +503,10 @@ export async function POST(
     console.error('[Send Interview Invitation] Error:', error);
     await logAudit(
       'ERROR',
-      `Failed to send interview invitations for Applicant ${candidateId} by ${session.user.name || session.user.email}. Error: ${error.message}`,
+      `Failed to send interview invitations for Applicant ${applicantId} by ${session.user.name || session.user.email}. Error: ${error.message}`,
       'API:Applicants:SendInterviewInvitation',
       session.user.id,
-      { candidateId, error: error.message }
+      { applicantId, error: error.message }
     );
     return NextResponse.json(
       {

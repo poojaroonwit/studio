@@ -1,6 +1,6 @@
 # FitScan - Enterprise Applicant Tracking System (ATS)
 
-A comprehensive, enterprise-grade Applicant Tracking System built with modern web technologies, featuring advanced candidate management, AI-powered matching, automated workflows, and seamless integrations.
+A comprehensive, enterprise-grade Applicant Tracking System built with modern web technologies, featuring advanced applicant management, AI-powered matching, automated workflows, and seamless integrations.
 
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
@@ -12,11 +12,11 @@ A comprehensive, enterprise-grade Applicant Tracking System built with modern we
 
 ## 🎯 Overview
 
-FitScan is a modern, scalable Applicant Tracking System designed to streamline recruitment processes through intelligent automation, comprehensive candidate management, and powerful analytics.
+FitScan is a modern, scalable Applicant Tracking System designed to streamline recruitment processes through intelligent automation, comprehensive applicant management, and powerful analytics.
 
 ### Key Value Propositions
 
-- **AI-Powered Candidate Matching**: Intelligent job-candidate matching using Google Gemini API
+- **AI-Powered applicant Matching**: Intelligent job-applicant matching using Google Gemini API
 - **Real-time Collaboration**: Live updates and notifications via Server-Sent Events
 - **Enterprise Security**: Role-based access control with granular permissions
 - **Scalable Architecture**: Built on modern tech stack for high performance
@@ -32,7 +32,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 - Recruitment pipeline visualization
 - Performance analytics and SLA tracking
 
-### 👥 Candidate Management
+### 👥 applicant Management
 - Comprehensive profiles with custom fields
 - Resume upload, parsing, and version history
 - Stage tracking with Kanban board
@@ -113,8 +113,8 @@ FitScan uses **n8n** for background processing and email automation. Follow thes
 
 ### 2. Import Workflows
 Import the following JSON files located in `docs/n8n workflows/`:
-1.  **FitScan [Inbound candidate].json**: Handles incoming resumes via Outlook.
-2.  **FitScan [Process candidate].json**: Orchestrates AI parsing and scoring.
+1.  **FitScan [Inbound applicant].json**: Handles incoming resumes via Outlook.
+2.  **FitScan [Process applicant].json**: Orchestrates AI parsing and scoring.
 3.  **Fitscan [run process queue].json**: Scheduled task to process the background queue.
 
 ### 3. Configure Credentials
@@ -126,7 +126,7 @@ Inside n8n, go to **Credentials** and add:
     - **Value**: `Bearer <Your_System_API_Key>` (Generate this in Settings > API Keys).
 
 ### 4. Outlook Folder Structure
-The **Inbound Candidate** workflow expects specific folders in your Outlook account to categorize processing status.
+The **Inbound applicant** workflow expects specific folders in your Outlook account to categorize processing status.
 
 #### Example Folder Hierarchy:
 ```mermaid
@@ -142,16 +142,16 @@ graph TD
 
 - **Queue**: Primary folder monitored for new incoming resumes.
 - **Processing**: Temporary folder for emails currently being parsed.
-- **Processed**: Successfully handled and uploaded candidates.
+- **Processed**: Successfully handled and uploaded applicants.
 - **Server down**: Fallback for when the FitScan API is unreachable.
-- **Unknow position**: For candidates where the AI cannot identify the applied position.
-- **Other**: For non-candidate or irrelevant emails.
+- **Unknow position**: For applicants where the AI cannot identify the applied position.
+- **Other**: For non-applicant or irrelevant emails.
 
 ### 5. Windmill Integration (HTML-to-PDF)
 The workflow integrates with a **Windmill** worker for high-fidelity HTML to PDF conversion:
 - **Actual Endpoint**: `https://ncc-windmill.qsncc.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf`
 - **Method**: `POST`
-- **Purpose**: Converts HTML-only candidate profiles (e.g., from JobBKK) into standardized PDFs for AI parsing.
+- **Purpose**: Converts HTML-only applicant profiles (e.g., from JobBKK) into standardized PDFs for AI parsing.
 - **Configuration**: Ensure the `HTML to PDF` node in n8n has the correct Bearer token for the Windmill API.
 
 ### 6. Activate Workflows
@@ -179,8 +179,8 @@ Detailed documentation is available in the `docs/` directory:
 
 #### 🔄 Workflows & Business Logic
 *   [Authentication Flow](docs/workflows/Authentication%20Flow.md) - Login, SSO, and session handling.
-*   [Job Matching](docs/workflows/Job%20Matching%20Flow.md) - AI candidate scoring logic.
-*   [Evaluation](docs/workflows/Evaluation%20Flow.md) - Candidate assessment process.
+*   [Job Matching](docs/workflows/Job%20Matching%20Flow.md) - AI applicant scoring logic.
+*   [Evaluation](docs/workflows/Evaluation%20Flow.md) - applicant assessment process.
 *   [AI Search](docs/workflows/AI%20Search%20Flow.md) - Natural language search internals.
 *   [SLA Tracking](docs/workflows/SLA%20Flow.md) - Performance monitoring logic.
 *   [Notifications](docs/workflows/Notification%20Flow.md) - Alerting system.
@@ -225,7 +225,7 @@ To reach full sustainable engineering maturity, the following documents are **mi
 
 ### 1. 📘 User Guide
 *   **Target**: Recruiters, Hiring Managers.
-*   **Gap**: We have technical flows, but no "How-To" guide for using the UI (e.g., "How to create a position", "How to interview a candidate").
+*   **Gap**: We have technical flows, but no "How-To" guide for using the UI (e.g., "How to create a position", "How to interview a applicant").
 *   **Recommendation**: Create `docs/USER_GUIDE.md` or a wiki.
 
 ### 2. 🚨 Operational Runbooks

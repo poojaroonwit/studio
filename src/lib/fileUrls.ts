@@ -6,7 +6,7 @@ export interface BuildFileUrlOptions {
 	strategy?: FileUrlStrategy
 	expiresInSeconds?: number
 	fileName?: string
-	candidateId?: string
+	applicantId?: string
 	headcountId?: string
 }
 
@@ -26,7 +26,7 @@ export async function buildServerFileUrl(filePath: string, opts: BuildFileUrlOpt
 		// preview URL for iframe and img elements that need authentication
 		const params = new URLSearchParams({ filePath })
 		if (opts.fileName) params.set('fileName', opts.fileName)
-		if (opts.candidateId) params.set('candidateId', opts.candidateId)
+		if (opts.applicantId) params.set('applicantId', opts.applicantId)
 		if (opts.headcountId) params.set('headcountId', opts.headcountId)
 		return `/api/secure-file/preview?${params.toString()}`
 	}
@@ -34,7 +34,7 @@ export async function buildServerFileUrl(filePath: string, opts: BuildFileUrlOpt
 	// stream URL for server contexts (e.g., include in internal payloads where receiver can call back with auth)
 	const params = new URLSearchParams({ filePath })
 	if (opts.fileName) params.set('fileName', opts.fileName)
-	if (opts.candidateId) params.set('candidateId', opts.candidateId)
+	if (opts.applicantId) params.set('applicantId', opts.applicantId)
 	if (opts.headcountId) params.set('headcountId', opts.headcountId)
 	return `/api/secure-file/stream?${params.toString()}`
 }
@@ -42,7 +42,7 @@ export async function buildServerFileUrl(filePath: string, opts: BuildFileUrlOpt
 export function buildClientStreamUrl(filePath: string, opts: Omit<BuildFileUrlOptions, 'strategy'> = {}): string {
 	const params = new URLSearchParams({ filePath })
 	if (opts.fileName) params.set('fileName', opts.fileName)
-	if (opts.candidateId) params.set('candidateId', opts.candidateId)
+	if (opts.applicantId) params.set('applicantId', opts.applicantId)
 	if (opts.headcountId) params.set('headcountId', opts.headcountId)
 	return `/api/secure-file/stream?${params.toString()}`
 }

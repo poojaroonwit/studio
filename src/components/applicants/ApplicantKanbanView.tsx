@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { applicant, ApplicantStatus, UserProfile } from '@/lib/types';
+import type { Applicant, ApplicantStatus, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ApplicantAvatar } from '@/components/ui/applicant-avatar';
@@ -28,7 +28,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 
 // Helper function to extract parsed data properties (similar to FullApplicantDetail)
-const getParsedDataProperty = (Applicant: applicant, propertyName: string) => {
+const getParsedDataProperty = (applicant: Applicant, propertyName: string) => {
   const parsedData = applicant.parsedData;
   if (!parsedData || typeof parsedData !== 'object') return undefined;
 
@@ -143,12 +143,12 @@ export function StatusBadge({
 }
 
 // Helper function to get education data
-const getEducation = (Applicant: Applicant) => {
-  if (!Applicant) return [];
+const getEducation = (applicant: Applicant) => {
+  if (!applicant) return [];
 
   let educationArray: any[] = [];
 
-  if (Array.isArray(applicant.educationData) && Applicant.educationData.length > 0) {
+  if (Array.isArray(applicant.educationData) && applicant.educationData.length > 0) {
     educationArray = applicant.educationData;
   } else {
     const parsedData = applicant.parsedData;
@@ -174,12 +174,12 @@ const getEducation = (Applicant: Applicant) => {
 };
 
 // Helper function to get experience data
-const getExperience = (Applicant: Applicant) => {
-  if (!Applicant) return [];
+const getExperience = (applicant: Applicant) => {
+  if (!applicant) return [];
 
   let experienceArray: any[] = [];
 
-  if (Array.isArray(applicant.experienceData) && Applicant.experienceData.length > 0) {
+  if (Array.isArray(applicant.experienceData) && applicant.experienceData.length > 0) {
     experienceArray = applicant.experienceData;
   } else {
     const parsedData = applicant.parsedData;
@@ -205,8 +205,8 @@ const getExperience = (Applicant: Applicant) => {
 };
 
 // Helper function to get skills data
-const getSkills = (Applicant: Applicant) => {
-  return getParsedDataProperty(Applicant, 'skills') || [];
+const getSkills = (applicant: Applicant) => {
+  return getParsedDataProperty(applicant, 'skills') || [];
 };
 
 // Field label mapping (should match CustomizeBoardModal)
@@ -248,7 +248,7 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
   }, []);
 
   // Validate Applicant data - must happen after all hooks
-  if (!Applicant || !applicant.id) {
+  if (!applicant || !applicant.id) {
     return (
       <Card className="p-4 border border-destructive/20 bg-destructive/5">
         <div className="text-center text-destructive text-sm">
@@ -261,9 +261,9 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
   const education = getEducation(applicant);
   const experience = getExperience(applicant);
   const skills = getSkills(applicant);
-  const personalInfo = getParsedDataProperty(Applicant, 'personal_info');
-  const contactInfo = getParsedDataProperty(Applicant, 'contact_info');
-  const personalColor = getApplicantPersonalColor(Applicant, recruiters);
+  const personalInfo = getParsedDataProperty(applicant, 'personal_info');
+  const contactInfo = getParsedDataProperty(applicant, 'contact_info');
+  const personalColor = getApplicantPersonalColor(applicant, recruiters);
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragStarting(true);
@@ -330,7 +330,7 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
         return (
           <div className="flex items-start gap-3">
             <ApplicantAvatar
-              user={Applicant}
+              user={applicant}
               size="md"
               className="h-10 w-10 flex-shrink-0"
             />
@@ -358,18 +358,18 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
         );
       })()}
       <div className="space-y-2">
-        {visibleFields.includes('fitScore') && Applicant.fitScore !== undefined && Applicant.fitScore !== null && (
+        {visibleFields.includes('fitScore') && applicant.fitScore !== undefined && applicant.fitScore !== null && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
               <span className="font-medium text-foreground">
-                {Applicant.fitScore === null || Applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(Applicant.fitScore)}
+                {applicant.fitScore === null || applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(applicant.fitScore)}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div
-                className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(Applicant.fitScore))}
-                style={{ width: `${normalizeFitScore(Applicant.fitScore)}%` }}
+                className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(applicant.fitScore))}
+                style={{ width: `${normalizeFitScore(applicant.fitScore)}%` }}
               ></div>
             </div>
           </div>
@@ -377,19 +377,19 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
         {/* Contact Information */}
         {(visibleFields.includes('email') || visibleFields.includes('phone') || visibleFields.includes('applicationDate')) && (
           <div className="space-y-1">
-            {visibleFields.includes('email') && Applicant.email && (
+            {visibleFields.includes('email') && applicant.email && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Mail className="w-3 h-3 mr-1" />
                 <span className="truncate">{applicant.email}</span>
               </div>
             )}
-            {visibleFields.includes('phone') && Applicant.phone && (
+            {visibleFields.includes('phone') && applicant.phone && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Phone className="w-3 h-3 mr-1" />
                 <span className="truncate">{applicant.phone}</span>
               </div>
             )}
-            {visibleFields.includes('applicationDate') && Applicant.applicationDate && (
+            {visibleFields.includes('applicationDate') && applicant.applicationDate && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3 mr-1" />
                 Applied: {new Date(applicant.applicationDate).toLocaleDateString()}
@@ -398,7 +398,7 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
             {visibleFields.includes('recruiterId') && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <User className="w-3 h-3 mr-1" />
-                <span>{applicant.recruiter?.name || Applicant.recruiterId || 'Unassigned'}</span>
+                <span>{applicant.recruiter?.name || applicant.recruiterId || 'Unassigned'}</span>
               </div>
             )}
           </div>
@@ -468,11 +468,11 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
 };
 
 interface ApplicantKanbanViewProps {
-  Applicants: Applicant[];
+  applicants: Applicant[];
   statuses: ApplicantStatus[];
   recruiters?: UserProfile[];
-  onMoveApplicant?: (Applicant: applicant, newValue: string) => void;
-  onCardClick?: (Applicant: Applicant) => void;
+  onMoveApplicant?: (applicant: Applicant, newValue: string) => void;
+  onCardClick?: (applicant: Applicant) => void;
   showAddButton?: boolean;
   rowField?: string;
   columnField?: string;
@@ -483,7 +483,7 @@ interface ApplicantKanbanViewProps {
 }
 
 export function ApplicantKanbanView({
-  Applicants,
+  applicants,
   statuses,
   recruiters,
   onMoveApplicant,
@@ -509,15 +509,15 @@ export function ApplicantKanbanView({
     );
   }
 
-  // If there are no Applicants at all
-  if (Applicants.length === 0) {
+  // If there are no applicants at all
+  if (applicants.length === 0) {
     return (
       <div className="w-full min-h-[300px] p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
             <Plus className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-lg text-muted-foreground">No Applicants found</p>
+          <p className="text-lg text-muted-foreground">No applicants found</p>
         </div>
       </div>
     );
@@ -526,10 +526,10 @@ export function ApplicantKanbanView({
   // Delegate to FlexibleKanbanView with all customization props
   return (
     <FlexibleKanbanView
-      Applicants={Applicants}
+      applicants={applicants}
       statuses={statuses}
       recruiters={recruiters}
-      onMoveapplicant={onMoveapplicant}
+      onMoveApplicant={onMoveApplicant}
       onCardClick={onCardClick}
       showAddButton={showAddButton}
       rowField={rowField}
@@ -544,7 +544,7 @@ export function ApplicantKanbanView({
 
 // Enhanced Row-based Kanban (stages as rows, Applicants as draggable cards)
 export function ApplicantRowKanbanView({
-  Applicants,
+  applicants,
   statuses,
   recruiters,
   onMoveApplicant,
@@ -559,10 +559,10 @@ export function ApplicantRowKanbanView({
   const [draggedApplicant, setDraggedApplicant] = useState<Applicant | null>(null);
   const [dragOverRowValue, setDragOverRowValue] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedApplicantsummary, setSelectedApplicantsummary] = useState<Partial<Applicant> & { id: string; name: string } | null>(null);
+  const [selectedApplicantSummary, setSelectedApplicantSummary] = useState<Partial<Applicant> & { id: string; name: string } | null>(null);
 
-  // Group Applicants by row field value - MUST be called before any early returns
-  const ApplicantsByRowValue = useMemo(() => {
+  // Group applicants by row field value - MUST be called before any early returns
+  const applicantsByRowValue = useMemo(() => {
     const grouped: Record<string, Applicant[]> = {};
 
     // Initialize all visible row values with empty arrays
@@ -570,9 +570,9 @@ export function ApplicantRowKanbanView({
       grouped[rowValue] = [];
     });
 
-    // Group Applicants by their row field value
-    Applicants.forEach(Applicant => {
-      const rowValue = Applicant[rowField as keyof Applicant] as string;
+    // Group applicants by their row field value
+    applicants.forEach(applicant => {
+      const rowValue = applicant[rowField as keyof Applicant] as string;
       if (rowValue && visibleRowValues.includes(rowValue)) {
         if (!grouped[rowValue]) {
           grouped[rowValue] = [];
@@ -582,7 +582,7 @@ export function ApplicantRowKanbanView({
     });
 
     return grouped;
-  }, [Applicants, rowField, visibleRowValues]);
+  }, [applicants, rowField, visibleRowValues]);
 
   // Only show rows in visibleRowValues (if provided)
   const filteredRowValues = visibleRowValues && visibleRowValues.length > 0
@@ -590,7 +590,7 @@ export function ApplicantRowKanbanView({
     : statuses; // Fallback to statuses for backward compatibility
 
   // Drag and drop handlers
-  const handleDragStart = (Applicant: Applicant) => {
+  const handleDragStart = (applicant: Applicant) => {
     setDraggedApplicant(applicant);
   };
   const handleDragEnd = () => {
@@ -601,16 +601,16 @@ export function ApplicantRowKanbanView({
     e.preventDefault();
     setDragOverRowValue(rowValue);
   };
-  const persistApplicantFieldUpdate = async (Applicant: applicant, field: string, value: any) => {
+  const persistApplicantFieldUpdate = async (applicant: Applicant, field: string, value: any) => {
     try {
       if (field === 'status') {
-        toast.loading('Updating Applicant status...', { id: Applicant.id });
+        toast.loading('Updating Applicant status...', { id: applicant.id });
         const res = await fetch('/api/applicants/bulk-action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'change_status',
-            candidateIds: [Applicant.id],
+            applicantIds: [applicant.id],
             newStatus: value
           })
         });
@@ -625,17 +625,17 @@ export function ApplicantRowKanbanView({
 
         const result = await res.json();
 
-        // Check for rejected Applicants due to headcount constraints
+        // Check for rejected applicants due to headcount constraints
         if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
-          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.candidateId === applicant.id);
+          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.applicantId === applicant.id);
           if (rejectedApplicant) {
-            throw new Error(`Headcount constraint: ${rejectedapplicant.message}`);
+            throw new Error(`Headcount constraint: ${rejectedApplicant.message}`);
           }
         }
 
-        toast.success(`Status updated to ${value}`, { id: Applicant.id });
+        toast.success(`Status updated to ${value}`, { id: applicant.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
-        toast.loading('Updating Applicant...', { id: Applicant.id });
+        toast.loading('Updating Applicant...', { id: applicant.id });
         const res = await fetch(`/api/applicants/${applicant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -645,7 +645,7 @@ export function ApplicantRowKanbanView({
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update Applicant');
         }
-        toast.success('Applicant updated', { id: Applicant.id });
+        toast.success('Applicant updated', { id: applicant.id });
       }
     } catch (error: any) {
       // Check if it's a headcount constraint error
@@ -654,7 +654,7 @@ export function ApplicantRowKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(getErrorMessage(error), { id: Applicant.id });
+        toast.error(getErrorMessage(error), { id: applicant.id });
       }
     }
   };
@@ -674,7 +674,7 @@ export function ApplicantRowKanbanView({
     setDragOverRowValue(null);
   };
 
-  const handleCardClick = (Applicant: Applicant) => {
+  const handleCardClick = (applicant: Applicant) => {
     if (onCardClick) {
       onCardClick(applicant);
     } else {
@@ -689,14 +689,14 @@ export function ApplicantRowKanbanView({
         job_suitable: 'job_suitable' in applicant.parsedData && Array.isArray((applicant.parsedData as any).job_suitable) ? (applicant.parsedData as any).job_suitable : [],
       } : {};
 
-      setSelectedApplicantsummary({
-        id: Applicant.id,
+      setSelectedApplicantSummary({
+        id: applicant.id,
         name: formatApplicantName(applicant),
-        email: Applicant.email,
-        phone: Applicant.phone,
-        status: Applicant.statusId,
-        position: Applicant.position,
-        fitScore: Applicant.fitScore,
+        email: applicant.email,
+        phone: applicant.phone,
+        status: applicant.statusId,
+        position: applicant.position,
+        fitScore: applicant.fitScore,
         parsedData: validatedParsedData
       });
       setIsModalOpen(true);
@@ -710,7 +710,7 @@ export function ApplicantRowKanbanView({
 
 // Flexible Kanban View that supports both row-based and column-based layouts
 export function FlexibleKanbanView({
-  Applicants,
+  applicants,
   statuses,
   recruiters,
   onMoveApplicant,
@@ -735,42 +735,42 @@ export function FlexibleKanbanView({
           <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
             <Users className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-lg text-muted-foreground">Loading Applicants...</p>
+          <p className="text-lg text-muted-foreground">Loading applicants...</p>
         </div>
       </div>
     );
   }
 
   // Helper function to get the proper value for a field
-  const getFieldValue = (Applicant: applicant, field: string) => {
+  const getFieldValue = (applicant: Applicant, field: string) => {
     if (field === 'recruiterId') {
       return applicant.recruiter?.name || 'Unassigned';
     }
     if (field === 'positionId') {
-      return applicant.position?.title || Applicant.positionId || 'No Position';
+      return applicant.position?.title || applicant.positionId || 'No Position';
     }
-    return Applicant[field as keyof typeof Applicant] ?? applicant.customAttributes?.[field];
+    return (applicant as any)[field] ?? applicant.customAttributes?.[field];
   };
 
   let rowValuesToShow = visibleRowValues.length > 0
     ? visibleRowValues
-    : Array.from(new Set(Applicants.map(c => getFieldValue(c, rowField)))).filter(Boolean);
+    : Array.from(new Set(applicants.map(c => getFieldValue(c, rowField)))).filter(Boolean);
   if (rowValuesToShow.length === 0) {
-    rowValuesToShow = ['All Applicants'];
+    rowValuesToShow = ['All applicants'];
   }
   const isColumnBased = columnField && columnField !== 'none';
   const isRowBased = rowField && rowField !== 'none';
   const showSingleRow = !isRowBased || rowField === 'none';
   const effectiveColumnValues = isColumnBased && visibleColumnValues.length > 0
     ? visibleColumnValues
-    : Array.from(new Set(Applicants.map(c => getFieldValue(c, columnField)))).filter(Boolean);
+    : Array.from(new Set(applicants.map(c => getFieldValue(c, columnField)))).filter(Boolean);
   const effectiveColumnField = isColumnBased ? columnField : null;
 
-  const handleCardClick = (Applicant: Applicant) => {
+  const handleCardClick = (applicant: Applicant) => {
     if (onCardClick) onCardClick(applicant);
   };
 
-  const handleDragStart = (Applicant: Applicant) => {
+  const handleDragStart = (applicant: Applicant) => {
     setDraggedApplicant(applicant);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
@@ -811,16 +811,16 @@ export function FlexibleKanbanView({
     }
   };
 
-  const persistApplicantFieldUpdate = async (Applicant: applicant, field: string, value: any) => {
+  const persistApplicantFieldUpdate = async (applicant: Applicant, field: string, value: any) => {
     try {
       if (field === 'status') {
-        toast.loading('Updating Applicant status...', { id: Applicant.id });
+        toast.loading('Updating Applicant status...', { id: applicant.id });
         const res = await fetch('/api/applicants/bulk-action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'change_status',
-            candidateIds: [Applicant.id],
+            applicantIds: [applicant.id],
             newStatus: value
           })
         });
@@ -835,17 +835,17 @@ export function FlexibleKanbanView({
 
         const result = await res.json();
 
-        // Check for rejected Applicants due to headcount constraints
+        // Check for rejected applicants due to headcount constraints
         if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
-          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.candidateId === applicant.id);
+          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.applicantId === applicant.id);
           if (rejectedApplicant) {
-            throw new Error(`Headcount constraint: ${rejectedapplicant.message}`);
+            throw new Error(`Headcount constraint: ${rejectedApplicant.message}`);
           }
         }
 
-        toast.success(`Status updated to ${value}`, { id: Applicant.id });
+        toast.success(`Status updated to ${value}`, { id: applicant.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
-        toast.loading('Updating Applicant...', { id: Applicant.id });
+        toast.loading('Updating Applicant...', { id: applicant.id });
         const res = await fetch(`/api/applicants/${applicant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -855,7 +855,7 @@ export function FlexibleKanbanView({
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update Applicant');
         }
-        toast.success('Applicant updated', { id: Applicant.id });
+        toast.success('Applicant updated', { id: applicant.id });
       }
     } catch (error: any) {
       // Check if it's a headcount constraint error
@@ -864,7 +864,7 @@ export function FlexibleKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(getErrorMessage(error), { id: Applicant.id });
+        toast.error(getErrorMessage(error), { id: applicant.id });
       }
     }
   };
@@ -920,15 +920,15 @@ export function FlexibleKanbanView({
     document.body.style.cursor = '';
   };
 
-  // If no Applicants, show fallback
-  if (!Applicants || Applicants.length === 0) {
+  // If no applicants, show fallback
+  if (!applicants || applicants.length === 0) {
     return (
       <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
             <Plus className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-lg text-muted-foreground">No Applicants found</p>
+          <p className="text-lg text-muted-foreground">No applicants found</p>
         </div>
       </div>
     );
@@ -942,16 +942,16 @@ export function FlexibleKanbanView({
       : effectiveColumnValues.length > 0
         ? effectiveColumnValues
         : ['All'];
-    // Find Applicants that do not match any column value
-    const uncategorizedApplicants = Applicants.filter(Applicant => {
-      const colValue = getFieldValue(Applicant, columnField);
+    // Find applicants that do not match any column value
+    const uncategorizedApplicants = applicants.filter(applicant => {
+      const colValue = getFieldValue(applicant, columnField);
       return !columnsToShow.includes(colValue);
     });
     return (
       <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4">
         {columnsToShow.map((colValue) => {
-          const colApplicants = Applicants.filter(Applicant =>
-            getFieldValue(Applicant, columnField) === colValue
+          const colApplicants = applicants.filter(applicant =>
+            getFieldValue(applicant, columnField) === colValue
           );
           return (
             <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
@@ -994,7 +994,7 @@ export function FlexibleKanbanView({
 
                   {colApplicants.length > 0 ? (
                     <div className="space-y-2">
-                      {colApplicants.map(Applicant => (
+                      {colApplicants.map(applicant => (
                         <div
                           key={applicant.id}
                           className={cn(
@@ -1003,7 +1003,7 @@ export function FlexibleKanbanView({
                           )}
                         >
                           <EnhancedApplicantCard
-                            Applicant={Applicant}
+                            applicant={applicant}
                             isDragged={draggedApplicant?.id === applicant.id}
                             onClick={() => handleCardClick(applicant)}
                             onDragStart={() => handleDragStart(applicant)}
@@ -1078,7 +1078,7 @@ export function FlexibleKanbanView({
               )}
 
               <div className="space-y-2">
-                {uncategorizedApplicants.length > 0 ? uncategorizedApplicants.map(Applicant => (
+                {uncategorizedApplicants.length > 0 ? uncategorizedApplicants.map(applicant => (
                   <div
                     key={applicant.id}
                     className={cn(
@@ -1087,7 +1087,7 @@ export function FlexibleKanbanView({
                     )}
                   >
                     <EnhancedApplicantCard
-                      Applicant={Applicant}
+                      applicant={applicant}
                       isDragged={draggedApplicant?.id === applicant.id}
                       onClick={() => handleCardClick(applicant)}
                       onDragStart={() => handleDragStart(applicant)}
@@ -1130,7 +1130,7 @@ export function FlexibleKanbanView({
     return (
       <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="flex flex-row flex-wrap gap-3">
-          {Applicants.map(Applicant => (
+          {applicants.map(applicant => (
             <div
               key={applicant.id}
               className={cn(
@@ -1139,7 +1139,7 @@ export function FlexibleKanbanView({
               )}
             >
               <EnhancedApplicantCard
-                Applicant={Applicant}
+                applicant={applicant}
                 isDragged={draggedApplicant?.id === applicant.id}
                 onClick={() => handleCardClick(applicant)}
                 onDragStart={() => handleDragStart(applicant)}
@@ -1158,15 +1158,15 @@ export function FlexibleKanbanView({
     // For row+column layout, add uncategorized row for each column if needed
     const uncategorizedByCol: Record<string, any[]> = {};
     effectiveColumnValues.forEach(colValue => {
-      uncategorizedByCol[colValue] = Applicants.filter(Applicant => {
-        const rowValue = getFieldValue(Applicant, rowField);
-        const colVal = getFieldValue(Applicant, columnField);
+      uncategorizedByCol[colValue] = applicants.filter(applicant => {
+        const rowValue = getFieldValue(applicant, rowField);
+        const colVal = getFieldValue(applicant, columnField);
         return colVal === colValue && !rowValuesToShow.includes(rowValue);
       });
     });
-    // Find Applicants that do not match any column value
-    const uncategorizedColApplicants = Applicants.filter(Applicant => {
-      const colVal = getFieldValue(Applicant, columnField);
+    // Find applicants that do not match any column value
+    const uncategorizedColApplicants = applicants.filter(applicant => {
+      const colVal = getFieldValue(applicant, columnField);
       return !effectiveColumnValues.includes(colVal);
     });
     return (
@@ -1189,9 +1189,9 @@ export function FlexibleKanbanView({
               </CardHeader>
               <div className="flex-1 min-h-0 p-4 space-y-4">
                 {rowValuesToShow.map(rowValue => {
-                  const cellApplicants = Applicants.filter(Applicant =>
-                    getFieldValue(Applicant, rowField) === rowValue &&
-                    getFieldValue(Applicant, columnField) === colValue
+                  const cellApplicants = applicants.filter(applicant =>
+                    getFieldValue(applicant, rowField) === rowValue &&
+                    getFieldValue(applicant, columnField) === colValue
                   );
                   return (
                     <div key={rowValue} className="space-y-2">
@@ -1211,7 +1211,7 @@ export function FlexibleKanbanView({
                       >
                         {cellApplicants.length > 0 ? (
                           <div className="space-y-2">
-                            {cellApplicants.map(Applicant => (
+                            {cellApplicants.map(applicant => (
                               <div
                                 key={applicant.id}
                                 className={cn(
@@ -1220,7 +1220,7 @@ export function FlexibleKanbanView({
                                 )}
                               >
                                 <EnhancedApplicantCard
-                                  Applicant={Applicant}
+                                  applicant={applicant}
                                   isDragged={draggedApplicant?.id === applicant.id}
                                   onClick={() => handleCardClick(applicant)}
                                   onDragStart={() => handleDragStart(applicant)}
@@ -1253,7 +1253,7 @@ export function FlexibleKanbanView({
                   </div>
                   <div className="min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200">
                     <div className="space-y-2">
-                      {uncategorizedByCol[colValue].length > 0 ? uncategorizedByCol[colValue].map(Applicant => (
+                      {uncategorizedByCol[colValue].length > 0 ? uncategorizedByCol[colValue].map(applicant => (
                         <div
                           key={applicant.id}
                           className={cn(
@@ -1262,7 +1262,7 @@ export function FlexibleKanbanView({
                           )}
                         >
                           <EnhancedApplicantCard
-                            Applicant={Applicant}
+                            applicant={applicant}
                             isDragged={draggedApplicant?.id === applicant.id}
                             onClick={() => handleCardClick(applicant)}
                             onDragStart={() => handleDragStart(applicant)}
@@ -1302,8 +1302,8 @@ export function FlexibleKanbanView({
             </CardHeader>
             <div className="flex-1 min-h-0 p-4 space-y-4">
               {rowValuesToShow.map(rowValue => {
-                const cellApplicants = uncategorizedColApplicants.filter(Applicant =>
-                  (Applicant[rowField as keyof typeof Applicant] ?? applicant.customAttributes?.[rowField]) === rowValue
+                const cellApplicants = uncategorizedColApplicants.filter(applicant =>
+                  (applicant[rowField as keyof typeof applicant] ?? applicant.customAttributes?.[rowField]) === rowValue
                 );
                 return (
                   <div key={rowValue} className="space-y-2">
@@ -1316,7 +1316,7 @@ export function FlexibleKanbanView({
                     <div className="min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200">
                       {cellApplicants.length > 0 ? (
                         <div className="space-y-2">
-                          {cellApplicants.map(Applicant => (
+                          {cellApplicants.map(applicant => (
                             <div
                               key={applicant.id}
                               className={cn(
@@ -1325,7 +1325,7 @@ export function FlexibleKanbanView({
                               )}
                             >
                               <EnhancedApplicantCard
-                                Applicant={Applicant}
+                                applicant={applicant}
                                 isDragged={draggedApplicant?.id === applicant.id}
                                 onClick={() => handleCardClick(applicant)}
                                 onDragStart={() => handleDragStart(applicant)}
@@ -1358,16 +1358,16 @@ export function FlexibleKanbanView({
   // --- NEW LOGIC: If only one column, show horizontal layout with navigation ---
   if (isColumnBased && effectiveColumnValues.length === 1) {
     const colValue = effectiveColumnValues[0];
-    const colApplicants = Applicants.filter(c => {
+    const colApplicants = applicants.filter(c => {
       const value = c[columnField as keyof typeof c] ?? c.customAttributes?.[columnField];
       return value === colValue;
     });
     return (
       <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col items-center justify-center overflow-y-auto">
         <SingleRowApplicantView
-          Applicants={colApplicants}
+          applicants={colApplicants}
           onCardClick={onCardClick}
-          onMoveapplicant={onMoveapplicant}
+          onMoveApplicant={onMoveApplicant}
           visibleFields={visibleFields}
           recruiters={recruiters}
         />
@@ -1380,11 +1380,11 @@ export function FlexibleKanbanView({
     <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
       <div className="grid grid-cols-1 gap-4">
         {rowValuesToShow.map(rowValue => {
-          // If fallback, show all Applicants
-          const rowApplicants = rowValue === 'All Applicants'
-            ? Applicants
-            : Applicants.filter(Applicant =>
-              (Applicant[rowField as keyof typeof Applicant] ?? applicant.customAttributes?.[rowField]) === rowValue
+          // If fallback, show all applicants
+          const rowApplicants = rowValue === 'All applicants'
+            ? applicants
+            : applicants.filter(applicant =>
+              ((applicant as any)[rowField] ?? applicant.customAttributes?.[rowField]) === rowValue
             );
           return (
             <div
@@ -1402,12 +1402,12 @@ export function FlexibleKanbanView({
                   <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
                 </div>
                 <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {rowApplicants.length} Applicants
+                  {rowApplicants.length} applicants
                 </Badge>
               </div>
               <div className="flex-1 min-h-[80px]">
                 <div className="flex flex-row flex-wrap gap-3">
-                  {rowApplicants.map(Applicant => (
+                  {rowApplicants.map(applicant => (
                     <div
                       key={applicant.id}
                       className={cn(
@@ -1416,7 +1416,7 @@ export function FlexibleKanbanView({
                       )}
                     >
                       <EnhancedApplicantCard
-                        Applicant={Applicant}
+                        applicant={applicant}
                         isDragged={draggedApplicant?.id === applicant.id}
                         onClick={() => handleCardClick(applicant)}
                         onDragStart={() => handleDragStart(applicant)}
@@ -1438,17 +1438,17 @@ export function FlexibleKanbanView({
 
 
 // Single Row Applicant View for use within each row when there's only 1 column or no columns
-// Shows multiple Applicant cards horizontally with scroll navigation (like job matches)
+// Shows multiple applicant cards horizontally with scroll navigation (like job matches)
 export function SingleRowApplicantView({
-  Applicants,
+  applicants,
   onCardClick,
   onMoveApplicant,
   visibleFields = ['name', 'email', 'status', 'fitScore'],
   recruiters
 }: {
-  Applicants: Applicant[];
-  onCardClick?: (Applicant: Applicant) => void;
-  onMoveApplicant?: (Applicant: applicant, newValue: string) => void;
+  applicants: Applicant[];
+  onCardClick?: (applicant: Applicant) => void;
+  onMoveApplicant?: (applicant: Applicant, newValue: string) => void;
   visibleFields?: string[];
   recruiters?: UserProfile[];
 }) {
@@ -1471,15 +1471,15 @@ export function SingleRowApplicantView({
     };
   }, []);
 
-  if (Applicants.length === 0) {
+  if (applicants.length === 0) {
     return (
       <div className="flex items-center justify-center w-full py-8">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
             <Plus className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">No Applicants</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Drag Applicants here</p>
+          <p className="text-sm text-muted-foreground">No applicants</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Drag applicants here</p>
         </div>
       </div>
     );
@@ -1497,7 +1497,7 @@ export function SingleRowApplicantView({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const container = document.querySelector('.Applicants-horizontal-container');
+            const container = document.querySelector('.applicants-horizontal-container');
             if (container) {
               container.scrollBy({ left: -280, behavior: 'smooth' });
               // Update scroll position after animation with proper cleanup
@@ -1516,7 +1516,7 @@ export function SingleRowApplicantView({
       )}
 
       {/* Right Navigation Button */}
-      {Applicants.length > 1 && (
+      {applicants.length > 1 && (
         <Button
           type="button"
           variant="outline"
@@ -1525,7 +1525,7 @@ export function SingleRowApplicantView({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const container = document.querySelector('.Applicants-horizontal-container');
+            const container = document.querySelector('.applicants-horizontal-container');
             if (container) {
               container.scrollBy({ left: 280, behavior: 'smooth' });
               // Update scroll position after animation with proper cleanup
@@ -1545,7 +1545,7 @@ export function SingleRowApplicantView({
 
       {/* Horizontal Scrollable Container - Mobile carousel with peek effect */}
       <div
-        className="flex flex-row overflow-x-auto gap-3 pb-2 Applicants-horizontal-container scrollbar-hide md:px-0 px-4 md:pr-0 pr-4"
+        className="flex flex-row overflow-x-auto gap-3 pb-2 applicants-horizontal-container scrollbar-hide md:px-0 px-4 md:pr-0 pr-4"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -1557,9 +1557,9 @@ export function SingleRowApplicantView({
           setScrollPosition(target.scrollLeft);
         }}
       >
-        {Applicants.map((Applicant, index) => (
+        {applicants.map((applicant, index) => (
           <Card
-            key={`Applicant-${applicant.id}-${index}`}
+            key={`applicant-${applicant.id}-${index}`}
             className={cn(
               "flex-shrink-0 w-[calc(100vw-5rem)] md:w-80 p-4 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card",
               !isMobile && "border",
@@ -1601,19 +1601,19 @@ export function SingleRowApplicantView({
 
                 {/* Contact Information */}
                 <div className="space-y-1">
-                  {visibleFields.includes('email') && Applicant.email && (
+                  {visibleFields.includes('email') && applicant.email && (
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Mail className="w-3 h-3 mr-1 flex-shrink-0" />
                       <span className="truncate">{applicant.email}</span>
                     </div>
                   )}
-                  {visibleFields.includes('phone') && Applicant.phone && (
+                  {visibleFields.includes('phone') && applicant.phone && (
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Phone className="w-3 h-3 mr-1 flex-shrink-0" />
                       <span className="truncate">{applicant.phone}</span>
                     </div>
                   )}
-                  {visibleFields.includes('applicationDate') && Applicant.applicationDate && (
+                  {visibleFields.includes('applicationDate') && applicant.applicationDate && (
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
                       <span>Applied: {new Date(applicant.applicationDate).toLocaleDateString()}</span>
@@ -1622,24 +1622,24 @@ export function SingleRowApplicantView({
                   {visibleFields.includes('recruiterId') && (
                     <div className="flex items-center text-xs text-muted-foreground">
                       <User className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">{applicant.recruiter?.name || Applicant.recruiterId || 'Unassigned'}</span>
+                      <span className="truncate">{applicant.recruiter?.name || applicant.recruiterId || 'Unassigned'}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Fit Score */}
-                {visibleFields.includes('fitScore') && Applicant.fitScore !== undefined && Applicant.fitScore !== null && (
+                {visibleFields.includes('fitScore') && applicant.fitScore !== undefined && applicant.fitScore !== null && (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                       <span className="font-medium text-foreground">
-                        {Applicant.fitScore === null || Applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(Applicant.fitScore)}
+                        {applicant.fitScore === null || applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(applicant.fitScore)}
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(Applicant.fitScore))}
-                        style={{ width: `${normalizeFitScore(Applicant.fitScore)}%` }}
+                        className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(applicant.fitScore))}
+                        style={{ width: `${normalizeFitScore(applicant.fitScore)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -1676,12 +1676,12 @@ export function SingleRowApplicantView({
         ))}
       </div>
 
-      {/* Applicants count indicator */}
-      {Applicants.length > 1 && (
+      {/* applicants count indicator */}
+      {applicants.length > 1 && (
         <div className="flex justify-center mt-2">
           <Badge variant="secondary" className="text-xs">
-            {Applicants.length} Applicant{Applicants.length !== 1 ? 's' : ''}
-            {Applicants.length > 3 && (
+            {applicants.length} applicant{applicants.length !== 1 ? 's' : ''}
+            {applicants.length > 3 && (
               <span className="ml-1 text-blue-600">← Scroll →</span>
             )}
           </Badge>
@@ -1693,7 +1693,7 @@ export function SingleRowApplicantView({
 
 // Single Row Kanban View for when there's only 1 column or no columns
 export function SingleRowKanbanView({
-  Applicants,
+  applicants,
   statuses,
   onMoveApplicant,
   onCardClick,
@@ -1706,30 +1706,30 @@ export function SingleRowKanbanView({
 }: ApplicantKanbanViewProps & { visibleFields?: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedApplicantsummary, setSelectedApplicantsummary] = useState<Partial<Applicant> & { id: string; name: string } | null>(null);
+  const [selectedApplicantSummary, setSelectedApplicantSummary] = useState<Partial<Applicant> & { id: string; name: string } | null>(null);
 
   // Helper function to get the proper value for a field
-  const getFieldValue = (Applicant: applicant, field: string) => {
+  const getFieldValue = (applicant: Applicant, field: string) => {
     if (field === 'recruiterId') {
       return applicant.recruiter?.name || 'Unassigned';
     }
     if (field === 'positionId') {
-      return applicant.position?.title || Applicant.positionId || 'No Position';
+      return applicant.position?.title || applicant.positionId || 'No Position';
     }
-    return Applicant[field as keyof typeof Applicant] ?? applicant.customAttributes?.[field];
+    return (applicant as any)[field] ?? applicant.customAttributes?.[field];
   };
 
-  // Filter Applicants to only show those that match the current row/column configuration - MUST be called before any early returns
+  // Filter applicants to only show those that match the current row/column configuration - MUST be called before any early returns
   const filteredApplicants = useMemo(() => {
     // Defensive check to prevent "filter is not a function" errors
-    if (!Array.isArray(Applicants)) {
+    if (!Array.isArray(applicants)) {
       return [];
     }
 
-    return Applicants.filter(Applicant => {
-      const rowValue = getFieldValue(Applicant, rowField);
+    return applicants.filter(applicant => {
+      const rowValue = getFieldValue(applicant, rowField);
       const colValue = columnField && columnField !== 'none'
-        ? getFieldValue(Applicant, columnField)
+        ? getFieldValue(applicant, columnField)
         : null;
 
       // FIXED: More permissive filtering logic
@@ -1739,7 +1739,7 @@ export function SingleRowKanbanView({
           // If visible row values are specified, applicant must match one of them
           rowMatch = Boolean(typeof rowValue === 'string' && !!rowValue && visibleRowValues.includes(rowValue as string));
         } else {
-          // If no visible row values specified, show all Applicants (don't filter by row)
+          // If no visible row values specified, show all applicants (don't filter by row)
           rowMatch = true;
         }
       }
@@ -1754,16 +1754,16 @@ export function SingleRowKanbanView({
             colMatch = Boolean(typeof colValue === 'string' && !!colValue && visibleColumnValues.includes(colValue as string));
           }
         } else {
-          // If no visible column values specified, show all Applicants (don't filter by column)
+          // If no visible column values specified, show all applicants (don't filter by column)
           colMatch = true;
         }
       }
 
       return rowMatch && colMatch;
     });
-  }, [Applicants, rowField, columnField, visibleRowValues, visibleColumnValues]);
+  }, [applicants, rowField, columnField, visibleRowValues, visibleColumnValues]);
 
-  // Reset index when Applicants change - MUST be called before any early returns
+  // Reset index when applicants change - MUST be called before any early returns
   useEffect(() => {
     setCurrentIndex(0);
   }, [filteredApplicants.length]);
@@ -1776,13 +1776,13 @@ export function SingleRowKanbanView({
           <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
             <Users className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-lg text-muted-foreground">Loading Applicants...</p>
+          <p className="text-lg text-muted-foreground">Loading applicants...</p>
         </div>
       </div>
     );
   }
 
-  const handleCardClick = (Applicant: Applicant) => {
+  const handleCardClick = (applicant: Applicant) => {
     if (onCardClick) {
       onCardClick(applicant);
     } else {
@@ -1797,14 +1797,14 @@ export function SingleRowKanbanView({
         job_suitable: 'job_suitable' in applicant.parsedData && Array.isArray((applicant.parsedData as any).job_suitable) ? (applicant.parsedData as any).job_suitable : [],
       } : {};
 
-      setSelectedApplicantsummary({
-        id: Applicant.id,
+      setSelectedApplicantSummary({
+        id: applicant.id,
         name: formatApplicantName(applicant),
-        email: Applicant.email,
-        phone: Applicant.phone,
-        status: Applicant.statusId,
-        position: Applicant.position,
-        fitScore: Applicant.fitScore,
+        email: applicant.email,
+        phone: applicant.phone,
+        status: applicant.statusId,
+        position: applicant.position,
+        fitScore: applicant.fitScore,
         parsedData: validatedParsedData
       });
       setIsModalOpen(true);
@@ -1829,14 +1829,14 @@ export function SingleRowKanbanView({
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <Users className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No Applicants found</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">No applicants found</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {Applicants.length > 0
-                ? "No Applicants match the current board configuration. Try adjusting your board settings or resetting to default."
-                : "No Applicants available. Please add some Applicants first."
+              {applicants.length > 0
+                ? "No applicants match the current board configuration. Try adjusting your board settings or resetting to default."
+                : "No applicants available. Please add some applicants first."
               }
             </p>
-            {Applicants.length > 0 && (
+            {applicants.length > 0 && (
               <div className="text-xs text-muted-foreground">
                 <p>Current configuration:</p>
                 <p>Row: {rowField} | Column: {columnField}</p>
@@ -1893,7 +1893,7 @@ export function SingleRowKanbanView({
                 <div className="flex-shrink-0">
                   <Avatar className="h-16 w-16">
                     <AvatarImage
-                      src={currentapplicant.avatarUrl ? convertMinIOUrlToSecureUrl(currentapplicant.avatarUrl) || undefined : `https://placehold.co/64x64.png?text=${formatApplicantName(currentApplicant)?.charAt(0) || 'C'}`}
+                      src={currentApplicant.avatarUrl ? convertMinIOUrlToSecureUrl(currentApplicant.avatarUrl) || undefined : `https://placehold.co/64x64.png?text=${formatApplicantName(currentApplicant)?.charAt(0) || 'C'}`}
                       alt={formatApplicantName(currentApplicant)}
                     />
                     <AvatarFallback className="bg-primary/10 text-primary text-base">
@@ -1911,57 +1911,57 @@ export function SingleRowKanbanView({
                       </h3>
                       <p className="text-muted-foreground">
                         <Target className="w-4 h-4 inline mr-2" />
-                        {currentapplicant.position?.title || 'No position assigned'}
+                        {currentApplicant.position?.title || 'No position assigned'}
                       </p>
                     </div>
 
                     {/* Status Badge */}
-                    <StatusBadge status={currentapplicant.status} className="text-sm px-3 py-1" />
+                    <StatusBadge status={currentApplicant.status} className="text-sm px-3 py-1" />
                   </div>
 
                   {/* Contact Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {visibleFields.includes('email') && currentapplicant.email && (
+                    {visibleFields.includes('email') && currentApplicant.email && (
                       <div className="flex items-center text-sm">
                         <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-foreground">{currentapplicant.email}</span>
+                        <span className="text-foreground">{currentApplicant.email}</span>
                       </div>
                     )}
-                    {visibleFields.includes('phone') && currentapplicant.phone && (
+                    {visibleFields.includes('phone') && currentApplicant.phone && (
                       <div className="flex items-center text-sm">
                         <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-foreground">{currentapplicant.phone}</span>
+                        <span className="text-foreground">{currentApplicant.phone}</span>
                       </div>
                     )}
-                    {visibleFields.includes('applicationDate') && currentapplicant.applicationDate && (
+                    {visibleFields.includes('applicationDate') && currentApplicant.applicationDate && (
                       <div className="flex items-center text-sm">
                         <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                         <span className="text-foreground">
-                          Applied: {new Date(currentapplicant.applicationDate).toLocaleDateString()}
+                          Applied: {new Date(currentApplicant.applicationDate).toLocaleDateString()}
                         </span>
                       </div>
                     )}
                     {visibleFields.includes('recruiterId') && (
                       <div className="flex items-center text-sm">
                         <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-foreground">{currentapplicant.recruiter?.name || currentapplicant.recruiterId || 'Unassigned'}</span>
+                        <span className="text-foreground">{currentApplicant.recruiter?.name || currentApplicant.recruiterId || 'Unassigned'}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Fit Score */}
-                  {visibleFields.includes('fitScore') && currentapplicant.fitScore !== undefined && currentapplicant.fitScore !== null && (
+                  {visibleFields.includes('fitScore') && currentApplicant.fitScore !== undefined && currentApplicant.fitScore !== null && (
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-foreground">{getFieldLabel('fitScore')}</span>
                         <span className="text-sm font-semibold text-foreground">
-                          {currentapplicant.fitScore === null || currentapplicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(currentapplicant.fitScore)}
+                          {currentApplicant.fitScore === null || currentApplicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(currentApplicant.fitScore)}
                         </span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-3">
                         <div
-                          className={cn("h-3 rounded-full transition-all duration-300", getScoreBgColor(currentapplicant.fitScore))}
-                          style={{ width: `${normalizeFitScore(currentapplicant.fitScore)}%` }}
+                          className={cn("h-3 rounded-full transition-all duration-300", getScoreBgColor(currentApplicant.fitScore))}
+                          style={{ width: `${normalizeFitScore(currentApplicant.fitScore)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -2015,9 +2015,9 @@ export function SingleRowKanbanView({
       </div>
 
       {/* Applicant Detail Modal - only show if onCardClick is not provided */}
-      {!onCardClick && selectedApplicantsummary && (
+      {!onCardClick && selectedApplicantSummary && (
         <FullApplicantDetail
-          candidateId={selectedApplicantsummary.id}
+          applicantId={selectedApplicantSummary.id}
           isModal={true}
           onClose={() => setIsModalOpen(false)}
           comments={[]}
@@ -2029,23 +2029,29 @@ export function SingleRowKanbanView({
   );
 }
 
-export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMoveApplicant, onCardClick }: any) {
+export function MultiRecruiterKanbanView({ applicants, stages, recruiters, onMoveApplicant, onCardClick }: {
+  applicants: Applicant[];
+  stages: string[];
+  recruiters: UserProfile[];
+  onMoveApplicant?: (applicant: Applicant, stage: string, recruiterId: string) => void;
+  onCardClick?: (applicant: Applicant) => void;
+}) {
   const [draggedApplicant, setDraggedApplicant] = useState<any>(null);
   const [dragOverStage, setDragOverStage] = useState<any>(null);
   const [dragOverRecruiter, setDragOverRecruiter] = useState<any>(null);
 
-  const handleDragStart = (applicant: any) => setDraggedApplicant(applicant);
+  const handleDragStart = (applicant: Applicant) => setDraggedApplicant(applicant);
   const handleDragEnd = () => {
     setDraggedApplicant(null);
     setDragOverStage(null);
     setDragOverRecruiter(null);
   };
-  const handleDragOver = (stage: any, recruiter: any, e: React.DragEvent) => {
+  const handleDragOver = (stage: string, recruiter: UserProfile, e: React.DragEvent) => {
     e.preventDefault();
     setDragOverStage(stage);
     setDragOverRecruiter(recruiter);
   };
-  const handleDrop = (stage: any, recruiter: any) => {
+  const handleDrop = (stage: string, recruiter: UserProfile) => {
     if (draggedApplicant) {
       onMoveApplicant?.(draggedApplicant, stage, recruiter.id);
     }
@@ -2054,7 +2060,7 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
     setDragOverRecruiter(null);
   };
 
-  const handleCardClick = (applicant: any) => {
+  const handleCardClick = (applicant: Applicant) => {
     if (onCardClick) {
       onCardClick(applicant);
     }
@@ -2064,7 +2070,7 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
 
   return (
     <div className="w-full h-[calc(100%-200px)] min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4">
-      {recruiters.map((recruiter: any) => (
+      {recruiters.map((recruiter) => (
         <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
             <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
@@ -2086,25 +2092,25 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
             </CardHeader>
             <ScrollArea className="flex-1 min-h-0">
               <CardContent className="p-4 space-y-4">
-                {stages.map((stage: any) => {
+                {stages.map((stage) => {
                   const stageApplicants = (() => {
                     try {
                       // Defensive check to prevent filter errors
-                      if (!Array.isArray(Applicants)) {
-                        console.warn('ApplicantKanbanView: Applicants is not an array:', Applicants);
+                      if (!Array.isArray(applicants)) {
+                        console.warn('ApplicantKanbanView: applicants is not an array:', applicants);
                         return [];
                       }
 
-                      return Applicants.filter((c: any) => {
+                      return applicants.filter((c: Applicant) => {
                         try {
-                          return c && c.status === stage && c.recruiterId === recruiter.id;
+                          return c && (c as any).status === stage && c.recruiterId === recruiter.id;
                         } catch (error) {
                           console.warn('ApplicantKanbanView: Error filtering stage applicant:', error, c);
                           return false;
                         }
                       });
                     } catch (error) {
-                      console.error('ApplicantKanbanView: Error filtering stage Applicants:', error);
+                      console.error('ApplicantKanbanView: Error filtering stage applicants:', error);
                       return [];
                     }
                   })();
@@ -2126,7 +2132,7 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
                       >
                         {stageApplicants.length > 0 ? (
                           <div className="space-y-2">
-                            {stageApplicants.map((applicant: any) => (
+                            {stageApplicants.map((applicant) => (
                               <div
                                 key={applicant.id}
                                 className={cn(
@@ -2140,7 +2146,7 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
                               >
                                 <div className="flex items-start gap-2">
                                   <ApplicantAvatar
-                                    user={Applicant}
+                                    user={applicant}
                                     size="sm"
                                     className="h-6 w-6 flex-shrink-0"
                                   />
@@ -2153,18 +2159,18 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
                                     </p>
                                   </div>
                                 </div>
-                                {Applicant.fitScore !== undefined && Applicant.fitScore !== null && (
+                                {applicant.fitScore !== undefined && applicant.fitScore !== null && (
                                   <div className="mt-2 space-y-1">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                                       <span className="font-medium text-foreground">
-                                        {Applicant.fitScore === null || Applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(Applicant.fitScore)}
+                                        {applicant.fitScore === null || applicant.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(applicant.fitScore)}
                                       </span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-1">
                                       <div
-                                        className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(Applicant.fitScore))}
-                                        style={{ width: `${normalizeFitScore(Applicant.fitScore)}%` }}
+                                        className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(applicant.fitScore))}
+                                        style={{ width: `${normalizeFitScore(applicant.fitScore)}%` }}
                                       ></div>
                                     </div>
                                   </div>
@@ -2195,7 +2201,7 @@ export function MultiRecruiterKanbanView({ Applicants, stages, recruiters, onMov
 
 // New Horizontal Stage Kanban View for recruitment stages as columns
 export function HorizontalStageKanbanView({
-  Applicants,
+  applicants,
   statuses,
   recruiters,
   onMoveApplicant,
@@ -2213,9 +2219,9 @@ export function HorizontalStageKanbanView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Determine what to show as columns based on columnField
-  const getColumnValue = (Applicant: Applicant) => {
-    if (columnField === 'none') return 'All Applicants';
-    if (columnField === 'status') return applicant.statusId || Applicant.status;
+  const getColumnValue = (applicant: Applicant) => {
+    if (columnField === 'none') return 'All applicants';
+    if (columnField === 'status') return applicant.statusId || (applicant as any).status;
     if (columnField === 'recruiterId') {
       // For recruiterId, we need to match against recruiter names, not IDs
       // If the Applicant has a recruiter object with a name, use that
@@ -2226,21 +2232,21 @@ export function HorizontalStageKanbanView({
       // This should be handled by the API, but as a fallback, return 'Unassigned'
       return 'Unassigned';
     }
-    if (columnField === 'positionId') return applicant.position?.title || Applicant.positionId || 'No Position';
+    if (columnField === 'positionId') return applicant.position?.title || applicant.positionId || 'No Position';
     if (columnField === 'fitScore') {
-      if (Applicant.fitScore === null || Applicant.fitScore === undefined) return 'No Score';
-      const gradeInfo = getScoreGradeInfo(Applicant.fitScore);
+      if (applicant.fitScore === null || applicant.fitScore === undefined) return 'No Score';
+      const gradeInfo = getScoreGradeInfo(applicant.fitScore);
       if (gradeInfo) {
         return `${gradeInfo.letter} (${gradeInfo.range})`;
       }
       return 'No Score';
     }
     // Check custom attributes
-    if (applicant.customAttributes && Applicant.customAttributes[columnField]) {
+    if (applicant.customAttributes && applicant.customAttributes[columnField]) {
       return applicant.customAttributes[columnField];
     }
     // Check parsed data
-    const parsedValue = getParsedDataProperty(Applicant, columnField);
+    const parsedValue = getParsedDataProperty(applicant, columnField);
     if (parsedValue) return parsedValue;
 
     return 'Unknown';
@@ -2249,10 +2255,10 @@ export function HorizontalStageKanbanView({
   // Use visibleColumnValues if provided, otherwise use all unique column values
   const columnsToShow = visibleColumnValues.length > 0
     ? visibleColumnValues
-    : Array.from(new Set(Applicants.map(getColumnValue))).filter(Boolean);
+    : Array.from(new Set(applicants.map(getColumnValue))).filter(Boolean);
 
-  // Group Applicants by column value
-  const ApplicantsByColumn = useMemo(() => {
+  // Group applicants by column value
+  const applicantsByColumn = useMemo(() => {
     const grouped: Record<string, Applicant[]> = {};
 
     // Initialize all columns with empty arrays
@@ -2260,8 +2266,8 @@ export function HorizontalStageKanbanView({
       grouped[column] = [];
     });
 
-    // Group Applicants by their column value
-    Applicants.forEach(Applicant => {
+    // Group applicants by their column value
+    applicants.forEach(applicant => {
       const columnValue = getColumnValue(applicant);
       if (columnValue && columnsToShow.includes(columnValue)) {
         if (!grouped[columnValue]) {
@@ -2272,10 +2278,10 @@ export function HorizontalStageKanbanView({
     });
 
     return grouped;
-  }, [Applicants, columnsToShow, columnField]);
+  }, [applicants, columnsToShow, columnField]);
 
   // Enhanced drag and drop handlers
-  const handleDragStart = (Applicant: Applicant) => {
+  const handleDragStart = (applicant: Applicant) => {
     // Only allow dragging for status columns
     if (columnField === 'status') {
       setDraggedApplicant(applicant);
@@ -2331,16 +2337,16 @@ export function HorizontalStageKanbanView({
     }
   };
 
-  const persistApplicantFieldUpdate = async (Applicant: applicant, field: string, value: any) => {
+  const persistApplicantFieldUpdate = async (applicant: Applicant, field: string, value: any) => {
     try {
       if (field === 'status') {
-        toast.loading('Updating Applicant status...', { id: Applicant.id });
+        toast.loading('Updating Applicant status...', { id: applicant.id });
         const res = await fetch('/api/applicants/bulk-action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'change_status',
-            candidateIds: [Applicant.id],
+            applicantIds: [applicant.id],
             newStatus: value
           })
         });
@@ -2355,17 +2361,17 @@ export function HorizontalStageKanbanView({
 
         const result = await res.json();
 
-        // Check for rejected Applicants due to headcount constraints
+        // Check for rejected applicants due to headcount constraints
         if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
-          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.candidateId === applicant.id);
+          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.applicantId === applicant.id);
           if (rejectedApplicant) {
-            throw new Error(`Headcount constraint: ${rejectedapplicant.message}`);
+            throw new Error(`Headcount constraint: ${rejectedApplicant.message}`);
           }
         }
 
-        toast.success(`Status updated to ${value}`, { id: Applicant.id });
+        toast.success(`Status updated to ${value}`, { id: applicant.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
-        toast.loading('Updating Applicant...', { id: Applicant.id });
+        toast.loading('Updating Applicant...', { id: applicant.id });
         const res = await fetch(`/api/applicants/${applicant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -2375,7 +2381,7 @@ export function HorizontalStageKanbanView({
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || 'Failed to update Applicant');
         }
-        toast.success('Applicant updated', { id: Applicant.id });
+        toast.success('Applicant updated', { id: applicant.id });
       }
     } catch (error: any) {
       // Check if it's a headcount constraint error
@@ -2384,7 +2390,7 @@ export function HorizontalStageKanbanView({
         // since we don't have access to the HeadcountWarningModal here
         toast.error(error.message, { duration: 8000 });
       } else {
-        toast.error(getErrorMessage(error), { id: Applicant.id });
+        toast.error(getErrorMessage(error), { id: applicant.id });
       }
     }
   };
@@ -2412,7 +2418,7 @@ export function HorizontalStageKanbanView({
     document.body.style.cursor = '';
   };
 
-  const handleCardClick = (Applicant: Applicant) => {
+  const handleCardClick = (applicant: Applicant) => {
     if (onCardClick) {
       onCardClick(applicant);
     }
@@ -2487,7 +2493,7 @@ export function HorizontalStageKanbanView({
               {columnsToShow.length} columns
             </span>
             <Badge variant="secondary" className="text-xs">
-              {Applicants.length} Applicants
+              {applicants.length} applicants
             </Badge>
           </div>
 
@@ -2539,7 +2545,7 @@ export function HorizontalStageKanbanView({
           onScroll={handleScroll}
         >
           {columnsToShow.map((column) => {
-            const columnApplicants = ApplicantsByColumn[column] || [];
+            const columnApplicants = applicantsByColumn[column] || [];
             const isDragOver = dragOverStage === column;
             const isCurrentColumn = draggedApplicant && getColumnValue(draggedApplicant) === column;
 
@@ -2608,7 +2614,7 @@ export function HorizontalStageKanbanView({
 
                     {columnApplicants.length > 0 ? (
                       <div className="space-y-3">
-                        {columnApplicants.map(Applicant => (
+                        {columnApplicants.map(applicant => (
                           <div
                             key={applicant.id}
                             className={cn(
@@ -2617,7 +2623,7 @@ export function HorizontalStageKanbanView({
                             )}
                           >
                             <EnhancedApplicantCard
-                              Applicant={Applicant}
+                              applicant={applicant}
                               isDragged={draggedApplicant?.id === applicant.id}
                               onClick={() => handleCardClick(applicant)}
                               onDragStart={() => handleDragStart(applicant)}
@@ -2645,7 +2651,7 @@ export function HorizontalStageKanbanView({
                             "text-sm transition-colors duration-200",
                             isDragOver && !isCurrentColumn ? "text-primary font-medium" : "text-muted-foreground"
                           )}>
-                            {isDragOver && !isCurrentColumn ? "Drop here" : "Drop Applicants here"}
+                            {isDragOver && !isCurrentColumn ? "Drop here" : "Drop applicants here"}
                           </p>
                           <p className="text-xs text-muted-foreground/60 mt-1">
                             {column} {columnField === 'status' ? 'stage' : 'column'}

@@ -25,12 +25,12 @@ All API endpoints (except `/auth/*` and public webhooks) require authentication.
 
 ## 4. Key Resources
 
-### 4.1 Candidates
-*   `GET /v1/candidates`: List all candidates with pagination and filtering.
-*   `GET /v1/candidates/[id]`: Retrieve detailed profile.
-*   `POST /v1/candidates`: Create a new candidate (manually).
-*   `PATCH /v1/candidates/[id]`: Update profile fields.
-*   `DELETE /v1/candidates/[id]`: Soft delete candidate.
+### 4.1 applicants
+*   `GET /v1/applicants`: List all applicants with pagination and filtering.
+*   `GET /v1/applicants/[id]`: Retrieve detailed profile.
+*   `POST /v1/applicants`: Create a new applicant (manually).
+*   `PATCH /v1/applicants/[id]`: Update profile fields.
+*   `DELETE /v1/applicants/[id]`: Soft delete applicant.
 
 ### 4.2 Positions
 *   `GET /v1/positions`: List all job requisitions.
@@ -38,7 +38,7 @@ All API endpoints (except `/auth/*` and public webhooks) require authentication.
 *   `GET /v1/positions/[id]/interviewers`: Get assigned interviewers.
 
 ### 4.3 Evaluations
-*   `GET /v1/candidates/[id]/evaluations`: List past evaluations.
+*   `GET /v1/applicants/[id]/evaluations`: List past evaluations.
 *   `POST /v1/evaluations`: Submit a new evaluation scorecard.
 
 ### 4.4 Settings
@@ -47,7 +47,7 @@ All API endpoints (except `/auth/*` and public webhooks) require authentication.
 
 ## 5. Webhooks
 FitScan can emit events to external URLs for automation.
-*   **Events**: `candidate.created`, `stage.changed`, `score.updated`.
+*   **Events**: `applicant.created`, `stage.changed`, `score.updated`.
 *   **Configuration**: Managed via `/api/settings/webhooks`.
 
 ## 6. Real-time (SSE)

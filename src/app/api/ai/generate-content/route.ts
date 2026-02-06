@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 
 const generateContentSchema = z.object({
-  candidateId: z.string().min(1, 'Applicant ID is required'),
+  applicantId: z.string().min(1, 'Applicant ID is required'),
   systemPrompt: z.string().min(1, 'System prompt is required'),
   promptName: z.string().optional(),
   promptCategory: z.string().optional(),
@@ -38,15 +38,16 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { candidateId, systemPrompt, promptName, promptCategory } = validationResult.data;
+  const { applicantId, systemPrompt, promptName, promptCategory } = validationResult.data;
+  const applicantId = applicantId;
 
   try {
     // Get comprehensive Applicant data including job and matching information
-    async function getApplicantData(candidateId: string) {
+    async function getApplicantData(applicantId: string) {
       const client = await getPool().connect();
       try {
-        // Get Applicant basic information including education and experience
-        const ApplicantQuery = `
+        // Get applicant basic information including education and experience
+        const applicantQuery = `
           SELECT 
             c.id,
             c.name,
@@ -77,35 +78,35 @@ export async function POST(request: NextRequest) {
             rs.name as "currentStage",
             rs.description as "stageDescription",
             rs.color_badge as "stageColor"
-          FROM "Candidate" c
+          FROM "applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" u ON c."recruiterId" = u.id
           LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
           WHERE c.id = $1
         `;
         
-        const ApplicantResult = await client.query(ApplicantQuery, [candidateId]);
+        const applicantResult = await client.query(applicantQuery, [applicantId]);
         
-        if (ApplicantResult.rows.length === 0) {
+        if (applicantResult.rows.length === 0) {
           throw new Error('Applicant not found');
         }
         
-        const Applicant = ApplicantResult.rows[0];
+        const applicant = applicantResult.rows[0];
         
-        // Get Applicant comments (from ApplicantComment table)
-        const ApplicantCommentsQuery = `
+        // Get applicant comments (from applicantComment table)
+        const applicantCommentsQuery = `
           SELECT 
             cc.content,
             cc."createdAt",
             u.name as "createdBy"
-          FROM "CandidateComment" cc
+          FROM "applicantComment" cc
           LEFT JOIN "User" u ON cc."authorId" = u.id
-          WHERE cc."candidateId" = $1
+          WHERE cc."applicantId" = $1
           ORDER BY cc."createdAt" DESC
           LIMIT 10
         `;
         
-        const ApplicantCommentsResult = await client.query(ApplicantCommentsQuery, [candidateId]);
+        const applicantCommentsResult = await client.query(applicantCommentsQuery, [applicantId]);
         
         // Get Applicant transition records
         const transitionRecordsQuery = `
@@ -117,12 +118,12 @@ export async function POST(request: NextRequest) {
             u.name as "actingUserName"
           FROM "TransitionRecord" tr
           LEFT JOIN "User" u ON tr."actingUserId" = u.id
-          WHERE tr."candidateId" = $1
+          WHERE tr."applicantId" = $1
           ORDER BY tr.date DESC
           LIMIT 10
         `;
         
-        const transitionRecordsResult = await client.query(transitionRecordsQuery, [candidateId]);
+        const transitionRecordsResult = await client.query(transitionRecordsQuery, [applicantId]);
         
         // Get Applicant attachments
         const attachmentsQuery = `
@@ -135,11 +136,11 @@ export async function POST(request: NextRequest) {
             u.name as "uploadedByName"
           FROM "Attachment" a
           LEFT JOIN "User" u ON a."uploadedById" = u.id
-          WHERE a."candidateId" = $1
+          WHERE a."applicantId" = $1
           ORDER BY a."uploadedAt" DESC
         `;
         
-        const attachmentsResult = await client.query(attachmentsQuery, [candidateId]);
+        const attachmentsResult = await client.query(attachmentsQuery, [applicantId]);
         
 
         
@@ -163,17 +164,17 @@ export async function POST(request: NextRequest) {
             p."updatedAt" as "positionUpdatedAt"
           FROM "JobMatch" jm
           LEFT JOIN "Position" p ON jm."jobId" = p.id
-          WHERE jm."candidateId" = $1
+          WHERE jm."applicantId" = $1
           ORDER BY jm."fitScore" DESC, jm."createdAt" DESC
           LIMIT 10
         `;
         
-        const matchesResult = await client.query(matchesQuery, [candidateId]);
+        const matchesResult = await client.query(matchesQuery, [applicantId]);
         const jobMatches = matchesResult.rows;
         
         // Get the applied position data separately
         let appliedPositionData = null;
-        if (Applicant.positionId) {
+        if (applicant.positionId) {
           const appliedPositionQuery = `
             SELECT 
               p.id,
@@ -190,19 +191,19 @@ export async function POST(request: NextRequest) {
             WHERE p.id = $1
           `;
           
-          const appliedPositionResult = await client.query(appliedPositionQuery, [Applicant.positionId]);
+          const appliedPositionResult = await client.query(appliedPositionQuery, [applicant.positionId]);
           if (appliedPositionResult.rows.length > 0) {
             appliedPositionData = appliedPositionResult.rows[0];
           }
         }
         
         return {
-          Applicant,
-          comments: ApplicantCommentsResult.rows,
+          applicant,
+          comments: applicantCommentsResult.rows,
           transitions: transitionRecordsResult.rows,
           resumes: [], // No separate Resume table, resumes are stored in applicant.resumePath
           attachments: attachmentsResult.rows,
-          ApplicantComments: ApplicantCommentsResult.rows,
+          applicantComments: applicantCommentsResult.rows,
           transitionRecords: transitionRecordsResult.rows,
           jobMatches,
           appliedPositionData
@@ -212,27 +213,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch comprehensive Applicant data
-    const ApplicantData = await getApplicantData(candidateId);
-    const { Applicant, comments, transitions, resumes, attachments, ApplicantComments, transitionRecords, jobMatches, appliedPositionData } = ApplicantData;
+    // Fetch comprehensive applicant data
+    const applicantData = await getApplicantData(applicantId);
+    const { applicant, comments, transitions, resumes, attachments, applicantComments, transitionRecords, jobMatches, appliedPositionData } = applicantData;
 
     // Create comprehensive context data for AI
-    const ApplicantContext = {
+    const applicantContext = {
       basicInfo: {
-        name: Applicant.name,
-        email: Applicant.email,
-        phone: Applicant.phone,
-        status: Applicant.currentStage || 'Unknown',
-        applicationDate: Applicant.applicationDate,
-        fitScore: Applicant.fitScore,
-        dataAiHint: Applicant.dataAiHint,
-        customAttributes: Applicant.customAttributes,
-        parsedData: Applicant.parsedData,
-        assignmentJustification: Applicant.assignmentJustification,
-        avatarUrl: Applicant.avatarUrl
+        name: applicant.name,
+        email: applicant.email,
+        phone: applicant.phone,
+        status: applicant.currentStage || 'Unknown',
+        applicationDate: applicant.applicationDate,
+        fitScore: applicant.fitScore,
+        dataAiHint: applicant.dataAiHint,
+        customAttributes: applicant.customAttributes,
+        parsedData: applicant.parsedData,
+        assignmentJustification: applicant.assignmentJustification,
+        avatarUrl: applicant.avatarUrl
       },
-      education: Applicant.educationData || [],
-      experience: Applicant.experienceData || [],
+      education: applicant.educationData || [],
+      experience: applicant.experienceData || [],
       position: appliedPositionData ? {
         id: appliedPositionData.id,
         title: appliedPositionData.title,
@@ -245,22 +246,22 @@ export async function POST(request: NextRequest) {
         createdAt: appliedPositionData.createdAt,
         updatedAt: appliedPositionData.updatedAt
       } : null,
-      recruiter: Applicant.recruiterName ? {
-        name: Applicant.recruiterName,
-        email: Applicant.recruiterEmail
+      recruiter: applicant.recruiterName ? {
+        name: applicant.recruiterName,
+        email: applicant.recruiterEmail
       } : null,
       currentStage: {
-        name: Applicant.currentStage,
-        description: Applicant.stageDescription,
-        color: Applicant.stageColor
+        name: applicant.currentStage,
+        description: applicant.stageDescription,
+        color: applicant.stageColor
       },
       documents: {
-        resumePath: Applicant.resumePath,
+        resumePath: applicant.resumePath,
         attachments: attachments
       },
       history: {
         comments: comments,
-        ApplicantComments: ApplicantComments,
+        applicantComments: applicantComments,
         transitions: transitions,
         transitionRecords: transitionRecords,
         jobMatches: jobMatches
@@ -328,10 +329,10 @@ export async function POST(request: NextRequest) {
     };
 
     // Create a comprehensive prompt for AI generation
-    const contextInfo = `for Applicant: ${Applicant.name}`;
+    const contextInfo = `for applicant: ${applicant.name}`;
     const detailedContext = `
 Applicant CONTEXT:
-${JSON.stringify(ApplicantContext, null, 2)}
+${JSON.stringify(applicantContext, null, 2)}
 
 SYSTEM PROMPT:
 ${systemPrompt}
@@ -425,7 +426,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
         throw new Error(`Gemini API error: ${data.error.message || JSON.stringify(data.error)}`);
       }
       
-      let generatedContent = data.Applicants?.[0]?.content?.parts?.[0]?.text || "";
+      let generatedContent = data.applicants?.[0]?.content?.parts?.[0]?.text || "";
 
       if (!generatedContent.trim()) {
         console.error('Generative AI: Empty response from Gemini API');
@@ -460,10 +461,10 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     // Log the AI generation activity
     await logAudit(
       'AUDIT',
-      `AI content generated using prompt: ${promptName} (${promptCategory}) for Applicant: ${Applicant.name}`,
+      `AI content generated using prompt: ${promptName} (${promptCategory}) for applicant: ${applicant.name}`,
       'API:AI:GenerateContent',
       session.user.id,
-      { candidateId, ApplicantName: Applicant.name, promptName, promptCategory }
+      { applicantId: applicantId, applicantName: applicant.name, promptName, promptCategory }
     );
 
     return NextResponse.json({ 

@@ -47,7 +47,7 @@ Successfully implemented authentication check and redirect flow for the `/evalua
 2. Page checks authentication status
 3. If `sessionStatus === 'authenticated'`:
    - Loads normally
-   - Fetches candidates with evaluation links
+   - Fetches applicants with evaluation links
    - Displays the page content
 
 ## Security Features
@@ -78,7 +78,7 @@ The middleware (lines 88-94 in `src/middleware.ts`) already allows evaluation pa
    - Log in to the application
    - Navigate to http://localhost:3000/evaluate
    - Should load normally without redirect
-   - Should display list of candidates with active evaluation links
+   - Should display list of applicants with active evaluation links
 
 3. **Test QR Code Scan Flow:**
    - Log out
@@ -107,4 +107,4 @@ The middleware (lines 88-94 in `src/middleware.ts`) already allows evaluation pa
 - The implementation uses NextAuth v5 session management
 - Works with both Azure AD and credentials authentication
 - Maintains backward compatibility with existing evaluation link system
-- Does not affect individual evaluation pages with tokens (e.g., `/candidates/[id]/evaluate?token=...`)
+- Does not affect individual evaluation pages with tokens (e.g., `/applicants/[id]/evaluate?token=...`)

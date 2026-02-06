@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Pagination } from '@/components/ui/pagination';
-import { AppliedApplicantsTable } from './AppliedCandidatesTable';
-import { PotentialApplicantsTable } from './PotentialCandidatesTable';
+import { AppliedApplicantsTable } from './AppliedApplicantsTable';
+import { PotentialApplicantsTable } from './PotentialApplicantsTable';
 import { cn } from '@/lib/utils';
 import { Search, X, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
 import type { Applicant, ApplicantSource, Position, RecruitmentStage, UserProfile, ApplicantFilterValues } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PositionApplicantFilter } from './PositionCandidateFilter';
+import { PositionApplicantFilter } from './PositionApplicantFilter';
 import { FunnelIcon } from '@heroicons/react/24/outline'; // Or lucide-react Filter
 import { ApplicantFilters as ApplicantFiltersComponent } from '@/components/applicants/ApplicantFilters';
 
@@ -39,7 +39,7 @@ interface ApplicantsTabProps {
   onAppliedApplicantsOpenMenuChange: (menu: string | null) => void;
   onAppliedApplicantsPageChange: (page: number) => void;
   onAppliedApplicantsPageSizeChange: (size: number) => void;
-  onAppliedApplicantPinToggle: (Applicant: Applicant) => Promise<void>;
+  onAppliedApplicantPinToggle: (applicant: Applicant) => Promise<void>;
 
   // Potential Applicants
   potentialApplicants: Applicant[];
@@ -56,14 +56,14 @@ interface ApplicantsTabProps {
   onPotentialApplicantsOpenMenuChange: (menu: string | null) => void;
   onPotentialApplicantsPageChange: (page: number) => void;
   onPotentialApplicantsPageSizeChange: (size: number) => void;
-  onPotentialApplicantPinToggle: (Applicant: Applicant) => Promise<void>;
+  onPotentialApplicantPinToggle: (applicant: Applicant) => Promise<void>;
 
   // Common
   stageNames: Record<string, string>;
-  onApplicantClick: (candidateId: string) => void;
+  onApplicantClick: (applicantId: string) => void;
 
   // Filters
-  ApplicantFilters: ApplicantFilterValues;
+  applicantFilters: ApplicantFilterValues;
   onFilterChange: (filters: ApplicantFilterValues) => void;
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
   availableStages: RecruitmentStage[];
@@ -110,7 +110,7 @@ export function ApplicantsTab({
   stageNames,
 
   onApplicantClick,
-  ApplicantFilters,
+  applicantFilters,
   onFilterChange,
   availableRecruiters,
   availableStages,
@@ -190,9 +190,9 @@ export function ApplicantsTab({
                     <Button variant="outline" size="sm" className="h-10 gap-2">
                        <FunnelIcon className="h-4 w-4" />
                        Filters
-                       {Object.keys(ApplicantFilters || {}).length > 0 && (
+                       {Object.keys(applicantFilters || {}).length > 0 && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                            {Object.keys(ApplicantFilters || {}).length}
+                            {Object.keys(applicantFilters || {}).length}
                           </span>
                        )}
                     </Button>
@@ -201,7 +201,7 @@ export function ApplicantsTab({
                      <ScrollArea className="h-[500px]">
                         <div className="p-4">
                            <ApplicantFiltersComponent
-                              initialFilters={ApplicantFilters}
+                              initialFilters={applicantFilters}
                               onFilterChange={onFilterChange}
                               onAiSearch={() => {}} // Not implemented here
                               onClearAllFilters={() => onFilterChange({})}
@@ -314,9 +314,9 @@ export function ApplicantsTab({
                     <Button variant="outline" size="sm" className="h-10 gap-2">
                        <FunnelIcon className="h-4 w-4" />
                        Filters
-                       {Object.keys(ApplicantFilters || {}).length > 0 && (
+                       {Object.keys(applicantFilters || {}).length > 0 && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                            {Object.keys(ApplicantFilters || {}).length}
+                            {Object.keys(applicantFilters || {}).length}
                           </span>
                        )}
                     </Button>
@@ -325,7 +325,7 @@ export function ApplicantsTab({
                      <ScrollArea className="h-[500px]">
                         <div className="p-4">
                            <ApplicantFiltersComponent
-                              initialFilters={ApplicantFilters}
+                              initialFilters={applicantFilters}
                               onFilterChange={onFilterChange}
                               onAiSearch={() => {}} 
                               onClearAllFilters={() => onFilterChange({})}

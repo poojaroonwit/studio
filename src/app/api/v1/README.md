@@ -49,7 +49,7 @@ Authenticate a user and receive a JWT token.
     "id": "user-id",
     "email": "user@example.com",
     "role": "Admin",
-    "modulePermissions": ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"]
+    "modulePermissions": ["applicantS_VIEW", "applicantS_MANAGE"]
   }
 }
 ```
@@ -69,7 +69,7 @@ Check the health status of the API and database.
     "currentTime": "2024-01-01 00:00:00"
   },
   "statistics": {
-    "candidates": 150,
+    "applicants": 150,
     "positions": 25,
     "users": 10
   },
@@ -115,10 +115,10 @@ Check whether the job match function is enabled or disabled.
 }
 ```
 
-### Candidates
+### applicants
 
-#### GET `/api/v1/candidates`
-Get a list of candidates with pagination and filtering.
+#### GET `/api/v1/applicants`
+Get a list of applicants with pagination and filtering.
 
 **Query Parameters:**
 - `page` (optional): Page number (default: 1)
@@ -132,8 +132,8 @@ Get a list of candidates with pagination and filtering.
   "success": true,
   "data": [
     {
-      "id": "candidate-id",
-      "name": "Sample Candidate",
+      "id": "applicant-id",
+      "name": "Sample applicant",
       "email": "john@example.com",
       "phone": "+1234567890",
       "status": "new",
@@ -161,13 +161,13 @@ Get a list of candidates with pagination and filtering.
 }
 ```
 
-#### POST `/api/v1/candidates`
-Create a new candidate with candidate information, job matches, and applied job data.
+#### POST `/api/v1/applicants`
+Create a new applicant with applicant information, job matches, and applied job data.
 
 **Request Body:**
 ```json
 {
-  "candidate_info": {
+  "applicant_info": {
     "personal_info": {
       "title_honorific": "Mr.",                     // Optional
       "firstname": "John",                          // Required
@@ -216,9 +216,9 @@ Create a new candidate with candidate information, job matches, and applied job 
 **Field Requirements:**
 
 **Optional Fields (with defaults):**
-- `candidate_info.personal_info.firstname` - Candidate's first name (defaults to "Unknown Candidate" if both firstname and lastname are empty)
-- `candidate_info.personal_info.lastname` - Candidate's last name (defaults to "Unknown Candidate" if both firstname and lastname are empty)
-- `candidate_info.contact_info.email` - Candidate's email address (defaults to "unknown@email.com" if missing)
+- `applicant_info.personal_info.firstname` - applicant's first name (defaults to "Unknown applicant" if both firstname and lastname are empty)
+- `applicant_info.personal_info.lastname` - applicant's last name (defaults to "Unknown applicant" if both firstname and lastname are empty)
+- `applicant_info.contact_info.email` - applicant's email address (defaults to "unknown@email.com" if missing)
 
 **Note:** The following fields have been removed from the v1 API and are no longer supported:
 - `job_matches` - Job matching functionality has been moved to separate endpoints
@@ -236,14 +236,14 @@ Create a new candidate with candidate information, job matches, and applied job 
 **Response:**
 ```json
 {
-  "message": "Candidate created successfully",
-  "candidate": {
-    "id": "candidate-uuid",
-    "name": "Sample Candidate",
-    "email": "candidate@example.com",
+  "message": "applicant created successfully",
+  "applicant": {
+    "id": "applicant-uuid",
+    "name": "Sample applicant",
+    "email": "applicant@example.com",
     "phone": "+1234567890",
     "status": "new",
-    "parsedData": { /* candidate_info only */ },
+    "parsedData": { /* applicant_info only */ },
     "applicationDate": "2024-01-01T00:00:00.000Z",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -251,23 +251,23 @@ Create a new candidate with candidate information, job matches, and applied job 
 }
 ```
 
-#### POST `/api/v1/candidates/import`
-Import candidates from CSV or Excel files. Supports both file upload and JSON format.
+#### POST `/api/v1/applicants/import`
+Import applicants from CSV or Excel files. Supports both file upload and JSON format.
 
 **File Upload (multipart/form-data):**
 ```bash
-curl -X POST /api/v1/candidates/import \
+curl -X POST /api/v1/applicants/import \
   -H "Authorization: Bearer <token>" \
-  -F "file=@candidates.csv"
+  -F "file=@applicants.csv"
 ```
 
 **JSON Format:**
 ```json
 {
-  "candidates": [
+  "applicants": [
     {
-      "name": "Sample Candidate",
-      "email": "candidate@example.com",
+      "name": "Sample applicant",
+      "email": "applicant@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "positionId": "position-uuid",
@@ -284,7 +284,7 @@ curl -X POST /api/v1/candidates/import \
 **CSV Format Example:**
 ```csv
 name,email,phone,status,positionId,recruiterId,fitScore
-Sample Candidate,candidate@example.com,+1234567890,Applied,,,85
+Sample applicant,applicant@example.com,+1234567890,Applied,,,85
 Jane Smith,jane.smith@example.com,+1234567891,Screening,,,90
 ```
 
@@ -295,21 +295,21 @@ Jane Smith,jane.smith@example.com,+1234567891,Screening,,,90
   "results": {
     "imported": 2,
     "skipped": 1,
-    "errors": ["Candidate with email existing@example.com already exists"]
+    "errors": ["applicant with email existing@example.com already exists"]
   }
 }
 ```
 
-#### GET `/api/v1/candidates/import`
+#### GET `/api/v1/applicants/import`
 Get import template for reference.
 
 **Response:**
 ```json
 {
-  "candidates": [
+  "applicants": [
     {
-      "name": "Sample Candidate",
-      "email": "candidate@example.com",
+      "name": "Sample applicant",
+      "email": "applicant@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "positionId": null,
@@ -323,14 +323,14 @@ Get import template for reference.
 }
 ```
 
-#### GET `/api/v1/candidates/{id}`
-Get a specific candidate by ID.
+#### GET `/api/v1/applicants/{id}`
+Get a specific applicant by ID.
 
 **Response:**
 ```json
 {
-  "id": "candidate-id",
-  "name": "Sample Candidate",
+  "id": "applicant-id",
+  "name": "Sample applicant",
   "email": "john@example.com",
   "phone": "+1234567890",
   "status": "new",
@@ -350,8 +350,8 @@ Get a specific candidate by ID.
 }
 ```
 
-#### PUT `/api/v1/candidates/{id}`
-Update a candidate. Only the fields you want to update need to be included in the request. Job matches and applied job data can also be updated through this endpoint.
+#### PUT `/api/v1/applicants/{id}`
+Update a applicant. Only the fields you want to update need to be included in the request. Job matches and applied job data can also be updated through this endpoint.
 
 **Example - Update only the status:**
 ```json
@@ -369,10 +369,10 @@ Update a candidate. Only the fields you want to update need to be included in th
 }
 ```
 
-**Example - Update candidate info structure:**
+**Example - Update applicant info structure:**
 ```json
 {
-  "candidate_info": {
+  "applicant_info": {
     "personal_info": {
       "firstname": "John",
       "lastname": "Doe Updated"
@@ -400,7 +400,7 @@ Update a candidate. Only the fields you want to update need to be included in th
 **Example - Update multiple fields:**
 ```json
 {
-  "name": "Sample Candidate Updated",
+  "name": "Sample applicant Updated",
   "status": "Interviewing",
   "positionId": "new-position-uuid",
   "fitScore": 0.92
@@ -414,29 +414,29 @@ Update a candidate. Only the fields you want to update need to be included in th
 }
 ```
 
-**Note:** You can also use the dedicated recruiter assignment endpoints (`/api/v1/candidates/{id}/recruiter`) for more specific recruiter management operations.
+**Note:** You can also use the dedicated recruiter assignment endpoints (`/api/v1/applicants/{id}/recruiter`) for more specific recruiter management operations.
 
 **Response:**
 ```json
 {
-  "message": "Candidate updated successfully",
-  "candidate": {
-    "id": "candidate-uuid",
-    "name": "Sample Candidate Updated",
-    "email": "candidate.updated@example.com",
+  "message": "applicant updated successfully",
+  "applicant": {
+    "id": "applicant-uuid",
+    "name": "Sample applicant Updated",
+    "email": "applicant.updated@example.com",
     "status": "new",
     "parsedData": { /* updated data */ },
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
-  "updated_fields": ["candidate_info"]
+  "updated_fields": ["applicant_info"]
 }
 ```
 
-#### DELETE `/api/v1/candidates/{id}`
-Delete a candidate.
+#### DELETE `/api/v1/applicants/{id}`
+Delete a applicant.
 
-#### POST `/api/v1/candidates/clear-duplicates`
-Clear duplicate candidates based on email and position applied, keeping only the first candidate with a non-zero match score.
+#### POST `/api/v1/applicants/clear-duplicates`
+Clear duplicate applicants based on email and position applied, keeping only the first applicant with a non-zero match score.
 
 **Request Body:**
 ```json
@@ -455,13 +455,13 @@ Clear duplicate candidates based on email and position applied, keeping only the
 {
   "success": true,
   "data": {
-    "message": "Successfully cleared 5 duplicate candidates",
+    "message": "Successfully cleared 5 duplicate applicants",
     "duplicatesFound": 3,
-    "candidatesDeleted": 5,
-    "keptCandidates": [
+    "applicantsDeleted": 5,
+    "keptapplicants": [
       {
         "id": "uuid",
-        "email": "candidate@example.com",
+        "email": "applicant@example.com",
         "positionId": "position-uuid",
         "fitScore": 85.5,
         "createdAt": "2024-01-01T00:00:00.000Z"
@@ -472,17 +472,17 @@ Clear duplicate candidates based on email and position applied, keeping only the
 }
 ```
 
-**Logic:** The API groups candidates by email and positionId, then keeps the first created candidate (earliest createdAt date).
+**Logic:** The API groups applicants by email and positionId, then keeps the first created applicant (earliest createdAt date).
 
-### Candidate Recruiter Assignment
+### applicant Recruiter Assignment
 
-#### GET `/api/v1/candidates/{id}/recruiter`
-Get the current recruiter assignment for a candidate.
+#### GET `/api/v1/applicants/{id}/recruiter`
+Get the current recruiter assignment for a applicant.
 
 **Response:**
 ```json
 {
-  "candidateId": "candidate-id",
+  "applicantId": "applicant-id",
   "recruiter": {
     "id": "recruiter-id",
     "name": "Jane Smith",
@@ -491,10 +491,10 @@ Get the current recruiter assignment for a candidate.
 }
 ```
 
-**Note:** The `recruiter` field will be `null` if no recruiter is assigned to the candidate.
+**Note:** The `recruiter` field will be `null` if no recruiter is assigned to the applicant.
 
-#### PUT `/api/v1/candidates/{id}/recruiter`
-Assign or update the recruiter for a candidate.
+#### PUT `/api/v1/applicants/{id}/recruiter`
+Assign or update the recruiter for a applicant.
 
 **Request Body:**
 ```json
@@ -506,10 +506,10 @@ Assign or update the recruiter for a candidate.
 **Response:**
 ```json
 {
-  "message": "Candidate recruiter updated successfully",
-  "candidate": {
-    "id": "candidate-id",
-    "name": "Sample Candidate",
+  "message": "applicant recruiter updated successfully",
+  "applicant": {
+    "id": "applicant-id",
+    "name": "Sample applicant",
     "recruiter": {
       "id": "recruiter-id",
       "name": "Jane Smith",
@@ -519,20 +519,20 @@ Assign or update the recruiter for a candidate.
 }
 ```
 
-#### DELETE `/api/v1/candidates/{id}/recruiter`
-Unassign the recruiter from a candidate.
+#### DELETE `/api/v1/applicants/{id}/recruiter`
+Unassign the recruiter from a applicant.
 
 **Response:**
 ```json
 {
-  "message": "Candidate recruiter unassigned successfully"
+  "message": "applicant recruiter unassigned successfully"
 }
 ```
 
 ### Job Applied Information
 
-#### GET `/api/v1/candidates/{id}/job-applied`
-Get applied job information for a candidate.
+#### GET `/api/v1/applicants/{id}/job-applied`
+Get applied job information for a applicant.
 
 **Response:**
 ```json
@@ -545,8 +545,8 @@ Get applied job information for a candidate.
 }
 ```
 
-#### POST `/api/v1/candidates/{id}/job-applied`
-Create or update applied job information for a candidate.
+#### POST `/api/v1/applicants/{id}/job-applied`
+Create or update applied job information for a applicant.
 
 **Request Body:**
 ```json
@@ -569,20 +569,20 @@ Create or update applied job information for a candidate.
 }
 ```
 
-#### PUT `/api/v1/candidates/{id}/job-applied`
-Update applied job information for a candidate.
+#### PUT `/api/v1/applicants/{id}/job-applied`
+Update applied job information for a applicant.
 
 **Request Body:** Same as POST
 
 **Response:** Same as POST
 
-#### DELETE `/api/v1/candidates/{id}/job-applied`
-Delete applied job information for a candidate.
+#### DELETE `/api/v1/applicants/{id}/job-applied`
+Delete applied job information for a applicant.
 
 ### Job Matches
 
-#### GET `/api/v1/candidates/{id}/job-matches`
-Get all job matches for a candidate.
+#### GET `/api/v1/applicants/{id}/job-matches`
+Get all job matches for a applicant.
 
 **Response:**
 ```json
@@ -601,8 +601,8 @@ Get all job matches for a candidate.
 }
 ```
 
-#### POST `/api/v1/candidates/{id}/job-matches`
-Create or update job matches for a candidate.
+#### POST `/api/v1/applicants/{id}/job-matches`
+Create or update job matches for a applicant.
 
 **Request Body:**
 ```json
@@ -637,20 +637,20 @@ Create or update job matches for a candidate.
 }
 ```
 
-#### PUT `/api/v1/candidates/{id}/job-matches`
-Update job matches for a candidate.
+#### PUT `/api/v1/applicants/{id}/job-matches`
+Update job matches for a applicant.
 
 **Request Body:** Same as POST
 
 **Response:** Same as POST
 
-#### DELETE `/api/v1/candidates/{id}/job-matches`
-Delete all job matches for a candidate.
+#### DELETE `/api/v1/applicants/{id}/job-matches`
+Delete all job matches for a applicant.
 
 ### Individual Job Match
 
-#### GET `/api/v1/candidates/{id}/job-matches/{matchId}`
-Get a specific job match for a candidate.
+#### GET `/api/v1/applicants/{id}/job-matches/{matchId}`
+Get a specific job match for a applicant.
 
 **Response:**
 ```json
@@ -667,8 +667,8 @@ Get a specific job match for a candidate.
 }
 ```
 
-#### PUT `/api/v1/candidates/{id}/job-matches/{matchId}`
-Update a specific job match for a candidate.
+#### PUT `/api/v1/applicants/{id}/job-matches/{matchId}`
+Update a specific job match for a applicant.
 
 **Request Body:**
 ```json
@@ -698,8 +698,8 @@ Update a specific job match for a candidate.
 }
 ```
 
-#### DELETE `/api/v1/candidates/{id}/job-matches/{matchId}`
-Delete a specific job match for a candidate.
+#### DELETE `/api/v1/applicants/{id}/job-matches/{matchId}`
+Delete a specific job match for a applicant.
 
 ### Positions
 
@@ -723,7 +723,7 @@ Get a list of positions with pagination and filtering.
       "title": "Software Engineer",
       "department": "Engineering",
       "description": "Full-stack development role",
-      "matchCriteria": "<h2>Compare Candidate and Job</h2>...",
+      "matchCriteria": "<h2>Compare applicant and Job</h2>...",
       "isOpen": true,
       "positionLevel": "Mid-level",
       "customAttributes": {},
@@ -784,7 +784,7 @@ Get a specific position by ID.
   "title": "Software Engineer",
   "department": "Engineering",
   "description": "Full-stack development role",
-  "matchCriteria": "<h2>Compare Candidate and Job</h2>...",
+  "matchCriteria": "<h2>Compare applicant and Job</h2>...",
   "isOpen": true,
   "positionLevel": "Mid-level",
   "customAttributes": {},
@@ -844,7 +844,7 @@ Perform bulk operations on positions.
 ```
 
 **Available Actions:**
-- `delete`: Delete positions (only if no candidates assigned)
+- `delete`: Delete positions (only if no applicants assigned)
 - `update_status`: Update open/closed status
 - `update_department`: Update department
 
@@ -914,7 +914,7 @@ Get a list of users with pagination and filtering.
       "name": "Jane Smith",
       "email": "jane@example.com",
       "role": "Recruiter",
-      "modulePermissions": ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"],
+      "modulePermissions": ["applicantS_VIEW", "applicantS_MANAGE"],
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
     }
@@ -934,7 +934,7 @@ Create a new user.
   "name": "Jane Smith",                            // Required
   "email": "jane@example.com",                     // Required
   "role": "Recruiter",                             // Required
-  "modulePermissions": ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"],  // Optional (default: [])
+  "modulePermissions": ["applicantS_VIEW", "applicantS_MANAGE"],  // Optional (default: [])
   "password": "password123"                        // Optional (for basic auth)
 }
 ```
@@ -962,16 +962,16 @@ Get a specific user by ID.
 Update a user.
 
 #### DELETE `/api/v1/users/{id}`
-Delete a user (only if no candidates assigned).
+Delete a user (only if no applicants assigned).
 
-### Candidate Avatar
+### applicant Avatar
 
-#### POST `/api/v1/candidates/{id}/avatar`
-Upload an avatar image for a candidate.
+#### POST `/api/v1/applicants/{id}/avatar`
+Upload an avatar image for a applicant.
 
 **Request Body (multipart/form-data):**
 ```bash
-curl -X POST /api/v1/candidates/{id}/avatar \
+curl -X POST /api/v1/applicants/{id}/avatar \
   -H "Authorization: Bearer <token>" \
   -F "avatar=@profile.jpg"
 ```
@@ -980,37 +980,37 @@ curl -X POST /api/v1/candidates/{id}/avatar \
 ```json
 {
   "message": "Avatar uploaded successfully",
-  "avatar_url": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg",
-  "candidate": {
-    "id": "candidate-uuid",
-    "name": "Sample Candidate",
-    "avatarUrl": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg"
+  "avatar_url": "http://localhost:9000/uploads/avatars/applicant-id/uuid.jpg",
+  "applicant": {
+    "id": "applicant-uuid",
+    "name": "Sample applicant",
+    "avatarUrl": "http://localhost:9000/uploads/avatars/applicant-id/uuid.jpg"
   }
 }
 ```
 
-#### GET `/api/v1/candidates/{id}/avatar`
-Get the avatar URL for a candidate.
+#### GET `/api/v1/applicants/{id}/avatar`
+Get the avatar URL for a applicant.
 
 **Response:**
 ```json
 {
-  "avatar_url": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg"
+  "avatar_url": "http://localhost:9000/uploads/avatars/applicant-id/uuid.jpg"
 }
 ```
 
-### Candidate Resumes
+### applicant Resumes
 
-#### GET `/api/v1/candidates/{id}/resumes`
-Get resumes for a candidate.
+#### GET `/api/v1/applicants/{id}/resumes`
+Get resumes for a applicant.
 
-#### POST `/api/v1/candidates/{id}/resumes`
-Upload a resume for a candidate.
+#### POST `/api/v1/applicants/{id}/resumes`
+Upload a resume for a applicant.
 
-#### PUT `/api/v1/candidates/{id}/resumes`
+#### PUT `/api/v1/applicants/{id}/resumes`
 Update resume information.
 
-#### DELETE `/api/v1/candidates/{id}/resumes`
+#### DELETE `/api/v1/applicants/{id}/resumes`
 Delete a resume.
 
 ### Recruitment Stages
@@ -1026,7 +1026,7 @@ Get all recruitment stages for filtering and display.
     {
       "id": "stage-uuid",
       "name": "Applied",
-      "description": "Candidate has applied",
+      "description": "applicant has applied",
       "sort_order": 1,
       "color_complete": "#4CAF50",
       "color_badge": "#2E7D32",
@@ -1038,8 +1038,8 @@ Get all recruitment stages for filtering and display.
 
 ### AI Search
 
-#### POST `/api/v1/ai/search-candidates`
-Search candidates using AI-powered semantic search.
+#### POST `/api/v1/ai/search-applicants`
+Search applicants using AI-powered semantic search.
 
 **Request Body:**
 ```json
@@ -1057,9 +1057,9 @@ Search candidates using AI-powered semantic search.
   "success": true,
   "data": [
     {
-      "id": "candidate-uuid",
-      "name": "Sample Candidate",
-      "email": "candidate@example.com",
+      "id": "applicant-uuid",
+      "name": "Sample applicant",
+      "email": "applicant@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "fitScore": 85,
@@ -1082,7 +1082,7 @@ Get dashboard statistics and metrics.
 {
   "success": true,
   "data": {
-    "candidates": {
+    "applicants": {
       "total": 150,
       "new": 25,
       "inProgress": 45,
@@ -1106,8 +1106,8 @@ Get dashboard statistics and metrics.
     "recentActivity": [
       {
         "id": "activity-uuid",
-        "type": "candidate_created",
-        "message": "New candidate Sample Candidate added",
+        "type": "applicant_created",
+        "message": "New applicant Sample applicant added",
         "timestamp": "2024-01-01T00:00:00.000Z",
         "userId": "user-uuid",
         "userName": "Jane Smith"
@@ -1155,13 +1155,13 @@ Get system logs with pagination and filtering. Requires Admin role or LOGS_VIEW 
 }
 ```
 
-### Candidate Transitions
+### applicant Transitions
 
 #### GET `/api/v1/transitions`
-Get candidate stage transitions with optional filtering.
+Get applicant stage transitions with optional filtering.
 
 **Query Parameters:**
-- `candidateId` (optional): Filter by candidate ID
+- `applicantId` (optional): Filter by applicant ID
 - `limit` (optional): Items per page (default: 20)
 - `offset` (optional): Offset for pagination (default: 0)
 
@@ -1172,12 +1172,12 @@ Get candidate stage transitions with optional filtering.
   "data": [
     {
       "id": "transition-uuid",
-      "candidateId": "candidate-uuid",
+      "applicantId": "applicant-uuid",
       "fromStageId": "stage-uuid-1",
       "toStageId": "stage-uuid-2",
       "fromStageName": "Applied",
       "toStageName": "Interview",
-      "notes": "Candidate passed initial screening",
+      "notes": "applicant passed initial screening",
       "transitionDate": "2024-01-01T00:00:00.000Z",
       "createdBy": "user-uuid",
       "createdByName": "Sample User",
@@ -1189,15 +1189,15 @@ Get candidate stage transitions with optional filtering.
 ```
 
 #### POST `/api/v1/transitions`
-Create a new candidate stage transition.
+Create a new applicant stage transition.
 
 **Request Body:**
 ```json
 {
-  "candidateId": "candidate-uuid",
+  "applicantId": "applicant-uuid",
   "fromStageId": "stage-uuid-1",
   "toStageId": "stage-uuid-2",
-  "notes": "Candidate passed initial screening",
+  "notes": "applicant passed initial screening",
   "transitionDate": "2024-01-01T00:00:00.000Z"
 }
 ```
@@ -1209,10 +1209,10 @@ Create a new candidate stage transition.
   "message": "Transition created successfully",
   "data": {
     "id": "transition-uuid",
-    "candidateId": "candidate-uuid",
+    "applicantId": "applicant-uuid",
     "fromStageId": "stage-uuid-1",
     "toStageId": "stage-uuid-2",
-    "notes": "Candidate passed initial screening",
+    "notes": "applicant passed initial screening",
     "transitionDate": "2024-01-01T00:00:00.000Z",
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
@@ -1299,13 +1299,13 @@ This is the V1 API. Future versions will be available at `/api/v2/`, `/api/v3/`,
 
 The API uses role-based access control with the following roles:
 - `Admin`: Full access to all endpoints
-- `Recruiter`: Access to candidates and positions
+- `Recruiter`: Access to applicants and positions
 - `User`: Limited access based on module permissions
 
 Module permissions include:
-- `CANDIDATES_VIEW`: View candidates
-- `CANDIDATES_MANAGE`: Create, update, delete candidates
-- `CANDIDATES_EXPORT`: Export candidates
+- `applicantS_VIEW`: View applicants
+- `applicantS_MANAGE`: Create, update, delete applicants
+- `applicantS_EXPORT`: Export applicants
 - `POSITIONS_VIEW`: View positions
 - `POSITIONS_MANAGE`: Create, update, delete positions
 - `POSITIONS_EXPORT`: Export positions
@@ -1319,4 +1319,4 @@ Interactive API documentation is available at `/api-docs` which provides a Swagg
 
 ## Payload Alignment
 
-All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support the structured format with `candidate_info` field. Job matches and applied job data are managed through separate dedicated endpoints.
+All API payloads are designed to align with the frontend components and database schema. The applicant creation and update endpoints support the structured format with `applicant_info` field. Job matches and applied job data are managed through separate dedicated endpoints.

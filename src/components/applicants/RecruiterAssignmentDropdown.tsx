@@ -9,7 +9,7 @@ import { UsersIcon as Users, UserIcon as User, ArrowPathIcon as Loader2, XMarkIc
 import type { UserProfile } from '@/lib/types';
 
 interface RecruiterAssignmentDropdownProps {
-  candidateId: string;
+  applicantId: string;
   recruiterId: string | null;
   recruiters: Pick<UserProfile, 'id' | 'name' | 'avatarUrl' | 'personalColor'>[];
   isAssigningRecruiter: boolean;
@@ -18,7 +18,7 @@ interface RecruiterAssignmentDropdownProps {
 }
 
 const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = ({
-  candidateId,
+  applicantId,
   recruiterId,
   recruiters,
   isAssigningRecruiter,
@@ -63,7 +63,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
         <Button
           variant="outline"
           size="default"
-          disabled={isAssigningRecruiter || !candidateId}
+          disabled={isAssigningRecruiter || !applicantId}
           className={`w-48 h-18 flex flex-col items-start justify-center p-3 ${className}`}
         >
           <div className="flex items-center mb-1">

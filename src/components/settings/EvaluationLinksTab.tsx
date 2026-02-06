@@ -16,7 +16,7 @@ import { sanitizeUrl } from '@/lib/utils';
 
 interface EvalLinkItem {
   id: string;
-  Applicant: { id: string; name: string; email: string };
+  applicant: { id: string; name: string; email: string };
   createdBy: { id: string; name: string; email: string };
   token: string;
   url: string;
@@ -166,7 +166,7 @@ export default function EvaluationLinksTab() {
         </div>
 
         <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-1">Applicant</p>
+          <p className="text-sm text-muted-foreground mb-1">applicant</p>
           <h3 className="font-semibold text-lg">{qrData.name}</h3>
           {qrData.expiresAt && (
             <p className="text-sm text-muted-foreground mt-1">
@@ -245,7 +245,7 @@ export default function EvaluationLinksTab() {
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 items-center">
         <Input
-          placeholder="Search by token, Applicant name or email"
+          placeholder="Search by token, applicant name or email"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="w-80"
@@ -266,7 +266,7 @@ export default function EvaluationLinksTab() {
 
       <div className="border rounded-md overflow-hidden">
         <div className="grid grid-cols-12 bg-muted px-3 py-2 text-xs font-medium">
-          <div className="col-span-2">Applicant</div>
+          <div className="col-span-2">applicant</div>
           <div className="col-span-3">Link</div>
           <div className="col-span-2">Expires</div>
           <div className="col-span-1">Owner</div>
@@ -291,8 +291,8 @@ export default function EvaluationLinksTab() {
             return (
               <div key={it.id} className="grid grid-cols-12 px-3 py-3 border-t text-sm items-center">
                 <div className="col-span-2">
-                  <div className="font-medium">{it.Applicant?.name || 'Unknown'}</div>
-                  <div className="text-xs text-muted-foreground">{it.Applicant?.email}</div>
+                  <div className="font-medium">{it.applicant?.name || 'Unknown'}</div>
+                  <div className="text-xs text-muted-foreground">{it.applicant?.email}</div>
                 </div>
                 <div className="col-span-3 truncate flex items-center gap-2">
                   <div className="truncate flex-1">
@@ -341,7 +341,7 @@ export default function EvaluationLinksTab() {
                     className="gap-2"
                     onClick={() => {
                       setQrData({
-                        name: it.Applicant?.name || 'Applicant',
+                        name: it.applicant?.name || 'applicant',
                         url: it.url,
                         expiresAt: it.expiresAt
                       });

@@ -2,7 +2,7 @@
 
 -- CustomFieldDefinition comments
 COMMENT ON COLUMN "CustomFieldDefinition"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (Candidate, Position, etc.)';
+COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (applicant, Position, etc.)';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_key" IS 'Field key for API access';
 COMMENT ON COLUMN "CustomFieldDefinition"."label" IS 'Display label';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_type" IS 'Field type (text, number, select, etc.)';
@@ -16,13 +16,13 @@ COMMENT ON COLUMN "CustomFieldDefinition"."attribute_code" IS 'Attribute code fo
 COMMENT ON COLUMN "CustomFieldDefinition"."attribute_label" IS 'Attribute label for display';
 COMMENT ON COLUMN "CustomFieldDefinition"."edit_roles" IS 'Roles allowed to edit';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_code" IS 'Field code identifier';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_candidate_detail" IS 'Show in candidate detail view';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_applicant_detail" IS 'Show in applicant detail view';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_filter" IS 'Show in filter options';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_candidate_detail" IS 'Show in full candidate detail';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_applicant_detail" IS 'Show in full applicant detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_headcount_detail" IS 'Show in headcount detail view';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_position_settings" IS 'Show in position settings';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_task_board_filter" IS 'Show in task board filter';
-COMMENT ON COLUMN "CustomFieldDefinition"."candidate_detail_section" IS 'Candidate detail section';
+COMMENT ON COLUMN "CustomFieldDefinition"."applicant_detail_section" IS 'applicant detail section';
 COMMENT ON COLUMN "CustomFieldDefinition"."position_detail_section" IS 'Position detail section';
 COMMENT ON COLUMN "CustomFieldDefinition"."view_roles" IS 'Roles allowed to view';
 
@@ -39,7 +39,7 @@ COMMENT ON COLUMN "CustomFieldOption"."updatedAt" IS 'Last update timestamp';
 
 -- JobMatch comments
 COMMENT ON COLUMN "JobMatch"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "JobMatch"."candidateId" IS 'Reference to candidate';
+COMMENT ON COLUMN "JobMatch"."applicantId" IS 'Reference to applicant';
 COMMENT ON COLUMN "JobMatch"."jobId" IS 'Reference to matched job';
 COMMENT ON COLUMN "JobMatch"."jobTitle" IS 'Matched job title';
 COMMENT ON COLUMN "JobMatch"."fitScore" IS 'AI-calculated fit score (0-100)';
@@ -57,7 +57,7 @@ COMMENT ON COLUMN "upload_queue"."status" IS 'Processing status (pending, proces
 COMMENT ON COLUMN "upload_queue"."error" IS 'Error message if failed';
 COMMENT ON COLUMN "upload_queue"."error_details" IS 'Detailed error information';
 COMMENT ON COLUMN "upload_queue"."source" IS 'Source name';
-COMMENT ON COLUMN "upload_queue"."source_id" IS 'Reference to candidate source';
+COMMENT ON COLUMN "upload_queue"."source_id" IS 'Reference to applicant source';
 COMMENT ON COLUMN "upload_queue"."sub_source" IS 'Sub-source detail';
 COMMENT ON COLUMN "upload_queue"."upload_date" IS 'Upload timestamp';
 COMMENT ON COLUMN "upload_queue"."completed_date" IS 'Processing completion timestamp';
@@ -106,18 +106,18 @@ COMMENT ON COLUMN "SystemPreference"."value" IS 'Preference value';
 COMMENT ON COLUMN "SystemPreference"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "SystemPreference"."updatedAt" IS 'Last update timestamp';
 
--- CandidateComment comments
-COMMENT ON COLUMN "CandidateComment"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateComment"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateComment"."authorId" IS 'Comment author reference';
-COMMENT ON COLUMN "CandidateComment"."content" IS 'Comment content';
-COMMENT ON COLUMN "CandidateComment"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateComment"."updatedAt" IS 'Last update timestamp';
-COMMENT ON COLUMN "CandidateComment"."attachmentIds" IS 'Referenced attachment IDs';
+-- applicantComment comments
+COMMENT ON COLUMN "applicantComment"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantComment"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantComment"."authorId" IS 'Comment author reference';
+COMMENT ON COLUMN "applicantComment"."content" IS 'Comment content';
+COMMENT ON COLUMN "applicantComment"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantComment"."updatedAt" IS 'Last update timestamp';
+COMMENT ON COLUMN "applicantComment"."attachmentIds" IS 'Referenced attachment IDs';
 
 -- Attachment comments
 COMMENT ON COLUMN "Attachment"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "Attachment"."candidateId" IS 'Reference to candidate';
+COMMENT ON COLUMN "Attachment"."applicantId" IS 'Reference to applicant';
 COMMENT ON COLUMN "Attachment"."uploadedById" IS 'User who uploaded the file';
 COMMENT ON COLUMN "Attachment"."filePath" IS 'File storage path';
 COMMENT ON COLUMN "Attachment"."fileName" IS 'Original file name';
@@ -202,7 +202,7 @@ COMMENT ON COLUMN "SystemPrompt"."updated_at" IS 'Last update timestamp';
 COMMENT ON COLUMN "WarningConfiguration"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "WarningConfiguration"."name" IS 'Configuration name';
 COMMENT ON COLUMN "WarningConfiguration"."description" IS 'Configuration description';
-COMMENT ON COLUMN "WarningConfiguration"."entity_type" IS 'Target entity type (Candidate, Position)';
+COMMENT ON COLUMN "WarningConfiguration"."entity_type" IS 'Target entity type (applicant, Position)';
 COMMENT ON COLUMN "WarningConfiguration"."field" IS 'Field to monitor';
 COMMENT ON COLUMN "WarningConfiguration"."condition" IS 'Condition to check';
 COMMENT ON COLUMN "WarningConfiguration"."operator" IS 'Comparison operator';
@@ -222,7 +222,7 @@ COMMENT ON COLUMN "WarningConfiguration"."condition_groups" IS 'Condition groups
 -- Warning comments
 COMMENT ON COLUMN "Warning"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "Warning"."configuration_id" IS 'Reference to warning configuration';
-COMMENT ON COLUMN "Warning"."entity_type" IS 'Entity type (Candidate, Position)';
+COMMENT ON COLUMN "Warning"."entity_type" IS 'Entity type (applicant, Position)';
 COMMENT ON COLUMN "Warning"."entity_id" IS 'Entity ID that triggered warning';
 COMMENT ON COLUMN "Warning"."field" IS 'Field that triggered warning';
 COMMENT ON COLUMN "Warning"."current_value" IS 'Current value of the field';
@@ -240,7 +240,7 @@ COMMENT ON COLUMN "PositionInterviewer"."createdAt" IS 'Record creation timestam
 COMMENT ON COLUMN "PositionInterviewer"."createdBy" IS 'User who assigned interviewer';
 
 -- PersonalityTrait comments
-COMMENT ON TABLE "PersonalityTrait" IS 'PersonalityTrait - Individual personality traits for candidate evaluation';
+COMMENT ON TABLE "PersonalityTrait" IS 'PersonalityTrait - Individual personality traits for applicant evaluation';
 COMMENT ON COLUMN "PersonalityTrait"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "PersonalityTrait"."name" IS 'Trait name';
 COMMENT ON COLUMN "PersonalityTrait"."description" IS 'Trait description';

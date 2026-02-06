@@ -69,9 +69,9 @@ Added rounded top corners to the mobile evaluation link drawer for a modern, pol
 ## Component Context
 
 The drawer/sheet appears on mobile when:
-1. User clicks on a candidate card in the evaluation page
+1. User clicks on a applicant card in the evaluation page
 2. QR modal opens from bottom (`side="bottom"`)
-3. Shows QR code, candidate name, and action buttons
+3. Shows QR code, applicant name, and action buttons
 
 ### Sheet Properties:
 ```tsx
@@ -139,7 +139,7 @@ This follows the **Bottom Sheet** design pattern popularized by:
 ## Testing Checklist
 
 - [ ] Open evaluate page on mobile
-- [ ] Click candidate to open QR drawer
+- [ ] Click applicant to open QR drawer
 - [ ] Verify drawer has rounded top corners
 - [ ] Check corner radius is noticeable (24px)
 - [ ] Test slide-up animation looks smooth

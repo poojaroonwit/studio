@@ -18,10 +18,10 @@ interface ApplicantsPageTableAreaProps {
   displayedApplicants: Applicant[];
   isLoading: boolean;
   tableLoading: boolean;
-  updateApplicantStatus: (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => Promise<void>;
-  handleDeleteApplicant: (candidateId: string) => Promise<void>;
-  handleAssignRecruiter: (candidateId: string, recruiterId: string | null) => Promise<void>;
-  handleAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => Promise<void>;
+  updateApplicantStatus: (applicantId: string, status: string, notes?: string, suppressToast?: boolean) => Promise<void>;
+  handleDeleteApplicant: (applicantId: string) => Promise<void>;
+  handleAssignRecruiter: (applicantId: string, recruiterId: string | null) => Promise<void>;
+  handleAssignSource: (applicantId: string, sourceId: string | null, subSource?: string | null) => Promise<void>;
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiter: Array<{ id: string; name: string }>;
@@ -37,14 +37,14 @@ interface ApplicantsPageTableAreaProps {
   sortDirection: 'asc' | 'desc' | null;
   handleSortChange: (column: string | null, direction?: 'asc' | 'desc' | null) => Promise<void>;
   setSelectedPositionForEdit: (position: Position | null) => void;
-  refreshApplicantInList: (candidateId: string, fetchTableData: any, filters: any, page: number, pageSize: number, aiMatchedApplicantIds: string[] | null) => Promise<void>;
+  refreshApplicantInList: (applicantId: string, fetchTableData: any, filters: any, page: number, pageSize: number, aiMatchedApplicantIds: string[] | null) => Promise<void>;
   fetchAllPinnedApplicants: () => Promise<void>;
   selectedApplicantIds: Set<string>;
   setSelectedApplicantIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  handleBulkDelete: (candidateIds: string[]) => Promise<void>;
-  handleBulkChangeStatus: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
-  handleBulkAssignRecruiter: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
-  handleBulkReprocess: (candidateIds: string[]) => Promise<void>;
+  handleBulkDelete: (applicantIds: string[]) => Promise<void>;
+  handleBulkChangeStatus: (applicantIds: string[], newStatus: string, notes?: string) => Promise<void>;
+  handleBulkAssignRecruiter: (applicantIds: string[], recruiterId: string | null) => Promise<void>;
+  handleBulkReprocess: (applicantIds: string[]) => Promise<void>;
   setBulkNewStatus: React.Dispatch<React.SetStateAction<string>>;
   setBulkTransitionNotes: React.Dispatch<React.SetStateAction<string>>;
   setIsBulkStatusModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -198,17 +198,17 @@ export function ApplicantsPageTableArea({
                 }
               }}
               onEditPosition={setSelectedPositionForEdit}
-              onRefreshApplicantData={async (candidateId) => {
-                await refreshApplicantInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedApplicantIdsForRefresh);
+              onRefreshApplicantData={async (applicantId) => {
+                await refreshApplicantInList(applicantId, fetchTableData, filters, page, pageSize, aiMatchedApplicantIdsForRefresh);
                 await fetchAllPinnedApplicants();
               }}
               selectedApplicantIds={selectedApplicantIds}
-              onToggleSelectApplicant={(candidateId: string) => {
+              onToggleSelectApplicant={(applicantId: string) => {
                 const newSelected = new Set(selectedApplicantIds);
-                if (newSelected.has(candidateId)) {
-                  newSelected.delete(candidateId);
+                if (newSelected.has(applicantId)) {
+                  newSelected.delete(applicantId);
                 } else {
-                  newSelected.add(candidateId);
+                  newSelected.add(applicantId);
                 }
                 setSelectedApplicantIds(newSelected);
               }}

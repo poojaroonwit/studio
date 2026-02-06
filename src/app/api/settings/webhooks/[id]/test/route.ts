@@ -37,7 +37,7 @@ export async function POST(
         webhook_id: webhook.id,
         webhook_name: webhook.name,
         test_data: {
-          Applicant: {
+          applicant: {
             id: 'test-Applicant-id',
             name: 'Test Applicant',
             email: 'test@example.com'

@@ -4,7 +4,7 @@
 
 | Feature | Description |
 | :--- | :--- |
-| **What** | Configure the criteria and forms used to rate candidates. |
+| **What** | Configure the criteria and forms used to rate applicants. |
 | **Where** | **Settings > Evaluation Configuration**. |
 
 ## 1. Expertise Skills

@@ -143,13 +143,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     
     // Get targetPositionId, Applicant_id, sourceId, and additionalAttachment(s) from webhook_payload if available
     let targetPositionId = null;
-    let candidateId = null;
+    let applicantId = null;
     let sourceId = null;
     let additionalAttachment = null;
     let additionalAttachments = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
-      candidateId = job.webhook_payload.Applicant_id || null;
+      applicantId = job.webhook_payload.Applicant_id || null;
       sourceId = job.webhook_payload.sourceId || null; // Extract sourceId from webhook payload
       additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload (single)
       additionalAttachments = job.webhook_payload.additionalAttachments || null; // Extract additional attachments from webhook payload (array)
@@ -221,7 +221,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       meta: job.meta,
       filename: job.filename,
       mimetype: job.mimetype,
-      Applicant_id: candidateId, // Include Applicant ID in webhook payload
+      Applicant_id: applicantId, // Include Applicant ID in webhook payload
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
       upload_date: job.upload_date, // Queue upload date - should be used as applicationDate for the Applicant

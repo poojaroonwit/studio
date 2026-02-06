@@ -2,7 +2,7 @@
 -- Upload Queue Cleanup Script
 -- Date: 2025-12-19
 -- Purpose: Find and reset orphaned upload_queue records that were marked as 
---          'success' but have no associated candidate data
+--          'success' but have no associated applicant data
 -- ============================================================================
 
 -- ============================================================================
@@ -15,12 +15,12 @@ SELECT * FROM upload_queue
 WHERE id IN (
   SELECT uq.id
   FROM upload_queue uq
-  LEFT JOIN "Candidate" c ON c.id = CAST(uq.webhook_payload->>'candidate_id' AS UUID)
+  LEFT JOIN "applicant" c ON c.id = CAST(uq.webhook_payload->>'applicant_id' AS UUID)
   WHERE uq.status = 'success'
     AND uq.completed_date >= '2025-12-19 00:00:00'
     AND uq.completed_date < '2025-12-20 00:00:00'
     AND (
-      uq.webhook_payload->>'candidate_id' IS NULL 
+      uq.webhook_payload->>'applicant_id' IS NULL 
       OR c.id IS NULL
     )
 );
@@ -40,15 +40,15 @@ SELECT
   uq.completed_date,
   uq.process_date,
   uq.error,
-  uq.webhook_payload->>'candidate_id' as webhook_candidate_id,
-  c.id as actual_candidate_id
+  uq.webhook_payload->>'applicant_id' as webhook_applicant_id,
+  c.id as actual_applicant_id
 FROM upload_queue uq
-LEFT JOIN "Candidate" c ON c.id = CAST(uq.webhook_payload->>'candidate_id' AS UUID)
+LEFT JOIN "applicant" c ON c.id = CAST(uq.webhook_payload->>'applicant_id' AS UUID)
 WHERE uq.status = 'success'
   AND uq.completed_date >= '2025-12-19 00:00:00'
   AND uq.completed_date < '2025-12-20 00:00:00'
   AND (
-    uq.webhook_payload->>'candidate_id' IS NULL 
+    uq.webhook_payload->>'applicant_id' IS NULL 
     OR c.id IS NULL
   )
 ORDER BY uq.completed_date DESC;
@@ -63,17 +63,17 @@ SET
   status = 'queued',
   completed_date = NULL,
   process_date = NULL,
-  error = 'Reset on 2025-12-19: No candidate was created during previous processing',
+  error = 'Reset on 2025-12-19: No applicant was created during previous processing',
   updated_at = NOW()
 WHERE id IN (
   SELECT uq.id
   FROM upload_queue uq
-  LEFT JOIN "Candidate" c ON c.id = CAST(uq.webhook_payload->>'candidate_id' AS UUID)
+  LEFT JOIN "applicant" c ON c.id = CAST(uq.webhook_payload->>'applicant_id' AS UUID)
   WHERE uq.status = 'success'
     AND uq.completed_date >= '2025-12-19 00:00:00'
     AND uq.completed_date < '2025-12-20 00:00:00'
     AND (
-      uq.webhook_payload->>'candidate_id' IS NULL 
+      uq.webhook_payload->>'applicant_id' IS NULL 
       OR c.id IS NULL
     )
 );

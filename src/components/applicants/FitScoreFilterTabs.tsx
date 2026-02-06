@@ -64,7 +64,7 @@ function SmoothCount({ count }: { count: number }) {
 interface FitScoreFilterTabsProps {
   selectedGrades?: Set<string>;
   onGradeToggle: (grade: string) => void;
-  ApplicantCounts?: Array<{ letter: string; count: number }>;
+  applicantCounts?: Array<{ letter: string; count: number }>;
   className?: string;
   filterMode?: 'single' | 'multi';
   onClearAll?: () => void;
@@ -75,7 +75,7 @@ interface FitScoreFilterTabsProps {
 export function FitScoreFilterTabs({
   selectedGrades,
   onGradeToggle,
-  ApplicantCounts = [],
+  applicantCounts = [],
   className,
   filterMode = 'multi',
   onClearAll,
@@ -108,8 +108,8 @@ export function FitScoreFilterTabs({
   }, [onClearAll]);
 
   const getCount = (letter: string): number => {
-    if (!Array.isArray(ApplicantCounts)) return 0;
-    const count = ApplicantCounts.find(c => c.letter === letter)?.count || 0;
+    if (!Array.isArray(applicantCounts)) return 0;
+    const count = applicantCounts.find(c => c.letter === letter)?.count || 0;
     return count;
   };
 
@@ -118,8 +118,8 @@ export function FitScoreFilterTabs({
     if (isAiSearchActive && aiMatchedCount > 0) {
       return aiMatchedCount;
     }
-    if (!Array.isArray(ApplicantCounts)) return 0;
-    const total = ApplicantCounts.reduce((total, item) => total + (item?.count || 0), 0);
+    if (!Array.isArray(applicantCounts)) return 0;
+    const total = applicantCounts.reduce((total, item) => total + (item?.count || 0), 0);
     return total;
   };
 

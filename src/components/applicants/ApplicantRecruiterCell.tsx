@@ -28,7 +28,7 @@ interface ApplicantRecruiterCellProps {
   }>;
   canManageApplicants: boolean;
   isAssigning: boolean;
-  onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
+  onAssignRecruiter: (applicantId: string, recruiterId: string | null) => void;
   onResetAssigning?: () => void;
 }
 

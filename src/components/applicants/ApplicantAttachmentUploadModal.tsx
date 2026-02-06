@@ -12,14 +12,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpTrayIcon as UploadCloud, XMarkIcon as X } from '@heroicons/react/24/outline';
 
 interface ApplicantAttachmentUploadModalProps {
-  candidateId: string;
+  applicantId: string;
   open: boolean;
   onClose: () => void;
   onUploadSuccess?: () => void;
 }
 
 export const ApplicantAttachmentUploadModal: React.FC<ApplicantAttachmentUploadModalProps> = ({
-  candidateId,
+  applicantId,
   open,
   onClose,
   onUploadSuccess,
@@ -48,7 +48,7 @@ export const ApplicantAttachmentUploadModal: React.FC<ApplicantAttachmentUploadM
         formData.append('attachments', file);
       });
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `/api/applicants/${candidateId}/resumes`);
+      xhr.open('POST', `/api/applicants/${applicantId}/resumes`);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           setProgress(Math.round((event.loaded / event.total) * 100));

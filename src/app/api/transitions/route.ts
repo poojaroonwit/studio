@@ -6,10 +6,10 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const candidateId = searchParams.get('candidateId');
+  const applicantId = searchParams.get('applicantId');
 
-  if (!candidateId) {
-    return NextResponse.json({ error: 'Missing candidateId' }, { status: 400 });
+  if (!applicantId) {
+    return NextResponse.json({ error: 'Missing applicantId' }, { status: 400 });
   }
 
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       const transitionsQuery = `
         SELECT 
           t.id,
-          t."candidateId",
+          t."applicantId",
           t.stage,
           t.notes,
           t.date,
@@ -29,16 +29,16 @@ export async function GET(request: NextRequest) {
           t."createdAt"
         FROM "TransitionRecord" t
         LEFT JOIN "User" u ON t."actingUserId" = u.id
-        WHERE t."candidateId" = $1
+        WHERE t."applicantId" = $1
         ORDER BY t.date ASC, t."createdAt" ASC
       `;
       
-      const result = await client.query(transitionsQuery, [candidateId]);
+      const result = await client.query(transitionsQuery, [applicantId]);
       
       // Transform the data to match the expected TransitionRecord format
       const transitions = result.rows.map((row: any) => ({
         id: row.id,
-        candidateId: row.candidateId,
+        applicantId: row.applicantId,
         date: row.date || row.createdAt,
         stage: row.stage, // Use the stage field directly
         notes: row.notes,

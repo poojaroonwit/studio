@@ -18,16 +18,16 @@ sequenceDiagram
     participant NS as NotificationService
     participant Rec as Recruiter (Dashboard)
 
-    Job->>DB: Candidate enters stage
+    Job->>DB: applicant enters stage
     Note over DB: Stores stage_entry_date
     
     loop Every 24 Hours
-        SLA->>DB: Fetch Candidates (Status: Active)
+        SLA->>DB: Fetch applicants (Status: Active)
         SLA->>SLA: calculateDuration(now - entry_date)
         SLA->>SLA: compareWithThreshold(config.maxDays)
         
         alt Violation Detected
-            SLA->>NS: notifySLAViolation(userId, candidateId)
+            SLA->>NS: notifySLAViolation(userId, applicantId)
             SLA->>DB: Log to Audit History
         end
     end
@@ -40,8 +40,8 @@ sequenceDiagram
 ## 2. Key Metrics & Logic
 
 ### 1. Duration Tracking
-The system tracks the exact time (in days) a candidate spends in their current `RecruitmentStage`.
-- **In-Progress**: Candidates currently in a stage.
+The system tracks the exact time (in days) a applicant spends in their current `RecruitmentStage`.
+- **In-Progress**: applicants currently in a stage.
 - **Completed**: The total time from "Applied" to "Hired" (Time-to-Hire).
 
 ### 2. SLA Status Levels

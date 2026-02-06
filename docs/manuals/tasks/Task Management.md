@@ -7,9 +7,9 @@
 | **What** | A personal Kanban board to track your daily recruiting activities. |
 | **Who** | **Recruiters** and **Hiring Managers**. |
 | **When** | Daily, to manage to-do lists, reminders, and follow-ups. |
-| **Why** | To keep your workflow organized and ensure no candidate follow-up is missed. |
+| **Why** | To keep your workflow organized and ensure no applicant follow-up is missed. |
 | **Where** | The **Tasks** item in the main navigation. |
-| **How** | 1. Navigate to **Tasks** <br> 2. Click **"New Task"** <br> 3. Enter details (e.g., "Call Candidate X") <br> 4. Drag task to **"Done"** when complete |
+| **How** | 1. Navigate to **Tasks** <br> 2. Click **"New Task"** <br> 3. Enter details (e.g., "Call applicant X") <br> 4. Drag task to **"Done"** when complete |
 
 ## 1. The Task Board
 Your personal workspace is organized into columns (e.g., To Do, In Progress, Done).

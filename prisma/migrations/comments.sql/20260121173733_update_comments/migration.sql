@@ -60,7 +60,7 @@ COMMENT ON COLUMN "Position"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "Position"."title" IS 'Job title';
 COMMENT ON COLUMN "Position"."department" IS 'Department name';
 COMMENT ON COLUMN "Position"."description" IS 'Job description';
-COMMENT ON COLUMN "Position"."matchCriteria" IS 'Criteria for candidate matching';
+COMMENT ON COLUMN "Position"."matchCriteria" IS 'Criteria for applicant matching';
 COMMENT ON COLUMN "Position"."isOpen" IS 'Whether position is open for applications';
 COMMENT ON COLUMN "Position"."positionLevel" IS 'Seniority level (Entry, Mid, Senior, etc.)';
 COMMENT ON COLUMN "Position"."recruiterId" IS 'Assigned recruiter';
@@ -95,41 +95,41 @@ COMMENT ON COLUMN "PositionLevel"."sort_order" IS 'Sort order for display';
 COMMENT ON COLUMN "PositionLevel"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "PositionLevel"."updatedAt" IS 'Last update timestamp';
 
--- Candidate comments
-COMMENT ON TABLE "Candidate" IS 'Candidate - Job applicants and their application data';
-COMMENT ON COLUMN "Candidate"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "Candidate"."name" IS 'Candidate full name';
-COMMENT ON COLUMN "Candidate"."email" IS 'Email address';
-COMMENT ON COLUMN "Candidate"."phone" IS 'Phone number';
-COMMENT ON COLUMN "Candidate"."positionId" IS 'Applied position reference';
-COMMENT ON COLUMN "Candidate"."recruiterId" IS 'Assigned recruiter reference';
-COMMENT ON COLUMN "Candidate"."fitScore" IS 'AI-calculated fit score (0-100)';
-COMMENT ON COLUMN "Candidate"."applicationDate" IS 'Application submission date';
-COMMENT ON COLUMN "Candidate"."parsedData" IS 'Parsed resume data (JSON)';
-COMMENT ON COLUMN "Candidate"."customAttributes" IS 'Custom attributes (JSON)';
-COMMENT ON COLUMN "Candidate"."resumePath" IS 'Path to uploaded resume file';
-COMMENT ON COLUMN "Candidate"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "Candidate"."updatedAt" IS 'Last update timestamp';
-COMMENT ON COLUMN "Candidate"."avatarUrl" IS 'Avatar image URL';
-COMMENT ON COLUMN "Candidate"."dataAiHint" IS 'AI hint for processing';
-COMMENT ON COLUMN "Candidate"."assignmentJustification" IS 'Justification for position assignment';
-COMMENT ON COLUMN "Candidate"."educationData" IS 'Education history (JSON array)';
-COMMENT ON COLUMN "Candidate"."experienceData" IS 'Work experience history (JSON array)';
-COMMENT ON COLUMN "Candidate"."companyId" IS 'Company identifier';
-COMMENT ON COLUMN "Candidate"."sourceId" IS 'Candidate source reference';
-COMMENT ON COLUMN "Candidate"."subSource" IS 'Sub-source detail';
-COMMENT ON COLUMN "Candidate"."statusId" IS 'Current recruitment status';
-COMMENT ON COLUMN "Candidate"."isBlacklisted" IS 'Whether candidate is blacklisted';
-COMMENT ON COLUMN "Candidate"."isPinned" IS 'Whether candidate is pinned';
-COMMENT ON COLUMN "Candidate"."pinnedAt" IS 'Pin timestamp';
-COMMENT ON COLUMN "Candidate"."emailDate" IS 'Email received date';
-COMMENT ON COLUMN "Candidate"."emailSubject" IS 'Email subject line';
-COMMENT ON COLUMN "Candidate"."emailId" IS 'Email message ID';
-COMMENT ON COLUMN "Candidate"."emailMetadata" IS 'Email metadata (JSON)';
-COMMENT ON COLUMN "Candidate"."expected_salary" IS 'Expected salary amount';
+-- applicant comments
+COMMENT ON TABLE "applicant" IS 'applicant - Job applicants and their application data';
+COMMENT ON COLUMN "applicant"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicant"."name" IS 'applicant full name';
+COMMENT ON COLUMN "applicant"."email" IS 'Email address';
+COMMENT ON COLUMN "applicant"."phone" IS 'Phone number';
+COMMENT ON COLUMN "applicant"."positionId" IS 'Applied position reference';
+COMMENT ON COLUMN "applicant"."recruiterId" IS 'Assigned recruiter reference';
+COMMENT ON COLUMN "applicant"."fitScore" IS 'AI-calculated fit score (0-100)';
+COMMENT ON COLUMN "applicant"."applicationDate" IS 'Application submission date';
+COMMENT ON COLUMN "applicant"."parsedData" IS 'Parsed resume data (JSON)';
+COMMENT ON COLUMN "applicant"."customAttributes" IS 'Custom attributes (JSON)';
+COMMENT ON COLUMN "applicant"."resumePath" IS 'Path to uploaded resume file';
+COMMENT ON COLUMN "applicant"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicant"."updatedAt" IS 'Last update timestamp';
+COMMENT ON COLUMN "applicant"."avatarUrl" IS 'Avatar image URL';
+COMMENT ON COLUMN "applicant"."dataAiHint" IS 'AI hint for processing';
+COMMENT ON COLUMN "applicant"."assignmentJustification" IS 'Justification for position assignment';
+COMMENT ON COLUMN "applicant"."educationData" IS 'Education history (JSON array)';
+COMMENT ON COLUMN "applicant"."experienceData" IS 'Work experience history (JSON array)';
+COMMENT ON COLUMN "applicant"."companyId" IS 'Company identifier';
+COMMENT ON COLUMN "applicant"."sourceId" IS 'applicant source reference';
+COMMENT ON COLUMN "applicant"."subSource" IS 'Sub-source detail';
+COMMENT ON COLUMN "applicant"."statusId" IS 'Current recruitment status';
+COMMENT ON COLUMN "applicant"."isBlacklisted" IS 'Whether applicant is blacklisted';
+COMMENT ON COLUMN "applicant"."isPinned" IS 'Whether applicant is pinned';
+COMMENT ON COLUMN "applicant"."pinnedAt" IS 'Pin timestamp';
+COMMENT ON COLUMN "applicant"."emailDate" IS 'Email received date';
+COMMENT ON COLUMN "applicant"."emailSubject" IS 'Email subject line';
+COMMENT ON COLUMN "applicant"."emailId" IS 'Email message ID';
+COMMENT ON COLUMN "applicant"."emailMetadata" IS 'Email metadata (JSON)';
+COMMENT ON COLUMN "applicant"."expected_salary" IS 'Expected salary amount';
 
 -- RecruitmentStage comments
-COMMENT ON TABLE "RecruitmentStage" IS 'RecruitmentStage - Pipeline stages for candidate recruitment workflow';
+COMMENT ON TABLE "RecruitmentStage" IS 'RecruitmentStage - Pipeline stages for applicant recruitment workflow';
 COMMENT ON COLUMN "RecruitmentStage"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "RecruitmentStage"."name" IS 'Stage name';
 COMMENT ON COLUMN "RecruitmentStage"."description" IS 'Stage description';
@@ -139,9 +139,9 @@ COMMENT ON COLUMN "RecruitmentStage"."color_complete" IS 'Color when stage is co
 COMMENT ON COLUMN "RecruitmentStage"."color_badge" IS 'Badge color';
 
 -- TransitionRecord comments
-COMMENT ON TABLE "TransitionRecord" IS 'TransitionRecord - History of candidate stage transitions';
+COMMENT ON TABLE "TransitionRecord" IS 'TransitionRecord - History of applicant stage transitions';
 COMMENT ON COLUMN "TransitionRecord"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "TransitionRecord"."candidateId" IS 'Reference to candidate';
+COMMENT ON COLUMN "TransitionRecord"."applicantId" IS 'Reference to applicant';
 COMMENT ON COLUMN "TransitionRecord"."positionId" IS 'Reference to position';
 COMMENT ON COLUMN "TransitionRecord"."date" IS 'Transition date';
 COMMENT ON COLUMN "TransitionRecord"."stage" IS 'Stage name at transition';
@@ -206,7 +206,7 @@ COMMENT ON COLUMN "SystemSetting"."updatedAt" IS 'Last update timestamp';
 -- CustomFieldDefinition comments
 COMMENT ON TABLE "CustomFieldDefinition" IS 'CustomFieldDefinition - Custom field schema definitions for extensible data models';
 COMMENT ON COLUMN "CustomFieldDefinition"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (Candidate, Position, etc.)';
+COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (applicant, Position, etc.)';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_key" IS 'Field key for API access';
 COMMENT ON COLUMN "CustomFieldDefinition"."label" IS 'Display label';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_type" IS 'Field type (text, number, select, etc.)';
@@ -220,13 +220,13 @@ COMMENT ON COLUMN "CustomFieldDefinition"."attribute_code" IS 'Attribute code fo
 COMMENT ON COLUMN "CustomFieldDefinition"."attribute_label" IS 'Attribute label for display';
 COMMENT ON COLUMN "CustomFieldDefinition"."edit_roles" IS 'Roles allowed to edit';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_code" IS 'Field code identifier';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_candidate_detail" IS 'Show in candidate detail view';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_applicant_detail" IS 'Show in applicant detail view';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_filter" IS 'Show in filter options';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_candidate_detail" IS 'Show in full candidate detail';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_applicant_detail" IS 'Show in full applicant detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_headcount_detail" IS 'Show in headcount detail view';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_position_settings" IS 'Show in position settings';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_task_board_filter" IS 'Show in task board filter';
-COMMENT ON COLUMN "CustomFieldDefinition"."candidate_detail_section" IS 'Candidate detail section';
+COMMENT ON COLUMN "CustomFieldDefinition"."applicant_detail_section" IS 'applicant detail section';
 COMMENT ON COLUMN "CustomFieldDefinition"."position_detail_section" IS 'Position detail section';
 COMMENT ON COLUMN "CustomFieldDefinition"."view_roles" IS 'Roles allowed to view';
 
@@ -243,9 +243,9 @@ COMMENT ON COLUMN "CustomFieldOption"."createdAt" IS 'Record creation timestamp'
 COMMENT ON COLUMN "CustomFieldOption"."updatedAt" IS 'Last update timestamp';
 
 -- JobMatch comments
-COMMENT ON TABLE "JobMatch" IS 'JobMatch - AI-generated job matching results for candidates';
+COMMENT ON TABLE "JobMatch" IS 'JobMatch - AI-generated job matching results for applicants';
 COMMENT ON COLUMN "JobMatch"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "JobMatch"."candidateId" IS 'Reference to candidate';
+COMMENT ON COLUMN "JobMatch"."applicantId" IS 'Reference to applicant';
 COMMENT ON COLUMN "JobMatch"."jobId" IS 'Reference to matched job';
 COMMENT ON COLUMN "JobMatch"."jobTitle" IS 'Matched job title';
 COMMENT ON COLUMN "JobMatch"."fitScore" IS 'AI-calculated fit score (0-100)';
@@ -264,7 +264,7 @@ COMMENT ON COLUMN "upload_queue"."status" IS 'Processing status (pending, proces
 COMMENT ON COLUMN "upload_queue"."error" IS 'Error message if failed';
 COMMENT ON COLUMN "upload_queue"."error_details" IS 'Detailed error information';
 COMMENT ON COLUMN "upload_queue"."source" IS 'Source name';
-COMMENT ON COLUMN "upload_queue"."source_id" IS 'Reference to candidate source';
+COMMENT ON COLUMN "upload_queue"."source_id" IS 'Reference to applicant source';
 COMMENT ON COLUMN "upload_queue"."sub_source" IS 'Sub-source detail';
 COMMENT ON COLUMN "upload_queue"."upload_date" IS 'Upload timestamp';
 COMMENT ON COLUMN "upload_queue"."completed_date" IS 'Processing completion timestamp';
@@ -316,20 +316,20 @@ COMMENT ON COLUMN "SystemPreference"."value" IS 'Preference value';
 COMMENT ON COLUMN "SystemPreference"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "SystemPreference"."updatedAt" IS 'Last update timestamp';
 
--- CandidateComment comments
-COMMENT ON TABLE "CandidateComment" IS 'CandidateComment - Comments and notes on candidate profiles';
-COMMENT ON COLUMN "CandidateComment"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateComment"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateComment"."authorId" IS 'Comment author reference';
-COMMENT ON COLUMN "CandidateComment"."content" IS 'Comment content';
-COMMENT ON COLUMN "CandidateComment"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateComment"."updatedAt" IS 'Last update timestamp';
-COMMENT ON COLUMN "CandidateComment"."attachmentIds" IS 'Referenced attachment IDs';
+-- applicantComment comments
+COMMENT ON TABLE "applicantComment" IS 'applicantComment - Comments and notes on applicant profiles';
+COMMENT ON COLUMN "applicantComment"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantComment"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantComment"."authorId" IS 'Comment author reference';
+COMMENT ON COLUMN "applicantComment"."content" IS 'Comment content';
+COMMENT ON COLUMN "applicantComment"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantComment"."updatedAt" IS 'Last update timestamp';
+COMMENT ON COLUMN "applicantComment"."attachmentIds" IS 'Referenced attachment IDs';
 
 -- Attachment comments
-COMMENT ON TABLE "Attachment" IS 'Attachment - File attachments for candidates and headcounts';
+COMMENT ON TABLE "Attachment" IS 'Attachment - File attachments for applicants and headcounts';
 COMMENT ON COLUMN "Attachment"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "Attachment"."candidateId" IS 'Reference to candidate';
+COMMENT ON COLUMN "Attachment"."applicantId" IS 'Reference to applicant';
 COMMENT ON COLUMN "Attachment"."uploadedById" IS 'User who uploaded the file';
 COMMENT ON COLUMN "Attachment"."filePath" IS 'File storage path';
 COMMENT ON COLUMN "Attachment"."fileName" IS 'Original file name';
@@ -441,18 +441,18 @@ COMMENT ON COLUMN "SystemPrompt"."is_active" IS 'Whether prompt is active';
 COMMENT ON COLUMN "SystemPrompt"."created_at" IS 'Record creation timestamp';
 COMMENT ON COLUMN "SystemPrompt"."updated_at" IS 'Last update timestamp';
 
--- CandidateSource comments
-COMMENT ON TABLE "CandidateSource" IS 'CandidateSource - Candidate sourcing channels (job portals, referrals, etc.)';
-COMMENT ON COLUMN "CandidateSource"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateSource"."name" IS 'Source name (e.g., LinkedIn, JobsDB)';
-COMMENT ON COLUMN "CandidateSource"."description" IS 'Source description';
-COMMENT ON COLUMN "CandidateSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
-COMMENT ON COLUMN "CandidateSource"."sort_order" IS 'Sort order for display';
-COMMENT ON COLUMN "CandidateSource"."is_active" IS 'Whether source is active';
-COMMENT ON COLUMN "CandidateSource"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateSource"."updatedAt" IS 'Last update timestamp';
-COMMENT ON COLUMN "CandidateSource"."logo" IS 'Logo URL or path';
-COMMENT ON COLUMN "CandidateSource"."email" IS 'Contact email for this source';
+-- applicantSource comments
+COMMENT ON TABLE "applicantSource" IS 'applicantSource - applicant sourcing channels (job portals, referrals, etc.)';
+COMMENT ON COLUMN "applicantSource"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantSource"."name" IS 'Source name (e.g., LinkedIn, JobsDB)';
+COMMENT ON COLUMN "applicantSource"."description" IS 'Source description';
+COMMENT ON COLUMN "applicantSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
+COMMENT ON COLUMN "applicantSource"."sort_order" IS 'Sort order for display';
+COMMENT ON COLUMN "applicantSource"."is_active" IS 'Whether source is active';
+COMMENT ON COLUMN "applicantSource"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantSource"."updatedAt" IS 'Last update timestamp';
+COMMENT ON COLUMN "applicantSource"."logo" IS 'Logo URL or path';
+COMMENT ON COLUMN "applicantSource"."email" IS 'Contact email for this source';
 
 -- Notification comments
 COMMENT ON TABLE "Notification" IS 'Notification - User notification messages';
@@ -472,7 +472,7 @@ COMMENT ON COLUMN "Headcount"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "Headcount"."positionId" IS 'Reference to position';
 COMMENT ON COLUMN "Headcount"."type" IS 'Headcount type (new, replacement, expansion)';
 COMMENT ON COLUMN "Headcount"."status" IS 'Current status (vacant, filled, pending)';
-COMMENT ON COLUMN "Headcount"."candidateId" IS 'Assigned candidate reference';
+COMMENT ON COLUMN "Headcount"."applicantId" IS 'Assigned applicant reference';
 COMMENT ON COLUMN "Headcount"."onboardingDate" IS 'Expected onboarding date';
 COMMENT ON COLUMN "Headcount"."requestDate" IS 'Request submission date';
 COMMENT ON COLUMN "Headcount"."notes" IS 'Additional notes';
@@ -502,7 +502,7 @@ COMMENT ON COLUMN "ExpertiseGroup"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "ExpertiseGroup"."updatedAt" IS 'Last update timestamp';
 
 -- ExpertiseSkill comments
-COMMENT ON TABLE "ExpertiseSkill" IS 'ExpertiseSkill - Individual expertise skills for candidate evaluation';
+COMMENT ON TABLE "ExpertiseSkill" IS 'ExpertiseSkill - Individual expertise skills for applicant evaluation';
 COMMENT ON COLUMN "ExpertiseSkill"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "ExpertiseSkill"."name" IS 'Skill name';
 COMMENT ON COLUMN "ExpertiseSkill"."description" IS 'Skill description';
@@ -526,7 +526,7 @@ COMMENT ON COLUMN "PersonalityGroup"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "PersonalityGroup"."updatedAt" IS 'Last update timestamp';
 
 -- PersonalityTrait comments
-COMMENT ON TABLE "PersonalityTrait" IS 'PersonalityTrait - Individual personality traits for candidate evaluation';
+COMMENT ON TABLE "PersonalityTrait" IS 'PersonalityTrait - Individual personality traits for applicant evaluation';
 COMMENT ON COLUMN "PersonalityTrait"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "PersonalityTrait"."name" IS 'Trait name';
 COMMENT ON COLUMN "PersonalityTrait"."description" IS 'Trait description';
@@ -619,50 +619,50 @@ COMMENT ON COLUMN "PositionPersonalityTrait"."weight" IS 'Weight for scoring';
 COMMENT ON COLUMN "PositionPersonalityTrait"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "PositionPersonalityTrait"."updatedAt" IS 'Last update timestamp';
 
--- CandidateEvaluation comments
-COMMENT ON TABLE "CandidateEvaluation" IS 'CandidateEvaluation - Evaluation records for candidate assessments';
-COMMENT ON COLUMN "CandidateEvaluation"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateEvaluation"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateEvaluation"."positionId" IS 'Reference to position';
-COMMENT ON COLUMN "CandidateEvaluation"."evaluatorId" IS 'Reference to evaluator';
-COMMENT ON COLUMN "CandidateEvaluation"."status" IS 'Evaluation status (in_progress, completed)';
-COMMENT ON COLUMN "CandidateEvaluation"."overall_score" IS 'Overall evaluation score';
-COMMENT ON COLUMN "CandidateEvaluation"."comments" IS 'Evaluator comments';
-COMMENT ON COLUMN "CandidateEvaluation"."completed_at" IS 'Completion timestamp';
-COMMENT ON COLUMN "CandidateEvaluation"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateEvaluation"."updatedAt" IS 'Last update timestamp';
+-- applicantEvaluation comments
+COMMENT ON TABLE "applicantEvaluation" IS 'applicantEvaluation - Evaluation records for applicant assessments';
+COMMENT ON COLUMN "applicantEvaluation"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantEvaluation"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantEvaluation"."positionId" IS 'Reference to position';
+COMMENT ON COLUMN "applicantEvaluation"."evaluatorId" IS 'Reference to evaluator';
+COMMENT ON COLUMN "applicantEvaluation"."status" IS 'Evaluation status (in_progress, completed)';
+COMMENT ON COLUMN "applicantEvaluation"."overall_score" IS 'Overall evaluation score';
+COMMENT ON COLUMN "applicantEvaluation"."comments" IS 'Evaluator comments';
+COMMENT ON COLUMN "applicantEvaluation"."completed_at" IS 'Completion timestamp';
+COMMENT ON COLUMN "applicantEvaluation"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantEvaluation"."updatedAt" IS 'Last update timestamp';
 
--- CandidateEvaluationLink comments
-COMMENT ON TABLE "CandidateEvaluationLink" IS 'CandidateEvaluationLink - Secure links for external candidate evaluation';
-COMMENT ON COLUMN "CandidateEvaluationLink"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateEvaluationLink"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateEvaluationLink"."token" IS 'Secure access token';
-COMMENT ON COLUMN "CandidateEvaluationLink"."expiresAt" IS 'Token expiration timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."createdById" IS 'User who created the link';
-COMMENT ON COLUMN "CandidateEvaluationLink"."requireLogin" IS 'Whether login is required to access';
-COMMENT ON COLUMN "CandidateEvaluationLink"."revokedAt" IS 'Link revocation timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."updatedAt" IS 'Last update timestamp';
+-- applicantEvaluationLink comments
+COMMENT ON TABLE "applicantEvaluationLink" IS 'applicantEvaluationLink - Secure links for external applicant evaluation';
+COMMENT ON COLUMN "applicantEvaluationLink"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantEvaluationLink"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantEvaluationLink"."token" IS 'Secure access token';
+COMMENT ON COLUMN "applicantEvaluationLink"."expiresAt" IS 'Token expiration timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."createdById" IS 'User who created the link';
+COMMENT ON COLUMN "applicantEvaluationLink"."requireLogin" IS 'Whether login is required to access';
+COMMENT ON COLUMN "applicantEvaluationLink"."revokedAt" IS 'Link revocation timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."updatedAt" IS 'Last update timestamp';
 
--- CandidateExpertiseScore comments
-COMMENT ON TABLE "CandidateExpertiseScore" IS 'CandidateExpertiseScore - Recorded scores for expertise skills';
-COMMENT ON COLUMN "CandidateExpertiseScore"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateExpertiseScore"."evaluationId" IS 'Reference to evaluation';
-COMMENT ON COLUMN "CandidateExpertiseScore"."skillId" IS 'Reference to skill';
-COMMENT ON COLUMN "CandidateExpertiseScore"."score" IS 'Score value';
-COMMENT ON COLUMN "CandidateExpertiseScore"."notes" IS 'Optional notes on score';
-COMMENT ON COLUMN "CandidateExpertiseScore"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateExpertiseScore"."updatedAt" IS 'Last update timestamp';
+-- applicantExpertiseScore comments
+COMMENT ON TABLE "applicantExpertiseScore" IS 'applicantExpertiseScore - Recorded scores for expertise skills';
+COMMENT ON COLUMN "applicantExpertiseScore"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantExpertiseScore"."evaluationId" IS 'Reference to evaluation';
+COMMENT ON COLUMN "applicantExpertiseScore"."skillId" IS 'Reference to skill';
+COMMENT ON COLUMN "applicantExpertiseScore"."score" IS 'Score value';
+COMMENT ON COLUMN "applicantExpertiseScore"."notes" IS 'Optional notes on score';
+COMMENT ON COLUMN "applicantExpertiseScore"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantExpertiseScore"."updatedAt" IS 'Last update timestamp';
 
--- CandidatePersonalityScore comments
-COMMENT ON TABLE "CandidatePersonalityScore" IS 'CandidatePersonalityScore - Recorded scores for personality traits';
-COMMENT ON COLUMN "CandidatePersonalityScore"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidatePersonalityScore"."evaluationId" IS 'Reference to evaluation';
-COMMENT ON COLUMN "CandidatePersonalityScore"."traitId" IS 'Reference to personality trait';
-COMMENT ON COLUMN "CandidatePersonalityScore"."score" IS 'Score value';
-COMMENT ON COLUMN "CandidatePersonalityScore"."notes" IS 'Optional notes on score';
-COMMENT ON COLUMN "CandidatePersonalityScore"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidatePersonalityScore"."updatedAt" IS 'Last update timestamp';
+-- applicantPersonalityScore comments
+COMMENT ON TABLE "applicantPersonalityScore" IS 'applicantPersonalityScore - Recorded scores for personality traits';
+COMMENT ON COLUMN "applicantPersonalityScore"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantPersonalityScore"."evaluationId" IS 'Reference to evaluation';
+COMMENT ON COLUMN "applicantPersonalityScore"."traitId" IS 'Reference to personality trait';
+COMMENT ON COLUMN "applicantPersonalityScore"."score" IS 'Score value';
+COMMENT ON COLUMN "applicantPersonalityScore"."notes" IS 'Optional notes on score';
+COMMENT ON COLUMN "applicantPersonalityScore"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantPersonalityScore"."updatedAt" IS 'Last update timestamp';
 
 -- UserSession comments
 COMMENT ON TABLE "UserSession" IS 'User Session - tracks active sessions for single-device login enforcement';

@@ -7,7 +7,7 @@ interface ApplicantPersonalInfoProps {
   applicant: Applicant;
 }
 
-const ApplicantPersonalInfo: React.FC<ApplicantPersonalInfoProps> = ({ Applicant }) => {
+const ApplicantPersonalInfo: React.FC<ApplicantPersonalInfoProps> = ({ applicant }) => {
   const nameInfo = formatApplicantNameWithLang(applicant);
   
   // Render personal info fields, edit form, etc.

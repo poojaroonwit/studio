@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 	const url = new URL(request.url)
 	const filePath = url.searchParams.get('filePath') || ''
 	const fileName = url.searchParams.get('fileName') || undefined
-	const candidateId = url.searchParams.get('candidateId')
+	const applicantId = url.searchParams.get('applicantId')
 	const headcountId = url.searchParams.get('headcountId')
 
 	if (!filePath) {
@@ -85,8 +85,8 @@ export async function GET(request: NextRequest) {
 
 	// Contextual authorization
 	try {
-		if (candidateId) {
-			const applicant = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { id: true, recruiterId: true } })
+		if (applicantId) {
+			const applicant = await prisma.applicant.findUnique({ where: { id: applicantId }, select: { id: true, recruiterId: true } })
 			if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
 			const hasGlobalEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') || session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE')
 			const hasOwnEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') || session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN')
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
 			objectName,
 			bucket: MINIO_BUCKET,
 			filePath,
-			candidateId: candidateId || 'none',
+			applicantId: applicantId || 'none',
 			headcountId: headcountId || 'none',
 			requestedBy: session?.user?.id || 'unknown',
 			fullError: err

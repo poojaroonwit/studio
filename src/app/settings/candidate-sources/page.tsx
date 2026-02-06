@@ -46,7 +46,7 @@ import { toast } from 'react-hot-toast';
 import type { ApplicantSource } from '@/lib/types';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
-const ApplicantSourceFormSchema = z.object({
+const applicantSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional(),
   email: z.string().optional(),
@@ -56,7 +56,7 @@ const ApplicantSourceFormSchema = z.object({
   logo: z.any().optional(), // For file upload
 });
 
-type ApplicantSourceFormValues = z.infer<typeof ApplicantSourceFormSchema>;
+type ApplicantSourceFormValues = z.infer<typeof applicantSourceFormSchema>;
 
 export default function ApplicantSourcesPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -75,7 +75,7 @@ export default function ApplicantSourcesPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<ApplicantSourceFormValues>({
-    resolver: zodResolver(ApplicantSourceFormSchema),
+    resolver: zodResolver(applicantSourceFormSchema),
     defaultValues: { 
       name: '', 
       description: '', 

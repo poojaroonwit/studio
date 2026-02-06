@@ -17,10 +17,10 @@ import { sanitizeUrl } from '@/lib/utils';
 interface ReprocessModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  candidateId: string;
-  ApplicantName: string;
-  ApplicantPositionId?: string | null;
-  ApplicantSourceId?: string | null;
+  applicantId: string;
+  applicantName: string;
+  applicantPositionId?: string | null;
+  applicantSourceId?: string | null;
   attachments: Array<{
     id: string;
     fileName: string;
@@ -36,15 +36,15 @@ interface ReprocessModalProps {
 export default function ReprocessModal({
   isOpen,
   onOpenChange,
-  candidateId,
-  ApplicantName,
-  ApplicantPositionId,
-  ApplicantSourceId,
+  applicantId,
+  applicantName,
+  applicantPositionId,
+  applicantSourceId,
   attachments,
   positions
 }: ReprocessModalProps) {
   const [selectedAttachment, setSelectedAttachment] = useState<string>('');
-  const [selectedPositionId, setSelectedPositionId] = useState<string>(ApplicantPositionId || '');
+  const [selectedPositionId, setSelectedPositionId] = useState<string>(applicantPositionId || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [positionSearchTerm, setPositionSearchTerm] = useState('');
   const [previewMode, setPreviewMode] = useState<'thumbnail' | 'fullscreen'>('thumbnail');
@@ -75,13 +75,13 @@ export default function ReprocessModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedAttachment('');
-      setSelectedPositionId(ApplicantPositionId || '');
+      setSelectedPositionId(applicantPositionId || '');
       setIsProcessing(false); // Reset processing state when modal opens
       setPositionSearchTerm(''); // Reset search term when modal opens
       setPreviewMode('thumbnail'); // Reset preview mode when modal opens
       setIsPreviewLoading(false); // Reset loading state when modal opens
     }
-  }, [isOpen, ApplicantPositionId, positions, isProcessing]);
+  }, [isOpen, applicantPositionId, positions, isProcessing]);
 
   // Prevent parent component refreshes from affecting modal content
   useEffect(() => {
@@ -141,9 +141,9 @@ export default function ReprocessModal({
       return;
     }
 
-    // Check if Applicant has no applied position and warn user
-    if (!ApplicantPositionId && !selectedPositionId) {
-      toast.error('Please select a position to apply for. The Applicant currently has no applied position.');
+    // Check if applicant has no applied position and warn user
+    if (!applicantPositionId && !selectedPositionId) {
+      toast.error('Please select a position to apply for. The applicant currently has no applied position.');
       return;
     }
 
@@ -170,13 +170,13 @@ export default function ReprocessModal({
           source: 'reprocess',
           upload_id: uuidv4(), // Generate a unique upload ID
           position_id: selectedPositionId,
-          source_id: ApplicantSourceId, // Include Applicant's source ID
+          source_id: applicantSourceId, // Include applicant's source ID
           webhook_payload: {
-            Applicant_id: candidateId,
+            Applicant_id: applicantId,
             request_type: 'update',
             source: 'reprocess',
             attachment_id: attachment.id,
-            sourceId: ApplicantSourceId // Include sourceId in webhook payload
+            sourceId: applicantSourceId // Include sourceId in webhook payload
           }
         }),
       });
@@ -233,7 +233,7 @@ export default function ReprocessModal({
         <DialogHeader>
           <DialogTitle>Re-process Attachment</DialogTitle>
           <DialogDescription>
-            Re-process an attachment for applicant: <strong>{ApplicantName}</strong>
+            Re-process an attachment for applicant: <strong>{applicantName}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -513,7 +513,7 @@ export default function ReprocessModal({
                         // Build preview URL from filePath (preferred method)
                         const params = new URLSearchParams({ filePath: attachment.filePath });
                         if (attachment.fileName) params.set('fileName', attachment.fileName);
-                        if (candidateId) params.set('candidateId', candidateId);
+                        if (applicantId) params.set('applicantId', applicantId);
                         previewUrl = `/api/secure-file/preview?${params.toString()}`;
                       } else if (attachment.url.includes('/api/secure-file/stream')) {
                         // Convert stream URL to preview URL

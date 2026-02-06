@@ -90,7 +90,7 @@ Used to automate changelogs and versioning.
 - `feat: add AI matching logic`
 - `fix: resolve login timeout`
 - `docs: update deployment guide`
-- `refactor: simplify candidate state`
+- `refactor: simplify applicant state`
 
 ---
 

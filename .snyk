@@ -3,12 +3,12 @@ version: v1.25.1
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
   SNYK-JS-SQLI:
-    - src/app/api/candidates/route.ts > *:
+    - src/app/api/applicants/route.ts > *:
         reason: >-
           Uses parameterized queries with whitelisted column maps (sortMap). No
           user input is interpolated directly.
         expires: '2027-01-14T00:00:00.000Z'
-    - src/app/api/candidates/fit-score-counts/route.ts > *:
+    - src/app/api/applicants/fit-score-counts/route.ts > *:
         reason: >-
           Uses parameterized queries ($1, $2) with whitelisted fragments. No
           user input is interpolated directly.
@@ -24,17 +24,17 @@ ignore:
           Blob URL validated via sanitizeUrl() before appendChild. Safe file
           download pattern.
         expires: '2027-01-14T00:00:00.000Z'
-    - src/components/candidates/CandidateImportModal.tsx > *:
+    - src/components/applicants/applicantImportModal.tsx > *:
         reason: >-
           Blob URL validated via sanitizeUrl() before appendChild. Safe file
           download pattern.
         expires: '2027-01-14T00:00:00.000Z'
-    - src/components/candidates/CandidatesPageClient.tsx > *:
+    - src/components/applicants/applicantsPageClient.tsx > *:
         reason: >-
           Blob URL validated via sanitizeUrl() before appendChild. Safe file
           download pattern.
         expires: '2027-01-14T00:00:00.000Z'
-    - src/components/candidates/tabs/AttachmentsTab.tsx > *:
+    - src/components/applicants/tabs/AttachmentsTab.tsx > *:
         reason: >-
           Blob URL validated via sanitizeUrl() before appendChild. Safe file
           download pattern.
@@ -49,7 +49,7 @@ ignore:
           Canvas toBlob() produces safe local blob URL. Validated via
           sanitizeUrl().
         expires: '2027-01-14T00:00:00.000Z'
-    - src/components/candidates/FullCandidateDetail.tsx > *:
+    - src/components/applicants/FullapplicantDetail.tsx > *:
         reason: >-
           Canvas toBlob() produces safe local blob URL. Validated via
           sanitizeUrl().
@@ -59,7 +59,7 @@ ignore:
           Canvas toBlob() produces safe local blob URL. Validated via
           sanitizeUrl(). href uses sanitizeUrl().
         expires: '2027-01-14T00:00:00.000Z'
-    - src/components/candidates/SendInterviewInvitationModal.tsx > *:
+    - src/components/applicants/SendInterviewInvitationModal.tsx > *:
         reason: >-
           HTML content sanitized via DOMPurify.sanitize() before
           dangerouslySetInnerHTML.

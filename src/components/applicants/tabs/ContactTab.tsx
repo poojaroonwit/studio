@@ -120,8 +120,8 @@ export const ContactTab: React.FC<ContactTabProps> = ({
 
         {/* Custom Fields for Additional Information Section */}
         <CustomFieldEdit
-          modelName="Candidate"
-          section="Applicant-info"
+          modelName="Applicant"
+          section="applicant-info"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
           onFieldChange={onCustomFieldChange || (() => { })}
@@ -191,8 +191,8 @@ export const ContactTab: React.FC<ContactTabProps> = ({
       {/* Custom Fields for Additional Information Section */}
       {isEditing ? (
         <CustomFieldEdit
-          modelName="Candidate"
-          section="Applicant-info"
+          modelName="Applicant"
+          section="applicant-info"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
           onFieldChange={onCustomFieldChange || (() => { })}
@@ -201,8 +201,8 @@ export const ContactTab: React.FC<ContactTabProps> = ({
         />
       ) : (
         <CustomFieldDisplay
-          modelName="Candidate"
-          section="Applicant-info"
+          modelName="Applicant"
+          section="applicant-info"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
           title="Additional Information"

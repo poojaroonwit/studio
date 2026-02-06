@@ -87,18 +87,18 @@ function hasDataChanged(trackerKey: string, newData: any, options: {
 
 // Smart broadcast functions that only send when data changes
 export function broadcastApplicantUpdateIfChanged(
-  Applicant: any, 
+  applicant: any, 
   actingUserId?: string,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {
   const trackerKey = `Applicant_${applicant.id}`;
   
-  if (hasDataChanged(trackerKey, Applicant, {
+  if (hasDataChanged(trackerKey, applicant, {
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for Applicants
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
     broadcastMediumPriority('Applicant_update', {
-      Applicant,
+      applicant: applicant,
       actingUserId,
       action: 'updated',
       timestamp: new Date().toISOString()
@@ -165,7 +165,7 @@ export function broadcastDashboardUpdateIfChanged(
 // Batch change detection for multiple items
 export function broadcastBatchUpdateIfChanged(
   items: any[],
-  itemType: 'Applicant' | 'position',
+  itemType: 'applicant' | 'position',
   actingUserId?: string,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {

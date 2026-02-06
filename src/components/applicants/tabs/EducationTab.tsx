@@ -422,7 +422,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
       {/* Custom Fields for Education Section */}
       {isEditing ? (
         <CustomFieldEdit
-          modelName="Candidate"
+          modelName="Applicant"
           section="education"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
@@ -431,7 +431,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
         />
       ) : (
         <CustomFieldDisplay
-          modelName="Candidate"
+          modelName="Applicant"
           section="education"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}

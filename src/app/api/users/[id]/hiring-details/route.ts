@@ -83,7 +83,7 @@ export async function GET(
         }
 
         if (applicantOrConditions.length > 0) {
-            applicant = await prisma.candidate.findFirst({
+            applicant = await prisma.applicant.findFirst({
                 where: {
                     OR: applicantOrConditions
                 },

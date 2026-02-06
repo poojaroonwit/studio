@@ -45,7 +45,7 @@ interface EvaluationData {
 }
 
 interface ApplicantEvaluationSectionProps {
-  candidateId: string;
+  applicantId: string;
 }
 
 interface GroupedSkill {
@@ -73,7 +73,7 @@ interface GroupedTrait {
   }>;
 }
 
-const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({ candidateId }) => {
+const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({ applicantId }) => {
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [allEvaluations, setAllEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,13 +81,13 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
 
   useEffect(() => {
     fetchEvaluationData();
-  }, [candidateId]);
+  }, [applicantId]);
 
   const fetchEvaluationData = async () => {
     try {
       setLoading(true);
       // Fetch all evaluations to calculate averages
-      const response = await fetch(`/api/v1/Applicants/${candidateId}/evaluations`, {
+      const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`, {
         credentials: 'include'
       });
 
@@ -153,7 +153,7 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
         setAllEvaluations(evaluations); // Store all individual evaluations
       } else {
         // Fallback to single evaluation endpoint
-        const fallbackResponse = await fetch(`/api/v1/Applicants/${candidateId}/evaluation`, {
+        const fallbackResponse = await fetch(`/api/v1/Applicants/${applicantId}/evaluation`, {
           credentials: 'include'
         });
         if (fallbackResponse.ok) {

@@ -161,7 +161,7 @@ npm run seed:demo-data         # Seed demo data
 npm run seed:upload-queue      # Seed upload queue with test data
 npm run fix:stages             # Fix stage mismatches
 npm run fix:stages:dry-run     # Dry run for stage fixes
-npm run fix:candidate-status   # Fix candidate status issues
+npm run fix:applicant-status   # Fix applicant status issues
 npm run fix:status-rename      # Update components to use statusId
 ```
 

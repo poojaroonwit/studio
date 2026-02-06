@@ -12,18 +12,18 @@ import {
 import { broadcastHighPriority, broadcastMediumPriority, broadcastLowPriority, forceBroadcast } from './aggressive-sse-optimizer';
 
 // Applicant-related broadcasts
-export function broadcastApplicantUpdate(Applicant: any, actingUserId?: string) {
+export function broadcastApplicantUpdate(applicant: any, actingUserId?: string) {
   // Use smart change detection - only broadcast if data actually changed
-  broadcastApplicantUpdateIfChanged(Applicant, actingUserId);
+  broadcastApplicantUpdateIfChanged(applicant, actingUserId);
   
   // Also trigger dashboard refresh for real-time updates
   broadcastDashboardRefresh('Applicant_updated');
 }
 
-export function broadcastApplicantCreated(Applicant: any, actingUserId?: string) {
-  // High priority for new Applicants (always meaningful)
+export function broadcastApplicantCreated(applicant: any, actingUserId?: string) {
+  // High priority for new applicants (always meaningful)
   broadcastHighPriority('Applicant_update', {
-    Applicant,
+    applicant,
     actingUserId,
     action: 'created',
     timestamp: new Date().toISOString()
@@ -33,10 +33,10 @@ export function broadcastApplicantCreated(Applicant: any, actingUserId?: string)
   broadcastDashboardRefresh('Applicant_created');
 }
 
-export function broadcastApplicantDeleted(candidateId: string, actingUserId?: string) {
+export function broadcastApplicantDeleted(applicantId: string, actingUserId?: string) {
   // High priority for deletions (always meaningful)
   broadcastHighPriority('Applicant_update', {
-    candidateId,
+    applicantId: applicantId,
     actingUserId,
     action: 'deleted',
     timestamp: new Date().toISOString()
@@ -46,10 +46,10 @@ export function broadcastApplicantDeleted(candidateId: string, actingUserId?: st
   broadcastDashboardRefresh('Applicant_deleted');
 }
 
-export function broadcastApplicantStatusChanged(Applicant: any, oldStatus: string, newStatus: string, actingUserId?: string) {
+export function broadcastApplicantStatusChanged(applicant: any, oldStatus: string, newStatus: string, actingUserId?: string) {
   // Force immediate broadcast for status changes (bypasses all optimizations)
   forceBroadcast('Applicant_update', {
-    Applicant,
+    applicant,
     actingUserId,
     action: 'status_changed',
     oldStatus,

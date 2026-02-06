@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BriefcaseIcon as Briefcase, DocumentDuplicateIcon as Copy, CheckIcon as Check, InformationCircleIcon as Info, UserIcon as User, UsersIcon as Users, BuildingOffice2Icon as Building2, PencilSquareIcon as Edit2, BanknotesIcon as Banknote } from '@heroicons/react/24/outline';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
-import type { applicant, Position } from '@/lib/types';
+import type { Applicant, Position } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
 import { CustomFieldEdit } from '../CustomFieldEdit';
 import { Badge } from '@/components/ui/badge';
@@ -461,7 +461,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
       {
         isEditing ? (
           <CustomFieldEdit
-            modelName="Candidate"
+            modelName="Applicant"
             section="jobs"
             entityId={applicant.id}
             customFields={applicant.customFields || {}}
@@ -470,7 +470,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
           />
         ) : (
           <CustomFieldDisplay
-            modelName="Candidate"
+            modelName="Applicant"
             section="jobs"
             entityId={applicant.id}
             customFields={applicant.customFields || {}}

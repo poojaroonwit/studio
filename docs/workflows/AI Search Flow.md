@@ -19,16 +19,16 @@ sequenceDiagram
     participant Gemini as Google Gemini
 
     UI->>API: POST /search { query: "..." }
-    API->>Flow: searchCandidatesAIChat(query)
+    API->>Flow: searchapplicantsAIChat(query)
     
-    Flow->>DB: Fetch ALL Candidate Metadata (Summary)
+    Flow->>DB: Fetch ALL applicant Metadata (Summary)
     Flow->>Gemini: POST /generateContent (Context + Query)
     
     Note over Gemini: Matches query against JSON metadata
     
     Gemini-->>Flow: JSON: { matchedIds: [...], reasoning: "..." }
     Flow->>API: Result
-    API-->>UI: Filtered Candidate List
+    API-->>UI: Filtered applicant List
 ```
 
 ---
@@ -41,13 +41,13 @@ The system uses a strict **system prompt** that enforces "Exact Matching Only" t
 - **Normalization**: Automatically handles cases like "TOEIC", "toeic-score", and "Toeic" as identical identifiers.
 
 ### 2. Contextual Summary Generation
-Before sending data to Gemini, the system builds a concise `CandidateSummary` for every candidate in the database:
+Before sending data to Gemini, the system builds a concise `applicantSummary` for every applicant in the database:
 - Aggregates **Education**, **Experience**, and **Skills**.
 - Includes **Custom Attributes** (e.g., salary expectations, certifications).
 - Streams these summaries to the AI to minimize token usage while maximizing relevant context.
 
 ### 3. AI Reasoning
-The search results include an `aiReasoning` field which explains **why** a specific candidate was matched (e.g., "Candidate X mentions TOEIC score 850 in their custom fields").
+The search results include an `aiReasoning` field which explains **why** a specific applicant was matched (e.g., "applicant X mentions TOEIC score 850 in their custom fields").
 
 ---
 
@@ -56,7 +56,7 @@ The search results include an `aiReasoning` field which explains **why** a speci
 | Query Type | Example |
 | :--- | :--- |
 | **Certifications** | "Who has a CPA license?" |
-| **Language** | "Candidates with native English and Thai." |
+| **Language** | "applicants with native English and Thai." |
 | **Skill Depth** | "Experienced Python devs with > 5 years." |
 | **Fit Scores** | "Fit score between 80% and 90%." |
 | **Logic** | "Hired in 2024 but no longer at Company X." |

@@ -28,7 +28,7 @@ const QUERY_TIMEOUT = 10000; // Reduced from 25 to 10 seconds for faster respons
 // Fast count query for performance
 const FAST_COUNT_QUERY = `
   SELECT COUNT(*) as total 
-  FROM "Candidate" c
+  FROM "applicant" c
   WHERE 1=1
 `;
 
@@ -67,7 +67,7 @@ const FAST_COUNT_QUERY = `
  */
 
 // Define the new schema for Applicant creation
-const ApplicantInfoSchema = z.object({
+const applicantInfoSchema = z.object({
   personal_info: z.object({
     title_honorific: z.string().optional().nullable(),
     firstname: z.string().min(1),
@@ -90,7 +90,7 @@ const ApplicantInfoSchema = z.object({
 });
 
 const createApplicantschema = z.object({
-  applicant_info: ApplicantInfoSchema,
+  applicant_info: applicantInfoSchema,
   job_matches: z.array(z.any()).optional(),
   job_applied: z.any().optional(),
   applicationDate: z.string().optional(), // Add applicationDate to the schema
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
   if (job_applied) parsedData.job_applied = job_applied;
 
   const status = applicant_info.status || 'new';
-  const newcandidateId = uuidv4();
+  const newApplicantId = uuidv4();
 
   let client;
   try {
@@ -184,25 +184,25 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
     const insertApplicantQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes", "applicationDate", "sourceId", "subSource", "updatedAt")
+      INSERT INTO "applicant" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes", "applicationDate", "sourceId", "subSource", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       RETURNING *;
     `;
-    const ApplicantResult = await client.query(insertApplicantQuery, [
-      newcandidateId, name, email, phone, positionId, fitScore, status, parsedData, {}, applicationDate ? new Date(applicationDate) : createDateInTimezone(),
+    const applicantResult = await client.query(insertApplicantQuery, [
+      newApplicantId, name, email, phone, positionId, fitScore, status, parsedData, {}, applicationDate ? new Date(applicationDate) : createDateInTimezone(),
       body.sourceId || null, body.subSource || null
     ]);
-    const newApplicant = ApplicantResult.rows[0];
+    const newApplicant = applicantResult.rows[0];
     // Create initial transition record
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicantId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
     `;
     await client.query(insertTransitionQuery, [
-      uuidv4(), newcandidateId, 'Applied', 'Initial creation', actingUserId
+      uuidv4(), newApplicantId, 'Applied', 'Initial creation', actingUserId
     ]);
     await client.query('COMMIT');
-    await logAudit('AUDIT', `New Applicant '${name}' created by ${actingUserName}.`, 'API:Applicants:Create', actingUserId, { candidateId: newcandidateId });
+    await logAudit('AUDIT', `New Applicant '${name}' created by ${actingUserName}.`, 'API:Applicants:Create', actingUserId, { applicantId: newApplicantId });
 
     // Broadcast to SSE clients
     broadcastApplicantCreated(newApplicant, actingUserId);
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
     if (positionId && !newApplicant.recruiterId) {
       try {
         const syncSuccess = await syncRecruiterForApplicant(
-          newcandidateId,
+          newApplicantId,
           positionId,
           actingUserId,
           actingUserName
@@ -222,19 +222,19 @@ export async function POST(request: NextRequest) {
           // Get the updated Applicant with recruiter information
           const updatedApplicantQuery = `
             SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
-            FROM "Candidate" c
+            FROM "applicant" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" u ON c."recruiterId" = u.id
             WHERE c.id = $1
           `;
-          const updatedApplicantResult = await client.query(updatedApplicantQuery, [newcandidateId]);
+          const updatedApplicantResult = await client.query(updatedApplicantQuery, [newApplicantId]);
           const updatedApplicant = updatedApplicantResult.rows[0];
 
           // Send notification to the assigned recruiter
           if (updatedApplicant.recruiterId) {
             try {
               await NotificationService.notifyApplicantAdded(
-                newcandidateId,
+                newApplicantId,
                 name,
                 positionId,
                 updatedApplicant.positionTitle || 'Unknown Position',
@@ -854,7 +854,7 @@ export async function GET(request: NextRequest) {
         // No matching fit score filter - Applicants with no job matches
         whereClauses.push(`(
           (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
-          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."candidateId" = c.id)
+          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicantId" = c.id)
         )`);
 
       } else if (filters.includeNoScoreInMatching) {
@@ -871,7 +871,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              WHERE jm."applicantId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -888,7 +888,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              WHERE jm."applicantId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -898,7 +898,7 @@ export async function GET(request: NextRequest) {
         // Create OR condition: (regular score conditions) OR (no-score condition)
         const noScoreCondition = `(
           (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
-          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."candidateId" = c.id)
+          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicantId" = c.id)
         )`;
 
         if (regularScoreConditions.length > 0) {
@@ -922,7 +922,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              WHERE jm."applicantId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -940,7 +940,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              WHERE jm."applicantId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -1132,7 +1132,7 @@ export async function GET(request: NextRequest) {
     // SECURITY: whereClause is built from whitelisted fragments and parameterized values
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM "Candidate" c
+      FROM "applicant" c
       ${whereClause}
     `;
 
@@ -1187,7 +1187,7 @@ export async function GET(request: NextRequest) {
         u.name as "recruiterName",
         cs.name as "sourceName",
         c."isBlacklisted"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -1211,7 +1211,7 @@ export async function GET(request: NextRequest) {
     const total = parseInt(countResult.rows[0].total);
 
     // Optimize data transformation
-    const Applicants = dataResult.rows.map((row: any) => ({
+    const applicants = dataResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       email: row.email,
@@ -1249,7 +1249,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      data: Applicants,
+      data: applicants,
       pagination: {
         page,
         limit,

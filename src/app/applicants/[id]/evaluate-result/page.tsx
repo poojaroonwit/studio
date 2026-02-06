@@ -29,10 +29,10 @@ export default function EvaluateResultPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const candidateId = params.id as string;
+  const applicantId = params.id as string;
   const isEmbedded = searchParams.get('embedded') === 'true';
 
-  const [Applicant, setApplicant] = useState<Applicant | null>(null);
+  const [applicant, setApplicant] = useState<Applicant | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
   const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
@@ -63,7 +63,7 @@ export default function EvaluateResultPage() {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (candidateId) {
+    if (applicantId) {
       fetchApplicantData();
       fetchEvaluationData();
       fetchHeaderSettings();
@@ -71,7 +71,7 @@ export default function EvaluateResultPage() {
     }
     // Check if we're in an iframe
     setIsInIframe(window.self !== window.top);
-  }, [candidateId]);
+  }, [applicantId]);
 
   // Update editingRemark when evaluationData changes
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function EvaluateResultPage() {
 
   const fetchApplicantData = async () => {
     try {
-      const response = await fetch(`/api/applicants/${candidateId}`, { credentials: 'include' });
+      const response = await fetch(`/api/applicants/${applicantId}`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setApplicant(data);
@@ -107,7 +107,7 @@ export default function EvaluateResultPage() {
       setError(null);
 
       // Fetch all evaluations for this Applicant
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluations`);
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`);
       if (response.ok) {
         const evaluations = await response.json();
 
@@ -196,7 +196,7 @@ export default function EvaluateResultPage() {
         setEditingRemark(evaluations[0]?.comments || '');
       } else {
         // Fallback to single evaluation endpoint
-        const fallbackResponse = await fetch(`/api/v1/applicants/${candidateId}/evaluation`);
+        const fallbackResponse = await fetch(`/api/v1/applicants/${applicantId}/evaluation`);
         if (fallbackResponse.ok) {
           const data = await fallbackResponse.json();
           setEvaluationData(data || null);
@@ -366,7 +366,7 @@ export default function EvaluateResultPage() {
   };
 
   const handleAvatarUpload = async (file: File) => {
-    if (!Applicant || !canEditApplicantBasic()) return;
+    if (!applicant || !canEditApplicantBasic()) return;
 
     setAvatarUploading(true);
     try {
@@ -419,7 +419,7 @@ export default function EvaluateResultPage() {
       }));
 
       // Update the evaluation
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation/${evaluationWithSkill.id}`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation/${evaluationWithSkill.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -459,7 +459,7 @@ export default function EvaluateResultPage() {
       // Find the first evaluation to update (or we could update all, but for now use first)
       const evaluationToUpdate = allEvaluations[0] || evaluationData;
 
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation/${evaluationToUpdate.id}`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation/${evaluationToUpdate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -519,7 +519,7 @@ export default function EvaluateResultPage() {
     );
   }
 
-  if (!Applicant) {
+  if (!applicant) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Alert>
@@ -546,7 +546,7 @@ export default function EvaluateResultPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => router.push(`/applicants/${candidateId}/evaluate`)}
+                  onClick={() => router.push(`/applicants/${applicantId}/evaluate`)}
                   className="h-10 w-10"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -585,7 +585,7 @@ export default function EvaluateResultPage() {
         <div className="p-8 md:p-8 space-y-6 md:space-y-8 max-w-5xl mx-auto">
           {!isEmbedded && (
             <ReportHeader
-              Applicant={Applicant}
+              applicant={applicant}
               position={position}
               organizationLogoUrl={organizationLogoUrl}
               organizationName={organizationName}

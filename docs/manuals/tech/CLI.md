@@ -9,7 +9,7 @@
 | **When** | During system upgrades, emergency data fixes, or when setting up a fresh development environment. |
 | **Why** | To perform high-risk or high-volume operations with safety and logging that the UI cannot provide. |
 | **Where** | Located in the project's `/scripts` directory. |
-| **How** | 1. Open Terminal <br> 2. Navigate to project root <br> 3. Run script (e.g., `node scripts/fix-candidate-status-uuid.js`) <br> 4. Review terminal output for success/error counts <br> 5. Verify data changes in the UI |
+| **How** | 1. Open Terminal <br> 2. Navigate to project root <br> 3. Run script (e.g., `node scripts/fix-applicant-status-uuid.js`) <br> 4. Review terminal output for success/error counts <br> 5. Verify data changes in the UI |
 
 ## 1. Safety Procedures
 - **Create Backups**: Always trigger a manual database snapshot before running repair scripts.

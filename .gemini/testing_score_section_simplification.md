@@ -6,7 +6,7 @@ Successfully removed category grouping and bottom border from the testing score 
 
 ## Changes Made
 
-### File: `src/app/candidates/[id]/evaluate/DesktopEvaluatePage.tsx`
+### File: `src/app/applicants/[id]/evaluate/DesktopEvaluatePage.tsx`
 
 **Section Modified:** Test Score Section (lines 282-310)
 

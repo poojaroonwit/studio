@@ -311,23 +311,23 @@ export class WebhookBodyProcessor {
         'id', 'name', 'email', 'role', 'deletedAt'
       ],
       'resume.uploaded': [
-        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'ApplicantName',
+        'id', 'fileName', 'fileSize', 'uploadDate', 'applicantId', 'ApplicantName',
         'positionId', 'positionTitle'
       ],
       'resume.processed': [
-        'id', 'fileName', 'fileSize', 'uploadDate', 'candidateId', 'ApplicantName',
+        'id', 'fileName', 'fileSize', 'uploadDate', 'applicantId', 'ApplicantName',
         'positionId', 'positionTitle', 'processingResult', 'extractedData'
       ],
       'comment.created': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
+        'id', 'content', 'authorId', 'authorName', 'applicantId', 'ApplicantName',
         'createdAt', 'attachments'
       ],
       'comment.updated': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
+        'id', 'content', 'authorId', 'authorName', 'applicantId', 'ApplicantName',
         'createdAt', 'updatedAt', 'changes'
       ],
       'comment.deleted': [
-        'id', 'content', 'authorId', 'authorName', 'candidateId', 'ApplicantName',
+        'id', 'content', 'authorId', 'authorName', 'applicantId', 'ApplicantName',
         'deletedAt'
       ],
       'upload_queue.created': [

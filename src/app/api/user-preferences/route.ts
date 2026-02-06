@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       sidebar: {
         showAssignedPositions: boolean;
       };
-      Applicants: {
+      applicants: {
         showApplicantColumn: boolean;
         showAppliedJobColumn: boolean;
         showJobMatchesColumn: boolean;
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       sidebar: {
         showAssignedPositions: true,
       },
-      Applicants: {
+      applicants: {
         showApplicantColumn: true,
         showAppliedJobColumn: true,
         showJobMatchesColumn: true,
@@ -273,52 +273,52 @@ export async function GET(request: NextRequest) {
         } else if (pref.modelType === 'Applicants') {
           switch (pref.attributeKey) {
             case 'showApplicantColumn':
-              transformedPreferences.Applicants.showApplicantColumn = value === 'true';
+              transformedPreferences.applicants.showApplicantColumn = value === 'true';
               break;
             case 'showAppliedJobColumn':
-              transformedPreferences.Applicants.showAppliedJobColumn = value === 'true';
+              transformedPreferences.applicants.showAppliedJobColumn = value === 'true';
               break;
             case 'showJobMatchesColumn':
-              transformedPreferences.Applicants.showJobMatchesColumn = value === 'true';
+              transformedPreferences.applicants.showJobMatchesColumn = value === 'true';
               break;
             case 'showFitScoreColumn':
-              transformedPreferences.Applicants.showFitScoreColumn = value === 'true';
+              transformedPreferences.applicants.showFitScoreColumn = value === 'true';
               break;
             case 'showRecruiterColumn':
-              transformedPreferences.Applicants.showRecruiterColumn = value === 'true';
+              transformedPreferences.applicants.showRecruiterColumn = value === 'true';
               break;
             case 'showSourceColumn':
-              transformedPreferences.Applicants.showSourceColumn = value === 'true';
+              transformedPreferences.applicants.showSourceColumn = value === 'true';
               break;
             case 'showStatusColumn':
-              transformedPreferences.Applicants.showStatusColumn = value === 'true';
+              transformedPreferences.applicants.showStatusColumn = value === 'true';
               break;
             case 'showAppliedDateColumn':
-              transformedPreferences.Applicants.showAppliedDateColumn = value === 'true';
+              transformedPreferences.applicants.showAppliedDateColumn = value === 'true';
               break;
             case 'showLastUpdateColumn':
-              transformedPreferences.Applicants.showLastUpdateColumn = value === 'true';
+              transformedPreferences.applicants.showLastUpdateColumn = value === 'true';
               break;
             case 'showCreatedDateColumn':
-              transformedPreferences.Applicants.showCreatedDateColumn = value === 'true';
+              transformedPreferences.applicants.showCreatedDateColumn = value === 'true';
               break;
             case 'showFilters':
-              transformedPreferences.Applicants.showFilters = value === 'true';
+              transformedPreferences.applicants.showFilters = value === 'true';
               break;
             case 'showHorizontalFitScoreFilters':
-              transformedPreferences.Applicants.showHorizontalFitScoreFilters = value === 'true';
+              transformedPreferences.applicants.showHorizontalFitScoreFilters = value === 'true';
               break;
             case 'fitScoreType':
-              transformedPreferences.Applicants.fitScoreType = value as 'applied' | 'matching';
+              transformedPreferences.applicants.fitScoreType = value as 'applied' | 'matching';
               break;
             case 'fitScoreFilterMode':
-              transformedPreferences.Applicants.fitScoreFilterMode = value as 'single' | 'multi';
+              transformedPreferences.applicants.fitScoreFilterMode = value as 'single' | 'multi';
               break;
             case 'rowHeight':
-              transformedPreferences.Applicants.rowHeight = value as 'compact' | 'normal' | 'comfortable';
+              transformedPreferences.applicants.rowHeight = value as 'compact' | 'normal' | 'comfortable';
               break;
             case 'columnOrder':
-              transformedPreferences.Applicants.columnOrder = value ? JSON.parse(value) : [
+              transformedPreferences.applicants.columnOrder = value ? JSON.parse(value) : [
                 'Applicant',
                 'appliedJob',
                 'jobMatches',
@@ -331,16 +331,16 @@ export async function GET(request: NextRequest) {
               ];
               break;
             case 'showPinSection':
-              transformedPreferences.Applicants.showPinSection = value === 'true';
+              transformedPreferences.applicants.showPinSection = value === 'true';
               break;
             case 'pageSize':
-              transformedPreferences.Applicants.pageSize = parseInt(value) || 20;
+              transformedPreferences.applicants.pageSize = parseInt(value) || 20;
               break;
             case 'sortColumn':
-              transformedPreferences.Applicants.sortColumn = value || 'applicationDate';
+              transformedPreferences.applicants.sortColumn = value || 'applicationDate';
               break;
             case 'sortDirection':
-              transformedPreferences.Applicants.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
+              transformedPreferences.applicants.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
               break;
           }
         } else if (pref.modelType === 'sidebar') {

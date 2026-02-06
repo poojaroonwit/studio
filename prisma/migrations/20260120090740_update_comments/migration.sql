@@ -1,16 +1,16 @@
 -- Prisma Database Comments Generator v1.4.0
 
--- CandidateSource comments
-COMMENT ON COLUMN "CandidateSource"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateSource"."name" IS 'Source name (e.g., LinkedIn, JobsDB)';
-COMMENT ON COLUMN "CandidateSource"."description" IS 'Source description';
-COMMENT ON COLUMN "CandidateSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
-COMMENT ON COLUMN "CandidateSource"."sort_order" IS 'Sort order for display';
-COMMENT ON COLUMN "CandidateSource"."is_active" IS 'Whether source is active';
-COMMENT ON COLUMN "CandidateSource"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateSource"."updatedAt" IS 'Last update timestamp';
-COMMENT ON COLUMN "CandidateSource"."logo" IS 'Logo URL or path';
-COMMENT ON COLUMN "CandidateSource"."email" IS 'Contact email for this source';
+-- applicantSource comments
+COMMENT ON COLUMN "applicantSource"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantSource"."name" IS 'Source name (e.g., LinkedIn, JobsDB)';
+COMMENT ON COLUMN "applicantSource"."description" IS 'Source description';
+COMMENT ON COLUMN "applicantSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
+COMMENT ON COLUMN "applicantSource"."sort_order" IS 'Sort order for display';
+COMMENT ON COLUMN "applicantSource"."is_active" IS 'Whether source is active';
+COMMENT ON COLUMN "applicantSource"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantSource"."updatedAt" IS 'Last update timestamp';
+COMMENT ON COLUMN "applicantSource"."logo" IS 'Logo URL or path';
+COMMENT ON COLUMN "applicantSource"."email" IS 'Contact email for this source';
 
 -- Notification comments
 COMMENT ON COLUMN "Notification"."id" IS 'Unique identifier';
@@ -28,7 +28,7 @@ COMMENT ON COLUMN "Headcount"."id" IS 'Unique identifier';
 COMMENT ON COLUMN "Headcount"."positionId" IS 'Reference to position';
 COMMENT ON COLUMN "Headcount"."type" IS 'Headcount type (new, replacement, expansion)';
 COMMENT ON COLUMN "Headcount"."status" IS 'Current status (vacant, filled, pending)';
-COMMENT ON COLUMN "Headcount"."candidateId" IS 'Assigned candidate reference';
+COMMENT ON COLUMN "Headcount"."applicantId" IS 'Assigned applicant reference';
 COMMENT ON COLUMN "Headcount"."onboardingDate" IS 'Expected onboarding date';
 COMMENT ON COLUMN "Headcount"."requestDate" IS 'Request submission date';
 COMMENT ON COLUMN "Headcount"."notes" IS 'Additional notes';

@@ -7,7 +7,7 @@
 | **What** | The central hub for creating, managing, and filling job requisitions. |
 | **Who** | **Recruiters** (Owners) and **Hiring Managers** (Collaborators). |
 | **When** | From the moment a need is identified until the role is filled. |
-| **Why** | To organize candidates, track headcount, and ensure clear requirements (JD) are distributed. |
+| **Why** | To organize applicants, track headcount, and ensure clear requirements (JD) are distributed. |
 | **Where** | **Positions** module. |
 | **How** | 1. **Create Position** (Basic Info) <br> 2. **Config Team** (Add Manager) <br> 3. **Set Headcount** <br> 4. **Generate JD** <br> 5. **Publish** |
 
@@ -34,24 +34,24 @@ Configure the "brain" of the AI matching engine for this specific role.
 *   **Match Criteria**: Define the prompt instructions (e.g., "Must have 5 years of Python").
 *   **Default Criteria**: Load the system-wide baseline to save time.
 
-### 2.3 Candidates Tab
+### 2.3 applicants Tab
 A mini-pipeline view specific to this position.
-*   **Applied**: Candidates who explicitly applied for this Job ID.
-*   **Potential**: (AI Powered) Candidates in your database who match the criteria *but haven't applied yet*. Good for rediscovery.
-*   **Pinning**: "Pin" top candidates to keep them at the top of the list.
+*   **Applied**: applicants who explicitly applied for this Job ID.
+*   **Potential**: (AI Powered) applicants in your database who match the criteria *but haven't applied yet*. Good for rediscovery.
+*   **Pinning**: "Pin" top applicants to keep them at the top of the list.
 
 ### 2.4 Headcount Tab
 Manage the quota for this requisition.
 *   **Slots**: Define how many hires are approved (e.g., 3 openings).
-*   **Hired Count**: Automatically increments when a candidate is moved to "Hired" stage.
-*   **Pipeline**: See which specific candidates are filling the slots.
+*   **Hired Count**: Automatically increments when a applicant is moved to "Hired" stage.
+*   **Pipeline**: See which specific applicants are filling the slots.
 
 ### 2.5 Interviewers Tab
 Define the Hiring Team.
 *   **Add Member**: select users who need access to this position.
 *   **Roles**:
     *   *Recruiter*: Full edit access.
-    *   *Interviewer*: Can only evaluate candidates.
+    *   *Interviewer*: Can only evaluate applicants.
     *   *Hiring Manager*: Can see pipeline and approve/reject.
 
 ### 2.6 Evaluate Tab
@@ -61,4 +61,4 @@ Link the position to the Evaluation Module.
 
 ## 3. Publishing
 Once configured, toggle the status to **"Open"** in the **Details Tab**.
-*   The position becomes visible in the " Careers Page" (if integrated) and available for candidate assignment.
+*   The position becomes visible in the " Careers Page" (if integrated) and available for applicant assignment.

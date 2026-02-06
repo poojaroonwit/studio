@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Update Components to Use status Instead of statusId for Candidates
+ * Update Components to Use status Instead of statusId for applicants
  * 
  * This script updates component files to use the status field name
- * for Candidate-related operations, maintaining consistency with the Prisma schema.
+ * for applicant-related operations, maintaining consistency with the Prisma schema.
  * It preserves status fields in other models like UploadQueue and Headcount.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Patterns to search for and replace - convert statusId to status for candidates
+// Patterns to search for and replace - convert statusId to status for applicants
 const patterns = [
-  // Direct field access on candidate objects
-  { from: /candidate\.statusId/g, to: 'candidate.status' },
+  // Direct field access on applicant objects
+  { from: /applicant\.statusId/g, to: 'applicant.status' },
   { from: /c\.statusId/g, to: 'c.status' },
   { from: /existing\.statusId/g, to: 'existing.status' },
-  { from: /updatedCandidate\.statusId/g, to: 'updatedCandidate.status' },
-  { from: /newCandidate\.statusId/g, to: 'newCandidate.status' },
-  { from: /candidateData\.statusId/g, to: 'candidateData.status' },
+  { from: /updatedapplicant\.statusId/g, to: 'updatedapplicant.status' },
+  { from: /newapplicant\.statusId/g, to: 'newapplicant.status' },
+  { from: /applicantData\.statusId/g, to: 'applicantData.status' },
   
   // Function parameters and variable names
   { from: /statusId:\s*string/g, to: 'status: string' },
@@ -27,51 +27,51 @@ const patterns = [
   { from: /\bstatusId\b/g, to: 'status' },
   
   // In object destructuring and assignments
-  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*applicant\.statusId/g, to: 'status: applicant.status' },
   { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
-  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
-  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
+  { from: /statusId:\s*updatedapplicant\.statusId/g, to: 'status: updatedapplicant.status' },
+  { from: /statusId:\s*newapplicant\.statusId/g, to: 'status: newapplicant.status' },
   
   // In object literals
-  { from: /statusId:\s*candidate\.statusId/g, to: 'status: candidate.status' },
+  { from: /statusId:\s*applicant\.statusId/g, to: 'status: applicant.status' },
   { from: /statusId:\s*existing\.statusId/g, to: 'status: existing.status' },
-  { from: /statusId:\s*updatedCandidate\.statusId/g, to: 'status: updatedCandidate.status' },
-  { from: /statusId:\s*newCandidate\.statusId/g, to: 'status: newCandidate.status' },
+  { from: /statusId:\s*updatedapplicant\.statusId/g, to: 'status: updatedapplicant.status' },
+  { from: /statusId:\s*newapplicant\.statusId/g, to: 'status: newapplicant.status' },
   
   // In filter conditions
-  { from: /candidate\.statusId\s*===/g, to: 'candidate.status ===' },
-  { from: /candidate\.statusId\s*!==/g, to: 'candidate.status !==' },
-  { from: /candidate\.statusId\s*&&/g, to: 'candidate.status &&' },
-  { from: /candidate\.statusId\s*\|\|/g, to: 'candidate.status ||' },
+  { from: /applicant\.statusId\s*===/g, to: 'applicant.status ===' },
+  { from: /applicant\.statusId\s*!==/g, to: 'applicant.status !==' },
+  { from: /applicant\.statusId\s*&&/g, to: 'applicant.status &&' },
+  { from: /applicant\.statusId\s*\|\|/g, to: 'applicant.status ||' },
   { from: /c\.statusId\s*===/g, to: 'c.status ===' },
   { from: /c\.statusId\s*!==/g, to: 'c.status !==' },
   
-  // In SQL queries specifically for candidate tables
+  // In SQL queries specifically for applicant tables
   { from: /c\.statusId\s*=/g, to: 'c."status" =' },
   { from: /c\.statusId\s*IN/g, to: 'c."status" IN' },
   { from: /c\.statusId\s*IS/g, to: 'c."status" IS' },
   
-  // In comments specifically about candidate status
-  { from: /\/\/\s*candidate.*statusId.*UUID/g, to: '// candidate status UUID' },
-  { from: /\/\/\s*candidate.*statusId.*field/g, to: '// candidate status field' },
+  // In comments specifically about applicant status
+  { from: /\/\/\s*applicant.*statusId.*UUID/g, to: '// applicant status UUID' },
+  { from: /\/\/\s*applicant.*statusId.*field/g, to: '// applicant status field' },
   
-  // In variable names specifically for candidate status
-  { from: /\bcandidateStatusIdColumn\b/g, to: 'candidateStatusColumn' },
-  { from: /\bcandidateStatusIdField\b/g, to: 'candidateStatusField' },
+  // In variable names specifically for applicant status
+  { from: /\bapplicantStatusIdColumn\b/g, to: 'applicantStatusColumn' },
+  { from: /\bapplicantStatusIdField\b/g, to: 'applicantStatusField' },
 ];
 
 // Only process essential files to avoid build issues
 const essentialFiles = [
-  'src/components/candidates/**/*.tsx',
-  'src/components/candidates/**/*.ts',
-  'src/app/api/candidates/**/*.ts',
-  'src/app/api/v1/candidates/**/*.ts',
-  'src/lib/candidateUtils.ts',
+  'src/components/applicants/**/*.tsx',
+  'src/components/applicants/**/*.ts',
+  'src/app/api/applicants/**/*.ts',
+  'src/app/api/v1/applicants/**/*.ts',
+  'src/lib/applicantUtils.ts',
   'src/lib/recruitmentStageUtils.ts',
   'src/lib/statusMapping.ts',
   'src/lib/types.ts',
-  'src/hooks/use-candidate-*.ts',
-  'src/hooks/use-candidate-*.tsx'
+  'src/hooks/use-applicant-*.ts',
+  'src/hooks/use-applicant-*.tsx'
 ];
 
 async function updateFile(filePath) {
@@ -108,7 +108,7 @@ async function main() {
     let updatedCount = 0;
     let errorCount = 0;
     
-    // Process only essential candidate-related files
+    // Process only essential applicant-related files
     for (const filePattern of essentialFiles) {
       try {
         const files = await glob(filePattern, { 
@@ -156,7 +156,7 @@ async function glob(pattern, options = {}) {
         walkDir(fullPath, pattern);
       } else if (stat.isFile() && pattern.includes('**')) {
         const relativePath = path.relative('.', fullPath);
-        if (relativePath.includes('candidates') && (relativePath.endsWith('.ts') || relativePath.endsWith('.tsx'))) {
+        if (relativePath.includes('applicants') && (relativePath.endsWith('.ts') || relativePath.endsWith('.tsx'))) {
           files.push(relativePath);
         }
       }

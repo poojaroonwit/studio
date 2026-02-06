@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const fileUrl = url.searchParams.get('url');
   const fileName = url.searchParams.get('fileName');
   const filePath = url.searchParams.get('filePath');
-  const candidateId = url.searchParams.get('candidateId');
+  const applicantId = url.searchParams.get('applicantId');
   const headcountId = url.searchParams.get('headcountId');
 
   // Support both old URL-based and new filePath-based access
@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
     if (filePath) {
       // New secure file access using filePath
       // Validate file access permissions based on context
-      if (candidateId) {
+      if (applicantId) {
         // Check if user can access this Applicant's files
-        const applicant = await prisma.candidate.findUnique({
-          where: { id: candidateId },
+        const applicant = await prisma.applicant.findUnique({
+          where: { id: applicantId },
           select: { id: true, recruiterId: true }
         });
 

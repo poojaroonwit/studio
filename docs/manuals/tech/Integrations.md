@@ -17,9 +17,9 @@ Generate triggers that notify other systems based on platform events.
 ### 1.1 Webhook Configuration
 1.  Navigate to **Settings > Integrations**.
 2.  **Webhook URL**: Paste the endpoint from your external tool (e.g., N8N or Zapier).
-3.  **Events**: Select triggers like `candidate_hired`, `job_created`, or `scorecard_submitted`.
+3.  **Events**: Select triggers like `applicant_hired`, `job_created`, or `scorecard_submitted`.
 4.  **Verification**: Click **"Test Connection"** to send a sample payload to your URL.
-- **Trigger**: "Candidate stage changed to Hired."
+- **Trigger**: "applicant stage changed to Hired."
 - **Action**: N8N automatically sends an onboarding email and posts a "Congratulations" message to Slack.
 
 ```mermaid
@@ -29,7 +29,7 @@ sequenceDiagram
     participant Slack
     participant Email
 
-    FitScan->>N8N: POST /webhook (Event: candidate.hired)
+    FitScan->>N8N: POST /webhook (Event: applicant.hired)
     N8N->>N8N: Parse Payload
     par Notifications
         N8N->>Slack: Send Channel Alert
@@ -43,7 +43,7 @@ Securely connect your own internal tools to the platform:
 - **Revocation**: Instantly kill a key if it is accidentally exposed in client-side code.
 
 > [!WARNING]
-> API keys grant full administrative access to your candidate data. Never share them in public repositories or via unencrypted chat.
+> API keys grant full administrative access to your applicant data. Never share them in public repositories or via unencrypted chat.
 
 ## 3. How to Verify (Test Case)
 To verify your API key:

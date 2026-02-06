@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
             department: true,
           },
         },
-        candidate: {
+        applicant: {
           select: {
             id: true,
             name: true,
@@ -95,14 +95,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
 
-    const { positionId, type, status = 'vacant', candidateId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
+    const { positionId, type, status = 'vacant', applicantId: applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     if (!positionId || !type) {
       return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });
     }
 
-    // Validate that if status is 'filled', a candidateId must be provided
-    if (status === 'filled' && !candidateId) {
+    // Validate that if status is 'filled', a applicantId must be provided
+    if (status === 'filled' && !applicantId) {
       return NextResponse.json({ error: 'Applicant ID is required when status is "filled"' }, { status: 400 });
     }
 
@@ -115,10 +115,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Position not found' }, { status: 404 });
     }
 
-    // If candidateId is provided, verify Applicant exists
-    if (candidateId) {
-      const applicant = await prisma.candidate.findUnique({
-        where: { id: candidateId },
+    // If applicantId is provided, verify Applicant exists
+    if (applicantId) {
+      const applicant = await prisma.applicant.findUnique({
+        where: { id: applicantId },
       });
 
       if (!applicant) {
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         positionId,
         type,
         status,
-        candidateId: candidateId || null,
+        applicantId: applicantId || null,
         onboardingDate: onboardingDate ? new Date(onboardingDate) : null,
         requestDate: requestDate ? new Date(requestDate) : null,
         notes: notes || null,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
             department: true,
           },
         },
-        candidate: {
+        applicant: {
           select: {
             id: true,
             name: true,

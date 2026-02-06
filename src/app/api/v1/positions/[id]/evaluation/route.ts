@@ -25,7 +25,7 @@ export async function GET(
           token: token,
           revokedAt: null,
           expiresAt: { gt: new Date() },
-          Applicant: {
+          applicant: {
             positionId: positionId
           }
         }

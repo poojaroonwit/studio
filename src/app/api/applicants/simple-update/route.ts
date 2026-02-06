@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { candidateId, updates } = await request.json();
+    const { applicantId: applicantId, updates } = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'applicantId' internally
 
-    if (!candidateId || !updates) {
+    if (!applicantId || !updates) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
       const updateValues = Object.values(updates);
       
       const updateQuery = `
-        UPDATE "Candidate" 
+        UPDATE "applicant" 
         SET ${updateFields.join(', ')}, "updatedAt" = NOW() 
         WHERE id = $1 
         RETURNING *
       `;
       
-      const result = await client.query(updateQuery, [candidateId, ...updateValues]);
+      const result = await client.query(updateQuery, [applicantId, ...updateValues]);
       
       if (result.rows.length === 0) {
         await client.query('ROLLBACK');

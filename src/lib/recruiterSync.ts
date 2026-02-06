@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 export interface RecruiterSyncResult {
   positionId: string;
   positionTitle: string;
-  ApplicantsUpdated: number;
-  ApplicantsSkipped: number;
+  applicantsUpdated: number;
+  applicantsSkipped: number;
   errors: string[];
 }
 
@@ -26,8 +26,8 @@ export async function syncRecruiterForPosition(
   const result: RecruiterSyncResult = {
     positionId,
     positionTitle: '',
-    ApplicantsUpdated: 0,
-    ApplicantsSkipped: 0,
+    applicantsUpdated: 0,
+    applicantsSkipped: 0,
     errors: []
   };
 
@@ -54,7 +54,7 @@ export async function syncRecruiterForPosition(
     // Get all applicants for this position with timeout
     const applicantsQuery = `
       SELECT c.id, c.name, c."recruiterId", u.name as "recruiterName"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c."positionId" = $1::uuid
     `;
@@ -69,19 +69,19 @@ export async function syncRecruiterForPosition(
         try {
           // Skip if applicant already has a recruiter assigned (preserve existing assignment)
           if (applicant.recruiterId !== null) {
-            result.ApplicantsSkipped++;
+            result.applicantsSkipped++;
             continue;
           }
 
           // Skip if position has no recruiter to assign
           if (!positionRecruiterId) {
-            result.ApplicantsSkipped++;
+            result.applicantsSkipped++;
             continue;
           }
 
           // Update applicant's recruiter (only for unassigned applicants)
           const updateQuery = `
-            UPDATE "Candidate" 
+            UPDATE "applicant" 
             SET "recruiterId" = $1, "updatedAt" = NOW()
             WHERE id = $2::uuid
           `;
@@ -92,7 +92,7 @@ export async function syncRecruiterForPosition(
 
           const newTransitionId = uuidv4();
           const insertTransitionQuery = `
-            INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+            INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
           `;
           
@@ -105,7 +105,7 @@ export async function syncRecruiterForPosition(
             actingUserId
           ]);
 
-          result.ApplicantsUpdated++;
+          result.applicantsUpdated++;
 
           // Log the sync action (don't await to prevent blocking)
           logAudit(
@@ -114,7 +114,7 @@ export async function syncRecruiterForPosition(
             'RecruiterSync:Position',
             actingUserId,
             {
-              candidateId: applicant.id,
+              applicantId: applicant.id,
               positionId,
               oldRecruiterId: null,
               newRecruiterId: positionRecruiterId
@@ -141,7 +141,7 @@ export async function syncRecruiterForPosition(
     // Log overall sync result (don't await to prevent blocking)
     logAudit(
       'INFO',
-      `Recruiter sync completed for position "${position.title}": ${result.ApplicantsUpdated} updated, ${result.ApplicantsSkipped} skipped`,
+      `Recruiter sync completed for position "${position.title}": ${result.applicantsUpdated} updated, ${result.applicantsSkipped} skipped`,
       'RecruiterSync:Position',
       actingUserId,
       { positionId, result }
@@ -180,7 +180,7 @@ export async function syncAllRecruiter(
     const positionsQuery = `
       SELECT DISTINCT p.id, p.title
       FROM "Position" p
-      INNER JOIN "Candidate" c ON p.id = c."positionId"
+      INNER JOIN "applicant" c ON p.id = c."positionId"
     `;
     const positionsResult = await client.query(positionsQuery);
 
@@ -198,8 +198,8 @@ export async function syncAllRecruiter(
         results.push({
           positionId: position.id,
           positionTitle: position.title,
-          ApplicantsUpdated: 0,
-          ApplicantsSkipped: 0,
+          applicantsUpdated: 0,
+          applicantsSkipped: 0,
           errors: [errorMsg]
         });
       }
@@ -214,14 +214,14 @@ export async function syncAllRecruiter(
 
 /**
  * Syncs recruiter for a single Applicant when their position's recruiter changes
- * @param candidateId - The Applicant ID to sync
+ * @param applicantId - The Applicant ID to sync
  * @param positionId - The position ID (optional, will be fetched if not provided)
  * @param actingUserId - The user performing the sync
  * @param actingUserName - The name of the user performing the sync
  * @returns Promise<boolean> - True if sync was successful
  */
 export async function syncRecruiterForApplicant(
-  candidateId: string,
+  applicantId: string,
   positionId: string | null = null,
   actingUserId: string,
   actingUserName: string
@@ -231,16 +231,16 @@ export async function syncRecruiterForApplicant(
   try {
     await client.query('BEGIN');
 
-    // Get Applicant details if positionId not provided
+    // Get applicant details if positionId not provided
     if (!positionId) {
-      const ApplicantQuery = 'SELECT "positionId" FROM "Candidate" WHERE id = $1::uuid';
-      const ApplicantResult = await client.query(ApplicantQuery, [candidateId]);
+      const applicantQuery = 'SELECT "positionId" FROM "applicant" WHERE id = $1::uuid';
+      const applicantResult = await client.query(applicantQuery, [applicantId]);
       
-      if (ApplicantResult.rows.length === 0) {
+      if (applicantResult.rows.length === 0) {
         throw new Error('Applicant not found');
       }
       
-      positionId = ApplicantResult.rows[0].positionId;
+      positionId = applicantResult.rows[0].positionId;
       
       if (!positionId) {
         // Applicant has no position, nothing to sync
@@ -264,20 +264,20 @@ export async function syncRecruiterForApplicant(
     const position = positionResult.rows[0];
     const positionRecruiterId = position.recruiterId;
 
-    // Get current Applicant recruiter
-    const ApplicantQuery = `
+    // Get current applicant recruiter
+    const applicantQuery = `
       SELECT c."recruiterId", u.name as "recruiterName"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1::uuid
     `;
-    const ApplicantResult = await client.query(ApplicantQuery, [candidateId]);
+    const applicantResult = await client.query(applicantQuery, [applicantId]);
     
-    if (ApplicantResult.rows.length === 0) {
+    if (applicantResult.rows.length === 0) {
       throw new Error('Applicant not found');
     }
 
-    const applicantRecord = ApplicantResult.rows[0];
+    const applicantRecord = applicantResult.rows[0];
     
     // Skip if applicant already has a recruiter assigned (preserve existing assignment)
     if (applicantRecord.recruiterId !== null) {
@@ -294,24 +294,24 @@ export async function syncRecruiterForApplicant(
 
     // Update Applicant's recruiter
     const updateQuery = `
-      UPDATE "Candidate" 
+      UPDATE "applicant" 
       SET "recruiterId" = $1, "updatedAt" = NOW()
       WHERE id = $2::uuid
     `;
-    await client.query(updateQuery, [positionRecruiterId, candidateId]);
+    await client.query(updateQuery, [positionRecruiterId, applicantId]);
 
     // Create transition record
     const transitionMessage = `Recruiter auto-assigned from position: ${position.recruiterName || positionRecruiterId}`;
 
     const newTransitionId = uuidv4();
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     
     await client.query(insertTransitionQuery, [
       newTransitionId,
-      candidateId,
+      applicantId,
       positionId,
       'Applied',
       transitionMessage,
@@ -327,7 +327,7 @@ export async function syncRecruiterForApplicant(
       'RecruiterSync:Applicant',
       actingUserId,
       {
-        candidateId,
+        applicantId,
         positionId,
         oldRecruiterId: null,
         newRecruiterId: positionRecruiterId

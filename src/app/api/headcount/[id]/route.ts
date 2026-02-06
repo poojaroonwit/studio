@@ -28,7 +28,7 @@ export async function GET(
             department: true,
           },
         },
-        candidate: {
+        applicant: {
           select: {
             id: true,
             name: true,
@@ -71,7 +71,7 @@ export async function PUT(
 
     const { id } = await params;
     const body: UpdateHeadcountRequest = await request.json();
-    const { type, status, candidateId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
+    const { type, status, applicantId: applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({
@@ -82,15 +82,15 @@ export async function PUT(
       return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
     }
 
-    // Validate that if status is 'filled', a candidateId must be provided
-    if (status === 'filled' && !candidateId) {
+    // Validate that if status is 'filled', a applicantId must be provided
+    if (status === 'filled' && !applicantId) {
       return NextResponse.json({ error: 'Applicant ID is required when status is "filled"' }, { status: 400 });
     }
 
-    // If candidateId is provided, verify Applicant exists
-    if (candidateId) {
-      const applicant = await prisma.candidate.findUnique({
-        where: { id: candidateId },
+    // If applicantId is provided, verify Applicant exists
+    if (applicantId) {
+      const applicant = await prisma.applicant.findUnique({
+        where: { id: applicantId },
       });
 
       if (!applicant) {
@@ -103,7 +103,7 @@ export async function PUT(
       data: {
         ...(type && { type }),
         ...(status && { status }),
-        ...(candidateId !== undefined && { candidateId: candidateId || null }),
+        ...(applicantId !== undefined && { applicantId: applicantId || null }),
         ...(onboardingDate !== undefined && { onboardingDate: onboardingDate ? new Date(onboardingDate) : null }),
         ...(requestDate !== undefined && { requestDate: requestDate ? new Date(requestDate) : null }),
         ...(notes !== undefined && { notes }),
@@ -119,7 +119,7 @@ export async function PUT(
             department: true,
           },
         },
-        candidate: {
+        applicant: {
           select: {
             id: true,
             name: true,

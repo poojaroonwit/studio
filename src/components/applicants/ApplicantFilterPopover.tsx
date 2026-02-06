@@ -22,11 +22,11 @@ interface ApplicantFilterPopoverProps {
   isLoading?: boolean;
   isAiSearching?: boolean;
   advancedQuery?: string;
-  ApplicantscoreCounts?: {
+  applicantScoreCounts?: {
     applied: Array<{ letter: string; count: number }>;
     matching: Array<{ letter: string; count: number }>;
   };
-  ApplicantCounts?: { [stageName: string]: number };
+  applicantCounts?: { [stageName: string]: number };
   activeFilterCount: number;
 }
 
@@ -43,8 +43,8 @@ export function ApplicantFilterPopover({
   isLoading,
   isAiSearching,
   advancedQuery,
-  ApplicantscoreCounts,
-  ApplicantCounts,
+  applicantScoreCounts,
+  applicantCounts,
   activeFilterCount
 }: ApplicantFilterPopoverProps) {
   const [open, setOpen] = useState(false);
@@ -112,8 +112,8 @@ export function ApplicantFilterPopover({
             isLoading={isLoading}
             isAiSearching={isAiSearching}
             advancedQuery={advancedQuery}
-            ApplicantscoreCounts={ApplicantscoreCounts}
-            ApplicantCounts={ApplicantCounts}
+            applicantScoreCounts={applicantScoreCounts}
+            applicantCounts={applicantCounts}
             autoApply={false}
             showActionButtons={true}
             className="border-none shadow-none p-0"

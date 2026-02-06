@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             p.description as "positionDescription"
           FROM "JobMatch" jm
           LEFT JOIN "Position" p ON jm."jobId" = p.id
-          WHERE jm."candidateId" = $1::uuid
+          WHERE jm."applicantId" = $1::uuid
           ORDER BY jm."fitScore" DESC
           LIMIT $2 OFFSET $3
         `;
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const jobMatchesCountQuery = `
           SELECT COUNT(*) as total
           FROM "JobMatch" jm
-          WHERE jm."candidateId" = $1::uuid
+          WHERE jm."applicantId" = $1::uuid
         `;
         const jobMatchesCountResult = await client.query(jobMatchesCountQuery, [id]);
         
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           SELECT a.*, u.name as "uploadedByUserName"
           FROM "Attachment" a
           LEFT JOIN "User" u ON a."uploadedById" = u.id
-          WHERE a."candidateId" = $1::uuid
+          WHERE a."applicantId" = $1::uuid
           ORDER BY a."uploadedAt" DESC
           LIMIT $2 OFFSET $3
         `;
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const attachmentsCountQuery = `
           SELECT COUNT(*) as total
           FROM "Attachment" a
-          WHERE a."candidateId" = $1::uuid
+          WHERE a."applicantId" = $1::uuid
         `;
         const attachmentsCountResult = await client.query(attachmentsCountQuery, [id]);
         
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           FROM "TransitionRecord" t
           LEFT JOIN "RecruitmentStage" rs ON t."stageId" = rs.id
           LEFT JOIN "User" u ON t."updatedById" = u.id
-          WHERE t."candidateId" = $1::uuid
+          WHERE t."applicantId" = $1::uuid
           ORDER BY t."updatedAt" DESC
           LIMIT $2 OFFSET $3
         `;
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const transitionsCountQuery = `
           SELECT COUNT(*) as total
           FROM "TransitionRecord" t
-          WHERE t."candidateId" = $1::uuid
+          WHERE t."applicantId" = $1::uuid
         `;
         const transitionsCountResult = await client.query(transitionsCountQuery, [id]);
         

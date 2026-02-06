@@ -1,7 +1,7 @@
 {
   "name": "FitScan - AI-Powered Recruitment Platform",
   "short_name": "FitScan",
-  "description": "Advanced AI-powered recruitment and candidate management platform",
+  "description": "Advanced AI-powered recruitment and applicant management platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#171a26",

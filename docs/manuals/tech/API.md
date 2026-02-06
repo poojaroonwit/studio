@@ -9,13 +9,13 @@
 | **When** | During the initial integration phase or when building custom data automation scripts. |
 | **Why** | To provide a "Sandboxed" environment for validating API calls without affecting production data. |
 | **Where** | Found under **Settings > API Documentation**. |
-| **How** | 1. Go to **Settings > API Documentation** <br> 2. Click **"Authorize"** <br> 3. Enter your `sk_live_...` key <br> 4. Select an endpoint (e.g., `GET /candidates`) <br> 5. Click **"Try it out"** and view JSON response |
+| **How** | 1. Go to **Settings > API Documentation** <br> 2. Click **"Authorize"** <br> 3. Enter your `sk_live_...` key <br> 4. Select an endpoint (e.g., `GET /applicants`) <br> 5. Click **"Try it out"** and view JSON response |
 
 ## 1. Interactive Testing (Swagger UI)
 The documentation page functions as a live HTTP client.
 1.  **Authorize**: Click the green **Authorize** button at the top right.
     *   Value: `Bearer sk_live_...` (your API key).
-2.  **Select Endpoint**: Click to expand a path (e.g., `GET /v1/candidates`).
+2.  **Select Endpoint**: Click to expand a path (e.g., `GET /v1/applicants`).
 3.  **Execute**:
     *   Click **"Try it out"**.
     *   Edit parameters if needed.

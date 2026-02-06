@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 
 // src/app/api/ai/search-Applicants/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { searchApplicantsAIChat } from '@/ai/flows/search-candidates-flow';
+import { searchApplicantsAIChat } from '@/ai/flows/search-applicants-flow';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { auth } from '@/auth';

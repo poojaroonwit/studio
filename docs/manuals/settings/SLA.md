@@ -7,7 +7,7 @@
 | **What** | A governance dashboard that tracks time-sensitive hiring milestones across all active roles. |
 | **Who** | **Regional HR Directors** and **Adminstrators**. |
 | **When** | During weekly business reviews (WBR) to identify departments that are falling behind. |
-| **Why** | To ensure every position is filled within the agreed-upon timeframe and to protect the candidate experience. |
+| **Why** | To ensure every position is filled within the agreed-upon timeframe and to protect the applicant experience. |
 | **Where** | Found in the main navigation under **SLA Monitoring**. |
 | **How** | 1. Open **SLA Monitoring** <br> 2. Filter by **"Severity: Critical"** <br> 3. Identify the position with the highest violation days <br> 4. Click to see the specific headcount <br> 5. Coordinate with the recruiter to accelerate the process |
 

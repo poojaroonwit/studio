@@ -46,7 +46,7 @@ export default function ApplicantEvaluationPage() {
   const [linkExpired, setLinkExpired] = React.useState(false);
   const [canReactivateLink, setCanReactivateLink] = React.useState(false);
   const { data: session, status } = useSession();
-  const candidateId = params.id as string;
+  const applicantId = params.id as string;
 
   const [formData, setFormData] = useState<EvaluationFormData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,7 +173,7 @@ export default function ApplicantEvaluationPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation/${evaluationId}`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation/${evaluationId}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -290,7 +290,7 @@ export default function ApplicantEvaluationPage() {
   };
 
   useEffect(() => {
-    if (candidateId) {
+    if (applicantId) {
       fetchEvaluationData();
       fetchExistingEvaluation();
       checkEvaluationLink();
@@ -307,17 +307,17 @@ export default function ApplicantEvaluationPage() {
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
-  }, [candidateId, searchParams]);
+  }, [applicantId, searchParams]);
 
   useEffect(() => {
     if (!showForm) {
       fetchExistingEvaluation();
     }
-  }, [showForm, candidateId]);
+  }, [showForm, applicantId]);
 
   // Reload form data when selected interviewer changes (if form is already loaded)
   useEffect(() => {
-    if (candidateId && formData && showForm) {
+    if (applicantId && formData && showForm) {
       // Reload evaluation data to get the correct interviewer's evaluation
       fetchEvaluationData();
     }
@@ -337,15 +337,15 @@ export default function ApplicantEvaluationPage() {
   useEffect(() => {
     if (hasToken && evaluationLinkRequireLogin === true && status !== 'authenticated' && status !== 'loading') {
       // Build the current URL with token to preserve it in callbackUrl
-      const currentUrl = `/applicants/${candidateId}/evaluate?token=${encodeURIComponent(searchParams.get('token') || '')}`;
+      const currentUrl = `/applicants/${applicantId}/evaluate?token=${encodeURIComponent(searchParams.get('token') || '')}`;
       const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`;
       router.push(signInUrl);
     }
-  }, [hasToken, evaluationLinkRequireLogin, status, candidateId, searchParams, router]);
+  }, [hasToken, evaluationLinkRequireLogin, status, applicantId, searchParams, router]);
 
   // Reload form data when form is opened to ensure it uses the selected interviewer's evaluation
   useEffect(() => {
-    if (candidateId && showForm && selectedInterviewerId) {
+    if (applicantId && showForm && selectedInterviewerId) {
       // Reload evaluation data when form opens to get the correct interviewer's evaluation
       fetchEvaluationData();
     }
@@ -362,10 +362,10 @@ export default function ApplicantEvaluationPage() {
         setShowForm(true);
         setNavigatedFromOverview(true);
         // Remove the query parameter from URL
-        router.replace(`/applicants/${candidateId}/evaluate`, { scroll: false });
+        router.replace(`/applicants/${applicantId}/evaluate`, { scroll: false });
       }
     }
-  }, [searchParams, formData, showForm, candidateId, router]);
+  }, [searchParams, formData, showForm, applicantId, router]);
 
   useEffect(() => {
     // Get sidebar background color based on theme
@@ -400,7 +400,7 @@ export default function ApplicantEvaluationPage() {
     try {
       setLoadingEvaluation(true);
       // Fetch all evaluations for this Applicant
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluations`);
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`);
       if (response.ok) {
         const data = await response.json();
         const evaluationsMap = new Map<string, any>();
@@ -453,7 +453,7 @@ export default function ApplicantEvaluationPage() {
         }
       } else {
         // Fallback to single evaluation endpoint
-        const fallbackResponse = await fetch(`/api/v1/applicants/${candidateId}/evaluation`);
+        const fallbackResponse = await fetch(`/api/v1/applicants/${applicantId}/evaluation`);
         if (fallbackResponse.ok) {
           const data = await fallbackResponse.json();
           if (data && data.evaluator?.id) {
@@ -533,8 +533,8 @@ export default function ApplicantEvaluationPage() {
       // Fetch Applicant data
       const token = searchParams.get('token');
       const url = token
-        ? `/api/applicants/${candidateId}?token=${encodeURIComponent(token)}`
-        : `/api/applicants/${candidateId}`;
+        ? `/api/applicants/${applicantId}?token=${encodeURIComponent(token)}`
+        : `/api/applicants/${applicantId}`;
       const applicantResponse = await fetch(url);
       if (!applicantResponse.ok) {
         if (applicantResponse.status === 403 || applicantResponse.status === 401) {
@@ -544,8 +544,8 @@ export default function ApplicantEvaluationPage() {
         }
         throw new Error('Applicant not found');
       }
-      const Applicant = await applicantResponse.json();
-      setApplicantData(Applicant);
+      const applicant = await applicantResponse.json();
+      setApplicantData(applicant);
       setApplicantRecruiterId(applicant.recruiterId || null);
 
       // Fetch position evaluation assignments
@@ -615,7 +615,7 @@ export default function ApplicantEvaluationPage() {
       let existingEval: any = null;
       try {
         // First try to get all evaluations
-        const allEvalsRes = await fetch(`/api/v1/applicants/${candidateId}/evaluations`);
+        const allEvalsRes = await fetch(`/api/v1/applicants/${applicantId}/evaluations`);
         if (allEvalsRes.ok) {
           const allEvals = await allEvalsRes.json();
 
@@ -671,7 +671,7 @@ export default function ApplicantEvaluationPage() {
           }
         } else {
           // Fallback to single evaluation endpoint
-          const existingEvalRes = await fetch(`/api/v1/applicants/${candidateId}/evaluation`);
+          const existingEvalRes = await fetch(`/api/v1/applicants/${applicantId}/evaluation`);
           if (existingEvalRes.ok) {
             existingEval = await existingEvalRes.json();
             // If we have a selected interviewer, make sure this evaluation belongs to them
@@ -700,7 +700,7 @@ export default function ApplicantEvaluationPage() {
 
       // Load attachments in parallel (best effort)
       try {
-        const res = await fetch(`/api/applicants/${candidateId}/resumes?limit=50&offset=0`, { credentials: 'include' });
+        const res = await fetch(`/api/applicants/${applicantId}/resumes?limit=50&offset=0`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           setAttachments(Array.isArray(data) ? data : (data.data || []));
@@ -911,8 +911,8 @@ export default function ApplicantEvaluationPage() {
           : 0);
 
       setFormData({
-        Applicant,
-        position: Applicant.position,
+        applicant,
+        position: applicant.position,
         questions: validQuestions,
         currentQuestionIndex: 0,
         overallScore: overallScore,
@@ -930,7 +930,7 @@ export default function ApplicantEvaluationPage() {
   // Function to reload attachments
   const reloadAttachments = async () => {
     try {
-      const res = await fetch(`/api/applicants/${candidateId}/resumes?limit=50&offset=0`, { credentials: 'include' });
+      const res = await fetch(`/api/applicants/${applicantId}/resumes?limit=50&offset=0`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setAttachments(Array.isArray(data) ? data : (data.data || []));
@@ -948,7 +948,7 @@ export default function ApplicantEvaluationPage() {
     }
 
     try {
-      const res = await fetch(`/api/applicants/${candidateId}/resumes`, {
+      const res = await fetch(`/api/applicants/${applicantId}/resumes`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
@@ -1040,7 +1040,7 @@ export default function ApplicantEvaluationPage() {
           }))
         : undefined;
 
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1088,7 +1088,7 @@ export default function ApplicantEvaluationPage() {
 
         if (allCompleted) {
           // All interviewers completed, go to report page
-          router.push(`/applicants/${candidateId}/evaluate-result`);
+          router.push(`/applicants/${applicantId}/evaluate-result`);
         } else {
           // Show waiting page
           setSuccessModalOpen(true);
@@ -1190,7 +1190,7 @@ export default function ApplicantEvaluationPage() {
           }))
         : undefined;
 
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1287,7 +1287,7 @@ export default function ApplicantEvaluationPage() {
             notes: ''
           }));
 
-        const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation`, {
+        const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1326,7 +1326,7 @@ export default function ApplicantEvaluationPage() {
     }, 1000); // 1 second debounce
 
     setTestingResultsSaveTimeout(timeout);
-  }, [formData, selectedInterviewerId, candidateId, allEvaluations, testingResultsSaveTimeout]);
+  }, [formData, selectedInterviewerId, applicantId, allEvaluations, testingResultsSaveTimeout]);
 
   const handleSave = async () => {
     if (!formData) return;
@@ -1362,7 +1362,7 @@ export default function ApplicantEvaluationPage() {
           }))
         : undefined;
 
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1408,7 +1408,7 @@ export default function ApplicantEvaluationPage() {
         if (allCompleted) {
           // All interviewers completed - navigate directly to result page
           setShowForm(false);
-          router.push(`/applicants/${candidateId}/evaluate-result`);
+          router.push(`/applicants/${applicantId}/evaluate-result`);
         } else {
           // Not all completed - show waiting page
           setSuccessModalOpen(true);
@@ -1475,7 +1475,7 @@ export default function ApplicantEvaluationPage() {
 
   // Save remark interview text (shared across all interviewers)
   const saveRemark = async (text: string) => {
-    if (!candidateId) return;
+    if (!applicantId) return;
 
     try {
       setSavingRemark(true);
@@ -1488,7 +1488,7 @@ export default function ApplicantEvaluationPage() {
         interviewRemarks: text
       };
 
-      const response = await fetch(`/api/applicants/${candidateId}`, {
+      const response = await fetch(`/api/applicants/${applicantId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1499,8 +1499,8 @@ export default function ApplicantEvaluationPage() {
 
       if (response.ok) {
         const result = await response.json();
-        // Update Applicant data - response may be wrapped or direct
-        const updatedApplicant = result.Applicant || result;
+        // Update applicant data - response may be wrapped or direct
+        const updatedApplicant = result.applicant || result.Applicant || result;
         setApplicantData(updatedApplicant);
         setRemarkSaved(true);
         // Clear saved status after 2 seconds
@@ -1563,7 +1563,7 @@ export default function ApplicantEvaluationPage() {
 
   // Check evaluation link requireLogin status and expiration
   const checkEvaluationLink = async () => {
-    if (!candidateId) return;
+    if (!applicantId) return;
 
     // Check if there's a token in the URL
     const token = searchParams.get('token');
@@ -1574,7 +1574,7 @@ export default function ApplicantEvaluationPage() {
     }
 
     try {
-      const res = await fetch(`/api/v1/applicants/${candidateId}/evaluation-link`, { credentials: 'include' });
+      const res = await fetch(`/api/v1/applicants/${applicantId}/evaluation-link`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setEvaluationLinkRequireLogin(Boolean(data.requireLogin ?? true));
@@ -1726,8 +1726,8 @@ export default function ApplicantEvaluationPage() {
   if (linkExpired) {
     return (
       <ExpiredLinkPage
-        candidateId={candidateId}
-        applicantName={applicantData?.name || formData?.Applicant?.name}
+        applicantId={applicantId}
+        applicantName={applicantData?.name || formData?.applicant?.name}
         appLogoUrl={appLogoUrl}
         canReactivate={canReactivateLink}
         evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
@@ -1916,7 +1916,7 @@ export default function ApplicantEvaluationPage() {
     if (isDesktop) {
       return (
         <DesktopEvaluatePage
-          candidateId={candidateId}
+          applicantId={applicantId}
           applicantData={applicantData}
           attachments={attachments}
           testingResults={testingResults}
@@ -2020,7 +2020,7 @@ export default function ApplicantEvaluationPage() {
             <>
               <ApplicantAssetsSection
                 attachments={attachments}
-                candidateId={candidateId}
+                applicantId={applicantId}
                 canEditAttachments={canEditAttachments}
                 onFileSelect={(file) => {
                   setSelectedFile(file);
@@ -2118,7 +2118,7 @@ export default function ApplicantEvaluationPage() {
                 onReportClick={() => {
                   if (isMobile) {
                     // Go to full report with header in standalone mobile view
-                    router.push(`/applicants/${candidateId}/evaluate-result`);
+                    router.push(`/applicants/${applicantId}/evaluate-result`);
                   } else {
                     setReportDrawerOpen(true);
                   }
@@ -2171,7 +2171,7 @@ export default function ApplicantEvaluationPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          router.push(`/applicants/${candidateId}/evaluate-result`);
+                          router.push(`/applicants/${applicantId}/evaluate-result`);
                         }}
                         className="flex items-center gap-2"
                       >
@@ -2183,7 +2183,7 @@ export default function ApplicantEvaluationPage() {
                 </SheetHeader>
                 <div className="flex-1 overflow-hidden">
                   <iframe
-                    src={`/applicants/${candidateId}/evaluate-result`}
+                    src={`/applicants/${applicantId}/evaluate-result`}
                     className="w-full h-full border-0"
                     title="Evaluation Report"
                   />
@@ -2247,7 +2247,7 @@ export default function ApplicantEvaluationPage() {
       {/* Waiting Page - Shows when evaluation is submitted and waiting for other interviewers */}
       {successModalOpen && (
         <EvaluationWaitingPage
-          candidateId={candidateId}
+          applicantId={applicantId}
           interviewers={interviewers}
           allEvaluations={allEvaluations}
           onEvaluationsUpdate={(evaluations) => {
@@ -2279,7 +2279,7 @@ export default function ApplicantEvaluationPage() {
           onPrevious={handlePrevious}
           onSubmit={handleSubmitEvaluation}
           saving={saving}
-          candidateId={candidateId}
+          applicantId={applicantId}
         />
       ) : showForm ? (
         <>

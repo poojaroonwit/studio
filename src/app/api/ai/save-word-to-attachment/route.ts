@@ -26,15 +26,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { candidateId, content, fileName, promptName } = body;
+    const { applicantId, content, fileName, promptName } = body;
+    const applicantId = applicantId;
 
-    if (!candidateId || !content) {
-      return NextResponse.json({ error: 'Missing required fields: candidateId and content' }, { status: 400 });
+    if (!applicantId || !content) {
+      return NextResponse.json({ error: 'Missing required fields: applicantId and content' }, { status: 400 });
     }
 
     // Validate Applicant exists and get recruiter info for ownership check
-    const applicant = await prisma.candidate.findUnique({
-      where: { id: candidateId },
+    const applicant = await prisma.applicant.findUnique({
+      where: { id: applicantId },
       select: { id: true, name: true, recruiterId: true }
     });
 
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Generate filename
     const timestamp = new Date().toISOString().split('T')[0];
     const finalFileName = fileName || `AI-Generated-${promptName || 'Content'}-${timestamp}.doc`;
-    const objectName = `attachments/${candidateId}/${uuidv4()}.doc`;
+    const objectName = `attachments/${applicantId}/${uuidv4()}.doc`;
 
     // Upload to MinIO
     const buffer = Buffer.from(wordContent, 'utf-8');
@@ -121,13 +122,13 @@ export async function POST(request: NextRequest) {
     );
 
     // Check if this is the first attachment
-    const count = await prisma.attachment.count({ where: { candidateId } });
+    const count = await prisma.attachment.count({ where: { applicantId: applicantId } });
     const isPrimary = count === 0;
 
     // Store in DB
     const newAttachment = await prisma.attachment.create({
       data: {
-        candidateId,
+        applicantId: applicantId,
         uploadedById: session.user.id,
         filePath: objectName,
         fileName: finalFileName,

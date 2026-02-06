@@ -123,7 +123,6 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
     updatedAt?: string;
     fileSize?: number;
     filePath?: string;
-    candidateId?: string;
     applicantId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);

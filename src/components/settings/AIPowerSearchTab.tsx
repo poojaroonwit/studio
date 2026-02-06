@@ -119,14 +119,14 @@ Query: "fit score less than 30"
 - ❌ EXCLUDE: Applicant with "Fit Score: 0.89" (89% > 30%)
 
 IMPORTANT: 
-- If no Applicants have the EXACT information requested, return an empty matchedcandidateIds array
+- If no Applicants have the EXACT information requested, return an empty matchedapplicantIds array
 - Do not make assumptions or include Applicants with similar information
 - Be strict and precise in your matching
 - Always verify the information exists in the Applicant data before including them
 
 Return ONLY a valid JSON object in this exact format:
 {
-  "matchedcandidateIds": ["uuid1", "uuid2", ...],
+  "matchedapplicantIds": ["uuid1", "uuid2", ...],
   "aiReasoning": "Brief explanation of why these Applicants were included or why none were found"
 }
 

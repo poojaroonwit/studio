@@ -47,7 +47,7 @@ Implemented 5 key mobile improvements to enhance user experience on mobile devic
 - Scrolls element to center of viewport smoothly
 
 **Applied to:**
-- `src/components/candidates/MobileCandidateDetail.tsx` (lines 26, 66)
+- `src/components/applicants/MobileapplicantDetail.tsx` (lines 26, 66)
 - `src/components/positions/PositionsPageClient.tsx` (lines 58, 65)
 
 **Benefits:**
@@ -126,7 +126,7 @@ onScroll={(e) => {
    - Added bottom padding for nav menu
    - Added auto-scroll hook
 
-2. **`src/components/candidates/MobileCandidateDetail.tsx`**
+2. **`src/components/applicants/MobileapplicantDetail.tsx`**
    - Added auto-scroll hook for form inputs
 
 3. **`src/hooks/use-auto-scroll-to-input.ts`** (NEW)

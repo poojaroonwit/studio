@@ -9,7 +9,7 @@
 
 ## 1. Categories
 Define the buckets for AI analysis.
-*   **Sourcing**: Sources of candidates (e.g., LinkedIn, Agency).
+*   **Sourcing**: Sources of applicants (e.g., LinkedIn, Agency).
 *   **Analysis**: Categories for Skills/Traits (e.g., "Leadership", "Coding").
 
 ## 2. Prompts

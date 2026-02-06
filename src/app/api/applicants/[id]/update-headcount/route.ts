@@ -16,13 +16,13 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: candidateId } = await params;
+    const { id: applicantId } = await params;
     const body = await request.json();
     const { newStatus } = body;
 
     // Check if Applicant exists
-    const applicant = await prisma.candidate.findUnique({
-      where: { id: candidateId },
+    const applicant = await prisma.applicant.findUnique({
+      where: { id: applicantId },
       include: {
         position: true,
       },
@@ -61,7 +61,7 @@ export async function POST(
           positionId: applicant.positionId,
           OR: [
             { status: 'vacant' },
-            { candidateId: null }
+            { applicantId: null }
           ],
         },
         orderBy: {
@@ -75,7 +75,7 @@ export async function POST(
           where: { id: vacantHeadcount.id },
           data: {
             status: 'filled',
-            candidateId: candidateId,
+            applicantId: applicantId,
           },
         });
 
@@ -147,7 +147,7 @@ export async function POST(
       // Find headcount assigned to this Applicant
       const assignedHeadcount = await prisma.headcount.findFirst({
         where: {
-          candidateId: candidateId,
+          applicantId: applicantId,
           status: 'filled',
         },
       });
@@ -158,7 +158,7 @@ export async function POST(
           where: { id: assignedHeadcount.id },
           data: {
             status: 'vacant',
-            candidateId: null,
+            applicantId: null,
           },
         });
 

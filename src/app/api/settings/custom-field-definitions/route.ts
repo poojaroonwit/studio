@@ -30,7 +30,7 @@ const createCustomFieldSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  ApplicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  applicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
   positionDetailSection: z.enum(['details', 'criteria', 'Applicants', 'headcount']).optional().nullable(),
   
   // Field properties
@@ -134,9 +134,9 @@ export async function GET(request: NextRequest) {
       SELECT 
         id, model_name, field_key, field_code, label, field_type, options, 
         is_required, sort_order, attribute_code, attribute_label,
-        view_roles, edit_roles, show_in_filter, show_in_Applicant_detail,
-        show_in_full_Applicant_detail, show_in_task_board_filter,
-        show_in_position_settings, show_in_headcount_detail, Applicant_detail_section, position_detail_section, allow_custom_options,
+        view_roles, edit_roles, show_in_filter, show_in_applicant_detail,
+        show_in_full_applicant_detail, show_in_task_board_filter,
+        show_in_position_settings, show_in_headcount_detail, applicant_detail_section, position_detail_section, allow_custom_options,
         "createdAt", "updatedAt"
       FROM "CustomFieldDefinition"
     `;
@@ -164,12 +164,12 @@ export async function GET(request: NextRequest) {
       viewRoles: row.view_roles || [],
       editRoles: row.edit_roles || [],
       showInFilter: row.show_in_filter || false,
-      showInApplicantDetail: row.show_in_Applicant_detail || false,
-      showInFullApplicantDetail: row.show_in_full_Applicant_detail || false,
+      showInApplicantDetail: row.show_in_applicant_detail || false,
+      showInFullApplicantDetail: row.show_in_full_applicant_detail || false,
       showInTaskBoardFilter: row.show_in_task_board_filter || false,
       showInPositionSettings: row.show_in_position_settings || false,
       showInHeadcountDetail: row.show_in_headcount_detail || false,
-      ApplicantDetailSection: row.Applicant_detail_section,
+      applicantDetailSection: row.applicant_detail_section,
       positionDetailSection: row.position_detail_section,
       is_required: row.is_required,
       allowCustomOptions: row.allow_custom_options || false,
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
   const { 
     model_name, field_code, label, field_type,
     viewRoles, editRoles, showInFilter, showInApplicantDetail, showInFullApplicantDetail,
-    showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, ApplicantDetailSection, positionDetailSection,
+    showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, applicantDetailSection, positionDetailSection,
     is_required, allowCustomOptions, sort_order, options 
   } = validationResult.data;
 
@@ -236,9 +236,9 @@ export async function POST(request: NextRequest) {
       INSERT INTO "CustomFieldDefinition" (
         id, model_name, field_key, field_code, label, field_type, options, 
         is_required, sort_order, attribute_code, attribute_label,
-        view_roles, edit_roles, show_in_filter, show_in_Applicant_detail,
-        show_in_full_Applicant_detail, show_in_task_board_filter,
-        show_in_position_settings, show_in_headcount_detail, Applicant_detail_section, position_detail_section, allow_custom_options,
+        view_roles, edit_roles, show_in_filter, show_in_applicant_detail,
+        show_in_full_applicant_detail, show_in_task_board_filter,
+        show_in_position_settings, show_in_headcount_detail, applicant_detail_section, position_detail_section, allow_custom_options,
         "createdAt", "updatedAt"
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW(), NOW())
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
        options || null, is_required, sort_order, field_code, null,
        viewRoles || [], editRoles || [], showInFilter, showInApplicantDetail,
        showInFullApplicantDetail, showInTaskBoardFilter, showInPositionSettings, showInHeadcountDetail, 
-       ApplicantDetailSection, positionDetailSection, allowCustomOptions
+       applicantDetailSection, positionDetailSection, allowCustomOptions
      ]);
 
     const newField = result.rows[0];
@@ -275,12 +275,12 @@ export async function POST(request: NextRequest) {
       viewRoles: newField.view_roles || [],
       editRoles: newField.edit_roles || [],
       showInFilter: newField.show_in_filter || false,
-      showInApplicantDetail: newField.show_in_Applicant_detail || false,
-      showInFullApplicantDetail: newField.show_in_full_Applicant_detail || false,
+      showInApplicantDetail: newField.show_in_applicant_detail || false,
+      showInFullApplicantDetail: newField.show_in_full_applicant_detail || false,
       showInTaskBoardFilter: newField.show_in_task_board_filter || false,
       showInPositionSettings: newField.show_in_position_settings || false,
       showInHeadcountDetail: newField.show_in_headcount_detail || false,
-      ApplicantDetailSection: newField.Applicant_detail_section,
+      applicantDetailSection: newField.applicant_detail_section,
       positionDetailSection: newField.position_detail_section,
       is_required: newField.is_required,
       allowCustomOptions: newField.allow_custom_options || false,
@@ -384,12 +384,12 @@ export async function PUT(request: NextRequest) {
     }
 
     if (updateData.showInApplicantDetail !== undefined) {
-      updateFields.push(`show_in_Applicant_detail = $${paramIndex++}`);
+      updateFields.push(`show_in_applicant_detail = $${paramIndex++}`);
       updateValues.push(updateData.showInApplicantDetail);
     }
 
     if (updateData.showInFullApplicantDetail !== undefined) {
-      updateFields.push(`show_in_full_Applicant_detail = $${paramIndex++}`);
+      updateFields.push(`show_in_full_applicant_detail = $${paramIndex++}`);
       updateValues.push(updateData.showInFullApplicantDetail);
     }
 
@@ -408,9 +408,9 @@ export async function PUT(request: NextRequest) {
       updateValues.push(updateData.showInHeadcountDetail);
     }
 
-    if (updateData.ApplicantDetailSection !== undefined) {
-      updateFields.push(`Applicant_detail_section = $${paramIndex++}`);
-      updateValues.push(updateData.ApplicantDetailSection);
+    if (updateData.applicantDetailSection !== undefined) {
+      updateFields.push(`applicant_detail_section = $${paramIndex++}`);
+      updateValues.push(updateData.applicantDetailSection);
     }
 
     if (updateData.positionDetailSection !== undefined) {
@@ -470,12 +470,12 @@ export async function PUT(request: NextRequest) {
       viewRoles: updatedField.view_roles || [],
       editRoles: updatedField.edit_roles || [],
       showInFilter: updatedField.show_in_filter || false,
-      showInApplicantDetail: updatedField.show_in_Applicant_detail || false,
-      showInFullApplicantDetail: updatedField.show_in_full_Applicant_detail || false,
+      showInApplicantDetail: updatedField.show_in_applicant_detail || false,
+      showInFullApplicantDetail: updatedField.show_in_full_applicant_detail || false,
       showInTaskBoardFilter: updatedField.show_in_task_board_filter || false,
       showInPositionSettings: updatedField.show_in_position_settings || false,
       showInHeadcountDetail: updatedField.show_in_headcount_detail || false,
-      ApplicantDetailSection: updatedField.Applicant_detail_section,
+      applicantDetailSection: updatedField.applicant_detail_section,
       positionDetailSection: updatedField.position_detail_section,
       is_required: updatedField.is_required,
       allowCustomOptions: updatedField.allow_custom_options || false,

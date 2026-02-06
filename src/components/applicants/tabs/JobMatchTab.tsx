@@ -6,14 +6,14 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 import { useSession } from 'next-auth/react';
-import type { applicant, Position } from '@/lib/types';
+import type { Applicant, Position } from '@/lib/types';
 import { hasAnyPermission } from '@/lib/permissions';
 
 interface JobMatchTabProps {
   applicant: Applicant;
   allDbPositions: Position[];
   isEditing: boolean;
-  ApplicantJobMatches: any[];
+  applicantJobMatches: any[];
   onJobMatchClick: (jobMatch: any) => void;
   onCopyJobMatch: (match: any, index: number) => void;
   copiedJobMatchIndex: number | null;
@@ -23,7 +23,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   applicant,
   allDbPositions,
   isEditing,
-  ApplicantJobMatches,
+  applicantJobMatches,
   onJobMatchClick,
   onCopyJobMatch,
   copiedJobMatchIndex
@@ -67,18 +67,18 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
             Job Matches
-            {ApplicantJobMatches && ApplicantJobMatches.length > 0 && (
+            {applicantJobMatches && applicantJobMatches.length > 0 && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({ApplicantJobMatches.length})
+                ({applicantJobMatches.length})
               </span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {ApplicantJobMatches && ApplicantJobMatches.length > 0 ? (
+            {applicantJobMatches && applicantJobMatches.length > 0 ? (
               <div className="grid gap-4">
-                {ApplicantJobMatches.map((match: any, index: number) => {
+                {applicantJobMatches.map((match: any, index: number) => {
                   const position = Array.isArray(allDbPositions) ?
                     (allDbPositions.find(p => p.id === match.jobId) ||
                       allDbPositions.find(p => p.title === match.jobTitle)) : null;

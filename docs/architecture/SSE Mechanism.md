@@ -22,15 +22,15 @@ sequenceDiagram
     Hub-->>UI: Connected! (Retry config + 30s Keepalive)
 
     %% Event Trigger Phase
-    Note over App: Recruiter updates a Candidate
-    App->>Opt: broadcastHighPriority('candidate_update', data)
+    Note over App: Recruiter updates a applicant
+    App->>Opt: broadcastHighPriority('applicant_update', data)
     
     %% Optimization Phase
     Note over Opt: Batch events / Apply Throttling
     Opt->>Hub: broadcast(optimizedData)
     
     %% Delivery Phase
-    Hub-->>UI: data: {"type": "candidate_update", ...}
+    Hub-->>UI: data: {"type": "applicant_update", ...}
     Note over UI: UI updates via useRealtime Hook
 ```
 
@@ -47,14 +47,14 @@ sequenceDiagram
 To prevent overwhelming the browser and server during high activity, an optimization layer is used:
 - **Throttling**: Caps global event output at **20 events per second**.
 - **Priority Batching**:
-  - **High**: Sent immediately (e.g., deletions, new candidates).
+  - **High**: Sent immediately (e.g., deletions, new applicants).
   - **Medium**: Delayed by ~200ms (e.g., minor data updates).
   - **Low**: Delayed by ~1s (e.g., background metadata).
 - **Deduplication**: If multiple updates for the same entity occur within a window, only the latest state is sent.
 
 ### 3. Application Link (`simple-broadcaster.ts`)
 - Provides clean, semantic functions for the rest of the app:
-  - `broadcastCandidateStatusChanged()`
+  - `broadcastapplicantStatusChanged()`
   - `broadcastPositionCreated()`
   - `broadcastNotification()`
   - `broadcastUploadStarted()`
@@ -73,7 +73,7 @@ To prevent overwhelming the browser and server during high activity, an optimiza
 
 | Event Type | Typical Payload |
 | :--- | :--- |
-| `candidate_update` | Updated candidate object + `action` (e.g., "status_changed") |
+| `applicant_update` | Updated applicant object + `action` (e.g., "status_changed") |
 | `position_update` | Position details + `action` (e.g., "created") |
 | `notification` | `message`, `level` (info/warn/error), `timestamp` |
 | `upload_queue_update` | `fileName`, `status` (processing/completed/failed) |

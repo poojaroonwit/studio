@@ -704,10 +704,10 @@ export const ApplicantsPaths = {
               type: 'object',
               properties: {
                 action: { type: 'string', enum: ['delete', 'update', 'export'] },
-                candidateIds: { type: 'array', items: { type: 'string' } },
+                applicantIds: { type: 'array', items: { type: 'string' } },
                 updates: { type: 'object', additionalProperties: true }
               },
-              required: ['action', 'candidateIds']
+              required: ['action', 'applicantIds']
             }
           }
         }

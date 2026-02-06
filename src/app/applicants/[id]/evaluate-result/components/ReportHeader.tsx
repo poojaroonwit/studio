@@ -9,7 +9,7 @@ import type { Applicant, Position } from '@/lib/types';
 import type { AveragedEvaluationData } from '../types';
 
 interface ReportHeaderProps {
-  Applicant: Applicant;
+  applicant: Applicant;
   position: Position | null;
   organizationLogoUrl: string | null;
   organizationName: string | null;
@@ -23,7 +23,7 @@ interface ReportHeaderProps {
 }
 
 export function ReportHeader({
-  Applicant,
+  applicant,
   position,
   organizationLogoUrl,
   organizationName,

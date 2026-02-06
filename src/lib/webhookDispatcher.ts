@@ -288,16 +288,16 @@ export class WebhookDispatcher {
   /**
    * Dispatch webhook for Applicant events
    */
-  async dispatchApplicantEvent(event: string, Applicant: any, additionalData?: any) {
+  async dispatchApplicantEvent(event: string, applicant: any, additionalData?: any) {
     return this.dispatch(event, {
-      Applicant: {
-        id: Applicant.id,
-        name: Applicant.name,
-        email: Applicant.email,
-        phone: Applicant.phone,
-        current_stage: Applicant.current_stage,
-        createdAt: Applicant.createdAt,
-        updatedAt: Applicant.updatedAt
+      applicant: {
+        id: applicant.id,
+        name: applicant.name,
+        email: applicant.email,
+        phone: applicant.phone,
+        current_stage: applicant.current_stage,
+        createdAt: applicant.createdAt,
+        updatedAt: applicant.updatedAt
       },
       ...additionalData
     });
@@ -341,7 +341,7 @@ export class WebhookDispatcher {
   /**
    * Dispatch webhook for resume events
    */
-  async dispatchResumeEvent(event: string, resume: any, Applicant: any, additionalData?: any) {
+  async dispatchResumeEvent(event: string, resume: any, applicant: any, additionalData?: any) {
     return this.dispatch(event, {
       resume: {
         id: resume.id,
@@ -350,10 +350,10 @@ export class WebhookDispatcher {
         mime_type: resume.mime_type,
         uploaded_at: resume.uploaded_at
       },
-      Applicant: {
-        id: Applicant.id,
-        name: Applicant.name,
-        email: Applicant.email
+      applicant: {
+        id: applicant.id,
+        name: applicant.name,
+        email: applicant.email
       },
       ...additionalData
     });
@@ -441,11 +441,11 @@ export const webhookDispatcher = WebhookDispatcher.getInstance();
 
 // Convenience functions for common events
 export const dispatchWebhooks = {
-  ApplicantCreated: (Applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.created', Applicant),
-  ApplicantUpdated: (Applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.updated', Applicant),
-  ApplicantDeleted: (Applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.deleted', Applicant),
-  ApplicantstageChanged: (Applicant: any, oldStage: string, newStage: string) => 
-    webhookDispatcher.dispatchApplicantEvent('Applicant.stage_changed', Applicant, { old_stage: oldStage, new_stage: newStage }),
+  ApplicantCreated: (applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.created', applicant),
+  ApplicantUpdated: (applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.updated', applicant),
+  ApplicantDeleted: (applicant: any) => webhookDispatcher.dispatchApplicantEvent('Applicant.deleted', applicant),
+  ApplicantstageChanged: (applicant: any, oldStage: string, newStage: string) => 
+    webhookDispatcher.dispatchApplicantEvent('Applicant.stage_changed', applicant, { old_stage: oldStage, new_stage: newStage }),
   
   positionCreated: (position: any) => webhookDispatcher.dispatchPositionEvent('position.created', position),
   positionUpdated: (position: any) => webhookDispatcher.dispatchPositionEvent('position.updated', position),
@@ -455,9 +455,9 @@ export const dispatchWebhooks = {
   userUpdated: (user: any) => webhookDispatcher.dispatchUserEvent('user.updated', user),
   userDeleted: (user: any) => webhookDispatcher.dispatchUserEvent('user.deleted', user),
   
-  resumeUploaded: (resume: any, Applicant: any) => webhookDispatcher.dispatchResumeEvent('resume.uploaded', resume, Applicant),
-  resumeProcessed: (resume: any, Applicant: any, processingResult: any) => 
-    webhookDispatcher.dispatchResumeEvent('resume.processed', resume, Applicant, { processing_result: processingResult }),
+  resumeUploaded: (resume: any, applicant: any) => webhookDispatcher.dispatchResumeEvent('resume.uploaded', resume, applicant),
+  resumeProcessed: (resume: any, applicant: any, processingResult: any) => 
+    webhookDispatcher.dispatchResumeEvent('resume.processed', resume, applicant, { processing_result: processingResult }),
   
   commentCreated: (comment: any) => webhookDispatcher.dispatchCommentEvent('comment.created', comment),
   commentUpdated: (comment: any) => webhookDispatcher.dispatchCommentEvent('comment.updated', comment),

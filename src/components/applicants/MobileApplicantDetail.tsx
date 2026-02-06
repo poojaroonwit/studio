@@ -69,7 +69,7 @@ export default function MobileApplicantDetail({
     updatedAt?: string;
     fileSize?: number | string;
     filePath?: string;
-    candidateId?: string;
+    applicantId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
@@ -296,7 +296,7 @@ export default function MobileApplicantDetail({
         credentials: 'include',
         body: JSON.stringify({
           action: 'change_status',
-          candidateIds: [applicant.id],
+          applicantIds: [applicant.id],
           newStatus,
           notes: transitionNotes || undefined,
         }),
@@ -713,7 +713,7 @@ export default function MobileApplicantDetail({
       <Dialog open={isActionsModalOpen} onOpenChange={setIsActionsModalOpen}>
         <DialogContent
           className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background flex flex-col"
-          dialogId="Applicant-actions-modal"
+          dialogId="applicant-actions-modal"
         >
           <VisuallyHidden>
             <DialogTitle>Applicant Actions</DialogTitle>

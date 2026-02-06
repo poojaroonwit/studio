@@ -19,7 +19,7 @@ interface ApplicantSourceCellProps {
   availableSources: ApplicantSource[];
   canManageApplicants: boolean;
   isAssigning: boolean;
-  onAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
+  onAssignSource: (applicantId: string, sourceId: string | null, subSource?: string | null) => void;
   onResetAssigning?: () => void;
 }
 

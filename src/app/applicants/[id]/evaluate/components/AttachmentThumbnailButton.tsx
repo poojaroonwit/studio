@@ -9,7 +9,7 @@ interface AttachmentThumbnailButtonProps {
   attachment: any;
   thumbnailUrl: string | null;
   isImage: boolean;
-  candidateId: string;
+  applicantId: string;
   onSelect: () => void;
   onDelete?: (attachmentId: string) => void;
   canDelete?: boolean;

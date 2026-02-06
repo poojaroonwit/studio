@@ -15,7 +15,7 @@ interface StagePipelineProps {
   onStageClick: (stageName: string) => void;
   editableNotes: boolean;
   onNoteEdit: (transitionId: string, newNote: string) => Promise<void>;
-  candidateId: string;
+  applicantId: string;
 }
 
 export function StagePipeline({
@@ -25,7 +25,7 @@ export function StagePipeline({
   onStageClick,
   editableNotes,
   onNoteEdit,
-  candidateId
+  applicantId
 }: StagePipelineProps) {
   // Map stage name to all transition records for that stage
   const stageToRecords: Record<string, TransitionRecord[]> = {};

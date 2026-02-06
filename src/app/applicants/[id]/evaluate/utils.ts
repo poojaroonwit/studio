@@ -9,11 +9,11 @@ export const formatPersonalityScore = (score: number): string => {
 };
 
 // Helper function to build preview URL for attachments
-export const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = false): string => {
+export const buildPreviewUrl = (att: any, applicantId: string, thumbnail: boolean = false): string => {
   if (att.filePath) {
     const params = new URLSearchParams({ filePath: att.filePath });
     if (att.fileName) params.set('fileName', att.fileName);
-    if (candidateId) params.set('candidateId', candidateId);
+    if (applicantId) params.set('applicantId', applicantId); // API still expects 'applicantId' query param for backward compatibility
     if (thumbnail) params.set('thumbnail', 'true');
     return `/api/secure-file/preview?${params.toString()}`;
   }

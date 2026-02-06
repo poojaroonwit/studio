@@ -108,26 +108,26 @@ model User {
   // Relations
   accounts                    Account[]
   attachments                 Attachment[]                @relation("UserAttachments")
-  candidates                  Candidate[]                 @relation("RecruiterCandidates")
-  candidateComments           CandidateComment[]          @relation("UserComments")
-  evaluations                 CandidateEvaluation[]
-  Dashboard                   Dashboard[]
-  DashboardShare              DashboardShare[]
-  logEntries                  LogEntry[]                  @relation("UserLogEntries")
-  notifications               Notification[]
-  positions                   Position[]                  @relation("RecruiterPositions")
-  createdPositionInterviewers PositionInterviewer[]       @relation("PositionInterviewerCreator")
-  positionInterviewers        PositionInterviewer[]
-  transitionRecords           TransitionRecord[]          @relation("ActingUserTransitions")
-  userGroup                   UserGroup?                  @relation("UserUserGroup", fields: [userGroupId], references: [id])
-  userTeam                    UserTeam?                   @relation("UserUserTeam", fields: [userTeamId], references: [id])
-  userPreferences             UserUIDisplayPreference[]
+  applicants                   Applicant[]                 @relation("RecruiterApplicants")
+  applicantComments            ApplicantComment[]          @relation("UserComments")
+  evaluations                  ApplicantEvaluation[]
+  Dashboard                    Dashboard[]
+  DashboardShare               DashboardShare[]
+  logEntries                   LogEntry[]                  @relation("UserLogEntries")
+  notifications                Notification[]
+  positions                    Position[]                  @relation("RecruiterPositions")
+  createdPositionInterviewers  PositionInterviewer[]       @relation("PositionInterviewerCreator")
+  positionInterviewers         PositionInterviewer[]
+  transitionRecords            TransitionRecord[]          @relation("ActingUserTransitions")
+  userGroup                    UserGroup?                  @relation("UserUserGroup", fields: [userGroupId], references: [id])
+  userTeam                     UserTeam?                   @relation("UserUserTeam", fields: [userTeamId], references: [id])
+  userPreferences              UserUIDisplayPreference[]
 
-  uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
-  createdEvaluationLinks      CandidateEvaluationLink[]
-  activityLogs                UserActivityLog[]           @relation("UserActivityLogs")
-  sessions                    UserSession[]               @relation("UserSessions")
-  candidateReadStatuses       CandidateReadStatus[]       @relation("UserCandidateReadStatuses")
+  uploadQueue                  UploadQueue[]               @relation("UserUploadQueue")
+  createdEvaluationLinks       ApplicantEvaluationLink[]
+  activityLogs                 UserActivityLog[]           @relation("UserActivityLogs")
+  sessions                     UserSession[]               @relation("UserSessions")
+  applicantReadStatuses       ApplicantReadStatus[]       @relation("UserApplicantReadStatuses")
 
   @@index([email])
   @@index([role])
@@ -186,7 +186,7 @@ model Position {
   department        String
   /// Job description
   description       String?
-  /// Criteria for candidate matching
+  /// Criteria for applicant matching
   matchCriteria     String?
   /// Whether position is open for applications
   isOpen            Boolean                    @default(true)
@@ -206,8 +206,8 @@ model Position {
   gradeId           String?                    @db.Uuid
   /// Additional position attributes
   positionAttribute String?
-  candidates        Candidate[]
-  evaluations       CandidateEvaluation[]
+  applicants        Applicant[]
+  evaluations       ApplicantEvaluation[]
   headcounts        Headcount[]                @relation("PositionHeadcount")
   grade             Grade?                     @relation(fields: [gradeId], references: [id])
   recruiter         User?                      @relation("RecruiterPositions", fields: [recruiterId], references: [id])
@@ -282,11 +282,11 @@ model PositionLevel {
 }
 
 
-/// Candidate - Job applicants and their application data
-model Candidate {
+/// Applicant - Job applicants and their application data
+model Applicant {
   /// Unique identifier
   id                      String                @id @default(uuid()) @db.Uuid
-  /// Candidate full name
+  /// Applicant full name
   name                    String
   /// Email address
   email                   String
@@ -322,15 +322,15 @@ model Candidate {
   experienceData          Json?                 @default("[]")
   /// Company identifier
   companyId               String?               @db.Uuid
-  /// Candidate source reference
+  /// Applicant source reference
   sourceId                String?               @db.Uuid
   /// Sub-source detail
   subSource               String?
   /// Current recruitment status
   statusId                String?               @db.Uuid
-  /// Whether candidate is blacklisted
+  /// Whether applicant is blacklisted
   isBlacklisted           Boolean               @default(false)
-  /// Whether candidate is pinned
+  /// Whether applicant is pinned
   isPinned                Boolean               @default(false)
   /// Pin timestamp
   pinnedAt                DateTime?
@@ -346,16 +346,16 @@ model Candidate {
   expectedSalary          Int?                  @map("expected_salary")
   attachments             Attachment[]
   position                Position?             @relation(fields: [positionId], references: [id])
-  recruiter               User?                 @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
-  source                  CandidateSource?      @relation(fields: [sourceId], references: [id])
-  recruitmentStage        RecruitmentStage?     @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onUpdate: NoAction)
-  candidateComments       CandidateComment[]
-  evaluations             CandidateEvaluation[]
-  headcounts              Headcount[]           @relation("CandidateHeadcount")
+  recruiter               User?                 @relation("RecruiterApplicants", fields: [recruiterId], references: [id])
+  source                  ApplicantSource?       @relation(fields: [sourceId], references: [id])
+  recruitmentStage        RecruitmentStage?     @relation("RecruitmentStageApplicants", fields: [statusId], references: [id], onUpdate: NoAction)
+  applicantComments       ApplicantComment[]
+  evaluations             ApplicantEvaluation[]
+  headcounts              Headcount[]           @relation("ApplicantHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
-  evaluationLinks         CandidateEvaluationLink[]
-  readStatuses            CandidateReadStatus[]
+  evaluationLinks         ApplicantEvaluationLink[]
+  readStatuses            ApplicantReadStatus[]
 
   @@index([email])
   @@index([positionId])
@@ -369,35 +369,35 @@ model Candidate {
 }
 
 
-/// CandidateReadStatus - Tracks read/unread status per user per candidate
-model CandidateReadStatus {
+/// ApplicantReadStatus - Tracks read/unread status per user per applicant
+model ApplicantReadStatus {
   /// Unique identifier
   id          String    @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId String    @map("candidate_id") @db.Uuid
+  /// Reference to applicant
+  applicantId String    @map("applicant_id") @db.Uuid
   /// Reference to user
   userId      String    @map("user_id") @db.Uuid
-  /// Whether the candidate has been read by this user
+  /// Whether the applicant has been read by this user
   isRead      Boolean   @default(false) @map("is_read")
-  /// Timestamp when candidate was marked as read
+  /// Timestamp when applicant was marked as read
   readAt      DateTime? @map("read_at")
   /// Record creation timestamp
   createdAt   DateTime  @default(now()) @map("created_at")
   /// Last update timestamp
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  user        User      @relation("UserCandidateReadStatuses", fields: [userId], references: [id], onDelete: Cascade)
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  user        User      @relation("UserApplicantReadStatuses", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([candidateId, userId])
-  @@index([candidateId])
+  @@unique([applicantId, userId])
+  @@index([applicantId])
   @@index([userId])
   @@index([isRead])
-  @@map("candidate_read_status")
+  @@map("applicant_read_status")
 }
 
 
-/// RecruitmentStage - Pipeline stages for candidate recruitment workflow
+/// RecruitmentStage - Pipeline stages for applicant recruitment workflow
 model RecruitmentStage {
   /// Unique identifier
   id             String      @id @default(uuid()) @db.Uuid
@@ -413,19 +413,19 @@ model RecruitmentStage {
   color_complete String?
   /// Badge color
   color_badge    String?
-  candidates     Candidate[] @relation("RecruitmentStageCandidates")
+  applicants     Applicant[] @relation("RecruitmentStageApplicants")
 
   @@index([sortOrder])
   @@index([isSystem])
 }
 
 
-/// TransitionRecord - History of candidate stage transitions
+/// TransitionRecord - History of applicant stage transitions
 model TransitionRecord {
   /// Unique identifier
   id           String    @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId  String    @db.Uuid
+  /// Reference to applicant
+  applicantId  String    @db.Uuid
   /// Reference to position
   positionId   String?   @db.Uuid
   /// Transition date
@@ -441,10 +441,10 @@ model TransitionRecord {
   /// Last update timestamp
   updatedAt    DateTime  @updatedAt
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
-  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant    Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   position     Position? @relation(fields: [positionId], references: [id])
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([actingUserId])
   @@index([date])
   @@index([stage])
@@ -578,7 +578,7 @@ model SystemSetting {
 model CustomFieldDefinition {
   /// Unique identifier
   id                        String              @id @default(uuid()) @db.Uuid
-  /// Target model name (Candidate, Position, etc.)
+  /// Target model name (Applicant, Position, etc.)
   modelName                 String              @map("model_name")
   /// Field key for API access
   fieldKey                  String              @map("field_key")
@@ -606,20 +606,20 @@ model CustomFieldDefinition {
   editRoles                 String[]            @default([]) @map("edit_roles")
   /// Field code identifier
   fieldCode                 String              @map("field_code")
-  /// Show in candidate detail view
-  showInCandidateDetail     Boolean             @default(false) @map("show_in_candidate_detail")
+  /// Show in applicant detail view
+  showInApplicantDetail     Boolean             @default(false) @map("show_in_applicant_detail")
   /// Show in filter options
   showInFilter              Boolean             @default(false) @map("show_in_filter")
-  /// Show in full candidate detail
-  showInFullCandidateDetail Boolean             @default(false) @map("show_in_full_candidate_detail")
+  /// Show in full applicant detail
+  showInFullApplicantDetail Boolean             @default(false) @map("show_in_full_applicant_detail")
   /// Show in headcount detail view
   showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
   /// Show in position settings
   showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
   /// Show in task board filter
   showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
-  /// Candidate detail section
-  candidateDetailSection    String?             @map("candidate_detail_section")
+  /// Applicant detail section
+  applicantDetailSection    String?             @map("applicant_detail_section")
   /// Position detail section
   positionDetailSection     String?             @map("position_detail_section")
   /// Roles allowed to view
@@ -664,12 +664,12 @@ model CustomFieldOption {
 }
 
 
-/// JobMatch - AI-generated job matching results for candidates
+/// JobMatch - AI-generated job matching results for applicants
 model JobMatch {
   /// Unique identifier
   id                    String    @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId           String    @db.Uuid
+  /// Reference to applicant
+  applicantId           String    @db.Uuid
   /// Reference to matched job
   jobId                 String?   @db.Uuid
   /// Matched job title
@@ -686,9 +686,9 @@ model JobMatch {
   updatedAt             DateTime  @updatedAt
   /// Company identifier
   companyId             String?   @db.Uuid
-  candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant             Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([jobId])
   @@index([fitScore])
 }
@@ -710,7 +710,7 @@ model UploadQueue {
   errorDetails    String?          @map("error_details")
   /// Source name
   source          String?
-  /// Reference to candidate source
+  /// Reference to applicant source
   sourceId        String?          @map("source_id") @db.Uuid
   /// Sub-source detail
   subSource       String?          @map("sub_source")
@@ -743,7 +743,7 @@ model UploadQueue {
   /// Email metadata (JSON)
   emailMetadata   Json?            @map("email_metadata")
   createdByUser   User?            @relation("UserUploadQueue", fields: [createdBy], references: [id])
-  candidateSource CandidateSource? @relation("UploadQueueCandidateSource", fields: [sourceId], references: [id])
+  applicantSource ApplicantSource? @relation("UploadQueueApplicantSource", fields: [sourceId], references: [id])
 
   @@unique([filePath, status], name: "unique_file_path_status")
   @@index([status])
@@ -838,12 +838,12 @@ model SystemPreference {
 }
 
 
-/// CandidateComment - Comments and notes on candidate profiles
-model CandidateComment {
+/// ApplicantComment - Comments and notes on applicant profiles
+model ApplicantComment {
   /// Unique identifier
   id            String    @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId   String    @db.Uuid
+  /// Reference to applicant
+  applicantId   String    @db.Uuid
   /// Comment author reference
   authorId      String    @db.Uuid
   /// Comment content
@@ -857,19 +857,19 @@ model CandidateComment {
   /// Referenced attachment IDs
   attachmentIds String[]
   author        User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
-  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant     Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([authorId])
 }
 
 
-/// Attachment - File attachments for candidates and headcounts
+/// Attachment - File attachments for applicants and headcounts
 model Attachment {
   /// Unique identifier
   id           String     @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId  String?    @db.Uuid
+  /// Reference to applicant
+  applicantId  String?    @db.Uuid
   /// User who uploaded the file
   uploadedById String     @db.Uuid
   /// File storage path
@@ -886,11 +886,11 @@ model Attachment {
   updatedAt    DateTime   @updatedAt
   /// Reference to headcount
   headcountId  String?    @db.Uuid
-  candidate    Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant    Applicant? @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   headcount    Headcount? @relation("HeadcountAttachments", fields: [headcountId], references: [id], onDelete: Cascade)
   uploadedBy   User       @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([headcountId])
   @@index([uploadedById])
   @@index([label])
@@ -1143,8 +1143,8 @@ model SystemPrompt {
 }
 
 
-/// CandidateSource - Candidate sourcing channels (job portals, referrals, etc.)
-model CandidateSource {
+/// ApplicantSource - Applicant sourcing channels (job portals, referrals, etc.)
+model ApplicantSource {
   /// Unique identifier
   id               String        @id @default(uuid()) @db.Uuid
   /// Source name (e.g., LinkedIn, JobsDB)
@@ -1165,8 +1165,8 @@ model CandidateSource {
   logo             String?
   /// Contact email for this source
   email            String?
-  candidates       Candidate[]
-  uploadQueueItems UploadQueue[] @relation("UploadQueueCandidateSource")
+  applicants       Applicant[]
+  uploadQueueItems UploadQueue[] @relation("UploadQueueApplicantSource")
 
   @@index([sortOrder])
   @@index([isActive])
@@ -1212,8 +1212,8 @@ model Headcount {
   type           String       @default("new")
   /// Current status (vacant, filled, pending)
   status         String       @default("vacant")
-  /// Assigned candidate reference
-  candidateId    String?      @db.Uuid
+  /// Assigned applicant reference
+  applicantId    String?      @db.Uuid
   /// Expected onboarding date
   onboardingDate DateTime?
   /// Request submission date
@@ -1231,11 +1231,11 @@ model Headcount {
   /// Last update timestamp
   updatedAt      DateTime     @updatedAt
   attachments    Attachment[] @relation("HeadcountAttachments")
-  candidate      Candidate?   @relation("CandidateHeadcount", fields: [candidateId], references: [id])
+  applicant      Applicant?   @relation("ApplicantHeadcount", fields: [applicantId], references: [id])
   position       Position     @relation("PositionHeadcount", fields: [positionId], references: [id], onDelete: Cascade)
 
   @@index([positionId])
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([type])
   @@index([status])
   @@index([requestDate])
@@ -1295,7 +1295,7 @@ model ExpertiseGroup {
 }
 
 
-/// ExpertiseSkill - Individual expertise skills for candidate evaluation
+/// ExpertiseSkill - Individual expertise skills for applicant evaluation
 model ExpertiseSkill {
   /// Unique identifier
   id                  String                    @id @default(uuid()) @db.Uuid
@@ -1317,7 +1317,7 @@ model ExpertiseSkill {
   createdAt           DateTime                  @default(now())
   /// Last update timestamp
   updatedAt           DateTime                  @updatedAt
-  candidateScores     CandidateExpertiseScore[]
+  applicantScores     ApplicantExpertiseScore[]
   group               ExpertiseGroup?           @relation(fields: [groupId], references: [id])
   positionAssignments PositionExpertiseSkill[]
   templateAssignments SkillTemplateSkill[]
@@ -1357,7 +1357,7 @@ model PersonalityGroup {
   @@index([sortOrder])
 }
 
-/// PersonalityTrait - Individual personality traits for candidate evaluation
+/// PersonalityTrait - Individual personality traits for applicant evaluation
 model PersonalityTrait {
   /// Unique identifier
   id                  String                             @id @default(uuid()) @db.Uuid
@@ -1377,7 +1377,7 @@ model PersonalityTrait {
   createdAt           DateTime                           @default(now())
   /// Last update timestamp
   updatedAt           DateTime                           @updatedAt
-  candidateScores     CandidatePersonalityScore[]
+  applicantScores     ApplicantPersonalityScore[]
   group               PersonalityGroup?                  @relation(fields: [groupId], references: [id])
   positionAssignments PositionPersonalityTrait[]
   templateAssignments SkillTemplatePersonalityTrait[]
@@ -1589,12 +1589,12 @@ model PositionPersonalityTrait {
   @@index([traitId])
 }
 
-/// CandidateEvaluation - Evaluation records for candidate assessments
-model CandidateEvaluation {
+/// ApplicantEvaluation - Evaluation records for applicant assessments
+model ApplicantEvaluation {
   /// Unique identifier
   id                String                      @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId       String                      @db.Uuid
+  /// Reference to applicant
+  applicantId       String                      @db.Uuid
   /// Reference to position
   positionId        String?                     @db.Uuid
   /// Reference to evaluator
@@ -1611,25 +1611,25 @@ model CandidateEvaluation {
   createdAt         DateTime                    @default(now())
   /// Last update timestamp
   updatedAt         DateTime                    @updatedAt
-  candidate         Candidate                   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant         Applicant                   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   evaluator         User                        @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
   position          Position?                   @relation(fields: [positionId], references: [id])
-  expertiseScores   CandidateExpertiseScore[]
-  personalityScores CandidatePersonalityScore[]
+  expertiseScores   ApplicantExpertiseScore[]
+  personalityScores ApplicantPersonalityScore[]
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([positionId])
   @@index([evaluatorId])
   @@index([status])
   @@index([createdAt])
 }
 
-/// CandidateEvaluationLink - Secure links for external candidate evaluation
-model CandidateEvaluationLink {
+/// ApplicantEvaluationLink - Secure links for external applicant evaluation
+model ApplicantEvaluationLink {
   /// Unique identifier
   id          String   @id @default(uuid()) @db.Uuid
-  /// Reference to candidate
-  candidateId String   @db.Uuid
+  /// Reference to applicant
+  applicantId String   @db.Uuid
   /// Secure access token
   token       String   @unique
   /// Token expiration timestamp
@@ -1645,15 +1645,15 @@ model CandidateEvaluationLink {
   /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
-  @@index([candidateId])
+  @@index([applicantId])
   @@index([expiresAt])
 }
 
-/// CandidateExpertiseScore - Recorded scores for expertise skills
-model CandidateExpertiseScore {
+/// ApplicantExpertiseScore - Recorded scores for expertise skills
+model ApplicantExpertiseScore {
   /// Unique identifier
   id           String              @id @default(uuid()) @db.Uuid
   /// Reference to evaluation
@@ -1668,7 +1668,7 @@ model CandidateExpertiseScore {
   createdAt    DateTime            @default(now())
   /// Last update timestamp
   updatedAt    DateTime            @updatedAt
-  evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  evaluation   ApplicantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   skill        ExpertiseSkill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@unique([evaluationId, skillId])
@@ -1676,8 +1676,8 @@ model CandidateExpertiseScore {
   @@index([skillId])
 }
 
-/// CandidatePersonalityScore - Recorded scores for personality traits
-model CandidatePersonalityScore {
+/// ApplicantPersonalityScore - Recorded scores for personality traits
+model ApplicantPersonalityScore {
   /// Unique identifier
   id           String              @id @default(uuid()) @db.Uuid
   /// Reference to evaluation
@@ -1692,7 +1692,7 @@ model CandidatePersonalityScore {
   createdAt    DateTime            @default(now())
   /// Last update timestamp
   updatedAt    DateTime            @updatedAt
-  evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  evaluation   ApplicantEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   trait        PersonalityTrait    @relation(fields: [traitId], references: [id], onDelete: Cascade)
 
   @@unique([evaluationId, traitId])

@@ -46,7 +46,7 @@ The `logAudit()` function captures:
 | Activity Type | Description | Tracked Data |
 | :--- | :--- | :--- |
 | **Auth Events** | Logins, MFA attempts, password resets. | IP, Browser, Success/Fail |
-| **Data Mutatons** | Changes to Candidates, Positions, or Salaries. | JSON diff of changes |
+| **Data Mutatons** | Changes to applicants, Positions, or Salaries. | JSON diff of changes |
 | **File Access** | Resume downloads or signed URL generation. | File path, User ID |
 | **Auth Policy** | API Key creation or deletion. | Key Name, Prefix |
 

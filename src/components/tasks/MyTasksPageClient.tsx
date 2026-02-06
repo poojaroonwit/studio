@@ -74,7 +74,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const viewModeInitializedRef = useRef(false);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban'); // Default to kanban
   const [filters, setFilters] = useState<any>({});
-  const [Applicants, setApplicants] = useState<any[]>([]);
+  const [applicants, setApplicants] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string, description?: string, sortOrder?: number, colorComplete?: string, colorBadge?: string, isSystem?: boolean}>>([]);
   const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
@@ -108,9 +108,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const handleApplicantUpdate = useCallback((updateData: any) => {
     
     
-    const updatedApplicant = updateData?.Applicant || updateData;
+    const applicant = updateData?.applicant || updateData;
     
-    if (!updatedApplicant || !updatedapplicant.id) {
+    if (!applicant || !applicant.id) {
       
       return;
     }
@@ -118,7 +118,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     
     
     setApplicants(prevApplicants => {
-      const existingIndex = prevApplicants.findIndex(c => c.id === updatedapplicant.id);
+      const existingIndex = prevApplicants.findIndex(c => c.id === applicant.id);
       if (existingIndex !== -1) {
         const updated = [...prevApplicants];
         const existing = updated[existingIndex];
@@ -128,9 +128,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         // Merge updates while preserving any local changes that haven't been confirmed
         const merged = { 
           ...existing, 
-          ...updatedApplicant,
+          ...applicant,
           // Preserve local status if it's different from the updated one (might be a pending change)
-          status: existing.status !== updatedapplicant.status ? existing.status : updatedapplicant.status
+          status: existing.status !== applicant.status ? existing.status : applicant.status
         };
         
         updated[existingIndex] = merged;
@@ -139,7 +139,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       } else {
         // Add new Applicant if not found
         
-        return [...prevApplicants, updatedApplicant];
+        return [...prevApplicants, applicant];
       }
     });
   }, []);
@@ -256,8 +256,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     if (!session?.user?.id) return;
     
     const interval = setInterval(() => {
-      // Only refresh if not currently loading and we have Applicants
-      if (!loading && Applicants.length > 0) {
+      // Only refresh if not currently loading and we have applicants
+      if (!loading && applicants.length > 0) {
         
         const refreshApplicants = async () => {
           try {
@@ -273,9 +273,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             
               // Only update if the data has actually changed
               if (JSON.stringify(newApplicants.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
-                  JSON.stringify(Applicants.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
+                  JSON.stringify(applicants.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
                 setApplicants(newApplicants);
-                // console.log('[MyTasksPageClient] Periodic refresh updated Applicants');
+                // console.log('[MyTasksPageClient] Periodic refresh updated applicants');
               }
             } else {
               console.warn('Skipping failed endpoint /api/applicants (periodic):', result.error || result.status);
@@ -291,7 +291,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }, 10000); // Reduced from 30 seconds to 10 seconds for better responsiveness
     
     return () => clearInterval(interval);
-  }, [session?.user?.id, loading, Applicants, filters, realtimeConnected]);
+  }, [session?.user?.id, loading, applicants, filters, realtimeConnected]);
 
 
 
@@ -567,14 +567,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
     
     try {
-      // The API already handles permission-based filtering, so we just return all Applicants
-      // that the API returned. The API will only return Applicants the user has permission to see.
-      return Applicants;
+      // The API already handles permission-based filtering, so we just return all applicants
+      // that the API returned. The API will only return applicants the user has permission to see.
+      return applicants;
     } catch (error) {
       console.error('MyTasksPageClient: Error in filteredApplicants useMemo:', error);
       return [];
     }
-  }, [Applicants]);
+  }, [applicants]);
 
   // Filtering logic (for fitScore, if not supported by API)
   const displayedApplicants = useMemo(() => {
@@ -601,30 +601,30 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [filteredApplicants, filters]);
 
-  // Convert Applicants to tasks for the task board
-  const convertApplicantsToTasks = (Applicants: any[]): Task[] => {
-    return Applicants.map(Applicant => {
+  // Convert applicants to tasks for the task board
+  const convertApplicantsToTasks = (applicants: any[]): Task[] => {
+    return applicants.map(applicant => {
       const task = {
-        id: Applicant.id,
-        title: Applicant.name,
-        description: Applicant.parsedData?.summary || '', // Only use summary, don't fallback to email
-        email: Applicant.email, // Always include email separately
-        status: Applicant.statusId,
-        priority: (Applicant.fitScore > 0.8 ? 'high' : Applicant.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
-        assignee: Applicant.recruiter ? {
-          id: Applicant.recruiter.id,
-          name: Applicant.recruiter.name,
-          avatarUrl: Applicant.recruiter.avatarUrl
+        id: applicant.id,
+        title: applicant.name,
+        description: applicant.parsedData?.summary || '', // Only use summary, don't fallback to email
+        email: applicant.email, // Always include email separately
+        status: applicant.statusId,
+        priority: (applicant.fitScore > 0.8 ? 'high' : applicant.fitScore > 0.6 ? 'medium' : 'low') as 'low' | 'medium' | 'high' | 'urgent',
+        assignee: applicant.recruiter ? {
+          id: applicant.recruiter.id,
+          name: applicant.recruiter.name,
+          avatarUrl: applicant.recruiter.avatarUrl
         } : undefined,
-        dueDate: Applicant.applicationDate,
-        tags: Applicant.position?.title ? [Applicant.position.title] : [],
-        createdAt: Applicant.createdAt,
-        updatedAt: Applicant.updatedAt,
-        fitScore: Applicant.fitScore,
-        avatarUrl: Applicant.avatarUrl,
-        skills: Applicant.parsedData?.skills || [],
-        // Keep original Applicant data for backward compatibility
-        originalapplicant: Applicant
+        dueDate: applicant.applicationDate,
+        tags: applicant.position?.title ? [applicant.position.title] : [],
+        createdAt: applicant.createdAt,
+        updatedAt: applicant.updatedAt,
+        fitScore: applicant.fitScore,
+        avatarUrl: applicant.avatarUrl,
+        skills: applicant.parsedData?.skills || [],
+        // Keep original applicant data for backward compatibility
+        originalapplicant: applicant
       };
       
 
@@ -653,9 +653,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
     
-    // Find the original Applicant
-    const Applicant = Applicants.find(c => c.id === task.id);
-    if (!Applicant) {
+    // Find the original applicant
+    const applicant = applicants.find(c => c.id === task.id);
+    if (!applicant) {
       toast.error('Applicant not found');
       return;
     }
@@ -668,13 +668,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       // Show loading state
       toast.loading(`Moving ${applicant.name} to ${stageName}...`, { id: `move-${applicant.id}` });
       
-      // Update the Applicant status
+      // Update the applicant status
       const result = await safeFetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'change_status',
-          candidateIds: [Applicant.id],
+          applicantIds: [applicant.id],
           newStatus: newStatus
         }),
         timeoutMs: 10000
@@ -700,13 +700,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         toast.success(`Moved ${applicant.name} to ${stageName}`, { id: `move-${applicant.id}` });
       } else {
-        // If no Applicants were updated, show error
-        toast.error(`Failed to move ${applicant.name}: No Applicants updated`, { id: `move-${applicant.id}` });
+        // If no applicants were updated, show error
+        toast.error(`Failed to move ${applicant.name}: No applicants updated`, { id: `move-${applicant.id}` });
       }
       
     } catch (error) {
-      console.error('Error updating Applicant status:', error);
-      toast.error(`Failed to update Applicant status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${applicant.id}` });
+      console.error('Error updating applicant status:', error);
+      toast.error(`Failed to update applicant status: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: `move-${applicant.id}` });
       
       // Revert the visual change if the API call failed
       // The real-time update will handle the final state
@@ -1214,23 +1214,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                     {loading ? (
                       <SkeletonTableRows rows={10} columns={6} />
                     ) : (
-                      displayedApplicants.map((Applicant, index) => (
+                      displayedApplicants.map((applicant, index) => (
                       <TableRow 
                         key={applicant.id} 
                         className="cursor-pointer hover:bg-muted/40 content-fade-in"
                         style={{ animationDelay: `${index * 20}ms` }}
                         onClick={() => {
                        
-                        setSelectedTask(Applicant);
+                        setSelectedTask(applicant);
                       }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <ApplicantAvatarCompact
                               user={{
-                                id: Applicant.id,
-                                name: Applicant.name,
-                                avatarUrl: Applicant.avatarUrl,
-                                email: Applicant.email
+                                id: applicant.id,
+                                name: applicant.name,
+                                avatarUrl: applicant.avatarUrl,
+                                email: applicant.email
                               }}
                               size="lg"
                               className=""
@@ -1244,14 +1244,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                                   <TableCell>
                             <StatusBadge statusId={applicant.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
                           </TableCell>
-                        <TableCell className="text-foreground">{applicant.position?.title || Applicant.positionId}</TableCell>
-                        <TableCell className="text-foreground">{applicant.recruiter?.name || Applicant.recruiterId}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(Applicant.fitScore)}</TableCell>
+                        <TableCell className="text-foreground">{applicant.position?.title || applicant.positionId}</TableCell>
+                        <TableCell className="text-foreground">{applicant.recruiter?.name || applicant.recruiterId}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(applicant.fitScore)}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
                            
-                            setSelectedTask(Applicant); 
+                            setSelectedTask(applicant); 
                           }}>
                             View
                           </Button>
@@ -1271,7 +1271,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       {selectedTask && (
         <>
           <ApplicantDetailModal
-            candidateId={selectedTask.id}
+            applicantId={selectedTask.id}
             open={!!selectedTask}
             onClose={() => {
               setSelectedTask(null);

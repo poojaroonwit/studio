@@ -6,7 +6,7 @@ import { Applicant, UserProfile } from '@/lib/types';
  * @param recruiters - Array of recruiter objects with personal colors
  * @returns The personal color hex string or default blue
  */
-export function getApplicantPersonalColor(Applicant: Applicant, recruiters?: UserProfile[]): string {
+export function getApplicantPersonalColor(applicant: Applicant, recruiters?: UserProfile[]): string {
   if (!applicant.recruiterId || !recruiters) {
     return '#3B82F6'; // Default blue
   }

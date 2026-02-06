@@ -26,11 +26,11 @@ export default async function ApplicantsPageServer() {
       client = await getPool().connect();
 
       // OPTIMIZED: Fetch only essential data for filters and initial display
-      let ApplicantsResult, positionsResult, stagesResult;
+      let applicantsResult, positionsResult, stagesResult;
 
       try {
         // Simplified query - only fetch basic Applicant data needed for filters
-        ApplicantsResult = await client.query(`
+        applicantsResult = await client.query(`
           SELECT 
             c.id,
             c.name,
@@ -49,7 +49,7 @@ export default async function ApplicantsPageServer() {
             r.name as "recruiterName",
             cs.name as "sourceName",
             c."isBlacklisted"
-          FROM "Candidate" c
+          FROM "applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" r ON c."recruiterId" = r.id
           LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -96,8 +96,8 @@ export default async function ApplicantsPageServer() {
       }
 
       // Transform Applicants data - minimal transformation
-      const ApplicantRows = Array.isArray(ApplicantsResult?.rows) ? ApplicantsResult.rows : []
-      initialApplicants = ApplicantRows.map((row: any) => ({
+      const applicantRows = Array.isArray(applicantsResult?.rows) ? applicantsResult.rows : []
+      initialApplicants = applicantRows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,

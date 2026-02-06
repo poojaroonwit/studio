@@ -38,10 +38,10 @@ async function upsertPosition(title: string, department: string, recruiterId?: s
   });
 }
 
-async function upsertCandidate(name: string, email: string, positionId?: string, recruiterId?: string) {
-  const existing = await prisma.candidate.findFirst({ where: { email } });
+async function upsertapplicant(name: string, email: string, positionId?: string, recruiterId?: string) {
+  const existing = await prisma.applicant.findFirst({ where: { email } });
   if (existing) return existing;
-  return prisma.candidate.create({
+  return prisma.applicant.create({
     data: {
       name,
       email,
@@ -172,11 +172,11 @@ async function createPositionPersonalityAssignments(positionId: string) {
   }
 }
 
-async function createEvaluation(candidateId: string, positionId: string | null, evaluatorId: string) {
+async function createEvaluation(applicantId: string, positionId: string | null, evaluatorId: string) {
   // Create a simple evaluation with expertise scores
-  const evaluation = await prisma.candidateEvaluation.create({
+  const evaluation = await prisma.applicantEvaluation.create({
     data: {
-      candidateId,
+      applicantId,
       positionId,
       evaluatorId,
       status: 'completed',
@@ -191,7 +191,7 @@ async function createEvaluation(candidateId: string, positionId: string | null, 
   });
 
   for (const skill of skills) {
-    await prisma.candidateExpertiseScore.create({
+    await prisma.applicantExpertiseScore.create({
       data: {
         evaluationId: evaluation.id,
         skillId: skill.id,
@@ -207,7 +207,7 @@ async function createEvaluation(candidateId: string, positionId: string | null, 
   });
 
   for (const trait of traits) {
-    await prisma.candidatePersonalityScore.create({
+    await prisma.applicantPersonalityScore.create({
       data: {
         evaluationId: evaluation.id,
         traitId: trait.id,
@@ -218,10 +218,10 @@ async function createEvaluation(candidateId: string, positionId: string | null, 
   }
 }
 
-async function createEvaluationLink(candidateId: string, createdById: string) {
-  // Check if link already exists for this candidate
-  const existing = await prisma.candidateEvaluationLink.findFirst({
-    where: { candidateId }
+async function createEvaluationLink(applicantId: string, createdById: string) {
+  // Check if link already exists for this applicant
+  const existing = await prisma.applicantEvaluationLink.findFirst({
+    where: { applicantId }
   });
   if (existing) return existing;
 
@@ -232,9 +232,9 @@ async function createEvaluationLink(candidateId: string, createdById: string) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
-  return prisma.candidateEvaluationLink.create({
+  return prisma.applicantEvaluationLink.create({
     data: {
-      candidateId,
+      applicantId,
       token,
       expiresAt,
       createdById,
@@ -286,7 +286,7 @@ async function createDemoUsers() {
 }
 
 async function main() {
-  console.log('🌱 Seeding demo data: positions, candidates, evaluations, links, and interviewers');
+  console.log('🌱 Seeding demo data: positions, applicants, evaluations, links, and interviewers');
 
   const recruiter = await ensureRecruiterUser();
   const demoUsers = await createDemoUsers();
@@ -310,26 +310,26 @@ async function main() {
   await createInterviewers(pos2.id, interviewerIds);
   console.log('✓ Interviewers assigned to positions');
 
-  // Create sample candidates
-  const candidates = await Promise.all([
-    upsertCandidate('Alex Rodriguez', 'alex.rodriguez@example.com', pos1.id, recruiter.id),
-    upsertCandidate('Priya Singh', 'priya.singh@example.com', pos1.id, recruiter.id),
-    upsertCandidate('Kenji Tanaka', 'kenji.tanaka@example.com', pos2.id, recruiter.id),
-    upsertCandidate('Sara Ahmed', 'sara.ahmed@example.com', pos2.id, recruiter.id),
-    upsertCandidate('Liam O\'Connor', 'liam.oconnor@example.com', undefined, recruiter.id)
+  // Create sample applicants
+  const applicants = await Promise.all([
+    upsertapplicant('Alex Rodriguez', 'alex.rodriguez@example.com', pos1.id, recruiter.id),
+    upsertapplicant('Priya Singh', 'priya.singh@example.com', pos1.id, recruiter.id),
+    upsertapplicant('Kenji Tanaka', 'kenji.tanaka@example.com', pos2.id, recruiter.id),
+    upsertapplicant('Sara Ahmed', 'sara.ahmed@example.com', pos2.id, recruiter.id),
+    upsertapplicant('Liam O\'Connor', 'liam.oconnor@example.com', undefined, recruiter.id)
   ]);
 
-  // Create evaluations for first three candidates
-  for (let i = 0; i < Math.min(3, candidates.length); i++) {
-    const c = candidates[i];
+  // Create evaluations for first three applicants
+  for (let i = 0; i < Math.min(3, applicants.length); i++) {
+    const c = applicants[i];
     await createEvaluation(c.id, c.positionId ?? null, recruiter.id);
   }
 
-  // Create evaluation links for all candidates
-  for (const candidate of candidates) {
-    await createEvaluationLink(candidate.id, recruiter.id);
+  // Create evaluation links for all applicants
+  for (const applicant of applicants) {
+    await createEvaluationLink(applicant.id, recruiter.id);
   }
-  console.log('✓ Evaluation links created for all candidates');
+  console.log('✓ Evaluation links created for all applicants');
 
   console.log('Demo data seeded successfully');
 }

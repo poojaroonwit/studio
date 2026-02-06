@@ -1,12 +1,12 @@
-# Candidate Asset Label - Icon Cleanup
+# applicant Asset Label - Icon Cleanup
 
 ## Overview
 
-Successfully removed the duplicate icon from the Candidate Asset section label on the evaluate page, simplifying the header to show only one icon instead of two.
+Successfully removed the duplicate icon from the applicant Asset section label on the evaluate page, simplifying the header to show only one icon instead of two.
 
 ## Changes Made
 
-### File: `src/app/candidates/[id]/evaluate/components/CandidateAssetsSection.tsx`
+### File: `src/app/applicants/[id]/evaluate/components/applicantAssetsSection.tsx`
 
 **Lines Modified:** 60-63
 
@@ -15,7 +15,7 @@ Successfully removed the duplicate icon from the Candidate Asset section label o
 <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
   <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" />
   <Folder className="h-4 w-4" />
-  Candidate Asset
+  applicant Asset
 </h3>
 ```
 
@@ -23,7 +23,7 @@ Successfully removed the duplicate icon from the Candidate Asset section label o
 ```tsx
 <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
   <Folder className="h-4 w-4" />
-  Candidate Asset
+  applicant Asset
 </h3>
 ```
 
@@ -57,14 +57,14 @@ On mobile devices:
 
 ### Before (2 Icons):
 ```
-[⋮⋮] [📁] Candidate Asset
+[⋮⋮] [📁] applicant Asset
  ↑    ↑
 Grip Folder
 ```
 
 ### After (1 Icon):
 ```
-[📁] Candidate Asset
+[📁] applicant Asset
  ↑
 Folder only
 ```
@@ -84,14 +84,14 @@ Folder only
 ## Section Context
 
 This section displays:
-- Candidate's uploaded files/attachments
+- applicant's uploaded files/attachments
 - Resume, cover letters, portfolios, etc.
 - Horizontally scrollable cards
 - Each card shows file icon, name, and type badge
 
 ### Example:
 ```
-📁 Candidate Asset
+📁 applicant Asset
 ┌──────────┐ ┌──────────┐ ┌──────────┐
 │ 📄 Resume│ │ 📷 Photo │ │ 📄 Cover │
 │   PDF    │ │   Image  │ │   DOCX   │
@@ -104,7 +104,7 @@ This section displays:
 <div>
   <h3>
     <Folder /> {/* Single icon */}
-    Candidate Asset
+    applicant Asset
   </h3>
   <div className="flex gap-3 overflow-x-auto">
     {/* Attachment cards */}
@@ -153,7 +153,7 @@ For consistency, check if other sections also use single icons:
 
 ✅ **No Impact** - Purely visual change  
 ✅ **Icon Still Decorative** - Text label is primary  
-✅ **Screen Readers** - Read "Candidate Asset" text  
+✅ **Screen Readers** - Read "applicant Asset" text  
 ✅ **Visual Clarity** - Simplified design aids comprehension
 
 ## File Types Displayed
@@ -171,7 +171,7 @@ Each attachment card has:
 ## Testing Checklist
 
 - [ ] Open evaluate page on mobile
-- [ ] Scroll to Candidate Asset section
+- [ ] Scroll to applicant Asset section
 - [ ] Verify only Folder icon is shown
 - [ ] Confirm no GripVertical icon
 - [ ] Check header looks clean and balanced

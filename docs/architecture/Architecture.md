@@ -65,7 +65,7 @@ graph TD
 | **Database** | PostgreSQL 15 | Primary data storage |
 | **Authentication** | NextAuth.js | Multi-provider authentication |
 | **File Storage** | MinIO | Object storage for files and media |
-| **AI Integration** | Google Gemini API | Intelligent candidate matching and search |
+| **AI Integration** | Google Gemini API | Intelligent applicant matching and search |
 | **Real-time** | Server-Sent Events (SSE) | Live updates and notifications |
 
 ### 2.3 DevOps & Infrastructure
@@ -84,7 +84,7 @@ graph TD
 
 ## 3. Core Business Processes
 
-### 3.1 Candidate Lifecycle Management
+### 3.1 applicant Lifecycle Management
 
 ```mermaid
 graph LR
@@ -121,13 +121,13 @@ The database is organized into the following logical domains:
 - `Permission` - Granular permissions
 - `UserPreference` - User-specific settings
 
-### 4.2 Candidate Management
-- `Candidate` - Applicant profiles
+### 4.2 applicant Management
+- `applicant` - Applicant profiles
 - `Attachment` - Resume and document storage
 - `TransitionRecord` - Stage change history
-- `CandidateComment` - Notes and feedback
-- `CandidateEvaluation` - Interview scores
-- `CandidateEvaluationLink` - Shareable evaluation URLs
+- `applicantComment` - Notes and feedback
+- `applicantEvaluation` - Interview scores
+- `applicantEvaluationLink` - Shareable evaluation URLs
 
 ### 4.3 Position Management
 - `Position` - Job requisitions
@@ -173,18 +173,18 @@ studio-2/
 │   ├── app/                    # Next.js App Router pages and API routes
 │   │   ├── api/               # API endpoints
 │   │   │   ├── v1/            # V1 API (stable)
-│   │   │   ├── candidates/    # Candidate endpoints
+│   │   │   ├── applicants/    # applicant endpoints
 │   │   │   ├── positions/     # Position endpoints
 │   │   │   ├── ai/            # AI endpoints
 │   │   │   ├── settings/      # Settings endpoints
 │   │   │   └── ...
-│   │   ├── candidates/        # Candidate pages
+│   │   ├── applicants/        # applicant pages
 │   │   ├── positions/         # Position pages
 │   │   ├── settings/           # Settings pages
 │   │   └── ...
 │   ├── components/            # React components
 │   │   ├── ui/                # UI components (ShadCN)
-│   │   ├── candidates/        # Candidate-related components
+│   │   ├── applicants/        # applicant-related components
 │   │   ├── positions/          # Position-related components
 │   │   ├── settings/           # Settings components
 │   │   └── ...
@@ -213,14 +213,14 @@ studio-2/
 
 ### 6.1 External Services
 - **Azure AD** - Single Sign-On authentication
-- **Google AI (Genkit)** - Candidate matching and resume parsing
+- **Google AI (Genkit)** - applicant matching and resume parsing
 - **MinIO** - S3-compatible object storage
 - **N8N** - Workflow automation
 
 ### 6.2 Webhook Events
 The system emits the following events to configured webhook endpoints:
-- `candidate.created` - New candidate added
-- `stage.changed` - Candidate moved to new stage
+- `applicant.created` - New applicant added
+- `stage.changed` - applicant moved to new stage
 - `score.updated` - Evaluation score modified
 
 ### 6.3 Real-time Channels (SSE)

@@ -6,7 +6,7 @@ Successfully updated the mobile interviewer selection UI to match the compact, p
 
 ## Changes Made
 
-### File: `src/app/candidates/[id]/evaluate/components/InterviewerSelectionSection.tsx`
+### File: `src/app/applicants/[id]/evaluate/components/InterviewerSelectionSection.tsx`
 
 **Section Modified:** Mobile Interviewer View (lines 69-136)
 

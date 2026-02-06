@@ -5,10 +5,10 @@
 -- CRITICAL QUERY PATTERNS TO VALIDATE
 -- ==============================================
 
--- 1. Validate Candidate queries (most critical)
+-- 1. Validate applicant queries (most critical)
 EXPLAIN (ANALYZE, BUFFERS) 
 SELECT c.*, p.title as "positionTitle", r.name as "recruiterName"
-FROM "Candidate" c
+FROM "applicant" c
 LEFT JOIN "Position" p ON c."positionId" = p.id
 LEFT JOIN "User" r ON c."recruiterId" = r.id
 WHERE c."statusId" = 'some-uuid'
@@ -53,9 +53,9 @@ WHERE p."gradeId" IS NOT NULL
 -- Before removing indexes, run these queries and note the execution time
 -- After removing indexes, run the same queries and compare
 
--- Query 1: Candidate filtering by position and status
+-- Query 1: applicant filtering by position and status
 \timing on
-SELECT COUNT(*) FROM "Candidate" WHERE "positionId" = 'some-uuid' AND "statusId" = 'some-uuid';
+SELECT COUNT(*) FROM "applicant" WHERE "positionId" = 'some-uuid' AND "statusId" = 'some-uuid';
 \timing off
 
 -- Query 2: Position filtering by recruiter and open status
@@ -97,6 +97,6 @@ SELECT
     mean_time,
     rows
 FROM pg_stat_statements 
-WHERE query LIKE '%Candidate%' OR query LIKE '%Position%' OR query LIKE '%User%'
+WHERE query LIKE '%applicant%' OR query LIKE '%Position%' OR query LIKE '%User%'
 ORDER BY mean_time DESC
 LIMIT 10;

@@ -216,7 +216,7 @@ export class WebhookService {
    */
   static async sendApplicantWebhook(event: string, Applicant: any): Promise<void> {
     await this.sendWebhooks(event, {
-      Applicant: {
+      applicant: {
         id: Applicant.id,
         name: Applicant.name,
         email: Applicant.email,
@@ -299,7 +299,7 @@ export class WebhookService {
         id: comment.id,
         content: comment.content,
         author_id: comment.authorId,
-        Applicant_id: comment.candidateId,
+        applicant_id: comment.applicantId,
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt
       }

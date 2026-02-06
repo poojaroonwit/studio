@@ -408,9 +408,9 @@ export function UploadQueueStatus() {
                     </div>
                   )}
                   
-                  {item.processed_Applicants !== undefined && item.total_Applicants !== undefined && (
+                  {item.processed_applicants !== undefined && item.total_applicants !== undefined && (
                     <div className="mt-2 text-sm text-muted-foreground">
-                      Processed: {item.processed_Applicants} / {item.total_Applicants} Applicants
+                      Processed: {item.processed_applicants} / {item.total_applicants} Applicants
                     </div>
                   )}
                 </div>
@@ -515,11 +515,11 @@ export function UploadQueueStatus() {
                 </div>
               )}
               
-              {selectedItem.processed_Applicants !== undefined && selectedItem.total_Applicants !== undefined && (
+              {selectedItem.processed_applicants !== undefined && selectedItem.total_applicants !== undefined && (
                 <div>
                   <Label className="text-sm font-medium">Applicants Processed</Label>
                   <p className="text-sm">
-                    {selectedItem.processed_Applicants} of {selectedItem.total_Applicants} Applicants
+                    {selectedItem.processed_applicants} of {selectedItem.total_applicants} Applicants
                   </p>
                 </div>
               )}

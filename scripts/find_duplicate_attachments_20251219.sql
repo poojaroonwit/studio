@@ -1,16 +1,16 @@
 -- ============================================================================
--- Find Duplicate Attachments for Candidates
+-- Find Duplicate Attachments for applicants
 -- Date: 2025-12-19
--- Purpose: Find and remove duplicate attachments (same filename) for the same candidate.
+-- Purpose: Find and remove duplicate attachments (same filename) for the same applicant.
 -- ============================================================================
 
 -- ============================================================================
--- QUERY 1: Find candidates with duplicate attachment filenames
+-- QUERY 1: Find applicants with duplicate attachment filenames
 -- ============================================================================
 
 SELECT 
-  a."candidateId",
-  c.name as candidate_name,
+  a."applicantId",
+  c.name as applicant_name,
   a."fileName",
   COUNT(*) as duplicate_count,
   STRING_AGG(a.id::text, ', ') as attachment_ids,
@@ -18,9 +18,9 @@ SELECT
   STRING_AGG(a."isPrimary"::text, ', ') as is_primary_flags,
   STRING_AGG(a."uploadedAt"::text, ', ') as upload_dates
 FROM "Attachment" a
-JOIN "Candidate" c ON c.id = a."candidateId"
-WHERE a."candidateId" IS NOT NULL
-GROUP BY a."candidateId", c.name, a."fileName"
+JOIN "applicant" c ON c.id = a."applicantId"
+WHERE a."applicantId" IS NOT NULL
+GROUP BY a."applicantId", c.name, a."fileName"
 HAVING COUNT(*) > 1
 ORDER BY duplicate_count DESC, c.name;
 
@@ -32,10 +32,10 @@ SELECT
   a."filePath",
   COUNT(*) as duplicate_count,
   STRING_AGG(a.id::text, ', ') as attachment_ids,
-  STRING_AGG(c.name, ', ') as candidate_names,
-  STRING_AGG(a."candidateId"::text, ', ') as candidate_ids
+  STRING_AGG(c.name, ', ') as applicant_names,
+  STRING_AGG(a."applicantId"::text, ', ') as applicant_ids
 FROM "Attachment" a
-LEFT JOIN "Candidate" c ON c.id = a."candidateId"
+LEFT JOIN "applicant" c ON c.id = a."applicantId"
 GROUP BY a."filePath"
 HAVING COUNT(*) > 1
 ORDER BY duplicate_count DESC;
@@ -46,26 +46,26 @@ ORDER BY duplicate_count DESC;
 
 WITH duplicates AS (
   SELECT 
-    "candidateId",
+    "applicantId",
     "fileName"
   FROM "Attachment"
-  WHERE "candidateId" IS NOT NULL
-  GROUP BY "candidateId", "fileName"
+  WHERE "applicantId" IS NOT NULL
+  GROUP BY "applicantId", "fileName"
   HAVING COUNT(*) > 1
 )
 SELECT 
   a.id,
-  a."candidateId",
-  c.name as candidate_name,
+  a."applicantId",
+  c.name as applicant_name,
   a."fileName",
   a."filePath",
   a."label",
   a."isPrimary",
   a."uploadedAt"
 FROM "Attachment" a
-JOIN duplicates d ON a."candidateId" = d."candidateId" AND a."fileName" = d."fileName"
-JOIN "Candidate" c ON c.id = a."candidateId"
-ORDER BY a."candidateId", a."fileName", a."uploadedAt" DESC;
+JOIN duplicates d ON a."applicantId" = d."applicantId" AND a."fileName" = d."fileName"
+JOIN "applicant" c ON c.id = a."applicantId"
+ORDER BY a."applicantId", a."fileName", a."uploadedAt" DESC;
 
 -- ============================================================================
 -- STEP 3: BACKUP before deletion
@@ -74,21 +74,21 @@ ORDER BY a."candidateId", a."fileName", a."uploadedAt" DESC;
 CREATE TABLE IF NOT EXISTS attachment_duplicates_backup_20251219 AS
 SELECT a.*
 FROM "Attachment" a
-WHERE a."candidateId" IS NOT NULL
+WHERE a."applicantId" IS NOT NULL
   AND a.id NOT IN (
     -- Keep the "best" version:
     -- 1. Prefer isPrimary = true
     -- 2. Then prefer newest uploadedAt
-    SELECT DISTINCT ON ("candidateId", "fileName") id
+    SELECT DISTINCT ON ("applicantId", "fileName") id
     FROM "Attachment"
-    WHERE "candidateId" IS NOT NULL
-    ORDER BY "candidateId", "fileName", "isPrimary" DESC, "uploadedAt" DESC
+    WHERE "applicantId" IS NOT NULL
+    ORDER BY "applicantId", "fileName", "isPrimary" DESC, "uploadedAt" DESC
   )
-  AND (a."candidateId", a."fileName") IN (
-    SELECT "candidateId", "fileName"
+  AND (a."applicantId", a."fileName") IN (
+    SELECT "applicantId", "fileName"
     FROM "Attachment"
-    WHERE "candidateId" IS NOT NULL
-    GROUP BY "candidateId", "fileName"
+    WHERE "applicantId" IS NOT NULL
+    GROUP BY "applicantId", "fileName"
     HAVING COUNT(*) > 1
   );
 
@@ -98,7 +98,7 @@ SELECT COUNT(*) as attachments_to_delete FROM attachment_duplicates_backup_20251
 -- ============================================================================
 -- STEP 4: DELETE duplicates
 -- ============================================================================
--- Strategy: Keep 1 attachment per filename per candidate.
+-- Strategy: Keep 1 attachment per filename per applicant.
 -- Priority: Keep 'isPrimary' if exists, otherwise keep the NEWEST one.
 
 -- DELETE FROM "Attachment"
@@ -112,12 +112,12 @@ SELECT COUNT(*) as attachments_to_delete FROM attachment_duplicates_backup_20251
 
 -- Should be 0
 SELECT 
-  a."candidateId",
+  a."applicantId",
   a."fileName",
   COUNT(*) as duplicate_count
 FROM "Attachment" a
-WHERE a."candidateId" IS NOT NULL
-GROUP BY a."candidateId", a."fileName"
+WHERE a."applicantId" IS NOT NULL
+GROUP BY a."applicantId", a."fileName"
 HAVING COUNT(*) > 1;
 
 -- ============================================================================

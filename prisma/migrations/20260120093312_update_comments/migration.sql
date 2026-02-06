@@ -82,50 +82,50 @@ COMMENT ON COLUMN "PositionPersonalityTrait"."weight" IS 'Weight for scoring';
 COMMENT ON COLUMN "PositionPersonalityTrait"."createdAt" IS 'Record creation timestamp';
 COMMENT ON COLUMN "PositionPersonalityTrait"."updatedAt" IS 'Last update timestamp';
 
--- CandidateEvaluation comments
-COMMENT ON TABLE "CandidateEvaluation" IS 'CandidateEvaluation - Evaluation records for candidate assessments';
-COMMENT ON COLUMN "CandidateEvaluation"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateEvaluation"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateEvaluation"."positionId" IS 'Reference to position';
-COMMENT ON COLUMN "CandidateEvaluation"."evaluatorId" IS 'Reference to evaluator';
-COMMENT ON COLUMN "CandidateEvaluation"."status" IS 'Evaluation status (in_progress, completed)';
-COMMENT ON COLUMN "CandidateEvaluation"."overall_score" IS 'Overall evaluation score';
-COMMENT ON COLUMN "CandidateEvaluation"."comments" IS 'Evaluator comments';
-COMMENT ON COLUMN "CandidateEvaluation"."completed_at" IS 'Completion timestamp';
-COMMENT ON COLUMN "CandidateEvaluation"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateEvaluation"."updatedAt" IS 'Last update timestamp';
+-- applicantEvaluation comments
+COMMENT ON TABLE "applicantEvaluation" IS 'applicantEvaluation - Evaluation records for applicant assessments';
+COMMENT ON COLUMN "applicantEvaluation"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantEvaluation"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantEvaluation"."positionId" IS 'Reference to position';
+COMMENT ON COLUMN "applicantEvaluation"."evaluatorId" IS 'Reference to evaluator';
+COMMENT ON COLUMN "applicantEvaluation"."status" IS 'Evaluation status (in_progress, completed)';
+COMMENT ON COLUMN "applicantEvaluation"."overall_score" IS 'Overall evaluation score';
+COMMENT ON COLUMN "applicantEvaluation"."comments" IS 'Evaluator comments';
+COMMENT ON COLUMN "applicantEvaluation"."completed_at" IS 'Completion timestamp';
+COMMENT ON COLUMN "applicantEvaluation"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantEvaluation"."updatedAt" IS 'Last update timestamp';
 
--- CandidateEvaluationLink comments
-COMMENT ON TABLE "CandidateEvaluationLink" IS 'CandidateEvaluationLink - Secure links for external candidate evaluation';
-COMMENT ON COLUMN "CandidateEvaluationLink"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateEvaluationLink"."candidateId" IS 'Reference to candidate';
-COMMENT ON COLUMN "CandidateEvaluationLink"."token" IS 'Secure access token';
-COMMENT ON COLUMN "CandidateEvaluationLink"."expiresAt" IS 'Token expiration timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."createdById" IS 'User who created the link';
-COMMENT ON COLUMN "CandidateEvaluationLink"."requireLogin" IS 'Whether login is required to access';
-COMMENT ON COLUMN "CandidateEvaluationLink"."revokedAt" IS 'Link revocation timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateEvaluationLink"."updatedAt" IS 'Last update timestamp';
+-- applicantEvaluationLink comments
+COMMENT ON TABLE "applicantEvaluationLink" IS 'applicantEvaluationLink - Secure links for external applicant evaluation';
+COMMENT ON COLUMN "applicantEvaluationLink"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantEvaluationLink"."applicantId" IS 'Reference to applicant';
+COMMENT ON COLUMN "applicantEvaluationLink"."token" IS 'Secure access token';
+COMMENT ON COLUMN "applicantEvaluationLink"."expiresAt" IS 'Token expiration timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."createdById" IS 'User who created the link';
+COMMENT ON COLUMN "applicantEvaluationLink"."requireLogin" IS 'Whether login is required to access';
+COMMENT ON COLUMN "applicantEvaluationLink"."revokedAt" IS 'Link revocation timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantEvaluationLink"."updatedAt" IS 'Last update timestamp';
 
--- CandidateExpertiseScore comments
-COMMENT ON TABLE "CandidateExpertiseScore" IS 'CandidateExpertiseScore - Recorded scores for expertise skills';
-COMMENT ON COLUMN "CandidateExpertiseScore"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidateExpertiseScore"."evaluationId" IS 'Reference to evaluation';
-COMMENT ON COLUMN "CandidateExpertiseScore"."skillId" IS 'Reference to skill';
-COMMENT ON COLUMN "CandidateExpertiseScore"."score" IS 'Score value';
-COMMENT ON COLUMN "CandidateExpertiseScore"."notes" IS 'Optional notes on score';
-COMMENT ON COLUMN "CandidateExpertiseScore"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidateExpertiseScore"."updatedAt" IS 'Last update timestamp';
+-- applicantExpertiseScore comments
+COMMENT ON TABLE "applicantExpertiseScore" IS 'applicantExpertiseScore - Recorded scores for expertise skills';
+COMMENT ON COLUMN "applicantExpertiseScore"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantExpertiseScore"."evaluationId" IS 'Reference to evaluation';
+COMMENT ON COLUMN "applicantExpertiseScore"."skillId" IS 'Reference to skill';
+COMMENT ON COLUMN "applicantExpertiseScore"."score" IS 'Score value';
+COMMENT ON COLUMN "applicantExpertiseScore"."notes" IS 'Optional notes on score';
+COMMENT ON COLUMN "applicantExpertiseScore"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantExpertiseScore"."updatedAt" IS 'Last update timestamp';
 
--- CandidatePersonalityScore comments
-COMMENT ON TABLE "CandidatePersonalityScore" IS 'CandidatePersonalityScore - Recorded scores for personality traits';
-COMMENT ON COLUMN "CandidatePersonalityScore"."id" IS 'Unique identifier';
-COMMENT ON COLUMN "CandidatePersonalityScore"."evaluationId" IS 'Reference to evaluation';
-COMMENT ON COLUMN "CandidatePersonalityScore"."traitId" IS 'Reference to personality trait';
-COMMENT ON COLUMN "CandidatePersonalityScore"."score" IS 'Score value';
-COMMENT ON COLUMN "CandidatePersonalityScore"."notes" IS 'Optional notes on score';
-COMMENT ON COLUMN "CandidatePersonalityScore"."createdAt" IS 'Record creation timestamp';
-COMMENT ON COLUMN "CandidatePersonalityScore"."updatedAt" IS 'Last update timestamp';
+-- applicantPersonalityScore comments
+COMMENT ON TABLE "applicantPersonalityScore" IS 'applicantPersonalityScore - Recorded scores for personality traits';
+COMMENT ON COLUMN "applicantPersonalityScore"."id" IS 'Unique identifier';
+COMMENT ON COLUMN "applicantPersonalityScore"."evaluationId" IS 'Reference to evaluation';
+COMMENT ON COLUMN "applicantPersonalityScore"."traitId" IS 'Reference to personality trait';
+COMMENT ON COLUMN "applicantPersonalityScore"."score" IS 'Score value';
+COMMENT ON COLUMN "applicantPersonalityScore"."notes" IS 'Optional notes on score';
+COMMENT ON COLUMN "applicantPersonalityScore"."createdAt" IS 'Record creation timestamp';
+COMMENT ON COLUMN "applicantPersonalityScore"."updatedAt" IS 'Last update timestamp';
 
 -- UserSession comments
 COMMENT ON COLUMN "UserSession"."id" IS 'Unique identifier';

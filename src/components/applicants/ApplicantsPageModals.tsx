@@ -45,15 +45,15 @@ interface ApplicantsPageModalsProps {
   setBulkNewStatus: React.Dispatch<React.SetStateAction<string>>;
   bulkTransitionNotes: string;
   setBulkTransitionNotes: React.Dispatch<React.SetStateAction<string>>;
-  selectedcandidateIds: Set<string>;
-  handleBulkChangeStatus: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
+  selectedApplicantIds: Set<string>;
+  handleBulkChangeStatus: (applicantIds: string[], newStatus: string, notes?: string) => Promise<void>;
   availableStagesForBulk: RecruitmentStage[];
 
   isBulkRecruiterModalOpen: boolean;
   setIsBulkRecruiterModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   bulkNewRecruiterId: string | null;
   setBulkNewRecruiterId: React.Dispatch<React.SetStateAction<string | null>>;
-  handleBulkAssignRecruiter: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
+  handleBulkAssignRecruiter: (applicantIds: string[], recruiterId: string | null) => Promise<void>;
   availableRecruiter: Array<{ id: string; name: string }>;
 }
 
@@ -84,7 +84,7 @@ export function ApplicantsPageModals({
   setBulkNewStatus,
   bulkTransitionNotes,
   setBulkTransitionNotes,
-  selectedcandidateIds,
+  selectedApplicantIds,
   handleBulkChangeStatus,
   availableStagesForBulk,
   isBulkRecruiterModalOpen,
@@ -137,7 +137,7 @@ export function ApplicantsPageModals({
           <AlertDialogHeader>
             <AlertDialogTitle>Change Status for Selected Applicants</AlertDialogTitle>
             <AlertDialogDescription>
-              Change the status for {selectedcandidateIds.size} selected Applicant{selectedcandidateIds.size !== 1 ? 's' : ''}.
+              Change the status for {selectedApplicantIds.size} selected Applicant{selectedApplicantIds.size !== 1 ? 's' : ''}.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -179,7 +179,7 @@ export function ApplicantsPageModals({
             <AlertDialogAction
               onClick={() => {
                 if (bulkNewStatus) {
-                  handleBulkChangeStatus(Array.from(selectedcandidateIds), bulkNewStatus, bulkTransitionNotes);
+                  handleBulkChangeStatus(Array.from(selectedApplicantIds), bulkNewStatus, bulkTransitionNotes);
                   setIsBulkStatusModalOpen(false);
                   setBulkNewStatus('');
                   setBulkTransitionNotes('');
@@ -199,7 +199,7 @@ export function ApplicantsPageModals({
           <AlertDialogHeader>
             <AlertDialogTitle>Assign Recruiter to Selected Applicants</AlertDialogTitle>
             <AlertDialogDescription>
-              Assign a recruiter to {selectedcandidateIds.size} selected Applicant{selectedcandidateIds.size !== 1 ? 's' : ''}.
+              Assign a recruiter to {selectedApplicantIds.size} selected Applicant{selectedApplicantIds.size !== 1 ? 's' : ''}.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -231,7 +231,7 @@ export function ApplicantsPageModals({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                handleBulkAssignRecruiter(Array.from(selectedcandidateIds), bulkNewRecruiterId);
+                handleBulkAssignRecruiter(Array.from(selectedApplicantIds), bulkNewRecruiterId);
                 setIsBulkRecruiterModalOpen(false);
                 setBulkNewRecruiterId(null);
               }}

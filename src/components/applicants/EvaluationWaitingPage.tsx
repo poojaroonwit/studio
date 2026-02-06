@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface EvaluationWaitingPageProps {
-  candidateId: string;
+  applicantId: string;
   interviewers: Array<{ id: string; userId: string; userName: string; userEmail?: string; avatarUrl?: string | null }>;
   allEvaluations: Map<string, any>;
   onSkip: () => void;
@@ -44,7 +44,7 @@ const checkAllInterviewersCompleted = (
 };
 
 export function EvaluationWaitingPage({
-  candidateId,
+  applicantId,
   interviewers,
   allEvaluations,
   onSkip,
@@ -85,7 +85,7 @@ export function EvaluationWaitingPage({
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/v1/Applicants/${candidateId}/evaluations`, { cache: 'no-store' });
+        const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`, { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           const evaluationsMap = new Map<string, any>();
@@ -114,7 +114,7 @@ export function EvaluationWaitingPage({
             setIsPolling(false);
             onAllCompleted();
             // Navigate to report page
-            router.push(`/applicants/${candidateId}/evaluate-result`);
+            router.push(`/applicants/${applicantId}/evaluate-result`);
           }
         }
       } catch (error) {
@@ -123,7 +123,7 @@ export function EvaluationWaitingPage({
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
-  }, [isPolling, candidateId, interviewers, router, onAllCompleted, onEvaluationsUpdate]);
+  }, [isPolling, applicantId, interviewers, router, onAllCompleted, onEvaluationsUpdate]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center overflow-hidden">

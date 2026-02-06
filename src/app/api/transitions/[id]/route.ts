@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
-      JOIN "Candidate" c ON tr."candidateId" = c.id 
+      JOIN "applicant" c ON tr."applicantId" = c.id 
       WHERE tr.id = $1
     `;
     const getResult = await client.query(getTransitionQuery, [id]);
@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest) {
     
     // Broadcast the transition update
     broadcastApplicantUpdate({
-      candidateId: currentTransition.candidateId,
+      applicantId: currentTransition.applicantId,
       transition: updatedTransition,
       action: 'update'
     }, session.user.id);
@@ -159,7 +159,7 @@ export async function DELETE(request: NextRequest) {
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
-      JOIN "Candidate" c ON tr."candidateId" = c.id 
+      JOIN "applicant" c ON tr."applicantId" = c.id 
       WHERE tr.id = $1
     `;
     const getResult = await client.query(getTransitionQuery, [id]);
@@ -188,7 +188,7 @@ export async function DELETE(request: NextRequest) {
     
     // Broadcast the transition deletion
     broadcastApplicantUpdate({
-      candidateId: transitionToDelete.candidateId,
+      applicantId: transitionToDelete.applicantId,
       transition: transitionToDelete,
       action: 'delete'
     }, session.user.id);

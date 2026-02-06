@@ -13,7 +13,7 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 // Schema for Applicant import data
-const ApplicantImportSchema = z.object({
+const applicantImportSchema = z.object({
   id: z.string().uuid().optional(), // Optional ID for update/create logic
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     // Validate Applicants
     const validationResults = validApplicants.map((applicant, index) => {
-      const result = ApplicantImportSchema.safeParse(applicant);
+      const result = applicantImportSchema.safeParse(applicant);
       return { index, applicant, valid: result.success, errors: result.success ? null : result.error.flatten().fieldErrors };
     });
 
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
           if (applicant.id) {
             // Update existing Applicant
             const updateQuery = `
-              UPDATE "Candidate" 
+              UPDATE "applicant" 
               SET 
                 name = $1,
                 email = $2,
@@ -291,9 +291,9 @@ export async function POST(request: NextRequest) {
             }
           } else {
             // Create new Applicant
-            const candidateId = uuidv4();
+            const applicantId = uuidv4();
             const insertQuery = `
-              INSERT INTO "Candidate" (
+              INSERT INTO "applicant" (
                 id, name, email, phone, "positionId", "recruiterId", 
                 "fitScore", "statusId", "applicationDate", "parsedData", 
                 "customAttributes", "createdAt", "updatedAt"
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
             `;
 
             await client.query(insertQuery, [
-              candidateId,
+              applicantId,
               applicant.name,
               applicant.email,
               applicant.phone || null,

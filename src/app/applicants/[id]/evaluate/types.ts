@@ -12,7 +12,7 @@ export interface EvaluationQuestion {
 }
 
 export interface EvaluationFormData {
-  Applicant: Applicant;
+  applicant: Applicant;
   position?: Position;
   questions: EvaluationQuestion[];
   currentQuestionIndex: number;

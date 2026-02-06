@@ -83,10 +83,10 @@ interface ApplicantTableRowProps {
   canAssignSource: boolean;
   assigningRecruiter: string | null;
   assigningSource: string | null;
-  onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
-  onAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
+  onAssignRecruiter: (applicantId: string, recruiterId: string | null) => void;
+  onAssignSource: (applicantId: string, sourceId: string | null, subSource?: string | null) => void;
   onResetAssigning: () => void;
-  onOpenDetail: (candidateId: string, applicantName: string) => void;
+  onOpenDetail: (applicantId: string, applicantName: string) => void;
   togglePin: (applicant: Applicant) => void;
   onPinToggle?: () => void; // Added for refresh after pin/blacklist
   rowHeightStyle: React.CSSProperties;

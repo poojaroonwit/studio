@@ -66,7 +66,7 @@ Every time a user signs in, a unique `sessionToken` is generated and stored in a
 ### 4.2 Middleware Protection (`src/middleware.ts`)
 The Next.js Middleware acts as a gatekeeper:
 - **Cookie Check**: Inspects headers for `next-auth.session-token` or `authjs.session-token`.
-- **Route Guarding**: Redirects unauthenticated users to `/auth/signin` for all protected routes (e.g., `/dashboard`, `/candidates`).
+- **Route Guarding**: Redirects unauthenticated users to `/auth/signin` for all protected routes (e.g., `/dashboard`, `/applicants`).
 - **Rate Limiting**: Applies tiered limits (higher for API, stricter for Login/Auth).
 
 ### 4.3 API V2 Authentication
@@ -147,7 +147,7 @@ Every time a user signs in, a unique `sessionToken` is generated and stored in a
 ### 2. Middleware Protection (`src/middleware.ts`)
 The Next.js Middleware acts as a gatekeeper:
 - **Cookie Check**: Inspects headers for `next-auth.session-token` or `authjs.session-token`.
-- **Route Guarding**: Redirects unauthenticated users to `/auth/signin` for all protected routes (e.g., `/dashboard`, `/candidates`).
+- **Route Guarding**: Redirects unauthenticated users to `/auth/signin` for all protected routes (e.g., `/dashboard`, `/applicants`).
 - **Rate Limiting**: Applies tiered limits (higher for API, stricter for Login/Auth).
 
 ### 3. API V2 Authentication

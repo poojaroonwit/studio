@@ -368,10 +368,10 @@ const nextConfig = {
             priority: 7,
             enforce: true,
           },
-          // Separate candidate components to prevent TDZ issues
-          candidates: {
-            test: /[\\/]src[\\/]components[\\/]candidates[\\/]/,
-            name: 'candidate-components',
+          // Separate applicant components to prevent TDZ issues
+          applicants: {
+            test: /[\\/]src[\\/]components[\\/]applicants[\\/]/,
+            name: 'applicant-components',
             chunks: 'all',
             priority: 6,
             enforce: true,

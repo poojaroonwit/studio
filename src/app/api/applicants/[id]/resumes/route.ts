@@ -32,9 +32,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Use Promise.all to check Applicant existence and fetch attachments in parallel
     // console.log(`[API] Fetching resumes for Applicant ID: ${id}`);
     const [applicant, attachments] = await Promise.all([
-      prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
+      prisma.applicant.findUnique({ where: { id }, select: { id: true } }),
       prisma.attachment.findMany({
-        where: { candidateId: id },
+        where: { applicantId: id },
         orderBy: { uploadedAt: 'desc' },
         take: limit,
         skip: offset,
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const errors = [];
 
   // Get current attachment count to determine if first file should be primary
-  const currentCount = await prisma.attachment.count({ where: { candidateId: id } });
+  const currentCount = await prisma.attachment.count({ where: { applicantId: id } });
   let isFirstFile = currentCount === 0;
 
   for (const file of files) {
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Store in DB
       const newAttachment = await prisma.attachment.create({
         data: {
-          candidateId: id,
+          applicantId: id,
           uploadedById: session.user.id,
           filePath: objectName,
           fileName: file.name,
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         include: { uploadedBy: { select: { id: true, name: true, email: true } } },
       });
       // Broadcast SSE event for new resume
-      broadcastApplicantUpdate({ candidateId: id, resume: newAttachment, action: 'added' }, session.user.id);
+      broadcastApplicantUpdate({ applicantId: id, resume: newAttachment, action: 'added' }, session.user.id);
 
       results.push({
         ...newAttachment,
@@ -177,11 +177,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { attachmentId } = await req.json();
   try {
     // Unset all
-    await prisma.attachment.updateMany({ where: { candidateId: id }, data: { isPrimary: false } });
+    await prisma.attachment.updateMany({ where: { applicantId: id }, data: { isPrimary: false } });
     // Set one
-    const updated = await prisma.attachment.update({ where: { id: attachmentId, candidateId: id }, data: { isPrimary: true } });
+    const updated = await prisma.attachment.update({ where: { id: attachmentId, applicantId: id }, data: { isPrimary: true } });
     // Broadcast SSE event for updated resume
-    broadcastApplicantUpdate({ candidateId: id, resume: updated, action: 'updated' }, session.user.id);
+    broadcastApplicantUpdate({ applicantId: id, resume: updated, action: 'updated' }, session.user.id);
     return NextResponse.json({ data: updated });
   } catch (err) {
     return NextResponse.json({ message: 'Error setting primary attachment', error: String(err) }, { status: 500 });
@@ -203,7 +203,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   
   try {
     // Get Applicant data for ownership check
-    const applicant = await prisma.candidate.findUnique({
+    const applicant = await prisma.applicant.findUnique({
       where: { id },
       select: { id: true, recruiterId: true }
     });
@@ -227,7 +227,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }
     }
     
-    const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, candidateId: id } });
+    const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, applicantId: id } });
     if (!attachment) {
       return NextResponse.json({ message: 'Attachment not found' }, { status: 404 });
     }
@@ -235,11 +235,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Delete from MinIO
     await minioClient.removeObject(MINIO_BUCKET, attachment.filePath);
     // Delete from DB
-    await prisma.attachment.delete({ where: { id: attachmentId, candidateId: id } });
+    await prisma.attachment.delete({ where: { id: attachmentId, applicantId: id } });
     // Broadcast SSE event for deleted resume
-    broadcastApplicantUpdate({ candidateId: id, resume: { id: attachmentId }, action: 'deleted' }, session.user.id);
+    broadcastApplicantUpdate({ applicantId: id, resume: { id: attachmentId }, action: 'deleted' }, session.user.id);
     // If primary was deleted, set first as primary
-    const remaining = await prisma.attachment.findMany({ where: { candidateId: id }, orderBy: { uploadedAt: 'desc' } });
+    const remaining = await prisma.attachment.findMany({ where: { applicantId: id }, orderBy: { uploadedAt: 'desc' } });
     if (attachment.isPrimary && remaining.length > 0) {
       await prisma.attachment.update({ where: { id: remaining[0].id }, data: { isPrimary: true } });
     }

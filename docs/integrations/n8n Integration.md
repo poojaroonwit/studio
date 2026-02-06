@@ -58,8 +58,8 @@ N8N_DB_CONNECTION_TIMEOUT=60000
 
 ## 5. Use Cases
 
-- **Email Notifications**: Send emails when candidates move stages
-- **CRM Integration**: Sync candidate data with external CRM
+- **Email Notifications**: Send emails when applicants move stages
+- **CRM Integration**: Sync applicant data with external CRM
 - **Resume Processing**: Automate resume parsing
 - **Interview Scheduling**: Integrate with calendar systems
 - **Background Checks**: Automate background check processes
@@ -89,30 +89,30 @@ N8N_DB_CONNECTION_TIMEOUT=60000
 ### App to n8n (Outgoing Webhooks)
 FitScan uses a built-in **Webhook Dispatcher** to notify n8n of specific events.
 
-- **Mechanism**: When an event occurs (e.g., a candidate is created), the `WebhookDispatcher` sends a POST request with a JSON payload to a pre-configured URL (your n8n Webhook Node).
+- **Mechanism**: When an event occurs (e.g., a applicant is created), the `WebhookDispatcher` sends a POST request with a JSON payload to a pre-configured URL (your n8n Webhook Node).
 - **Supported Events**:
-  - `candidate.created`, `candidate.updated`, `candidate.stage_changed`
+  - `applicant.created`, `applicant.updated`, `applicant.stage_changed`
   - `position.created`, `position.deleted`
   - `resume.uploaded`, `resume.processed`
   - `upload_queue.completed`, `upload_queue.failed`
 - **Security**: Supports Basic Auth, Bearer tokens, or custom headers to ensure only authorized requests are accepted by n8n.
 
 ### n8n to App (REST API V2)
-n8n can perform actions in FitScan (like updating a candidate's status or fetching report data) using the **V2 API**.
+n8n can perform actions in FitScan (like updating a applicant's status or fetching report data) using the **V2 API**.
 
 - **Authentication**: n8n uses **System API Keys** for secure access.
 - **n8n Compatibility**: The `/api/v2/auth/login` endpoint specifically supports the `Authorization: Bearer <sk_live_...>` header format, which is the standard for n8n's "Header Auth" or "HTTP Request" nodes.
 - **Workflow**:
   1. n8n sends the API Key to `/api/v2/auth/login`.
   2. The app validates the key and returns a JWT token.
-  3. n8n uses this token for subsequent API calls (e.g., `GET /api/v2/candidates`).
+  3. n8n uses this token for subsequent API calls (e.g., `GET /api/v2/applicants`).
 
 ---
 
 ## 9. Workflow-Specific Requirements
 
 ### 9.1 Outlook Folder Structure (Inbound Processing)
-The `FitScan [Inbound candidate].json` workflow manages candidate emails. Create the following hierarchy in your monitoring Outlook account:
+The `FitScan [Inbound applicant].json` workflow manages applicant emails. Create the following hierarchy in your monitoring Outlook account:
 
 ```mermaid
 graph TD
@@ -127,10 +127,10 @@ graph TD
 
 - **Queue**: Initial landing folder for incoming resumes.
 - **Processing**: Intermediate state while the workflow is running.
-- **Processed**: Destination for successfully uploaded candidates.
+- **Processed**: Destination for successfully uploaded applicants.
 - **Server down**: Failover destination if the FitScan API is unreachable.
 - **Unknow position**: Destination for emails where the AI cannot determine the target job position.
-- **Other**: Catch-all for non-candidate or irrelevant communications.
+- **Other**: Catch-all for non-applicant or irrelevant communications.
 
 ### 9.2 Windmill Integration (HTML-to-PDF)
 For high-fidelity parsing of HTML-based resumes, the system utilizes a **Windmill** worker:

@@ -527,9 +527,9 @@ export default function PositionsPageClient() {
       // Check if recruiter sync happened
       if (responseData && typeof responseData === 'object' && 'recruiterSync' in responseData) {
         const sync = (responseData as any).recruiterSync;
-        if (sync.ApplicantsUpdated > 0) {
+        if (sync.applicantsUpdated > 0) {
           toast.success(
-            `Recruiter assigned successfully. ${sync.ApplicantsUpdated} Applicant${sync.ApplicantsUpdated > 1 ? 's' : ''} automatically assigned.`
+            `Recruiter assigned successfully. ${sync.applicantsUpdated} applicant${sync.applicantsUpdated > 1 ? 's' : ''} automatically assigned.`
           );
         } else {
           toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');

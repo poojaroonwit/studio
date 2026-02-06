@@ -1,12 +1,12 @@
-# Mobile Candidate Detail Header - Minimal Design Update
+# Mobile applicant Detail Header - Minimal Design Update
 
 ## Overview
 
-Successfully redesigned the mobile candidate detail page header for a cleaner, more minimal appearance by removing the avatar, changing the back button icon, and removing border/shadow styling.
+Successfully redesigned the mobile applicant detail page header for a cleaner, more minimal appearance by removing the avatar, changing the back button icon, and removing border/shadow styling.
 
 ## Changes Made
 
-### File: `src/components/candidates/MobileCandidateDetail.tsx`
+### File: `src/components/applicants/MobileapplicantDetail.tsx`
 
 ### 1. Updated Imports (line 10)
 
@@ -59,9 +59,9 @@ import { ..., ArrowLeft, ChevronLeft, MoreVertical, ... } from 'lucide-react';
 #### Before:
 ```tsx
 <Avatar className="h-11 w-11 flex-shrink-0">
-  <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
+  <AvatarImage src={applicant.avatarUrl || undefined} alt={applicant.name || ''} />
   <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
-    {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
+    {applicant.name?.charAt(0)?.toUpperCase() || 'C'}
   </AvatarFallback>
 </Avatar>
 ```
@@ -190,7 +190,7 @@ className="h-9 w-9 flex-shrink-0 touch-manipulation border-none shadow-none hove
 ## Responsive Behavior
 
 ### Mobile Only:
-- This component is `MobileCandidateDetail.tsx`
+- This component is `MobileapplicantDetail.tsx`
 - Only shows on mobile/tablet views
 - Desktop uses different component
 - Changes only affect mobile experience
@@ -255,7 +255,7 @@ className="h-9 w-9 flex-shrink-0 touch-manipulation border-none shadow-none hove
 
 ## Testing Checklist
 
-- [ ] Open candidate detail on mobile
+- [ ] Open applicant detail on mobile
 - [ ] Verify back button shows chevron "<" not arrow
 - [ ] Check no border on back button
 - [ ] Check no shadow on back button  

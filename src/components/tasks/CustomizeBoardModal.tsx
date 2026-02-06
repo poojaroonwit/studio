@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { List, LayoutGrid, Settings, Eye, EyeOff, Check, X, ChevronDown, ChevronUp, Ban, BarChart2, User, Briefcase, Target, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ApplicantFields = [
+const applicantFields = [
   { key: 'none', label: 'None', icon: <Ban className="w-4 h-4" /> },
   { key: 'status', label: 'Status', icon: <BarChart2 className="w-4 h-4" /> },
   { key: 'recruiterId', label: 'Recruiter', icon: <User className="w-4 h-4" /> },
@@ -201,9 +201,9 @@ function MultiSelect({
 }
 
 // Dynamically extract custom fields from Applicants
-function getCustomFieldKeys(Applicants: any[]): string[] {
+function getCustomFieldKeys(applicants: any[]): string[] {
   const keys = new Set<string>();
-  const safeApplicants = Array.isArray(Applicants) ? Applicants : [];
+  const safeApplicants = Array.isArray(applicants) ? applicants : [];
   safeApplicants.forEach(c => {
     if (c.customAttributes && typeof c.customAttributes === 'object') {
       Object.keys(c.customAttributes).forEach(k => keys.add(k));
@@ -213,9 +213,9 @@ function getCustomFieldKeys(Applicants: any[]): string[] {
 }
 
 // Helper to extract all unique keys (including nested) from parsedData using dot notation
-function getParsedDataKeys(Applicants: any[]): string[] {
+function getParsedDataKeys(applicants: any[]): string[] {
   const keys = new Set<string>();
-  const safeApplicants = Array.isArray(Applicants) ? Applicants : [];
+  const safeApplicants = Array.isArray(applicants) ? applicants : [];
   function extractKeys(obj: any, prefix = '') {
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
       Object.keys(obj).forEach(k => {
@@ -249,7 +249,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [stages, setStages] = useState<Array<{id: string, name: string}>>([]);
-  const [Applicants, setApplicants] = useState<any[]>([]);
+  const [applicants, setApplicants] = useState<any[]>([]);
 
   // Fetch actual data when modal opens
   useEffect(() => {
@@ -275,10 +275,10 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         const stagesData = await stagesRes.json();
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => ({ id: s.id, name: s.name })) : []);
         // Fetch Applicants to get unique values
-        const ApplicantsRes = await fetch('/api/applicants?limit=1000');
-        if (!ApplicantsRes.ok) throw new Error('Failed to fetch Applicants');
-        const ApplicantsData = await ApplicantsRes.json();
-        setApplicants(Array.isArray(ApplicantsData) ? ApplicantsData : (ApplicantsData.data || []));
+        const applicantsRes = await fetch('/api/applicants?limit=1000');
+        if (!applicantsRes.ok) throw new Error('Failed to fetch Applicants');
+        const applicantsData = await applicantsRes.json();
+        setApplicants(Array.isArray(applicantsData) ? applicantsData : (applicantsData.data || []));
       } catch (error) {
         console.error('CustomizeBoardModal: Error fetching actual data:', error);
       } finally {
@@ -289,17 +289,17 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   }, [open]);
 
   // Always recalculate field options on every render so new Applicants/fields are included
-  const customFieldKeys = getCustomFieldKeys(Applicants);
-  const parsedDataKeys = getParsedDataKeys(Applicants);
+  const customFieldKeys = getCustomFieldKeys(applicants);
+  const parsedDataKeys = getParsedDataKeys(applicants);
   const allFieldKeys = new Set([
-    ...ApplicantFields.map(f => f.key),
+    ...applicantFields.map(f => f.key),
     ...customFieldKeys
   ]);
   const parsedDataFieldObjs = parsedDataKeys
     .filter(key => !allFieldKeys.has(key))
     .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> }));
   const dynamicApplicantFields = [
-    ...ApplicantFields,
+    ...applicantFields,
     ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),
     ...parsedDataFieldObjs
   ];
@@ -453,7 +453,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
   const baseRowColumnFields = [
-    ...ApplicantFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
+    ...applicantFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
     ...customFieldKeys
       .filter(key => !['name', 'email', 'phone'].includes(key))
       .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),

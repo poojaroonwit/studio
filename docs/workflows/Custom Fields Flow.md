@@ -15,7 +15,7 @@ The system relies on **JSONB columns** in core tables and a central definition t
 ```mermaid
 graph TD
     Def[CustomFieldDefinition Table] -->|Defines| UI[Dynamic Form Renderer]
-    UI -->|Saves to| JSONB[(Candidate/Position JSONB Column)]
+    UI -->|Saves to| JSONB[(applicant/Position JSONB Column)]
     
     subgraph "Supported Types"
         JSONB --> Text[Short/Long Text]
@@ -34,11 +34,11 @@ graph TD
 Stores metadata about the custom fields:
 - **`name` & `key`**: The unique identifier in the JSON object (e.g., `expected_salary`).
 - **`type`**: Determines the validation and UI component (e.g., `NUMBER`).
-- **`entityType`**: Specifies if the field belongs to a **Candidate** or a **Position**.
+- **`entityType`**: Specifies if the field belongs to a **applicant** or a **Position**.
 - **`options`**: (Optional) List of values for dropdowns.
 
 ### 2. The JSONB Column (`customAttributes`)
-Instead of adding new columns like `expected_salary` to the `Candidate` table, values are stored in a highly optimized `JSONB` blob:
+Instead of adding new columns like `expected_salary` to the `applicant` table, values are stored in a highly optimized `JSONB` blob:
 ```json
 {
   "expected_salary": 85000,

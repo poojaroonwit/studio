@@ -1017,7 +1017,7 @@ export interface RecruitmentStage {
 
 export interface TransitionRecord {
   id: string;
-  candidateId?: string;
+  applicantId?: string;
   date: string;
   stage: ApplicantStatus; // Now a string to accommodate custom stages
   notes?: string;
@@ -1300,7 +1300,7 @@ export interface Applicant {
 
 export interface ResumeHistoryEntry {
   id: string;
-  candidateId: string;
+  applicantId: string;
   filePath: string;
   originalFileName: string;
   uploadedAt: string;
@@ -1311,7 +1311,7 @@ export interface ResumeHistoryEntry {
 // Database model for JobMatch (matches Prisma schema)
 export interface JobMatch {
   id: string;
-  candidateId: string;
+  applicantId: string;
   jobId?: string | null;
   jobTitle?: string | null;
   fitScore: number;
@@ -1324,7 +1324,7 @@ export interface JobMatch {
 // Database model for ResumeHistory (now using Attachment table)
 export interface ResumeHistory {
   id: string;
-  candidateId: string;
+  applicantId: string;
   filePath: string;
   originalFileName: string;
   uploadedAt: string;
@@ -1455,7 +1455,7 @@ export interface CustomFieldDefinition {
   showInHeadcountDetail?: boolean;
 
   // Section selection for display settings
-  ApplicantDetailSection?: 'jobs' | 'Applicant-info' | 'education' | 'experience' | 'job-suitability';
+  applicantDetailSection?: 'jobs' | 'Applicant-info' | 'education' | 'experience' | 'job-suitability';
   positionDetailSection?: 'details' | 'criteria' | 'Applicants' | 'headcount';
 
   // For select/multiselect fields
@@ -1639,7 +1639,7 @@ export type PositionBulkAction = 'delete' | 'change_status'; // Added 'change_st
 
 export interface ApplicantBulkActionPayload {
   action: ApplicantBulkAction;
-  candidateIds: string[];
+  applicantIds: string[];
   newStatus?: ApplicantStatus; // For 'change_status'
   notes?: string | null; // For 'change_status' transition notes
   newRecruiterId?: string | null; // For 'assign_recruiter'
@@ -1748,7 +1748,7 @@ export interface Headcount {
   positionId: string;
   type: HeadcountType;
   status: HeadcountStatus;
-  candidateId?: string | null;
+  applicantId?: string | null;
   onboardingDate?: string | null;
   requestDate?: string | null;
   notes?: string | null;
@@ -1758,7 +1758,7 @@ export interface Headcount {
   createdAt: string;
   updatedAt: string;
   position?: Position;
-  Applicant?: Applicant;
+  applicant?: Applicant;
   attachments?: Attachment[];
 }
 
@@ -1766,7 +1766,7 @@ export interface CreateHeadcountRequest {
   positionId: string;
   type: HeadcountType;
   status?: HeadcountStatus;
-  candidateId?: string | null;
+  applicantId?: string | null;
   onboardingDate?: string | null;
   requestDate?: string | null;
   notes?: string | null;
@@ -1778,7 +1778,7 @@ export interface CreateHeadcountRequest {
 export interface UpdateHeadcountRequest {
   type?: HeadcountType;
   status?: HeadcountStatus;
-  candidateId?: string | null;
+  applicantId?: string | null;
   onboardingDate?: string | null;
   requestDate?: string | null;
   notes?: string | null;
@@ -1789,7 +1789,7 @@ export interface UpdateHeadcountRequest {
 
 export interface Attachment {
   id: string;
-  candidateId?: string | null;
+  applicantId?: string | null;
   headcountId?: string | null;
   uploadedById: string;
   filePath: string;

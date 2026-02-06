@@ -9,7 +9,7 @@
 | **When** | During initial onboarding or whenever your workflow needs optimization. |
 | **Why** | To increase productivity by surface-level UI adjustments that matter to the individual. |
 | **Where** | Accessed via **Profile Icon > Settings**. |
-| **How** | 1. Go to **Settings** <br> 2. Change **Personal Color** <br> 3. Toggle **Dark Mode** <br> 4. Adjust candidate list density <br> 5. Set default Filters for your role |
+| **How** | 1. Go to **Settings** <br> 2. Change **Personal Color** <br> 3. Toggle **Dark Mode** <br> 4. Adjust applicant list density <br> 5. Set default Filters for your role |
 
 ## 1. Edit My Profile
 Keep your account secure and recognizable.
@@ -34,7 +34,7 @@ Stay updated without email clutter.
 - **Dark Mode**: Toggle between Light and Dark modes to reduce eye strain.
 
 ## 2. Workspace Optimization
-- **Default View**: Choose whether you prefer seeing candidates in a **Kanban** board or a structured **Table** by default.
+- **Default View**: Choose whether you prefer seeing applicants in a **Kanban** board or a structured **Table** by default.
 - **Sidebar Focus**: Toggle visibility of your "Assigned Positions" in the sidebar for one-click access to your most important roles.
 - **Data Density**: Adjust how many rows of data you see per page to balance clarity with information depth.
 

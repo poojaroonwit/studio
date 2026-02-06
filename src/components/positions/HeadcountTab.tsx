@@ -25,7 +25,7 @@ import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
 
 interface HeadcountTabProps {
   positionId: string;
-  Applicants: Applicant[];
+  applicants: Applicant[];
   onHeadcountChange?: () => void;
 }
 
@@ -34,7 +34,7 @@ const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: 
   { value: 'filled', label: 'Filled', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' },
 ];
 
-export function HeadcountTab({ positionId, Applicants, onHeadcountChange }: HeadcountTabProps) {
+export function HeadcountTab({ positionId, applicants, onHeadcountChange }: HeadcountTabProps) {
   // Headcount type options will be fetched from API
   const [headcountTypeOptions, setHeadcountTypeOptions] = useState<{ value: HeadcountType; label: string; color: string }[]>([]);
   const [headcounts, setHeadcounts] = useState<Headcount[]>([]);
@@ -249,7 +249,7 @@ export function HeadcountTab({ positionId, Applicants, onHeadcountChange }: Head
 
   const getStatusBadge = (headcount: Headcount) => {
     // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
-    const actualStatus = (headcount.status === 'filled' && headcount.candidateId !== null) ? 'filled' : 'vacant';
+    const actualStatus = (headcount.status === 'filled' && headcount.applicantId !== null) ? 'filled' : 'vacant';
     const option = HEADCOUNT_STATUS_OPTIONS.find(opt => opt.value === actualStatus);
     return (
       <Badge className={option?.color || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800'}>
@@ -503,10 +503,10 @@ export function HeadcountTab({ positionId, Applicants, onHeadcountChange }: Head
                       {getSLABadge(headcount.id)}
                     </TableCell>
                     <TableCell>
-                      {headcount.Applicant ? (
+                      {headcount.applicant ? (
                         <div className="flex items-center gap-2">
                           <ApplicantAvatar
-                            user={headcount.Applicant}
+                            user={headcount.applicant}
                             size="sm"
                             className="h-6 w-6"
                           />
@@ -596,7 +596,7 @@ export function HeadcountTab({ positionId, Applicants, onHeadcountChange }: Head
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         headcount={editingHeadcount}
-        Applicants={Applicants}
+        applicants={applicants}
         positionId={positionId}
         onSave={handleModalSave}
         onClose={handleModalClose}

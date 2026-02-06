@@ -35,4 +35,4 @@ Explore the specific guides below to manage your FitScan environment:
 To verify your Admin setup is correct:
 1.  **Identity**: Create a new user in **"User Management"** and assign them the **"Recruiter"** role.
 2.  **Access**: Log in as that new user.
-3.  **Confirm**: Ensure they can see the **"Candidates"** list but **cannot** access the **"Settings > System settings"** menu. This confirms your RBAC engine is operational.
+3.  **Confirm**: Ensure they can see the **"applicants"** list but **cannot** access the **"Settings > System settings"** menu. This confirms your RBAC engine is operational.

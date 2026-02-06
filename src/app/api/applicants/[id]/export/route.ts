@@ -149,7 +149,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         p.title as "positionTitle",
         p.department as "positionDepartment",
         u.name as "recruiterName"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         p.title as "positionTitle"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1::uuid
+      WHERE jm."applicantId" = $1::uuid
       ORDER BY jm."fitScore" DESC NULLS LAST
     `;
 
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const excelBuffer = Buffer.from(buffer);
 
     await logAudit('AUDIT', `Applicant ${applicant.name} exported as Excel by ${actingUserName}`, 'API:Applicant:Export', actingUserId, {
-      candidateId: id,
+      applicantId: id,
       applicantName: applicant.name,
       format: 'Excel'
     });
@@ -233,7 +233,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     await logAudit('ERROR', `Failed to export Applicant ${id} by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Applicant:Export', actingUserId, {
-      candidateId: id,
+      applicantId: id,
       error: (error as Error).message
     });
     return NextResponse.json({ error: 'Failed to export Applicant' }, { status: 500 });

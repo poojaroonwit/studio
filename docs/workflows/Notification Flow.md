@@ -38,7 +38,7 @@ sequenceDiagram
 
 ### 1. In-App Notifications (`notificationService.ts`)
 - **Persistence**: Every alert is saved to the `Notification` table, allowing users to view their history.
-- **Self-Notification Prevention**: The system intelligently blocks notifications where the `actingUserId` is the same as the target `userId` (e.g., you don't get a notification when *you* update a candidate).
+- **Self-Notification Prevention**: The system intelligently blocks notifications where the `actingUserId` is the same as the target `userId` (e.g., you don't get a notification when *you* update a applicant).
 - **Real-time Link**: Uses the **SSE Mechanism** to push updates instantly to the browser without a page refresh.
 
 ### 2. Email Service (`emailService.ts`)
@@ -53,9 +53,9 @@ sequenceDiagram
 | Event Type | Logic | Recipient |
 | :--- | :--- | :--- |
 | **Position Assigned** | A recruiter is linked to a new job opening. | Assigned Recruiter |
-| **Candidate Added** | A new resume is successfully processed/uploaded. | Position Recruiter |
-| **Status Changed** | A candidate moves to a new recruitment stage. | Position Recruiter |
-| **SLA Alert** | A candidate has been stuck in a stage for too long. | Admin / Recruiter |
+| **applicant Added** | A new resume is successfully processed/uploaded. | Position Recruiter |
+| **Status Changed** | A applicant moves to a new recruitment stage. | Position Recruiter |
+| **SLA Alert** | A applicant has been stuck in a stage for too long. | Admin / Recruiter |
 
 ---
 

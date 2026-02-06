@@ -62,16 +62,16 @@ interface ApplicantTableProps {
   availableStages: RecruitmentStage[];
   availableRecruiter: { id: string; name: string }[];
   availableSources: ApplicantSource[];
-  onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
-  onAssignSource?: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
-  onUpdateApplicant: (candidateId: string, status: ApplicantStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
-  onDeleteApplicant: (candidateId: string) => Promise<void>;
+  onAssignRecruiter: (applicantId: string, recruiterId: string | null) => void;
+  onAssignSource?: (applicantId: string, sourceId: string | null, subSource?: string | null) => void;
+  onUpdateApplicant: (applicantId: string, status: ApplicantStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
+  onDeleteApplicant: (applicantId: string) => Promise<void>;
   onEditPosition: (position: Position) => void;
   isLoading?: boolean;
-  onRefreshApplicantData: (candidateId: string) => Promise<void>;
+  onRefreshApplicantData: (applicantId: string) => Promise<void>;
   // For bulk actions
   selectedApplicantIds?: Set<string>;
-  onToggleSelectApplicant: (candidateId: string) => void;
+  onToggleSelectApplicant: (applicantId: string) => void;
   onToggleSelectAllApplicants: () => void;
   isAllApplicantsSelected: boolean;
   page?: number;
@@ -92,10 +92,10 @@ interface ApplicantTableProps {
   // Dynamic height
   tableHeight?: number;
   // Bulk action handlers
-  onBulkDelete?: (candidateIds: string[]) => Promise<void>;
-  onBulkChangeStatus?: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
-  onBulkAssignRecruiter?: (candidateIds: string[], recruiterId: string | null) => Promise<void>;
-  onBulkReprocess?: (candidateIds: string[]) => Promise<void>;
+  onBulkDelete?: (applicantIds: string[]) => Promise<void>;
+  onBulkChangeStatus?: (applicantIds: string[], newStatus: string, notes?: string) => Promise<void>;
+  onBulkAssignRecruiter?: (applicantIds: string[], recruiterId: string | null) => Promise<void>;
+  onBulkReprocess?: (applicantIds: string[]) => Promise<void>;
 }
 
 
@@ -282,10 +282,10 @@ export function ApplicantTable({
     setIsDetailModalOpen(true);
   };
 
-  const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
-    setAssigningRecruiter(candidateId);
+  const handleAssignRecruiter = async (applicantId: string, recruiterId: string | null) => {
+    setAssigningRecruiter(applicantId);
     try {
-      onAssignRecruiter(candidateId, recruiterId);
+      onAssignRecruiter(applicantId, recruiterId);
     } catch (error) {
       // Error assigning recruiter
     } finally {
@@ -302,12 +302,12 @@ export function ApplicantTable({
     }
   };
 
-  const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
+  const handleAssignSource = async (applicantId: string, sourceId: string | null, subSource?: string | null) => {
     if (!canAssignSource || !onAssignSource) return;
 
-    setAssigningSource(candidateId);
+    setAssigningSource(applicantId);
     try {
-      await onAssignSource(candidateId, sourceId, subSource);
+      await onAssignSource(applicantId, sourceId, subSource);
     } catch (error) {
       // Failed to assign source
     } finally {
@@ -728,7 +728,7 @@ export function ApplicantTable({
 
         {selectedApplicantSummary && (
           <ApplicantDetailModal
-            candidateId={selectedApplicantSummary.id}
+            applicantId={selectedApplicantSummary.id}
             open={isDetailModalOpen}
             onClose={() => {
               setIsDetailModalOpen(false);
@@ -856,7 +856,7 @@ export function ApplicantTable({
 
       {selectedApplicantSummary && (
         <ApplicantDetailModal
-          candidateId={selectedApplicantSummary.id}
+          applicantId={selectedApplicantSummary.id}
           open={isDetailModalOpen}
           onClose={() => {
             setIsDetailModalOpen(false);

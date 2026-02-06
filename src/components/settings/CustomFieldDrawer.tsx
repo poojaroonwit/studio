@@ -50,7 +50,7 @@ const customFieldFormSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  ApplicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  applicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
   positionDetailSection: z.enum(['details', 'criteria', 'Applicants', 'headcount']).optional().nullable(),
   
   // Field properties
@@ -138,7 +138,7 @@ export default function CustomFieldDrawer({
       showInTaskBoardFilter: false,
       showInPositionSettings: false,
       showInHeadcountDetail: false,
-      ApplicantDetailSection: undefined,
+      applicantDetailSection: undefined,
       positionDetailSection: undefined,
       is_required: false,
       allowCustomOptions: false,
@@ -173,7 +173,7 @@ export default function CustomFieldDrawer({
         showInFullApplicantDetail: definition.showInFullApplicantDetail || false,
         showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
         showInPositionSettings: definition.showInPositionSettings || false,
-        ApplicantDetailSection: definition.ApplicantDetailSection || undefined,
+        applicantDetailSection: definition.applicantDetailSection || undefined,
         positionDetailSection: definition.positionDetailSection || undefined,
         showInHeadcountDetail: definition.showInHeadcountDetail || false,
         is_required: definition.is_required || false,
@@ -195,7 +195,7 @@ export default function CustomFieldDrawer({
         showInTaskBoardFilter: false,
         showInPositionSettings: false,
         showInHeadcountDetail: false,
-        ApplicantDetailSection: undefined,
+        applicantDetailSection: undefined,
         positionDetailSection: undefined,
         is_required: false,
         allowCustomOptions: false,
@@ -377,7 +377,7 @@ export default function CustomFieldDrawer({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="Candidate">Applicant</SelectItem>
+                                    <SelectItem value="Applicant">Applicant</SelectItem>
                                     <SelectItem value="Position">Position</SelectItem>
                                     <SelectItem value="User">User</SelectItem>
                                     <SelectItem value="Headcount">Headcount</SelectItem>
@@ -756,7 +756,7 @@ export default function CustomFieldDrawer({
                                 <Label className="text-sm font-medium">Display Section</Label>
                                 <FormField
                                   control={form.control}
-                                  name="ApplicantDetailSection"
+                                  name="applicantDetailSection"
                                   render={({ field }) => (
                                     <FormItem>
                                       <Select value={field.value || ''} onValueChange={field.onChange}>

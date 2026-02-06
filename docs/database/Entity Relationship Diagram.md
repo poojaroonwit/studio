@@ -48,7 +48,7 @@ erDiagram
         uuid gradeId FK
     }
 
-    CANDIDATE {
+    applicant {
         uuid id PK
         string name
         string email
@@ -69,16 +69,16 @@ erDiagram
 
     TRANSITION_RECORD {
         uuid id PK
-        uuid candidateId FK
+        uuid applicantId FK
         uuid positionId FK
         string stage
         uuid actingUserId FK
     }
 
     %% Evaluation Subsystem
-    CANDIDATE_EVALUATION {
+    applicant_EVALUATION {
         uuid id PK
-        uuid candidateId FK
+        uuid applicantId FK
         uuid evaluatorId FK
         string status
         float overallScore
@@ -96,7 +96,7 @@ erDiagram
         uuid groupId FK
     }
 
-    CANDIDATE_EXPERTISE_SCORE {
+    applicant_EXPERTISE_SCORE {
         uuid id PK
         uuid evaluationId FK
         uuid skillId FK
@@ -106,7 +106,7 @@ erDiagram
     %% Infrastructure & Utility
     ATTACHMENT {
         uuid id PK
-        uuid candidateId FK
+        uuid applicantId FK
         uuid uploadedById FK
         string filePath
         string label
@@ -115,7 +115,7 @@ erDiagram
     HEADCOUNT {
         uuid id PK
         uuid positionId FK
-        uuid candidateId FK
+        uuid applicantId FK
         string status
     }
 
@@ -131,23 +131,23 @@ erDiagram
     USER ||--o{ ACCOUNT : "linked"
     USER ||--o{ USER_ACTIVITY_LOG : "triggers"
     USER ||--o{ POSITION : "manages"
-    USER ||--o{ CANDIDATE : "sources"
-    USER ||--o{ CANDIDATE_EVALUATION : "evaluates"
+    USER ||--o{ applicant : "sources"
+    USER ||--o{ applicant_EVALUATION : "evaluates"
     USER ||--o{ ATTACHMENT : "uploads"
     
-    POSITION ||--o{ CANDIDATE : "holds"
+    POSITION ||--o{ applicant : "holds"
     POSITION ||--o{ HEADCOUNT : "budget"
     POSITION ||--o{ TRANSITION_RECORD : "flow history"
     
-    CANDIDATE ||--o{ ATTACHMENT : "files"
-    CANDIDATE ||--o{ TRANSITION_RECORD : "moves"
-    CANDIDATE ||--o{ CANDIDATE_EVALUATION : "undergoes"
-    CANDIDATE ||--o{ HEADCOUNT : "fills"
+    applicant ||--o{ ATTACHMENT : "files"
+    applicant ||--o{ TRANSITION_RECORD : "moves"
+    applicant ||--o{ applicant_EVALUATION : "undergoes"
+    applicant ||--o{ HEADCOUNT : "fills"
     
-    RECRUITMENT_STAGE ||--o{ CANDIDATE : "status"
+    RECRUITMENT_STAGE ||--o{ applicant : "status"
     
-    CANDIDATE_EVALUATION ||--o{ CANDIDATE_EXPERTISE_SCORE : "results"
-    EXPERTISE_SKILL ||--o{ CANDIDATE_EXPERTISE_SCORE : "measured"
+    applicant_EVALUATION ||--o{ applicant_EXPERTISE_SCORE : "results"
+    EXPERTISE_SKILL ||--o{ applicant_EXPERTISE_SCORE : "measured"
 ```
 
 ## 2. Domain: User Management & Authentication
@@ -161,7 +161,7 @@ erDiagram
     *   `role`: High-level role (Admin, Recruiter, Hiring Manager).
     *   `authenticationMethod`: 'basic' or 'azure_ad'.
     *   `azure_oid`: Azure Object ID for SSO mapping.
-    *   `module_permissions`: Array of specific access rights (e.g., `["CANDIDATE_VIEW", "POSITION_EDIT"]`).
+    *   `module_permissions`: Array of specific access rights (e.g., `["applicant_VIEW", "POSITION_EDIT"]`).
     *   `userGroupId`, `userTeamId`: FKs to Group/Team.
 
 ### 2.2 UserGroup
@@ -180,24 +180,24 @@ erDiagram
 *   **Description**: Stores user-specific UI settings (e.g., which columns to show in a table).
 *   **Key Fields**: `modelType`, `attributeKey`, `uiPreference`.
 
-## 3. Domain: Candidate Management
+## 3. Domain: applicant Management
 *Entities managing the applicant lifecycle, resumes, and history.*
 
-### 3.1 Candidate
+### 3.1 applicant
 *   **Description**: The primary entity representing an applicant.
 *   **Key Fields**:
     *   `fitScore` (Float): AI-calculated match score (0-100).
     *   `parsedData` (Json): Structured data extracted from resume (Skills, Edu, Exp).
     *   `customAttributes` (Json): Dynamic fields defined by admin.
     *   `statusId`: FK to `RecruitmentStage`.
-    *   `sourceId`: FK to `CandidateSource`.
+    *   `sourceId`: FK to `applicantSource`.
 
 ### 3.2 RecruitmentStage
 *   **Description**: Steps in the hiring pipeline (e.g., "Screening", "Offer").
 *   **Key Fields**: `name`, `sortOrder`, `isSystem` (cannot be deleted if true).
 
-### 3.3 CandidateSource
-*   **Description**: Origin of the candidate (e.g., "LinkedIn", "Referral").
+### 3.3 applicantSource
+*   **Description**: Origin of the applicant (e.g., "LinkedIn", "Referral").
 *   **Key Fields**: `name`, `allowSubSource` (Boolean).
 
 ### 3.4 Attachment
@@ -208,7 +208,7 @@ erDiagram
 *   **Description**: Audit log of stage movements.
 *   **Key Fields**: `fromStage`, `toStage`, `actingUserId`, `date`.
 
-### 3.6 CandidateComment
+### 3.6 applicantComment
 *   **Description**: Rich text notes added by users.
 *   **Key Fields**: `content`, `authorId`, `attachmentIds` (File associations).
 
@@ -226,7 +226,7 @@ erDiagram
 *   **Description**: A specific "seat" or approved hire slot within a position.
 *   **Key Fields**:
     *   `status`: 'vacant', 'offered', 'filled'.
-    *   `candidateId`: The candidate filling this slot (if filled).
+    *   `applicantId`: The applicant filling this slot (if filled).
 
 ### 4.3 PositionInterviewer
 *   **Description**: Junction table assigning Users to interview for a Position.
@@ -235,7 +235,7 @@ erDiagram
 ## 5. Domain: Evaluation & Scoring
 *Entities for the interview feedback process.*
 
-### 5.1 CandidateEvaluation
+### 5.1 applicantEvaluation
 *   **Description**: A container for a single interview session's feedback.
 *   **Key Fields**: `overallScore`, `status` (in_progress/completed), `evaluatorId`.
 
@@ -243,7 +243,7 @@ erDiagram
 *   **Description**: Master data for criteria.
 *   **Key Fields**: `name`, `description`, `maxScore`.
 
-### 5.3 CandidateExpertiseScore & CandidatePersonalityScore
+### 5.3 applicantExpertiseScore & applicantPersonalityScore
 *   **Description**: Individual score points within an evaluation.
 *   **Key Fields**: `score` (Int), `notes` (String).
 

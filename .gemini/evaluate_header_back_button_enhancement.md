@@ -6,7 +6,7 @@ Successfully increased the back button icon size on the evaluate page header for
 
 ## Changes Made
 
-### File: `src/app/candidates/[id]/evaluate/components/EvaluateHeader.tsx`
+### File: `src/app/applicants/[id]/evaluate/components/EvaluateHeader.tsx`
 
 **Line Modified:** 34
 
@@ -88,11 +88,11 @@ Mobile:                Desktop:
 The back button appears in the evaluate header on:
 
 1. **Desktop Evaluate Page** (`DesktopEvaluatePage.tsx`)
-   - Shows when viewing a candidate's evaluation overview
-   - Returns to candidates list
+   - Shows when viewing a applicant's evaluation overview
+   - Returns to applicants list
 
 2. **Mobile/Tablet Evaluate Page** (`page.tsx`)
-   - Shows when evaluating a candidate
+   - Shows when evaluating a applicant
    - Returns to previous page
 
 ## Usage
@@ -101,7 +101,7 @@ The `EvaluateHeader` component accepts these props:
 
 ```tsx
 interface EvaluateHeaderProps {
-  candidateName: string;
+  applicantName: string;
   appLogoUrl: string | null;
   evaluateHeaderTextColor: string;
   onBack?: () => void;
@@ -112,7 +112,7 @@ interface EvaluateHeaderProps {
 To show the back button:
 ```tsx
 <EvaluateHeader
-  candidateName="John Doe"
+  applicantName="John Doe"
   appLogoUrl={appLogoUrl}
   evaluateHeaderTextColor={evaluateHeaderTextColor}
   onBack={() => router.back()}

@@ -12,43 +12,43 @@ import { useChartSetup } from '@/hooks/use-chart-setup';
 
 
 interface ApplicantsPerPositionChartProps {
-  Applicants: Applicant[];
+  applicants: Applicant[];
   positions: Position[];
 }
 
-export function ApplicantsPerPositionChart({ Applicants, positions }: ApplicantsPerPositionChartProps) {
+export function ApplicantsPerPositionChart({ applicants, positions }: ApplicantsPerPositionChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 
   // Memoize the data processing to prevent unnecessary recalculations
   const data = useMemo(() => {
     // Ensure inputs are arrays before processing
-    const safeApplicants = Array.isArray(Applicants) ? Applicants : [];
+    const safeApplicants = Array.isArray(applicants) ? applicants : [];
     const safePositions = Array.isArray(positions) ? positions : [];
     
-    // Create a map for faster Applicant counting
-    const ApplicantCountMap = new Map<string, number>();
-    safeApplicants.forEach(Applicant => {
+    // Create a map for faster applicant counting
+    const applicantCountMap = new Map<string, number>();
+    safeApplicants.forEach(applicant => {
       if (applicant.positionId) {
-        ApplicantCountMap.set(applicant.positionId, (ApplicantCountMap.get(applicant.positionId) || 0) + 1);
+        applicantCountMap.set(applicant.positionId, (applicantCountMap.get(applicant.positionId) || 0) + 1);
       }
     });
     
     return safePositions
       .map(position => {
-        const ApplicantCount = ApplicantCountMap.get(position.id) || 0;
+        const applicantCount = applicantCountMap.get(position.id) || 0;
         return {
           position: position.title.length > 15 ? `${position.title.substring(0,12)}...` : position.title, // Truncate long titles
           fullPositionTitle: position.title,
-          Applicants: ApplicantCount,
+          applicants: applicantCount,
         };
       })
-      .filter(item => item.Applicants > 0) // Only show positions with Applicants
-      .sort((a, b) => b.Applicants - a.Applicants); // Sort by Applicant count descending
-  }, [Applicants, positions]);
+      .filter(item => item.applicants > 0) // Only show positions with applicants
+      .sort((a, b) => b.applicants - a.applicants); // Sort by applicant count descending
+  }, [applicants, positions]);
 
   const totalApplicants = useMemo(() => {
-    return data.reduce((sum, item) => sum + item.Applicants, 0);
+    return data.reduce((sum, item) => sum + item.applicants, 0);
   }, [data]);
 
   if (data.length === 0) {
@@ -152,7 +152,7 @@ export function ApplicantsPerPositionChart({ Applicants, positions }: Applicants
             datasets: [
               {
                 label: 'Applicants',
-                data: data.map(d => d.Applicants),
+                data: data.map(d => d.applicants),
                     backgroundColor: [
                       'rgba(59, 130, 246, 0.8)',   // blue-500
                       'rgba(16, 185, 129, 0.8)',   // emerald-500

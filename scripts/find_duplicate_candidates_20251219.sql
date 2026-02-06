@@ -1,12 +1,12 @@
 -- ============================================================================
--- Check for Duplicate Candidates with Same Position
+-- Check for Duplicate applicants with Same Position
 -- Date: 2025-12-19
--- Purpose: Find candidates that appear to be duplicates (same name/email) 
+-- Purpose: Find applicants that appear to be duplicates (same name/email) 
 --          applied to the same position
 -- ============================================================================
 
 -- ============================================================================
--- QUERY 1: Find duplicate candidates by email + position
+-- QUERY 1: Find duplicate applicants by email + position
 -- ============================================================================
 
 SELECT 
@@ -14,10 +14,10 @@ SELECT
   c."positionId",
   p.title as position_title,
   COUNT(*) as duplicate_count,
-  STRING_AGG(c.id::text, ', ') as candidate_ids,
-  STRING_AGG(c.name, ', ') as candidate_names,
+  STRING_AGG(c.id::text, ', ') as applicant_ids,
+  STRING_AGG(c.name, ', ') as applicant_names,
   STRING_AGG(c."createdAt"::text, ', ') as created_dates
-FROM "Candidate" c
+FROM "applicant" c
 LEFT JOIN "Position" p ON p.id = c."positionId"
 WHERE c.email IS NOT NULL 
   AND c.email != ''
@@ -27,7 +27,7 @@ HAVING COUNT(*) > 1
 ORDER BY duplicate_count DESC, c.email;
 
 -- ============================================================================
--- QUERY 2: Find duplicate candidates by name + position (for candidates without email)
+-- QUERY 2: Find duplicate applicants by name + position (for applicants without email)
 -- ============================================================================
 
 SELECT 
@@ -35,10 +35,10 @@ SELECT
   c."positionId",
   p.title as position_title,
   COUNT(*) as duplicate_count,
-  STRING_AGG(c.id::text, ', ') as candidate_ids,
+  STRING_AGG(c.id::text, ', ') as applicant_ids,
   STRING_AGG(COALESCE(c.email, 'no-email'), ', ') as emails,
   STRING_AGG(c."createdAt"::text, ', ') as created_dates
-FROM "Candidate" c
+FROM "applicant" c
 LEFT JOIN "Position" p ON p.id = c."positionId"
 WHERE c."positionId" IS NOT NULL
 GROUP BY c.name, c."positionId", p.title
@@ -54,7 +54,7 @@ WITH duplicates AS (
     c.email,
     c."positionId",
     COUNT(*) as cnt
-  FROM "Candidate" c
+  FROM "applicant" c
   WHERE c.email IS NOT NULL 
     AND c.email != ''
     AND c."positionId" IS NOT NULL
@@ -71,7 +71,7 @@ SELECT
   c."createdAt",
   c."updatedAt",
   c."recruiterId"
-FROM "Candidate" c
+FROM "applicant" c
 JOIN duplicates d ON c.email = d.email AND c."positionId" = d."positionId"
 LEFT JOIN "Position" p ON p.id = c."positionId"
 ORDER BY c.email, c."positionId", c."createdAt";
@@ -81,7 +81,7 @@ ORDER BY c.email, c."positionId", c."createdAt";
 -- ============================================================================
 
 SELECT 
-  'Duplicate candidates by email + position' as check_type,
+  'Duplicate applicants by email + position' as check_type,
   COUNT(DISTINCT (c.email, c."positionId")) as unique_duplicate_pairs,
   SUM(cnt) - COUNT(*) as total_extra_duplicates
 FROM (
@@ -89,52 +89,52 @@ FROM (
     c.email,
     c."positionId",
     COUNT(*) as cnt
-  FROM "Candidate" c
+  FROM "applicant" c
   WHERE c.email IS NOT NULL 
     AND c.email != ''
     AND c."positionId" IS NOT NULL
   GROUP BY c.email, c."positionId"
   HAVING COUNT(*) > 1
 ) sub
-JOIN "Candidate" c ON c.email = sub.email AND c."positionId" = sub."positionId";
+JOIN "applicant" c ON c.email = sub.email AND c."positionId" = sub."positionId";
 
 -- ============================================================================
 -- STEP 5: BACKUP duplicates before deletion
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS candidate_duplicates_backup_20251219 AS
+CREATE TABLE IF NOT EXISTS applicant_duplicates_backup_20251219 AS
 SELECT c.*
-FROM "Candidate" c
+FROM "applicant" c
 WHERE c.email IS NOT NULL 
   AND c.email != ''
   AND c."positionId" IS NOT NULL
   AND c.id NOT IN (
     -- These are the ones we'll KEEP (oldest)
     SELECT DISTINCT ON (email, "positionId") id
-    FROM "Candidate"
+    FROM "applicant"
     WHERE email IS NOT NULL AND email != '' AND "positionId" IS NOT NULL
     ORDER BY email, "positionId", "createdAt" ASC
   );
 
 -- Verify backup
-SELECT COUNT(*) as duplicates_to_delete FROM candidate_duplicates_backup_20251219;
+SELECT COUNT(*) as duplicates_to_delete FROM applicant_duplicates_backup_20251219;
 
 -- ============================================================================
 -- STEP 6: DELETE duplicates (KEEP THE OLDEST ONE)
 -- ============================================================================
--- This keeps the oldest candidate (first created) and deletes newer duplicates
+-- This keeps the oldest applicant (first created) and deletes newer duplicates
 
-DELETE FROM "Candidate"
+DELETE FROM "applicant"
 WHERE id IN (
   SELECT c.id
-  FROM "Candidate" c
+  FROM "applicant" c
   WHERE c.email IS NOT NULL 
     AND c.email != ''
     AND c."positionId" IS NOT NULL
     AND c.id NOT IN (
-      -- Keep the oldest candidate for each email + position combination
+      -- Keep the oldest applicant for each email + position combination
       SELECT DISTINCT ON (email, "positionId") id
-      FROM "Candidate"
+      FROM "applicant"
       WHERE email IS NOT NULL AND email != '' AND "positionId" IS NOT NULL
       ORDER BY email, "positionId", "createdAt" ASC
     )
@@ -149,7 +149,7 @@ SELECT
   c.email,
   c."positionId",
   COUNT(*) as duplicate_count
-FROM "Candidate" c
+FROM "applicant" c
 WHERE c.email IS NOT NULL 
   AND c.email != ''
   AND c."positionId" IS NOT NULL
@@ -159,9 +159,9 @@ HAVING COUNT(*) > 1;
 -- ============================================================================
 -- ROLLBACK (if needed)
 -- ============================================================================
--- INSERT INTO "Candidate" SELECT * FROM candidate_duplicates_backup_20251219;
+-- INSERT INTO "applicant" SELECT * FROM applicant_duplicates_backup_20251219;
 
 -- ============================================================================
 -- CLEANUP - Drop backup after confirming
 -- ============================================================================
--- DROP TABLE IF EXISTS candidate_duplicates_backup_20251219;
+-- DROP TABLE IF EXISTS applicant_duplicates_backup_20251219;

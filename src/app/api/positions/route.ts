@@ -308,8 +308,8 @@ export async function GET(request: NextRequest) {
           SELECT 
             h."positionId",
             COUNT(*) as total_headcount,
-            COUNT(CASE WHEN h.status = 'vacant' OR h."candidateId" IS NULL THEN 1 END) as vacant_headcount,
-            COUNT(CASE WHEN h.status = 'filled' AND h."candidateId" IS NOT NULL THEN 1 END) as filled_headcount
+            COUNT(CASE WHEN h.status = 'vacant' OR h."applicantId" IS NULL THEN 1 END) as vacant_headcount,
+            COUNT(CASE WHEN h.status = 'filled' AND h."applicantId" IS NOT NULL THEN 1 END) as filled_headcount
           FROM "Headcount" h
           GROUP BY h."positionId"
         ) hc_stats ON p.id = hc_stats."positionId"` as const;
@@ -378,7 +378,7 @@ export async function GET(request: NextRequest) {
               COUNT(c.id) as total_applied,
               COUNT(c.id) as applied_status_count
             FROM "Position" p
-            LEFT JOIN "Candidate" c ON p.id = c."positionId"
+            LEFT JOIN "applicant" c ON p.id = c."positionId"
             WHERE p.id = ANY($1::uuid[])
             GROUP BY p.id
           )
@@ -386,7 +386,7 @@ export async function GET(request: NextRequest) {
           ,position_matching AS (
             SELECT 
               p.id as position_id,
-              COUNT(DISTINCT jm."candidateId") as total_matching
+              COUNT(DISTINCT jm."applicantId") as total_matching
             FROM "Position" p
             LEFT JOIN "JobMatch" jm ON p.id = jm."jobId"
             WHERE p.id = ANY($1::uuid[])

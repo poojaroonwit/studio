@@ -131,7 +131,7 @@ Both use the same `renderQrCodeContent()` function, so this change applies to bo
     />
   </div>
   
-  {/* Candidate Info */}
+  {/* applicant Info */}
   <div className="text-center">
     <h3>John Doe</h3>
     <p>Expires in 7 days</p>

@@ -45,10 +45,10 @@ export const automationPaths = {
       }
     }
   },
-  '/api/automation/create-Applicant-with-matches': {
+  '/api/automation/create-applicant-with-matches': {
     post: {
-      summary: 'Create Applicant with matches',
-      description: 'Create a Applicant and automatically generate job matches. Requires Bearer token authentication.',
+      summary: 'Create applicant with matches',
+      description: 'Create an applicant and automatically generate job matches. Requires Bearer token authentication.',
       tags: ['Automation'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -58,7 +58,7 @@ export const automationPaths = {
             schema: {
               type: 'object',
               properties: {
-                Applicant: {
+                applicant: {
                   type: 'object',
                   properties: {
                     personal_info: { type: 'object' },
@@ -71,7 +71,7 @@ export const automationPaths = {
                 autoMatch: { type: 'boolean', default: true },
                 matchThreshold: { type: 'number', default: 0.7 }
               },
-              required: ['Applicant']
+              required: ['applicant']
             }
           }
         }
@@ -84,7 +84,7 @@ export const automationPaths = {
               schema: {
                 type: 'object',
                 properties: {
-                  Applicant: { $ref: '#/components/schemas/Applicant' },
+                  applicant: { $ref: '#/components/schemas/applicant' },
                   matches: {
                     type: 'array',
                     items: {
@@ -102,7 +102,7 @@ export const automationPaths = {
             }
           }
         },
-        '400': { description: 'Invalid Applicant data' },
+        '400': { description: 'Invalid applicant data' },
         '401': { description: 'Unauthorized' }
       }
     }

@@ -19,8 +19,8 @@ export function filterCustomFieldsBySection(
         // For Applicant detail sections - only show fields assigned to the specific section
         if (section === 'jobs' || section === 'Applicant-info' || section === 'education' || section === 'experience' || section === 'job-suitability') {
           // Only show custom fields that are specifically assigned to this section
-          if (field.ApplicantDetailSection) {
-            return field.ApplicantDetailSection === section;
+          if (field.applicantDetailSection) {
+            return field.applicantDetailSection === section;
           }
           
           // If no section is assigned, don't show the field in any section

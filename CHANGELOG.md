@@ -8,16 +8,16 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [1.2.4-beta.2] - 2026-02-02
 
 ### Added
-- ✨ **Candidate Filter Popover**: Refactored candidate filters from a persistent sidebar to a modern popover button in the header, including an **Active Filter Badge** for immediate feedback on applied filters.
-- ⚙️ **Manual Filter Apply**: Introduced "Apply Filters" and "Clear All" buttons in the candidate filters to prevent flickering and excessive data reloads while configuring multiple criteria.
-- 🧹 **Code Cleanup**: Removed the legacy `CandidatesPageSidebar.tsx` and optimized property passing in the Candidates page header.
+- ✨ **applicant Filter Popover**: Refactored applicant filters from a persistent sidebar to a modern popover button in the header, including an **Active Filter Badge** for immediate feedback on applied filters.
+- ⚙️ **Manual Filter Apply**: Introduced "Apply Filters" and "Clear All" buttons in the applicant filters to prevent flickering and excessive data reloads while configuring multiple criteria.
+- 🧹 **Code Cleanup**: Removed the legacy `applicantsPageSidebar.tsx` and optimized property passing in the applicants page header.
 
 ### Fixed
 - 🐛 **Azure AD User Search**: Resolved `Request_UnsupportedQuery` error by removing unsupported sorting in the Graph API user fetch query.
 - 🎨 **Splash Screen Behavior**: Optimized the splash screen to only show on the first session load, preventing it from appearing during normal page transitions.
 - 📏 **Job Description Spacing**: Fixed excessive line spacing in the job description and match criteria sections of the Position Detail view, resulting in a more compact and readable layout.
-- 🔧 **Type Safety**: Fixed several TypeScript build errors related to missing interface properties in `CandidateFilterValues`.
-- 🐛 **Applicant Page Fixes**: Resolved "cn is not defined" error in candidate details and ensured the filter popover remains visible on desktop regardless of horizontal filter settings.
+- 🔧 **Type Safety**: Fixed several TypeScript build errors related to missing interface properties in `applicantFilterValues`.
+- 🐛 **Applicant Page Fixes**: Resolved "cn is not defined" error in applicant details and ensured the filter popover remains visible on desktop regardless of horizontal filter settings.
 
 
 ## [1.2.4-beta.1] - 2026-01-27
@@ -34,8 +34,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🔑 **System API Key Management**: Secure management for external service authentication with role-based permissions and SHA-256 hashing.
 - 🔧 **Admin Initialization**: Automated setup of the initial administrator via environment variables for zero-config deployments.
 - ️ **Security Controls**: Integrated Screen Capture Protection (blur on focus loss, block PrintScreen) and Right-Click Protection.
-- 🚫 **Candidate Blacklist**: Comprehensive functionality to flag and filter inappropriate candidates system-wide.
-- 💰 **Expected Salary**: Integrated salary expectations into candidate profiles, API logic, and Job Match scoring.
+- 🚫 **applicant Blacklist**: Comprehensive functionality to flag and filter inappropriate applicants system-wide.
+- 💰 **Expected Salary**: Integrated salary expectations into applicant profiles, API logic, and Job Match scoring.
 - 🎨 **Email Chip Input**: Modern UI component for managing validated email lists as chips.
 - 📊 **Azure AD Sync Progress**: Real-time progress indicators and notifications for user synchronization.
 - ☁️ **Azure AD Configuration UI**: Added inputs for Client ID, Secret, and Tenant ID in System Settings to allow database-backed configuration.
@@ -52,13 +52,13 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🐛 **Account Lockout**: Implemented a 3-strike security policy for passwords and 2FA with automated administrator alerts.
 - 🐛 **UI/UX Stability**: Fixed Position Drawer visibility, Mobile Filter scrolling, Avatar flickering, and Header layout borders.
 - 🐛 **Icon Assets**: Resolved build errors caused by incorrect Heroicon component names/imports.
-- 🐛 **Data Consistency**: Resolved "Unique constraint" errors in seeding and 500 errors in Recruitment Stage and Candidate APIs.
+- 🐛 **Data Consistency**: Resolved "Unique constraint" errors in seeding and 500 errors in Recruitment Stage and applicant APIs.
 
 ### Changed & Improved
 - � **Architecture Simplification**: Decommissioned the standalone `fitscan-processor` (moved to n8n/V2 API) and removed Sentry integration.
 - 🧱 **Infrastructure**: Removed legacy SigNoz and Elasticsearch dependencies in favor of optimized PostgreSQL audit trails.
 - ⚡ **Performance Optimization**: Reduced login times by 50-70% via query consolidation and throttled session activity updates.
-- 🔄 **Retry Mechanism**: Enhanced the Upload Queue with manual retry for failed candidate imports.
+- 🔄 **Retry Mechanism**: Enhanced the Upload Queue with manual retry for failed applicant imports.
 - 📱 **Standardized Layouts**: Unified User Profile modals and System Settings into consistent, navigable vertical layouts.
 - � **JWT Optimization**: Significant cookie size reduction via optimized token storage and fresh metadata fetching.
 - 📝 **Auto-Documentation**: Automated SQL comment generation directly from Prisma schema docstrings.
@@ -71,10 +71,10 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [1.2.2] - 2026-01-06
 
 ### Fixed
-- 🐛 **Position Drawer Candidates Tab**: Fixed issue where selection tabs were not visible in the Position Drawer when clicking the Candidates tab.
+- 🐛 **Position Drawer applicants Tab**: Fixed issue where selection tabs were not visible in the Position Drawer when clicking the applicants tab.
 - 🐛 **Cookie Persistence**: Resolved issue where sign-out did not clear all service worker caches and local storage, ensuring fresh sessions.
 - 🐛 **JWT Token Optimization**: Significantly reduced cookie size by moving large metadata (permissions, avatars) out of the token and into database fetches.
-- 🐛 **Mobile Filter FAB**: Added a floating action button on mobile for easier access to candidate filters with a badge indicator for active counts.
+- 🐛 **Mobile Filter FAB**: Added a floating action button on mobile for easier access to applicant filters with a badge indicator for active counts.
 
 ### Added
 - 🌏 **Asia/Bangkok Timezone**: Native support for Thai timezone in deployments for consistent audit log timestamps.
@@ -84,9 +84,9 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [1.2.1] - 2026-01-02
 
 ### Added
-- 🗓️ **Interview Module**: A comprehensive suite for scheduling and managing candidate interviews.
+- 🗓️ **Interview Module**: A comprehensive suite for scheduling and managing applicant interviews.
   - **Evaluation Links**: Generate secure, expiring links with QR code support for instant mobile evaluation access.
-  - **Automated Scheduling**: Set interview dates, times, and locations with direct integration into candidate profiles.
+  - **Automated Scheduling**: Set interview dates, times, and locations with direct integration into applicant profiles.
   - **Meeting Room Booking**: Integration with internal room resources to book actual meeting locations during invitation.
   - **Interviewer Management**: Assign and track internal interviewers per position with automated appointment invitations.
   - **Smart Validation**: Built-in checks to ensure positions have required skills and interviewers configured before scheduling.
@@ -105,7 +105,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [v0.2.1] - 2026-01-05
 
 ### Fixed
-- 🐛 **Mobile Attachment Viewing**: Resolved issue where candidate attachments failed to display on mobile devices. Replaced problematic `window.open(blobUrl)` logic with the `FileViewerModal` component for a consistent and reliable viewing experience.
+- 🐛 **Mobile Attachment Viewing**: Resolved issue where applicant attachments failed to display on mobile devices. Replaced problematic `window.open(blobUrl)` logic with the `FileViewerModal` component for a consistent and reliable viewing experience.
 
 ### Improved
 - ⚡ **System Settings Caching**: Implemented server-side caching for system settings using Next.js `unstable_cache`. Settings are now cached and revalidated on-demand when updated, reducing redundant database queries.
@@ -116,10 +116,10 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [v0.2.0] - 2025-12-16
 
 ### Added
-- ✅ **Evaluation System**: Comprehensive candidate evaluation with expertise skills and personality traits
+- ✅ **Evaluation System**: Comprehensive applicant evaluation with expertise skills and personality traits
 - ✅ **Warning System**: Real-time data quality warnings with configurable conditions
 - ✅ **Headcount Management**: Track hiring requests and headcount allocations
-- ✅ **Multiple Job Applications**: Support for candidates applying to multiple positions
+- ✅ **Multiple Job Applications**: Support for applicants applying to multiple positions
 - ✅ **AI API Key Fallback**: Multiple API keys with automatic failover
 - ✅ **Upload Queue Management**: Enhanced queue processing with SSE updates
 - ✅ **Real-time Updates**: SSE-based live collaboration and notifications
@@ -132,7 +132,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - ✅ **Documentation Overhaul**: Split README into focused documentation files
 
 ### Improved
-- ✅ **Enhanced Candidate Management**: Resume history tracking and advanced filtering
+- ✅ **Enhanced applicant Management**: Resume history tracking and advanced filtering
 - ✅ **Improved Position Management**: Advanced filtering and bulk operations
 - ✅ **Comprehensive User Management**: Role-based access control with granular permissions
 - ✅ **Task Board Implementation**: Kanban and list views with enhanced filtering
@@ -147,12 +147,12 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ### Added
 - Core ATS functionality
-- Candidate management
+- applicant management
 - Position management
 - User authentication (Email/Password + Azure AD SSO)
 - Role-based access control
 - File upload with MinIO
-- AI-powered candidate matching
+- AI-powered applicant matching
 - Dashboard and analytics
 - Audit logging
 

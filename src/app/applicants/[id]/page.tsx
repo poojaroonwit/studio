@@ -14,7 +14,7 @@ export default function ApplicantDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
-  const candidateId = params.id as string;
+  const applicantId = params.id as string;
 
   // Loading state while session is being determined
   if (sessionStatus === 'loading') {
@@ -41,7 +41,7 @@ export default function ApplicantDetailPage() {
             fallbackDescription="There was an issue loading the Applicant details. This may be due to a temporary initialization problem."
           >
             <ApplicantDetailView
-              candidateId={candidateId}
+              applicantId={applicantId}
               isModal={false}
               onClose={() => router.push('/applicants')}
             />

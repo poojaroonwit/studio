@@ -99,7 +99,7 @@ export function useApplicantAiSearch({
       
       // If AI search returned results, fetch all applicants to ensure we have them available
       // But do it silently without affecting the page state
-      const matchedIds = result.matchedApplicantIds || result.matchedcandidateIds || [];
+      const matchedIds = result.matchedApplicantIds || [];
       
       if (matchedIds.length > 0) {
         // Check if we already have all the matched applicants in our current list

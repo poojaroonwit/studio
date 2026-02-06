@@ -49,16 +49,16 @@ async function main() {
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
     const stages = [
-      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Applied', description: 'Candidate has submitted their application', isSystem: true, sortOrder: 1, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Screening', description: 'Initial screening of candidate qualifications', isSystem: true, sortOrder: 2, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Shortlisted', description: 'Candidate has been shortlisted for further consideration', isSystem: true, sortOrder: 3, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Interview Scheduled', description: 'Interview has been scheduled with the candidate', isSystem: true, sortOrder: 4, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Interviewing', description: 'Candidate is currently in the interview process', isSystem: true, sortOrder: 5, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Offer Extended', description: 'Job offer has been extended to the candidate', isSystem: true, sortOrder: 6, color_complete: '#22c55e', color_badge: '#22c55e' },
-      { id: '550e8400-e29b-41d4-a716-446655440007', name: 'Offer Accepted', description: 'Candidate has accepted the job offer', isSystem: true, sortOrder: 7, color_complete: '#22c55e', color_badge: '#22c55e' },
-      { id: '550e8400-e29b-41d4-a716-446655440008', name: 'Hired', description: 'Candidate has been hired and started employment', isSystem: true, sortOrder: 8, color_complete: '#22c55e', color_badge: '#22c55e' },
-      { id: '550e8400-e29b-41d4-a716-446655440009', name: 'Rejected', description: 'Candidate has been rejected from the process', isSystem: true, sortOrder: 9, color_complete: '#ef4444', color_badge: '#ef4444' },
-      { id: '550e8400-e29b-41d4-a716-446655440010', name: 'On Hold', description: 'Candidate application is temporarily on hold', isSystem: true, sortOrder: 10, color_complete: '#6b7280', color_badge: '#6b7280' }
+      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Applied', description: 'applicant has submitted their application', isSystem: true, sortOrder: 1, color_complete: '#60a5fa', color_badge: '#60a5fa' },
+      { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Screening', description: 'Initial screening of applicant qualifications', isSystem: true, sortOrder: 2, color_complete: '#60a5fa', color_badge: '#60a5fa' },
+      { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Shortlisted', description: 'applicant has been shortlisted for further consideration', isSystem: true, sortOrder: 3, color_complete: '#60a5fa', color_badge: '#60a5fa' },
+      { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Interview Scheduled', description: 'Interview has been scheduled with the applicant', isSystem: true, sortOrder: 4, color_complete: '#60a5fa', color_badge: '#60a5fa' },
+      { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Interviewing', description: 'applicant is currently in the interview process', isSystem: true, sortOrder: 5, color_complete: '#60a5fa', color_badge: '#60a5fa' },
+      { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Offer Extended', description: 'Job offer has been extended to the applicant', isSystem: true, sortOrder: 6, color_complete: '#22c55e', color_badge: '#22c55e' },
+      { id: '550e8400-e29b-41d4-a716-446655440007', name: 'Offer Accepted', description: 'applicant has accepted the job offer', isSystem: true, sortOrder: 7, color_complete: '#22c55e', color_badge: '#22c55e' },
+      { id: '550e8400-e29b-41d4-a716-446655440008', name: 'Hired', description: 'applicant has been hired and started employment', isSystem: true, sortOrder: 8, color_complete: '#22c55e', color_badge: '#22c55e' },
+      { id: '550e8400-e29b-41d4-a716-446655440009', name: 'Rejected', description: 'applicant has been rejected from the process', isSystem: true, sortOrder: 9, color_complete: '#ef4444', color_badge: '#ef4444' },
+      { id: '550e8400-e29b-41d4-a716-446655440010', name: 'On Hold', description: 'applicant application is temporarily on hold', isSystem: true, sortOrder: 10, color_complete: '#6b7280', color_badge: '#6b7280' }
     ];
 
     for (const stage of stages) {
@@ -104,8 +104,8 @@ async function main() {
         data: {
           description: 'Full system access and management',
           permissions: [
-            // Candidate permissions
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_EDIT_SENSITIVE_OWN', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_DELETE', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant permissions
+                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_OWN', 'applicantS_EDIT_SENSITIVE_OWN', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_DELETE', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position permissions
             'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_DELETE', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // User management permissions
@@ -126,8 +126,8 @@ async function main() {
           name: 'Admin',
           description: 'Full system access and management',
           permissions: [
-            // Candidate permissions
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_EDIT_SENSITIVE_OWN', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_DELETE', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant permissions
+                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_OWN', 'applicantS_EDIT_SENSITIVE_OWN', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_DELETE', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position permissions
             'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_DELETE', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // User management permissions
@@ -152,8 +152,8 @@ async function main() {
         data: {
           description: 'Standard recruiter access',
           permissions: [
-            // Candidate management
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant management
+                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_BASIC_OWN', 'applicantS_SOURCE_ASSIGN', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position management
             'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
@@ -170,8 +170,8 @@ async function main() {
           name: 'Recruiter',
           description: 'Standard recruiter access',
           permissions: [
-            // Candidate management
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant management
+                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_BASIC_OWN', 'applicantS_SOURCE_ASSIGN', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position management
             'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
@@ -196,8 +196,8 @@ async function main() {
         data: {
           description: 'Lead recruiter with advanced access',
           permissions: [
-            // Candidate management (Full access except Delete)
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_ALL', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant management (Full access except Delete)
+                        'applicantS_VIEW', 'applicantS_VIEW_ALL', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position management
             'POSITIONS_VIEW', 'POSITIONS_VIEW_ALL', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
@@ -214,8 +214,8 @@ async function main() {
           name: 'Recruiter Manager',
           description: 'Lead recruiter with advanced access',
           permissions: [
-            // Candidate management
-                        'CANDIDATES_VIEW', 'CANDIDATES_VIEW_ALL', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT', 'CANDIDATES_ACTIVITIES_VIEW',
+            // applicant management
+                        'applicantS_VIEW', 'applicantS_VIEW_ALL', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
             // Position management
             'POSITIONS_VIEW', 'POSITIONS_VIEW_ALL', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
@@ -236,7 +236,7 @@ async function main() {
         data: {
           description: 'View-only access for hiring decisions',
           permissions: [
-            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW_REMARK_ONLY', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
+            'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_COMMENTS_VIEW_REMARK_ONLY', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -249,7 +249,7 @@ async function main() {
           name: 'Hiring Manager',
           description: 'View-only access for hiring decisions',
           permissions: [
-            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW_REMARK_ONLY', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
+            'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_COMMENTS_VIEW_REMARK_ONLY', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -341,20 +341,20 @@ async function main() {
     <div class="content">
       <p>Dear {{interviewerName}},</p>
       
-      <p>You have been invited to interview a candidate for the position of <strong>{{positionTitle}}</strong>.</p>
+      <p>You have been invited to interview a applicant for the position of <strong>{{positionTitle}}</strong>.</p>
       
       <div class="info-box">
         <h3 style="margin-top: 0;">Interview Details</h3>
-        <p><strong>Candidate:</strong> {{candidateName}}</p>
+        <p><strong>applicant:</strong> {{applicantName}}</p>
         <p><strong>Position:</strong> {{positionTitle}}</p>
         <p><strong>Date:</strong> {{interviewDate}}</p>
         <p><strong>Time:</strong> {{interviewTime}}</p>
         <p><strong>Location:</strong> {{interviewLocation}}</p>
       </div>
       
-      <p>Please use the link below to evaluate the candidate:</p>
+      <p>Please use the link below to evaluate the applicant:</p>
       <p style="text-align: center;">
-        <a href="{{evaluationLink}}" class="button">Evaluate Candidate</a>
+        <a href="{{evaluationLink}}" class="button">Evaluate applicant</a>
       </p>
       
       <p>Please confirm your attendance and let us know if you need to reschedule.</p>
@@ -388,7 +388,7 @@ async function main() {
     systemSettings.push(
       {
         key: 'emailTemplateInterviewInvitationSubject',
-        value: 'Interview Invitation: {{candidateName}} - {{positionTitle}}'
+        value: 'Interview Invitation: {{applicantName}} - {{positionTitle}}'
       },
       {
         key: 'emailTemplateInterviewInvitation',
@@ -444,8 +444,8 @@ async function main() {
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440012',
-        name: 'Candidate Assessment',
-        description: 'Prompts for evaluating candidate qualifications and fit',
+        name: 'applicant Assessment',
+        description: 'Prompts for evaluating applicant qualifications and fit',
         color: '#10B981',
         isActive: true
       },
@@ -665,118 +665,118 @@ async function main() {
 
     // Initialize AI Power Search system prompt
     console.log('Initializing AI Power Search system prompt...');
-    const DEFAULT_AI_POWER_SEARCH_PROMPT = `You are a precise HR search assistant. Your task is to find candidates who EXACTLY match the specific information requested in the user's query.
+    const DEFAULT_AI_POWER_SEARCH_PROMPT = `You are a precise HR search assistant. Your task is to find applicants who EXACTLY match the specific information requested in the user's query.
 
 User Search Query:
 "{query}"
 
-Candidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):
-{candidateData}
+applicant Data (each applicant is between applicant_START and applicant_END):
+{applicantData}
 
 CRITICAL SEARCH RULES:
-1. **EXACT MATCHING ONLY**: Only include candidates who explicitly have the specific information mentioned in the query
-2. **NO SEMANTIC INFERENCE**: Do not include candidates based on similar or related information
-3. **VERIFICATION REQUIRED**: Only include candidates where the requested information is clearly present in their data
+1. **EXACT MATCHING ONLY**: Only include applicants who explicitly have the specific information mentioned in the query
+2. **NO SEMANTIC INFERENCE**: Do not include applicants based on similar or related information
+3. **VERIFICATION REQUIRED**: Only include applicants where the requested information is clearly present in their data
 4. **CASE INSENSITIVE**: Match information regardless of case (e.g., "TOEIC" matches "toeic", "Toeic")
 
 SEARCH GUIDELINES BY QUERY TYPE:
 
-**For Language/Certification Searches (e.g., "has TOEIC", "find candidates with TOEIC"):**
-- Only include candidates who explicitly mention TOEIC in their data
+**For Language/Certification Searches (e.g., "has TOEIC", "find applicants with TOEIC"):**
+- Only include applicants who explicitly mention TOEIC in their data
 - Check: Skills, Custom Attributes, Education, Experience descriptions, Personal info
-- Do NOT include candidates who only mention "English" or "language skills" without TOEIC
-- Do NOT include candidates based on general language abilities
+- Do NOT include applicants who only mention "English" or "language skills" without TOEIC
+- Do NOT include applicants based on general language abilities
 
 **For Skill Searches (e.g., "has React", "knows Python"):**
-- Only include candidates who explicitly list the specific skill
+- Only include applicants who explicitly list the specific skill
 - Check: Skills section, Experience descriptions, Job matches
-- Do NOT include candidates with similar technologies unless explicitly mentioned
+- Do NOT include applicants with similar technologies unless explicitly mentioned
 
 **For Education Searches (e.g., "graduated from MIT", "has MBA"):**
-- Only include candidates who explicitly mention the specific institution or degree
+- Only include applicants who explicitly mention the specific institution or degree
 - Check: Education history, University names, Majors, Degrees
-- Do NOT include candidates from similar institutions
+- Do NOT include applicants from similar institutions
 
 **For Experience Searches (e.g., "worked at Google", "has 5 years experience"):**
-- Only include candidates who explicitly mention the specific company or duration
+- Only include applicants who explicitly mention the specific company or duration
 - Check: Work experience, Company names, Duration fields
-- Do NOT include candidates with similar companies or experience levels
+- Do NOT include applicants with similar companies or experience levels
 
 **For Fit Score Searches:**
 - Fit scores are displayed as percentages (0-100%)
 - Decimal values (0-1) are automatically converted to percentages (e.g., 0.89 becomes 89%)
-- When the query mentions "fit score less than X" or "fit score below X", only include candidates with fit scores < X%
-- When the query mentions "fit score greater than X" or "fit score above X", only include candidates with fit scores > X%
-- When the query mentions "fit score between X and Y", only include candidates with fit scores between X% and Y%
+- When the query mentions "fit score less than X" or "fit score below X", only include applicants with fit scores < X%
+- When the query mentions "fit score greater than X" or "fit score above X", only include applicants with fit scores > X%
+- When the query mentions "fit score between X and Y", only include applicants with fit scores between X% and Y%
 
 **For Position/Job Searches:**
-- Only include candidates who explicitly applied for or are matched to the specific position
+- Only include applicants who explicitly applied for or are matched to the specific position
 - Check: Applied Position, Job Matches, Position titles
-- Do NOT include candidates with similar positions
+- Do NOT include applicants with similar positions
 
 **For Date Searches:**
-- Only include candidates who match the specific date criteria
+- Only include applicants who match the specific date criteria
 - Check: Application Date, Education dates, Experience dates
 - Use exact date matching, not approximate
 
 **For Location Searches:**
-- Only include candidates who explicitly mention the specific location
+- Only include applicants who explicitly mention the specific location
 - Check: Personal info location, Education location, Experience location
-- Do NOT include candidates from nearby areas unless explicitly mentioned
+- Do NOT include applicants from nearby areas unless explicitly mentioned
 
 **For Recruiter Searches:**
-- Only include candidates assigned to the specific recruiter
+- Only include applicants assigned to the specific recruiter
 - Check: Assigned Recruiter field
-- Do NOT include candidates with similar recruiter names
+- Do NOT include applicants with similar recruiter names
 
 **For Status Searches:**
-- Only include candidates with the exact status mentioned
+- Only include applicants with the exact status mentioned
 - Check: Status field, Transition history
-- Do NOT include candidates with similar statuses
+- Do NOT include applicants with similar statuses
 
 **For Custom Field Searches:**
-- Only include candidates who have the specific custom field value
+- Only include applicants who have the specific custom field value
 - Check: Custom Attributes section
 - Match exact values, not similar ones
 
 EXAMPLES OF CORRECT BEHAVIOR:
 
-Query: "find the candidate has toeic"
-- ✅ INCLUDE: Candidate with "Skills: - Segment: Language: TOEIC 850, English"
-- ✅ INCLUDE: Candidate with "Custom Attributes: TOEIC_Score: 750"
-- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: English, Spanish" (no TOEIC mentioned)
-- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: IELTS 7.0" (different certification)
+Query: "find the applicant has toeic"
+- ✅ INCLUDE: applicant with "Skills: - Segment: Language: TOEIC 850, English"
+- ✅ INCLUDE: applicant with "Custom Attributes: TOEIC_Score: 750"
+- ❌ EXCLUDE: applicant with "Skills: - Segment: Language: English, Spanish" (no TOEIC mentioned)
+- ❌ EXCLUDE: applicant with "Skills: - Segment: Language: IELTS 7.0" (different certification)
 
 Query: "has React experience"
-- ✅ INCLUDE: Candidate with "Skills: - Segment: Programming: React, JavaScript"
-- ✅ INCLUDE: Candidate with "Experience: React Developer at Company X"
-- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: Angular, Vue" (different framework)
-- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: JavaScript" (no React mentioned)
+- ✅ INCLUDE: applicant with "Skills: - Segment: Programming: React, JavaScript"
+- ✅ INCLUDE: applicant with "Experience: React Developer at Company X"
+- ❌ EXCLUDE: applicant with "Skills: - Segment: Programming: Angular, Vue" (different framework)
+- ❌ EXCLUDE: applicant with "Skills: - Segment: Programming: JavaScript" (no React mentioned)
 
 Query: "fit score less than 30"
-- ✅ INCLUDE: Candidate with "Fit Score: 25%"
-- ✅ INCLUDE: Candidate with "Fit Score: 0.15" (15%)
-- ❌ EXCLUDE: Candidate with "Fit Score: 85%" (85% > 30%)
-- ❌ EXCLUDE: Candidate with "Fit Score: 0.89" (89% > 30%)
+- ✅ INCLUDE: applicant with "Fit Score: 25%"
+- ✅ INCLUDE: applicant with "Fit Score: 0.15" (15%)
+- ❌ EXCLUDE: applicant with "Fit Score: 85%" (85% > 30%)
+- ❌ EXCLUDE: applicant with "Fit Score: 0.89" (89% > 30%)
 
 IMPORTANT: 
-- If no candidates have the EXACT information requested, return an empty matchedCandidateIds array
-- Do not make assumptions or include candidates with similar information
+- If no applicants have the EXACT information requested, return an empty matchedapplicantIds array
+- Do not make assumptions or include applicants with similar information
 - Be strict and precise in your matching
-- Always verify the information exists in the candidate data before including them
+- Always verify the information exists in the applicant data before including them
 
 Return ONLY a valid JSON object in this exact format:
 {
-  "matchedCandidateIds": ["uuid1", "uuid2", ...],
-  "aiReasoning": "Brief explanation of why these candidates were included or why none were found"
+  "matchedapplicantIds": ["uuid1", "uuid2", ...],
+  "aiReasoning": "Brief explanation of why these applicants were included or why none were found"
 }
 
 Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
 
-    // Create AI Power Search system prompt in the Candidate Assessment category
+    // Create AI Power Search system prompt in the applicant Assessment category
     const existingPrompt = await prisma.systemPrompt.findFirst({
       where: {
-        name: 'AI Power Search - Candidate Matching'
+        name: 'AI Power Search - applicant Matching'
       }
     });
 
@@ -786,10 +786,10 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     } else {
       await prisma.systemPrompt.create({
         data: {
-          name: 'AI Power Search - Candidate Matching',
-          description: 'System prompt for AI Power Search to find candidates with exact matching criteria',
+          name: 'AI Power Search - applicant Matching',
+          description: 'System prompt for AI Power Search to find applicants with exact matching criteria',
           content: DEFAULT_AI_POWER_SEARCH_PROMPT,
-          categoryId: '550e8400-e29b-41d4-a716-446655440012', // Candidate Assessment category
+          categoryId: '550e8400-e29b-41d4-a716-446655440012', // applicant Assessment category
           isActive: true
         }
       });
@@ -797,9 +797,9 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     console.log('✓ AI Power Search system prompt initialized');
 
 
-    // Create candidate sources
-    console.log('Creating candidate sources...');
-    const candidateSources = [
+    // Create applicant sources
+    console.log('Creating applicant sources...');
+    const applicantSources = [
       {
         id: '550e8400-e29b-41d4-a716-446655440040',
         name: 'JobsDB',
@@ -921,11 +921,11 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       }
     ];
 
-    for (const source of candidateSources) {
+    for (const source of applicantSources) {
       // Use upsert with name as the unique identifier
       // Don't include id in create to avoid conflicts with existing records
       const { id, ...sourceDataWithoutId } = source;
-      await prisma.candidateSource.upsert({
+      await prisma.applicantSource.upsert({
         where: { name: source.name },
         update: {
           description: source.description,
@@ -935,7 +935,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
         create: sourceDataWithoutId
       });
     }
-    console.log('✓ Candidate sources created/updated');
+    console.log('✓ applicant sources created/updated');
 
     // Create default position levels
     console.log('Creating default position levels...');

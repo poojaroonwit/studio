@@ -27,9 +27,9 @@ Retrieve notifications for the authenticated user with pagination and filtering.
   "notifications": [
     {
       "id": "uuid",
-      "type": "candidate_added",
-      "title": "New Candidate Added",
-      "message": "A new candidate has been added to your position",
+      "type": "applicant_added",
+      "title": "New applicant Added",
+      "message": "A new applicant has been added to your position",
       "data": {},
       "isRead": false,
       "createdAt": "2024-01-01T00:00:00Z",
@@ -47,7 +47,7 @@ Retrieve notifications for the authenticated user with pagination and filtering.
 
 Send custom notifications. Supports both single and bulk notifications.
 
-**Permissions Required:** `CANDIDATES_MANAGE` or Admin role
+**Permissions Required:** `applicantS_MANAGE` or Admin role
 
 #### Single Notification
 
@@ -125,9 +125,9 @@ Send custom notifications. Supports both single and bulk notifications.
 
 The system supports various notification types:
 
-- `candidate_added` - When a new candidate is assigned to a recruiter
+- `applicant_added` - When a new applicant is assigned to a recruiter
 - `recruiter_assigned` - When a recruiter is assigned to a position
-- `candidate_status_change` - When candidate status changes
+- `applicant_status_change` - When applicant status changes
 - `custom_notification` - Custom notifications
 - `system_alert` - System-wide alerts
 - `reminder` - Task reminders
@@ -180,7 +180,7 @@ curl -X POST http://localhost:3000/api/v1/notifications \
   -d '{
     "type": "reminder",
     "title": "Daily Reminder",
-    "message": "Don\'t forget to check your candidates today!"
+    "message": "Don\'t forget to check your applicants today!"
   }'
 ```
 
@@ -216,13 +216,13 @@ curl -X POST http://localhost:3000/api/v1/notifications \
       {
         "type": "system_alert",
         "title": "New Feature Available",
-        "message": "Check out our new AI-powered candidate matching!",
+        "message": "Check out our new AI-powered applicant matching!",
         "targetUserId": "user-1-uuid"
       },
       {
         "type": "system_alert",
         "title": "New Feature Available",
-        "message": "Check out our new AI-powered candidate matching!",
+        "message": "Check out our new AI-powered applicant matching!",
         "targetUserId": "user-2-uuid"
       }
     ]
@@ -231,7 +231,7 @@ curl -X POST http://localhost:3000/api/v1/notifications \
 
 ## Integration with Automatic Notifications
 
-This API works alongside the automatic notification system. When candidates are created via the V1 API, notifications are automatically sent to assigned recruiters. You can use this API to send additional custom notifications as needed.
+This API works alongside the automatic notification system. When applicants are created via the V1 API, notifications are automatically sent to assigned recruiters. You can use this API to send additional custom notifications as needed.
 
 ## Real-time Notifications
 

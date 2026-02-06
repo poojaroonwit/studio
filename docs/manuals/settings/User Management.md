@@ -40,7 +40,7 @@ The **Unified Role Drawer** configures what each user can see and do.
 | **User Mgmt** | ✅ | ❌ | ❌ | ❌ |
 | **Create Jobs** | ✅ | ✅ | ❌ | ❌ |
 | **View Salaries** | ✅ | ✅ | ❌ | ❌ |
-| **View Candidates**| ✅ | ✅ | ✅ (Assigned) | ✅ (Assigned) |
+| **View applicants**| ✅ | ✅ | ✅ (Assigned) | ✅ (Assigned) |
 | **Submit Score** | ✅ | ✅ | ✅ | ✅ |
 | **Hire/Reject** | ✅ | ✅ | ❌ | ❌ |
 
@@ -48,11 +48,11 @@ The **Unified Role Drawer** configures what each user can see and do.
 Need a hybrid role? Create a **"Coordinator"** role:
 1.  Go to **Roles** tab.
 2.  Click **"New Role"**.
-3.  Toggle permissions ON/OFF (e.g., *Can View Candidates* but *Cannot View Salary*).
+3.  Toggle permissions ON/OFF (e.g., *Can View applicants* but *Cannot View Salary*).
 
 ## 3. Team Management
 Group users into operationally logical units (e.g., "Tech Hiring Unit").
-- **Shared Access**: Teams can be configured to see all candidates belonging to the group's active positions.
+- **Shared Access**: Teams can be configured to see all applicants belonging to the group's active positions.
 - **Visual Distinction**: Assign team colors to make the dashboard calendar and pipeline lists easily scannable.
 
 ## 4. User Teams & Groups

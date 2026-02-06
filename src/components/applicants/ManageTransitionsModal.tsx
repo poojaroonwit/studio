@@ -54,8 +54,8 @@ interface ManageTransitionsModalProps {
   applicant: Applicant | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpdateApplicant: (candidateId: string, status: ApplicantStatus, notes?: string, suppressToast?: boolean) => Promise<boolean | undefined>;
-  onRefreshApplicantData: (candidateId: string) => Promise<void>;
+  onUpdateApplicant: (applicantId: string, status: ApplicantStatus, notes?: string, suppressToast?: boolean) => Promise<boolean | undefined>;
+  onRefreshApplicantData: (applicantId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
   preselectedStage?: string | null;
   comments: any[];

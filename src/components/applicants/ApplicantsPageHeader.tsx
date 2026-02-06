@@ -99,7 +99,7 @@ export function ApplicantsPageHeader({
               selectedGrades={horizontalSelectedFitScoreGrades}
               onGradeToggle={onGradeToggle}
               onClearAll={onClearAllHorizontalFitScoreFilters}
-              ApplicantCounts={applicantScoreCounts?.applied || []}
+              applicantCounts={applicantScoreCounts?.applied || []}
               className=""
               filterMode={applicantSettings.fitScoreFilterMode}
               aiMatchedCount={aiRecordCount}
@@ -111,7 +111,7 @@ export function ApplicantsPageHeader({
               selectedGrades={horizontalSelectedMatchingFitScoreGrades}
               onGradeToggle={onMatchingGradeToggle}
               onClearAll={onClearAllHorizontalFitScoreFilters}
-              ApplicantCounts={applicantScoreCounts?.matching || []}
+              applicantCounts={applicantScoreCounts?.matching || []}
               className=""
               filterMode={applicantSettings.fitScoreFilterMode}
               aiMatchedCount={aiRecordCount}
@@ -134,8 +134,8 @@ export function ApplicantsPageHeader({
             isLoading={isLoading || isFilterDataLoading}
             isAiSearching={isAiSearchActive}
             advancedQuery={advancedQuery}
-            ApplicantscoreCounts={applicantScoreCounts || undefined}
-            ApplicantCounts={applicantCounts}
+            applicantScoreCounts={applicantScoreCounts || undefined}
+            applicantCounts={applicantCounts}
             activeFilterCount={activeFilterCount}
           />
 

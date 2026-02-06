@@ -15,7 +15,7 @@ import type { Applicant } from '@/lib/types';
 interface ApplicantsMobileListViewProps {
   applicants: Applicant[];
   selectedApplicantIds: Set<string>;
-  onToggleSelectApplicant: (candidateId: string) => void;
+  onToggleSelectApplicant: (applicantId: string) => void;
   onApplicantClick: (applicant: Applicant, event: React.MouseEvent) => void;
   stageNames?: Record<string, string>;
   stageColors?: Record<string, string>;

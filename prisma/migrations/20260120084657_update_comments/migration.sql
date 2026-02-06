@@ -38,14 +38,14 @@ COMMENT ON TABLE "Grade" IS 'Grade - Job grade levels with SLA and level configu
 -- PositionLevel comments
 COMMENT ON TABLE "PositionLevel" IS 'PositionLevel - Position seniority levels (Entry, Junior, Mid, Senior, etc.)';
 
--- Candidate comments
-COMMENT ON TABLE "Candidate" IS 'Candidate - Job applicants and their application data';
+-- applicant comments
+COMMENT ON TABLE "applicant" IS 'applicant - Job applicants and their application data';
 
 -- RecruitmentStage comments
-COMMENT ON TABLE "RecruitmentStage" IS 'RecruitmentStage - Pipeline stages for candidate recruitment workflow';
+COMMENT ON TABLE "RecruitmentStage" IS 'RecruitmentStage - Pipeline stages for applicant recruitment workflow';
 
 -- TransitionRecord comments
-COMMENT ON TABLE "TransitionRecord" IS 'TransitionRecord - History of candidate stage transitions';
+COMMENT ON TABLE "TransitionRecord" IS 'TransitionRecord - History of applicant stage transitions';
 
 -- LogEntry comments
 COMMENT ON TABLE "LogEntry" IS 'LogEntry - General system and application logging';
@@ -69,7 +69,7 @@ COMMENT ON TABLE "CustomFieldDefinition" IS 'CustomFieldDefinition - Custom fiel
 COMMENT ON TABLE "CustomFieldOption" IS 'CustomFieldOption - Predefined options for custom dropdown/select fields';
 
 -- JobMatch comments
-COMMENT ON TABLE "JobMatch" IS 'JobMatch - AI-generated job matching results for candidates';
+COMMENT ON TABLE "JobMatch" IS 'JobMatch - AI-generated job matching results for applicants';
 
 -- upload_queue comments
 COMMENT ON TABLE "upload_queue" IS 'UploadQueue - Queue for processing uploaded resume files';
@@ -83,11 +83,11 @@ COMMENT ON TABLE "Account" IS 'Account - OAuth/external authentication provider 
 -- SystemPreference comments
 COMMENT ON TABLE "SystemPreference" IS 'SystemPreference - User-specific system preferences';
 
--- CandidateComment comments
-COMMENT ON TABLE "CandidateComment" IS 'CandidateComment - Comments and notes on candidate profiles';
+-- applicantComment comments
+COMMENT ON TABLE "applicantComment" IS 'applicantComment - Comments and notes on applicant profiles';
 
 -- Attachment comments
-COMMENT ON TABLE "Attachment" IS 'Attachment - File attachments for candidates and headcounts';
+COMMENT ON TABLE "Attachment" IS 'Attachment - File attachments for applicants and headcounts';
 
 -- Webhook comments
 COMMENT ON TABLE "Webhook" IS 'Webhook - Outbound webhook configurations for event notifications';
@@ -113,8 +113,8 @@ COMMENT ON TABLE "SystemPromptCategory" IS 'SystemPromptCategory - Categories fo
 -- SystemPrompt comments
 COMMENT ON TABLE "SystemPrompt" IS 'SystemPrompt - AI system prompts for various recruitment tasks';
 
--- CandidateSource comments
-COMMENT ON TABLE "CandidateSource" IS 'CandidateSource - Candidate sourcing channels (job portals, referrals, etc.)';
+-- applicantSource comments
+COMMENT ON TABLE "applicantSource" IS 'applicantSource - applicant sourcing channels (job portals, referrals, etc.)';
 
 -- Notification comments
 COMMENT ON TABLE "Notification" IS 'Notification - User notification messages';
@@ -123,7 +123,7 @@ COMMENT ON TABLE "Notification" IS 'Notification - User notification messages';
 COMMENT ON TABLE "Headcount" IS 'Headcount - Position headcount tracking for workforce planning';
 
 -- WarningConfiguration comments
-COMMENT ON TABLE "WarningConfiguration" IS 'WarningConfiguration - Configurable warning rules for positions and candidates';
+COMMENT ON TABLE "WarningConfiguration" IS 'WarningConfiguration - Configurable warning rules for positions and applicants';
 
 -- WarningConfigurationShare comments
 COMMENT ON TABLE "WarningConfigurationShare" IS 'WarningConfigurationShare - Warning configuration sharing between users';
@@ -141,7 +141,7 @@ COMMENT ON TABLE "PositionInterviewer" IS 'PositionInterviewer - Interviewers as
 COMMENT ON TABLE "ExpertiseGroup" IS 'ExpertiseGroup - Groups of related expertise skills for evaluation';
 
 -- ExpertiseSkill comments
-COMMENT ON TABLE "ExpertiseSkill" IS 'ExpertiseSkill - Individual expertise skills for candidate evaluation';
+COMMENT ON TABLE "ExpertiseSkill" IS 'ExpertiseSkill - Individual expertise skills for applicant evaluation';
 
 -- PersonalityGroup comments
 COMMENT ON TABLE "PersonalityGroup" IS 'PersonalityGroup - Groups of related personality traits for evaluation';

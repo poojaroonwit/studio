@@ -93,11 +93,11 @@ export class NotificationService {
   }
 
   /**
-   * Create a notification when a Applicant is added
+   * Create a notification when an applicant is added
    */
   static async notifyApplicantAdded(
-    candidateId: string,
-    ApplicantName: string,
+    applicantId: string,
+    applicantName: string,
     positionId: string,
     positionTitle: string,
     recruiterId: string,
@@ -106,10 +106,10 @@ export class NotificationService {
     const notification: NotificationData = {
       type: 'Applicant_added',
       title: 'New Applicant Added',
-      message: `A new Applicant "${ApplicantName}" has been added to position "${positionTitle}"`,
+      message: `A new applicant "${applicantName}" has been added to position "${positionTitle}"`,
       data: {
-        candidateId,
-        ApplicantName,
+        applicantId: applicantId,
+        applicantName,
         positionId,
         positionTitle,
         addedBy: addedByUserId
@@ -120,11 +120,11 @@ export class NotificationService {
   }
 
   /**
-   * Create a notification when a Applicant status changes
+   * Create a notification when an applicant status changes
    */
   static async notifyApplicantStatusChange(
-    candidateId: string,
-    ApplicantName: string,
+    applicantId: string,
+    applicantName: string,
     oldStatus: string,
     newStatus: string,
     positionId: string,
@@ -135,10 +135,10 @@ export class NotificationService {
     const notification: NotificationData = {
       type: 'Applicant_status_change',
       title: 'Applicant Status Updated',
-      message: `Applicant "${ApplicantName}" status changed from "${oldStatus}" to "${newStatus}" for position "${positionTitle}"`,
+      message: `Applicant "${applicantName}" status changed from "${oldStatus}" to "${newStatus}" for position "${positionTitle}"`,
       data: {
-        candidateId,
-        ApplicantName,
+        applicantId,
+        applicantName,
         oldStatus,
         newStatus,
         positionId,

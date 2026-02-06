@@ -421,7 +421,7 @@ export async function DELETE(request: NextRequest) {
     // Check if field is being used in any records
     const usageQuery = `
       SELECT COUNT(*) as count 
-      FROM "Candidate" 
+      FROM "applicant" 
       WHERE "customAttributes" ? $1
       UNION ALL
       SELECT COUNT(*) as count 

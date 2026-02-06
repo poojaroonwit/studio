@@ -27,7 +27,7 @@ import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  Applicants: { href: "/applicants", label: "Applicants", icon: Users },
+  applicants: { href: "/applicants", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   evaluate: { href: "/interview", label: "Interview", icon: ClipboardCheck },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
@@ -354,7 +354,7 @@ const getSafeNavigationItems = (
       items.push(NAV_ITEMS.myTasks);
     }
 
-    items.push(NAV_ITEMS.Applicants);
+    items.push(NAV_ITEMS.applicants);
 
     if (canViewPositions) {
       items.push(NAV_ITEMS.positions);
@@ -367,7 +367,7 @@ const getSafeNavigationItems = (
     return items;
   } catch (error) {
     console.error('Error generating navigation items:', error);
-    return [NAV_ITEMS.dashboard, NAV_ITEMS.Applicants, NAV_ITEMS.positions, NAV_ITEMS.evaluate];
+    return [NAV_ITEMS.dashboard, NAV_ITEMS.applicants, NAV_ITEMS.positions, NAV_ITEMS.evaluate];
   }
 };
 

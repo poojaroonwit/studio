@@ -10,7 +10,7 @@ import { logAudit } from '@/lib/auditLog';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Helper to extract candidateId from the URL
+// Helper to extract applicantId from the URL
 function extractIdFromUrl(request: NextRequest): string | null {
   const match = request.url.match(/\/applicants\/([\w-]+)\/avatar/);
   return match ? match[1] : null;
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to upload avatars' }, { status: 403 });
   }
 
-  const candidateId = extractIdFromUrl(request);
-  if (!candidateId) {
-    return NextResponse.json({ message: 'Missing candidateId' }, { status: 400 });
+  const applicantId = extractIdFromUrl(request);
+  if (!applicantId) {
+    return NextResponse.json({ message: 'Missing applicantId' }, { status: 400 });
   }
 
   try {
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
       }
     } catch (minioError) {
-      await logAudit('ERROR', `Avatar upload failed - MinIO bucket error: ${minioError}`, 'API:Applicants:Avatar:Upload', actingUserId, { candidateId });
+      await logAudit('ERROR', `Avatar upload failed - MinIO bucket error: ${minioError}`, 'API:Applicants:Avatar:Upload', actingUserId, { applicantId });
       return NextResponse.json({ message: 'Storage service unavailable' }, { status: 503 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const ext = file.name.split('.').pop() || 'jpg';
-    const objectName = `avatars/${candidateId}/${randomUUID()}.${ext}`;
+    const objectName = `avatars/${applicantId}/${randomUUID()}.${ext}`;
 
     // Upload to MinIO
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
       await client.query('BEGIN');
       
       // Get Applicant data for ownership check
-      const applicantQuery = 'SELECT "recruiterId" FROM "Candidate" WHERE id = $1';
-      const applicantResult = await client.query(applicantQuery, [candidateId]);
+      const applicantQuery = 'SELECT "recruiterId" FROM "applicant" WHERE id = $1';
+      const applicantResult = await client.query(applicantQuery, [applicantId]);
       if (applicantResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
@@ -120,22 +120,22 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      const updateQuery = 'UPDATE "Candidate" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
-      const result = await client.query(updateQuery, [webAppUrl, candidateId]);
+      const updateQuery = 'UPDATE "applicant" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
+      const result = await client.query(updateQuery, [webAppUrl, applicantId]);
       await client.query('COMMIT');
-      await logAudit('AUDIT', `Avatar uploaded for Applicant ${candidateId} by ${actingUserName}.`, 'API:Applicants:Avatar:Upload', actingUserId, { candidateId, avatarUrl: webAppUrl });
+      await logAudit('AUDIT', `Avatar uploaded for Applicant ${applicantId} by ${actingUserName}.`, 'API:Applicants:Avatar:Upload', actingUserId, { applicantId, avatarUrl: webAppUrl });
       return NextResponse.json({ message: 'Avatar uploaded successfully', avatarUrl: webAppUrl }, { status: 200 });
     } catch (dbError) {
       await client.query('ROLLBACK');
       const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
-      await logAudit('ERROR', `Failed to update Applicant avatar. Error: ${errorMessage}`, 'API:Applicants:Avatar:Upload', actingUserId, { candidateId });
+      await logAudit('ERROR', `Failed to update Applicant avatar. Error: ${errorMessage}`, 'API:Applicants:Avatar:Upload', actingUserId, { applicantId });
       return NextResponse.json({ message: 'Failed to update Applicant avatar', error: errorMessage }, { status: 500 });
     } finally {
       client.release();
     }
   } catch (error) {
           const uploadErrorMessage = error instanceof Error ? error.message : 'Unknown upload error';
-      await logAudit('ERROR', `Avatar upload failed. Error: ${uploadErrorMessage}`, 'API:Applicants:Avatar:Upload', actingUserId, { candidateId });
+      await logAudit('ERROR', `Avatar upload failed. Error: ${uploadErrorMessage}`, 'API:Applicants:Avatar:Upload', actingUserId, { applicantId });
       return NextResponse.json({ message: 'Avatar upload failed', error: uploadErrorMessage }, { status: 500 });
   }
 }
@@ -146,22 +146,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const candidateId = extractIdFromUrl(request);
-  if (!candidateId) {
-    return NextResponse.json({ message: 'Missing candidateId' }, { status: 400 });
+  const applicantId = extractIdFromUrl(request);
+  if (!applicantId) {
+    return NextResponse.json({ message: 'Missing applicantId' }, { status: 400 });
   }
   
   // SECURITY: Validate UUID format to prevent injection attacks
   const { validateUuid } = await import('@/lib/security');
-  if (!validateUuid(candidateId)) {
-    console.error('[SECURITY] Invalid UUID format in applicants avatar GET request:', candidateId);
+  if (!validateUuid(applicantId)) {
+    console.error('[SECURITY] Invalid UUID format in applicants avatar GET request:', applicantId);
     return NextResponse.json({ message: 'Invalid Applicant ID format' }, { status: 400 });
   }
 
   const pool = getPool();
   const client = await pool.connect();
   try {
-    const result = await client.query('SELECT "avatarUrl" FROM "Candidate" WHERE id = $1', [candidateId]);
+    const result = await client.query('SELECT "avatarUrl" FROM "applicant" WHERE id = $1', [applicantId]);
     if (result.rows.length === 0) {
       return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
     }

@@ -6,7 +6,7 @@ Successfully implemented automatic navigation to the comments section when the u
 
 ## Changes Made
 
-### File: `src/app/candidates/[id]/evaluate/page.tsx`
+### File: `src/app/applicants/[id]/evaluate/page.tsx`
 
 **Modified Function:** `handleScoreChange` (lines 951-985)
 
@@ -90,7 +90,7 @@ Select score on question → Is comments view?
 
 ## Testing Instructions
 
-1. **Navigate to an evaluate page** for a candidate
+1. **Navigate to an evaluate page** for a applicant
 2. **Start answering questions** - verify auto-advance works for questions 1 through N-1
 3. **Answer the last question** - verify it automatically scrolls/navigates to the comments section
 4. **Verify comments section** - should not auto-advance when on comments
@@ -98,13 +98,13 @@ Select score on question → Is comments view?
 
 ## Affected Components
 
-- **Main Evaluate Page**: `/candidates/[id]/evaluate`
+- **Main Evaluate Page**: `/applicants/[id]/evaluate`
 - **Desktop Users**: Standard web interface
 - **Mobile Users**: Mobile-responsive interface
 - **Tablet Users**: Works on all screen sizes
 
 ## Notes
 
-- This change applies to the main evaluate page where interviewers score candidates
+- This change applies to the main evaluate page where interviewers score applicants
 - The Mobile Evaluate Form component already had similar behavior (automatically advancing after score selection)
 - No breaking changes - only enhances the existing flow

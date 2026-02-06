@@ -1,5 +1,5 @@
 {
-  "name": "FitScan [Inbound candidate] PROD",
+  "name": "FitScan [Inbound applicant] PROD",
   "nodes": [
     {
       "parameters": {
@@ -370,7 +370,7 @@
         "text": "=<email context>\n{{ $('Move to In process folder').first().json.subject }}\n---\n{{ $json.text }}\n</email context>\n<open position>\n{{ $('Extract list of job').all().toJsonString() }}\n</open position> ",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "### Task Description\n\nYou are given a candidate's email and a list of open positions. Your task is to:\nIdentify the position the candidate is applying for by analyzing the content of the email.\nReturn only one matching position where the attribute is_ground_position is set to true.\n\n### Output Format (json)\n\n# If a valid match is found then retrun json format like this :\n\n{\n  \"id\": \"<position_id>\",\n  \"position_name\": \"<position_name>\"\n}\n\n\n# If no matching position is identified by position name then retrun json format like this:\n\n{\n  \"id\": \"unknown\",\n  \"position_name\": \"have no position applied\"\n}\n\n### Constraints\n\n- Do not create or infer any new positions not present in the provided list.\n- Only return positions from the given list.\n- Return a single position that best matches the candidate's intent.\n- Trim all whitespace (spaces, tabs, newlines) from both id and position_name before returning the output.\n- Ensure the final output strictly matches the JSON structure shown above - no additional fields, no formatting errors.\n"
+          "systemMessage": "### Task Description\n\nYou are given a applicant's email and a list of open positions. Your task is to:\nIdentify the position the applicant is applying for by analyzing the content of the email.\nReturn only one matching position where the attribute is_ground_position is set to true.\n\n### Output Format (json)\n\n# If a valid match is found then retrun json format like this :\n\n{\n  \"id\": \"<position_id>\",\n  \"position_name\": \"<position_name>\"\n}\n\n\n# If no matching position is identified by position name then retrun json format like this:\n\n{\n  \"id\": \"unknown\",\n  \"position_name\": \"have no position applied\"\n}\n\n### Constraints\n\n- Do not create or infer any new positions not present in the provided list.\n- Only return positions from the given list.\n- Return a single position that best matches the applicant's intent.\n- Trim all whitespace (spaces, tabs, newlines) from both id and position_name before returning the output.\n- Ensure the final output strictly matches the JSON structure shown above - no additional fields, no formatting errors.\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -615,7 +615,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -672,7 +672,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -734,7 +734,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -796,7 +796,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -863,7 +863,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -935,7 +935,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1012,7 +1012,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1361,7 +1361,7 @@
     },
     {
       "parameters": {
-        "url": "=https://fitscan.nccthailand.com/api/v1/candidate-sources",
+        "url": "=https://fitscan.nccthailand.com/api/v1/applicant-sources",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -1518,7 +1518,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1600,7 +1600,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1687,7 +1687,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/candidates/bulk-upload-cv",
+        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

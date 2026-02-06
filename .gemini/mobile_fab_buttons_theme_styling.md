@@ -6,7 +6,7 @@ Successfully applied theme preference styling to the "Remark to Interviewer" and
 
 ## Changes Made
 
-### 1. File: `src/app/candidates/[id]/evaluate/components/RemarkSection.tsx`
+### 1. File: `src/app/applicants/[id]/evaluate/components/RemarkSection.tsx`
 
 #### Added Theme Preference Props (lines 18-24)
 ```tsx
@@ -68,7 +68,7 @@ const dynamicStyle: React.CSSProperties = {
 >
 ```
 
-### 2. File: `src/app/candidates/[id]/evaluate/page.tsx`
+### 2. File: `src/app/applicants/[id]/evaluate/page.tsx`
 
 #### Passed Theme Props to RemarkSection (lines 2035-2040)
 ```tsx

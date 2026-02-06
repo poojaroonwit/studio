@@ -20,7 +20,7 @@ import { OverallScoreSection } from './components/OverallScoreSection';
 import { TestingResultsSection } from './components/TestingResultsSection';
 
 interface DesktopEvaluatePageProps {
-  candidateId: string;
+  applicantId: string;
   applicantData: any;
   attachments: any[];
   testingResults: any[];
@@ -74,7 +74,7 @@ interface DesktopEvaluatePageProps {
 }
 
 export function DesktopEvaluatePage({
-  candidateId,
+  applicantId,
   applicantData,
   attachments,
   testingResults,
@@ -419,7 +419,7 @@ export function DesktopEvaluatePage({
                   if (onStartEvaluate) {
                     onStartEvaluate();
                   } else {
-                    router.push(`/applicants/${candidateId}/evaluate-result`);
+                    router.push(`/applicants/${applicantId}/evaluate-result`);
                   }
                 }}
               />
@@ -554,7 +554,7 @@ export function DesktopEvaluatePage({
         <DialogContent className="max-w-[90vw] w-full h-[90vh] p-0" dialogId="report-modal">
           <div className="flex-1 h-full w-full bg-background overflow-hidden">
             <iframe
-              src={`/applicants/${candidateId}/evaluate-result`}
+              src={`/applicants/${applicantId}/evaluate-result`}
               className="w-full h-full border-0"
               title="Evaluation Report"
             />

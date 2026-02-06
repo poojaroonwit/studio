@@ -73,7 +73,7 @@ COMMENT ON COLUMN "Position"."id" IS 'Primary key - UUID identifier';
 COMMENT ON COLUMN "Position"."title" IS 'Job title or position name';
 COMMENT ON COLUMN "Position"."department" IS 'Department or business unit';
 COMMENT ON COLUMN "Position"."description" IS 'Detailed job description';
-COMMENT ON COLUMN "Position"."matchCriteria" IS 'Criteria for candidate matching';
+COMMENT ON COLUMN "Position"."matchCriteria" IS 'Criteria for applicant matching';
 COMMENT ON COLUMN "Position"."isOpen" IS 'Whether the position is currently open';
 COMMENT ON COLUMN "Position"."positionLevel" IS 'Position level or seniority';
 COMMENT ON COLUMN "Position"."recruiterId" IS 'Foreign key to User - assigned recruiter';
@@ -111,37 +111,37 @@ COMMENT ON COLUMN "PositionLevel"."createdAt" IS 'Level creation timestamp';
 COMMENT ON COLUMN "PositionLevel"."updatedAt" IS 'Last level update timestamp';
 
 -- =====================================================
--- CANDIDATE MANAGEMENT TABLES
+-- applicant MANAGEMENT TABLES
 -- =====================================================
 
--- Candidate: Job candidates and applicants
-COMMENT ON TABLE "Candidate" IS 'Job candidates, applicants, and talent pool members';
-COMMENT ON COLUMN "Candidate"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "Candidate"."name" IS 'Candidate full name';
-COMMENT ON COLUMN "Candidate"."email" IS 'Candidate email address';
-COMMENT ON COLUMN "Candidate"."phone" IS 'Candidate phone number';
-COMMENT ON COLUMN "Candidate"."positionId" IS 'Foreign key to Position - applied position';
-COMMENT ON COLUMN "Candidate"."recruiterId" IS 'Foreign key to User - assigned recruiter';
-COMMENT ON COLUMN "Candidate"."fitScore" IS 'AI-calculated fit score (0-100)';
-COMMENT ON COLUMN "Candidate"."applicationDate" IS 'Date when candidate applied';
-COMMENT ON COLUMN "Candidate"."parsedData" IS 'Parsed resume/CV data (JSON)';
-COMMENT ON COLUMN "Candidate"."customAttributes" IS 'Custom candidate attributes (JSON)';
-COMMENT ON COLUMN "Candidate"."resumePath" IS 'File path to stored resume';
-COMMENT ON COLUMN "Candidate"."createdAt" IS 'Candidate creation timestamp';
-COMMENT ON COLUMN "Candidate"."updatedAt" IS 'Last candidate update timestamp';
-COMMENT ON COLUMN "Candidate"."avatarUrl" IS 'Candidate avatar image URL';
-COMMENT ON COLUMN "Candidate"."dataAiHint" IS 'AI hints for candidate processing';
-COMMENT ON COLUMN "Candidate"."assignmentJustification" IS 'Notes on recruiter assignment decisions';
-COMMENT ON COLUMN "Candidate"."educationData" IS 'Education history (JSON array)';
-COMMENT ON COLUMN "Candidate"."experienceData" IS 'Work experience history (JSON array)';
-COMMENT ON COLUMN "Candidate"."companyId" IS 'Company identifier (if multi-tenant)';
-COMMENT ON COLUMN "Candidate"."sourceId" IS 'Foreign key to CandidateSource - application source';
-COMMENT ON COLUMN "Candidate"."subSource" IS 'Sub-source identifier (e.g., specific job board)';
-COMMENT ON COLUMN "Candidate"."statusId" IS 'Foreign key to RecruitmentStage - current stage';
-COMMENT ON COLUMN "Candidate"."isPinned" IS 'Whether candidate is pinned by users';
-COMMENT ON COLUMN "Candidate"."pinnedAt" IS 'Timestamp when candidate was pinned';
+-- applicant: Job applicants and applicants
+COMMENT ON TABLE "applicant" IS 'Job applicants, applicants, and talent pool members';
+COMMENT ON COLUMN "applicant"."id" IS 'Primary key - UUID identifier';
+COMMENT ON COLUMN "applicant"."name" IS 'applicant full name';
+COMMENT ON COLUMN "applicant"."email" IS 'applicant email address';
+COMMENT ON COLUMN "applicant"."phone" IS 'applicant phone number';
+COMMENT ON COLUMN "applicant"."positionId" IS 'Foreign key to Position - applied position';
+COMMENT ON COLUMN "applicant"."recruiterId" IS 'Foreign key to User - assigned recruiter';
+COMMENT ON COLUMN "applicant"."fitScore" IS 'AI-calculated fit score (0-100)';
+COMMENT ON COLUMN "applicant"."applicationDate" IS 'Date when applicant applied';
+COMMENT ON COLUMN "applicant"."parsedData" IS 'Parsed resume/CV data (JSON)';
+COMMENT ON COLUMN "applicant"."customAttributes" IS 'Custom applicant attributes (JSON)';
+COMMENT ON COLUMN "applicant"."resumePath" IS 'File path to stored resume';
+COMMENT ON COLUMN "applicant"."createdAt" IS 'applicant creation timestamp';
+COMMENT ON COLUMN "applicant"."updatedAt" IS 'Last applicant update timestamp';
+COMMENT ON COLUMN "applicant"."avatarUrl" IS 'applicant avatar image URL';
+COMMENT ON COLUMN "applicant"."dataAiHint" IS 'AI hints for applicant processing';
+COMMENT ON COLUMN "applicant"."assignmentJustification" IS 'Notes on recruiter assignment decisions';
+COMMENT ON COLUMN "applicant"."educationData" IS 'Education history (JSON array)';
+COMMENT ON COLUMN "applicant"."experienceData" IS 'Work experience history (JSON array)';
+COMMENT ON COLUMN "applicant"."companyId" IS 'Company identifier (if multi-tenant)';
+COMMENT ON COLUMN "applicant"."sourceId" IS 'Foreign key to applicantSource - application source';
+COMMENT ON COLUMN "applicant"."subSource" IS 'Sub-source identifier (e.g., specific job board)';
+COMMENT ON COLUMN "applicant"."statusId" IS 'Foreign key to RecruitmentStage - current stage';
+COMMENT ON COLUMN "applicant"."isPinned" IS 'Whether applicant is pinned by users';
+COMMENT ON COLUMN "applicant"."pinnedAt" IS 'Timestamp when applicant was pinned';
 
--- RecruitmentStage: Candidate pipeline stages
+-- RecruitmentStage: applicant pipeline stages
 COMMENT ON TABLE "RecruitmentStage" IS 'Recruitment pipeline stages and workflow states';
 COMMENT ON COLUMN "RecruitmentStage"."id" IS 'Primary key - UUID identifier';
 COMMENT ON COLUMN "RecruitmentStage"."name" IS 'Unique stage name (e.g., Applied, Interview)';
@@ -151,23 +151,23 @@ COMMENT ON COLUMN "RecruitmentStage"."sort_order" IS 'Sort order in pipeline';
 COMMENT ON COLUMN "RecruitmentStage"."color_complete" IS 'Color when stage is completed';
 COMMENT ON COLUMN "RecruitmentStage"."color_badge" IS 'Badge color for this stage';
 
--- CandidateSource: Sources of candidate applications
-COMMENT ON TABLE "CandidateSource" IS 'Sources where candidates come from (job boards, referrals, etc.)';
-COMMENT ON COLUMN "CandidateSource"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "CandidateSource"."name" IS 'Unique source name (e.g., LinkedIn, Indeed)';
-COMMENT ON COLUMN "CandidateSource"."description" IS 'Source description and details';
-COMMENT ON COLUMN "CandidateSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
-COMMENT ON COLUMN "CandidateSource"."sort_order" IS 'Sort order for display';
-COMMENT ON COLUMN "CandidateSource"."is_active" IS 'Whether this source is currently active';
-COMMENT ON COLUMN "CandidateSource"."createdAt" IS 'Source creation timestamp';
-COMMENT ON COLUMN "CandidateSource"."updatedAt" IS 'Last source update timestamp';
-COMMENT ON COLUMN "CandidateSource"."logo" IS 'Source logo URL';
-COMMENT ON COLUMN "CandidateSource"."email" IS 'Contact email for this source';
+-- applicantSource: Sources of applicant applications
+COMMENT ON TABLE "applicantSource" IS 'Sources where applicants come from (job boards, referrals, etc.)';
+COMMENT ON COLUMN "applicantSource"."id" IS 'Primary key - UUID identifier';
+COMMENT ON COLUMN "applicantSource"."name" IS 'Unique source name (e.g., LinkedIn, Indeed)';
+COMMENT ON COLUMN "applicantSource"."description" IS 'Source description and details';
+COMMENT ON COLUMN "applicantSource"."allow_sub_source" IS 'Whether sub-sources are allowed';
+COMMENT ON COLUMN "applicantSource"."sort_order" IS 'Sort order for display';
+COMMENT ON COLUMN "applicantSource"."is_active" IS 'Whether this source is currently active';
+COMMENT ON COLUMN "applicantSource"."createdAt" IS 'Source creation timestamp';
+COMMENT ON COLUMN "applicantSource"."updatedAt" IS 'Last source update timestamp';
+COMMENT ON COLUMN "applicantSource"."logo" IS 'Source logo URL';
+COMMENT ON COLUMN "applicantSource"."email" IS 'Contact email for this source';
 
--- TransitionRecord: Audit trail of candidate stage changes
-COMMENT ON TABLE "TransitionRecord" IS 'Audit trail of candidate stage and position transitions';
+-- TransitionRecord: Audit trail of applicant stage changes
+COMMENT ON TABLE "TransitionRecord" IS 'Audit trail of applicant stage and position transitions';
 COMMENT ON COLUMN "TransitionRecord"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "TransitionRecord"."candidateId" IS 'Foreign key to Candidate';
+COMMENT ON COLUMN "TransitionRecord"."applicantId" IS 'Foreign key to applicant';
 COMMENT ON COLUMN "TransitionRecord"."positionId" IS 'Foreign key to Position (if applicable)';
 COMMENT ON COLUMN "TransitionRecord"."date" IS 'Transition date and time';
 COMMENT ON COLUMN "TransitionRecord"."stage" IS 'Stage name at time of transition';
@@ -180,13 +180,13 @@ COMMENT ON COLUMN "TransitionRecord"."updatedAt" IS 'Last record update timestam
 -- HEADCOUNT AND ASSIGNMENT TABLES
 -- =====================================================
 
--- Headcount: Approved positions and candidate assignments
-COMMENT ON TABLE "Headcount" IS 'Approved headcount positions and candidate assignments';
+-- Headcount: Approved positions and applicant assignments
+COMMENT ON TABLE "Headcount" IS 'Approved headcount positions and applicant assignments';
 COMMENT ON COLUMN "Headcount"."id" IS 'Primary key - UUID identifier';
 COMMENT ON COLUMN "Headcount"."positionId" IS 'Foreign key to Position';
 COMMENT ON COLUMN "Headcount"."type" IS 'Headcount type (new, replacement, etc.)';
 COMMENT ON COLUMN "Headcount"."status" IS 'Current status (vacant, filled, etc.)';
-COMMENT ON COLUMN "Headcount"."candidateId" IS 'Foreign key to Candidate (if filled)';
+COMMENT ON COLUMN "Headcount"."applicantId" IS 'Foreign key to applicant (if filled)';
 COMMENT ON COLUMN "Headcount"."onboardingDate" IS 'Planned onboarding date';
 COMMENT ON COLUMN "Headcount"."requestDate" IS 'Date when headcount was requested';
 COMMENT ON COLUMN "Headcount"."notes" IS 'Headcount notes and details';
@@ -199,20 +199,20 @@ COMMENT ON COLUMN "Headcount"."updatedAt" IS 'Last headcount update timestamp';
 -- COMMENTS AND ATTACHMENTS
 -- =====================================================
 
--- CandidateComment: Comments on candidates
-COMMENT ON TABLE "CandidateComment" IS 'Comments and notes on candidates by users';
-COMMENT ON COLUMN "CandidateComment"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "CandidateComment"."candidateId" IS 'Foreign key to Candidate';
-COMMENT ON COLUMN "CandidateComment"."authorId" IS 'Foreign key to User - comment author';
-COMMENT ON COLUMN "CandidateComment"."content" IS 'Comment content and text';
-COMMENT ON COLUMN "CandidateComment"."createdAt" IS 'Comment creation timestamp';
-COMMENT ON COLUMN "CandidateComment"."updatedAt" IS 'Last comment update timestamp';
-COMMENT ON COLUMN "CandidateComment"."attachmentIds" IS 'Array of attachment IDs';
+-- applicantComment: Comments on applicants
+COMMENT ON TABLE "applicantComment" IS 'Comments and notes on applicants by users';
+COMMENT ON COLUMN "applicantComment"."id" IS 'Primary key - UUID identifier';
+COMMENT ON COLUMN "applicantComment"."applicantId" IS 'Foreign key to applicant';
+COMMENT ON COLUMN "applicantComment"."authorId" IS 'Foreign key to User - comment author';
+COMMENT ON COLUMN "applicantComment"."content" IS 'Comment content and text';
+COMMENT ON COLUMN "applicantComment"."createdAt" IS 'Comment creation timestamp';
+COMMENT ON COLUMN "applicantComment"."updatedAt" IS 'Last comment update timestamp';
+COMMENT ON COLUMN "applicantComment"."attachmentIds" IS 'Array of attachment IDs';
 
--- Attachment: File attachments for candidates and headcounts
-COMMENT ON TABLE "Attachment" IS 'File attachments for candidates, headcounts, and comments';
+-- Attachment: File attachments for applicants and headcounts
+COMMENT ON TABLE "Attachment" IS 'File attachments for applicants, headcounts, and comments';
 COMMENT ON COLUMN "Attachment"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "Attachment"."candidateId" IS 'Foreign key to Candidate (optional)';
+COMMENT ON COLUMN "Attachment"."applicantId" IS 'Foreign key to applicant (optional)';
 COMMENT ON COLUMN "Attachment"."uploadedById" IS 'Foreign key to User - who uploaded';
 COMMENT ON COLUMN "Attachment"."filePath" IS 'File system path to stored file';
 COMMENT ON COLUMN "Attachment"."fileName" IS 'Original file name';
@@ -235,7 +235,7 @@ COMMENT ON COLUMN "upload_queue"."status" IS 'Processing status (pending, proces
 COMMENT ON COLUMN "upload_queue"."error" IS 'Error message if processing failed';
 COMMENT ON COLUMN "upload_queue"."error_details" IS 'Detailed error information';
 COMMENT ON COLUMN "upload_queue"."source" IS 'Upload source or category';
-COMMENT ON COLUMN "upload_queue"."source_id" IS 'Foreign key to CandidateSource';
+COMMENT ON COLUMN "upload_queue"."source_id" IS 'Foreign key to applicantSource';
 COMMENT ON COLUMN "upload_queue"."sub_source" IS 'Sub-source identifier';
 COMMENT ON COLUMN "upload_queue"."upload_date" IS 'Upload timestamp';
 COMMENT ON COLUMN "upload_queue"."completed_date" IS 'Processing completion timestamp';
@@ -252,9 +252,9 @@ COMMENT ON COLUMN "upload_queue"."process_date" IS 'Processing start timestamp';
 -- =====================================================
 
 -- JobMatch: AI-powered job matching results
-COMMENT ON TABLE "JobMatch" IS 'AI-powered matching results between candidates and jobs';
+COMMENT ON TABLE "JobMatch" IS 'AI-powered matching results between applicants and jobs';
 COMMENT ON COLUMN "JobMatch"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "JobMatch"."candidateId" IS 'Foreign key to Candidate';
+COMMENT ON COLUMN "JobMatch"."applicantId" IS 'Foreign key to applicant';
 COMMENT ON COLUMN "JobMatch"."jobId" IS 'External job identifier';
 COMMENT ON COLUMN "JobMatch"."jobTitle" IS 'Job title from external source';
 COMMENT ON COLUMN "JobMatch"."fitScore" IS 'AI-calculated match score';
@@ -271,7 +271,7 @@ COMMENT ON COLUMN "JobMatch"."companyId" IS 'Company identifier (if multi-tenant
 -- CustomFieldDefinition: Dynamic custom field definitions
 COMMENT ON TABLE "CustomFieldDefinition" IS 'Definitions for dynamic custom fields across entities';
 COMMENT ON COLUMN "CustomFieldDefinition"."id" IS 'Primary key - UUID identifier';
-COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (Candidate, Position, etc.)';
+COMMENT ON COLUMN "CustomFieldDefinition"."model_name" IS 'Target model name (applicant, Position, etc.)';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_key" IS 'Unique field key within model';
 COMMENT ON COLUMN "CustomFieldDefinition"."label" IS 'Display label for the field';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_type" IS 'Field type (text, select, date, etc.)';
@@ -285,13 +285,13 @@ COMMENT ON COLUMN "CustomFieldDefinition"."attribute_code" IS 'External system a
 COMMENT ON COLUMN "CustomFieldDefinition"."attribute_label" IS 'External system attribute label';
 COMMENT ON COLUMN "CustomFieldDefinition"."edit_roles" IS 'Roles allowed to edit this field';
 COMMENT ON COLUMN "CustomFieldDefinition"."field_code" IS 'Unique field code';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_candidate_detail" IS 'Show in candidate detail view';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_applicant_detail" IS 'Show in applicant detail view';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_filter" IS 'Show in filter options';
-COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_candidate_detail" IS 'Show in full candidate detail';
+COMMENT ON COLUMN "CustomFieldDefinition"."show_in_full_applicant_detail" IS 'Show in full applicant detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_headcount_detail" IS 'Show in headcount detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_position_settings" IS 'Show in position settings';
 COMMENT ON COLUMN "CustomFieldDefinition"."show_in_task_board_filter" IS 'Show in task board filters';
-COMMENT ON COLUMN "CustomFieldDefinition"."candidate_detail_section" IS 'Section in candidate detail';
+COMMENT ON COLUMN "CustomFieldDefinition"."applicant_detail_section" IS 'Section in applicant detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."position_detail_section" IS 'Section in position detail';
 COMMENT ON COLUMN "CustomFieldDefinition"."view_roles" IS 'Roles allowed to view this field';
 
@@ -331,7 +331,7 @@ COMMENT ON COLUMN "SystemPreference"."updatedAt" IS 'Last preference update time
 COMMENT ON TABLE "UserUIDisplayPreference" IS 'Per-user UI display preferences and customizations';
 COMMENT ON COLUMN "UserUIDisplayPreference"."id" IS 'Primary key - UUID identifier';
 COMMENT ON COLUMN "UserUIDisplayPreference"."userId" IS 'Foreign key to User';
-COMMENT ON COLUMN "UserUIDisplayPreference"."model_type" IS 'Target model type (Candidate, Position, etc.)';
+COMMENT ON COLUMN "UserUIDisplayPreference"."model_type" IS 'Target model type (applicant, Position, etc.)';
 COMMENT ON COLUMN "UserUIDisplayPreference"."attribute_key" IS 'UI attribute key';
 COMMENT ON COLUMN "UserUIDisplayPreference"."ui_preference" IS 'UI preference value';
 COMMENT ON COLUMN "UserUIDisplayPreference"."custom_note" IS 'Custom note for this preference';
@@ -502,7 +502,7 @@ COMMENT ON TABLE "WarningConfiguration" IS 'Configuration rules for generating s
 COMMENT ON COLUMN "WarningConfiguration"."id" IS 'Primary key - UUID identifier';
 COMMENT ON COLUMN "WarningConfiguration"."name" IS 'Configuration name';
 COMMENT ON COLUMN "WarningConfiguration"."description" IS 'Configuration description';
-COMMENT ON COLUMN "WarningConfiguration"."entity_type" IS 'Target entity type (Candidate, Position, etc.)';
+COMMENT ON COLUMN "WarningConfiguration"."entity_type" IS 'Target entity type (applicant, Position, etc.)';
 COMMENT ON COLUMN "WarningConfiguration"."field" IS 'Field to monitor';
 COMMENT ON COLUMN "WarningConfiguration"."condition" IS 'Condition type';
 COMMENT ON COLUMN "WarningConfiguration"."operator" IS 'Comparison operator';

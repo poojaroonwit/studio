@@ -9,8 +9,8 @@ import { toast } from 'react-hot-toast';
 interface RecruiterSyncResult {
   positionId: string;
   positionTitle: string;
-  ApplicantsUpdated: number;
-  ApplicantsSkipped: number;
+  applicantsUpdated: number;
+  applicantsSkipped: number;
   errors: string[];
 }
 
@@ -97,10 +97,10 @@ export function RecruiterSyncCard() {
                     {lastSyncResult.totalPositions} positions
                   </Badge>
                   <Badge variant="default">
-                    {lastSyncResult.totalApplicantsUpdated} Applicants updated
+                    {lastSyncResult.totalApplicantsUpdated} applicants updated
                   </Badge>
                   <Badge variant="outline">
-                    {lastSyncResult.totalApplicantsSkipped} Applicants skipped
+                    {lastSyncResult.totalApplicantsSkipped} applicants skipped
                   </Badge>
                   {lastSyncResult.totalErrors > 0 && (
                     <Badge variant="destructive">

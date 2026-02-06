@@ -443,7 +443,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     handleTogglePin,
     handleToggleBlacklist,
     handleToggleRead,
-  } = useApplicantDetail(candidateId);
+  } = useApplicantDetail(applicantId);
 
   // Handle custom field changes - MUST be called after use-applicant-detail but before any early returns
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -548,11 +548,11 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   };
 
   const copyJobAppliedToClipboard = async () => {
-    if (!Applicant?.positionId) return;
+    if (!applicant?.positionId) return;
 
     const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === applicant.positionId) : null;
     const jobTitle = position?.title || 'Unknown Position';
-    const fitScore = formatScoreWithGrade(Applicant.fitScore);
+    const fitScore = formatScoreWithGrade(applicant.fitScore);
     const justification = applicant.assignmentJustification
       ? (Array.isArray(applicant.assignmentJustification)
         ? applicant.assignmentJustification.filter(Boolean)
@@ -611,7 +611,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   };
 
   const handleSaveDetails = async (data: any) => {
-    if (!Applicant) return;
+    if (!applicant) return;
 
     // Validation check removed
 
@@ -739,16 +739,16 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
             // Try to load existing active link
             try {
-              if (Applicant?.id) {
-                const res = await fetch(`/api/v1/Applicants/${applicant.id}/evaluation-link`, { credentials: 'include' });
+              if (applicant?.id) {
+                const res = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, { credentials: 'include' });
                 if (res.ok) {
                   const data = await res.json();
                   if (data.url) {
                     // If link exists, show QR Code modal
                     setQrData({
-                      name: Applicant.name,
+                      name: applicant.name,
                       url: data.url,
-                      avatarUrl: Applicant.avatarUrl || null,
+                      avatarUrl: applicant.avatarUrl || null,
                       expiresAt: data.expiresAt
                     });
                     setIsQrModalOpen(true);
@@ -797,13 +797,13 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                 credentials: 'include',
               });
               // Refresh transition history
-              const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
+              const res = await fetch(`/api/transitions?applicantId=${applicantId}`, { credentials: 'include' });
               if (res.ok) {
                 const data = await res.json();
                 // Update transition history in the hook
               }
             }}
-            candidateId={candidateId}
+            applicantId={applicantId}
           />
         </div>
       </div>
@@ -823,14 +823,14 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                   {isJobMatchEnabled ? 'Job Applied & Matched' : 'Job Applied'}
                   {(() => {
                     if (!isJobMatchEnabled) return '';
-                    const jobMatches = ApplicantJobMatches || [];
+                    const jobMatches = applicantJobMatches || [];
                     const matchCount = jobMatches.length;
                     return matchCount > 0 ? ` (${matchCount})` : '';
                   })()}
                 </div>
                 <div
-                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'Applicant-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                  onClick={() => setActiveTab('Applicant-info')}
+                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'applicant-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                  onClick={() => setActiveTab('applicant-info')}
                 >
                   <User className="w-4 h-4" />
                   Applicant Info
@@ -897,14 +897,14 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
             </div>
 
             <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4 pb-48" : "p-8")}>
-              <form id="Applicant-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
+              <form id="applicant-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <ApplicantTabsContent
-                  key={Applicant?.id}
+                  key={applicant?.id}
                   activeTab={activeTab}
-                  Applicant={Applicant}
+                  applicant={applicant}
                   allDbPositions={allDbPositions}
                   isEditing={isEditing}
-                  ApplicantJobMatches={ApplicantJobMatches}
+                  applicantJobMatches={applicantJobMatches}
                   onJobMatchClick={handleJobMatchClick}
                   onCopyJobMatch={copyJobMatchToClipboard}
                   copiedJobMatchIndex={copiedJobMatchIndex}
@@ -953,7 +953,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
         {/* Sidebar */}
         <div className={cn("flex flex-col min-h-0 pointer-events-auto", isMobile ? "lg:col-span-12 border-t border-border pb-48" : "lg:col-span-4")}>
           <ApplicantSidebar
-            Applicant={Applicant}
+            applicant={applicant}
             comments={comments}
             resumes={resumes}
             isEditing={isEditing}
@@ -968,7 +968,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       <UploadResumeModal
         isOpen={isUploadModalOpen}
         onOpenChange={setIsUploadModalOpen}
-        Applicant={Applicant}
+        applicant={applicant}
         onUploadSuccess={(updatedApplicant) => {
           setIsUploadModalOpen(false);
         }}
@@ -980,12 +980,12 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
           setIsTransitionsModalOpen(open);
           if (!open) setPreselectedStage(null);
         }}
-        Applicant={Applicant}
+        applicant={applicant}
         availableStages={availableStages}
-        onUpdateapplicant={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
+        onUpdateApplicant={async (applicantId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
 
           // Store original state for potential reversion
-          const originalApplicant = Applicant;
+          const originalApplicant = applicant;
           const originalTransitionHistory = transitionHistory;
 
           try {
@@ -1000,12 +1000,12 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
 
 
-            if (isHiringStatus && Applicant?.positionId) {
+            if (isHiringStatus && applicant?.positionId) {
 
 
               // Check headcount availability before proceeding
               try {
-                const response = await fetch(`/api/headcount/validate-hiring?candidateId=${candidateId}&positionId=${applicant.positionId}`);
+                const response = await fetch(`/api/headcount/validate-hiring?applicantId=${applicantId}&positionId=${applicant.positionId}`);
                 const validationResult = await response.json();
 
                 if (!validationResult.canHire) {
@@ -1055,7 +1055,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
               // Optimistically add a new transition record
               const optimisticTransition: TransitionRecord = {
                 id: `temp-${Date.now()}`,
-                candidateId: candidateId,
+                applicantId: applicantId,
                 stage: status,
                 notes: notes || undefined,
                 actingUserId: session?.user?.id || null,
@@ -1069,7 +1069,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
             }
 
             // Make the actual API call
-            await updateApplicantStatusWithNotes(candidateId, status, notes, suppressToast, {
+            await updateApplicantStatusWithNotes(applicantId, status, notes, suppressToast, {
               success: toastSuccess,
               error: toastError
             });
@@ -1101,7 +1101,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
             return false;
           }
         }}
-        onRefreshApplicantData={async (candidateId: string) => {
+        onRefreshApplicantData={async (applicantId: string) => {
           // Refresh Applicant data
           await onRefresh();
         }}
@@ -1122,20 +1122,20 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
 
       <ApplicantAttachmentUploadModal
-        candidateId={candidateId}
+        applicantId={applicantId}
         open={isAttachmentModalOpen}
         onClose={() => setIsAttachmentModalOpen(false)}
         onUploadSuccess={onRefresh}
       />
 
-      {Applicant && (
+      {applicant && (
         <ReprocessModal
           isOpen={isReprocessModalOpen}
           onOpenChange={setIsReprocessModalOpen}
-          candidateId={applicant.id}
-          ApplicantName={applicant.name || 'Unknown Applicant'}
-          ApplicantPositionId={applicant.positionId}
-          ApplicantSourceId={applicant.sourceId}
+          applicantId={applicant.id}
+          applicantName={applicant.name || 'Unknown Applicant'}
+          applicantPositionId={applicant.positionId}
+          applicantSourceId={applicant.sourceId}
           attachments={resumes}
           positions={allDbPositions}
         />
@@ -1174,7 +1174,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       <ApplicantEvaluationModal
         isOpen={isEvaluationModalOpen}
         onOpenChange={setIsEvaluationModalOpen}
-        Applicant={Applicant}
+        applicant={applicant}
         position={applicant.position || undefined}
       />
 
@@ -1182,7 +1182,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       <SendInterviewInvitationModal
         isOpen={isSendInvitationModalOpen}
         onOpenChange={setIsSendInvitationModalOpen}
-        Applicant={Applicant}
+        applicant={applicant}
       />
 
       {/* Evaluation Link Popup */}
@@ -1241,9 +1241,9 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                     variant="outline"
                     disabled={!canManageEvalLink(evalLinkCreatedBy?.id)}
                     onClick={async () => {
-                      if (!Applicant?.id || !canManageEvalLink(evalLinkCreatedBy?.id)) return;
+                      if (!applicant?.id || !canManageEvalLink(evalLinkCreatedBy?.id)) return;
                       try {
-                        const res = await fetch(`/api/v1/Applicants/${applicant.id}/evaluation-link`, {
+                        const res = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           credentials: 'include',
@@ -1289,7 +1289,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       />
 
       {/* Unified Create Evaluate Link Modal */}
-      {Applicant && (
+      {applicant && (
         <CreateEvaluateLinkModal
           isOpen={isCreateEvalLinkModalOpen}
           onOpenChange={(open) => {
@@ -1298,13 +1298,13 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
               setIsEditingEvalLink(false);
             }
           }}
-          Applicant={{
-            id: Applicant.id,
-            name: Applicant.name,
-            email: Applicant.email,
-            avatarUrl: Applicant.avatarUrl || null,
-            positionId: Applicant.positionId,
-            position: Applicant.position ? { id: Applicant.position.id, title: Applicant.position.title } : null
+          applicant={{
+            id: applicant.id,
+            name: applicant.name,
+            email: applicant.email,
+            avatarUrl: applicant.avatarUrl || null,
+            positionId: applicant.positionId,
+            position: applicant.position ? { id: applicant.position.id, title: applicant.position.title } : null
           }}
           editMode={isEditingEvalLink}
           initialData={isEditingEvalLink ? {
@@ -1318,17 +1318,17 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
             // Set QR data and open modal
             setQrData({
-              name: Applicant.name,
+              name: applicant.name,
               url: linkInfo.url,
               expiresAt: linkInfo.expiresAt,
-              avatarUrl: Applicant.avatarUrl || null
+              avatarUrl: applicant.avatarUrl || null
             });
             setIsCreateEvalLinkModalOpen(false);
             setIsQrModalOpen(true);
             setIsEditingEvalLink(false);
 
             // Refresh parent's knowledge
-            fetch(`/api/v1/Applicants/${applicant.id}/evaluation-link`, { credentials: 'include' })
+            fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, { credentials: 'include' })
               .then(res => res.json())
               .then(data => {
                 if (data.url) {
@@ -1371,13 +1371,13 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (
-        <div className="fixed bottom-6 right-6 flex flex-col gap-2 Applicant-edit-buttons" style={{ zIndex: 2000 }}>
+        <div className="fixed bottom-6 right-6 flex flex-col gap-2 applicant-edit-buttons" style={{ zIndex: 2000 }}>
           {/* Validation error display removed */}
 
           <div className="flex gap-2">
             <Button
               type="submit"
-              form="Applicant-edit-form"
+              form="applicant-edit-form"
               disabled={isSaving}
               className="shadow-lg"
             >

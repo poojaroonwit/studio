@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     
     try {
       while (true) {
-        const applicants = await prisma.candidate.findMany({
+        const applicants = await prisma.applicant.findMany({
           select: { educationData: true },
           where: { NOT: { educationData: { equals: Prisma.DbNull } } },
           take: BATCH_SIZE,

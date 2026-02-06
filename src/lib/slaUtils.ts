@@ -84,7 +84,7 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
   try {
     // First check if all headcounts are filled
     const headcountsQuery = `
-      SELECT id, status, "candidateId"
+      SELECT id, status, "applicantId"
       FROM "Headcount"
       WHERE "positionId" = $1
     `;
@@ -96,8 +96,8 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
     }
 
     // Check if all headcounts are filled
-    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
-    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.applicantId !== null);
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.applicantId === null);
     
     // If there are still vacant headcounts, return null
     if (vacantHeadcounts.length > 0) {
@@ -108,7 +108,7 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
     const latestHiredQuery = `
       SELECT tr.date
       FROM "TransitionRecord" tr
-      JOIN "Candidate" c ON tr."candidateId" = c.id
+      JOIN "applicant" c ON tr."applicantId" = c.id
       WHERE tr."positionId" = $1
         AND tr.stage = 'Hired'
         AND c."positionId" = $1
@@ -177,7 +177,7 @@ export async function checkSLAViolationForHeadcount(headcount: any): Promise<any
   let endDate: Date;
   let calculationType: string;
 
-  if (headcount.status === 'filled' && headcount.candidateId) {
+  if (headcount.status === 'filled' && headcount.applicantId) {
     // For filled headcounts: use hired date
     const hiredDate = await getHiredDateForHeadcount(headcount);
     if (!hiredDate) {
@@ -222,11 +222,11 @@ export async function getSLARemainingDaysForHeadcount(headcount: any): Promise<n
 
 /**
  * Get the hired date for a specific headcount's Applicant
- * @param headcount - The headcount object with candidateId
+ * @param headcount - The headcount object with applicantId
  * @returns The hired date or null if not found
  */
 export async function getHiredDateForHeadcount(headcount: any): Promise<Date | null> {
-  if (!headcount.candidateId) {
+  if (!headcount.applicantId) {
     return null;
   }
 
@@ -235,13 +235,13 @@ export async function getHiredDateForHeadcount(headcount: any): Promise<Date | n
     const query = `
       SELECT tr.date
       FROM "TransitionRecord" tr
-      WHERE tr."candidateId" = $1
+      WHERE tr."applicantId" = $1
         AND tr.stage = 'Hired'
       ORDER BY tr.date DESC
       LIMIT 1
     `;
     
-    const result = await client.query(query, [headcount.candidateId]);
+    const result = await client.query(query, [headcount.applicantId]);
     return result.rows[0]?.date || null;
   } catch (error) {
     console.error('Error getting hired date for headcount:', error);

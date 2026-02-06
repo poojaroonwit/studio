@@ -24,10 +24,10 @@ export interface EvaluationApplicant {
 }
 
 export interface EvaluateCalendarProps {
-  Applicants: EvaluationApplicant[];
+  applicants: EvaluationApplicant[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
-  onApplicantClick: (candidateId: string) => void;
+  onApplicantClick: (applicantId: string) => void;
   isMobile?: boolean;
 }
 
@@ -48,9 +48,9 @@ function getFirstDayOfMonth(year: number, month: number): number {
 }
 
 // Helper to get Applicants for a specific date
-function getApplicantsForDate(Applicants: EvaluationApplicant[], date: Date): EvaluationApplicant[] {
+function getApplicantsForDate(applicants: EvaluationApplicant[], date: Date): EvaluationApplicant[] {
   const dateStr = date.toDateString();
-  return Applicants.filter(c => {
+  return applicants.filter(c => {
     const expireDate = new Date(c.evaluationLink.expiresAt).toDateString();
     const interviewDate = c.evaluationLink.interviewDateTime
       ? new Date(c.evaluationLink.interviewDateTime).toDateString()
@@ -65,7 +65,7 @@ function DayCell({
   isSelected,
   isToday,
   isOutsideMonth,
-  Applicants,
+  applicants,
   onClick,
   onApplicantClick,
   compact = false,
@@ -74,12 +74,12 @@ function DayCell({
   isSelected: boolean;
   isToday: boolean;
   isOutsideMonth: boolean;
-  Applicants: EvaluationApplicant[];
+  applicants: EvaluationApplicant[];
   onClick: () => void;
-  onApplicantClick?: (candidateId: string) => void;
+  onApplicantClick?: (applicantId: string) => void;
   compact?: boolean;
 }) {
-  const hasEvents = Applicants.length > 0;
+  const hasEvents = applicants.length > 0;
 
   return (
     <button
@@ -107,14 +107,14 @@ function DayCell({
       {/* Applicant badges */}
       {hasEvents && !compact && (
         <div className="flex flex-col gap-0.5 w-full overflow-hidden">
-          {Applicants.slice(0, 3).map((Applicant, idx) => {
-            const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
+          {applicants.slice(0, 3).map((applicant, idx) => {
+            const nameInfo = formatApplicantNameWithLang({ name: applicant.name } as any);
             const now = new Date();
-            const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
-            const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
-            const interviewDateTime = Applicant.evaluationLink.interviewDateTime
-              ? new Date(Applicant.evaluationLink.interviewDateTime)
-              : new Date(Applicant.evaluationLink.expiresAt);
+            const isExpired = new Date(applicant.evaluationLink.expiresAt) < now;
+            const isRevoked = applicant.evaluationLink.revokedAt !== null && applicant.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = applicant.evaluationLink.interviewDateTime
+              ? new Date(applicant.evaluationLink.interviewDateTime)
+              : new Date(applicant.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
 
@@ -135,10 +135,10 @@ function DayCell({
               >
                 <ApplicantAvatarCompact
                   user={{
-                    id: Applicant.id,
-                    name: Applicant.name,
-                    avatarUrl: Applicant.avatarUrl,
-                    email: Applicant.email || undefined,
+                    id: applicant.id,
+                    name: applicant.name,
+                    avatarUrl: applicant.avatarUrl,
+                    email: applicant.email || undefined,
                   }}
                   size="sm"
                 />
@@ -148,9 +148,9 @@ function DayCell({
               </div>
             );
           })}
-          {Applicants.length > 3 && (
+          {applicants.length > 3 && (
             <span className="text-[9px] text-muted-foreground text-center">
-              +{Applicants.length - 3} more
+              +{applicants.length - 3} more
             </span>
           )}
         </div>
@@ -159,13 +159,13 @@ function DayCell({
       {/* Compact badge indicator */}
       {hasEvents && compact && (
         <div className="flex gap-0.5 mt-0.5">
-          {Applicants.slice(0, 3).map((Applicant, idx) => {
+          {applicants.slice(0, 3).map((applicant, idx) => {
             const now = new Date();
-            const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
-            const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
-            const interviewDateTime = Applicant.evaluationLink.interviewDateTime
-              ? new Date(Applicant.evaluationLink.interviewDateTime)
-              : new Date(Applicant.evaluationLink.expiresAt);
+            const isExpired = new Date(applicant.evaluationLink.expiresAt) < now;
+            const isRevoked = applicant.evaluationLink.revokedAt !== null && applicant.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = applicant.evaluationLink.interviewDateTime
+              ? new Date(applicant.evaluationLink.interviewDateTime)
+              : new Date(applicant.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
 
@@ -179,10 +179,10 @@ function DayCell({
               />
             );
           })}
-          {Applicants.length > 3 && (
+          {applicants.length > 3 && (
             <span className={cn(
               "text-[8px]",
-              Applicants.some(c => {
+              applicants.some(c => {
                 const now = new Date();
                 const isExpired = new Date(c.evaluationLink.expiresAt) < now;
                 const isRevoked = c.evaluationLink.revokedAt !== null && c.evaluationLink.revokedAt !== undefined;
@@ -193,7 +193,7 @@ function DayCell({
                 return isExpired || isRevoked || isPast;
               }) ? "text-muted-foreground opacity-50" : "text-primary"
             )}>
-              +{Applicants.length - 3}
+              +{applicants.length - 3}
             </span>
           )}
         </div>
@@ -204,16 +204,16 @@ function DayCell({
 
 // Applicant list item component
 function ApplicantListItem({
-  Applicant,
+  applicant,
   onClick,
 }: {
-  Applicant: EvaluationApplicant;
+  applicant: EvaluationApplicant;
   onClick: () => void;
 }) {
-  const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
-  const interviewDateTime = Applicant.evaluationLink.interviewDateTime
-    ? new Date(Applicant.evaluationLink.interviewDateTime)
-    : new Date(Applicant.evaluationLink.expiresAt);
+  const nameInfo = formatApplicantNameWithLang({ name: applicant.name } as any);
+  const interviewDateTime = applicant.evaluationLink.interviewDateTime
+    ? new Date(applicant.evaluationLink.interviewDateTime)
+    : new Date(applicant.evaluationLink.expiresAt);
   const interviewTime = interviewDateTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -222,8 +222,8 @@ function ApplicantListItem({
 
   // Check if link is expired or revoked
   const now = new Date();
-  const isExpired = new Date(Applicant.evaluationLink.expiresAt) < now;
-  const isRevoked = Applicant.evaluationLink.revokedAt !== null && Applicant.evaluationLink.revokedAt !== undefined;
+  const isExpired = new Date(applicant.evaluationLink.expiresAt) < now;
+  const isRevoked = applicant.evaluationLink.revokedAt !== null && applicant.evaluationLink.revokedAt !== undefined;
 
   // Check if interview date/time has passed
   const isPast = interviewDateTime < now;
@@ -264,10 +264,10 @@ function ApplicantListItem({
           <div className="flex items-center gap-2 mb-1">
             <ApplicantAvatarCompact
               user={{
-                id: Applicant.id,
-                name: Applicant.name,
-                avatarUrl: Applicant.avatarUrl,
-                email: Applicant.email || undefined,
+                id: applicant.id,
+                name: applicant.name,
+                avatarUrl: applicant.avatarUrl,
+                email: applicant.email || undefined,
               }}
               size="sm"
             />
@@ -285,19 +285,19 @@ function ApplicantListItem({
           )}
 
           {/* Location */}
-          {Applicant.evaluationLink.interviewLocation && (
+          {applicant.evaluationLink.interviewLocation && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{Applicant.evaluationLink.interviewLocation}</span>
+              <span className="truncate">{applicant.evaluationLink.interviewLocation}</span>
             </div>
           )}
 
           {/* Interviewers */}
-          {Applicant.evaluationLink.interviewers && Applicant.evaluationLink.interviewers.length > 0 && (
+          {applicant.evaluationLink.interviewers && applicant.evaluationLink.interviewers.length > 0 && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Users className="h-3 w-3" />
               <span className="truncate">
-                {Applicant.evaluationLink.interviewers.map(i => i.name).join(', ')}
+                {applicant.evaluationLink.interviewers.map(i => i.name).join(', ')}
               </span>
             </div>
           )}
@@ -309,7 +309,7 @@ function ApplicantListItem({
 
 // Mobile Calendar with collapsible feature
 export function MobileEvaluateCalendar({
-  Applicants,
+  applicants,
   selectedDate,
   onDateSelect,
   onApplicantClick,
@@ -323,7 +323,7 @@ export function MobileEvaluateCalendar({
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const ApplicantsForSelectedDate = getApplicantsForDate(Applicants, selectedDate);
+  const applicantsForSelectedDate = getApplicantsForDate(applicants, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -336,24 +336,24 @@ export function MobileEvaluateCalendar({
 
   // Get all Applicants sorted by date/time
   const allApplicantsSorted = React.useMemo(() => {
-    return [...Applicants].sort((a, b) => {
+    return [...applicants].sort((a, b) => {
       const dateA = a.evaluationLink.interviewDateTime || a.evaluationLink.expiresAt;
       const dateB = b.evaluationLink.interviewDateTime || b.evaluationLink.expiresAt;
       return new Date(dateA).getTime() - new Date(dateB).getTime();
     });
-  }, [Applicants]);
+  }, [applicants]);
 
   // Group Applicants by date for list view
-  const ApplicantsByDate = React.useMemo(() => {
+  const applicantsByDate = React.useMemo(() => {
     const grouped: Record<string, EvaluationApplicant[]> = {};
-    allApplicantsSorted.forEach(Applicant => {
-      const dateStr = Applicant.evaluationLink.interviewDateTime
-        ? new Date(Applicant.evaluationLink.interviewDateTime).toDateString()
-        : new Date(Applicant.evaluationLink.expiresAt).toDateString();
+    allApplicantsSorted.forEach(applicant => {
+      const dateStr = applicant.evaluationLink.interviewDateTime
+        ? new Date(applicant.evaluationLink.interviewDateTime).toDateString()
+        : new Date(applicant.evaluationLink.expiresAt).toDateString();
       if (!grouped[dateStr]) {
         grouped[dateStr] = [];
       }
-      grouped[dateStr].push(Applicant);
+      grouped[dateStr].push(applicant);
     });
     return grouped;
   }, [allApplicantsSorted]);
@@ -377,7 +377,7 @@ export function MobileEvaluateCalendar({
 
         {/* List View */}
         <div className="flex-1 overflow-y-auto space-y-4">
-          {Object.entries(ApplicantsByDate).map(([dateStr, dateApplicants]) => {
+          {Object.entries(applicantsByDate).map(([dateStr, dateApplicants]) => {
             const date = new Date(dateStr);
             const isToday = date.toDateString() === new Date().toDateString();
 
@@ -393,14 +393,14 @@ export function MobileEvaluateCalendar({
                     })}
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    ({dateApplicants.length} Applicant{dateApplicants.length > 1 ? 's' : ''})
+                    ({dateApplicants.length} applicant{dateApplicants.length > 1 ? 's' : ''})
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {dateApplicants.map(Applicant => (
+                  {dateApplicants.map(applicant => (
                     <ApplicantListItem
                       key={applicant.id}
-                      Applicant={Applicant}
+                      applicant={applicant}
                       onClick={() => onApplicantClick(applicant.id)}
                     />
                   ))}
@@ -409,7 +409,7 @@ export function MobileEvaluateCalendar({
             );
           })}
 
-          {Object.keys(ApplicantsByDate).length === 0 && (
+          {Object.keys(applicantsByDate).length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No scheduled evaluations</p>
             </div>
@@ -482,7 +482,7 @@ export function MobileEvaluateCalendar({
           {monthDays.map(date => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
-            const dateApplicants = getApplicantsForDate(Applicants, date);
+            const dateApplicants = getApplicantsForDate(applicants, date);
 
             return (
               <DayCell
@@ -491,7 +491,7 @@ export function MobileEvaluateCalendar({
                 isSelected={isSelected}
                 isToday={isToday}
                 isOutsideMonth={false}
-                Applicants={dateApplicants}
+                applicants={dateApplicants}
                 onClick={() => onDateSelect(date)}
                 onApplicantClick={onApplicantClick}
                 compact={isCollapsed}
@@ -512,17 +512,17 @@ export function MobileEvaluateCalendar({
           })}
         </h3>
         <span className="text-sm text-muted-foreground">
-          ({ApplicantsForSelectedDate.length} Applicant{ApplicantsForSelectedDate.length !== 1 ? 's' : ''})
+          ({applicantsForSelectedDate.length} applicant{applicantsForSelectedDate.length !== 1 ? 's' : ''})
         </span>
       </div>
 
       {/* Applicants for Selected Date */}
       <div className="flex-1 overflow-y-auto space-y-2">
-        {ApplicantsForSelectedDate.length > 0 ? (
-          ApplicantsForSelectedDate.map(Applicant => (
+        {applicantsForSelectedDate.length > 0 ? (
+          applicantsForSelectedDate.map(applicant => (
             <ApplicantListItem
               key={applicant.id}
-              Applicant={Applicant}
+              applicant={applicant}
               onClick={() => onApplicantClick(applicant.id)}
             />
           ))
@@ -538,7 +538,7 @@ export function MobileEvaluateCalendar({
 
 // Desktop Calendar with full month view and side panel
 export function DesktopEvaluateCalendar({
-  Applicants,
+  applicants,
   selectedDate,
   onDateSelect,
   onApplicantClick,
@@ -549,7 +549,7 @@ export function DesktopEvaluateCalendar({
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  const ApplicantsForSelectedDate = getApplicantsForDate(Applicants, selectedDate);
+  const applicantsForSelectedDate = getApplicantsForDate(applicants, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -612,7 +612,7 @@ export function DesktopEvaluateCalendar({
             {monthDays.map(date => {
               const isSelected = date.toDateString() === selectedDate.toDateString();
               const isToday = date.toDateString() === new Date().toDateString();
-              const dateApplicants = getApplicantsForDate(Applicants, date);
+              const dateApplicants = getApplicantsForDate(applicants, date);
 
               return (
                 <DayCell
@@ -621,7 +621,7 @@ export function DesktopEvaluateCalendar({
                   isSelected={isSelected}
                   isToday={isToday}
                   isOutsideMonth={false}
-                  Applicants={dateApplicants}
+                  applicants={dateApplicants}
                   onClick={() => onDateSelect(date)}
                   onApplicantClick={onApplicantClick}
                 />
@@ -651,17 +651,17 @@ export function DesktopEvaluateCalendar({
             </h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            {ApplicantsForSelectedDate.length} evaluation{ApplicantsForSelectedDate.length !== 1 ? 's' : ''} scheduled
+            {applicantsForSelectedDate.length} evaluation{applicantsForSelectedDate.length !== 1 ? 's' : ''} scheduled
           </p>
         </div>
 
         {/* Applicants List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {ApplicantsForSelectedDate.length > 0 ? (
-            ApplicantsForSelectedDate.map(Applicant => (
+          {applicantsForSelectedDate.length > 0 ? (
+            applicantsForSelectedDate.map(applicant => (
               <ApplicantListItem
                 key={applicant.id}
-                Applicant={Applicant}
+                applicant={applicant}
                 onClick={() => onApplicantClick(applicant.id)}
               />
             ))

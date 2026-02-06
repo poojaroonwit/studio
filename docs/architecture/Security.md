@@ -83,14 +83,14 @@ The system implements a hierarchical role model:
 |:---|:---|:---|
 | **Super Admin** | System | `*` (Full Access) |
 | **Admin** | System | User Management, Settings, Logs |
-| **Recruiter** | Operational | Create Jobs, Manage Candidates (Own) |
-| **Hiring Manager** | Operational | View Candidates, Approve Jobs |
-| **Interviewer** | Session | Score Assigned Candidates Only |
+| **Recruiter** | Operational | Create Jobs, Manage applicants (Own) |
+| **Hiring Manager** | Operational | View applicants, Approve Jobs |
+| **Interviewer** | Session | Score Assigned applicants Only |
 
 ### 4.2 Ownership Logic
 Permissions are refined by ownership rules found in `src/lib/permissions.ts`:
-- **Global**: `CANDIDATES_EDIT_ALL` (Can edit any candidate).
-- **Scoped**: `CANDIDATES_EDIT_OWN` (Can only edit candidates where `recruiterId === currentUser.id`).
+- **Global**: `applicantS_EDIT_ALL` (Can edit any applicant).
+- **Scoped**: `applicantS_EDIT_OWN` (Can only edit applicants where `recruiterId === currentUser.id`).
 
 ---
 
@@ -115,7 +115,7 @@ Implemented via Token Bucket algorithm in `middleware.ts`:
 ### 6.1 Audit Logging
 Every write operation triggers a `UserActivityLog` entry:
 - **Actor**: User ID and IP Address.
-- **Action**: Event Type (e.g., `CANDIDATE_UPDATE`).
+- **Action**: Event Type (e.g., `applicant_UPDATE`).
 - **Diff**: JSON delta of changed fields.
 
 ### 6.2 Monitoring Dashboard
@@ -184,8 +184,8 @@ Every write operation triggers a `UserActivityLog` entry:
 |------|-------------|--------------|
 | **Super Admin** | Full system access | All modules and settings |
 | **Admin** | Administrative access | User management, system settings |
-| **Recruiter** | Recruitment operations | Candidates, positions (Read/Write) |
-| **Hiring Manager** | Decision making | Assigned positions, candidates (Read) |
+| **Recruiter** | Recruitment operations | applicants, positions (Read/Write) |
+| **Hiring Manager** | Decision making | Assigned positions, applicants (Read) |
 | **Interviewer** | Evaluation only | Assigned evaluation sessions |
 
 ### 3.2 Granular Permissions

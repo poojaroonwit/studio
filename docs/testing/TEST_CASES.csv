@@ -32,190 +32,190 @@ TC_AUTH_009,Authentication,Session,Desktop,Session Timeout,User is logged in but
 TC_AUTH_010,Authentication,Protected Routes,Desktop,Access protected route without login,User is not logged in,"1. Navigate directly to /dashboard
 2. Observe behavior",User is redirected to Login page,High
 TC_DASH_001,Dashboard,Dashboard,Desktop,View Dashboard Statistics,User logged in,"1. Navigate to /dashboard
-2. Wait for data to load","Statistics cards (Total Candidates, Active Positions, Today's Applications) are displayed with correct numbers",High
+2. Wait for data to load","Statistics cards (Total applicants, Active Positions, Today's Applications) are displayed with correct numbers",High
 TC_DASH_002,Dashboard,Dashboard,Mobile,View Dashboard Layout,User logged in,"1. Navigate to /dashboard on mobile
 2. Scroll through page",Cards are stacked vertically; Charts are responsive and readable,High
-TC_DASH_003,Dashboard,Dashboard,Desktop,View Candidates Per Position Chart,User logged in with candidates data,"1. Navigate to /dashboard
-2. Locate Candidates Per Position chart",Bar chart displays correct data for each position,Medium
+TC_DASH_003,Dashboard,Dashboard,Desktop,View applicants Per Position Chart,User logged in with applicants data,"1. Navigate to /dashboard
+2. Locate applicants Per Position chart",Bar chart displays correct data for each position,Medium
 TC_DASH_004,Dashboard,Dashboard,Desktop,View New Applications Time Series,User logged in with applications data,"1. Navigate to /dashboard
 2. Locate New Applications chart
 3. Verify date range selector works",Time series chart shows applications over selected period,Medium
-TC_DASH_005,Dashboard,Dashboard,Desktop,View Score Distribution Chart,User logged in with evaluated candidates,"1. Navigate to /dashboard
+TC_DASH_005,Dashboard,Dashboard,Desktop,View Score Distribution Chart,User logged in with evaluated applicants,"1. Navigate to /dashboard
 2. Locate Score Distribution chart",Distribution chart shows correct score ranges,Medium
 TC_DASH_006,Dashboard,Dashboard,Desktop,View SLA Violations Widget,User logged in; SLA violations exist,"1. Navigate to /dashboard
 2. Locate SLA Violations widget",Widget displays list of SLA breaches with details,Medium
 TC_DASH_007,Dashboard,Dashboard,Desktop,Real-time Updates via SSE,User logged in; SSE enabled,"1. Navigate to /dashboard
-2. Have another user add a candidate
+2. Have another user add a applicant
 3. Observe dashboard updates",Dashboard updates in real-time without page refresh,Medium
-TC_DASH_008,Dashboard,Dashboard,Desktop,Navigate to Candidates from Dashboard,User logged in,"1. Navigate to /dashboard
-2. Click on any candidate statistics card",Navigates to /candidates with appropriate filters applied,Low
-TC_CAND_001,Candidates,Candidates List,Desktop,View Candidates List,Candidates exist in database,"1. Navigate to /candidates
-2. Wait for list to load",Candidates table displays with columns: Name; Position; Stage; Source; Recruiter,High
-TC_CAND_002,Candidates,Candidates List,Desktop,Filter Candidates by Position,Candidates exist for multiple positions,"1. Navigate to /candidates
+TC_DASH_008,Dashboard,Dashboard,Desktop,Navigate to applicants from Dashboard,User logged in,"1. Navigate to /dashboard
+2. Click on any applicant statistics card",Navigates to /applicants with appropriate filters applied,Low
+TC_CAND_001,applicants,applicants List,Desktop,View applicants List,applicants exist in database,"1. Navigate to /applicants
+2. Wait for list to load",applicants table displays with columns: Name; Position; Stage; Source; Recruiter,High
+TC_CAND_002,applicants,applicants List,Desktop,Filter applicants by Position,applicants exist for multiple positions,"1. Navigate to /applicants
 2. Select a Position from dropdown filter
-3. Click Apply",List updates to show only candidates for selected position,High
-TC_CAND_003,Candidates,Candidates List,Desktop,Filter Candidates by Multiple Positions,Candidates exist for multiple positions,"1. Navigate to /candidates
+3. Click Apply",List updates to show only applicants for selected position,High
+TC_CAND_003,applicants,applicants List,Desktop,Filter applicants by Multiple Positions,applicants exist for multiple positions,"1. Navigate to /applicants
 2. Select multiple positions from multi-select filter
-3. Apply filters",List shows candidates matching any of the selected positions,Medium
-TC_CAND_004,Candidates,Candidates List,Desktop,Filter Candidates by Stage,Candidates exist in different stages,"1. Navigate to /candidates
+3. Apply filters",List shows applicants matching any of the selected positions,Medium
+TC_CAND_004,applicants,applicants List,Desktop,Filter applicants by Stage,applicants exist in different stages,"1. Navigate to /applicants
 2. Select a recruitment stage filter
-3. Apply filters",List shows only candidates in selected stage,High
-TC_CAND_005,Candidates,Candidates List,Desktop,Filter Candidates by Source,Candidates exist from different sources,"1. Navigate to /candidates
+3. Apply filters",List shows only applicants in selected stage,High
+TC_CAND_005,applicants,applicants List,Desktop,Filter applicants by Source,applicants exist from different sources,"1. Navigate to /applicants
 2. Select source filter (e.g. LinkedIn; Referral)
-3. Apply filters",List shows only candidates from selected source,Medium
-TC_CAND_006,Candidates,Candidates List,Desktop,Filter Candidates by Recruiter,Candidates assigned to different recruiters,"1. Navigate to /candidates
+3. Apply filters",List shows only applicants from selected source,Medium
+TC_CAND_006,applicants,applicants List,Desktop,Filter applicants by Recruiter,applicants assigned to different recruiters,"1. Navigate to /applicants
 2. Select recruiter from filter
-3. Apply filters",List shows only candidates assigned to selected recruiter,Medium
-TC_CAND_007,Candidates,Candidates List,Desktop,Filter Candidates by Fit Score,Candidates with fit scores exist,"1. Navigate to /candidates
+3. Apply filters",List shows only applicants assigned to selected recruiter,Medium
+TC_CAND_007,applicants,applicants List,Desktop,Filter applicants by Fit Score,applicants with fit scores exist,"1. Navigate to /applicants
 2. Click on Fit Score filter tabs (Good Fit; Potential; etc.)
-3. Observe list update",List shows candidates matching selected fit score category,Medium
-TC_CAND_008,Candidates,Candidates List,Desktop,Search Candidate by Name,Candidates exist,"1. Navigate to /candidates
-2. Enter candidate name in search bar
-3. Wait for search to complete",List updates to show matching candidates,High
-TC_CAND_009,Candidates,Candidates List,Mobile,Search Candidate by Name,Candidates exist,"1. Navigate to /candidates
+3. Observe list update",List shows applicants matching selected fit score category,Medium
+TC_CAND_008,applicants,applicants List,Desktop,Search applicant by Name,applicants exist,"1. Navigate to /applicants
+2. Enter applicant name in search bar
+3. Wait for search to complete",List updates to show matching applicants,High
+TC_CAND_009,applicants,applicants List,Mobile,Search applicant by Name,applicants exist,"1. Navigate to /applicants
 2. Tap Search icon
-3. Enter candidate name in search bar",List updates to show matching candidates,High
-TC_CAND_010,Candidates,Candidates List,Desktop,Advanced Search with Query Syntax,Candidates exist,"1. Navigate to /candidates
+3. Enter applicant name in search bar",List updates to show matching applicants,High
+TC_CAND_010,applicants,applicants List,Desktop,Advanced Search with Query Syntax,applicants exist,"1. Navigate to /applicants
 2. Open Advanced Query modal
-3. Enter query like 'position:""Developer"" AND stage:""Interview""'",List shows candidates matching query criteria,Medium
-TC_CAND_011,Candidates,Candidates List,Desktop,Sort Candidates by Column,Candidates exist,"1. Navigate to /candidates
+3. Enter query like 'position:""Developer"" AND stage:""Interview""'",List shows applicants matching query criteria,Medium
+TC_CAND_011,applicants,applicants List,Desktop,Sort applicants by Column,applicants exist,"1. Navigate to /applicants
 2. Click on column header (e.g. Name; Created Date)
 3. Click again to reverse sort",List reorders according to selected column and direction,Medium
-TC_CAND_012,Candidates,Candidates List,Desktop,Pagination Navigation,More than 25 candidates exist,"1. Navigate to /candidates
+TC_CAND_012,applicants,applicants List,Desktop,Pagination Navigation,More than 25 applicants exist,"1. Navigate to /applicants
 2. Scroll to bottom of list
-3. Click on page 2 or Next button",Second page of candidates is displayed,Medium
-TC_CAND_013,Candidates,Candidates List,Desktop,Change Page Size,Candidates exist,"1. Navigate to /candidates
+3. Click on page 2 or Next button",Second page of applicants is displayed,Medium
+TC_CAND_013,applicants,applicants List,Desktop,Change Page Size,applicants exist,"1. Navigate to /applicants
 2. Select different page size (25; 50; 100)
-3. Observe list",List displays selected number of candidates per page,Low
-TC_CAND_014,Candidates,Candidates List,Desktop,Bulk Select Candidates,Multiple candidates exist,"1. Navigate to /candidates
+3. Observe list",List displays selected number of applicants per page,Low
+TC_CAND_014,applicants,applicants List,Desktop,Bulk Select applicants,Multiple applicants exist,"1. Navigate to /applicants
 2. Check 'Select All' checkbox
-3. Observe selection count",All visible candidates are selected; count displayed,Medium
-TC_CAND_015,Candidates,Candidates List,Desktop,Bulk Delete Candidates,Multiple candidates selected; user has delete permission,"1. Select multiple candidates
+3. Observe selection count",All visible applicants are selected; count displayed,Medium
+TC_CAND_015,applicants,applicants List,Desktop,Bulk Delete applicants,Multiple applicants selected; user has delete permission,"1. Select multiple applicants
 2. Click Bulk Actions button
 3. Select Delete option
-4. Confirm deletion",Selected candidates are deleted; list refreshes,High
-TC_CAND_016,Candidates,Candidates List,Desktop,Bulk Update Stage,Multiple candidates selected,"1. Select multiple candidates
+4. Confirm deletion",Selected applicants are deleted; list refreshes,High
+TC_CAND_016,applicants,applicants List,Desktop,Bulk Update Stage,Multiple applicants selected,"1. Select multiple applicants
 2. Click Bulk Actions
 3. Select 'Update Stage'
-4. Choose new stage and confirm",All selected candidates move to new stage,High
-TC_CAND_017,Candidates,Candidates List,Desktop,View Kanban Board,Candidates exist in different stages,"1. Navigate to /candidates
+4. Choose new stage and confirm",All selected applicants move to new stage,High
+TC_CAND_017,applicants,applicants List,Desktop,View Kanban Board,applicants exist in different stages,"1. Navigate to /applicants
 2. Click Kanban view toggle
 3. View kanban columns",Kanban board displays with columns for each recruitment stage,Medium
-TC_CAND_018,Candidates,Candidates List,Desktop,Drag-and-Drop Stage Change in Kanban,Candidates exist; Kanban view active,"1. Open Kanban view
-2. Drag a candidate card from one column to another
-3. Release card",Candidate stage is updated; card moves to new column,Medium
-TC_CAND_019,Candidates,Candidates List,Mobile,Mobile List View,Candidates exist,"1. Open /candidates on mobile device
-2. Scroll through list",Candidates displayed in mobile-optimized card layout,High
-TC_CAND_020,Candidates,Candidates List,Mobile,Pull to Refresh,Candidates exist; Mobile view,"1. Pull down on candidates list
+TC_CAND_018,applicants,applicants List,Desktop,Drag-and-Drop Stage Change in Kanban,applicants exist; Kanban view active,"1. Open Kanban view
+2. Drag a applicant card from one column to another
+3. Release card",applicant stage is updated; card moves to new column,Medium
+TC_CAND_019,applicants,applicants List,Mobile,Mobile List View,applicants exist,"1. Open /applicants on mobile device
+2. Scroll through list",applicants displayed in mobile-optimized card layout,High
+TC_CAND_020,applicants,applicants List,Mobile,Pull to Refresh,applicants exist; Mobile view,"1. Pull down on applicants list
 2. Release to refresh",List refreshes with latest data; refresh indicator shown,Medium
-TC_CAND_021,Candidates,Add Candidate,Desktop,Add New Candidate Manually,User has create permission,"1. Navigate to /candidates
-2. Click 'Add Candidate' button
+TC_CAND_021,applicants,Add applicant,Desktop,Add New applicant Manually,User has create permission,"1. Navigate to /applicants
+2. Click 'Add applicant' button
 3. Fill required fields (Name; Email; Position)
-4. Click Save",New candidate is created and appears in list,High
-TC_CAND_022,Candidates,Add Candidate,Desktop,Add Candidate with Resume Upload,User has create permission,"1. Click 'Add Candidate'
+4. Click Save",New applicant is created and appears in list,High
+TC_CAND_022,applicants,Add applicant,Desktop,Add applicant with Resume Upload,User has create permission,"1. Click 'Add applicant'
 2. Fill required fields
 3. Upload resume file (PDF/DOC)
-4. Click Save",Candidate created with resume attached and parsed,High
-TC_CAND_023,Candidates,Add Candidate,Desktop,Add Candidate with Custom Fields,Custom fields configured; User has create permission,"1. Click 'Add Candidate'
+4. Click Save",applicant created with resume attached and parsed,High
+TC_CAND_023,applicants,Add applicant,Desktop,Add applicant with Custom Fields,Custom fields configured; User has create permission,"1. Click 'Add applicant'
 2. Fill required fields
 3. Fill custom field values
-4. Click Save",Candidate created with custom field values saved,Medium
-TC_CAND_024,Candidates,Add Candidate,Mobile,Add New Candidate (Mobile),User has create permission; Using mobile,"1. Navigate to /candidates on mobile
+4. Click Save",applicant created with custom field values saved,Medium
+TC_CAND_024,applicants,Add applicant,Mobile,Add New applicant (Mobile),User has create permission; Using mobile,"1. Navigate to /applicants on mobile
 2. Tap Add button
-3. Fill form and submit",New candidate is created; success toast shown,High
-TC_CAND_025,Candidates,Candidate Detail,Desktop,View Candidate Profile,Candidate exists,"1. Click on a candidate name in the list
-2. Verify Profile tab is active","Candidate details (Name; Email; Phone; Position) displayed correctly",High
-TC_CAND_026,Candidates,Candidate Detail,Desktop,View Candidate Resume,Candidate exists with resume,"1. Click on candidate
+3. Fill form and submit",New applicant is created; success toast shown,High
+TC_CAND_025,applicants,applicant Detail,Desktop,View applicant Profile,applicant exists,"1. Click on a applicant name in the list
+2. Verify Profile tab is active","applicant details (Name; Email; Phone; Position) displayed correctly",High
+TC_CAND_026,applicants,applicant Detail,Desktop,View applicant Resume,applicant exists with resume,"1. Click on applicant
 2. Navigate to Resume tab/section
 3. Click on resume file",Resume preview opens or downloads correctly,High
-TC_CAND_027,Candidates,Candidate Detail,Mobile,View Candidate Resume (Mobile),Candidate exists with resume,"1. Tap on candidate row
+TC_CAND_027,applicants,applicant Detail,Mobile,View applicant Resume (Mobile),applicant exists with resume,"1. Tap on applicant row
 2. Tap 'Resume' tab/section",Resume preview is displayed or download link works,Medium
-TC_CAND_028,Candidates,Candidate Detail,Desktop,View Candidate Education,Candidate exists with education data,"1. Click on candidate
+TC_CAND_028,applicants,applicant Detail,Desktop,View applicant Education,applicant exists with education data,"1. Click on applicant
 2. Navigate to Education section",Education history displayed with institution; degree; dates,Medium
-TC_CAND_029,Candidates,Candidate Detail,Desktop,View Candidate Experience,Candidate exists with work experience,"1. Click on candidate
+TC_CAND_029,applicants,applicant Detail,Desktop,View applicant Experience,applicant exists with work experience,"1. Click on applicant
 2. Navigate to Experience section",Work experience displayed with company; role; duration,Medium
-TC_CAND_030,Candidates,Candidate Detail,Desktop,View Candidate Comments,Candidate exists with comments,"1. Click on candidate
+TC_CAND_030,applicants,applicant Detail,Desktop,View applicant Comments,applicant exists with comments,"1. Click on applicant
 2. Navigate to Comments section",All comments displayed with author; timestamp; content,Medium
-TC_CAND_031,Candidates,Candidate Detail,Desktop,Add Comment to Candidate,User logged in; Candidate exists,"1. Open candidate detail
+TC_CAND_031,applicants,applicant Detail,Desktop,Add Comment to applicant,User logged in; applicant exists,"1. Open applicant detail
 2. Navigate to Comments section
 3. Type comment and submit",New comment added and displayed in list,Medium
-TC_CAND_032,Candidates,Candidate Detail,Desktop,Edit Candidate Information,User has edit permission; Candidate exists,"1. Open candidate detail
+TC_CAND_032,applicants,applicant Detail,Desktop,Edit applicant Information,User has edit permission; applicant exists,"1. Open applicant detail
 2. Click Edit button
 3. Modify fields
 4. Save changes",Changes saved and displayed in profile,Medium
-TC_CAND_033,Candidates,Candidate Detail,Desktop,Delete Candidate,User has delete permission; Candidate exists,"1. Open candidate detail
+TC_CAND_033,applicants,applicant Detail,Desktop,Delete applicant,User has delete permission; applicant exists,"1. Open applicant detail
 2. Click Delete button
-3. Confirm deletion",Candidate is deleted; redirected to list,High
-TC_CAND_034,Candidates,Candidate Detail,Desktop,Assign Recruiter to Candidate,Candidate exists; Recruiters available,"1. Open candidate detail
+3. Confirm deletion",applicant is deleted; redirected to list,High
+TC_CAND_034,applicants,applicant Detail,Desktop,Assign Recruiter to applicant,applicant exists; Recruiters available,"1. Open applicant detail
 2. Click recruiter dropdown
-3. Select a recruiter",Recruiter assigned and displayed on candidate,Medium
-TC_CAND_035,Candidates,Candidate Detail,Desktop,Change Candidate Source,Candidate exists; Sources configured,"1. Open candidate detail
+3. Select a recruiter",Recruiter assigned and displayed on applicant,Medium
+TC_CAND_035,applicants,applicant Detail,Desktop,Change applicant Source,applicant exists; Sources configured,"1. Open applicant detail
 2. Click source dropdown
 3. Select new source",Source updated and saved,Low
-TC_CAND_036,Candidates,Candidate Detail,Desktop,View Candidate Attachments,Candidate exists with attachments,"1. Open candidate detail
+TC_CAND_036,applicants,applicant Detail,Desktop,View applicant Attachments,applicant exists with attachments,"1. Open applicant detail
 2. Navigate to Attachments section",All attachments listed with name; type; size,Medium
-TC_CAND_037,Candidates,Candidate Detail,Desktop,Upload Additional Attachment,Candidate exists; User has edit permission,"1. Open candidate detail
+TC_CAND_037,applicants,applicant Detail,Desktop,Upload Additional Attachment,applicant exists; User has edit permission,"1. Open applicant detail
 2. Navigate to Attachments
 3. Click Upload button
 4. Select file and upload",Attachment uploaded and displayed in list,Medium
-TC_CAND_038,Candidates,Candidate Detail,Desktop,View Job Matches,Candidate exists; AI matching enabled,"1. Open candidate detail
+TC_CAND_038,applicants,applicant Detail,Desktop,View Job Matches,applicant exists; AI matching enabled,"1. Open applicant detail
 2. Click Job Matches tab",List of matching positions with fit scores displayed,Medium
-TC_CAND_039,Candidates,Stage Transition,Desktop,Change Candidate Stage,Candidate exists in a stage,"1. Open candidate detail
+TC_CAND_039,applicants,Stage Transition,Desktop,Change applicant Stage,applicant exists in a stage,"1. Open applicant detail
 2. Click on stage pipeline
 3. Select new stage
-4. Confirm transition",Candidate moves to new stage; transition logged,High
-TC_CAND_040,Candidates,Stage Transition,Desktop,View Stage Transition History,Candidate has stage transitions,"1. Open candidate detail
+4. Confirm transition",applicant moves to new stage; transition logged,High
+TC_CAND_040,applicants,Stage Transition,Desktop,View Stage Transition History,applicant has stage transitions,"1. Open applicant detail
 2. Navigate to Timeline/History section",All stage transitions displayed with dates and actors,Medium
-TC_CAND_041,Candidates,Interview Invitation,Desktop,Send Interview Invitation,Candidate exists; Email configured,"1. Open candidate detail
+TC_CAND_041,applicants,Interview Invitation,Desktop,Send Interview Invitation,applicant exists; Email configured,"1. Open applicant detail
 2. Click 'Send Interview Invitation'
 3. Fill invitation details
 4. Preview and send",Invitation email sent; notification shown,High
-TC_CAND_042,Candidates,Interview Invitation,Desktop,Preview Interview Email,Candidate exists; Email template exists,"1. Open candidate detail
+TC_CAND_042,applicants,Interview Invitation,Desktop,Preview Interview Email,applicant exists; Email template exists,"1. Open applicant detail
 2. Click 'Send Interview Invitation'
 3. Fill details
 4. Click Preview","Email preview modal shows formatted HTML email",Medium
-TC_CAND_043,Candidates,Interview Invitation,Desktop,Schedule Interview with Calendar,Candidate exists; Interview scheduled,"1. Open Send Interview modal
+TC_CAND_043,applicants,Interview Invitation,Desktop,Schedule Interview with Calendar,applicant exists; Interview scheduled,"1. Open Send Interview modal
 2. Select interview date and time
 3. Choose interviewers
 4. Send invitation",Calendar event created; invitations sent to all parties,Medium
-TC_CAND_044,Candidates,Bulk Upload,Desktop,Bulk Upload CVs,User has upload permission,"1. Navigate to /candidates
+TC_CAND_044,applicants,Bulk Upload,Desktop,Bulk Upload CVs,User has upload permission,"1. Navigate to /applicants
 2. Click 'Bulk Upload CVs'
 3. Select multiple CV files
 4. Click Upload",Files queued for processing; progress shown,High
-TC_CAND_045,Candidates,Bulk Upload,Desktop,Monitor Upload Queue Progress,Files uploaded and processing,"1. Navigate to Upload Queue status
+TC_CAND_045,applicants,Bulk Upload,Desktop,Monitor Upload Queue Progress,Files uploaded and processing,"1. Navigate to Upload Queue status
 2. Observe processing status",Each file shows status (Pending; Processing; Completed; Failed),High
-TC_CAND_046,Candidates,Bulk Upload,Desktop,Handle Upload Errors,Some files fail processing,"1. Upload files with issues (corrupt; wrong format)
+TC_CAND_046,applicants,Bulk Upload,Desktop,Handle Upload Errors,Some files fail processing,"1. Upload files with issues (corrupt; wrong format)
 2. Wait for processing
 3. View error details","Failed files show error message with reason",Medium
-TC_CAND_047,Candidates,Import/Export,Desktop,Export Candidates to Excel,Candidates exist; User has export permission,"1. Navigate to /candidates
+TC_CAND_047,applicants,Import/Export,Desktop,Export applicants to Excel,applicants exist; User has export permission,"1. Navigate to /applicants
 2. Apply desired filters
 3. Click Export button
-4. Download file",Excel file downloads with candidate data,Medium
-TC_CAND_048,Candidates,Import/Export,Desktop,Import Candidates from Excel,User has import permission; Template file ready,"1. Navigate to /candidates
+4. Download file",Excel file downloads with applicant data,Medium
+TC_CAND_048,applicants,Import/Export,Desktop,Import applicants from Excel,User has import permission; Template file ready,"1. Navigate to /applicants
 2. Click Import button
 3. Upload Excel file
-4. Map columns and import",Candidates imported with success/error summary,Medium
-TC_EVAL_001,Evaluation,Evaluation,Desktop,Score Candidate Skills (Expertise),Candidate is in evaluation stage,"1. Navigate to /candidates/[id]/evaluate
+4. Map columns and import",applicants imported with success/error summary,Medium
+TC_EVAL_001,Evaluation,Evaluation,Desktop,Score applicant Skills (Expertise),applicant is in evaluation stage,"1. Navigate to /applicants/[id]/evaluate
 2. Locate Skill Assessment section
 3. Adjust sliders for each skill",Score updates in real-time; Average score calculated,High
-TC_EVAL_002,Evaluation,Evaluation,Mobile,Score Candidate Skills (Touch),Candidate is in evaluation stage,"1. Navigate to /candidates/[id]/evaluate
+TC_EVAL_002,Evaluation,Evaluation,Mobile,Score applicant Skills (Touch),applicant is in evaluation stage,"1. Navigate to /applicants/[id]/evaluate
 2. Scroll to Skill Assessment
 3. Drag slider with finger",Slider moves smoothly; Value updates correctly,High
-TC_EVAL_003,Evaluation,Evaluation,Desktop,Score Personality Traits,Candidate is in evaluation stage,"1. Navigate to /candidates/[id]/evaluate
+TC_EVAL_003,Evaluation,Evaluation,Desktop,Score Personality Traits,applicant is in evaluation stage,"1. Navigate to /applicants/[id]/evaluate
 2. Locate Personality Assessment section
 3. Rate each personality trait",Trait scores saved; Overall personality score calculated,High
-TC_EVAL_004,Evaluation,Evaluation,Desktop,Add Evaluation Comments/Notes,Candidate is in evaluation stage,"1. Navigate to evaluate page
+TC_EVAL_004,Evaluation,Evaluation,Desktop,Add Evaluation Comments/Notes,applicant is in evaluation stage,"1. Navigate to evaluate page
 2. Scroll to Comments section
 3. Enter evaluation notes
 4. Save",Comments saved with auto-save confirmation,Medium
-TC_EVAL_005,Evaluation,Evaluation,Desktop,Add Interview Remark,Candidate is in evaluation stage; Interviewer assigned,"1. Open evaluation page
+TC_EVAL_005,Evaluation,Evaluation,Desktop,Add Interview Remark,applicant is in evaluation stage; Interviewer assigned,"1. Open evaluation page
 2. Click on Remark section
 3. Enter interview remarks
 4. Save",Remark saved and visible to all interviewers,Medium
-TC_EVAL_006,Evaluation,Evaluation,Desktop,Complete Evaluation,All mandatory fields filled,"1. Navigate to /candidates/[id]/evaluate
+TC_EVAL_006,Evaluation,Evaluation,Desktop,Complete Evaluation,All mandatory fields filled,"1. Navigate to /applicants/[id]/evaluate
 2. Complete all sections
 3. Click 'Complete Evaluation' button
-4. Confirm modal",Candidate status changes to 'Evaluated'; Redirect to Result page,High
+4. Confirm modal",applicant status changes to 'Evaluated'; Redirect to Result page,High
 TC_EVAL_007,Evaluation,Evaluation,Desktop,Auto-save During Evaluation,Evaluation in progress,"1. Start evaluation
 2. Make changes to scores
 3. Wait 3 seconds without saving",Auto-save indicator shows; Changes persisted,Medium
@@ -239,13 +239,13 @@ TC_EVAL_013,Evaluation,Evaluation Link,Desktop,Expired Evaluation Link,Evaluatio
 TC_EVAL_014,Evaluation,Evaluation,Desktop,Mobile-Responsive Evaluation,Mobile device; Evaluation active,"1. Open evaluation page on mobile
 2. Navigate between sections
 3. Complete evaluation",Mobile-optimized layout; Touch-friendly controls,High
-TC_EVAL_015,Evaluation,Evaluation Waiting,Desktop,Evaluation Waiting Page,Candidate assigned for evaluation; Not yet started,"1. Navigate to evaluate page before interview starts
+TC_EVAL_015,Evaluation,Evaluation Waiting,Desktop,Evaluation Waiting Page,applicant assigned for evaluation; Not yet started,"1. Navigate to evaluate page before interview starts
 2. View waiting page",Waiting page with countdown/animation displayed,Low
-TC_EVAL_016,Evaluation,Evaluation Result,Desktop,View Analysis Graph,Evaluation completed,"1. Navigate to /candidates/[id]/evaluate-result
+TC_EVAL_016,Evaluation,Evaluation Result,Desktop,View Analysis Graph,Evaluation completed,"1. Navigate to /applicants/[id]/evaluate-result
 2. Check 'Detailed Analysis' section",Radar chart or Bar chart displays skill breakdown correctly,Medium
-TC_EVAL_017,Evaluation,Evaluation Result,Desktop,View Executive Summary,Evaluation completed,"1. Navigate to /candidates/[id]/evaluate-result
+TC_EVAL_017,Evaluation,Evaluation Result,Desktop,View Executive Summary,Evaluation completed,"1. Navigate to /applicants/[id]/evaluate-result
 2. View top summary section",Overall Score and Recommendation displayed clearly,High
-TC_EVAL_018,Evaluation,Evaluation Result,Mobile,View Executive Summary (Mobile),Evaluation completed,"1. Navigate to /candidates/[id]/evaluate-result on mobile
+TC_EVAL_018,Evaluation,Evaluation Result,Mobile,View Executive Summary (Mobile),Evaluation completed,"1. Navigate to /applicants/[id]/evaluate-result on mobile
 2. Check top summary card","Overall Score and Recommendation (Hire/No Hire) are clearly visible",High
 TC_EVAL_019,Evaluation,Evaluation Result,Desktop,View Personality Analysis,Evaluation completed with personality scores,"1. Navigate to evaluation result
 2. Check Personality section",Personality traits displayed with scores and analysis,Medium
@@ -266,7 +266,7 @@ TC_POS_003,Positions,Positions List,Desktop,Edit Position Details,Position exist
 2. Click Edit button
 3. Modify fields
 4. Save changes",Position details updated and saved,Medium
-TC_POS_004,Positions,Positions List,Desktop,Delete Position,Position exists; No candidates assigned,"1. Click on a position
+TC_POS_004,Positions,Positions List,Desktop,Delete Position,Position exists; No applicants assigned,"1. Click on a position
 2. Click Delete button
 3. Confirm deletion",Position is deleted and removed from list,High
 TC_POS_005,Positions,Positions List,Desktop,Search Positions,Multiple positions exist,"1. Navigate to /positions
@@ -296,10 +296,10 @@ TC_POS_014,Positions,Positions List,Mobile,View Active Positions (Mobile),Positi
 2. Check list view","Positions listed with status badges (Active/Closed)",Medium
 TC_POS_015,Positions,Position Detail,Desktop,View Position Detail Drawer,Position exists,"1. Click on position row
 2. Drawer opens with details","Position details shown: Description; Requirements; Headcount",Medium
-TC_POS_016,Positions,Position Detail,Desktop,View Position Candidates Tab,Position exists with candidates,"1. Open position detail
-2. Click Candidates tab","List of applied candidates for position",Medium
-TC_POS_017,Positions,Position Detail,Desktop,View Potential Candidates,Position exists; AI matching enabled,"1. Open position detail
-2. Click Potential Candidates tab","AI-suggested candidates with fit scores",Medium
+TC_POS_016,Positions,Position Detail,Desktop,View Position applicants Tab,Position exists with applicants,"1. Open position detail
+2. Click applicants tab","List of applied applicants for position",Medium
+TC_POS_017,Positions,Position Detail,Desktop,View Potential applicants,Position exists; AI matching enabled,"1. Open position detail
+2. Click Potential applicants tab","AI-suggested applicants with fit scores",Medium
 TC_POS_018,Positions,Position Detail,Desktop,Configure Evaluation Criteria,Position exists,"1. Open position detail
 2. Navigate to Evaluation Config tab
 3. Add/edit skills and weights",Evaluation criteria saved for position,High
@@ -377,10 +377,10 @@ TC_SET_013,Settings,Stages,Desktop,Create New Stage,Admin user,"1. Navigate to /
 TC_SET_014,Settings,Stages,Desktop,Reorder Stages,Admin user; Multiple stages exist,"1. Navigate to /settings/stages
 2. Drag and drop stages to reorder
 3. Save order",Stage order updated for recruitment workflow,Medium
-TC_SET_015,Settings,Candidate Sources,Desktop,Add Candidate Source,Admin user,"1. Navigate to /settings/candidate-sources
+TC_SET_015,Settings,applicant Sources,Desktop,Add applicant Source,Admin user,"1. Navigate to /settings/applicant-sources
 2. Click 'Add Source'
 3. Enter name
-4. Save",New source available for candidate assignment,Medium
+4. Save",New source available for applicant assignment,Medium
 TC_SET_016,Settings,Custom Fields,Desktop,Create Custom Field,Admin user,"1. Navigate to /settings/custom-fields
 2. Click 'Add Field'
 3. Configure field type; name; options
@@ -436,32 +436,32 @@ TC_SET_031,Settings,Warning Config,Desktop,Configure Warning Rules,Admin user,"1
 TC_SET_032,Settings,Evaluation Links,Desktop,Manage Evaluation Links,Admin user,"1. Navigate to /settings/evaluation-links
 2. View existing links
 3. Create/edit/delete links",Evaluation links managed successfully,Medium
-TC_WARN_001,Warnings,Warnings,Desktop,View Active Warnings,Warnings exist for candidates,"1. Check warning icon in header
-2. Click to open warnings drawer","List of active warnings with severity; candidate; message",Medium
+TC_WARN_001,Warnings,Warnings,Desktop,View Active Warnings,Warnings exist for applicants,"1. Check warning icon in header
+2. Click to open warnings drawer","List of active warnings with severity; applicant; message",Medium
 TC_WARN_002,Warnings,Warnings,Desktop,Dismiss Warning,Warning exists; User has permission,"1. Open warnings drawer
 2. Click Dismiss on a warning
 3. Confirm",Warning dismissed; Removed from list,Medium
 TC_WARN_003,Warnings,Warnings,Desktop,Auto-Clear Warnings,Warning configured with auto-clear,"1. Trigger warning condition
 2. Resolve condition
 3. Wait for auto-clear interval",Warning automatically cleared,Low
-TC_AI_001,AI Features,AI Candidate Search,Desktop,Search Candidates with AI,AI configured; Candidates exist,"1. Navigate to /candidates
+TC_AI_001,AI Features,AI applicant Search,Desktop,Search applicants with AI,AI configured; applicants exist,"1. Navigate to /applicants
 2. Click AI Search button
-3. Enter natural language query","AI returns relevant candidates based on query",High
+3. Enter natural language query","AI returns relevant applicants based on query",High
 TC_AI_002,AI Features,Job Description Generation,Desktop,Generate Job Description,AI configured; Position exists,"1. Open Add Position modal
 2. Click 'Generate with AI'
 3. Enter key requirements",AI generates job description text,Medium
-TC_AI_003,AI Features,Content Generation,Desktop,Generate Content for Candidate,AI configured; Candidate exists,"1. Open Generative AI modal on candidate
+TC_AI_003,AI Features,Content Generation,Desktop,Generate Content for applicant,AI configured; applicant exists,"1. Open Generative AI modal on applicant
 2. Select content type
 3. Click Generate",AI generates content (summary; email draft; etc.),Medium
-TC_AI_004,AI Features,Fit Score Calculation,Desktop,Calculate AI Fit Score,AI configured; Candidate and position exist,"1. Assign candidate to position
-2. Wait for fit score calculation",AI fit score displayed on candidate card,High
+TC_AI_004,AI Features,Fit Score Calculation,Desktop,Calculate AI Fit Score,AI configured; applicant and position exist,"1. Assign applicant to position
+2. Wait for fit score calculation",AI fit score displayed on applicant card,High
 TC_TASK_001,Task Board,My Tasks,Desktop,View Task Board,Tasks assigned to user,"1. Navigate to /my-tasks
 2. View Kanban board",Tasks displayed in columns by status,Medium
 TC_TASK_002,Task Board,My Tasks,Desktop,Filter Tasks by Position,Tasks exist for multiple positions,"1. Open task filters
 2. Select position
 3. Apply filter",Board shows only tasks for selected position,Medium
 TC_TASK_003,Task Board,My Tasks,Desktop,View Task Detail,Task exists,"1. Click on task card
-2. View detail modal",Task details with candidate; position; action required,Medium
+2. View detail modal",Task details with applicant; position; action required,Medium
 TC_TASK_004,Task Board,My Tasks,Desktop,Customize Board View,User on task board,"1. Click Customize Board
 2. Change visible fields
 3. Save preferences",Board displays with customized layout,Low
@@ -478,13 +478,13 @@ TC_UPL_005,Upload Queue,Process Queue,Desktop,Process Blocking Queue,Items in bl
 TC_SLA_001,SLA Monitoring,SLA Dashboard,Desktop,View SLA Dashboard,SLA data exists,"1. Navigate to /sla-monitoring
 2. View dashboard",SLA metrics and violations displayed,Medium
 TC_SLA_002,SLA Monitoring,SLA Dashboard,Desktop,View SLA Breaches,Breached SLA items exist,"1. Navigate to /sla-monitoring
-2. Check 'Breached' tab",List of candidates/processes exceeding SLA time,Medium
+2. Check 'Breached' tab",List of applicants/processes exceeding SLA time,Medium
 TC_SLA_003,SLA Monitoring,SLA Dashboard,Desktop,Filter by SLA Severity,SLA violations at different severities,"1. Navigate to /sla-monitoring
 2. Filter by Warning/Critical/Breached",Filtered list by severity,Low
 TC_APP_001,Applicants,Public Application,Desktop,Submit Job Application,Position is public with application form,"1. Navigate to public link /applicants/[id]
 2. Fill Name; Email; Phone
 3. Upload Resume
-4. Click Submit",Success message displayed; Candidate created in system,High
+4. Click Submit",Success message displayed; applicant created in system,High
 TC_APP_002,Applicants,Public Application,Mobile,Submit Job Application (Mobile),Position is public,"1. Open public link on mobile
 2. Fill form
 3. Upload file from mobile storage
@@ -511,37 +511,37 @@ TC_PWA_002,PWA,PWA Offline,Mobile,Use App Offline,PWA installed; Previously load
 TC_RT_001,Real-time,SSE Connection,Desktop,Real-time Updates,SSE enabled; User logged in,"1. Login to application
 2. Check SSE connection status
 3. Verify real-time indicator",SSE connected; Real-time indicator green,Medium
-TC_RT_002,Real-time,Notifications,Desktop,Receive Real-time Notification,User logged in; Notification triggered,"1. Have another user perform action (add candidate)
+TC_RT_002,Real-time,Notifications,Desktop,Receive Real-time Notification,User logged in; Notification triggered,"1. Have another user perform action (add applicant)
 2. Observe notification icon",Notification badge updates; Notification visible,Medium
 TC_RT_003,Real-time,Collaboration,Desktop,View Online Users,Multiple users logged in,"1. Click online users indicator
 2. View modal",List of currently online users displayed,Low
-TC_RT_004,Real-time,User Presence,Desktop,View User Presence on Candidate,Multiple users viewing same candidate,"1. Open candidate detail
-2. Have another user open same candidate","Presence indicator shows other viewers",Low
-TC_API_001,API,Candidates API,N/A,Get Candidate List,Valid API Key,"1. Send GET request to /api/v1/candidates
-2. Check response",Returns 200 OK with JSON list of candidates,High
-TC_API_002,API,Candidates API,N/A,Get Single Candidate,Valid API Key; Candidate exists,"1. Send GET request to /api/v1/candidates/[id]
-2. Check response",Returns 200 OK with candidate details,High
-TC_API_003,API,Candidates API,N/A,Create Candidate via API,Valid API Key,"1. Send POST to /api/v1/candidates with valid payload
-2. Check response",Returns 201 Created with new candidate ID,High
-TC_API_004,API,Candidates API,N/A,Update Candidate via API,Valid API Key; Candidate exists,"1. Send PUT/PATCH to /api/v1/candidates/[id]
+TC_RT_004,Real-time,User Presence,Desktop,View User Presence on applicant,Multiple users viewing same applicant,"1. Open applicant detail
+2. Have another user open same applicant","Presence indicator shows other viewers",Low
+TC_API_001,API,applicants API,N/A,Get applicant List,Valid API Key,"1. Send GET request to /api/v1/applicants
+2. Check response",Returns 200 OK with JSON list of applicants,High
+TC_API_002,API,applicants API,N/A,Get Single applicant,Valid API Key; applicant exists,"1. Send GET request to /api/v1/applicants/[id]
+2. Check response",Returns 200 OK with applicant details,High
+TC_API_003,API,applicants API,N/A,Create applicant via API,Valid API Key,"1. Send POST to /api/v1/applicants with valid payload
+2. Check response",Returns 201 Created with new applicant ID,High
+TC_API_004,API,applicants API,N/A,Update applicant via API,Valid API Key; applicant exists,"1. Send PUT/PATCH to /api/v1/applicants/[id]
 2. Check response",Returns 200 OK with updated data,Medium
-TC_API_005,API,Candidates API,N/A,Delete Candidate via API,Valid API Key; Candidate exists,"1. Send DELETE to /api/v1/candidates/[id]
-2. Check response",Returns 200/204; Candidate deleted,Medium
-TC_API_006,API,Candidates API,N/A,Upload Resume via API,Valid API Key; Candidate exists,"1. Send POST to /api/v1/candidates/[id]/resumes with file
+TC_API_005,API,applicants API,N/A,Delete applicant via API,Valid API Key; applicant exists,"1. Send DELETE to /api/v1/applicants/[id]
+2. Check response",Returns 200/204; applicant deleted,Medium
+TC_API_006,API,applicants API,N/A,Upload Resume via API,Valid API Key; applicant exists,"1. Send POST to /api/v1/applicants/[id]/resumes with file
 2. Check response",Returns 200 with resume attached,Medium
-TC_API_007,API,Candidates API,N/A,Get Candidate Attachments,Valid API Key; Candidate with attachments,"1. Send GET to /api/v1/candidates/[id]/attachments
+TC_API_007,API,applicants API,N/A,Get applicant Attachments,Valid API Key; applicant with attachments,"1. Send GET to /api/v1/applicants/[id]/attachments
 2. Check response",Returns list of attachments,Medium
-TC_API_008,API,Candidates API,N/A,Get Candidate Evaluation,Valid API Key; Evaluated candidate,"1. Send GET to /api/v1/candidates/[id]/evaluation
+TC_API_008,API,applicants API,N/A,Get applicant Evaluation,Valid API Key; Evaluated applicant,"1. Send GET to /api/v1/applicants/[id]/evaluation
 2. Check response",Returns evaluation data,Medium
-TC_API_009,API,Candidates API,N/A,Submit Candidate Evaluation,Valid API Key; Candidate in evaluation,"1. Send POST to /api/v1/candidates/[id]/evaluation with scores
+TC_API_009,API,applicants API,N/A,Submit applicant Evaluation,Valid API Key; applicant in evaluation,"1. Send POST to /api/v1/applicants/[id]/evaluation with scores
 2. Check response",Returns 200; Evaluation saved,Medium
-TC_API_010,API,Candidates API,N/A,Bulk Upload CVs via API,Valid API Key,"1. Send POST to /api/v1/candidates/bulk-upload-cv with files
+TC_API_010,API,applicants API,N/A,Bulk Upload CVs via API,Valid API Key,"1. Send POST to /api/v1/applicants/bulk-upload-cv with files
 2. Check response",Returns queue IDs for uploaded files,Medium
-TC_API_011,API,Candidates API,N/A,Clear Duplicate Candidates,Valid API Key; Duplicates exist,"1. Send POST to /api/v1/candidates/clear-duplicates
-2. Check response",Duplicate candidates merged/cleared,Low
-TC_API_012,API,Candidates API,N/A,Export Candidates,Valid API Key,"1. Send GET to /api/v1/candidates/export
+TC_API_011,API,applicants API,N/A,Clear Duplicate applicants,Valid API Key; Duplicates exist,"1. Send POST to /api/v1/applicants/clear-duplicates
+2. Check response",Duplicate applicants merged/cleared,Low
+TC_API_012,API,applicants API,N/A,Export applicants,Valid API Key,"1. Send GET to /api/v1/applicants/export
 2. Check response",Returns exportable data or file,Medium
-TC_API_013,API,Candidates API,N/A,Import Candidates,Valid API Key; Import payload ready,"1. Send POST to /api/v1/candidates/import with data
+TC_API_013,API,applicants API,N/A,Import applicants,Valid API Key; Import payload ready,"1. Send POST to /api/v1/applicants/import with data
 2. Check response",Returns import results summary,Medium
 TC_API_014,API,Positions API,N/A,Get Position List,Valid API Key,"1. Send GET to /api/v1/positions
 2. Check response",Returns 200 OK with JSON list of positions,High
@@ -591,9 +591,9 @@ TC_SEC_006,Security,XSS Prevention,Desktop,XSS Script Injection,User logged in,"
 2. Save and view the data",Script not executed; Content sanitized,High
 TC_PERF_001,Performance,Page Load,Desktop,Dashboard Initial Load Time,User logged in; Data exists,"1. Navigate to /dashboard
 2. Measure time to interactive",Page loads in under 3 seconds,Medium
-TC_PERF_002,Performance,Page Load,Desktop,Candidates List Load Time,500+ candidates exist,"1. Navigate to /candidates
+TC_PERF_002,Performance,Page Load,Desktop,applicants List Load Time,500+ applicants exist,"1. Navigate to /applicants
 2. Measure time to display list",List renders in under 2 seconds,Medium
-TC_PERF_003,Performance,Data Loading,Desktop,Large Data Pagination,1000+ candidates exist,"1. Navigate to /candidates
+TC_PERF_003,Performance,Data Loading,Desktop,Large Data Pagination,1000+ applicants exist,"1. Navigate to /applicants
 2. Scroll through multiple pages",Each page loads quickly; No UI freezing,Medium
 TC_ERR_001,Error Handling,Error Pages,Desktop,View 404 Page,None,"1. Navigate to non-existent route /xyz123
 2. View error page",Custom 404 page displayed with navigation options,Low
@@ -605,11 +605,11 @@ TC_ERR_004,Error Handling,Form Errors,Desktop,Server Validation Error,Submitting
 2. Observe error display",Server validation error displayed clearly,Medium
 TC_RESP_001,Responsive,Tablet Layout,Tablet,View Dashboard on Tablet,User logged in on tablet,"1. Open /dashboard on tablet (iPad size)
 2. Verify layout",Layout adjusts for tablet; All content accessible,Medium
-TC_RESP_002,Responsive,Tablet Layout,Tablet,View Candidates on Tablet,User logged in on tablet,"1. Open /candidates on tablet
+TC_RESP_002,Responsive,Tablet Layout,Tablet,View applicants on Tablet,User logged in on tablet,"1. Open /applicants on tablet
 2. Interact with table/list",Optimized tablet layout; Touch-friendly controls,Medium
 TC_RESP_003,Responsive,Mobile Navigation,Mobile,Use Mobile Bottom Navigation,User logged in on mobile,"1. Open app on mobile
 2. Use bottom navigation bar",Navigation works; Icons clear; Current page highlighted,High
-TC_RESP_004,Responsive,Mobile Modals,Mobile,View Modal on Mobile,User logged in on mobile,"1. Trigger modal (add candidate)
+TC_RESP_004,Responsive,Mobile Modals,Mobile,View Modal on Mobile,User logged in on mobile,"1. Trigger modal (add applicant)
 2. View and interact with modal",Modal fits screen; Inputs accessible; Keyboard doesn't obstruct,Medium
 TC_EVAL_023,Evaluation,Evaluate Link,Desktop,View Azure Meeting Rooms,Azure AD configured; Create Link modal open,"1. Click Location input
 2. Verify dropdown appears","Dropdown shows list of available Azure meeting rooms",High

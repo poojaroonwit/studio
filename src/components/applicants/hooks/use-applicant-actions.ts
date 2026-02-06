@@ -23,7 +23,7 @@ export function useApplicantActions({
   aiMatchedApplicantIds
 }: UseApplicantActionsProps) {
   
-  const updateApplicantStatus = useCallback(async (candidateId: string, newStatus: ApplicantStatus, notes?: string, suppressToast?: boolean) => {
+  const updateApplicantStatus = useCallback(async (applicantId: string, newStatus: ApplicantStatus, notes?: string, suppressToast?: boolean) => {
     if (aiMatchedApplicantIds !== null) {
       toast('AI Search Active: Please clear AI search to perform updates.');
       return;
@@ -32,7 +32,7 @@ export function useApplicantActions({
     // Find the original applicant for potential rollback
     let originalApplicant: Applicant | null = null;
     try {
-      const res = await fetch(`/api/applicants/${candidateId}`);
+      const res = await fetch(`/api/applicants/${applicantId}`);
       if (res.ok) {
         originalApplicant = await res.json() as Applicant;
       }
@@ -48,18 +48,18 @@ export function useApplicantActions({
 
     // Apply optimistic update immediately
     setFilteredApplicants((prev: Applicant[]) => prev.map(app => 
-      app.id === candidateId 
+      app.id === applicantId 
         ? { ...app, status: newStatus, updatedAt: new Date().toISOString() }
         : app
     ));
     setAllApplicantsForCounts((prev: Applicant[]) => prev.map(app => 
-      app.id === candidateId 
+      app.id === applicantId 
         ? { ...app, status: newStatus, updatedAt: new Date().toISOString() }
         : app
     ));
     
     if (!suppressToast) {
-      toast.loading('Updating applicant status...', { id: candidateId });
+      toast.loading('Updating applicant status...', { id: applicantId });
     }
 
     try {
@@ -69,7 +69,7 @@ export function useApplicantActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'change_status',
-          candidateIds: [candidateId],
+          applicantIds: [applicantId],
           newStatus: newStatus,
           transitionNotes: notes
         })
@@ -87,14 +87,14 @@ export function useApplicantActions({
       
       // Check for rejected applicants due to headcount constraints
       if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
-        const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.candidateId === candidateId);
+        const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.applicantId === applicantId);
         if (rejectedApplicant) {
           throw new Error(`Headcount constraint: ${rejectedApplicant.message}`);
         }
       }
       
       if (!suppressToast) {
-        toast.success(`Status updated to ${newStatus}`, { id: candidateId });
+        toast.success(`Status updated to ${newStatus}`, { id: applicantId });
       }
       
       // Refresh the applicant list to ensure consistency
@@ -103,19 +103,19 @@ export function useApplicantActions({
     } catch (error) {
       // Revert optimistic update on error
       setFilteredApplicants((prev: Applicant[]) => prev.map(app => 
-        app.id === candidateId ? (originalApplicant as Applicant) : app
+        app.id === applicantId ? (originalApplicant as Applicant) : app
       ));
       setAllApplicantsForCounts((prev: Applicant[]) => prev.map(app => 
-        app.id === candidateId ? (originalApplicant as Applicant) : app
+        app.id === applicantId ? (originalApplicant as Applicant) : app
       ));
       
       if (!suppressToast) {
-        toast.error(getErrorMessage(error), { id: candidateId });
+        toast.error(getErrorMessage(error), { id: applicantId });
       }
     }
   }, [setFilteredApplicants, setAllApplicantsForCounts, fetchTableData, filters, page, pageSize, aiMatchedApplicantIds]);
 
-  const handleDeleteApplicant = useCallback(async (candidateId: string) => {
+  const handleDeleteApplicant = useCallback(async (applicantId: string) => {
     if (aiMatchedApplicantIds !== null) {
       toast('AI Search Active: Please clear AI search to perform updates.');
       return;
@@ -124,7 +124,7 @@ export function useApplicantActions({
     // Find the original applicant for potential rollback
     let originalApplicant: Applicant | null = null;
     try {
-      const res = await fetch(`/api/applicants/${candidateId}`);
+      const res = await fetch(`/api/applicants/${applicantId}`);
       if (res.ok) {
         originalApplicant = await res.json() as Applicant;
       }
@@ -139,10 +139,10 @@ export function useApplicantActions({
     }
 
     // Apply optimistic update immediately
-    setFilteredApplicants((prev: Applicant[]) => prev.filter(c => c.id !== candidateId));
-    setAllApplicantsForCounts((prev: Applicant[]) => prev.filter(c => c.id !== candidateId));
+    setFilteredApplicants((prev: Applicant[]) => prev.filter(c => c.id !== applicantId));
+    setAllApplicantsForCounts((prev: Applicant[]) => prev.filter(c => c.id !== applicantId));
 
-    toast.loading('Deleting applicant...', { id: candidateId });
+    toast.loading('Deleting applicant...', { id: applicantId });
 
     try {
       const response = await fetch(`/api/applicants/bulk-action`, {
@@ -150,7 +150,7 @@ export function useApplicantActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'delete',
-          candidateIds: [candidateId]
+          applicantIds: [applicantId]
         })
       });
 
@@ -159,7 +159,7 @@ export function useApplicantActions({
         throw new Error(errorData.message || `Failed to delete applicant: ${response.status}`);
       }
 
-      toast.success('Applicant deleted successfully', { id: candidateId });
+      toast.success('Applicant deleted successfully', { id: applicantId });
       
       // Refresh the applicant list to ensure consistency
       fetchTableData(filters, page, pageSize);
@@ -169,11 +169,11 @@ export function useApplicantActions({
       setFilteredApplicants(prev => [...prev, originalApplicant as Applicant]);
       setAllApplicantsForCounts(prev => [...prev, originalApplicant as Applicant]);
       
-      toast.error(getErrorMessage(error), { id: candidateId });
+      toast.error(getErrorMessage(error), { id: applicantId });
     }
   }, [setFilteredApplicants, setAllApplicantsForCounts, fetchTableData, filters, page, pageSize, aiMatchedApplicantIds]);
 
-  const handleAssignRecruiter = useCallback(async (candidateId: string, recruiterId: string | null) => {
+  const handleAssignRecruiter = useCallback(async (applicantId: string, recruiterId: string | null) => {
     if (aiMatchedApplicantIds !== null) {
       toast('AI Search Active: Please clear AI search to perform updates.');
       return;
@@ -182,7 +182,7 @@ export function useApplicantActions({
     // Find the original applicant for potential rollback
     let originalApplicant: Applicant | null = null;
     try {
-      const res = await fetch(`/api/applicants/${candidateId}`);
+      const res = await fetch(`/api/applicants/${applicantId}`);
       if (res.ok) {
         originalApplicant = await res.json() as Applicant;
       }
@@ -200,20 +200,20 @@ export function useApplicantActions({
     // Optimistically update recruiter in UI
     setFilteredApplicants(prev =>
       prev.map(c =>
-        c.id === candidateId
+        c.id === applicantId
           ? { ...c, recruiterId, recruiter: recruiterId ? { id: recruiterId, name: 'Loading...', email: '', avatarUrl: null } : null, updatedAt: new Date().toISOString() }
           : c
       )
     );
     setAllApplicantsForCounts(prev =>
       prev.map(c =>
-        c.id === candidateId
+        c.id === applicantId
           ? { ...c, recruiterId, recruiter: recruiterId ? { id: recruiterId, name: 'Loading...', email: '', avatarUrl: null } : null, updatedAt: new Date().toISOString() }
           : c
       )
     );
 
-    toast.loading('Assigning recruiter...', { id: candidateId });
+    toast.loading('Assigning recruiter...', { id: applicantId });
 
     try {
       const response = await fetch(`/api/applicants/bulk-action`, {
@@ -221,7 +221,7 @@ export function useApplicantActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'assign_recruiter',
-          candidateIds: [candidateId],
+          applicantIds: [applicantId],
           newRecruiterId: recruiterId
         })
       });
@@ -231,7 +231,7 @@ export function useApplicantActions({
         throw new Error(errorData.message || `Failed to assign recruiter: ${response.status}`);
       }
 
-      toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully', { id: candidateId });
+      toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully', { id: applicantId });
       
       // Refresh the applicant list to ensure consistency
       fetchTableData(filters, page, pageSize);
@@ -240,24 +240,24 @@ export function useApplicantActions({
       // Revert recruiter in UI
       setFilteredApplicants(prev =>
         prev.map(c =>
-          c.id === candidateId
+          c.id === applicantId
             ? { ...c, recruiterId: prevRecruiter?.id || null, recruiter: prevRecruiter, updatedAt: new Date().toISOString() }
             : c
         )
       );
       setAllApplicantsForCounts(prev =>
         prev.map(c =>
-          c.id === candidateId
+          c.id === applicantId
             ? { ...c, recruiterId: prevRecruiter?.id || null, recruiter: prevRecruiter, updatedAt: new Date().toISOString() }
             : c
         )
       );
       
-      toast.error(getErrorMessage(error), { id: candidateId });
+      toast.error(getErrorMessage(error), { id: applicantId });
     }
   }, [setFilteredApplicants, setAllApplicantsForCounts, fetchTableData, filters, page, pageSize, aiMatchedApplicantIds]);
 
-  const handleAssignSource = useCallback(async (candidateId: string, sourceId: string | null) => {
+  const handleAssignSource = useCallback(async (applicantId: string, sourceId: string | null) => {
     if (aiMatchedApplicantIds !== null) {
       toast('AI Search Active: Please clear AI search to perform updates.');
       return;
@@ -266,7 +266,7 @@ export function useApplicantActions({
     // Find the original applicant for potential rollback
     let originalApplicant: Applicant | null = null;
     try {
-      const res = await fetch(`/api/applicants/${candidateId}`);
+      const res = await fetch(`/api/applicants/${applicantId}`);
       if (res.ok) {
         originalApplicant = await res.json() as Applicant;
       }
@@ -285,24 +285,24 @@ export function useApplicantActions({
     // Optimistically update source in UI
     setFilteredApplicants(prev =>
       prev.map(c =>
-        c.id === candidateId
+        c.id === applicantId
           ? { ...c, sourceId, source: sourceId ? { id: sourceId, name: 'Loading...', description: '', allowSubSource: false, sortOrder: 0, isActive: true } : null, updatedAt: new Date().toISOString() }
           : c
       )
     );
     setAllApplicantsForCounts(prev =>
       prev.map(c =>
-        c.id === candidateId
+        c.id === applicantId
           ? { ...c, sourceId, source: sourceId ? { id: sourceId, name: 'Loading...', description: '', allowSubSource: false, sortOrder: 0, isActive: true } : null, updatedAt: new Date().toISOString() }
           : c
       )
     );
 
-    toast.loading('Assigning source...', { id: candidateId });
+    toast.loading('Assigning source...', { id: applicantId });
 
     try {
       // Use individual applicant update API instead of bulk action
-      const response = await fetch(`/api/applicants/${candidateId}`, {
+      const response = await fetch(`/api/applicants/${applicantId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,7 +315,7 @@ export function useApplicantActions({
         throw new Error(errorData.message || `Failed to assign source: ${response.status}`);
       }
 
-      toast.success(sourceId ? 'Source assigned successfully' : 'Source unassigned successfully', { id: candidateId });
+      toast.success(sourceId ? 'Source assigned successfully' : 'Source unassigned successfully', { id: applicantId });
       
       // Refresh the applicant list to ensure consistency
       fetchTableData(filters, page, pageSize);
@@ -324,20 +324,20 @@ export function useApplicantActions({
       // Revert source in UI
       setFilteredApplicants(prev =>
         prev.map(c =>
-          c.id === candidateId
+          c.id === applicantId
             ? { ...c, sourceId: prevSource?.id || null, source: prevSource, updatedAt: new Date().toISOString() }
             : c
         )
       );
       setAllApplicantsForCounts(prev =>
         prev.map(c =>
-          c.id === candidateId
+          c.id === applicantId
             ? { ...c, sourceId: prevSource?.id || null, source: prevSource, updatedAt: new Date().toISOString() }
             : c
         )
       );
       
-      toast.error(getErrorMessage(error), { id: candidateId });
+      toast.error(getErrorMessage(error), { id: applicantId });
     }
   }, [setFilteredApplicants, setAllApplicantsForCounts, fetchTableData, filters, page, pageSize, aiMatchedApplicantIds]);
 

@@ -9,7 +9,7 @@ interface ApplicantPipelineSectionProps {
   transitionHistory: TransitionRecord[];
   onStageClick: (stageName?: string) => void;
   onNoteEdit: (transitionId: string, newNote: string) => Promise<void>;
-  candidateId: string;
+  applicantId: string;
 }
 
 export const ApplicantPipelineSection: React.FC<ApplicantPipelineSectionProps> = ({
@@ -18,7 +18,7 @@ export const ApplicantPipelineSection: React.FC<ApplicantPipelineSectionProps> =
   transitionHistory,
   onStageClick,
   onNoteEdit,
-  candidateId
+  applicantId
 }) => {
   return (
     <div className="bg-background border-t border-border p-1">
@@ -32,7 +32,7 @@ export const ApplicantPipelineSection: React.FC<ApplicantPipelineSectionProps> =
             onStageClick={onStageClick}
             editableNotes={true}
             onNoteEdit={onNoteEdit}
-            candidateId={candidateId}
+            applicantId={applicantId}
           />
         </div>
       )}

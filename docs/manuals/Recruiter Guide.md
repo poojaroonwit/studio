@@ -8,14 +8,14 @@
 | **Who** | **Internal Recruiters**, **Talent Partners**, and **Sourcers**. |
 | **When** | During every interaction in the hiring funnel, from discovery to the final offer. |
 | **Why** | To eliminate the "Busy Work" of recruitment through AI-powered search, parsing, and collaboration. |
-| **Where** | The **Candidates**, **Positions**, and **Dashboard** modules. |
-| **How** | 1. Review Daily **Dashboard** Tasks <br> 2. Create/Duplicate **Positions** <br> 3. Source via **AI Search** <br> 4. Move candidates through **Kanban** <br> 5. Orchestrate team **Evaluations** |
+| **Where** | The **applicants**, **Positions**, and **Dashboard** modules. |
+| **How** | 1. Review Daily **Dashboard** Tasks <br> 2. Create/Duplicate **Positions** <br> 3. Source via **AI Search** <br> 4. Move applicants through **Kanban** <br> 5. Orchestrate team **Evaluations** |
 
 ## Core Workflow Guides
 
 ### 🔍 Discovery & Sourcing
 - **[Job Management](./recruiter/Job%20Management.md)**: Creating requisitions and setting AI Match criteria.
-- **[Candidate Sourcing](./recruiter/Candidate%20Sourcing.md)**: AI Parsing, bulk imports, and natural language search.
+- **[applicant Sourcing](./recruiter/applicant%20Sourcing.md)**: AI Parsing, bulk imports, and natural language search.
 
 ### ⚖️ Evaluation & Pipeline
 | Feature | Description | Guide |
@@ -35,5 +35,5 @@
 ## How to Verify (E2E Test)
 To verify the recruiting workflow:
 1.  **Source**: Upload a resume and wait for the AI to finish parsing.
-2.  **Progress**: Drag the candidate card from **"New"** to **"Shortlisted"** on the Kanban board.
-3.  **Confirm**: Verify the AI Fit Score is visible on the card and that the transition is logged in the candidate's **"Activity"** timeline.
+2.  **Progress**: Drag the applicant card from **"New"** to **"Shortlisted"** on the Kanban board.
+3.  **Confirm**: Verify the AI Fit Score is visible on the card and that the transition is logged in the applicant's **"Activity"** timeline.

@@ -24,7 +24,7 @@ interface HiringDetails {
             department: string;
         };
     } | null;
-    Applicant: {
+    applicant: {
         id: string;
         name: string;
         email: string;
@@ -92,7 +92,7 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
         );
     }
 
-    const hasData = data?.headcount || data?.Applicant;
+    const hasData = data?.headcount || data?.applicant;
 
     if (!hasData) {
         return (
@@ -100,7 +100,7 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                 <Briefcase className="h-12 w-12 text-muted-foreground/50 mb-3" />
                 <h3 className="text-lg font-medium">No Hiring Record Found</h3>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                    We couldn't link this user to any active Applicant or Headcount records based on their Employee ID, Email, or Phone number.
+                    We couldn't link this user to any active applicant or Headcount records based on their Employee ID, Email, or Phone number.
                 </p>
             </div>
         );
@@ -156,14 +156,14 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                     </Card>
                 )}
 
-                {/* Applicant Section */}
-                {data?.Applicant && (
+                {/* applicant Section */}
+                {data?.applicant && (
                     <Card>
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <User className="h-4 w-4 text-primary" />
-                                    Applicant Profile
+                                    applicant Profile
                                 </CardTitle>
                                 {data.applicant.recruitmentStage && (
                                     <Badge
@@ -195,9 +195,9 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                                     </div>
                                 </div>
                             </div>
-
+ 
                             <Separator />
-
+ 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <div className="text-muted-foreground text-xs mb-1">Applied For</div>
@@ -210,18 +210,18 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                                     <div>{format(new Date(data.applicant.applicationDate), 'MMM dd, yyyy')}</div>
                                 </div>
                             </div>
-
+ 
                             <div className="pt-2">
                                 <Button asChild variant="default" className="w-full sm:w-auto">
                                     <Link
                                         href={data.applicant.positionId
-                                            ? `/positions/${data.applicant.positionId}?candidateId=${data.applicant.id}`
-                                            : `/Applicants?candidateId=${data.applicant.id}` // Fallback if no position
+                                            ? `/positions/${data.applicant.positionId}?applicantId=${data.applicant.id}`
+                                            : `/Applicants?applicantId=${data.applicant.id}` // Fallback if no position
                                         }
                                         target="_blank"
                                     >
                                         <ExternalLink className="mr-2 h-4 w-4" />
-                                        View Full Applicant Profile
+                                        View Full applicant Profile
                                     </Link>
                                 </Button>
                             </div>

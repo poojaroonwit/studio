@@ -15,7 +15,7 @@ interface Attachment {
   label: string;
   filePath?: string;
   fileSize?: number;
-  candidateId?: string;
+  applicantId?: string;
 }
 
 interface Applicant {
@@ -24,7 +24,7 @@ interface Applicant {
 }
 
 interface ApplicantResumesSectionProps {
-  candidateId: string;
+  applicantId: string;
   resumes: Attachment[];
   isEditing: boolean;
   onResumesChange: () => void;
@@ -52,7 +52,7 @@ function buildPreviewUrl(url: string): string {
   return url;
 }
 
-const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ candidateId, resumes, isEditing, onResumesChange }) => {
+const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ applicantId, resumes, isEditing, onResumesChange }) => {
 
   const [sortDesc, setSortDesc] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -64,7 +64,7 @@ const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ candi
     updatedAt?: string;
     fileSize?: number;
     filePath?: string;
-    candidateId?: string;
+    applicantId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -94,14 +94,14 @@ const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ candi
       updatedAt: attachment.updatedAt,
       fileSize: attachment.fileSize,
       filePath: attachment.filePath,
-      candidateId: attachment.candidateId || candidateId
+      applicantId: attachment.applicantId || applicantId
     });
     setIsFileViewerOpen(true);
   };
 
   const handleSetPrimary = async (attachmentId: string) => {
     try {
-      const res = await fetch(`/api/applicants/${candidateId}/resumes`, {
+      const res = await fetch(`/api/applicants/${applicantId}/resumes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
@@ -123,7 +123,7 @@ const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ candi
     }
 
     try {
-      const res = await fetch(`/api/v1/Applicants/${candidateId}/attachments`, {
+      const res = await fetch(`/api/v1/Applicants/${applicantId}/attachments`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
@@ -249,7 +249,7 @@ const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ candi
             setIsUploadModalOpen(false);
           }
         }}
-        Applicant={{ id: candidateId } as any}
+        applicant={{ id: applicantId } as any}
         onUploadSuccess={onResumesChange}
       />
     </div>

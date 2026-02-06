@@ -25,7 +25,7 @@ interface HeadcountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   headcount?: Headcount | null;
-  Applicants: Applicant[];
+  applicants: Applicant[];
   positionId: string;
   onSave: (data: any) => Promise<void>;
   onClose: () => void;
@@ -40,7 +40,7 @@ export function HeadcountModal({
   open,
   onOpenChange,
   headcount,
-  Applicants,
+  applicants,
   positionId,
   onSave,
   onClose
@@ -51,7 +51,7 @@ export function HeadcountModal({
   const [formData, setFormData] = useState({
     type: 'new' as HeadcountType,
     status: 'vacant' as HeadcountStatus,
-    candidateId: null as string | null,
+    applicantId: null as string | null,
     onboardingDate: '',
     requestDate: '',
     notes: '',
@@ -90,7 +90,7 @@ export function HeadcountModal({
       setFormData({
         type: headcount.type,
         status: headcount.status,
-        candidateId: headcount.candidateId || null,
+        applicantId: headcount.applicantId || null,
         onboardingDate: headcount.onboardingDate ? new Date(headcount.onboardingDate).toISOString().split('T')[0] : '',
         requestDate: headcount.requestDate ? new Date(headcount.requestDate).toISOString().split('T')[0] : '',
         notes: headcount.notes || '',
@@ -103,7 +103,7 @@ export function HeadcountModal({
       setFormData({
         type: 'new',
         status: 'vacant', // Default to vacant
-        candidateId: null, // No Applicant assignment for new headcount
+        applicantId: null, // No Applicant assignment for new headcount
         onboardingDate: '',
         requestDate: new Date().toISOString().split('T')[0], // Default to today
         notes: '',
@@ -122,8 +122,8 @@ export function HeadcountModal({
       return;
     }
 
-    // Validate that if status is 'filled', a candidateId must be provided
-    if (formData.status === 'filled' && !formData.candidateId) {
+    // Validate that if status is 'filled', an applicantId must be provided
+    if (formData.status === 'filled' && !formData.applicantId) {
       toast.error('A Applicant must be assigned when status is "filled". Please assign the Applicant through the Applicant details page first.');
       return;
     }
@@ -145,7 +145,7 @@ export function HeadcountModal({
       ...prev,
       type: 'new',
       status: 'vacant',
-      candidateId: null,
+      applicantId: null,
       onboardingDate: prev.onboardingDate ?? '',
       requestDate: prev.requestDate ?? '',
       notes: '',
@@ -156,7 +156,7 @@ export function HeadcountModal({
     onClose();
   };
 
-  const selectedApplicant = formData.candidateId ? Applicants.find(c => c.id === formData.candidateId) : null;
+  const selectedApplicant = formData.applicantId ? applicants.find(c => c.id === formData.applicantId) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,15 +206,15 @@ export function HeadcountModal({
                     <SelectItem
                       key={option.value}
                       value={option.value}
-                      disabled={option.value === 'filled' && !formData.candidateId}
+                      disabled={option.value === 'filled' && !formData.applicantId}
                     >
                       {option.label}
-                      {option.value === 'filled' && !formData.candidateId && ' (requires Applicant assignment)'}
+                      {option.value === 'filled' && !formData.applicantId && ' (requires Applicant assignment)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {formData.status === 'filled' && !formData.candidateId && (
+              {formData.status === 'filled' && !formData.applicantId && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   Note: Status "filled" requires a Applicant assignment. Assign the Applicant through the Applicant details page first.
                 </p>
@@ -254,13 +254,13 @@ export function HeadcountModal({
                 {selectedApplicant ? (
                   <div className="flex items-center gap-3">
                     <ApplicantAvatar
-                      user={selectedapplicant}
+                      user={selectedApplicant}
                       size="md"
                       className="h-8 w-8"
                     />
                     <div className="flex-1">
-                      <div className="font-medium">{selectedapplicant.name}</div>
-                      <div className="text-sm text-muted-foreground">{selectedapplicant.email}</div>
+                      <div className="font-medium">{selectedApplicant.name}</div>
+                      <div className="text-sm text-muted-foreground">{selectedApplicant.email}</div>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       (Assignment managed via Applicant details)

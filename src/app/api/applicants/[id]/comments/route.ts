@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 
 // Helper to get attachment info by IDs (legacy)
-async function getAttachmentsByIds(ids: string[], candidateId?: string) {
+async function getAttachmentsByIds(ids: string[], applicantId?: string) {
   if (!ids || ids.length === 0) return [];
   const attachments = await prisma.attachment.findMany({
     where: { id: { in: ids } },
@@ -26,17 +26,17 @@ async function getAttachmentsByIds(ids: string[], candidateId?: string) {
   return Promise.all(
     attachments.map(async (a: typeof attachments[0]) => ({
       ...a,
-      // Use 'preview' strategy for images displayed in <img> tags, include candidateId for proper authorization
+      // Use 'preview' strategy for images displayed in <img> tags, include applicantId for proper authorization
       url: await buildServerFileUrl(a.filePath, { 
         strategy: 'preview',
-        candidateId: candidateId || a.candidateId || undefined
+        applicantId: applicantId || a.applicantId || undefined // a.applicantId is database field from Prisma result
       })
     }))
   );
 }
 
 // Optimized helper to get attachments as a Map for efficient lookups
-async function getAttachmentsMap(ids: string[], candidateId?: string) {
+async function getAttachmentsMap(ids: string[], applicantId?: string) {
   if (!ids || ids.length === 0) return new Map();
   const attachments = await prisma.attachment.findMany({
     where: { id: { in: ids } },
@@ -47,10 +47,10 @@ async function getAttachmentsMap(ids: string[], candidateId?: string) {
   for (const a of attachments) {
     attachmentMap.set(a.id, {
       ...a,
-      // Use 'preview' strategy for images displayed in <img> tags, include candidateId for proper authorization
+      // Use 'preview' strategy for images displayed in <img> tags, include applicantId for proper authorization
       url: await buildServerFileUrl(a.filePath, { 
         strategy: 'preview',
-        candidateId: candidateId || a.candidateId || undefined
+        applicantId: applicantId || a.applicantId || undefined // a.applicantId is database field from Prisma result
       })
     });
   }
@@ -89,15 +89,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const whereClause: any = { candidateId: id };
+    const whereClause: any = { applicantId: id }; // applicantId is Prisma model field name, not changing
     if (!canViewAll && canViewRemarks) {
       whereClause.type = 'remark';
     }
 
     // Use Promise.all to fetch Applicant existence, counts, and comments in parallel
     const [applicant, comments, counts] = await Promise.all([
-      prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
-      prisma.candidateComment.findMany({
+      prisma.applicant.findUnique({ where: { id }, select: { id: true } }),
+      prisma.applicantComment.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -105,9 +105,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         include: { author: { select: { id: true, name: true, email: true } } },
       }),
       Promise.all([
-        prisma.candidateComment.count({ where: { candidateId: id } }),
-        prisma.candidateComment.count({ where: { candidateId: id, type: 'comment' } }),
-        prisma.candidateComment.count({ where: { candidateId: id, type: 'remark' } })
+        prisma.applicantComment.count({ where: { applicantId: id } }), // applicantId is Prisma model field name
+        prisma.applicantComment.count({ where: { applicantId: id, type: 'comment' } }), // applicantId is Prisma model field name
+        prisma.applicantComment.count({ where: { applicantId: id, type: 'remark' } }) // applicantId is Prisma model field name
       ])
     ]);
     
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let client;
   try {
     client = await getPool().connect();
-    const applicantResult = await client.query('SELECT "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
+    const applicantResult = await client.query('SELECT "recruiterId" FROM "Applicant" WHERE id = $1', [id]);
     if (applicantResult.rows.length === 0) {
       return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
     }
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         
         const newAttachment = await prisma.attachment.create({
           data: {
-            candidateId: id,
+            applicantId: id,
             uploadedById: session.user.id,
             filePath: objectName,
             fileName: file.name,
@@ -270,9 +270,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
     
-    const newComment = await prisma.candidateComment.create({
+    const newComment = await prisma.applicantComment.create({
       data: {
-        candidateId: id,
+        applicantId: id, // applicantId is Prisma model field name
         authorId: session.user.id,
         content,
         type,
@@ -364,7 +364,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         
         const newAttachment = await prisma.attachment.create({
           data: {
-            candidateId: id,
+            applicantId: id,
             uploadedById: session.user.id,
             filePath: objectName,
             fileName: file.name,
@@ -380,14 +380,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Fetch existing comment to merge attachmentIds
-    const existing = await prisma.candidateComment.findUnique({ where: { id: commentId, candidateId: id } });
+    const existing = await prisma.applicantComment.findUnique({ where: { id: commentId, applicantId: id } }); // applicantId is Prisma model field name
     if (!existing) return NextResponse.json({ message: 'Comment not found' }, { status: 404 });
     if (existing.authorId !== session.user.id) {
       return NextResponse.json({ message: 'Forbidden: Only the author can edit this comment.' }, { status: 403 });
     }
     
-    const updatedComment = await prisma.candidateComment.update({
-      where: { id: commentId, candidateId: id },
+    const updatedComment = await prisma.applicantComment.update({
+      where: { id: commentId, applicantId: id }, // applicantId is Prisma model field name
       data: {
         content,
         attachmentIds: [...(existing.attachmentIds || []), ...newAttachmentIds],
@@ -434,12 +434,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
   const { commentId } = await req.json();
   try {
-    const comment = await prisma.candidateComment.findUnique({ where: { id: commentId, candidateId: id } });
+    const comment = await prisma.applicantComment.findUnique({ where: { id: commentId, applicantId: id } }); // applicantId is Prisma model field name
     if (!comment) return NextResponse.json({ message: 'Comment not found' }, { status: 404 });
     if (comment.authorId !== session.user.id) {
       return NextResponse.json({ message: 'Forbidden: Only the author can delete this comment.' }, { status: 403 });
     }
-    await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
+    await prisma.applicantComment.delete({ where: { id: commentId, applicantId: id } }); // applicantId is Prisma model field name
     // After successful deletion
     broadcastApplicantUpdate({ id, comment: { id: commentId }, action: 'comment_deleted' }, session.user.id);
     

@@ -16,24 +16,24 @@ SELECT
     COUNT(CASE WHEN status = 'new' THEN 1 END) as new,
     COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as inProgress,
     ...
-FROM "Candidate"
+FROM "applicant"
 ```
 
 ### 2. Application Trends
 - **Growth Rate**: Comparing `thisMonth` (last 30 days) vs `lastMonth` (30-60 days ago).
-- **Recruiter Load**: Active candidates divided by the number of active `Recruiter` roles.
+- **Recruiter Load**: Active applicants divided by the number of active `Recruiter` roles.
 
 ---
 
 ## 💰 Financial Data & Salary Logic
 
 ### 1. Salary Field Normalization
-Candidate salaries are stored in two primary ways:
+applicant salaries are stored in two primary ways:
 - **`expected_salary`**: A dedicated numeric column for easy filtering and range queries.
 - **`suitable_salary_bath_month`**: (Legacy/Parsed) Often a string extracted from resumes, which the system attempts to cast to a number for the `expectedSalary` field.
 
 ### 2. Salary Range Matching
-When matching candidates to positions, the AI uses the following logic:
+When matching applicants to positions, the AI uses the following logic:
 - **Hard Upper Bound**: Positions often have a maximum budget.
 - **Flexibility Buffer**: The AI may flag a "Strong Match" even if the salary is slightly over budget (usually within 10-15%) if skills are exceptional.
 
@@ -47,9 +47,9 @@ The system ensures that regardless of the input (0.00-1.00 or 0-100), the intern
 - The UI then converts these to **Letter Grades** (A-E) as defined in the **Evaluation Flow**.
 
 ### 2. Aggregated Expertise
-A candidate's `overall_expertise_score` is a weighted average of:
-- **Technical Skills**: (70% weight) - Based on `CandidateExpertiseScore`.
-- **Soft Skills**: (30% weight) - Based on `CandidatePersonalityScore`.
+A applicant's `overall_expertise_score` is a weighted average of:
+- **Technical Skills**: (70% weight) - Based on `applicantExpertiseScore`.
+- **Soft Skills**: (30% weight) - Based on `applicantPersonalityScore`.
 
 ---
 

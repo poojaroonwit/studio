@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 interface FitScoreFilterBadgesProps {
   selectedGrades: Set<string>;
   onGradeToggle: (grade: string) => void;
-  ApplicantCounts?: Array<{ letter: string; count: number }>;
+  applicantCounts?: Array<{ letter: string; count: number }>;
   title?: string;
   className?: string;
   filterMode?: 'single' | 'multi';
@@ -17,7 +17,7 @@ interface FitScoreFilterBadgesProps {
 export function FitScoreFilterBadges({
   selectedGrades,
   onGradeToggle,
-  ApplicantCounts = [],
+  applicantCounts = [],
   title = "Fit Score Filter",
   className,
   filterMode = 'multi'
@@ -43,7 +43,7 @@ export function FitScoreFilterBadges({
   };
 
   const getCount = (letter: string) => {
-    return ApplicantCounts.find(c => c.letter === letter)?.count || 0;
+    return applicantCounts.find(c => c.letter === letter)?.count || 0;
   };
 
   return (

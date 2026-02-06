@@ -12,7 +12,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const id = (await params).id
 
-    const link = await prisma.candidateEvaluationLink.findUnique({ where: { id } })
+    const link = await prisma.applicantEvaluationLink.findUnique({ where: { id } })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     // Check permission to manage the link
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const body = await request.json().catch(() => ({})) as { requireLogin?: boolean }
     
-    const updated = await prisma.candidateEvaluationLink.update({
+    const updated = await prisma.applicantEvaluationLink.update({
       where: { id },
       data: {
         requireLogin: typeof body.requireLogin === 'boolean' ? body.requireLogin : link.requireLogin,
@@ -46,7 +46,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const id = (await params).id
 
-    const link = await prisma.candidateEvaluationLink.findUnique({ where: { id } })
+    const link = await prisma.applicantEvaluationLink.findUnique({ where: { id } })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     // Check permission to manage the link
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
 
-    await prisma.candidateEvaluationLink.update({ where: { id }, data: { revokedAt: new Date() } })
+    await prisma.applicantEvaluationLink.update({ where: { id }, data: { revokedAt: new Date() } })
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal Server Error'

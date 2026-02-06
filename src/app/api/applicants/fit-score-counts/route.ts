@@ -360,7 +360,7 @@ export async function GET(request: NextRequest) {
         COALESCE(
           (SELECT MAX(jm."fitScore") 
            FROM "JobMatch" jm 
-           WHERE jm."candidateId" = c.id), 
+           WHERE jm."applicantId" = c.id), 
           COALESCE(
             (SELECT MAX((match->>'fitScore')::numeric) 
              FROM jsonb_array_elements(c."parsedData"->'job_matches') as match
@@ -368,7 +368,7 @@ export async function GET(request: NextRequest) {
             0
           )
         ) as best_match_score
-      FROM "Candidate" c
+      FROM "applicant" c
       ${whereClause}
     `;
 

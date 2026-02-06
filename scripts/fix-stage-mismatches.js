@@ -2,7 +2,7 @@
 
 /**
  * Script to fix stage mismatches between UI and database
- * This script standardizes candidate status values to match expected stage names
+ * This script standardizes applicant status values to match expected stage names
  */
 
 const { Pool } = require('pg');
@@ -90,13 +90,13 @@ async function runMigration() {
     console.log('\n🔍 Final verification - checking current statuses...');
     const finalCheck = await pool.query(`
       SELECT status, COUNT(*) as count
-      FROM "Candidate" 
+      FROM "applicant" 
       WHERE status IS NOT NULL AND status != ''
       GROUP BY status
       ORDER BY count DESC
     `);
     
-    console.log('📊 Final candidate statuses:');
+    console.log('📊 Final applicant statuses:');
     console.table(finalCheck.rows);
     
   } catch (error) {
@@ -144,12 +144,12 @@ if (isDryRun) {
   
   pool.query(`
     SELECT DISTINCT status, COUNT(*) as count 
-    FROM "Candidate" 
+    FROM "applicant" 
     WHERE status IS NOT NULL AND status != ''
     GROUP BY status 
     ORDER BY count DESC
   `).then(result => {
-    console.log('\n📊 Current candidate statuses:');
+    console.log('\n📊 Current applicant statuses:');
     console.table(result.rows);
     
     console.log('\n📝 This migration would standardize these statuses to title case');

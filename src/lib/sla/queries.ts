@@ -164,7 +164,7 @@ export async function getAllSLAHeadcounts(recruiterId?: string): Promise<SLAHead
         h."positionId",
         h.type as "headcountType",
         h.status as "headcountStatus",
-        h."candidateId",
+        h."applicantId",
         h."requestDate",
         h."onboardingDate",
         p.title as "positionTitle",
@@ -201,7 +201,7 @@ export async function getAllSLAHeadcounts(recruiterId?: string): Promise<SLAHead
         positionId: row.positionId,
         type: row.headcountType,
         status: row.headcountStatus,
-        candidateId: row.candidateId,
+        applicantId: row.applicantId,
         requestDate: row.requestDate,
         onboardingDate: row.onboardingDate,
         position: {

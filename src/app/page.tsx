@@ -38,12 +38,12 @@ export default async function DashboardPageServer() {
       client = await getPool().connect();
       
       // Fetch Applicants
-      const ApplicantsQuery = `
+      const applicantsQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
                rs.id as "statusId", rs.name as "status",
                COALESCE(th_data.history, '[]'::json) as "transitionHistory"
-        FROM "Candidate" c
+        FROM "applicant" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -54,11 +54,11 @@ export default async function DashboardPageServer() {
             ) ORDER BY th.date DESC
           ) AS history
           FROM "TransitionRecord" th
-          WHERE th."candidateId" = c.id
+          WHERE th."applicantId" = c.id
         ) AS th_data ON true
         ORDER BY c."applicationDate" DESC;
       `;
-      const ApplicantsResult = await client.query(ApplicantsQuery);
+      const applicantsResult = await client.query(applicantsQuery);
       
       // Fetch positions
       const positionsQuery = 'SELECT * FROM "Position" ORDER BY "createdAt" DESC;';
@@ -69,7 +69,7 @@ export default async function DashboardPageServer() {
       const usersResult = await client.query(usersQuery);
 
       // Transform Applicants data
-      initialApplicants = ApplicantsResult.rows.map((row: any) => ({
+      initialApplicants = applicantsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,

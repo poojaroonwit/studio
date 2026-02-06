@@ -36,13 +36,13 @@ sequenceDiagram
 
     %% Action Phase
     Note over n8n: Parse Resume -> Extract Skills/Experience
-    n8n->>API: POST /api/v2/candidates (Structured Data)
-    API->>DB: Create Candidate Record
+    n8n->>API: POST /api/v2/applicants (Structured Data)
+    API->>DB: Create applicant Record
 
     %% Completion Phase
     Proc->>DB: Set Status: 'success'
     Proc->>API: Dispatch SSE (Progress Update)
-    API-->>UI: Real-time Update: "Candidate Processed"
+    API-->>UI: Real-time Update: "applicant Processed"
 ```
 
 ---
@@ -80,5 +80,5 @@ The engine that drives the queue.
 ## 4. Status Transitions
 - `pending`: Job created, waiting for resources.
 - `processing`: Processor has grabbed the job and is talking to the AI service.
-- `success`: AI service replied, and candidate data is synced.
+- `success`: AI service replied, and applicant data is synced.
 - `failed`: An error occurred (e.g., file too large, n8n offline). The `error_details` field contains the stack trace.

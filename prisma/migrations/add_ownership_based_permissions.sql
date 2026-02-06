@@ -4,45 +4,45 @@
 -- Update Admin role permissions to include ownership-based permissions
 UPDATE "UserGroup" 
 SET permissions = array_cat(permissions, ARRAY[
-  'CANDIDATES_EDIT_BASIC_OWN',
-  'CANDIDATES_EDIT_SENSITIVE_OWN', 
-  'CANDIDATES_RECRUITER_ASSIGN_OWN',
-  'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN',
-  'CANDIDATES_RESUMES_UPLOAD_OWN',
-  'CANDIDATES_COMMENTS_ADD_OWN'
+  'applicantS_EDIT_BASIC_OWN',
+  'applicantS_EDIT_SENSITIVE_OWN', 
+  'applicantS_RECRUITER_ASSIGN_OWN',
+  'applicantS_PIPELINE_STAGE_UPDATE_OWN',
+  'applicantS_RESUMES_UPLOAD_OWN',
+  'applicantS_COMMENTS_ADD_OWN'
 ])
-WHERE name = 'Admin' AND 'CANDIDATES_EDIT_BASIC_OWN' != ALL(permissions);
+WHERE name = 'Admin' AND 'applicantS_EDIT_BASIC_OWN' != ALL(permissions);
 
 -- Update Recruiter role permissions to include ownership-based permissions
 UPDATE "UserGroup" 
 SET permissions = array_cat(permissions, ARRAY[
-  'CANDIDATES_EDIT_BASIC_OWN',
-  'CANDIDATES_RECRUITER_ASSIGN_OWN',
-  'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN',
-  'CANDIDATES_RESUMES_UPLOAD_OWN',
-  'CANDIDATES_COMMENTS_ADD_OWN'
+  'applicantS_EDIT_BASIC_OWN',
+  'applicantS_RECRUITER_ASSIGN_OWN',
+  'applicantS_PIPELINE_STAGE_UPDATE_OWN',
+  'applicantS_RESUMES_UPLOAD_OWN',
+  'applicantS_COMMENTS_ADD_OWN'
 ])
-WHERE name = 'Recruiter' AND 'CANDIDATES_EDIT_BASIC_OWN' != ALL(permissions);
+WHERE name = 'Recruiter' AND 'applicantS_EDIT_BASIC_OWN' != ALL(permissions);
 
 -- Create a new "Limited Recruiter" role with only ownership-based permissions
 INSERT INTO "UserGroup" (id, name, description, permissions, "isDefault", "isSystemRole", "createdAt", "updatedAt")
 SELECT 
   gen_random_uuid(),
   'Limited Recruiter',
-  'Recruiter with access only to own assigned candidates',
+  'Recruiter with access only to own assigned applicants',
   ARRAY[
-    'CANDIDATES_VIEW',
-    'CANDIDATES_VIEW_DETAILED', 
-    'CANDIDATES_CREATE',
-    'CANDIDATES_EDIT_BASIC_OWN',
-    'CANDIDATES_SOURCE_ASSIGN',
-    'CANDIDATES_RECRUITER_ASSIGN_OWN',
-    'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN',
-    'CANDIDATES_RESUMES_UPLOAD_OWN',
-    'CANDIDATES_COMMENTS_VIEW',
-    'CANDIDATES_COMMENTS_ADD_OWN',
-    'CANDIDATES_IMPORT',
-    'CANDIDATES_EXPORT',
+    'applicantS_VIEW',
+    'applicantS_VIEW_DETAILED', 
+    'applicantS_CREATE',
+    'applicantS_EDIT_BASIC_OWN',
+    'applicantS_SOURCE_ASSIGN',
+    'applicantS_RECRUITER_ASSIGN_OWN',
+    'applicantS_PIPELINE_STAGE_UPDATE_OWN',
+    'applicantS_RESUMES_UPLOAD_OWN',
+    'applicantS_COMMENTS_VIEW',
+    'applicantS_COMMENTS_ADD_OWN',
+    'applicantS_IMPORT',
+    'applicantS_EXPORT',
     'POSITIONS_VIEW',
     'POSITIONS_CREATE',
     'POSITIONS_EDIT_BASIC',

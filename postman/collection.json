@@ -236,7 +236,7 @@
           "event": []
         },
         {
-          "name": "POST /api/ai/search-candidates",
+          "name": "POST /api/ai/search-applicants",
           "request": {
             "method": "POST",
             "header": [
@@ -252,13 +252,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/ai/search-candidates",
+              "raw": "{{base_url}}/ai/search-applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "ai",
-                "search-candidates"
+                "search-applicants"
               ]
             },
             "body": {
@@ -762,7 +762,7 @@
       "name": "Automation",
       "item": [
         {
-          "name": "POST /api/automation/create-candidate-with-matches",
+          "name": "POST /api/automation/create-applicant-with-matches",
           "request": {
             "method": "POST",
             "header": [
@@ -778,13 +778,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/automation/create-candidate-with-matches",
+              "raw": "{{base_url}}/automation/create-applicant-with-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "automation",
-                "create-candidate-with-matches"
+                "create-applicant-with-matches"
               ]
             },
             "body": {
@@ -864,10 +864,10 @@
       ]
     },
     {
-      "name": "Candidate-sources",
+      "name": "applicant-sources",
       "item": [
         {
-          "name": "GET /api/candidate-sources",
+          "name": "GET /api/applicant-sources",
           "request": {
             "method": "GET",
             "header": [
@@ -883,12 +883,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidate-sources",
+              "raw": "{{base_url}}/applicant-sources",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidate-sources"
+                "applicant-sources"
               ]
             }
           },
@@ -897,10 +897,10 @@
       ]
     },
     {
-      "name": "Candidates",
+      "name": "applicants",
       "item": [
         {
-          "name": "GET /api/candidates/[id]/additional",
+          "name": "GET /api/applicants/[id]/additional",
           "request": {
             "method": "GET",
             "header": [
@@ -916,12 +916,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/additional",
+              "raw": "{{base_url}}/applicants/[id]/additional",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "additional"
               ]
@@ -930,7 +930,7 @@
           "event": []
         },
         {
-          "name": "PATCH /api/candidates/[id]/additional",
+          "name": "PATCH /api/applicants/[id]/additional",
           "request": {
             "method": "PATCH",
             "header": [
@@ -946,12 +946,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/additional",
+              "raw": "{{base_url}}/applicants/[id]/additional",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "additional"
               ]
@@ -964,7 +964,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/candidates/[id]/additional",
+          "name": "PUT /api/applicants/[id]/additional",
           "request": {
             "method": "PUT",
             "header": [
@@ -980,12 +980,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/additional",
+              "raw": "{{base_url}}/applicants/[id]/additional",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "additional"
               ]
@@ -998,7 +998,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]/avatar",
+          "name": "GET /api/applicants/[id]/avatar",
           "request": {
             "method": "GET",
             "header": [
@@ -1014,12 +1014,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/avatar",
+              "raw": "{{base_url}}/applicants/[id]/avatar",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "avatar"
               ]
@@ -1028,7 +1028,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/[id]/avatar",
+          "name": "POST /api/applicants/[id]/avatar",
           "request": {
             "method": "POST",
             "header": [
@@ -1044,12 +1044,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/avatar",
+              "raw": "{{base_url}}/applicants/[id]/avatar",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "avatar"
               ]
@@ -1062,7 +1062,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]/comments",
+          "name": "GET /api/applicants/[id]/comments",
           "request": {
             "method": "GET",
             "header": [
@@ -1078,12 +1078,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/comments",
+              "raw": "{{base_url}}/applicants/[id]/comments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "comments"
               ]
@@ -1092,7 +1092,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/[id]/comments",
+          "name": "POST /api/applicants/[id]/comments",
           "request": {
             "method": "POST",
             "header": [
@@ -1108,12 +1108,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/comments",
+              "raw": "{{base_url}}/applicants/[id]/comments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "comments"
               ]
@@ -1126,7 +1126,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]/export",
+          "name": "GET /api/applicants/[id]/export",
           "request": {
             "method": "GET",
             "header": [
@@ -1142,12 +1142,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/export",
+              "raw": "{{base_url}}/applicants/[id]/export",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "export"
               ]
@@ -1156,7 +1156,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]/logs",
+          "name": "GET /api/applicants/[id]/logs",
           "request": {
             "method": "GET",
             "header": [
@@ -1172,12 +1172,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/logs",
+              "raw": "{{base_url}}/applicants/[id]/logs",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "logs"
               ]
@@ -1186,7 +1186,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]/resumes",
+          "name": "GET /api/applicants/[id]/resumes",
           "request": {
             "method": "GET",
             "header": [
@@ -1202,12 +1202,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/resumes",
+              "raw": "{{base_url}}/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -1216,7 +1216,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/[id]/resumes",
+          "name": "POST /api/applicants/[id]/resumes",
           "request": {
             "method": "POST",
             "header": [
@@ -1232,12 +1232,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/resumes",
+              "raw": "{{base_url}}/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -1250,7 +1250,7 @@
           "event": []
         },
         {
-          "name": "HEAD /api/candidates/[id]",
+          "name": "HEAD /api/applicants/[id]",
           "request": {
             "method": "HEAD",
             "header": [
@@ -1266,12 +1266,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]",
+              "raw": "{{base_url}}/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -1279,7 +1279,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/[id]",
+          "name": "GET /api/applicants/[id]",
           "request": {
             "method": "GET",
             "header": [
@@ -1295,12 +1295,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]",
+              "raw": "{{base_url}}/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -1308,7 +1308,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/candidates/[id]",
+          "name": "PUT /api/applicants/[id]",
           "request": {
             "method": "PUT",
             "header": [
@@ -1324,12 +1324,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]",
+              "raw": "{{base_url}}/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             },
@@ -1341,7 +1341,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/candidates/[id]",
+          "name": "DELETE /api/applicants/[id]",
           "request": {
             "method": "DELETE",
             "header": [
@@ -1357,12 +1357,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]",
+              "raw": "{{base_url}}/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -1370,7 +1370,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/[id]/send-interview-invitation",
+          "name": "POST /api/applicants/[id]/send-interview-invitation",
           "request": {
             "method": "POST",
             "header": [
@@ -1386,12 +1386,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/send-interview-invitation",
+              "raw": "{{base_url}}/applicants/[id]/send-interview-invitation",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "send-interview-invitation"
               ]
@@ -1404,7 +1404,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/[id]/update-headcount",
+          "name": "POST /api/applicants/[id]/update-headcount",
           "request": {
             "method": "POST",
             "header": [
@@ -1420,12 +1420,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/[id]/update-headcount",
+              "raw": "{{base_url}}/applicants/[id]/update-headcount",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "[id]",
                 "update-headcount"
               ]
@@ -1438,7 +1438,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/bulk-action",
+          "name": "POST /api/applicants/bulk-action",
           "request": {
             "method": "POST",
             "header": [
@@ -1454,12 +1454,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/bulk-action",
+              "raw": "{{base_url}}/applicants/bulk-action",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "bulk-action"
               ]
             },
@@ -1471,7 +1471,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/bulk-action",
+          "name": "GET /api/applicants/bulk-action",
           "request": {
             "method": "GET",
             "header": [
@@ -1487,12 +1487,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/bulk-action",
+              "raw": "{{base_url}}/applicants/bulk-action",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "bulk-action"
               ]
             }
@@ -1500,7 +1500,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/debug-fit-scores",
+          "name": "GET /api/applicants/debug-fit-scores",
           "request": {
             "method": "GET",
             "header": [
@@ -1516,12 +1516,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/debug-fit-scores",
+              "raw": "{{base_url}}/applicants/debug-fit-scores",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "debug-fit-scores"
               ]
             }
@@ -1529,7 +1529,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/export",
+          "name": "GET /api/applicants/export",
           "request": {
             "method": "GET",
             "header": [
@@ -1545,12 +1545,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/export",
+              "raw": "{{base_url}}/applicants/export",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "export"
               ]
             }
@@ -1558,7 +1558,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/filters",
+          "name": "GET /api/applicants/filters",
           "request": {
             "method": "GET",
             "header": [
@@ -1574,12 +1574,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/filters",
+              "raw": "{{base_url}}/applicants/filters",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "filters"
               ]
             }
@@ -1587,7 +1587,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/fit-score-counts",
+          "name": "GET /api/applicants/fit-score-counts",
           "request": {
             "method": "GET",
             "header": [
@@ -1603,12 +1603,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/fit-score-counts",
+              "raw": "{{base_url}}/applicants/fit-score-counts",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "fit-score-counts"
               ]
             }
@@ -1616,7 +1616,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates/import",
+          "name": "POST /api/applicants/import",
           "request": {
             "method": "POST",
             "header": [
@@ -1632,12 +1632,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/import",
+              "raw": "{{base_url}}/applicants/import",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "import"
               ]
             },
@@ -1649,7 +1649,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/majors",
+          "name": "GET /api/applicants/majors",
           "request": {
             "method": "GET",
             "header": [
@@ -1665,12 +1665,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/majors",
+              "raw": "{{base_url}}/applicants/majors",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "majors"
               ]
             }
@@ -1678,7 +1678,7 @@
           "event": []
         },
         {
-          "name": "POST /api/candidates",
+          "name": "POST /api/applicants",
           "request": {
             "method": "POST",
             "header": [
@@ -1694,23 +1694,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates",
+              "raw": "{{base_url}}/applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates"
+                "applicants"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"candidate_info\": {\n    \"personal_info\": {\n      \"firstname\": \"John\",\n      \"lastname\": \"Doe\"\n    },\n    \"contact_info\": {\n      \"email\": \"john@example.com\"\n    }\n  }\n}"
+              "raw": "{\n  \"applicant_info\": {\n    \"personal_info\": {\n      \"firstname\": \"John\",\n      \"lastname\": \"Doe\"\n    },\n    \"contact_info\": {\n      \"email\": \"john@example.com\"\n    }\n  }\n}"
             }
           },
           "event": []
         },
         {
-          "name": "GET /api/candidates",
+          "name": "GET /api/applicants",
           "request": {
             "method": "GET",
             "header": [
@@ -1726,19 +1726,19 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates",
+              "raw": "{{base_url}}/applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates"
+                "applicants"
               ]
             }
           },
           "event": []
         },
         {
-          "name": "PATCH /api/candidates/simple-update",
+          "name": "PATCH /api/applicants/simple-update",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1754,12 +1754,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/simple-update",
+              "raw": "{{base_url}}/applicants/simple-update",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "simple-update"
               ]
             },
@@ -1771,7 +1771,7 @@
           "event": []
         },
         {
-          "name": "GET /api/candidates/universities",
+          "name": "GET /api/applicants/universities",
           "request": {
             "method": "GET",
             "header": [
@@ -1787,12 +1787,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/candidates/universities",
+              "raw": "{{base_url}}/applicants/universities",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "candidates",
+                "applicants",
                 "universities"
               ]
             }
@@ -5023,7 +5023,7 @@
       "name": "Sse",
       "item": [
         {
-          "name": "GET /api/sse/candidate-events",
+          "name": "GET /api/sse/applicant-events",
           "request": {
             "method": "GET",
             "header": [
@@ -5039,13 +5039,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/sse/candidate-events",
+              "raw": "{{base_url}}/sse/applicant-events",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "sse",
-                "candidate-events"
+                "applicant-events"
               ]
             }
           },
@@ -6223,7 +6223,7 @@
       "name": "V1/ai",
       "item": [
         {
-          "name": "POST /api/v1/ai/search-candidates",
+          "name": "POST /api/v1/ai/search-applicants",
           "request": {
             "method": "POST",
             "header": [
@@ -6239,14 +6239,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/ai/search-candidates",
+              "raw": "{{base_url}}/v1/ai/search-applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
                 "ai",
-                "search-candidates"
+                "search-applicants"
               ]
             },
             "body": {
@@ -6257,7 +6257,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/ai/search-candidates",
+          "name": "OPTIONS /api/v1/ai/search-applicants",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -6273,14 +6273,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/ai/search-candidates",
+              "raw": "{{base_url}}/v1/ai/search-applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
                 "ai",
-                "search-candidates"
+                "search-applicants"
               ]
             }
           },
@@ -6372,10 +6372,10 @@
       ]
     },
     {
-      "name": "V1/candidate-sources",
+      "name": "V1/applicant-sources",
       "item": [
         {
-          "name": "GET /api/v1/candidate-sources",
+          "name": "GET /api/v1/applicant-sources",
           "request": {
             "method": "GET",
             "header": [
@@ -6391,13 +6391,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidate-sources",
+              "raw": "{{base_url}}/v1/applicant-sources",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidate-sources"
+                "applicant-sources"
               ]
             }
           },
@@ -6406,10 +6406,10 @@
       ]
     },
     {
-      "name": "V1/candidates",
+      "name": "V1/applicants",
       "item": [
         {
-          "name": "POST /api/v1/candidates/bulk-action",
+          "name": "POST /api/v1/applicants/bulk-action",
           "request": {
             "method": "POST",
             "header": [
@@ -6425,13 +6425,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/bulk-action",
+              "raw": "{{base_url}}/v1/applicants/bulk-action",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "bulk-action"
               ]
             },
@@ -6443,7 +6443,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/bulk-action",
+          "name": "OPTIONS /api/v1/applicants/bulk-action",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -6459,13 +6459,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/bulk-action",
+              "raw": "{{base_url}}/v1/applicants/bulk-action",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "bulk-action"
               ]
             }
@@ -6473,7 +6473,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/bulk-upload-cv",
+          "name": "POST /api/v1/applicants/bulk-upload-cv",
           "request": {
             "method": "POST",
             "header": [
@@ -6489,13 +6489,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/bulk-upload-cv",
+              "raw": "{{base_url}}/v1/applicants/bulk-upload-cv",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "bulk-upload-cv"
               ]
             },
@@ -6507,7 +6507,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/clear-duplicates",
+          "name": "POST /api/v1/applicants/clear-duplicates",
           "request": {
             "method": "POST",
             "header": [
@@ -6523,13 +6523,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/clear-duplicates",
+              "raw": "{{base_url}}/v1/applicants/clear-duplicates",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "clear-duplicates"
               ]
             },
@@ -6541,7 +6541,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/export",
+          "name": "GET /api/v1/applicants/export",
           "request": {
             "method": "GET",
             "header": [
@@ -6557,13 +6557,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/export",
+              "raw": "{{base_url}}/v1/applicants/export",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "export"
               ]
             }
@@ -6571,7 +6571,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/export",
+          "name": "OPTIONS /api/v1/applicants/export",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -6587,13 +6587,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/export",
+              "raw": "{{base_url}}/v1/applicants/export",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "export"
               ]
             }
@@ -6601,7 +6601,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/import",
+          "name": "POST /api/v1/applicants/import",
           "request": {
             "method": "POST",
             "header": [
@@ -6617,13 +6617,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/import",
+              "raw": "{{base_url}}/v1/applicants/import",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "import"
               ]
             },
@@ -6635,7 +6635,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/import",
+          "name": "GET /api/v1/applicants/import",
           "request": {
             "method": "GET",
             "header": [
@@ -6651,13 +6651,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/import",
+              "raw": "{{base_url}}/v1/applicants/import",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "import"
               ]
             }
@@ -6665,7 +6665,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/import",
+          "name": "OPTIONS /api/v1/applicants/import",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -6681,13 +6681,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/import",
+              "raw": "{{base_url}}/v1/applicants/import",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "import"
               ]
             }
@@ -6695,7 +6695,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates",
+          "name": "POST /api/v1/applicants",
           "request": {
             "method": "POST",
             "header": [
@@ -6711,13 +6711,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates",
+              "raw": "{{base_url}}/v1/applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates"
+                "applicants"
               ]
             },
             "body": {
@@ -6728,7 +6728,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates",
+          "name": "GET /api/v1/applicants",
           "request": {
             "method": "GET",
             "header": [
@@ -6744,20 +6744,20 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates",
+              "raw": "{{base_url}}/v1/applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates"
+                "applicants"
               ]
             }
           },
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates",
+          "name": "OPTIONS /api/v1/applicants",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -6773,20 +6773,20 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates",
+              "raw": "{{base_url}}/v1/applicants",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates"
+                "applicants"
               ]
             }
           },
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/attachments",
+          "name": "GET /api/v1/applicants/[id]/attachments",
           "request": {
             "method": "GET",
             "header": [
@@ -6802,13 +6802,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/attachments",
+              "raw": "{{base_url}}/v1/applicants/[id]/attachments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "attachments"
               ]
@@ -6817,7 +6817,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/attachments",
+          "name": "POST /api/v1/applicants/[id]/attachments",
           "request": {
             "method": "POST",
             "header": [
@@ -6833,13 +6833,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/attachments",
+              "raw": "{{base_url}}/v1/applicants/[id]/attachments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "attachments"
               ]
@@ -6852,7 +6852,7 @@
           "event": []
         },
         {
-          "name": "PATCH /api/v1/candidates/[id]/attachments",
+          "name": "PATCH /api/v1/applicants/[id]/attachments",
           "request": {
             "method": "PATCH",
             "header": [
@@ -6868,13 +6868,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/attachments",
+              "raw": "{{base_url}}/v1/applicants/[id]/attachments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "attachments"
               ]
@@ -6887,7 +6887,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/attachments",
+          "name": "PUT /api/v1/applicants/[id]/attachments",
           "request": {
             "method": "PUT",
             "header": [
@@ -6903,13 +6903,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/attachments",
+              "raw": "{{base_url}}/v1/applicants/[id]/attachments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "attachments"
               ]
@@ -6922,7 +6922,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/attachments",
+          "name": "DELETE /api/v1/applicants/[id]/attachments",
           "request": {
             "method": "DELETE",
             "header": [
@@ -6938,13 +6938,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/attachments",
+              "raw": "{{base_url}}/v1/applicants/[id]/attachments",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "attachments"
               ]
@@ -6953,7 +6953,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/avatar",
+          "name": "POST /api/v1/applicants/[id]/avatar",
           "request": {
             "method": "POST",
             "header": [
@@ -6969,13 +6969,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/avatar",
+              "raw": "{{base_url}}/v1/applicants/[id]/avatar",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "avatar"
               ]
@@ -6988,7 +6988,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/avatar",
+          "name": "GET /api/v1/applicants/[id]/avatar",
           "request": {
             "method": "GET",
             "header": [
@@ -7004,13 +7004,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/avatar",
+              "raw": "{{base_url}}/v1/applicants/[id]/avatar",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "avatar"
               ]
@@ -7019,7 +7019,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/avatar",
+          "name": "OPTIONS /api/v1/applicants/[id]/avatar",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -7035,13 +7035,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/avatar",
+              "raw": "{{base_url}}/v1/applicants/[id]/avatar",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "avatar"
               ]
@@ -7050,7 +7050,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/evaluation",
+          "name": "GET /api/v1/applicants/[id]/evaluation",
           "request": {
             "method": "GET",
             "header": [
@@ -7066,13 +7066,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation"
               ]
@@ -7081,7 +7081,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/evaluation",
+          "name": "POST /api/v1/applicants/[id]/evaluation",
           "request": {
             "method": "POST",
             "header": [
@@ -7097,13 +7097,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation"
               ]
@@ -7116,7 +7116,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/evaluation/[evaluationId]",
+          "name": "GET /api/v1/applicants/[id]/evaluation/[evaluationId]",
           "request": {
             "method": "GET",
             "header": [
@@ -7132,13 +7132,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation/[evaluationId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation/[evaluationId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation",
                 "[evaluationId]"
@@ -7148,7 +7148,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/evaluation/[evaluationId]",
+          "name": "PUT /api/v1/applicants/[id]/evaluation/[evaluationId]",
           "request": {
             "method": "PUT",
             "header": [
@@ -7164,13 +7164,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation/[evaluationId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation/[evaluationId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation",
                 "[evaluationId]"
@@ -7184,7 +7184,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/evaluation/[evaluationId]",
+          "name": "DELETE /api/v1/applicants/[id]/evaluation/[evaluationId]",
           "request": {
             "method": "DELETE",
             "header": [
@@ -7200,13 +7200,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation/[evaluationId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation/[evaluationId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation",
                 "[evaluationId]"
@@ -7216,7 +7216,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/evaluation-link",
+          "name": "GET /api/v1/applicants/[id]/evaluation-link",
           "request": {
             "method": "GET",
             "header": [
@@ -7232,13 +7232,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation-link",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation-link",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation-link"
               ]
@@ -7247,7 +7247,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/evaluation-link",
+          "name": "POST /api/v1/applicants/[id]/evaluation-link",
           "request": {
             "method": "POST",
             "header": [
@@ -7263,13 +7263,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation-link",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation-link",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation-link"
               ]
@@ -7282,7 +7282,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/evaluation-link",
+          "name": "DELETE /api/v1/applicants/[id]/evaluation-link",
           "request": {
             "method": "DELETE",
             "header": [
@@ -7298,13 +7298,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation-link",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation-link",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation-link"
               ]
@@ -7313,7 +7313,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/evaluation-link",
+          "name": "PUT /api/v1/applicants/[id]/evaluation-link",
           "request": {
             "method": "PUT",
             "header": [
@@ -7329,13 +7329,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluation-link",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluation-link",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluation-link"
               ]
@@ -7348,7 +7348,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/evaluations",
+          "name": "GET /api/v1/applicants/[id]/evaluations",
           "request": {
             "method": "GET",
             "header": [
@@ -7364,13 +7364,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/evaluations",
+              "raw": "{{base_url}}/v1/applicants/[id]/evaluations",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "evaluations"
               ]
@@ -7379,7 +7379,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/job-applied",
+          "name": "GET /api/v1/applicants/[id]/job-applied",
           "request": {
             "method": "GET",
             "header": [
@@ -7395,13 +7395,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-applied",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-applied",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-applied"
               ]
@@ -7410,7 +7410,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/job-applied",
+          "name": "POST /api/v1/applicants/[id]/job-applied",
           "request": {
             "method": "POST",
             "header": [
@@ -7426,13 +7426,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-applied",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-applied",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-applied"
               ]
@@ -7445,7 +7445,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/job-applied",
+          "name": "PUT /api/v1/applicants/[id]/job-applied",
           "request": {
             "method": "PUT",
             "header": [
@@ -7461,13 +7461,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-applied",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-applied",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-applied"
               ]
@@ -7480,7 +7480,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/job-applied",
+          "name": "DELETE /api/v1/applicants/[id]/job-applied",
           "request": {
             "method": "DELETE",
             "header": [
@@ -7496,13 +7496,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-applied",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-applied",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-applied"
               ]
@@ -7511,7 +7511,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/job-applied",
+          "name": "OPTIONS /api/v1/applicants/[id]/job-applied",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -7527,13 +7527,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-applied",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-applied",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-applied"
               ]
@@ -7542,7 +7542,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/job-matches/add",
+          "name": "POST /api/v1/applicants/[id]/job-matches/add",
           "request": {
             "method": "POST",
             "header": [
@@ -7558,13 +7558,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/add",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/add",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "add"
@@ -7578,7 +7578,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/job-matches/add",
+          "name": "OPTIONS /api/v1/applicants/[id]/job-matches/add",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -7594,13 +7594,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/add",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/add",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "add"
@@ -7610,7 +7610,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/job-matches",
+          "name": "GET /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "GET",
             "header": [
@@ -7626,13 +7626,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7641,7 +7641,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/job-matches",
+          "name": "POST /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "POST",
             "header": [
@@ -7657,13 +7657,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7676,7 +7676,7 @@
           "event": []
         },
         {
-          "name": "PATCH /api/v1/candidates/[id]/job-matches",
+          "name": "PATCH /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "PATCH",
             "header": [
@@ -7692,13 +7692,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7711,7 +7711,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/job-matches",
+          "name": "PUT /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "PUT",
             "header": [
@@ -7727,13 +7727,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7746,7 +7746,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/job-matches",
+          "name": "DELETE /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "DELETE",
             "header": [
@@ -7762,13 +7762,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7777,7 +7777,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/job-matches",
+          "name": "OPTIONS /api/v1/applicants/[id]/job-matches",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -7793,13 +7793,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches"
               ]
@@ -7808,7 +7808,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/job-matches/[matchId]",
+          "name": "GET /api/v1/applicants/[id]/job-matches/[matchId]",
           "request": {
             "method": "GET",
             "header": [
@@ -7824,13 +7824,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/[matchId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/[matchId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "[matchId]"
@@ -7840,7 +7840,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/job-matches/[matchId]",
+          "name": "PUT /api/v1/applicants/[id]/job-matches/[matchId]",
           "request": {
             "method": "PUT",
             "header": [
@@ -7856,13 +7856,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/[matchId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/[matchId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "[matchId]"
@@ -7876,7 +7876,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/job-matches/[matchId]",
+          "name": "DELETE /api/v1/applicants/[id]/job-matches/[matchId]",
           "request": {
             "method": "DELETE",
             "header": [
@@ -7892,13 +7892,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/[matchId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/[matchId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "[matchId]"
@@ -7908,7 +7908,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/job-matches/[matchId]",
+          "name": "OPTIONS /api/v1/applicants/[id]/job-matches/[matchId]",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -7924,13 +7924,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/job-matches/[matchId]",
+              "raw": "{{base_url}}/v1/applicants/[id]/job-matches/[matchId]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "job-matches",
                 "[matchId]"
@@ -7940,7 +7940,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/recruiter",
+          "name": "GET /api/v1/applicants/[id]/recruiter",
           "request": {
             "method": "GET",
             "header": [
@@ -7956,13 +7956,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/recruiter",
+              "raw": "{{base_url}}/v1/applicants/[id]/recruiter",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "recruiter"
               ]
@@ -7971,7 +7971,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/recruiter",
+          "name": "PUT /api/v1/applicants/[id]/recruiter",
           "request": {
             "method": "PUT",
             "header": [
@@ -7987,13 +7987,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/recruiter",
+              "raw": "{{base_url}}/v1/applicants/[id]/recruiter",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "recruiter"
               ]
@@ -8006,7 +8006,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/recruiter",
+          "name": "DELETE /api/v1/applicants/[id]/recruiter",
           "request": {
             "method": "DELETE",
             "header": [
@@ -8022,13 +8022,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/recruiter",
+              "raw": "{{base_url}}/v1/applicants/[id]/recruiter",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "recruiter"
               ]
@@ -8037,7 +8037,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/recruiter",
+          "name": "OPTIONS /api/v1/applicants/[id]/recruiter",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -8053,13 +8053,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/recruiter",
+              "raw": "{{base_url}}/v1/applicants/[id]/recruiter",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "recruiter"
               ]
@@ -8068,7 +8068,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/resumes",
+          "name": "GET /api/v1/applicants/[id]/resumes",
           "request": {
             "method": "GET",
             "header": [
@@ -8084,13 +8084,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/resumes",
+              "raw": "{{base_url}}/v1/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -8099,7 +8099,7 @@
           "event": []
         },
         {
-          "name": "POST /api/v1/candidates/[id]/resumes",
+          "name": "POST /api/v1/applicants/[id]/resumes",
           "request": {
             "method": "POST",
             "header": [
@@ -8115,13 +8115,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/resumes",
+              "raw": "{{base_url}}/v1/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -8134,7 +8134,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/resumes",
+          "name": "PUT /api/v1/applicants/[id]/resumes",
           "request": {
             "method": "PUT",
             "header": [
@@ -8150,13 +8150,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/resumes",
+              "raw": "{{base_url}}/v1/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -8169,7 +8169,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]/resumes",
+          "name": "DELETE /api/v1/applicants/[id]/resumes",
           "request": {
             "method": "DELETE",
             "header": [
@@ -8185,13 +8185,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/resumes",
+              "raw": "{{base_url}}/v1/applicants/[id]/resumes",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "resumes"
               ]
@@ -8200,7 +8200,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]",
+          "name": "GET /api/v1/applicants/[id]",
           "request": {
             "method": "GET",
             "header": [
@@ -8216,13 +8216,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]",
+              "raw": "{{base_url}}/v1/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -8230,7 +8230,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]",
+          "name": "PUT /api/v1/applicants/[id]",
           "request": {
             "method": "PUT",
             "header": [
@@ -8246,13 +8246,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]",
+              "raw": "{{base_url}}/v1/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             },
@@ -8264,7 +8264,7 @@
           "event": []
         },
         {
-          "name": "DELETE /api/v1/candidates/[id]",
+          "name": "DELETE /api/v1/applicants/[id]",
           "request": {
             "method": "DELETE",
             "header": [
@@ -8280,13 +8280,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]",
+              "raw": "{{base_url}}/v1/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -8294,7 +8294,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]",
+          "name": "OPTIONS /api/v1/applicants/[id]",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -8310,13 +8310,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]",
+              "raw": "{{base_url}}/v1/applicants/[id]",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]"
               ]
             }
@@ -8324,7 +8324,7 @@
           "event": []
         },
         {
-          "name": "GET /api/v1/candidates/[id]/source",
+          "name": "GET /api/v1/applicants/[id]/source",
           "request": {
             "method": "GET",
             "header": [
@@ -8340,13 +8340,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/source",
+              "raw": "{{base_url}}/v1/applicants/[id]/source",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "source"
               ]
@@ -8355,7 +8355,7 @@
           "event": []
         },
         {
-          "name": "PUT /api/v1/candidates/[id]/source",
+          "name": "PUT /api/v1/applicants/[id]/source",
           "request": {
             "method": "PUT",
             "header": [
@@ -8371,13 +8371,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/source",
+              "raw": "{{base_url}}/v1/applicants/[id]/source",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "source"
               ]
@@ -8390,7 +8390,7 @@
           "event": []
         },
         {
-          "name": "OPTIONS /api/v1/candidates/[id]/source",
+          "name": "OPTIONS /api/v1/applicants/[id]/source",
           "request": {
             "method": "OPTIONS",
             "header": [
@@ -8406,13 +8406,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/v1/candidates/[id]/source",
+              "raw": "{{base_url}}/v1/applicants/[id]/source",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "v1",
-                "candidates",
+                "applicants",
                 "[id]",
                 "source"
               ]

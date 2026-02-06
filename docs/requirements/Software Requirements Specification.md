@@ -50,26 +50,26 @@ The system follows a modular monolithic pattern.
     *   **AUTH-004 (Session Guard)**: Middleware MUST intercept all `/app/*` and `/api/*` routes. Unauthenticated requests MUST be redirected to `/auth/signin`.
     *   **AUTH-005 (Two-Factor Auth)**: System MUST support TOTP generation using `otplib`. When `User.twoFactorEnabled` is true, login flow MUST require a valid token before issuing session cookie.
 
-### 3.2 Module: Candidate Management (CAND)
-* **Objective**: CRUD operations for applicants/candidates.
-* **Component Owner**: `src/components/candidates/*`
+### 3.2 Module: applicant Management (CAND)
+* **Objective**: CRUD operations for applicants/applicants.
+* **Component Owner**: `src/components/applicants/*`
 * **Requirements**:
-    *   **CAND-001 (List View)**: The Candidate Table (`CandidateTable.tsx`) MUST support server-side pagination (limit=20 default), sorting by `updatedAt`, and filtering by `statusId`.
-    *   **CAND-002 (Fit Score Filtering)**: Users MUST be able to filter candidates by a numerical range (0-100) on the `fitScore` field.
+    *   **CAND-001 (List View)**: The applicant Table (`applicantTable.tsx`) MUST support server-side pagination (limit=20 default), sorting by `updatedAt`, and filtering by `statusId`.
+    *   **CAND-002 (Fit Score Filtering)**: Users MUST be able to filter applicants by a numerical range (0-100) on the `fitScore` field.
     *   **CAND-003 (Resume Parsing)**:
-        *   **Input**: PDF/DOCX file via `POST /api/v1/candidates/upload`.
+        *   **Input**: PDF/DOCX file via `POST /api/v1/applicants/upload`.
         *   **Process**: File uploaded to MinIO -> Text Extracted -> Sent to GenAI with "Extraction Prompt".
-        *   **Output**: Structured JSON (`parsedData`) saved to `Candidate` record.
+        *   **Output**: Structured JSON (`parsedData`) saved to `applicant` record.
     *   **CAND-004 (Duplicate Check)**: Before creation, system MUST query for existing `email` or `phone`. If found, it MUST return a `409 Conflict` (or warning flag depending on config).
     *   **CAND-005 (Bulk Upload)**: 
         *   **UI**: `BulkUploadCVsModal.tsx` MUST accept ZIP files or multiple selections.
         *   **Backend**: Files MUST be added to `UploadQueue` table with status `PENDING`.
         *   **Processing**: Background worker MUST process queue items sequentially to prevent Rate Limit exhaustion.
-    *   **CAND-006 (Kanban Board)**: The `CandidateKanban` component MUST use `@dnd-kit/core` for drag-and-drop. Stage changes MUST update `TransitionRecord` and `Candidate.statusId` transactionally.
+    *   **CAND-006 (Kanban Board)**: The `applicantKanban` component MUST use `@dnd-kit/core` for drag-and-drop. Stage changes MUST update `TransitionRecord` and `applicant.statusId` transactionally.
 
 ### 3.3 Module: Evaluation & Scoring (EVAL)
 * **Objective**: Standardized interviewing process.
-* **Component Owner**: `src/app/candidates/[id]/evaluate/*`
+* **Component Owner**: `src/app/applicants/[id]/evaluate/*`
 * **Requirements**:
     *   **EVAL-001 (Configurable Criteria)**: Scorecards MUST be dynamically generated based on the `Position`'s associated `ExpertiseSkill` and `PersonalityTrait` configurations.
     *   **EVAL-002 (Real-time Sync)**:
@@ -77,21 +77,21 @@ The system follows a modular monolithic pattern.
         *   **Action**: `POST /api/v1/evaluations` triggers an event to the `evaluation-updates` SSE channel.
         *   **Reaction**: User B's client subscribes to channel and auto-updates the UI state.
     *   **EVAL-003 (Waiting Room)**: The `EvaluationWaitingPage` MUST poll or listen for completion status of all assigned interviewers and display a "2/3 Completed" status indicator.
-    *   **EVAL-004 (External Access)**: The middleware MUST whitelist `GET /candidates/*/evaluate` if a valid `?token=` parameter is present, allowing non-authenticated Guest Interviewers to access specific sessions.
+    *   **EVAL-004 (External Access)**: The middleware MUST whitelist `GET /applicants/*/evaluate` if a valid `?token=` parameter is present, allowing non-authenticated Guest Interviewers to access specific sessions.
 
 ### 3.4 Module: Position Management (POS)
 * **Objective**: Requisition tracking.
 * **Component Owner**: `src/components/positions/*`
 * **Requirements**:
-    *   **POS-001 (Headcount Tracking)**: The `Headcount` table MUST track individual slots. The system MUST NOT allow hiring a candidate if valid `vacant` slots are 0 (unless override authorized).
+    *   **POS-001 (Headcount Tracking)**: The `Headcount` table MUST track individual slots. The system MUST NOT allow hiring a applicant if valid `vacant` slots are 0 (unless override authorized).
     *   **POS-002 (SLA Monitoring)**: System MUST compare `createdAt` vs `filledAt` against the defined `Grade.slaDays` to calculate "Time to Fill" performance.
 
 ### 3.5 Module: System Configuration (SYS)
 * **Objective**: Admin capabilities.
 * **Component Owner**: `src/components/settings/*`
 * **Requirements**:
-    *   **SYS-001 (Custom Fields)**: System MUST support schema-less extension via `CustomFieldDefinition` table. These fields MUST be rendered dynamically on Candidate/Position forms.
-    *   **SYS-002 (Audit Logging)**: All write operations (POST/PUT/DELETE) on core entities (Candidate, Position) MUST write a record to `AuditLog` table with `userId`, `timestamp`, `actionType`, and `diff`.
+    *   **SYS-001 (Custom Fields)**: System MUST support schema-less extension via `CustomFieldDefinition` table. These fields MUST be rendered dynamically on applicant/Position forms.
+    *   **SYS-002 (Audit Logging)**: All write operations (POST/PUT/DELETE) on core entities (applicant, Position) MUST write a record to `AuditLog` table with `userId`, `timestamp`, `actionType`, and `diff`.
     *   **SYS-003 (Webhook Resilience)**: The `WebhookDispatcher` MUST implement exponential backoff for failed requests. Timeouts MUST be configurable via `WEBHOOK_CONNECTION_TIMEOUT`.
     *   **SYS-004 (Data Export)**: `GET /api/v1/export/*` endpoints MUST stream Excel files using `exceljs` to avoid high memory consumption.
 
@@ -132,9 +132,9 @@ The system follows a modular monolithic pattern.
 
 ### 5.1 Access Control (RBAC)
 *   **Super Admin**: Full access to all modules and settings.
-*   **Recruiter**: Read/Write on Candidates/Positions. No access to System Settings.
-    *   *Constraint*: Can only edit Candidates they "Own" (assigned to) unless `CANDIDATES_EDIT_..._ALL` permission is granted.
-*   **Hiring Manager**: Read-Only on Candidates (unless assigned), Read/Write on assigned Positions.
+*   **Recruiter**: Read/Write on applicants/Positions. No access to System Settings.
+    *   *Constraint*: Can only edit applicants they "Own" (assigned to) unless `applicantS_EDIT_..._ALL` permission is granted.
+*   **Hiring Manager**: Read-Only on applicants (unless assigned), Read/Write on assigned Positions.
 *   **Interviewer**: Write access ONLY to specific Evaluation sessions assigned to them.
 
 ### 5.2 Data Protection

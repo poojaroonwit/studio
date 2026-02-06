@@ -8,7 +8,7 @@ export const transitionsPaths = {
       tags: ['V1 Transitions'],
       security: [{ bearerAuth: [] }],
       parameters: [
-        { name: 'candidateId', in: 'query', description: 'Filter by Applicant ID', schema: { type: 'string' } },
+        { name: 'applicantId', in: 'query', description: 'Filter by Applicant ID', schema: { type: 'string' } },
         { name: 'fromStage', in: 'query', description: 'Filter by from stage', schema: { type: 'string' } },
         { name: 'toStage', in: 'query', description: 'Filter by to stage', schema: { type: 'string' } },
         { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 20 } },
@@ -44,13 +44,13 @@ export const transitionsPaths = {
             schema: {
               type: 'object',
               properties: {
-                candidateId: { type: 'string' },
+                applicantId: { type: 'string' },
                 fromStage: { type: 'string', nullable: true },
                 toStage: { type: 'string' },
                 notes: { type: 'string', nullable: true },
                 transitionDate: { type: 'string', format: 'date-time' }
               },
-              required: ['candidateId', 'toStage']
+              required: ['applicantId', 'toStage']
             }
           }
         }

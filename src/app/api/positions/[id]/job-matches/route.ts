@@ -145,8 +145,8 @@ export async function GET(
           jm.id as "jobMatchId",
           COALESCE(th_data.history, '[]'::json) as "transitionHistory",
           COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-        FROM "Candidate" c
-        INNER JOIN "JobMatch" jm ON c.id = jm."candidateId"
+        FROM "applicant" c
+        INNER JOIN "JobMatch" jm ON c.id = jm."applicantId"
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -157,7 +157,7 @@ export async function GET(
             ) ORDER BY th.date DESC
           ) AS history
           FROM "TransitionRecord" th
-          WHERE th."candidateId" = c.id
+          WHERE th."applicantId" = c.id
         ) AS th_data ON true
         LEFT JOIN LATERAL (
           SELECT json_agg(
@@ -168,7 +168,7 @@ export async function GET(
             ) ORDER BY jm2."fitScore" DESC
           ) AS jobMatches
           FROM "JobMatch" jm2
-          WHERE jm2."candidateId" = c.id
+          WHERE jm2."applicantId" = c.id
         ) AS jm_data ON true
         WHERE ${whereClause}
         ORDER BY ${sortClause}
@@ -178,8 +178,8 @@ export async function GET(
       // Count query for total
       const countQuery = `
         SELECT COUNT(DISTINCT c.id) as total
-        FROM "Candidate" c
-        INNER JOIN "JobMatch" jm ON c.id = jm."candidateId"
+        FROM "applicant" c
+        INNER JOIN "JobMatch" jm ON c.id = jm."applicantId"
         WHERE ${whereClause};
       `;
 

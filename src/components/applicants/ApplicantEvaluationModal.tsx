@@ -99,7 +99,7 @@ export function ApplicantEvaluationModal({
     fileName: string;
     url: string;
     filePath?: string;
-    candidateId?: string;
+    applicantId?: string;
     label?: string;
     updatedAt?: string;
     fileSize?: number | string;
@@ -464,7 +464,7 @@ export function ApplicantEvaluationModal({
                               fileName: att.fileName,
                               url: att.url,
                               filePath: att.filePath,
-                              candidateId: applicant.id,
+                              applicantId: applicant.id,
                               label: att.label,
                               updatedAt: att.updatedAt,
                               fileSize: att.fileSize

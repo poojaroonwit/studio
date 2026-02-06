@@ -80,9 +80,10 @@ export async function GET(request: NextRequest) {
     // Check if this is a settings/logo image that should be accessible to all authenticated users
     const url = new URL(request.url);
     const filePath = url.searchParams.get('filePath') || '';
+    const applicantIdParam = url.searchParams.get('applicantId');
     const isSettingsImage = filePath.startsWith('settings/') ||
       filePath.startsWith('Applicant-source-logo/') ||
-      (filePath.startsWith('profile-images/') && !url.searchParams.get('candidateId'));
+      (filePath.startsWith('profile-images/') && !applicantIdParam);
 
     // For settings images, allow any authenticated user
     // For other images, require view permissions
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const filePath = url.searchParams.get('filePath') || '';
   const fileName = url.searchParams.get('fileName') || undefined;
-  const candidateId = url.searchParams.get('candidateId');
+  const applicantId = url.searchParams.get('applicantId');
   const headcountId = url.searchParams.get('headcountId');
   const thumbnail = url.searchParams.get('thumbnail') === 'true';
   const width = url.searchParams.get('width') ? parseInt(url.searchParams.get('width') || '0', 10) : null;
@@ -123,17 +124,17 @@ export async function GET(request: NextRequest) {
   // Re-check if this is a settings image (already checked above, but need it here for contextual auth)
   const isSettingsImage = filePath.startsWith('settings/') ||
     filePath.startsWith('Applicant-source-logo/') ||
-    (filePath.startsWith('profile-images/') && !candidateId);
+    (filePath.startsWith('profile-images/') && !applicantId);
 
   // Skip contextual authorization for settings images - they're public to all authenticated users
   if (!isSettingsImage) {
-    // Contextual authorization for Applicant/headcount specific files
-    try {
-      if (candidateId) {
-        const applicant = await prisma.candidate.findUnique({
-          where: { id: candidateId },
-          select: { id: true, recruiterId: true }
-        });
+      // Contextual authorization for Applicant/headcount specific files
+      try {
+        if (applicantId) {
+          const applicant = await prisma.applicant.findUnique({
+            where: { id: applicantId },
+            select: { id: true, recruiterId: true }
+          });
         if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
         const hasGlobalEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') ||
           session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE');
@@ -189,7 +190,7 @@ export async function GET(request: NextRequest) {
       objectName,
       bucket: MINIO_BUCKET,
       filePath,
-      candidateId: candidateId || 'none',
+      applicantId: applicantId || 'none',
       headcountId: headcountId || 'none',
       thumbnail,
       requestedBy: session.user.id
@@ -312,7 +313,7 @@ export async function GET(request: NextRequest) {
       objectName,
       bucket: MINIO_BUCKET,
       filePath,
-      candidateId: candidateId || 'none',
+      applicantId: applicantId || 'none',
       headcountId: headcountId || 'none',
       requestedBy: session?.user?.id || 'unknown',
       fullError: err

@@ -10,7 +10,7 @@ interface LoadingMonitorProps {
   isLoading: boolean;
   error: string | null;
   startTime?: number;
-  candidateId?: string;
+  applicantId?: string;
   onRetry?: () => void;
 }
 
@@ -18,7 +18,7 @@ export const LoadingMonitor: React.FC<LoadingMonitorProps> = ({
   isLoading,
   error,
   startTime,
-  candidateId,
+  applicantId,
   onRetry
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -58,9 +58,9 @@ export const LoadingMonitor: React.FC<LoadingMonitorProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {candidateId && (
+        {applicantId && (
           <div className="text-xs text-muted-foreground">
-            Applicant ID: <code className="bg-muted px-1 rounded">{candidateId}</code>
+            Applicant ID: <code className="bg-muted px-1 rounded">{applicantId}</code>
           </div>
         )}
         

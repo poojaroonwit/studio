@@ -22,14 +22,14 @@ This document specifies the RESTful API endpoints for the FitScan application. I
 |:---|:---|:---|:---|:---|:---|
 | **Auth** | `POST` | `/auth/login` | Authenticate user & get token | JSON | `AuthResponse` |
 | **Auth** | `GET` | `/auth/session` | Get current session info | None | `UserSession` |
-| **Cand** | `GET` | `/candidates` | List candidates with filters | Query Params | `Paginated<Candidate>` |
-| **Cand** | `POST` | `/candidates` | Create manual candidate | JSON | `Candidate` |
-| **Cand** | `GET` | `/candidates/[id]` | Get detailed profile | Path Param | `CandidateDetail` |
-| **Cand** | `POST` | `/candidates/upload` | Upload & Parse Resume | Multipart/Form-Data | `UploadResult` |
+| **Cand** | `GET` | `/applicants` | List applicants with filters | Query Params | `Paginated<applicant>` |
+| **Cand** | `POST` | `/applicants` | Create manual applicant | JSON | `applicant` |
+| **Cand** | `GET` | `/applicants/[id]` | Get detailed profile | Path Param | `applicantDetail` |
+| **Cand** | `POST` | `/applicants/upload` | Upload & Parse Resume | Multipart/Form-Data | `UploadResult` |
 | **Pos** | `GET` | `/positions` | List job requisitions | Query Params | `Paginated<Position>` |
 | **Pos** | `POST` | `/positions` | Create new position | JSON | `Position` |
 | **Pos** | `POST` | `/positions/[id]/headcount` | Add headcount slot | JSON | `Headcount` |
-| **Eval** | `GET` | `/candidates/[id]/evaluations` | Get past evaluations | Path Param | `EvaluationHistory` |
+| **Eval** | `GET` | `/applicants/[id]/evaluations` | Get past evaluations | Path Param | `EvaluationHistory` |
 | **Eval** | `POST` | `/evaluations` | Submit interview scorecard | JSON | `EvaluationResult` |
 | **Task** | `GET` | `/tasks` | Get recruiter tasks | None | `TaskList` |
 | **Set** | `GET` | `/settings/custom-fields` | Get query schema | None | `CustomFieldSchema` |
@@ -38,10 +38,10 @@ This document specifies the RESTful API endpoints for the FitScan application. I
 
 ## 3. Detailed Endpoint Specifications
 
-### 3.1 Candidate Management
+### 3.1 applicant Management
 
-#### 3.1.1 List Candidates
-*   **Endpoint**: `GET /candidates`
+#### 3.1.1 List applicants
+*   **Endpoint**: `GET /applicants`
 *   **Logic**:
     1.  Parse query params: `page`, `limit`, `search` (name/email), `fitScoreMin`, `fitScoreMax`.
     2.  Build Prisma `where` clause.
@@ -51,7 +51,7 @@ This document specifies the RESTful API endpoints for the FitScan application. I
     |:---|:---|:---|:---|
     | `page` | Int | No | Page number (default 1) |
     | `search` | String | No | Partial match on Name or Email |
-    | `fitScoreMin` | Int | No | Filter candidates with score >= X |
+    | `fitScoreMin` | Int | No | Filter applicants with score >= X |
 *   **Response (JSON)**:
     ```json
     {
@@ -68,13 +68,13 @@ This document specifies the RESTful API endpoints for the FitScan application. I
     ```
 
 #### 3.1.2 Upload & Parse Resume (Extraction Logic)
-*   **Endpoint**: `POST /candidates/upload`
+*   **Endpoint**: `POST /applicants/upload`
 *   **Logic (Extraction)**:
     1.  **Upload**: File is streamed to MinIO storage.
     2.  **Parsing**: File path sent to `PDFParser` service.
     3.  **Extraction**: Text content extracted and passed to **GenAI**.
     4.  **Structuring**: AI converts text to JSON (`ParsedData`: Skills, Education, Experience).
-    5.  **Save**: New `Candidate` record created with `parsedData`.
+    5.  **Save**: New `applicant` record created with `parsedData`.
 *   **Input Body**: `Multipart/Form-Data`
     | Field | Type | Description |
     |:---|:---|:---|
@@ -82,7 +82,7 @@ This document specifies the RESTful API endpoints for the FitScan application. I
     | `positionId` | UUID | Optional job to apply to |
 *   **Database Interactions**:
     *   `INSERT INTO "Attachment"` (Resume file ref)
-    *   `INSERT INTO "Candidate"` (Profile data)
+    *   `INSERT INTO "applicant"` (Profile data)
     *   `INSERT INTO "UploadQueue"` (Track processing status)
 
 ---
@@ -115,23 +115,23 @@ This document specifies the RESTful API endpoints for the FitScan application. I
 *   **Input Body**:
     ```json
     {
-      "candidateId": "uuid",
+      "applicantId": "uuid",
       "positionId": "uuid",
       "skills": [
         { "skillId": "uuid", "score": 4, "note": "Good answers" }
       ],
-      "comments": "Strong candidate"
+      "comments": "Strong applicant"
     }
     ```
 *   **Database Interactions**:
-    *   `INSERT INTO "CandidateEvaluation"`
-    *   `INSERT INTO "CandidateExpertiseScore"` (Batch)
+    *   `INSERT INTO "applicantEvaluation"`
+    *   `INSERT INTO "applicantExpertiseScore"` (Batch)
 
 ---
 
 ## 4. Database Schema Reference (Prisma Models)
 
-### 4.1 Candidate
+### 4.1 applicant
 | Field | Type | Description |
 |:---|:---|:---|
 | `id` | UUID | PK |
@@ -146,7 +146,7 @@ This document specifies the RESTful API endpoints for the FitScan application. I
 | `matchCriteria` | String | HTML/Text for AI matching logic |
 | `interviewers` | Relation | M:N relation with `User` |
 
-### 4.3 CandidateEvaluation
+### 4.3 applicantEvaluation
 | Field | Type | Description |
 |:---|:---|:---|
 | `overallScore` | Float | Aggregated score |

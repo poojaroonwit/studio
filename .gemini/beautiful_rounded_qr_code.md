@@ -206,7 +206,7 @@ This double-rounding ensures smooth corners both visually and functionally.
 You could enhance this further with:
 - **Brand Colors**: Use your app's theme colors in gradient
 - **Dark Mode**: Different gradient for dark theme
-- **Dynamic Colors**: Based on candidate status/role
+- **Dynamic Colors**: Based on applicant status/role
 - **Animated Gradient**: Subtle shimmer effect
 
 Example:

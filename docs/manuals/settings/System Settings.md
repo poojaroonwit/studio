@@ -13,9 +13,9 @@
 
 ## 1. Feature Toggles (Modular Logic)
 Activate or deactivate entire segments of the app without code changes:
-- **AI Matching**: Connect or disconnect the Google Gemini engine for candidate scoring.
+- **AI Matching**: Connect or disconnect the Google Gemini engine for applicant scoring.
 - **Basic Auth**: Allow or block fallback login methods (email/password) alongside SSO.
-- **Recruiter Sync**: Automate the assignment of incoming candidates to the correct recruitment owner.
+- **Recruiter Sync**: Automate the assignment of incoming applicants to the correct recruitment owner.
 
 ## 2. Branding (Identity Work)
 Make the platform feel like home:
@@ -38,9 +38,9 @@ Manage outgoing communication standards.
 Advanced logic controls for the recruiting engine.
 
 ### 4.1 Recruiter Assignment Sync
-Ensure every candidate has an owner.
-*   **Automatic**: When a candidate applies to a Position, they are auto-assigned to that Position's recruiter.
-*   **Manual Sync**: Use the **"Sync All"** button in **Settings > Recruiter Sync** to retroactively fix unassigned candidates (e.g., after bulk imports).
+Ensure every applicant has an owner.
+*   **Automatic**: When a applicant applies to a Position, they are auto-assigned to that Position's recruiter.
+*   **Manual Sync**: Use the **"Sync All"** button in **Settings > Recruiter Sync** to retroactively fix unassigned applicants (e.g., after bulk imports).
 
 ### 4.2 AI API Keys
 Manage the connection to Google Gemini.
@@ -50,12 +50,12 @@ Manage the connection to Google Gemini.
 ## 5. Webhooks & Integrations
 Connect FitScan to your wider ecosystem.
 *   **Location**: **Settings > Webhooks**.
-*   **Create Webhook**: Define a URL endpoint (e.g., Slack or Zapier) to receive JSON payloads when events occur (e.g., `Candidate Hired`, `Application Received`).
+*   **Create Webhook**: Define a URL endpoint (e.g., Slack or Zapier) to receive JSON payloads when events occur (e.g., `applicant Hired`, `Application Received`).
 *   **Logs**: View a history of delivery attempts and response codes for debugging.
 
 ## 6. Automation Rules
 Keep your database clean automatically.
-*   **Auto-Close**: Configure rules to automatically close positions or reject candidates after a set period of inactivity (e.g., "Reject candidates in 'New' status after 60 days").
+*   **Auto-Close**: Configure rules to automatically close positions or reject applicants after a set period of inactivity (e.g., "Reject applicants in 'New' status after 60 days").
 
 ## 7. Team Management
 Organize users into functional groups.

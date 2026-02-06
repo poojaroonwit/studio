@@ -12,7 +12,7 @@ src/swagger/
 ├── schemas.ts         # All data models and schemas
 └── paths/             # API endpoint definitions organized by feature
     ├── auth.ts        # Authentication endpoints
-    ├── candidates.ts  # Candidate management endpoints
+    ├── applicants.ts  # applicant management endpoints
     ├── positions.ts   # Position management endpoints
     ├── users.ts       # User management endpoints
     ├── notifications.ts # Notification endpoints
@@ -46,7 +46,7 @@ const spec = getSwaggerSpec();
 
 ## Adding New Endpoints
 
-1. Identify the appropriate path module (e.g., `candidates.ts` for candidate-related endpoints)
+1. Identify the appropriate path module (e.g., `applicants.ts` for applicant-related endpoints)
 2. Add the endpoint definition to the existing paths object
 3. Import and include the path module in `index.ts` if it's a new module
 
@@ -56,7 +56,7 @@ When referencing schemas in path definitions, use the `$ref` syntax:
 
 ```typescript
 {
-  schema: { $ref: '#/components/schemas/Candidate' }
+  schema: { $ref: '#/components/schemas/applicant' }
 }
 ```
 

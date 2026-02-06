@@ -19,7 +19,7 @@ import { getScoreRangesForChart } from "@/lib/scoreUtils";
 import { useRouter } from 'next/navigation';
 
 interface ApplicantScoreDistributionChartProps {
-  Applicants: Applicant[];
+  applicants: Applicant[];
   initialData?: { label: string; count: number }[];
   isLoading?: boolean;
   dynamicHeight?: number;
@@ -44,7 +44,7 @@ const PERIOD_UNITS = [
   { label: 'Year(s)', value: 'year' },
 ];
 
-export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoading = false, dynamicHeight }: ApplicantScoreDistributionChartProps) {
+export function ApplicantScoreDistributionChart({ applicants, initialData, isLoading = false, dynamicHeight }: ApplicantScoreDistributionChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
   const router = useRouter();
@@ -159,20 +159,20 @@ export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoa
     return { startDate: start, endDate: end };
   }, [periodType, periodUnit, periodN, dateRange]);
 
-  // Filter Applicants based on the selected time period
+  // Filter applicants based on the selected time period
   const filteredApplicants = useMemo(() => {
-    if (!Applicants || Applicants.length === 0) return [];
+    if (!applicants || applicants.length === 0) return [];
     
-    return Applicants.filter(applicant => {
+    return applicants.filter(applicant => {
       if (!applicant.createdAt) return false;
       
-      const ApplicantDate = parseISO(applicant.createdAt);
-      return ApplicantDate >= startDate && ApplicantDate <= endDate;
+      const applicantDate = parseISO(applicant.createdAt);
+      return applicantDate >= startDate && applicantDate <= endDate;
     });
-  }, [Applicants, startDate, endDate]);
+  }, [applicants, startDate, endDate]);
 
-  // Calculate score distribution for filtered Applicants
-  const ApplicantscoreRanges = useMemo(() => {
+  // Calculate score distribution for filtered applicants
+  const applicantScoreRanges = useMemo(() => {
     const scoreRanges = getScoreRangesForChart();
     
     // If we have initialData and the period is the default (Last 7 days), use it
@@ -187,10 +187,10 @@ export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoa
     // Initialize counts
     const rangeCounts = scoreRanges.map(range => ({ ...range, count: 0 }));
     
-    // Count Applicants in each score range
-    filteredApplicants.forEach(Applicant => {
-      if (Applicant.fitScore !== null && Applicant.fitScore !== undefined) {
-        const normalizedScore = Math.round(Applicant.fitScore);
+    // Count applicants in each score range
+    filteredApplicants.forEach(applicant => {
+      if (applicant.fitScore !== null && applicant.fitScore !== undefined) {
+        const normalizedScore = Math.round(applicant.fitScore);
         const range = rangeCounts.find(r => 
           normalizedScore >= r.min && normalizedScore <= r.max
         );
@@ -376,7 +376,7 @@ export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoa
               labels: (() => {
                 // Sort by grade order: A, B, C, D, E
                 const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                return [...ApplicantscoreRanges].sort((itemA, itemB) => {
+                return [...applicantScoreRanges].sort((itemA, itemB) => {
                   const aGrade = itemA.letter || itemA.label[0];
                   const bGrade = itemB.letter || itemB.label[0];
                   return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
@@ -388,7 +388,7 @@ export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoa
                   data: (() => {
                     // Sort by grade order: A, B, C, D, E
                     const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                    return [...ApplicantscoreRanges].sort((itemA, itemB) => {
+                    return [...applicantScoreRanges].sort((itemA, itemB) => {
                       const aGrade = itemA.letter || itemA.label[0];
                       const bGrade = itemB.letter || itemB.label[0];
                       return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
@@ -438,7 +438,7 @@ export function ApplicantScoreDistributionChart({ Applicants, initialData, isLoa
                   const index = elements[0].index;
                   // Sort by grade order: A, B, C, D, E
                   const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                  const sortedScoreRanges = [...ApplicantscoreRanges].sort((itemA, itemB) => {
+                  const sortedScoreRanges = [...applicantScoreRanges].sort((itemA, itemB) => {
                     const aGrade = itemA.letter || itemA.label[0];
                     const bGrade = itemB.letter || itemB.label[0];
                     return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);

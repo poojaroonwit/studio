@@ -24,7 +24,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         h."positionId",
         h.type as "headcountType",
         h.status as "headcountStatus",
-        h."candidateId",
+        h."applicantId",
         h."requestDate",
         h."onboardingDate",
         p.title as "positionTitle",
@@ -53,7 +53,7 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         positionId: row.positionId,
         type: row.headcountType,
         status: row.headcountStatus,
-        candidateId: row.candidateId,
+        applicantId: row.applicantId,
         requestDate: row.requestDate,
         onboardingDate: row.onboardingDate,
         position: {

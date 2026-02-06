@@ -8,7 +8,7 @@ import { AlertCircle, Home, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface ExpiredLinkPageProps {
-  candidateId: string;
+  applicantId: string;
   applicantName?: string;
   appLogoUrl: string | null;
   canReactivate: boolean;
@@ -20,7 +20,7 @@ interface ExpiredLinkPageProps {
 }
 
 export function ExpiredLinkPage({
-  candidateId,
+  applicantId,
   applicantName,
   appLogoUrl,
   canReactivate,
@@ -59,7 +59,7 @@ export function ExpiredLinkPage({
   const handleReactivate = async () => {
     setReactivating(true);
     try {
-      const response = await fetch(`/api/v1/applicants/${candidateId}/evaluation-link`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluation-link`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export function ExpiredLinkPage({
         toast.success('Evaluation link reactivated successfully');
         // Reload the page with the new token
         if (data.token) {
-          window.location.href = `/applicants/${candidateId}/evaluate?token=${data.token}`;
+          window.location.href = `/applicants/${applicantId}/evaluate?token=${data.token}`;
         } else {
           window.location.reload();
         }

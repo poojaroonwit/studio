@@ -39,17 +39,17 @@ export async function createNotification(params: CreateNotificationParams): Prom
  * Create a notification for Applicant updates
  */
 export async function createApplicantNotification(
-  candidateId: string,
-  ApplicantName: string,
+  applicantId: string,
+  applicantName: string,
   action: 'created' | 'updated' | 'deleted' | 'moved' | 'commented',
   additionalData?: Record<string, any>
 ): Promise<boolean> {
   const messages = {
-    created: `New Applicant ${ApplicantName} has been added`,
-    updated: `Applicant ${ApplicantName} has been updated`,
-    deleted: `Applicant ${ApplicantName} has been removed`,
-    moved: `Applicant ${ApplicantName} has been moved to a new stage`,
-    commented: `New comment added for Applicant ${ApplicantName}`,
+    created: `New applicant ${applicantName} has been added`,
+    updated: `Applicant ${applicantName} has been updated`,
+    deleted: `Applicant ${applicantName} has been removed`,
+    moved: `Applicant ${applicantName} has been moved to a new stage`,
+    commented: `New comment added for applicant ${applicantName}`,
   };
 
   return createNotification({
@@ -57,8 +57,8 @@ export async function createApplicantNotification(
     title: `Applicant ${action.charAt(0).toUpperCase() + action.slice(1)}`,
     message: messages[action],
     data: {
-      candidateId,
-      ApplicantName,
+      applicantId: applicantId,
+      applicantName,
       action,
       ...additionalData,
     },

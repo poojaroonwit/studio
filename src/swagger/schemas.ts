@@ -1,7 +1,7 @@
 // OpenAPI schemas for FitScan API
 
 export const schemas = {
-  Applicant: {
+  applicant: {
     type: 'object',
     properties: {
       id: { type: 'string', format: 'uuid' },
@@ -134,7 +134,7 @@ export const schemas = {
     type: 'object',
     properties: {
       id: { type: 'string', format: 'uuid' },
-      candidateId: { type: 'string', format: 'uuid' },
+      applicantId: { type: 'string', format: 'uuid' },
       uploadedById: { type: 'string', format: 'uuid' },
       filePath: { type: 'string' },
       fileName: { type: 'string' },

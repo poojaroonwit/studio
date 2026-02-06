@@ -444,10 +444,10 @@ export function ApplicantsPageClient({
           }
 
           // For deletion events, just remove the Applicant from local state without fetching
-          const deletedcandidateId = event.data.candidateId;
-          if (deletedcandidateId) {
-            setFilteredApplicants(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedcandidateId) : []);
-            setAllApplicantsForCounts(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedcandidateId) : []);
+          const deletedApplicantId = event.data.applicantId;
+          if (deletedApplicantId) {
+            setFilteredApplicants(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedApplicantId) : []);
+            setAllApplicantsForCounts(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedApplicantId) : []);
             // Update total count
             setTotal(prev => Math.max(0, prev - 1));
           }
@@ -527,14 +527,14 @@ export function ApplicantsPageClient({
   }, [subscribeToEvents]); // Only depend on subscribeToEvents which is stable
 
   // Bulk action handlers
-  const handleBulkDelete = useCallback(async (candidateIds: string[]) => {
+  const handleBulkDelete = useCallback(async (applicantIds: string[]) => {
     try {
       const response = await fetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'delete',
-          candidateIds: candidateIds
+          applicantIds: applicantIds
         })
       });
 
@@ -547,7 +547,7 @@ export function ApplicantsPageClient({
       toast.success(`${result.successCount} Applicant(s) deleted successfully`);
 
       // Clear selection and refresh data
-      setSelectedcandidateIds(new Set());
+      setSelectedApplicantIds(new Set());
       if (filters) {
         fetchTableData(filters, page, pageSize);
       }
@@ -557,14 +557,14 @@ export function ApplicantsPageClient({
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllApplicantsForCounts]);
 
-  const handleBulkChangeStatus = useCallback(async (candidateIds: string[], newStatus: string, notes?: string) => {
+  const handleBulkChangeStatus = useCallback(async (applicantIds: string[], newStatus: string, notes?: string) => {
     try {
       const response = await fetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'change_status',
-          candidateIds: candidateIds,
+          applicantIds: applicantIds,
           newStatus: newStatus,
           transitionNotes: notes
         })
@@ -592,11 +592,11 @@ export function ApplicantsPageClient({
           // console.log(`${rejectedCount} Applicant(s) failed due to headcount constraints:`, result.rejectedApplicants);
         }
       } else {
-        toast.success(`${result.updatedCount || candidateIds.length} Applicant(s) status updated to ${newStatus}`);
+        toast.success(`${result.updatedCount || applicantIds.length} Applicant(s) status updated to ${newStatus}`);
       }
 
       // Clear selection and refresh data
-      setSelectedcandidateIds(new Set());
+      setSelectedApplicantIds(new Set());
       if (filters) {
         fetchTableData(filters, page, pageSize);
       }
@@ -606,14 +606,14 @@ export function ApplicantsPageClient({
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllApplicantsForCounts]);
 
-  const handleBulkAssignRecruiter = useCallback(async (candidateIds: string[], recruiterId: string | null) => {
+  const handleBulkAssignRecruiter = useCallback(async (applicantIds: string[], recruiterId: string | null) => {
     try {
       const response = await fetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'assign_recruiter',
-          candidateIds: candidateIds,
+          applicantIds: applicantIds,
           newRecruiterId: recruiterId
         })
       });
@@ -628,7 +628,7 @@ export function ApplicantsPageClient({
       toast.success(`${result.successCount} Applicant(s) assigned to ${recruiterName}`);
 
       // Clear selection and refresh data
-      setSelectedcandidateIds(new Set());
+      setSelectedApplicantIds(new Set());
       if (filters) {
         fetchTableData(filters, page, pageSize);
       }
@@ -638,14 +638,14 @@ export function ApplicantsPageClient({
     }
   }, [fetchTableData, filters, page, pageSize, fetchAllApplicantsForCounts, availableRecruiter]);
 
-  const handleBulkReprocess = useCallback(async (candidateIds: string[]) => {
+  const handleBulkReprocess = useCallback(async (applicantIds: string[]) => {
     try {
       const response = await fetch('/api/applicants/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'reprocess',
-          candidateIds: candidateIds
+          applicantIds: applicantIds
         })
       });
 
@@ -672,11 +672,11 @@ export function ApplicantsPageClient({
           toast.error(`${errorCount} Applicant(s) failed: ${errorMessages}`);
         }
       } else {
-        toast.success(`${result.reprocessedCount || candidateIds.length} Applicant(s) queued for re-processing`);
+        toast.success(`${result.reprocessedCount || applicantIds.length} Applicant(s) queued for re-processing`);
       }
 
       // Clear selection and refresh data
-      setSelectedcandidateIds(new Set());
+      setSelectedApplicantIds(new Set());
       if (filters) {
         fetchTableData(filters, page, pageSize);
       }
@@ -704,7 +704,7 @@ export function ApplicantsPageClient({
   const [isCreateViaAutomationModalOpen, setIsCreateViaAutomationModalOpen] = useState(false);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
-  const [selectedcandidateIds, setSelectedcandidateIds] = useState<Set<string>>(new Set());
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState<Set<string>>(new Set());
   const [isBulkActionConfirmOpen, setIsBulkActionConfirmOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState<'delete' | 'change_status' | 'assign_recruiter' | 'reprocess' | null>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -1771,11 +1771,7 @@ export function ApplicantsPageClient({
     };
   }, []);
 
-  // Memoized fitscore counts to prevent unnecessary re-renders
-  const memoizedApplicantscoreCounts = useMemo(() => {
-    // Use the main ApplicantscoreCounts which has fallback logic
-    return ApplicantscoreCounts;
-  }, [ApplicantscoreCounts]);
+
 
   // Memoized horizontal filter handlers to prevent re-renders
   const memoizedHandleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
@@ -1911,7 +1907,7 @@ export function ApplicantsPageClient({
               onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
               onMatchingGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
               onClearAllHorizontalFitScoreFilters={memoizedClearAllHorizontalFitScoreFilters}
-              applicantScoreCounts={memoizedApplicantScoreCounts}
+              applicantScoreCounts={applicantScoreCounts}
               aiSearchReasoning={aiSearchReasoning}
               aiRecordCount={aiRecordCount}
               isAiSearchActive={isAiSearchActive}
@@ -1965,8 +1961,8 @@ export function ApplicantsPageClient({
               setSelectedPositionForEdit={setSelectedPositionForEdit}
               refreshApplicantInList={refreshApplicantInList}
               fetchAllPinnedApplicants={fetchAllPinnedApplicants}
-              selectedcandidateIds={selectedcandidateIds}
-              setSelectedcandidateIds={setSelectedcandidateIds}
+              selectedApplicantIds={selectedApplicantIds}
+              setSelectedApplicantIds={setSelectedApplicantIds}
               handleBulkDelete={handleBulkDelete}
               handleBulkChangeStatus={handleBulkChangeStatus}
               handleBulkAssignRecruiter={handleBulkAssignRecruiter}
@@ -2035,7 +2031,7 @@ export function ApplicantsPageClient({
         setBulkNewStatus={setBulkNewStatus}
         bulkTransitionNotes={bulkTransitionNotes}
         setBulkTransitionNotes={setBulkTransitionNotes}
-        selectedcandidateIds={selectedcandidateIds}
+        selectedApplicantIds={selectedApplicantIds}
         handleBulkChangeStatus={handleBulkChangeStatus}
         availableStagesForBulk={availableStages}
         isBulkRecruiterModalOpen={isBulkRecruiterModalOpen}

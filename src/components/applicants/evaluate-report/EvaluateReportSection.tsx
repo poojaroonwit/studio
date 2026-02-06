@@ -21,12 +21,12 @@ import { PrintStyles } from './components/PrintStyles';
 import { sanitizeUrl } from '@/lib/utils';
 
 interface EvaluateReportSectionProps {
-    candidateId: string;
+    applicantId: string;
     isEmbedded?: boolean;
 }
 
-export function EvaluateReportSection({ candidateId, isEmbedded = false }: EvaluateReportSectionProps) {
-    const [Applicant, setApplicant] = useState<Applicant | null>(null);
+export function EvaluateReportSection({ applicantId, isEmbedded = false }: EvaluateReportSectionProps) {
+    const [applicant, setApplicant] = useState<Applicant | null>(null);
     const [position, setPosition] = useState<Position | null>(null);
     const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
     const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
@@ -46,18 +46,18 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
     const { chartReady } = useChartSetup();
 
     useEffect(() => {
-        if (candidateId) {
+        if (applicantId) {
             fetchApplicantData();
             fetchEvaluationData();
             fetchHeaderSettings();
             fetchPersonalityGroupsConfig();
             fetchInterviewers();
         }
-    }, [candidateId]);
+    }, [applicantId]);
 
     const fetchApplicantData = async () => {
         try {
-            const response = await fetch(`/api/applicants/${candidateId}`, { credentials: 'include' });
+            const response = await fetch(`/api/applicants/${applicantId}`, { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 setApplicant(data);
@@ -81,7 +81,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
             setLoading(true);
 
             // Fetch all evaluations for this Applicant
-            const response = await fetch(`/api/v1/Applicants/${candidateId}/evaluations`);
+            const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`);
             if (response.ok) {
                 const evaluations = await response.json();
 
@@ -168,7 +168,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
                 setAllEvaluations(evaluations);
             } else {
                 // Fallback to single evaluation endpoint
-                const fallbackResponse = await fetch(`/api/v1/Applicants/${candidateId}/evaluation`);
+                const fallbackResponse = await fetch(`/api/v1/Applicants/${applicantId}/evaluation`);
                 if (fallbackResponse.ok) {
                     const data = await fallbackResponse.json();
                     setEvaluationData(data || null);
@@ -207,7 +207,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
 
     const fetchInterviewers = async () => {
         try {
-            const response = await fetch(`/api/v1/Applicants/${candidateId}/interviewers`, { credentials: 'include' });
+            const response = await fetch(`/api/v1/Applicants/${applicantId}/interviewers`, { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 setInterviewers(Array.isArray(data) ? data : []);
@@ -312,7 +312,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
     };
 
     const handleAvatarUpload = async (file: File) => {
-        if (!Applicant || !canEditApplicantBasic()) return;
+        if (!applicant || !canEditApplicantBasic()) return;
 
         setAvatarUploading(true);
         try {
@@ -352,7 +352,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
         );
     }
 
-    if (!Applicant) {
+    if (!applicant) {
         return (
             <div className="flex items-center justify-center p-8">
                 <Alert>
@@ -429,7 +429,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    const url = window.location.origin + `/Applicants/${candidateId}/evaluate-result`;
+                                    const url = window.location.origin + `/Applicants/${applicantId}/evaluate-result`;
                                     window.open(sanitizeUrl(url), '_blank', 'noopener,noreferrer');
                                 }}
                                 className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
@@ -445,7 +445,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
                 <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-4xl mx-auto">
                     {!isEmbedded && (
                         <ReportHeader
-                            Applicant={Applicant}
+                            applicant={applicant}
                             position={position}
                             organizationLogoUrl={organizationLogoUrl}
                             organizationName={organizationName}

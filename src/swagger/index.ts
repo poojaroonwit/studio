@@ -354,7 +354,7 @@ export function getSwaggerSpec() {
                     type: 'object',
                     properties: {
                       success: { type: 'boolean' },
-                      candidateId: { type: 'string' },
+                      applicantId: { type: 'string' },
                       message: { type: 'string' }
                     }
                   }
@@ -578,10 +578,10 @@ export function getSwaggerSpec() {
                   type: 'object',
                   properties: {
                     action: { type: 'string', enum: ['delete', 'update', 'export'] },
-                    candidateIds: { type: 'array', items: { type: 'string' } },
+                    applicantIds: { type: 'array', items: { type: 'string' } },
                     updates: { type: 'object', additionalProperties: true }
                   },
-                  required: ['action', 'candidateIds']
+                  required: ['action', 'applicantIds']
                 }
               }
             }
@@ -1167,7 +1167,7 @@ export function getSwaggerSpec() {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        Applicant: {
+        applicant: {
           type: 'object',
           properties: {
             id: { type: 'string' },
@@ -1204,7 +1204,7 @@ export function getSwaggerSpec() {
           type: 'object',
           properties: {
             id: { type: 'string' },
-            candidateId: { type: 'string' },
+            applicantId: { type: 'string' },
             fromStage: { type: 'string' },
             toStage: { type: 'string' },
             timestamp: { type: 'string', format: 'date-time' }

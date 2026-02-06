@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       
       const summary = {
         totalPositions: results.length,
-        totalApplicantsUpdated: results.reduce((sum, r) => sum + r.ApplicantsUpdated, 0),
-        totalApplicantsSkipped: results.reduce((sum, r) => sum + r.ApplicantsSkipped, 0),
+        totalApplicantsUpdated: results.reduce((sum, r) => sum + r.applicantsUpdated, 0),
+        totalApplicantsSkipped: results.reduce((sum, r) => sum + r.applicantsSkipped, 0),
         totalErrors: results.reduce((sum, r) => sum + r.errors.length, 0),
         results
       };

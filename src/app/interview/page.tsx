@@ -64,7 +64,7 @@ export default function EvaluatePage() {
   const query = searchParams.get('q');
   const isMobile = useIsMobile();
   const { data: session, status: sessionStatus } = useSession();
-  const [Applicants, setApplicants] = useState<ApplicantWithEvaluationLink[]>([]);
+  const [applicants, setApplicants] = useState<ApplicantWithEvaluationLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +90,7 @@ export default function EvaluatePage() {
   // QR Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
-  const [qrcandidateId, setQrcandidateId] = useState<string | null>(null);
+  const [qrApplicantId, setQrApplicantId] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
 
   // Edit evaluation link state
@@ -176,9 +176,9 @@ export default function EvaluatePage() {
 
       const data = await response.json();
 
-      // Transform the data to include Applicant info
-      const ApplicantsWithLinks: ApplicantWithEvaluationLink[] = (data.data || [])
-        .filter((item: any) => item.Applicant && item.url)
+      // Transform the data to include applicant info
+      const applicantsWithLinks: ApplicantWithEvaluationLink[] = (data.data || [])
+        .filter((item: any) => item.applicant && item.url)
         .map((item: any) => ({
           id: item.applicant.id,
           name: item.applicant.name || 'Unknown',
@@ -195,7 +195,7 @@ export default function EvaluatePage() {
           }
         }));
 
-      setApplicants(ApplicantsWithLinks);
+      setApplicants(applicantsWithLinks);
     } catch (err) {
       console.error('Error fetching Applicants:', err);
       setError(err instanceof Error ? err.message : 'Failed to load Applicants');
@@ -221,8 +221,8 @@ export default function EvaluatePage() {
 
       if (response.ok) {
         const data = await response.json();
-        const ApplicantList = Array.isArray(data) ? data : (data.data || []);
-        setSearchResults(ApplicantList.map((c: any) => ({
+        const applicantList = Array.isArray(data) ? data : (data.data || []);
+        setSearchResults(applicantList.map((c: any) => ({
           id: c.id,
           name: c.name || 'Unknown',
           email: c.email,
@@ -328,9 +328,9 @@ export default function EvaluatePage() {
   // Validate position when Applicant is selected
   useEffect(() => {
     if (selectedApplicant) {
-      const positionId = selectedapplicant.positionId || selectedapplicant.position?.id;
+      const positionId = selectedApplicant.positionId || selectedApplicant.position?.id;
       if (positionId) {
-        validatePosition(positionId, selectedapplicant.position?.title || null);
+        validatePosition(positionId, selectedApplicant.position?.title || null);
       } else {
         setPositionValidation({
           hasInterviewers: false,
@@ -359,7 +359,7 @@ export default function EvaluatePage() {
 
     try {
       setIsCreatingLink(true);
-      const response = await fetch(`/api/v1/Applicants/${selectedapplicant.id}/evaluation-link`, {
+      const response = await fetch(`/api/v1/Applicants/${selectedApplicant.id}/evaluation-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -380,9 +380,9 @@ export default function EvaluatePage() {
       // Open QR Modal immediately
       if (data.url && selectedApplicant) {
         setQrData({
-          name: selectedapplicant.name,
+          name: selectedApplicant.name,
           url: data.url,
-          avatarUrl: selectedapplicant.avatarUrl || null,
+          avatarUrl: selectedApplicant.avatarUrl || null,
           expiresAt: data.expiresAt
         });
         setQrModalOpen(true);
@@ -407,16 +407,16 @@ export default function EvaluatePage() {
     }
   };
 
-  const handleApplicantClick = (candidateId: string) => {
-    const Applicant = Applicants.find(c => c.id === candidateId);
-    if (Applicant && Applicant.evaluationLink?.url) {
+  const handleApplicantClick = (applicantId: string) => {
+    const applicant = applicants.find(c => c.id === applicantId);
+    if (applicant && applicant.evaluationLink?.url) {
       setQrData({
-        name: Applicant.name,
-        url: Applicant.evaluationLink.url,
-        avatarUrl: Applicant.avatarUrl,
-        expiresAt: Applicant.evaluationLink.expiresAt
+        name: applicant.name,
+        url: applicant.evaluationLink.url,
+        avatarUrl: applicant.avatarUrl,
+        expiresAt: applicant.evaluationLink.expiresAt
       });
-      setQrcandidateId(candidateId);
+      setQrApplicantId(applicantId);
       setQrModalOpen(true);
     }
   };
@@ -452,7 +452,7 @@ export default function EvaluatePage() {
   const handleConfigurePosition = () => {
     if (selectedApplicant && positionValidation.positionId) {
       // Navigate to Applicant detail page with the position
-      router.push(`/applicants/${selectedapplicant.id}`);
+      router.push(`/applicants/${selectedApplicant.id}`);
       setIsCreateModalOpen(false);
     }
   };
@@ -557,14 +557,14 @@ export default function EvaluatePage() {
       {/* Search Results */}
       {searchQuery && searchResults.length > 0 && !selectedApplicant && (
         <div className="border rounded-md max-h-48 overflow-y-auto">
-          {searchResults.map((Applicant) => {
-            const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
+          {searchResults.map((applicant) => {
+            const nameInfo = formatApplicantNameWithLang({ name: applicant.name } as any);
             return (
               <div
                 key={applicant.id}
                 className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                 onClick={() => {
-                  setSelectedApplicant(Applicant);
+                  setSelectedApplicant(applicant);
                   setSearchQuery('');
                   setSearchResults([]);
                   setIsCreateModalOpen(false);
@@ -573,10 +573,10 @@ export default function EvaluatePage() {
               >
                 <ApplicantAvatarCompact
                   user={{
-                    id: Applicant.id,
-                    name: Applicant.name,
-                    avatarUrl: Applicant.avatarUrl,
-                    email: Applicant.email || undefined
+                    id: applicant.id,
+                    name: applicant.name,
+                    avatarUrl: applicant.avatarUrl,
+                    email: applicant.email || undefined
                   }}
                   size="sm"
                 />
@@ -615,20 +615,20 @@ export default function EvaluatePage() {
             <div className="flex items-center gap-3">
               <ApplicantAvatarCompact
                 user={{
-                  id: selectedapplicant.id,
-                  name: selectedapplicant.name,
-                  avatarUrl: selectedapplicant.avatarUrl,
-                  email: selectedapplicant.email || undefined
+                  id: selectedApplicant.id,
+                  name: selectedApplicant.name,
+                  avatarUrl: selectedApplicant.avatarUrl,
+                  email: selectedApplicant.email || undefined
                 }}
                 size="sm"
               />
               <div>
-                <div className="font-medium text-sm">{selectedapplicant.name}</div>
-                {selectedapplicant.email && (
-                  <div className="text-xs text-muted-foreground">{selectedapplicant.email}</div>
+                <div className="font-medium text-sm">{selectedApplicant.name}</div>
+                {selectedApplicant.email && (
+                  <div className="text-xs text-muted-foreground">{selectedApplicant.email}</div>
                 )}
-                {selectedapplicant.position?.title && (
-                  <div className="text-xs text-muted-foreground">Position: {selectedapplicant.position.title}</div>
+                {selectedApplicant.position?.title && (
+                  <div className="text-xs text-muted-foreground">Position: {selectedApplicant.position.title}</div>
                 )}
               </div>
             </div>
@@ -772,17 +772,17 @@ export default function EvaluatePage() {
                   <div className="flex items-center gap-3">
                     <ApplicantAvatarCompact
                       user={{
-                        id: selectedapplicant.id,
-                        name: selectedapplicant.name,
-                        avatarUrl: selectedapplicant.avatarUrl,
-                        email: selectedapplicant.email || undefined
+                        id: selectedApplicant.id,
+                        name: selectedApplicant.name,
+                        avatarUrl: selectedApplicant.avatarUrl,
+                        email: selectedApplicant.email || undefined
                       }}
                       size="sm"
                     />
                     <div>
-                      <div className="font-medium text-sm">{selectedapplicant.name}</div>
-                      {selectedapplicant.email && (
-                        <div className="text-xs text-muted-foreground">{selectedapplicant.email}</div>
+                      <div className="font-medium text-sm">{selectedApplicant.name}</div>
+                      {selectedApplicant.email && (
+                        <div className="text-xs text-muted-foreground">{selectedApplicant.email}</div>
                       )}
                     </div>
                   </div>
@@ -972,16 +972,16 @@ export default function EvaluatePage() {
             onClick={() => {
               // Close QR modal and open edit modal with existing data
               setQrModalOpen(false);
-              if (qrcandidateId) {
-                const Applicant = Applicants.find(c => c.id === qrcandidateId);
-                if (Applicant) {
+              if (qrApplicantId) {
+                const applicant = applicants.find(c => c.id === qrApplicantId);
+                if (applicant) {
                   setSelectedApplicant({
-                    id: Applicant.id,
-                    name: Applicant.name,
-                    email: Applicant.email,
-                    avatarUrl: Applicant.avatarUrl,
-                    position: Applicant.position,
-                    positionId: Applicant.position?.id
+                    id: applicant.id,
+                    name: applicant.name,
+                    email: applicant.email,
+                    avatarUrl: applicant.avatarUrl,
+                    position: applicant.position,
+                    positionId: applicant.position?.id
                   });
                   setIsEditEvalLinkModalOpen(true);
                 }
@@ -1038,7 +1038,7 @@ export default function EvaluatePage() {
           </Button>
         </div>
 
-        {Applicants.length === 0 ? (
+        {applicants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <FileCheck className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
@@ -1057,7 +1057,7 @@ export default function EvaluatePage() {
             {/* Mobile Calendar View - Default to list, can toggle to calendar */}
             {isMobile ? (
               <MobileEvaluateCalendar
-                Applicants={Applicants}
+                applicants={applicants}
                 selectedDate={selectedDate}
                 onDateSelect={(date) => setSelectedDate(date)}
                 onApplicantClick={handleApplicantClick}
@@ -1067,7 +1067,7 @@ export default function EvaluatePage() {
             ) : (
               /* Desktop Calendar View - Full page month calendar with side panel */
               <DesktopEvaluateCalendar
-                Applicants={Applicants}
+                applicants={applicants}
                 selectedDate={selectedDate}
                 onDateSelect={(date) => setSelectedDate(date)}
                 onApplicantClick={handleApplicantClick}
@@ -1146,13 +1146,13 @@ export default function EvaluatePage() {
               setSelectedApplicant(null);
             }
           }}
-          Applicant={{
-            id: selectedapplicant.id,
-            name: selectedapplicant.name,
-            email: selectedapplicant.email,
-            avatarUrl: selectedapplicant.avatarUrl,
-            positionId: selectedapplicant.positionId,
-            position: selectedapplicant.position,
+          applicant={{
+            id: selectedApplicant.id,
+            name: selectedApplicant.name,
+            email: selectedApplicant.email,
+            avatarUrl: selectedApplicant.avatarUrl,
+            positionId: selectedApplicant.positionId,
+            position: selectedApplicant.position,
           }}
           onSuccess={(linkData) => {
             fetchApplicantsWithEvaluationLinks();
@@ -1211,12 +1211,12 @@ export default function EvaluatePage() {
               fetchApplicantsWithEvaluationLinks();
             }
           }}
-          Applicant={{
-            id: selectedapplicant.id,
-            name: selectedapplicant.name,
-            email: selectedapplicant.email || null,
-            avatarUrl: selectedapplicant.avatarUrl || null,
-            position: selectedapplicant.position || null
+          applicant={{
+            id: selectedApplicant.id,
+            name: selectedApplicant.name,
+            email: selectedApplicant.email || null,
+            avatarUrl: selectedApplicant.avatarUrl || null,
+            position: selectedApplicant.position || null
           }}
           editMode={true}
         />

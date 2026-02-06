@@ -20,17 +20,17 @@ export async function GET(request: NextRequest) {
     
     try {
       // Check total Applicants
-      const totalApplicantsQuery = 'SELECT COUNT(*) as total FROM "Candidate"';
+      const totalApplicantsQuery = 'SELECT COUNT(*) as total FROM "applicant"';
       const totalResult = await client.query(totalApplicantsQuery);
       const totalApplicants = totalResult.rows[0].total;
       
       // Check Applicants with fit scores
-      const fitScoreQuery = 'SELECT COUNT(*) as total FROM "Candidate" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0';
+      const fitScoreQuery = 'SELECT COUNT(*) as total FROM "applicant" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0';
       const fitScoreResult = await client.query(fitScoreQuery);
-      const ApplicantsWithFitScores = fitScoreResult.rows[0].total;
+      const applicantsWithFitScores = fitScoreResult.rows[0].total;
       
       // Get sample Applicants with fit scores
-      const sampleQuery = 'SELECT id, name, "fitScore" FROM "Candidate" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0 LIMIT 5';
+      const sampleQuery = 'SELECT id, name, "fitScore" FROM "applicant" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0 LIMIT 5';
       const sampleResult = await client.query(sampleQuery);
       
       // Check JobMatch table
@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
       const jobMatchesWithFitScores = jobMatchResult.rows[0].total;
       
       // Get sample job matches
-      const sampleJobMatchQuery = 'SELECT "candidateId", "fitScore" FROM "JobMatch" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0 LIMIT 5';
+      const sampleJobMatchQuery = 'SELECT "applicantId", "fitScore" FROM "JobMatch" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0 LIMIT 5';
       const sampleJobMatchResult = await client.query(sampleJobMatchQuery);
       
       return NextResponse.json({
         totalApplicants,
-        ApplicantsWithFitScores,
+        applicantsWithFitScores,
         sampleApplicants: sampleResult.rows,
         jobMatchesWithFitScores,
         sampleJobMatches: sampleJobMatchResult.rows

@@ -15,18 +15,18 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const candidateId = searchParams.get('candidateId');
+    const applicantId = searchParams.get('applicantId');
     const positionId = searchParams.get('positionId');
 
-    if (!candidateId || !positionId) {
+    if (!applicantId || !positionId) {
       return NextResponse.json(
-        { error: 'Missing required parameters: candidateId and positionId' },
+        { error: 'Missing required parameters: applicantId and positionId' },
         { status: 400 }
       );
     }
 
     // Validate headcount availability
-    const validationResult = await validateApplicantHiringStatus(candidateId, positionId);
+    const validationResult = await validateApplicantHiringStatus(applicantId, positionId);
 
     return NextResponse.json(validationResult);
   } catch (error) {

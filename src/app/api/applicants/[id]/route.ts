@@ -127,7 +127,7 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
     await client.query('SET statement_timeout = 5000'); // 5 seconds for validation (reduced from 10s)
 
     // Ultra-fast existence check query - only check if ID exists
-    const validationQuery = `SELECT 1 FROM "Candidate" WHERE id = $1::uuid LIMIT 1`;
+    const validationQuery = `SELECT 1 FROM "applicant" WHERE id = $1::uuid LIMIT 1`;
 
     const startTime = Date.now();
     const result = await client.query(validationQuery, [id]);
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     try {
       authClient = await getPool().connect();
       const res = await authClient.query(
-        'SELECT id FROM "CandidateEvaluationLink" WHERE token = $1 AND "candidateId" = $2::uuid AND "expiresAt" > NOW() AND "revokedAt" IS NULL',
+        'SELECT id FROM "applicantEvaluationLink" WHERE token = $1 AND "applicantId" = $2::uuid AND "expiresAt" > NOW() AND "revokedAt" IS NULL',
         [token, id]
       );
       if (res.rows.length > 0) isAuthorized = true;
@@ -260,7 +260,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         cs.name as "sourceName", 
         cs.description as "sourceDescription", 
         cs.logo as "sourceLogo"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -283,7 +283,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
     }
 
-    const Applicant = applicantResult.rows[0];
+    const applicant = applicantResult.rows[0];
     // console.log(`[API] Applicant found for ID: ${id}, name: ${applicant.name}`);
 
     // Check if job match feature is enabled (skip if lite)
@@ -296,7 +296,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const jobMatchesQuery = `
         SELECT 
           jm.id,
-          jm."candidateId",
+          jm."applicantId",
           jm."jobId",
           jm."fitScore",
           jm."createdAt",
@@ -306,7 +306,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           p.description as "positionDescription"
         FROM "JobMatch" jm
         LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."candidateId" = $1::uuid
+        WHERE jm."applicantId" = $1::uuid
         ORDER BY jm."fitScore" DESC
         LIMIT 3
       `;
@@ -326,7 +326,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const attachmentsQuery = `
       SELECT 
         a.id,
-        a."candidateId",
+        a."applicantId",
         a."uploadedById",
         a."filePath",
         a."fileName",
@@ -338,7 +338,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         u.name as "uploadedByUserName"
       FROM "Attachment" a
       LEFT JOIN "User" u ON a."uploadedById" = u.id
-      WHERE a."candidateId" = $1::uuid
+      WHERE a."applicantId" = $1::uuid
       ORDER BY a."uploadedAt" DESC
       LIMIT 2
     `;
@@ -366,22 +366,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const responseData = {
-      ...Applicant,
-      fitScore: normalizeFitScore(Applicant.fitScore),
+      ...applicant,
+      fitScore: normalizeFitScore(applicant.fitScore),
       isRead: userReadStatus, // Per-user read status
-      position: Applicant.positionId ? {
-        title: Applicant.positionTitle || null,
-        department: Applicant.positionDepartment || null
+      position: applicant.positionId ? {
+        title: applicant.positionTitle || null,
+        department: applicant.positionDepartment || null
       } : null,
-      recruiter: Applicant.recruiterId ? {
-        name: Applicant.recruiterName || null,
-        avatarUrl: Applicant.recruiterAvatarUrl || null
+      recruiter: applicant.recruiterId ? {
+        name: applicant.recruiterName || null,
+        avatarUrl: applicant.recruiterAvatarUrl || null
       } : null,
-      source: Applicant.sourceId ? {
-        id: Applicant.sourceId,
-        name: Applicant.sourceName,
-        description: Applicant.sourceDescription,
-        logo: Applicant.sourceLogo
+      source: applicant.sourceId ? {
+        id: applicant.sourceId,
+        name: applicant.sourceName,
+        description: applicant.sourceDescription,
+        logo: applicant.sourceLogo
       } : null,
       jobMatches: (jobMatches || []).map((match: any) => ({
         ...match,
@@ -389,10 +389,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         jobTitle: match.jobTitle || match.positionTitle || null,
         positionTitle: match.positionTitle || match.jobTitle || null,
       })),
-      expectedSalary: Applicant.expectedSalary,
+      expectedSalary: applicant.expectedSalary,
       attachmentHistory: attachments,
-      custom_attributes: Applicant.customAttributes || {},
-      customFields: Applicant.customAttributes || {}, // Also provide as customFields for frontend compatibility
+      custom_attributes: applicant.customAttributes || {},
+      customFields: applicant.customAttributes || {}, // Also provide as customFields for frontend compatibility
       // Add metadata for pagination
       _metadata: {
         totalJobMatches: (jobMatches || []).length,
@@ -419,7 +419,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({
         message: 'Database connection error. Please try again in a moment.',
         error: 'Database connection failed',
-        candidateId: id
+        applicantId: id
       }, { status: 503 }); // 503 Service Unavailable
     }
 
@@ -429,14 +429,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({
         message: 'Request timed out. The server may be experiencing high load. Please try again in a moment.',
         error: 'Database timeout',
-        candidateId: id
+        applicantId: id
       }, { status: 408 }); // 408 Request Timeout
     }
 
     return NextResponse.json({
       message: 'Error fetching Applicant',
       error: error?.message || String(error),
-      candidateId: id
+      applicantId: id
     }, { status: 500 });
   } finally {
     if (client) {
@@ -525,7 +525,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Check if Applicant exists first
-    const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1::uuid', [id]);
+    const existingResult = await client.query('SELECT * FROM "applicant" WHERE id = $1::uuid', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       console.error('Applicant not found:', id);
@@ -778,14 +778,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Log read status change as activity in TransitionRecord
         const activityNotes = isRead ? 'Marked as read' : 'Marked as unread';
         await client.query(`
-          INSERT INTO "TransitionRecord" ("id", "candidateId", "date", "stage", "notes", "actingUserId", "createdAt", "updatedAt")
+          INSERT INTO "TransitionRecord" ("id", "applicantId", "date", "stage", "notes", "actingUserId", "createdAt", "updatedAt")
           VALUES (gen_random_uuid(), $1::uuid, NOW(), $2, $3, $4::uuid, NOW(), NOW())
         `, [id, isRead ? 'READ_STATUS_CHANGED' : 'READ_STATUS_CHANGED', activityNotes, actingUserId]);
       }
     }
 
     const updateQuery = `
-      UPDATE "Candidate" 
+      UPDATE "applicant" 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}::uuid
       RETURNING *;
@@ -806,7 +806,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Fetch updated Applicant with source information
     const updatedApplicantWithSource = await client.query(`
       SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
@@ -849,7 +849,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 if (!revalidation.canHire) {
                   // Headcount became unavailable between validation and assignment
                   console.warn(`Race condition detected: Headcount became unavailable for Applicant ${id} during assignment. Cannot proceed with status update.`, {
-                    candidateId: id,
+                    applicantId: id,
                     positionId: existingApplicant.positionId,
                     originalValidation: validation,
                     revalidation,
@@ -935,13 +935,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
 
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
         // console.log('Creating transition record:', {
         //   transitionId: newTransitionId,
-        //   candidateId: id,
+        //   applicantId: id,
         //   positionId: safePositionId,
         //   stage: status,
         //   notes: transitionMessage,
@@ -970,7 +970,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Send notification to recruiter about status change
         const applicantWithRecruiterQuery = `
           SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
-          FROM "Candidate" c
+          FROM "applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" u ON c."recruiterId" = u.id
           WHERE c.id = $1
@@ -1025,7 +1025,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       const newTransitionId = uuidv4();
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
@@ -1080,7 +1080,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await client.query('COMMIT');
     // console.log('Database transaction committed successfully');
     try {
-      await logAudit('AUDIT', `Applicant '${existingApplicant.name}' updated by ${actingUserName}.`, 'API:Applicants:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? 'Applied' });
+      await logAudit('AUDIT', `Applicant '${existingApplicant.name}' updated by ${actingUserName}.`, 'API:Applicants:Update', actingUserId, { applicantId: id, oldStatus, newStatus: status ?? 'Applied' });
     } catch (auditError) {
       console.error('Failed to log audit entry:', auditError);
       // Don't fail the request if audit logging fails
@@ -1088,7 +1088,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Log pin/unpin action explicitly
     if (pinChangeRequested) {
       try {
-        await logAudit('AUDIT', `Applicant '${existingApplicant.name}' ${isPinned ? 'pinned' : 'unpinned'} by ${actingUserName}.`, 'API:Applicants:PinToggle', actingUserId, { candidateId: id, isPinned });
+        await logAudit('AUDIT', `Applicant '${existingApplicant.name}' ${isPinned ? 'pinned' : 'unpinned'} by ${actingUserName}.`, 'API:Applicants:PinToggle', actingUserId, { applicantId: id, isPinned });
       } catch (auditError) {
         // ignore log error
       }
@@ -1098,7 +1098,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const applicantResult = await client.query(`
        SELECT c.*, c."isBlacklisted", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-       FROM "Candidate" c
+       FROM "applicant" c
        LEFT JOIN "Position" p ON c."positionId" = p.id
        LEFT JOIN "User" r ON c."recruiterId" = r.id
        LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -1109,16 +1109,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       throw new Error('Applicant not found after update');
     }
 
-    const Applicant = applicantResult.rows[0];
+    const applicant = applicantResult.rows[0];
 
-    // Get job matches for this Applicant (only if feature is enabled)
+    // Get job matches for this applicant (only if feature is enabled)
     let jobMatchesResult = { rows: [] };
     if (isJobMatchEnabled) {
       jobMatchesResult = await client.query(`
         SELECT jm.*, p.title as "positionTitle"
         FROM "JobMatch" jm
         LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."candidateId" = $1::uuid
+        WHERE jm."applicantId" = $1::uuid
         ORDER BY jm."fitScore" DESC;
       `, [id]);
     }
@@ -1127,7 +1127,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const attachmentsResult = await client.query(`
       SELECT 
         a.id,
-        a."candidateId",
+        a."applicantId",
         a."uploadedById",
         a."filePath",
         a."fileName",
@@ -1139,7 +1139,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         u.name as "uploadedByUserName"
       FROM "Attachment" a
       LEFT JOIN "User" u ON a."uploadedById" = u.id
-      WHERE a."candidateId" = $1::uuid
+      WHERE a."applicantId" = $1::uuid
       ORDER BY a."uploadedAt" DESC;
     `, [id]);
 
@@ -1172,14 +1172,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
 
-    // Broadcast update with safe Applicant data
+    // Broadcast update with safe applicant data
     try {
-      broadcastApplicantUpdate({ ...Applicant, customAttributes }, actingUserId);
+      broadcastApplicantUpdate({ ...applicant, customAttributes }, actingUserId);
       // console.log('Applicant update broadcasted successfully');
 
       // Also broadcast status change if status was updated
       if (status !== undefined && oldStatus !== status) {
-        broadcastApplicantStatusChanged({ ...Applicant, customAttributes }, oldStatus, status, actingUserId);
+        broadcastApplicantStatusChanged({ ...applicant, customAttributes }, oldStatus, status, actingUserId);
         // console.log('Applicant status change broadcasted successfully');
       }
     } catch (broadcastError) {
@@ -1188,21 +1188,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json({
-      ...Applicant,
-      assignmentJustification: Applicant.assignmentJustification || null,
+      ...applicant,
+      assignmentJustification: applicant.assignmentJustification || null,
       customAttributes,
       customFields: customAttributes, // Also provide as customFields for frontend compatibility
       isRead: userReadStatus, // Per-user read status
-      position: Applicant.positionId ? {
-        title: Applicant.positionTitle || null,
-        department: Applicant.positionDepartment || null
+      position: applicant.positionId ? {
+        title: applicant.positionTitle || null,
+        department: applicant.positionDepartment || null
       } : null,
-      recruiter: Applicant.recruiterId ? { name: Applicant.recruiterName || null } : null,
-      source: Applicant.sourceId ? {
-        id: Applicant.sourceId,
-        name: Applicant.sourceName,
-        description: Applicant.sourceDescription,
-        logo: Applicant.sourceLogo
+      recruiter: applicant.recruiterId ? { name: applicant.recruiterName || null } : null,
+      source: applicant.sourceId ? {
+        id: applicant.sourceId,
+        name: applicant.sourceName,
+        description: applicant.sourceDescription,
+        logo: applicant.sourceLogo
       } : null,
       jobMatches: jobMatchesResult.rows || [],
       attachmentHistory: attachmentsResult.rows || [],
@@ -1230,7 +1230,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
     console.error('Request body that caused the error:', JSON.stringify(body, null, 2));
     try {
-      await logAudit('ERROR', `Failed to update Applicant. Error: ${error.message}`, 'API:Applicants:Update', actingUserId, { candidateId: id, input: body });
+      await logAudit('ERROR', `Failed to update Applicant. Error: ${error.message}`, 'API:Applicants:Update', actingUserId, { applicantId: id, input: body });
     } catch (auditError) {
       console.error('Failed to log audit entry:', auditError);
     }
@@ -1243,7 +1243,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (error.constraint === 'TransitionRecord_positionId_fkey') {
         return NextResponse.json({ message: 'Invalid position reference in transition record' }, { status: 400 });
       }
-      if (error.constraint === 'TransitionRecord_candidateId_fkey') {
+      if (error.constraint === 'TransitionRecord_applicantId_fkey') {
         return NextResponse.json({ message: 'Invalid Applicant reference in transition record' }, { status: 400 });
       }
       return NextResponse.json({ message: 'Foreign key constraint violation', error: error.message }, { status: 400 });
@@ -1271,7 +1271,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await client.query('BEGIN');
 
     // Get Applicant name for audit log
-    const result = await client.query('DELETE FROM "Candidate" WHERE id = $1::uuid RETURNING name', [id]);
+    const result = await client.query('DELETE FROM "applicant" WHERE id = $1::uuid RETURNING name', [id]);
 
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -1280,12 +1280,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const applicantName = result.rows[0].name;
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Applicant '${applicantName}' deleted by ${actingUserName}.`, 'API:Applicants:Delete', actingUserId, { candidateId: id });
+    await logAudit('AUDIT', `Applicant '${applicantName}' deleted by ${actingUserName}.`, 'API:Applicants:Delete', actingUserId, { applicantId: id });
     broadcastApplicantDeleted(id, actingUserId);
     return NextResponse.json({ message: 'Applicant deleted successfully' });
   } catch (error: any) {
     await client.query('ROLLBACK');
-    await logAudit('ERROR', `Failed to delete Applicant. Error: ${error.message}`, 'API:Applicants:Delete', actingUserId, { candidateId: id });
+    await logAudit('ERROR', `Failed to delete Applicant. Error: ${error.message}`, 'API:Applicants:Delete', actingUserId, { applicantId: id });
     return NextResponse.json({ message: 'Error deleting Applicant', error: error.message }, { status: 500 });
   } finally {
     client.release();

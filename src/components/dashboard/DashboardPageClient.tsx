@@ -20,7 +20,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
 import { ApplicantsPerPositionChart } from '@/components/dashboard/ApplicantsPerPositionChart';
-import { CandidateScoreDistributionChart } from '@/components/dashboard/CandidateScoreDistributionChart';
+import { ApplicantScoreDistributionChart } from '@/components/dashboard/ApplicantScoreDistributionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -289,26 +289,26 @@ export default function DashboardPageClient({
       // Metrics are now central
       promises.push(safeFetch('/api/dashboard/metrics', fetchOptions));
 
-      const [ApplicantsRes, usersRes, positionsRes, metricsRes] = await safeAll(promises);
+      const [applicantsRes, usersRes, positionsRes, metricsRes] = await safeAll(promises);
 
-      if (!ApplicantsRes.ok) {
-        console.warn('Skipping failed endpoint /api/applicants:', ApplicantsRes.error || ApplicantsRes.status);
-        accumulatedFetchError += `Failed to fetch Applicants: ${ApplicantsRes.error}. `;
+      if (!applicantsRes.ok) {
+        console.warn('Skipping failed endpoint /api/applicants:', applicantsRes.error || applicantsRes.status);
+        accumulatedFetchError += `Failed to fetch Applicants: ${applicantsRes.error}. `;
         if (canViewAllApplicants) setFilteredApplicants([]); else setMyAssignedApplicants([]);
-      } else if (ApplicantsRes.data) {
-        const ApplicantsData: Applicant[] = Array.isArray((ApplicantsRes.data as any)?.data) ? (ApplicantsRes.data as any).data : (Array.isArray(ApplicantsRes.data) ? ApplicantsRes.data : []);
+      } else if (applicantsRes.data) {
+        const applicantsData: Applicant[] = Array.isArray((applicantsRes.data as any)?.data) ? (applicantsRes.data as any).data : (Array.isArray(applicantsRes.data) ? applicantsRes.data : []);
         
-        const backlogData = ApplicantsData.filter((c: Applicant) => {
+        const backlogData = applicantsData.filter((c: Applicant) => {
           const statusName = c?.statusId ? stageNames[c.statusId] : (c?.status || '');
           return c && ACTIVE_APPLICANT_STATUSES.includes(statusName as CoreApplicantStatus);
         });
 
         if (canViewAllApplicants) {
-          setFilteredApplicants(ApplicantsData);
-          setMyAssignedApplicants(ApplicantsData); 
+          setFilteredApplicants(applicantsData);
+          setMyAssignedApplicants(applicantsData); 
           setMyBacklogApplicants(backlogData); 
         } else {
-          setMyAssignedApplicants(ApplicantsData);
+          setMyAssignedApplicants(applicantsData);
           setMyBacklogApplicants(backlogData);
         }
       }
@@ -1221,7 +1221,7 @@ export default function DashboardPageClient({
               {/* Row 1: New Applications Over Time */}
               <div>
                 <NewApplicationsTimeSeriesChart
-                  Applicants={filteredApplicants}
+                  applicants={filteredApplicants}
                   isLoading={isLoading}
                   dynamicHeight={sharedHeight - 380}
                 />
@@ -1229,8 +1229,8 @@ export default function DashboardPageClient({
 
               {/* Row 2: Applicant Scoring Analysis */}
               <div>
-                <CandidateScoreDistributionChart
-                  candidates={filteredApplicants}
+                <ApplicantScoreDistributionChart
+                  applicants={filteredApplicants}
                   isLoading={isLoading}
                   dynamicHeight={sharedHeight - 380}
                 />
@@ -1612,9 +1612,9 @@ export default function DashboardPageClient({
                           {headcount.position.positionLevel && (
                             <span>Level: {headcount.position.positionLevel}</span>
                           )}
-                          {headcount.Applicant && (
+                          {headcount.applicant && (
                             <span className="ml-4">
-                              Applicant: {headcount.applicant.name}
+                              applicant: {headcount.applicant.name}
                             </span>
                           )}
                         </div>

@@ -358,7 +358,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
                 availableRecruiter={availableRecruiter}
                 canManageApplicants={true}
                 isAssigning={isAssigningRecruiter}
-                onAssignRecruiter={(candidateId, recruiterId) => onAssignRecruiter(recruiterId)}
+                onAssignRecruiter={(applicantId, recruiterId) => onAssignRecruiter(recruiterId)}
                 onResetAssigning={onResetAssigning}
               />
             </div>

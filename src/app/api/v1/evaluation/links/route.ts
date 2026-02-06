@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const q = (searchParams.get('q') || '').trim()
-    const candidateId = searchParams.get('candidateId') || undefined
+    const applicantId = searchParams.get('applicantId') || undefined
     const status = searchParams.get('status') || undefined // active | expired | revoked | all
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10) || 20, 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10) || 0
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
 
     const where: any = {}
-    if (candidateId) where.candidateId = candidateId
+    if (applicantId) where.applicantId = applicantId
     if (status && status !== 'all') {
       if (status === 'active') {
         where.revokedAt = null
@@ -43,20 +43,20 @@ export async function GET(request: NextRequest) {
     if (q) {
       where.OR = [
         { token: { contains: q, mode: 'insensitive' } },
-        { candidate: { name: { contains: q, mode: 'insensitive' } } },
-        { candidate: { email: { contains: q, mode: 'insensitive' } } },
+        { applicant: { name: { contains: q, mode: 'insensitive' } } },
+        { applicant: { email: { contains: q, mode: 'insensitive' } } },
       ]
     }
 
     const [total, items] = await Promise.all([
-      prisma.candidateEvaluationLink.count({ where }),
-      prisma.candidateEvaluationLink.findMany({
+      prisma.applicantEvaluationLink.count({ where }),
+      prisma.applicantEvaluationLink.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
         include: {
-          candidate: { 
+          applicant: { 
             select: { 
               id: true, 
               name: true, 
@@ -79,20 +79,20 @@ export async function GET(request: NextRequest) {
 
     const data = items.map((it: any) => {
       // Extract interview details from customAttributes
-      const customAttrs = it.candidate?.customAttributes || {};
+      const customAttrs = it.applicant?.customAttributes || {};
       const interviewDate = customAttrs.interviewDateTime || customAttrs.interviewDate || null;
       const interviewLocation = customAttrs.interviewLocation || null;
       const interviewers = customAttrs.interviewers || [];
 
       return {
         id: it.id,
-        candidate: {
-          ...it.candidate,
-          position: it.candidate?.position || null,
+        applicant: {
+          ...it.applicant,
+          position: it.applicant?.position || null,
         },
         createdBy: it.createdBy,
         token: it.token,
-        url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/applicants/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
+        url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/applicants/${encodeURIComponent(it.applicantId)}/evaluate?token=${encodeURIComponent(it.token)}`,
         expiresAt: it.expiresAt,
         revokedAt: it.revokedAt,
         requireLogin: it.requireLogin,

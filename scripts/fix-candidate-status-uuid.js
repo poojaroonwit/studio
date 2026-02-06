@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Fix Candidate Status UUID Issues
+ * Fix applicant Status UUID Issues
  * 
- * This script addresses the problem where candidate status is still showing as UUID
+ * This script addresses the problem where applicant status is still showing as UUID
  * instead of properly resolving to stage names through the foreign key relationship.
  */
 
@@ -25,22 +25,22 @@ async function checkDatabaseState() {
   try {
     console.log('🔍 Checking database state...');
     
-    // Check if Candidate.statusId column exists and its type
+    // Check if applicant.statusId column exists and its type
     const statusColumnInfo = await client.query(`
       SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns
       WHERE table_schema = 'public' 
-        AND table_name = 'Candidate' 
+        AND table_name = 'applicant' 
         AND column_name = 'statusId'
     `);
     
     if (statusColumnInfo.rows.length === 0) {
-      console.log('❌ Candidate.statusId column not found!');
+      console.log('❌ applicant.statusId column not found!');
       return false;
     }
     
     const statusColumn = statusColumnInfo.rows[0];
-    console.log(`📊 Candidate.statusId column:`, statusColumn);
+    console.log(`📊 applicant.statusId column:`, statusColumn);
     
     // Check if RecruitmentStage table exists
     const stageTableExists = await client.query(`
@@ -71,21 +71,21 @@ async function checkDatabaseState() {
       JOIN information_schema.constraint_column_usage AS ccu
         ON ccu.constraint_name = tc.constraint_name
       WHERE tc.constraint_type = 'FOREIGN KEY'
-        AND tc.table_name = 'Candidate'
+        AND tc.table_name = 'applicant'
         AND kcu.column_name = 'statusId'
     `);
     
-    console.log(`🔗 Foreign key constraints for Candidate.statusId:`, foreignKeys.rows);
+    console.log(`🔗 Foreign key constraints for applicant.statusId:`, foreignKeys.rows);
     
     // Check sample data
-    const sampleCandidates = await client.query(`
+    const sampleapplicants = await client.query(`
       SELECT c.id, c.name, c."statusId", rs.name as stage_name
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       LIMIT 5
     `);
     
-    console.log(`📋 Sample candidates:`, sampleCandidates.rows);
+    console.log(`📋 Sample applicants:`, sampleapplicants.rows);
     
     // Check RecruitmentStage data
     const stages = await client.query(`
@@ -121,12 +121,12 @@ async function fixForeignKeyConstraint() {
         SELECT constraint_name INTO v_constraint_name
         FROM information_schema.table_constraints
         WHERE table_schema='public' 
-          AND table_name='Candidate' 
+          AND table_name='applicant' 
           AND constraint_type='FOREIGN KEY'
           AND constraint_name LIKE '%status%';
         
         IF v_constraint_name IS NOT NULL THEN
-          EXECUTE 'ALTER TABLE "Candidate" DROP CONSTRAINT "' || v_constraint_name || '"';
+          EXECUTE 'ALTER TABLE "applicant" DROP CONSTRAINT "' || v_constraint_name || '"';
           RAISE NOTICE 'Dropped constraint: %', v_constraint_name;
         END IF;
       END
@@ -137,8 +137,8 @@ async function fixForeignKeyConstraint() {
     
     // Create the correct foreign key constraint
     const createConstraint = await client.query(`
-      ALTER TABLE "Candidate"
-      ADD CONSTRAINT "Candidate_statusId_fkey"
+      ALTER TABLE "applicant"
+      ADD CONSTRAINT "applicant_statusId_fkey"
       FOREIGN KEY ("statusId") REFERENCES "RecruitmentStage"("id") 
       ON DELETE SET NULL ON UPDATE NO ACTION
     `);
@@ -147,7 +147,7 @@ async function fixForeignKeyConstraint() {
     
     // Ensure proper indexing
     const createIndex = await client.query(`
-      CREATE INDEX IF NOT EXISTS "Candidate_statusId_idx" ON "Candidate"("statusId")
+      CREATE INDEX IF NOT EXISTS "applicant_statusId_idx" ON "applicant"("statusId")
     `);
     
     console.log('✅ Ensured status index exists');
@@ -179,7 +179,7 @@ async function ensureDefaultStages() {
       { name: 'Hired', description: 'Successfully hired', sortOrder: 8, isSystem: true },
       { name: 'On Hold', description: 'Application temporarily paused', sortOrder: 9, isSystem: true },
       { name: 'Rejected', description: 'Application not selected', sortOrder: 10, isSystem: true },
-      { name: 'Withdrawn', description: 'Candidate withdrew application', sortOrder: 11, isSystem: true }
+      { name: 'Withdrawn', description: 'applicant withdrew application', sortOrder: 11, isSystem: true }
     ];
     
     for (const stage of defaultStages) {
@@ -207,11 +207,11 @@ async function ensureDefaultStages() {
   }
 }
 
-async function updateCandidateStatuses() {
+async function updateapplicantStatuses() {
   const client = await pool.connect();
   
   try {
-    console.log('\n🔄 Updating candidate statuses to use stage IDs...');
+    console.log('\n🔄 Updating applicant statuses to use stage IDs...');
     
     // Get all stages
     const stages = await client.query(`
@@ -224,47 +224,47 @@ async function updateCandidateStatuses() {
       stageMap.set(stage.name_lower, stage.id);
     });
     
-    // Get candidates with text statuses (if any)
-    const textStatusCandidates = await client.query(`
+    // Get applicants with text statuses (if any)
+    const textStatusapplicants = await client.query(`
       SELECT id, name, "statusId"
-      FROM "Candidate"
+      FROM "applicant"
       WHERE "statusId" IS NOT NULL 
         AND "statusId" != ''
         AND "statusId" !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     `);
     
-    if (textStatusCandidates.rows.length === 0) {
-      console.log('✅ All candidates already have UUID statuses');
+    if (textStatusapplicants.rows.length === 0) {
+      console.log('✅ All applicants already have UUID statuses');
       return true;
     }
     
-    console.log(`📝 Found ${textStatusCandidates.rows.length} candidates with text statuses`);
+    console.log(`📝 Found ${textStatusapplicants.rows.length} applicants with text statuses`);
     
-    // Update each candidate
+    // Update each applicant
     let updatedCount = 0;
-    for (const candidate of textStatusCandidates.rows) {
-      const statusLower = candidate.statusId.toLowerCase();
+    for (const applicant of textStatusapplicants.rows) {
+      const statusLower = applicant.statusId.toLowerCase();
       const stageId = stageMap.get(statusLower);
       
       if (stageId) {
         await client.query(`
-          UPDATE "Candidate" 
+          UPDATE "applicant" 
           SET "statusId" = $1, "updatedAt" = NOW()
           WHERE id = $2
-        `, [stageId, candidate.id]);
+        `, [stageId, applicant.id]);
         
-        console.log(`✅ Updated ${candidate.name}: "${candidate.statusId}" → ${stageId}`);
+        console.log(`✅ Updated ${applicant.name}: "${applicant.statusId}" → ${stageId}`);
         updatedCount++;
       } else {
-        console.log(`⚠️  No matching stage for "${candidate.statusId}" - candidate: ${candidate.name}`);
+        console.log(`⚠️  No matching stage for "${applicant.statusId}" - applicant: ${applicant.name}`);
       }
     }
     
-    console.log(`✅ Updated ${updatedCount} candidates`);
+    console.log(`✅ Updated ${updatedCount} applicants`);
     return true;
     
   } catch (error) {
-    console.error('❌ Error updating candidate statuses:', error);
+    console.error('❌ Error updating applicant statuses:', error);
     return false;
   } finally {
     client.release();
@@ -282,9 +282,9 @@ async function verifyFix() {
       SELECT EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE table_schema='public' 
-          AND table_name='Candidate' 
+          AND table_name='applicant' 
           AND constraint_type='FOREIGN KEY'
-          AND constraint_name='Candidate_statusId_fkey'
+          AND constraint_name='applicant_statusId_fkey'
       )
     `);
     
@@ -298,7 +298,7 @@ async function verifyFix() {
     // Test a sample query with JOIN
     const testQuery = await client.query(`
       SELECT c.id, c.name, c."statusId", rs.name as stage_name
-      FROM "Candidate" c
+      FROM "applicant" c
       LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       LIMIT 3
     `);
@@ -308,7 +308,7 @@ async function verifyFix() {
     // Check if status values are valid UUIDs
     const invalidStatuses = await client.query(`
       SELECT COUNT(*) as count
-      FROM "Candidate"
+      FROM "applicant"
       WHERE "statusId" IS NOT NULL 
         AND "statusId" != ''
         AND "statusId" !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -318,7 +318,7 @@ async function verifyFix() {
       console.log('✅ All status values are valid UUIDs');
       return true;
     } else {
-      console.log(`⚠️  ${invalidStatuses.rows[0].count} candidates still have invalid status values`);
+      console.log(`⚠️  ${invalidStatuses.rows[0].count} applicants still have invalid status values`);
     }
     
     return true;
@@ -332,7 +332,7 @@ async function verifyFix() {
 }
 
 async function main() {
-  console.log('🚀 Starting Candidate Status UUID Fix...\n');
+  console.log('🚀 Starting applicant Status UUID Fix...\n');
   
   try {
     // Step 1: Check current state
@@ -356,10 +356,10 @@ async function main() {
       return;
     }
     
-    // Step 4: Update candidate statuses if needed
-    const statusesUpdated = await updateCandidateStatuses();
+    // Step 4: Update applicant statuses if needed
+    const statusesUpdated = await updateapplicantStatuses();
     if (!statusesUpdated) {
-      console.log('❌ Failed to update candidate statuses');
+      console.log('❌ Failed to update applicant statuses');
       return;
     }
     
@@ -370,11 +370,11 @@ async function main() {
       return;
     }
     
-    console.log('\n🎉 Candidate Status UUID fix completed successfully!');
+    console.log('\n🎉 applicant Status UUID fix completed successfully!');
     console.log('\n📋 Summary:');
     console.log('✅ Foreign key constraint created');
     console.log('✅ Default recruitment stages ensured');
-    console.log('✅ Candidate statuses updated to UUIDs');
+    console.log('✅ applicant statuses updated to UUIDs');
     console.log('✅ Database integrity verified');
     
   } catch (error) {

@@ -124,7 +124,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
       <div className="flex-1 min-h-0 overflow-hidden pointer-events-auto">
         {activeTab === 'comments' && (
           <ApplicantCommentsSection
-            candidateId={applicant.id}
+            applicantId={applicant.id}
             comments={comments}
             isEditing={isEditing}
             onCommentsChange={onRefresh}
@@ -133,7 +133,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
         {activeTab === 'attachments' && (
           <ApplicantResumesSection
-            candidateId={applicant.id}
+            applicantId={applicant.id}
             resumes={resumes}
             isEditing={isEditing}
             onResumesChange={onRefresh}
@@ -142,7 +142,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
         {activeTab === 'evaluate' && hasEvaluationLink && (
           <EvaluateReportSection
-            candidateId={applicant.id}
+            applicantId={applicant.id}
             isEmbedded={true}
           />
         )}

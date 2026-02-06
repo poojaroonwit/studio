@@ -13,7 +13,7 @@ import { hasAnyPermission, canUpdateApplicantPipelineStage, canAssignRecruiter, 
 import { auth } from '@/auth';
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
-  candidateIds: z.array(z.string().uuid()).min(1, "At least one Applicant ID is required."),
+  applicantIds: z.array(z.string().uuid()).min(1, "At least one Applicant ID is required."),
   newStatus: z.string().optional(), // Required if action is 'change_status'
   newRecruiterId: z.string().uuid().nullable().optional(), // Required if action is 'assign_recruiter'
   transitionNotes: z.string().optional().nullable(), // Optional for 'change_status'
@@ -29,13 +29,13 @@ const bulkActionSchema = z.object({
 });
 
 // OPTIMIZED: Inline headcount validation using single connection
-async function validateApplicantHiringStatusWithClient(client: any, candidateId: string, positionId: string) {
+async function validateApplicantHiringStatusWithClient(client: any, applicantId: string, positionId: string) {
   try {
-    // console.log(`Validating headcount for Applicant ${candidateId} in position ${positionId}`);
+    // console.log(`Validating headcount for Applicant ${applicantId} in position ${positionId}`);
     
     // Check if position has any headcounts
     const headcountsResult = await client.query(
-      'SELECT id, status, "candidateId" FROM "Headcount" WHERE "positionId" = $1',
+      'SELECT id, status, "applicantId" FROM "Headcount" WHERE "positionId" = $1',
       [positionId]
     );
     const headcounts = headcountsResult.rows;
@@ -57,8 +57,8 @@ async function validateApplicantHiringStatusWithClient(client: any, candidateId:
     }
 
     // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
-    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
-    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.applicantId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.applicantId !== null);
 
     if (vacantHeadcounts.length === 0) {
       return {
@@ -75,7 +75,7 @@ async function validateApplicantHiringStatusWithClient(client: any, candidateId:
     }
 
     // Check if Applicant is already assigned to a headcount
-    const existingAssignment = headcounts.find((h: any) => h.candidateId === candidateId);
+    const existingAssignment = headcounts.find((h: any) => h.applicantId === applicantId);
     if (existingAssignment) {
       return {
         canHire: true,
@@ -110,12 +110,12 @@ async function validateApplicantHiringStatusWithClient(client: any, candidateId:
 }
 
 // OPTIMIZED: Inline headcount assignment using single connection
-async function assignApplicantToHeadcountWithClient(client: any, candidateId: string, positionId: string, actingUserId: string, actingUserName: string) {
+async function assignApplicantToHeadcountWithClient(client: any, applicantId: string, positionId: string, actingUserId: string, actingUserName: string) {
   try {
     // Find vacant headcount for this position (status is vacant OR no Applicant assigned)
     const vacantHeadcountResult = await client.query(
       `SELECT id FROM "Headcount" 
-       WHERE "positionId" = $1 AND (status = 'vacant' OR "candidateId" IS NULL)
+       WHERE "positionId" = $1 AND (status = 'vacant' OR "applicantId" IS NULL)
        ORDER BY "createdAt" ASC 
        LIMIT 1`,
       [positionId]
@@ -132,15 +132,15 @@ async function assignApplicantToHeadcountWithClient(client: any, candidateId: st
 
     // Update the headcount to assign this Applicant
     await client.query(
-      'UPDATE "Headcount" SET status = $1, "candidateId" = $2 WHERE id = $3',
-      ['filled', candidateId, vacantHeadcount.id]
+      'UPDATE "Headcount" SET status = $1, "applicantId" = $2 WHERE id = $3',
+      ['filled', applicantId, vacantHeadcount.id]
     );
 
     // Check if all headcounts are now filled and auto-close position if needed
     let autoCloseResult = null;
     try {
       const allHeadcountsResult = await client.query(
-        'SELECT COUNT(*) as total, COUNT(CASE WHEN status = $1 AND "candidateId" IS NOT NULL THEN 1 END) as filled FROM "Headcount" WHERE "positionId" = $2',
+        'SELECT COUNT(*) as total, COUNT(CASE WHEN status = $1 AND "applicantId" IS NOT NULL THEN 1 END) as filled FROM "Headcount" WHERE "positionId" = $2',
         ['filled', positionId]
       );
       
@@ -286,12 +286,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { action, candidateIds, newStatus, newRecruiterId, transitionNotes } = validationResult.data;
+  const { action, applicantIds, newStatus, newRecruiterId, transitionNotes } = validationResult.data;
 
-  // Before using candidateIds in queries, validate:
-  const candidateIdsSchema = z.string().uuid().array();
-  if (!candidateIdsSchema.safeParse(candidateIds).success) {
-    throw new Error('Invalid candidateIds array: must be array of UUID strings');
+  // Before using applicantIds in queries, validate:
+  const applicantIdsSchema = z.string().uuid().array();
+  if (!applicantIdsSchema.safeParse(applicantIds).success) {
+    throw new Error('Invalid applicantIds array: must be array of UUID strings');
   }
 
   // OPTIMIZED: Use single database connection for entire operation
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'delete':
-        const deleteResult = await client.query('DELETE FROM "Candidate" WHERE id = ANY($1::uuid[]) RETURNING id', [candidateIds]);
+        const deleteResult = await client.query('DELETE FROM "applicant" WHERE id = ANY($1::uuid[]) RETURNING id', [applicantIds]);
         result = { deletedCount: deleteResult.rowCount };
         auditMessage = `Bulk deleted ${deleteResult.rowCount} Applicants`;
         break;
@@ -327,38 +327,38 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
         }
 
-        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId", "recruiterId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
+        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId", "recruiterId" FROM "applicant" WHERE id = ANY($1::uuid[])', [applicantIds]);
         const oldStatuses = oldStatusesResult.rows;
 
         // Check ownership permissions for each Applicant
-        const ApplicantsWithPermission = [];
-        const ApplicantsWithoutPermission = [];
+        const applicantsWithPermission = [];
+        const applicantsWithoutPermission = [];
         
         for (const applicant of oldStatuses) {
           const pipelinePermission = canUpdateApplicantPipelineStage(session.user, applicant.recruiterId, actingUserId);
           if (pipelinePermission.canUpdate) {
-            ApplicantsWithPermission.push(applicant);
+            applicantsWithPermission.push(applicant);
           } else {
-            ApplicantsWithoutPermission.push({
-              candidateId: applicant.id,
+            applicantsWithoutPermission.push({
+              applicantId: applicant.id,
               reason: pipelinePermission.reason
             });
           }
         }
 
         // If any Applicants don't have permission, return error
-        if (ApplicantsWithoutPermission.length > 0) {
+        if (applicantsWithoutPermission.length > 0) {
           await client.query('ROLLBACK');
-          const deniedApplicants = ApplicantsWithoutPermission.map(c => c.candidateId).join(', ');
+          const deniedApplicants = applicantsWithoutPermission.map(c => c.applicantId).join(', ');
           await logAuditWithClient(client, 'WARN', `Bulk status update denied for Applicants: ${deniedApplicants} by ${actingUserName}`, 'API:Applicants:BulkAction', actingUserId);
           return NextResponse.json({ 
             message: `Forbidden: You don't have permission to update status for some Applicants. Denied Applicants: ${deniedApplicants}`,
-            deniedApplicants: ApplicantsWithoutPermission
+            deniedApplicants: applicantsWithoutPermission
           }, { status: 403 });
         }
 
         // Use only Applicants with permission
-        const ApplicantsToProcess = ApplicantsWithPermission;
+        const applicantsToProcess = applicantsWithPermission;
         
         // Get the stage name for comparison
         const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [newStatus]);
@@ -366,25 +366,25 @@ export async function POST(request: NextRequest) {
         
         // If changing to "Hired" status, validate headcount availability for each Applicant
         const headcountValidationResults = [];
-        const ApplicantsToUpdate = [];
-        const ApplicantsToReject = [];
+        const applicantsToUpdate = [];
+        const applicantsToReject = [];
         
         if (stageName === 'Hired') {
-          for (const applicant of ApplicantsToProcess) {
+          for (const applicant of applicantsToProcess) {
             if (applicant.statusId !== newStatus && applicant.positionId) {
               try {
                 // OPTIMIZED: Use inline validation with same connection
                 const validation = await validateApplicantHiringStatusWithClient(client, applicant.id, applicant.positionId);
                 if (validation.canHire) {
-                  ApplicantsToUpdate.push(applicant);
+                  applicantsToUpdate.push(applicant);
                   headcountValidationResults.push({
-                    candidateId: applicant.id,
+                    applicantId: applicant.id,
                     validation,
                     willAutoAssign: validation.reason === 'VACANT_HEADCOUNT_AVAILABLE'
                   });
                 } else {
-                  ApplicantsToReject.push({
-                    candidateId: applicant.id,
+                  applicantsToReject.push({
+                    applicantId: applicant.id,
                     reason: validation.reason,
                     message: validation.message,
                     headcountStatus: validation.headcountStatus
@@ -413,8 +413,8 @@ export async function POST(request: NextRequest) {
                   }
                 }
                 
-                ApplicantsToReject.push({
-                  candidateId: applicant.id,
+                applicantsToReject.push({
+                  applicantId: applicant.id,
                   reason: errorReason,
                   message: errorMessage,
                   headcountStatus: null,
@@ -423,35 +423,35 @@ export async function POST(request: NextRequest) {
               }
             } else if (applicant.statusId !== newStatus) {
               // Applicant has no position, cannot be hired
-              ApplicantsToReject.push({
-                candidateId: applicant.id,
+              applicantsToReject.push({
+                applicantId: applicant.id,
                 reason: 'NO_POSITION',
                 message: 'Applicant must be assigned to a position to be hired'
               });
             } else {
               // Status is already "Hired", no change needed
-              ApplicantsToUpdate.push(applicant);
+              applicantsToUpdate.push(applicant);
             }
           }
         } else {
           // For non-"Hired" status changes, update all Applicants
-          ApplicantsToUpdate.push(...ApplicantsToProcess);
+          applicantsToUpdate.push(...applicantsToProcess);
         }
         
         // Update Applicants that passed validation
-        if (ApplicantsToUpdate.length > 0) {
-          const candidateIdsToUpdate = ApplicantsToUpdate.map(c => c.id);
+        if (applicantsToUpdate.length > 0) {
+          const applicantIdsToUpdate = applicantsToUpdate.map(c => c.id);
           const updateStatusResult = await client.query(
-            'UPDATE "Candidate" SET "statusId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
-            [newStatus, candidateIdsToUpdate]
+            'UPDATE "applicant" SET "statusId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+            [newStatus, applicantIdsToUpdate]
           );
 
           // Create transition records and handle headcount assignments for status changes
-          for (const applicant of ApplicantsToUpdate) {
+          for (const applicant of applicantsToUpdate) {
             if (applicant.statusId !== newStatus) {
               const newTransitionId = uuidv4();
               await client.query(
-                'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
+                'INSERT INTO "TransitionRecord" (id, "applicantId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
                 [newTransitionId, applicant.id, newStatus, transitionNotes || null, actingUserId]
               );
               
@@ -481,29 +481,29 @@ export async function POST(request: NextRequest) {
             if (result.willAutoAssign) {
               try {
                 // Double-check headcount availability right before assignment to prevent race conditions
-                const positionId = ApplicantsToUpdate.find(c => c.id === result.candidateId)?.positionId!;
-                const revalidation = await validateApplicantHiringStatusWithClient(client, result.candidateId, positionId);
+                const positionId = applicantsToUpdate.find(c => c.id === result.applicantId)?.positionId!;
+                const revalidation = await validateApplicantHiringStatusWithClient(client, result.applicantId, positionId);
                 
                 if (!revalidation.canHire) {
                   // Headcount became unavailable between validation and assignment
-                  console.warn(`Race condition detected: Headcount became unavailable for Applicant ${result.candidateId} during assignment. Rejecting Applicant.`, {
-                    candidateId: result.candidateId,
+                  console.warn(`Race condition detected: Headcount became unavailable for Applicant ${result.applicantId} during assignment. Rejecting Applicant.`, {
+                    applicantId: result.applicantId,
                     positionId,
                     originalValidation: result.validation,
                     revalidation,
                     timestamp: new Date().toISOString()
                   });
-                  ApplicantsToReject.push({
-                    candidateId: result.candidateId,
+                  applicantsToReject.push({
+                    applicantId: result.applicantId,
                     reason: revalidation.reason,
                     message: `Headcount became unavailable: ${revalidation.message}`,
                     headcountStatus: revalidation.headcountStatus
                   });
                   
-                  // Remove from ApplicantsToUpdate since we can't proceed
-                  const rejectIndex = ApplicantsToUpdate.findIndex(c => c.id === result.candidateId);
+                  // Remove from applicantsToUpdate since we can't proceed
+                  const rejectIndex = applicantsToUpdate.findIndex(c => c.id === result.applicantId);
                   if (rejectIndex !== -1) {
-                    ApplicantsToUpdate.splice(rejectIndex, 1);
+                    applicantsToUpdate.splice(rejectIndex, 1);
                   }
                   
                   continue;
@@ -512,13 +512,13 @@ export async function POST(request: NextRequest) {
                 // OPTIMIZED: Use inline assignment with same connection
                 const assignmentResult = await assignApplicantToHeadcountWithClient(
                   client,
-                  result.candidateId,
+                  result.applicantId,
                   positionId,
                   actingUserId,
                   actingUserName
                 );
                 headcountAssignmentResults.push({
-                  candidateId: result.candidateId,
+                  applicantId: result.applicantId,
                   success: assignmentResult.success,
                   message: assignmentResult.message,
                   headcountId: assignmentResult.headcountId
@@ -527,15 +527,15 @@ export async function POST(request: NextRequest) {
                 // Check if position should be auto-closed after headcount assignment
                 if (assignmentResult.success && assignmentResult.autoCloseResult) {
                   autoCloseResults.push({
-                    candidateId: result.candidateId,
-                    positionId: ApplicantsToUpdate.find(c => c.id === result.candidateId)?.positionId!,
+                    applicantId: result.applicantId,
+                    positionId: applicantsToUpdate.find(c => c.id === result.applicantId)?.positionId!,
                     autoCloseResult: assignmentResult.autoCloseResult
                   });
                 }
               } catch (error) {
-                console.error(`Error assigning headcount for Applicant ${result.candidateId}:`, error);
+                console.error(`Error assigning headcount for Applicant ${result.applicantId}:`, error);
                 headcountAssignmentResults.push({
-                  candidateId: result.candidateId,
+                  applicantId: result.applicantId,
                   success: false,
                   message: 'Error assigning headcount'
                 });
@@ -545,19 +545,19 @@ export async function POST(request: NextRequest) {
         }
 
         // Update counts after potential race condition rejections
-        const finalUpdatedCount = ApplicantsToUpdate.length;
-        const finalRejectedCount = ApplicantsToReject.length;
+        const finalUpdatedCount = applicantsToUpdate.length;
+        const finalRejectedCount = applicantsToReject.length;
         
         result = { 
           updatedCount: finalUpdatedCount,
           rejectedCount: finalRejectedCount,
           headcountAssignments: headcountAssignmentResults,
           autoCloseResults: autoCloseResults,
-          rejectedApplicants: ApplicantsToReject
+          rejectedApplicants: applicantsToReject
         };
         
-        const successMessage = `Updated status to ${newStatus} for ${ApplicantsToUpdate.length} Applicants`;
-        const rejectMessage = ApplicantsToReject.length > 0 ? `, rejected ${ApplicantsToReject.length} Applicants due to headcount constraints` : '';
+        const successMessage = `Updated status to ${newStatus} for ${applicantsToUpdate.length} Applicants`;
+        const rejectMessage = applicantsToReject.length > 0 ? `, rejected ${applicantsToReject.length} Applicants due to headcount constraints` : '';
         const autoCloseMessage = autoCloseResults.length > 0 ? `, auto-closed ${autoCloseResults.filter(r => r.autoCloseResult?.action === 'closed').length} positions` : '';
         auditMessage = successMessage + rejectMessage + autoCloseMessage;
         break;
@@ -573,49 +573,49 @@ export async function POST(request: NextRequest) {
 
         // Get current recruiter assignments for transition records
         const currentRecruiterResult = await client.query(
-          'SELECT id, "recruiterId", "positionId", "statusId" FROM "Candidate" WHERE id = ANY($1::uuid[])',
-          [candidateIds]
+          'SELECT id, "recruiterId", "positionId", "statusId" FROM "applicant" WHERE id = ANY($1::uuid[])',
+          [applicantIds]
         );
         const currentRecruiter = currentRecruiterResult.rows;
 
         // Check ownership permissions for each Applicant
-        const ApplicantsWithRecruiterPermission = [];
-        const ApplicantsWithoutRecruiterPermission = [];
+        const applicantsWithRecruiterPermission = [];
+        const applicantsWithoutRecruiterPermission = [];
         
         for (const applicant of currentRecruiter) {
           const recruiterPermission = canAssignRecruiter(session.user, applicant.recruiterId, actingUserId);
           if (recruiterPermission.canAssign) {
-            ApplicantsWithRecruiterPermission.push(applicant);
+            applicantsWithRecruiterPermission.push(applicant);
           } else {
-            ApplicantsWithoutRecruiterPermission.push({
-              candidateId: applicant.id,
+            applicantsWithoutRecruiterPermission.push({
+              applicantId: applicant.id,
               reason: recruiterPermission.reason
             });
           }
         }
 
         // If any Applicants don't have permission, return error
-        if (ApplicantsWithoutRecruiterPermission.length > 0) {
+        if (applicantsWithoutRecruiterPermission.length > 0) {
           await client.query('ROLLBACK');
-          const deniedApplicants = ApplicantsWithoutRecruiterPermission.map(c => c.candidateId).join(', ');
+          const deniedApplicants = applicantsWithoutRecruiterPermission.map(c => c.applicantId).join(', ');
           await logAuditWithClient(client, 'WARN', `Bulk recruiter assignment denied for Applicants: ${deniedApplicants} by ${actingUserName}`, 'API:Applicants:BulkAction', actingUserId);
           return NextResponse.json({ 
             message: `Forbidden: You don't have permission to assign recruiters for some Applicants. Denied Applicants: ${deniedApplicants}`,
-            deniedApplicants: ApplicantsWithoutRecruiterPermission
+            deniedApplicants: applicantsWithoutRecruiterPermission
           }, { status: 403 });
         }
 
         // Use only Applicants with permission
-        const ApplicantsToAssignRecruiter = ApplicantsWithRecruiterPermission;
-        const candidateIdsToAssign = ApplicantsToAssignRecruiter.map(c => c.id);
+        const applicantsToAssignRecruiter = applicantsWithRecruiterPermission;
+        const applicantIdsToAssign = applicantsToAssignRecruiter.map(c => c.id);
 
         const assignRecruiterResult = await client.query(
-          'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
-          [newRecruiterId, candidateIdsToAssign]
+          'UPDATE "applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+          [newRecruiterId, applicantIdsToAssign]
         );
 
         // Create transition records for recruiter changes
-        for (const applicant of ApplicantsToAssignRecruiter) {
+        for (const applicant of applicantsToAssignRecruiter) {
           if (applicant.recruiterId !== newRecruiterId) {
             const newTransitionId = uuidv4();
             const transitionMessage = newRecruiterId 
@@ -623,7 +623,7 @@ export async function POST(request: NextRequest) {
               : 'Recruiter unassigned';
             
             await client.query(`
-              INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+              INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
               VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
             `, [
               newTransitionId,
@@ -646,7 +646,7 @@ export async function POST(request: NextRequest) {
 
       case 'reprocess':
         // Get Applicants with their attachments and applied positions
-        const ApplicantsResult = await client.query(`
+        const applicantsResult = await client.query(`
           SELECT 
             c.id,
             c.name,
@@ -668,17 +668,17 @@ export async function POST(request: NextRequest) {
               ) FILTER (WHERE a.id IS NOT NULL),
               '[]'::json
             ) as attachments
-          FROM "Candidate" c
-          LEFT JOIN "Attachment" a ON c.id = a."candidateId"
+          FROM "applicant" c
+          LEFT JOIN "Attachment" a ON c.id = a."applicantId"
           WHERE c.id = ANY($1::uuid[])
           GROUP BY c.id, c.name, c."positionId", c."sourceId", c."parsedData"
-        `, [candidateIds]);
+        `, [applicantIds]);
 
-        const Applicants = ApplicantsResult.rows;
+        const applicants = applicantsResult.rows;
         const reprocessResults = [];
         const reprocessErrors = [];
 
-        for (const applicant of Applicants) {
+        for (const applicant of applicants) {
           try {
             // Find resume file with 'resume' tag, or use first file as fallback
             let selectedAttachment = null;
@@ -696,8 +696,8 @@ export async function POST(request: NextRequest) {
 
             if (!selectedAttachment) {
               reprocessErrors.push({
-                candidateId: applicant.id,
-                ApplicantName: applicant.name,
+                applicantId: applicant.id,
+                applicantName: applicant.name,
                 error: 'No attachments found for re-processing'
               });
               continue;
@@ -711,8 +711,8 @@ export async function POST(request: NextRequest) {
 
             if (!appliedPositionId) {
               reprocessErrors.push({
-                candidateId: applicant.id,
-                ApplicantName: applicant.name,
+                applicantId: applicant.id,
+                applicantName: applicant.name,
                 error: 'No applied position found for re-processing'
               });
               continue;
@@ -749,18 +749,18 @@ export async function POST(request: NextRequest) {
             ]);
 
             reprocessResults.push({
-              candidateId: applicant.id,
-              ApplicantName: applicant.name,
+              applicantId: applicant.id,
+              applicantName: applicant.name,
               attachmentName: selectedAttachment.fileName,
               positionId: appliedPositionId,
               jobId: jobId
             });
 
           } catch (error) {
-            console.error(`Error creating reprocess job for Applicant ${applicant.id}:`, error);
+            console.error(`Error creating reprocess job for applicant ${applicant.id}:`, error);
             reprocessErrors.push({
-              candidateId: applicant.id,
-              ApplicantName: applicant.name,
+              applicantId: applicant.id,
+              applicantName: applicant.name,
               error: error instanceof Error ? error.message : 'Unknown error'
             });
           }
@@ -814,7 +814,7 @@ export async function POST(request: NextRequest) {
     // OPTIMIZED: Use inline audit logging with same connection
     await logAuditWithClient(client, 'AUDIT', `${auditMessage} by ${actingUserName}.`, 'API:Applicants:BulkAction', actingUserId, { 
       action, 
-      candidateIds, 
+      applicantIds, 
       result 
     });
 
@@ -836,7 +836,7 @@ export async function POST(request: NextRequest) {
       error: error.message,
       stack: error.stack,
       action: body?.action,
-      candidateIds: body?.candidateIds
+      applicantIds: body?.applicantIds
     });
     
     // OPTIMIZED: Use inline audit logging with same connection
@@ -844,7 +844,7 @@ export async function POST(request: NextRequest) {
       try {
         await logAuditWithClient(client, 'ERROR', `Bulk action failed. Error: ${error.message}`, 'API:Applicants:BulkAction', actingUserId, { 
           action: body?.action, 
-          candidateIds: body?.candidateIds, 
+          applicantIds: body?.applicantIds, 
           input: body 
         });
       } catch (auditError) {

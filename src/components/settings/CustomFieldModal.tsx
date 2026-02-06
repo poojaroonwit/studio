@@ -251,7 +251,7 @@ export default function CustomFieldModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent selectId="custom-field-entity-select">
-                              <SelectItem value="Candidate">Applicant</SelectItem>
+                              <SelectItem value="Applicant">Applicant</SelectItem>
                               <SelectItem value="Position">Position</SelectItem>
                               <SelectItem value="User">User</SelectItem>
                               <SelectItem value="Headcount">Headcount</SelectItem>

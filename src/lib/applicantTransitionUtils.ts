@@ -6,16 +6,16 @@ interface ToastFunctions {
   error?: (message: string) => void;
 }
 
-export async function updateApplicantStatusWithNotes(candidateId: string, status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
+export async function updateApplicantStatusWithNotes(applicantId: string, status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
   // Use the bulk endpoint for consistency
-  return updateApplicantsStatusBulk([candidateId], status, notes, suppressToast, toastFunctions);
+  return updateApplicantsStatusBulk([applicantId], status, notes, suppressToast, toastFunctions);
 }
 
-export async function updateApplicantsStatusBulk(candidateIds: string[], status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
+export async function updateApplicantsStatusBulk(applicantIds: string[], status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
   try {
     const payload: any = {
       action: 'change_status',
-      candidateIds,
+      applicantIds,
       newStatus: status,
     };
     if (notes) payload.transitionNotes = notes;
@@ -43,11 +43,11 @@ export async function updateApplicantsStatusBulk(candidateIds: string[], status:
     if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
       const rejectedApplicant = result.rejectedApplicants[0];
       console.warn('Applicant rejected during status update:', rejectedApplicant);
-      throw new Error(rejectedapplicant.message || 'Applicant status update was rejected');
+      throw new Error(rejectedApplicant.message || 'Applicant status update was rejected');
     }
     
     if (!suppressToast) {
-      const message = `${result.updatedCount || candidateIds.length} Applicant(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`;
+      const message = `${result.updatedCount || applicantIds.length} Applicant(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`;
       if (toastFunctions?.success) {
         toastFunctions.success(message);
       } else {

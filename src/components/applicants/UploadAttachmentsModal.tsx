@@ -98,7 +98,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, applicant, onUploadSucce
       toast.error('Please select files to upload');
       return;
     }
-    if (!Applicant) {
+    if (!applicant) {
       toast.error('Applicant information not available');
       return;
     }
@@ -154,7 +154,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, applicant, onUploadSucce
         <DialogHeader>
           <DialogTitle>Upload Attachments</DialogTitle>
           <DialogDescription>
-            Upload files for {Applicant?.name || 'this Applicant'}. Supported formats: PDF, DOC, DOCX, Images, TXT (max 10MB each).
+            Upload files for {applicant?.name || 'this applicant'}. Supported formats: PDF, DOC, DOCX, Images, TXT (max 10MB each).
           </DialogDescription>
         </DialogHeader>
 

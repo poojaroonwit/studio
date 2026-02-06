@@ -18,7 +18,7 @@ interface StatusMultiSelectDropdownProps {
   className?: string;
   disabled?: boolean;
   stages: RecruitmentStage[];
-  ApplicantCounts?: { [stageId: string]: number };
+  applicantCounts?: { [stageId: string]: number };
 }
 
 export function StatusMultiSelectDropdown({
@@ -28,7 +28,7 @@ export function StatusMultiSelectDropdown({
   className,
   disabled = false,
   stages,
-  ApplicantCounts = {}
+  applicantCounts = {}
 }: StatusMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -239,12 +239,12 @@ export function StatusMultiSelectDropdown({
                           {stage.description && stage.description}
                         </span>
                       </div>
-                      {(ApplicantCounts[stage.id] && ApplicantCounts[stage.id] > 0) && (
+                      {(applicantCounts[stage.id] && applicantCounts[stage.id] > 0) && (
                         <Badge
                           variant="outline"
                           className="ml-auto text-xs"
                         >
-                          {ApplicantCounts[stage.id]}
+                          {applicantCounts[stage.id]}
                         </Badge>
                       )}
                     </div>

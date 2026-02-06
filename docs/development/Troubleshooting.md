@@ -56,17 +56,17 @@ npx prisma generate
 ### "Authentication required"
 - User needs to sign in
 
-### "Candidate not found"
-- The candidate ID is invalid or doesn't exist
+### "applicant not found"
+- The applicant ID is invalid or doesn't exist
 
 ### "Access denied"
 - User doesn't have permission to view the resource
 
 ---
 
-## 3. Candidate Detail Modal Stuck
+## 3. applicant Detail Modal Stuck
 
-If modal shows "Loading candidate details...":
+If modal shows "Loading applicant details...":
 
 1. **Check authentication**:
    - Navigate to `http://localhost:8021/auth/signin`

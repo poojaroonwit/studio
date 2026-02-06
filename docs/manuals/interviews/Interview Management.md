@@ -8,7 +8,7 @@
 | **Who** | **Admins** (Config), **Recruiters** (Setup), **Interviewers** (Execution). |
 | **When** | During the "Interviewing" stage of the pipeline. |
 | **Why** | To replace "gut feeling" with data-driven, standardized scoring. |
-| **Where** | **Settings** (Config), **Positions** (Setup), **Candidate Profile** (Execution). |
+| **Where** | **Settings** (Config), **Positions** (Setup), **applicant Profile** (Execution). |
 
 ## 1. Configuring Assets (Admin)
 Before anyone interviews, the standards must be set.
@@ -25,16 +25,16 @@ Tailor the interview plan for a specific role.
 
 ## 3. Conducting Evaluations (Interviewer)
 The core execution step.
-1.  **Notification**: You receive an email or "My Task" to interview a candidate.
-2.  **Open Profile**: Navigate to the candidate.
+1.  **Notification**: You receive an email or "My Task" to interview a applicant.
+2.  **Open Profile**: Navigate to the applicant.
 3.  **Evaluate Tab**:
     *   **Star Ratings**: Rate the pre-configured skills (1-5).
     *   **Notes**: Add context to your score.
     *   **Recommendation**: "Strong Hire", "Hire", "No Hire".
-4.  **Submit**: The score aggregates into the candidate's average.
+4.  **Submit**: The score aggregates into the applicant's average.
 
 ## 4. External Evaluations
 For interviewers without login access:
-1.  Click **"Create Interview Session"** on the candidate profile.
+1.  Click **"Create Interview Session"** on the applicant profile.
 2.  Select **"External Link"**.
 3.  Share the URL. They will see a simplified scoring form.

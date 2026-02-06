@@ -130,7 +130,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [adUsersError, setAdUsersError] = useState<string | null>(null);
 
   // Modal states
-  const [selectedcandidateId, setSelectedcandidateId] = useState<string | null>(null);
+  const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
   const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
   const manualCloseRequested = useRef(false);
 
@@ -140,7 +140,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
 
   // Filter state
-  const [ApplicantFilters, setApplicantFilters] = useState<ApplicantFilterValues>({});
+  const [applicantFilters, setApplicantFilters] = useState<ApplicantFilterValues>({});
   
   // Available data for filters
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
@@ -277,12 +277,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [allApplicantsSortColumn, allApplicantsSortDirection]);
 
   // Sortable value getters
-  const getSortableValue = (Applicant: Applicant, column: string) => {
+  const getSortableValue = (applicant: Applicant, column: string) => {
     switch (column) {
       case 'name': return applicant.name?.toLowerCase() || '';
       case 'email': return applicant.email?.toLowerCase() || '';
-      case 'fitScore': return Applicant.fitScore || 0;
-      case 'status': return (applicant.statusId || Applicant.status)?.toLowerCase() || '';
+      case 'fitScore': return applicant.fitScore || 0;
+      case 'status': return (applicant.statusId || applicant.status)?.toLowerCase() || '';
       case 'applicationDate':
         return applicant.applicationDate ? new Date(applicant.applicationDate).getTime() : 0;
       default: return '';
@@ -451,15 +451,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       query.append('sortDirection', appliedApplicantsSortDirection || 'desc');
 
       // Add filters
-      if (ApplicantFilters) {
-        if (ApplicantFilters.selectedStatuses && ApplicantFilters.selectedStatuses.length > 0) {
-          query.append('status', ApplicantFilters.selectedStatuses.join(','));
+      if (applicantFilters) {
+        if (applicantFilters.selectedStatuses && applicantFilters.selectedStatuses.length > 0) {
+          query.append('status', applicantFilters.selectedStatuses.join(','));
         }
-        if (ApplicantFilters.selectedRecruiterIds && ApplicantFilters.selectedRecruiterIds.length > 0) {
-          query.append('recruiterId', ApplicantFilters.selectedRecruiterIds.join(','));
+        if (applicantFilters.selectedRecruiterIds && applicantFilters.selectedRecruiterIds.length > 0) {
+          query.append('recruiterId', applicantFilters.selectedRecruiterIds.join(','));
         }
-        if (ApplicantFilters.selectedSourceIds && ApplicantFilters.selectedSourceIds.length > 0) {
-          query.append('sourceId', ApplicantFilters.selectedSourceIds.join(','));
+        if (applicantFilters.selectedSourceIds && applicantFilters.selectedSourceIds.length > 0) {
+          query.append('sourceId', applicantFilters.selectedSourceIds.join(','));
         } // Add other filters as needed
       }
 
@@ -472,10 +472,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
       const data = await response.json();
 
-      const Applicants = Array.isArray(data.data) ? data.data : [];
+      const applicants = Array.isArray(data.data) ? data.data : [];
 
-      setAppliedApplicants(Applicants);
-      setAppliedApplicantsTotal(data.pagination?.total || Applicants.length);
+      setAppliedApplicants(applicants);
+      setAppliedApplicantsTotal(data.pagination?.total || applicants.length);
     } catch (error) {
       setAppliedApplicants([]);
       setAppliedApplicantsTotal(0);
@@ -503,10 +503,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (!response.ok) throw new Error('Failed to fetch all Applicants');
 
       const data = await response.json();
-      const Applicants = Array.isArray(data.data) ? data.data : [];
+      const applicants = Array.isArray(data.data) ? data.data : [];
 
-      setFilteredApplicants(Applicants);
-      setFilteredApplicantsTotal(data.pagination?.total || Applicants.length);
+      setFilteredApplicants(applicants);
+      setFilteredApplicantsTotal(data.pagination?.total || applicants.length);
     } catch (error) {
       setFilteredApplicants([]);
       setFilteredApplicantsTotal(0);
@@ -531,9 +531,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       query.append('sortDirection', potentialApplicantsSortDirection || 'desc');
       
       // Add filters
-      if (ApplicantFilters) {
-        if (ApplicantFilters.selectedStatuses && ApplicantFilters.selectedStatuses.length > 0) {
-           query.append('status', ApplicantFilters.selectedStatuses.join(','));
+      if (applicantFilters) {
+        if (applicantFilters.selectedStatuses && applicantFilters.selectedStatuses.length > 0) {
+           query.append('status', applicantFilters.selectedStatuses.join(','));
         } // Add other filters as needed
       }
 
@@ -544,10 +544,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       if (!response.ok) throw new Error('Failed to fetch potential Applicants');
 
       const data = await response.json();
-      const Applicants = Array.isArray(data.data) ? data.data : [];
+      const applicants = Array.isArray(data.data) ? data.data : [];
 
-      setPotentialApplicants(Applicants);
-      setPotentialApplicantsTotal(data.pagination?.total || Applicants.length);
+      setPotentialApplicants(applicants);
+      setPotentialApplicantsTotal(data.pagination?.total || applicants.length);
     } catch (error) {
       setPotentialApplicants([]);
       setPotentialApplicantsTotal(0);
@@ -648,8 +648,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [activeTab, position?.title, fetchAdUsers]);
 
   // Handle Applicant click
-  const handleApplicantClick = (candidateId: string) => {
-    setSelectedcandidateId(candidateId);
+  const handleApplicantClick = (applicantId: string) => {
+    setSelectedApplicantId(applicantId);
     setIsApplicantModalOpen(true);
   };
 
@@ -805,7 +805,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   };
 
   // Helper: Group Applicants by email (same as position detail page)
-  const ApplicantsByEmail = useMemo(() => {
+  const applicantsByEmail = useMemo(() => {
     const groups: Record<string, Applicant[]> = {};
     sortedAllApplicants.forEach((c) => {
       if (!c.email) return;
@@ -1003,7 +1003,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         appliedApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, positionId, sessionStatus, fetchAppliedApplicants, ApplicantFilters]); // Added ApplicantFilters
+  }, [appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, positionId, sessionStatus, fetchAppliedApplicants, applicantFilters]); // Added applicantFilters
 
   // Debounced search for all Applicants
   useEffect(() => {
@@ -1061,7 +1061,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         potentialApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, positionId, sessionStatus, fetchPotentialApplicants, ApplicantFilters]); // Added ApplicantFilters
+  }, [potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, positionId, sessionStatus, fetchPotentialApplicants, applicantFilters]); // Added applicantFilters
 
   // Update form when position changes
   useEffect(() => {
@@ -1091,7 +1091,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [isEditMode, position]);
 
   // Handle pin toggle for applied Applicants
-  const handleAppliedApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
+  const handleAppliedApplicantPinToggle = useCallback(async (applicant: Applicant) => {
     try {
       await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
@@ -1104,7 +1104,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, []);
 
   // Handle pin toggle for potential Applicants
-  const handlePotentialApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
+  const handlePotentialApplicantPinToggle = useCallback(async (applicant: Applicant) => {
     try {
       await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
@@ -1122,7 +1122,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, []);
 
   // Handle pin toggle for all Applicants
-  const handleAllApplicantPinToggle = useCallback(async (Applicant: Applicant) => {
+  const handleAllApplicantPinToggle = useCallback(async (applicant: Applicant) => {
     try {
       const response = await fetch(`/api/applicants/${applicant.id}`, {
         method: 'PUT',
@@ -1131,10 +1131,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${applicant.isPinned ? 'unpin' : 'pin'} Applicant`);
+        throw new Error(`Failed to ${applicant.isPinned ? 'unpin' : 'pin'} applicant`);
       }
 
-      // Update the Applicant in the appropriate list
+      // Update the applicant in the appropriate list
       const updateApplicant = (prev: Applicant[]) =>
         prev.map(c => c.id === applicant.id ? { ...c, isPinned: !c.isPinned } : c);
 
@@ -1339,7 +1339,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   stageNames={stageNames}
                   onApplicantClick={handleApplicantClick}
                   // Filter Props
-                  ApplicantFilters={ApplicantFilters}
+                  applicantFilters={applicantFilters}
                   onFilterChange={setApplicantFilters}
                   availableRecruiters={availableRecruiters}
                   availableStages={recruitmentStages}
@@ -1355,7 +1355,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   <div className={cn(isMobile ? "p-4 pb-48" : "p-6")}>
                     <HeadcountTab
                       positionId={positionId!}
-                      Applicants={filteredApplicants}
+                      applicants={filteredApplicants}
                       onHeadcountChange={fetchHeadcountCount}
                     />
 
@@ -1534,13 +1534,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         )}
 
         {/* Applicant Detail Modal */}
-        {selectedcandidateId && isApplicantModalOpen && (
+        {selectedApplicantId && isApplicantModalOpen && (
           <ApplicantDetailModal
-            candidateId={selectedcandidateId}
+            applicantId={selectedApplicantId}
             open={isApplicantModalOpen}
             onClose={() => {
               setIsApplicantModalOpen(false);
-              setSelectedcandidateId(null);
+              setSelectedApplicantId(null);
             }}
             onRefresh={() => {
               if (positionId) fetchPosition();
@@ -1616,13 +1616,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       </Dialog>
 
       {/* Applicant Detail Modal */}
-      {selectedcandidateId && isApplicantModalOpen && (
+      {selectedApplicantId && isApplicantModalOpen && (
         <ApplicantDetailModal
-          candidateId={selectedcandidateId}
+          applicantId={selectedApplicantId}
           open={isApplicantModalOpen}
           onClose={() => {
             setIsApplicantModalOpen(false);
-            setSelectedcandidateId(null);
+            setSelectedApplicantId(null);
           }}
           onRefresh={() => {
             fetchAppliedApplicants();

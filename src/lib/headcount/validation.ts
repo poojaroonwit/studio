@@ -9,12 +9,12 @@ import type { ValidationResult, UnassignWarning } from './types';
 
 /**
  * Validate if a Applicant can be set to "Hired" status based on headcount availability
- * @param candidateId - The Applicant ID to validate
+ * @param applicantId - The Applicant ID to validate
  * @param positionId - The position ID to check headcounts for
  * @returns Object with validation result and details
  */
 export async function validateApplicantHiringStatus(
-  candidateId: string, 
+  applicantId: string, 
   positionId: string
 ): Promise<ValidationResult> {
   try {
@@ -24,7 +24,7 @@ export async function validateApplicantHiringStatus(
       select: {
         id: true,
         status: true,
-        candidateId: true,
+        applicantId: true,
       },
     });
 
@@ -43,8 +43,8 @@ export async function validateApplicantHiringStatus(
     }
 
     // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
-    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
-    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.applicantId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.applicantId !== null);
 
     if (vacantHeadcounts.length === 0) {
       return {
@@ -61,7 +61,7 @@ export async function validateApplicantHiringStatus(
     }
 
     // Check if Applicant is already assigned to a headcount
-    const existingAssignment = headcounts.find((h: any) => h.candidateId === candidateId);
+    const existingAssignment = headcounts.find((h: any) => h.applicantId === applicantId);
     if (existingAssignment) {
       return {
         canHire: true,
@@ -105,7 +105,7 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
     const headcount = await prisma.headcount.findUnique({
       where: { id: headcountId },
       include: {
-        Applicant: {
+        applicant: {
           select: {
             id: true,
             name: true,
@@ -122,7 +122,7 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
       },
     });
 
-    if (!headcount || !headcount.Applicant) {
+    if (!headcount || !headcount.applicant) {
       return {
         hasWarning: false,
       };
@@ -130,20 +130,21 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
 
     // Check if Applicant status is "Hired" and this is their only headcount assignment
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    if (hiredStageId && headcount.applicant.statusId === hiredStageId) {
-      const ApplicantHeadcounts = await prisma.headcount.findMany({
+    if (hiredStageId && (headcount as any).applicant.statusId === hiredStageId) {
+      const applicantId = (headcount as any).applicant.id;
+      const applicantHeadcounts = await prisma.headcount.findMany({
         where: {
-          candidateId: headcount.applicant.id,
+          applicantId: applicantId,
           status: 'filled',
         },
       });
 
-      if (ApplicantHeadcounts.length <= 1) {
+      if (applicantHeadcounts.length <= 1) {
         return {
           hasWarning: true,
           warningType: 'Applicant_STATUS_WILL_CHANGE',
           message: `Unassigning this Applicant will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
-          Applicant: headcount.Applicant,
+          applicant: headcount.applicant,
           position: headcount.position,
         };
       }

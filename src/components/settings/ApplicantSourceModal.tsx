@@ -25,7 +25,7 @@ import { toast } from 'react-hot-toast';
 import type { ApplicantSource } from '@/lib/types';
 import { useClickProtection } from '@/hooks/use-click-protection';
 
-const ApplicantSourceFormSchema = z.object({
+const applicantSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional(),
   email: z.string().optional(),
@@ -35,7 +35,7 @@ const ApplicantSourceFormSchema = z.object({
   logo: z.any().optional(),
 });
 
-type ApplicantSourceFormValues = z.infer<typeof ApplicantSourceFormSchema>;
+type ApplicantSourceFormValues = z.infer<typeof applicantSourceFormSchema>;
 
 interface ApplicantSourceModalProps {
   open: boolean;
@@ -60,7 +60,7 @@ export default function ApplicantSourceModal({
   });
 
   const form = useForm<ApplicantSourceFormValues>({
-    resolver: zodResolver(ApplicantSourceFormSchema),
+    resolver: zodResolver(applicantSourceFormSchema),
     defaultValues: { 
       name: '', 
       description: '', 

@@ -8,12 +8,12 @@
 -- Based on the codebase analysis, here are the findings:
 
 -- FREQUENTLY USED INDEXES (KEEP THESE):
--- - Candidate.positionId (used in JOINs)
--- - Candidate.recruiterId (used in JOINs) 
--- - Candidate.statusId (used in JOINs)
--- - Candidate.sourceId (used in JOINs)
--- - Candidate.fitScore (used in WHERE clauses and sorting)
--- - Candidate.applicationDate (used in ORDER BY)
+-- - applicant.positionId (used in JOINs)
+-- - applicant.recruiterId (used in JOINs) 
+-- - applicant.statusId (used in JOINs)
+-- - applicant.sourceId (used in JOINs)
+-- - applicant.fitScore (used in WHERE clauses and sorting)
+-- - applicant.applicationDate (used in ORDER BY)
 -- - Position.recruiterId (used in WHERE clauses)
 -- - Position.gradeId (used in JOINs and WHERE clauses)
 -- - Position.isOpen (used in WHERE clauses)
@@ -21,7 +21,7 @@
 -- - User.isActive (used in WHERE clauses)
 -- - User.email (used in WHERE clauses)
 
--- POTENTIALLY UNUSED INDEXES (CANDIDATES FOR REMOVAL):
+-- POTENTIALLY UNUSED INDEXES (applicantS FOR REMOVAL):
 -- - Single column indexes that are not frequently queried
 -- - Indexes on fields that are only used in SELECT but not WHERE/ORDER BY
 -- - Redundant indexes where a composite index would be better
@@ -48,15 +48,15 @@ DROP INDEX IF EXISTS "Position_companyId_idx";
 DROP INDEX IF EXISTS "Position_createdAt_idx";
 DROP INDEX IF EXISTS "Position_updatedAt_idx";
 
--- 3. Remove indexes on Candidate fields that are rarely filtered
-DROP INDEX IF EXISTS "Candidate_phone_idx";
-DROP INDEX IF EXISTS "Candidate_resumePath_idx";
-DROP INDEX IF EXISTS "Candidate_avatarUrl_idx";
-DROP INDEX IF EXISTS "Candidate_dataAiHint_idx";
-DROP INDEX IF EXISTS "Candidate_assignmentJustification_idx";
-DROP INDEX IF EXISTS "Candidate_companyId_idx";
-DROP INDEX IF EXISTS "Candidate_updatedAt_idx";
-DROP INDEX IF EXISTS "Candidate_createdAt_idx";
+-- 3. Remove indexes on applicant fields that are rarely filtered
+DROP INDEX IF EXISTS "applicant_phone_idx";
+DROP INDEX IF EXISTS "applicant_resumePath_idx";
+DROP INDEX IF EXISTS "applicant_avatarUrl_idx";
+DROP INDEX IF EXISTS "applicant_dataAiHint_idx";
+DROP INDEX IF EXISTS "applicant_assignmentJustification_idx";
+DROP INDEX IF EXISTS "applicant_companyId_idx";
+DROP INDEX IF EXISTS "applicant_updatedAt_idx";
+DROP INDEX IF EXISTS "applicant_createdAt_idx";
 
 -- 4. Remove indexes on Grade fields that are rarely filtered
 DROP INDEX IF EXISTS "Grade_label_idx";
@@ -147,17 +147,17 @@ DROP INDEX IF EXISTS "PersonalityGroup_updatedAt_idx";
 DROP INDEX IF EXISTS "PersonalityTrait_createdAt_idx";
 DROP INDEX IF EXISTS "PersonalityTrait_updatedAt_idx";
 
--- 23. Remove indexes on CandidateEvaluation fields that are rarely filtered
-DROP INDEX IF EXISTS "CandidateEvaluation_createdAt_idx";
-DROP INDEX IF EXISTS "CandidateEvaluation_updatedAt_idx";
+-- 23. Remove indexes on applicantEvaluation fields that are rarely filtered
+DROP INDEX IF EXISTS "applicantEvaluation_createdAt_idx";
+DROP INDEX IF EXISTS "applicantEvaluation_updatedAt_idx";
 
--- 24. Remove indexes on CandidateEvaluationSkill fields that are rarely filtered
-DROP INDEX IF EXISTS "CandidateEvaluationSkill_createdAt_idx";
-DROP INDEX IF EXISTS "CandidateEvaluationSkill_updatedAt_idx";
+-- 24. Remove indexes on applicantEvaluationSkill fields that are rarely filtered
+DROP INDEX IF EXISTS "applicantEvaluationSkill_createdAt_idx";
+DROP INDEX IF EXISTS "applicantEvaluationSkill_updatedAt_idx";
 
--- 25. Remove indexes on CandidateEvaluationTrait fields that are rarely filtered
-DROP INDEX IF EXISTS "CandidateEvaluationTrait_createdAt_idx";
-DROP INDEX IF EXISTS "CandidateEvaluationTrait_updatedAt_idx";
+-- 25. Remove indexes on applicantEvaluationTrait fields that are rarely filtered
+DROP INDEX IF EXISTS "applicantEvaluationTrait_createdAt_idx";
+DROP INDEX IF EXISTS "applicantEvaluationTrait_updatedAt_idx";
 
 -- ==============================================
 -- CREATE COMPOSITE INDEXES FOR BETTER PERFORMANCE
@@ -165,13 +165,13 @@ DROP INDEX IF EXISTS "CandidateEvaluationTrait_updatedAt_idx";
 
 -- Create composite indexes for commonly used query patterns
 
--- 1. Composite index for Candidate filtering and sorting
-CREATE INDEX IF NOT EXISTS "Candidate_position_status_fit_idx" 
-ON "Candidate"("positionId", "statusId", "fitScore");
+-- 1. Composite index for applicant filtering and sorting
+CREATE INDEX IF NOT EXISTS "applicant_position_status_fit_idx" 
+ON "applicant"("positionId", "statusId", "fitScore");
 
--- 2. Composite index for Candidate date-based queries
-CREATE INDEX IF NOT EXISTS "Candidate_application_date_status_idx" 
-ON "Candidate"("applicationDate", "statusId");
+-- 2. Composite index for applicant date-based queries
+CREATE INDEX IF NOT EXISTS "applicant_application_date_status_idx" 
+ON "applicant"("applicationDate", "statusId");
 
 -- 3. Composite index for Position filtering
 CREATE INDEX IF NOT EXISTS "Position_recruiter_open_idx" 

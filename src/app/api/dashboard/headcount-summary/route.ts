@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     try {
       const query = `
         SELECT 
-          h.id, h.status, h."positionId", h."candidateId", h."requestDate", h."onboardingDate", h."filledDate",
+          h.id, h.status, h."positionId", h."applicantId", h."requestDate", h."onboardingDate", h."filledDate",
           p.title as "positionTitle",
           p.department as "positionDepartment",
           p."positionLevel",
@@ -29,11 +29,11 @@ export async function GET(request: NextRequest) {
         JOIN "Position" p ON h."positionId" = p.id
         LEFT JOIN "Grade" g ON p."gradeId" = g.id
         LEFT JOIN (
-          SELECT "candidateId", MAX(date) as date
+          SELECT "applicantId", MAX(date) as date
           FROM "TransitionRecord"
           WHERE stage = 'Hired'
-          GROUP BY "candidateId"
-        ) tr ON h."candidateId" = tr."candidateId"
+          GROUP BY "applicantId"
+        ) tr ON h."applicantId" = tr."applicantId"
         WHERE p."isOpen" = true
         ORDER BY h."requestDate" ASC;
       `;

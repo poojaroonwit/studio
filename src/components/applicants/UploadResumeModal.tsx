@@ -41,7 +41,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, applicant, onUploadSuccess }:
   };
 
   const handleUpload = async () => {
-    if (!file || !Applicant) {
+    if (!file || !applicant) {
       toastError('Please select a file to upload');
       return;
     }
@@ -60,7 +60,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, applicant, onUploadSuccess }:
       if (applicant.sourceId) {
         formData.append('source_id', applicant.sourceId);
       }
-      const url = `/api/resumes/upload?candidateId=${applicant.id}`; // candidateId as query param
+      const url = `/api/resumes/upload?applicantId=${applicant.id}`; // applicantId as query param
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
@@ -98,7 +98,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, applicant, onUploadSuccess }:
         <DialogHeader>
           <DialogTitle>Upload Resume</DialogTitle>
           <DialogDescription>
-            Upload a new resume for {Applicant?.name || 'this Applicant'}. Supported formats: PDF, DOC, DOCX (max 5MB).
+            Upload a new resume for {applicant?.name || 'this applicant'}. Supported formats: PDF, DOC, DOCX (max 5MB).
           </DialogDescription>
         </DialogHeader>
 

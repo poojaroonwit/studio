@@ -44,7 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Check if Applicant exists
-    const applicant = await prisma.candidate.findUnique({ where: { id: id } });
+    const applicant = await prisma.applicant.findUnique({ where: { id: id } });
     if (!applicant) {
       return new Response(JSON.stringify({ message: 'Applicant not found' }), {
         status: 404,
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Fetch transition records for the Applicant
     const transitions = await prisma.transitionRecord.findMany({
-      where: { candidateId: id },
+      where: { applicantId: id },
       orderBy: { date: 'desc' },
       include: { actingUser: true },
     });
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Fetch resume uploads for the Applicant (attachments with label 'resume')
     const resumes = await prisma.attachment.findMany({
-      where: { candidateId: id, label: 'resume' },
+      where: { applicantId: id, label: 'resume' },
       orderBy: { uploadedAt: 'desc' },
       include: { uploadedBy: true },
     });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LightBulbIcon as Lightbulb } from '@heroicons/react/24/outline';
-import type { applicant, AutomationJobMatch, Position, ApplicantDetails } from '@/lib/types';
+import type { Applicant, AutomationJobMatch, Position, ApplicantDetails } from '@/lib/types';
 import { formatScoreWithGrade } from '@/lib/utils';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
@@ -17,7 +17,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ applicant
     return null;
   }
 
-  if (!Applicant || !applicant.parsedData) {
+  if (!applicant || !applicant.parsedData) {
     return (
       <Card>
         <CardHeader>
@@ -47,7 +47,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ applicant
 
   const currentAppliedPositionId = applicant.positionId;
   const currentAppliedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === currentAppliedPositionId) : null;
-  const currentFitScore = Applicant.fitScore || 0;
+  const currentFitScore = applicant.fitScore || 0;
   let bestAlternativeMatch: AutomationJobMatch | null = null;
   let bestAlternativeScore = currentFitScore;
   let bestAlternativePositionInDb: Position | null = null;

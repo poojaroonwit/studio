@@ -13,7 +13,7 @@ import { SimpleErrorHandler,
 import { z } from 'zod';
 
 const createTransitionSchema = z.object({
-  candidateId: z.string().uuid('Invalid Applicant ID'),
+  applicantId: z.string().uuid('Invalid Applicant ID'),
   fromStageId: z.string().uuid('Invalid from stage ID'),
   toStageId: z.string().uuid('Invalid to stage ID'),
   notes: z.string().optional(),
@@ -29,12 +29,12 @@ const createTransitionSchema = z.object({
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: query
- *         name: candidateId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filter by Applicant ID
+     *       - in: query
+     *         name: applicantId
+     *         schema:
+     *           type: string
+     *           format: uuid
+     *         description: Filter by Applicant ID
  *       - in: query
  *         name: limit
  *         schema:
@@ -66,9 +66,9 @@ const createTransitionSchema = z.object({
  *                       id:
  *                         type: string
  *                         format: uuid
- *                       candidateId:
- *                         type: string
- *                         format: uuid
+     *                       applicantId:
+     *                         type: string
+     *                         format: uuid
  *                       fromStageId:
  *                         type: string
  *                         format: uuid
@@ -110,8 +110,8 @@ const createTransitionSchema = z.object({
  *                 value:
  *                   success: true
  *                   data:
- *                     - id: "123e4567-e89b-12d3-a456-426614174000"
- *                       candidateId: "123e4567-e89b-12d3-a456-426614174001"
+     *                     - id: "123e4567-e89b-12d3-a456-426614174000"
+     *                       applicantId: "123e4567-e89b-12d3-a456-426614174001"
  *                       fromStageId: "123e4567-e89b-12d3-a456-426614174002"
  *                       toStageId: "123e4567-e89b-12d3-a456-426614174003"
  *                       fromStageName: "Applied"
@@ -149,12 +149,12 @@ const createTransitionSchema = z.object({
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               candidateId:
- *                 type: string
- *                 format: uuid
- *                 description: Applicant ID
- *                 example: "123e4567-e89b-12d3-a456-426614174001"
+     *             properties:
+     *               applicantId:
+     *                 type: string
+     *                 format: uuid
+     *                 description: Applicant ID
+     *                 example: "123e4567-e89b-12d3-a456-426614174001"
  *               fromStageId:
  *                 type: string
  *                 format: uuid
@@ -174,10 +174,10 @@ const createTransitionSchema = z.object({
  *                 format: date-time
  *                 description: Optional transition date (defaults to current time)
  *                 example: "2024-01-01T00:00:00.000Z"
- *             required:
- *               - candidateId
- *               - fromStageId
- *               - toStageId
+     *             required:
+     *               - applicantId
+     *               - fromStageId
+     *               - toStageId
  *     responses:
  *       201:
  *         description: Transition created successfully
@@ -198,9 +198,9 @@ const createTransitionSchema = z.object({
  *                     id:
  *                       type: string
  *                       format: uuid
- *                     candidateId:
- *                       type: string
- *                       format: uuid
+     *                     applicantId:
+     *                       type: string
+     *                       format: uuid
  *                     fromStageId:
  *                       type: string
  *                       format: uuid
@@ -259,7 +259,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const candidateId = searchParams.get('candidateId');
+    const applicantId = searchParams.get('applicantId');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
@@ -269,9 +269,9 @@ export async function GET(req: NextRequest) {
       let queryParams = [];
       let paramIndex = 1;
 
-      if (candidateId) {
+      if (applicantId) {
         whereConditions.push(`t.Applicant_id = $${paramIndex++}`);
-        queryParams.push(candidateId);
+        queryParams.push(applicantId);
       }
 
       const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -289,7 +289,7 @@ export async function GET(req: NextRequest) {
       const transitionsQuery = `
         SELECT 
           t.id,
-          t.Applicant_id as "candidateId",
+          t.Applicant_id as "applicantId",
           t.from_stage_id as "fromStageId",
           t.to_stage_id as "toStageId",
           fs.name as "fromStageName",
@@ -313,7 +313,7 @@ export async function GET(req: NextRequest) {
 
       const transitions = transitionsResult.rows.map((row: any) => ({
         id: row.id,
-        candidateId: row.candidateId,
+        applicantId: row.applicantId,
         fromStageId: row.fromStageId,
         toStageId: row.toStageId,
         fromStageName: row.fromStageName,
@@ -361,7 +361,7 @@ export async function POST(req: NextRequest) {
       return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid request body - ${errorMsg}`));
     }
 
-    const { candidateId, fromStageId, toStageId, notes, transitionDate } = validationResult.data;
+    const { applicantId, fromStageId, toStageId, notes, transitionDate } = validationResult.data;
 
     const client = await getPool().connect();
     try {
@@ -376,22 +376,22 @@ export async function POST(req: NextRequest) {
       
       const transitionDateValue = transitionDate || new Date().toISOString();
       const result = await client.query(insertQuery, [
-        candidateId, fromStageId, toStageId, notes, transitionDateValue, user.id
+        applicantId, fromStageId, toStageId, notes, transitionDateValue, user.id
       ]);
 
       const newTransition = result.rows[0];
 
       // Update Applicant status
       await client.query(
-        'UPDATE "Candidate" SET "statusId" = $1 WHERE id = $2',
-        [toStageId, candidateId]
+        'UPDATE "applicant" SET "statusId" = $1 WHERE id = $2',
+        [toStageId, applicantId]
       );
 
       const response = {
         message: 'Transition created successfully',
         data: {
           id: newTransition.id,
-          candidateId: newTransition.Applicant_id,
+          applicantId: newTransition.Applicant_id,
           fromStageId: newTransition.from_stage_id,
           toStageId: newTransition.to_stage_id,
           notes: newTransition.notes,

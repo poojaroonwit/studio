@@ -84,10 +84,10 @@ export const aiPaths = {
       }
     }
   },
-  '/api/v1/ai/search-Applicants': {
+  '/api/v1/ai/search-applicants': {
     post: {
-      summary: 'Search Applicants with AI (v1 API)',
-      description: 'Search for Applicants using AI-powered matching. Requires Bearer token authentication.',
+      summary: 'Search applicants with AI (v1 API)',
+      description: 'Search for applicants using AI-powered matching. Requires Bearer token authentication.',
       tags: ['V1 AI'],
       security: [{ bearerAuth: [] }],
       requestBody: {
@@ -123,12 +123,12 @@ export const aiPaths = {
               schema: {
                 type: 'object',
                 properties: {
-                  Applicants: {
+                  applicants: {
                     type: 'array',
                     items: {
                       type: 'object',
                       properties: {
-                        Applicant: { $ref: '#/components/schemas/Applicant' },
+                        applicant: { $ref: '#/components/schemas/applicant' },
                         matchScore: { type: 'number' },
                         matchedSkills: { type: 'array', items: { type: 'string' } },
                         reasoning: { type: 'string' }

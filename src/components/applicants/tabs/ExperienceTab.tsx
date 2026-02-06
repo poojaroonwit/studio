@@ -381,7 +381,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
       {/* Custom Fields for Experience Section */}
       {isEditing ? (
         <CustomFieldEdit
-          modelName="Candidate"
+          modelName="Applicant"
           section="experience"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}
@@ -390,7 +390,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
         />
       ) : (
         <CustomFieldDisplay
-          modelName="Candidate"
+          modelName="Applicant"
           section="experience"
           entityId={applicant.id}
           customFields={applicant.customFields || {}}

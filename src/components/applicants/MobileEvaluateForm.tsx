@@ -40,7 +40,7 @@ interface MobileEvaluateFormProps {
   onPrevious: () => void;
   onSubmit: () => void;
   saving: boolean;
-  candidateId: string;
+  applicantId: string;
 }
 
 const scoreOptions = [
@@ -62,7 +62,7 @@ export function MobileEvaluateForm({
   onPrevious,
   onSubmit,
   saving,
-  candidateId,
+  applicantId,
 }: MobileEvaluateFormProps) {
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any | null>(null);

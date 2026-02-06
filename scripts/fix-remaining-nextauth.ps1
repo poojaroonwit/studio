@@ -15,10 +15,10 @@ $files = @(
     "src/app/api/positions/[id]/expertise-skills/[assignmentId]/route.ts",
     "src/app/api/positions/[id]/expertise-skills/route.ts",
     "src/app/api/positions/[id]/personality-traits/route.ts",
-    "src/app/api/candidates/[id]/export/route.ts",
-    "src/app/api/candidates/[id]/avatar/route.ts",
+    "src/app/api/applicants/[id]/export/route.ts",
+    "src/app/api/applicants/[id]/avatar/route.ts",
     "src/app/api/positions/[id]/route.ts",
-    "src/app/api/candidates/[id]/route.ts",
+    "src/app/api/applicants/[id]/route.ts",
     "src/app/api/upload-queue/[id]/file/route.ts",
     "src/app/api/settings/custom-field-definitions/[id]/route.ts",
     "src/app/api/settings/recruitment-stages/[id]/route.ts",
@@ -26,10 +26,10 @@ $files = @(
     "src/app/api/settings/recruitment-stages/[id]/migrate/route.ts",
     "src/app/api/settings/user-groups/[id]/route.ts",
     "src/app/api/transitions/[id]/route.ts",
-    "src/app/api/v1/candidates/[id]/evaluation-link/route.ts",
+    "src/app/api/v1/applicants/[id]/evaluation-link/route.ts",
     "src/app/api/v1/evaluation/links/[id]/route.ts",
-    "src/app/api/positions/[id]/candidates/route.ts",
-    "src/app/api/candidates/[id]/resumes/route.ts"
+    "src/app/api/positions/[id]/applicants/route.ts",
+    "src/app/api/applicants/[id]/resumes/route.ts"
 )
 
 foreach ($filePath in $files) {

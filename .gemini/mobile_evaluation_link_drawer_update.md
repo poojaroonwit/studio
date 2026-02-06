@@ -214,7 +214,7 @@ Uses the `useIsMobile` hook to detect mobile devices and conditionally render th
 ## Testing Checklist
 
 - [ ] Open evaluate page on mobile
-- [ ] Click candidate to view QR modal/drawer
+- [ ] Click applicant to view QR modal/drawer
 - [ ] Verify "Go to Link" button is filled (primary)
 - [ ] Verify "Download QR Code" button is outlined
 - [ ] Confirm link text is **not shown**

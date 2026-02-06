@@ -13,14 +13,14 @@ import type { AssignmentResult, UnassignmentResult } from './types';
 
 /**
  * Automatically assign Applicant to headcount when status changes to "Hired"
- * @param candidateId - The Applicant ID
+ * @param applicantId - The Applicant ID
  * @param positionId - The position ID
  * @param actingUserId - The user ID performing the action
  * @param actingUserName - The user name performing the action
  * @returns Object with assignment result
  */
 export async function assignApplicantToHeadcount(
-  candidateId: string,
+  applicantId: string,
   positionId: string,
   actingUserId: string,
   actingUserName: string
@@ -32,7 +32,7 @@ export async function assignApplicantToHeadcount(
         positionId,
         OR: [
           { status: 'vacant' },
-          { candidateId: null }
+          { applicantId: null }
         ],
       },
       orderBy: {
@@ -52,7 +52,7 @@ export async function assignApplicantToHeadcount(
       where: { id: vacantHeadcount.id },
       data: {
         status: 'filled',
-        candidateId: candidateId,
+        applicantId: applicantId,
       },
     });
 
@@ -63,7 +63,7 @@ export async function assignApplicantToHeadcount(
       'Headcount:AutoAssign', 
       actingUserId, 
       {
-        candidateId,
+        applicantId: applicantId,
         headcountId: vacantHeadcount.id,
         positionId,
       }
@@ -113,7 +113,7 @@ export async function unassignApplicantFromHeadcount(
     const headcount = await prisma.headcount.findUnique({
       where: { id: headcountId },
       include: {
-        Applicant: {
+        applicant: {
           select: {
             id: true,
             name: true,
@@ -130,30 +130,30 @@ export async function unassignApplicantFromHeadcount(
       },
     });
 
-    if (!headcount || !headcount.Applicant) {
+    if (!headcount || !(headcount as any).applicant) {
       return {
         success: false,
         message: 'Headcount not found or no Applicant assigned',
       };
     }
 
-    const candidateId = headcount.applicant.id;
+    const applicantId = (headcount as any).applicant.id;
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    const wasHired = hiredStageId && headcount.applicant.statusId === hiredStageId;
+    const wasHired = hiredStageId && (headcount as any).applicant.statusId === hiredStageId;
 
     // Update the headcount to remove Applicant assignment
     await prisma.headcount.update({
       where: { id: headcountId },
       data: {
         status: 'vacant',
-        candidateId: null,
+        applicantId: null,
       },
     });
 
     // Check if Applicant has any other headcount assignments
     const remainingHeadcounts = await prisma.headcount.findMany({
       where: {
-        candidateId,
+        applicantId: applicantId,
         status: 'filled',
       },
     });
@@ -163,8 +163,8 @@ export async function unassignApplicantFromHeadcount(
     if (wasHired && remainingHeadcounts.length === 0) {
       const appliedStageId = await getRecruitmentStageByName('Applied');
       if (appliedStageId) {
-        await prisma.Applicant.update({
-          where: { id: candidateId },
+        await prisma.applicant.update({
+          where: { id: applicantId },
           data: { recruitmentStage: { connect: { id: appliedStageId } } },
         });
 
@@ -173,7 +173,7 @@ export async function unassignApplicantFromHeadcount(
         await prisma.transitionRecord.create({
           data: {
             id: newTransitionId,
-            Applicant: { connect: { id: candidateId } },
+            applicant: { connect: { id: applicantId } },
             position: { connect: { id: headcount.position.id } },
             stage: appliedStageId,
             notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
@@ -200,7 +200,7 @@ export async function unassignApplicantFromHeadcount(
       'Headcount:Unassign', 
       actingUserId, 
       {
-        candidateId,
+        applicantId: applicantId,
         headcountId,
         positionId: headcount.position.id,
         statusUpdateResult,

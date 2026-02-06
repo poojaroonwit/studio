@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   const url = new URL(request.url);
   const filePath = url.searchParams.get('filePath');
-  const candidateId = url.searchParams.get('candidateId');
+  const applicantId = url.searchParams.get('applicantId');
   const headcountId = url.searchParams.get('headcountId');
   const expiresIn = parseInt(url.searchParams.get('expiresIn') || '3600', 10); // Default 1 hour
 
@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
 
   try {
     // Validate file access permissions based on context
-    if (candidateId) {
+    if (applicantId) {
       // Check if user can access this Applicant's files
-      const applicant = await prisma.candidate.findUnique({
-        where: { id: candidateId },
+      const applicant = await prisma.applicant.findUnique({
+        where: { id: applicantId },
         select: { id: true, recruiterId: true }
       });
 

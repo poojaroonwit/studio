@@ -249,17 +249,17 @@ export async function searchApplicantsAIChat(input: SearchApplicantsInput): Prom
     return { matchedApplicantIds: [], aiReasoning: "Failed to retrieve Applicant data for searching.", recordCount: 0 };
   }
 
-  const ApplicantsummariesText = await Promise.all(
-    filteredApplicants.map(async c => `Applicant_START\n${await createApplicantsummary(c)}\nApplicant_END`)
+  const applicantSummariesText = await Promise.all(
+    filteredApplicants.map(async c => `Applicant_START\n${await createApplicantSummary(c)}\nApplicant_END`)
   ).then(summaries => summaries.join('\n\n---\n\n'));
   
 
   
-  if (!ApplicantsummariesText.trim() && filteredApplicants.length > 0) {
+  if (!applicantSummariesText.trim() && filteredApplicants.length > 0) {
       // Applicant summaries text is empty even though Applicants were fetched
   }
 
-  const effectiveApplicantData = ApplicantsummariesText.trim() ? ApplicantsummariesText : "No Applicant details available for processing.";
+  const effectiveApplicantData = applicantSummariesText.trim() ? applicantSummariesText : "No Applicant details available for processing.";
 
   try {
     // Get configurable system prompt from settings
@@ -409,8 +409,8 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       }
 
       const data = await fetchRes.json();
-      // Gemini API returns Applicants[0].content.parts[0].text
-      const modelText = data.Applicants?.[0]?.content?.parts?.[0]?.text || "";
+      // Gemini API returns applicants[0].content.parts[0].text
+      const modelText = data.applicants?.[0]?.content?.parts?.[0]?.text || "";
 
       return modelText;
     }, 'AI Search');

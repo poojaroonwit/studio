@@ -7,6 +7,7 @@
     "dev:custom": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; node server.js\"",
     "build": "next build",
     "start": "next start",
+    "type-check": "tsc --noEmit",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.js",
     "sync-version": "node scripts/sync-version.js",
     "fix:capitalization": "node scripts/fix-applicant-capitalization.js",

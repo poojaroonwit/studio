@@ -214,17 +214,17 @@ export class WebhookService {
   /**
    * Send webhook for Applicant events
    */
-  static async sendApplicantWebhook(event: string, Applicant: any): Promise<void> {
+  static async sendApplicantWebhook(event: string, applicant: any): Promise<void> {
     await this.sendWebhooks(event, {
       applicant: {
-        id: Applicant.id,
-        name: Applicant.name,
-        email: Applicant.email,
-        status: Applicant.statusId || Applicant.status || Applicant.statusName || 'Unknown',
-        position_id: Applicant.positionId,
-        application_date: Applicant.applicationDate,
-        createdAt: Applicant.createdAt,
-        updatedAt: Applicant.updatedAt
+        id: applicant.id,
+        name: applicant.name,
+        email: applicant.email,
+        status: applicant.statusId || applicant.status || applicant.statusName || 'Unknown',
+        position_id: applicant.positionId,
+        application_date: applicant.applicationDate,
+        createdAt: applicant.createdAt,
+        updatedAt: applicant.updatedAt
       }
     });
   }

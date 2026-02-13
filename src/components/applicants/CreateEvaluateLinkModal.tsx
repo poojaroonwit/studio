@@ -1008,7 +1008,7 @@ export function CreateEvaluateLinkModal({
 
   // Render success step
   const renderSuccessStep = () => {
-    const nameInfo = formatApplicantNameWithLang({ name: Applicant.name } as any);
+    const nameInfo = formatApplicantNameWithLang({ name: applicant.name } as any);
 
     return (
       <div className="flex flex-col items-center py-6 space-y-6">

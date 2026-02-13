@@ -142,8 +142,8 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
       if (applicantHeadcounts.length <= 1) {
         return {
           hasWarning: true,
-          warningType: 'Applicant_STATUS_WILL_CHANGE',
-          message: `Unassigning this Applicant will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
+          warningType: 'APPLICANT_STATUS_WILL_CHANGE',
+          message: `Unassigning this applicant will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
           applicant: headcount.applicant,
           position: headcount.position,
         };

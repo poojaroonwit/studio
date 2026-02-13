@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
   
-  const { id } = await params;
+  const { id: targetApplicantId } = await params;
   const client = await getPool().connect();
   try {
     const query = `
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1;
     `;
-    const result = await client.query(query, [id]);
+    const result = await client.query(query, [targetApplicantId]);
     if (result.rows.length === 0) {
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant recruiter'));
   }
   
-  const { id } = await params;
+  const { id: targetApplicantId } = await params;
   let body;
   try {
     body = await req.json();
@@ -94,7 +94,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [id]);
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
     if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -131,7 +131,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     // Update the Applicant's recruiter
     const updateQuery = 'UPDATE "applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *';
-    const updateResult = await client.query(updateQuery, [recruiterId, id]);
+    const updateResult = await client.query(updateQuery, [recruiterId, targetApplicantId]);
     
     // Create transition record for recruiter change
     const transitionQuery = `
@@ -139,7 +139,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     
-    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [id]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
     const positionId = positionResult.rows[0]?.positionId;
     const status = 'Applied'; // Use default status since we don't have the actual status name
     
@@ -154,7 +154,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (notes) {
       await client.query(transitionQuery, [
         uuidv4(),
-        id,
+        targetApplicantId,
         positionId,
         status,
         notes,
@@ -171,12 +171,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1;
     `;
-    const fetchResult = await client.query(fetchQuery, [id]);
+    const fetchResult = await client.query(fetchQuery, [targetApplicantId]);
     const updatedApplicant = fetchResult.rows[0];
     
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Applicant '${applicant.name}' recruiter updated by ${actingUserName}.`, 'API:V1:Applicants:UpdateRecruiter', user.id, { 
-      applicantId: id, 
+      applicantId: targetApplicantId, 
       oldRecruiterId, 
       newRecruiterId: recruiterId 
     });
@@ -197,8 +197,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update Applicant recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UpdateRecruiter', user?.id, { 
-      applicantId: id, 
+    await logAudit('ERROR', `Failed to update Applicant recruiter (ID: ${targetApplicantId}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UpdateRecruiter', user?.id, { 
+      applicantId: targetApplicantId, 
       error: errorMessage, 
       ...body 
     });
@@ -216,14 +216,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to unassign Applicant recruiter'));
   }
   
-  const { id } = await params;
+  const { id: targetApplicantId } = await params;
   const client = await getPool().connect();
   
   try {
     await client.query('BEGIN');
     
     // Check if Applicant exists and has a recruiter
-    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [id]);
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
     if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -237,10 +237,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     // Remove the recruiter assignment
     const updateQuery = 'UPDATE "applicant" SET "recruiterId" = NULL, "updatedAt" = NOW() WHERE id = $1 RETURNING *';
-    await client.query(updateQuery, [id]);
+    await client.query(updateQuery, [targetApplicantId]);
     
     // Create transition record
-    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [id]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
     const positionId = positionResult.rows[0]?.positionId;
     const status = 'Applied'; // Use default status since we don't have the actual status name
     
@@ -251,7 +251,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     await client.query(transitionQuery, [
       uuidv4(),
-      id,
+      targetApplicantId,
       positionId,
       status,
       'Recruiter unassigned',
@@ -262,7 +262,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Applicant '${applicant.name}' recruiter unassigned by ${actingUserName}.`, 'API:V1:Applicants:UnassignRecruiter', user.id, { 
-      applicantId: id, 
+      applicantId: targetApplicantId, 
       oldRecruiterId: applicant.recruiterId 
     });
     
@@ -273,8 +273,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to unassign Applicant recruiter (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UnassignRecruiter', user?.id, { 
-      applicantId: id, 
+    await logAudit('ERROR', `Failed to unassign Applicant recruiter (ID: ${targetApplicantId}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Applicants:UnassignRecruiter', user?.id, { 
+      applicantId: targetApplicantId, 
       error: errorMessage 
     });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error unassigning Applicant recruiter: ${errorMessage}`));

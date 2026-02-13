@@ -233,7 +233,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
           
-          const result = await safeFetch(`/api/taskboard/Applicants?${params.toString()}`, { timeoutMs: 6000 });
+          const result = await safeFetch(`/api/taskboard/applicants?${params.toString()}`, { timeoutMs: 6000 });
           if (result.ok && result.data) {
             setApplicants(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
           } else {
@@ -267,7 +267,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             if (filters.stage) params.append('status', filters.stage);
             if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
             
-            const result = await safeFetch(`/api/taskboard/Applicants?${params.toString()}`, { timeoutMs: 6000 });
+            const result = await safeFetch(`/api/taskboard/applicants?${params.toString()}`, { timeoutMs: 6000 });
             if (result.ok && result.data) {
               const newApplicants = Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []);
             
@@ -472,8 +472,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const fetchApplicants = async () => {
       setLoading(true);
       try {
-        // Use optimized taskboard endpoint for faster loading - request all Applicants
-        const result = await safeFetch('/api/taskboard/Applicants?limit=50000&page=1', { timeoutMs: 6000 });
+        // Use optimized taskboard endpoint for faster loading - request all applicants
+        const result = await safeFetch('/api/taskboard/applicants?limit=50000&page=1', { timeoutMs: 6000 });
         if (result.ok && result.data) {
           setApplicants(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
         } else {
@@ -507,17 +507,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (filters.stage) params.append('status', filters.stage);
           if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
           
-          // If no filters are applied, use the same endpoint as initial load to get all Applicants
+          // If no filters are applied, use the same endpoint as initial load to get all applicants
           // Recruiter filter should apply even when no stages are selected
           const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
           const shouldShowAll = !hasFilters;
-          // Request all Applicants - pagination is handled by "See More" button in UI
+          // Request all applicants - pagination is handled by "See More" button in UI
           if (!params.has('limit')) {
-            params.append('limit', '50000'); // Request all Applicants (no practical limit)
+            params.append('limit', '50000'); // Request all applicants (no practical limit)
           }
           const endpoint = shouldShowAll
-            ? '/api/taskboard/Applicants?limit=50000&page=1' // Get all Applicants when showing all
-            : `/api/taskboard/Applicants?${params.toString()}`;
+            ? '/api/taskboard/applicants?limit=50000&page=1' // Get all applicants when showing all
+            : `/api/taskboard/applicants?${params.toString()}`;
           
           // console.log('Fetching Applicants with endpoint:', endpoint);
           
@@ -561,8 +561,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Filter Applicants based on user role and permissions
   const filteredApplicants = useMemo(() => {
     // Defensive check to prevent temporal dead zone issues
-    if (!Array.isArray(Applicants)) {
-      console.warn('MyTasksPageClient: Applicants is not an array:', Applicants);
+    if (!Array.isArray(applicants)) {
+      console.warn('MyTasksPageClient: applicants is not an array:', applicants);
       return [];
     }
     
@@ -841,16 +841,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                          
                          // If no manual filters and user can view all Applicants, show simple count
                          if (!hasManualFilters && !isRecruiter) {
-                           return `${totalApplicants} Applicants`;
+                           return `${totalApplicants} applicants`;
                          }
                          
                          // If no manual filters but user has limited permissions, show permission-based count
                          if (!hasManualFilters && isRecruiter) {
-                           return `${totalApplicants} total Applicants (${displayedApplicants.length} assigned to you)`;
+                           return `${totalApplicants} total applicants (${displayedApplicants.length} assigned to you)`;
                          }
                          
                          // If manual filters are applied, show filtered count
-                         return `${totalApplicants} total Applicants (${displayedApplicants.length} filtered)`;
+                         return `${totalApplicants} total applicants (${displayedApplicants.length} filtered)`;
                        })()}
                      </div>
                    )}
@@ -1153,11 +1153,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 <Users className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-foreground">No Applicants found</h3>
+                <h3 className="text-lg font-medium text-foreground">No applicants found</h3>
                 <p className="text-muted-foreground text-sm">
                   {Object.keys(filters).length > 0 
                     ? "Try adjusting your filters to see more results."
-                    : "No Applicants are currently assigned to you."
+                    : "No applicants are currently assigned to you."
                   }
                 </p>
               </div>
@@ -1182,7 +1182,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   tasks={convertApplicantsToTasks(displayedApplicants)}
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
-                  onTaskClick={(task) => setSelectedTask(task.originalApplicant)}
+                  onTaskClick={(task) => setSelectedTask(task.originalapplicant)}
                   cardPreferences={{
                     cardWidth: memoizedPreferences.cardWidth,
                     customCardWidth: memoizedPreferences.customCardWidth,

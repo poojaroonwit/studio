@@ -1018,6 +1018,7 @@ export interface RecruitmentStage {
 export interface TransitionRecord {
   id: string;
   applicantId?: string;
+  positionId?: string | null;
   date: string;
   stage: ApplicantStatus; // Now a string to accommodate custom stages
   notes?: string;
@@ -1455,8 +1456,8 @@ export interface CustomFieldDefinition {
   showInHeadcountDetail?: boolean;
 
   // Section selection for display settings
-  applicantDetailSection?: 'jobs' | 'Applicant-info' | 'education' | 'experience' | 'job-suitability';
-  positionDetailSection?: 'details' | 'criteria' | 'Applicants' | 'headcount';
+  applicantDetailSection?: 'jobs' | 'applicant-info' | 'education' | 'experience' | 'job-suitability';
+  positionDetailSection?: 'details' | 'criteria' | 'applicants' | 'headcount';
 
   // For select/multiselect fields
   allowCustomOptions?: boolean;

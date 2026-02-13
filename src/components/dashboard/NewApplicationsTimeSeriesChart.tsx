@@ -43,7 +43,7 @@ const PERIOD_UNITS = [
   { label: 'Year(s)', value: 'year' },
 ];
 
-export function NewApplicationsTimeSeriesChart({ applicants, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
+export function NewApplicationsTimeSeriesChart({ applicants, initialData, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
 

@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           await logAudit('WARN', `Bulk delete attempt for positions with assigned Applicants by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, applicantCount });
           return new Response(JSON.stringify({
-            error: `Cannot delete positions with assigned Applicants. Found ${ApplicantCount} Applicants assigned to these positions.`
+            error: `Cannot delete positions with assigned Applicants. Found ${applicantCount} Applicants assigned to these positions.`
           }), { status: 400, headers: handleCors(req) });
         }
 

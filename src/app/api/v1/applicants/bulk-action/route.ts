@@ -205,18 +205,18 @@ export async function POST(req: NextRequest) {
 
         if (position && position.recruiterId && position.recruiter) {
           let syncCount = 0;
-          for (const applicantId of applicantIdsWithPermission) {
+          for (const targetApplicantId of applicantIdsWithPermission) {
             try {
               // Check if Applicant already has a recruiter
               const applicant = await prisma.applicant.findUnique({
-                where: { id: applicantId },
+                where: { id: targetApplicantId },
                 select: { recruiterId: true }
               });
 
               // Always assign recruiter when position is assigned, regardless of existing recruiter
               // This ensures the position's recruiter takes precedence
               await prisma.applicant.update({
-                where: { id: applicantId },
+                where: { id: targetApplicantId },
                 data: {
                   recruiter: { connect: { id: position.recruiterId } },
                   updatedAt: new Date()
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
               await prisma.transitionRecord.create({
                 data: {
                   id: uuidv4(),
-                  applicant: { connect: { id: applicantId } },
+                  applicant: { connect: { id: targetApplicantId } },
                   position: { connect: { id: data.positionId } },
                   stage: appliedStageId || 'Applied', // Fallback to string only if DB lookup fails
                   notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
@@ -269,13 +269,13 @@ export async function POST(req: NextRequest) {
               // Send notification to the assigned recruiter
               try {
                 const applicant = await prisma.applicant.findUnique({
-                  where: { id: applicantId },
+                  where: { id: targetApplicantId },
                   select: { name: true }
                 });
 
                 if (applicant) {
                   await NotificationService.notifyApplicantAdded(
-                    applicantId,
+                    targetApplicantId,
                     applicant.name,
                     data.positionId,
                     position.title,
@@ -284,18 +284,19 @@ export async function POST(req: NextRequest) {
                   );
                 }
               } catch (notificationError) {
-                console.error(`Failed to send notification for Applicant ${applicantId}:`, notificationError);
+                console.error(`Failed to send notification for Applicant ${targetApplicantId}:`, notificationError);
                 // Don't fail the bulk action if notification fails
               }
 
               syncCount++;
             } catch (syncError) {
-              console.error(`Failed to auto-assign recruiter for Applicant ${applicantId}:`, syncError);
+              console.error(`Failed to auto-assign recruiter for Applicant ${targetApplicantId}:`, syncError);
               // Don't fail the bulk action if sync fails
             }
           }
 
-        } else if (position && !position.recruiterId) {
+        }
+ else if (position && !position.recruiterId) {
           // console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
         } else if (!position) {
           // console.log(`❌ Position ${data.positionId} not found in database`);

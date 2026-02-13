@@ -361,7 +361,7 @@ export async function POST(req: NextRequest) {
       return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid request body - ${errorMsg}`));
     }
 
-    const { applicantId, fromStageId, toStageId, notes, transitionDate } = validationResult.data;
+    const { applicantId: targetApplicantId, fromStageId, toStageId, notes, transitionDate } = validationResult.data;
 
     const client = await getPool().connect();
     try {
@@ -376,7 +376,7 @@ export async function POST(req: NextRequest) {
       
       const transitionDateValue = transitionDate || new Date().toISOString();
       const result = await client.query(insertQuery, [
-        applicantId, fromStageId, toStageId, notes, transitionDateValue, user.id
+        targetApplicantId, fromStageId, toStageId, notes, transitionDateValue, user.id
       ]);
 
       const newTransition = result.rows[0];
@@ -384,7 +384,7 @@ export async function POST(req: NextRequest) {
       // Update Applicant status
       await client.query(
         'UPDATE "applicant" SET "statusId" = $1 WHERE id = $2',
-        [toStageId, applicantId]
+        [toStageId, targetApplicantId]
       );
 
       const response = {

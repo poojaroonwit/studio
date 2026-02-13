@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       // Failed to dispatch Applicant creation webhook
     }
 
-    return NextResponse.json({ message: 'Applicant created successfully', Applicant: newApplicant }, { status: 201 });
+    return NextResponse.json({ message: 'Applicant created successfully', applicant: newApplicant }, { status: 201 });
   } catch (error: any) {
     // Try to rollback if we have a client and transaction was started
     if (client) {

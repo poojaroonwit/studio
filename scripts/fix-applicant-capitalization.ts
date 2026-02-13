@@ -182,7 +182,7 @@ function fixFile(filePath: string): FixResult {
           
           // Apply fix
           try {
-            const fixed = typeof fix === 'function' ? fix(fullMatch, ...match.slice(1)) : fullMatch.replace(/Applicant/, 'applicant');
+            const fixed = typeof fix === 'function' ? (fix as (...args: string[]) => string)(fullMatch, ...match.slice(1).map(s => s ?? '')) : fullMatch.replace(/Applicant/, 'applicant');
             
             if (fixed !== fullMatch) {
               const newLine = line.substring(0, matchIndex) + fixed + line.substring(matchIndex + fullMatch.length);

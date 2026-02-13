@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ArrowPathIcon as Loader2, CameraIcon as Camera, UsersIcon as Users } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import type { applicant, Position } from '@/lib/types';
+import type { Applicant, Position } from '@/lib/types';
 import type { AveragedEvaluationData } from '../types';
 
 interface ReportHeaderProps {

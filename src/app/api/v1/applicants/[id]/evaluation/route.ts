@@ -34,11 +34,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const applicantId = (await params).id;
+    const targetApplicantId = (await params).id;
 
     // Get the latest evaluation for the Applicant
     const evaluation = await prisma.applicantEvaluation.findFirst({
-      where: { applicantId: applicantId },
+      where: { applicantId: targetApplicantId },
       include: {
         evaluator: {
           select: {
@@ -102,7 +102,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const applicantId = (await params).id;
+    const targetApplicantId = (await params).id;
     const body = await request.json();
     console.log('Received evaluation body:', JSON.stringify(body, null, 2));
     const validatedData = createEvaluationSchema.parse(body);
@@ -112,7 +112,7 @@ export async function POST(
 
     // Check if Applicant exists
     const applicant = await prisma.applicant.findUnique({
-      where: { id: applicantId }
+      where: { id: targetApplicantId }
     });
 
     if (!applicant) {
@@ -153,7 +153,7 @@ export async function POST(
     // Check if evaluation already exists for this Applicant and evaluator
     const existingEvaluation = await prisma.applicantEvaluation.findFirst({
       where: {
-        applicantId: applicantId,
+        applicantId: targetApplicantId,
         evaluatorId
       }
     });
@@ -239,7 +239,7 @@ export async function POST(
       })
       : await prisma.applicantEvaluation.create({
         data: {
-          applicantId: applicantId,
+          applicantId: targetApplicantId,
           positionId: validatedData.positionId,
           evaluatorId,
           status: validatedData.status,
@@ -308,7 +308,7 @@ export async function POST(
       // Find all other evaluations for this Applicant
       const allEvaluations = await prisma.applicantEvaluation.findMany({
         where: {
-          applicantId: applicantId,
+          applicantId: targetApplicantId,
           id: { not: evaluation.id } // Exclude the current evaluation
         }
       });

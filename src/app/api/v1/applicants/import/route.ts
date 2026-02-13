@@ -53,7 +53,7 @@ async function resolveStageIdFromInput(input: string | undefined | null): Promis
 }
 
 const applicantImportSchema = z.object({
-  Applicants: z.array(
+  applicants: z.array(
     z.union([
       z.object({
         applicant_info: ApplicantInfoSchema,
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate applicants
-  const validationResult = applicantImportSchema.safeParse({ Applicants: applicants });
+  const validationResult = applicantImportSchema.safeParse({ applicants: applicants });
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
@@ -335,7 +335,7 @@ export async function GET(req: NextRequest) {
 
   // Return import template
   const template = {
-    Applicants: [
+    applicants: [
       {
         name: "Sample Applicant",
         email: "john.doe@example.com",

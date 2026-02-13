@@ -50,8 +50,8 @@ const customFieldFormSchema = z.object({
   showInHeadcountDetail: z.boolean().default(false),
   
   // Section selection for display settings
-  applicantDetailSection: z.enum(['jobs', 'Applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
-  positionDetailSection: z.enum(['details', 'criteria', 'Applicants', 'headcount']).optional().nullable(),
+  applicantDetailSection: z.enum(['jobs', 'applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
+  positionDetailSection: z.enum(['details', 'criteria', 'applicants', 'headcount']).optional().nullable(),
   
   // Field properties
   is_required: z.boolean().default(false),
@@ -765,7 +765,7 @@ export default function CustomFieldDrawer({
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="jobs">Jobs Tab</SelectItem>
-                                          <SelectItem value="Applicant-info">Applicant Info Tab</SelectItem>
+                                          <SelectItem value="applicant-info">Applicant Info Tab</SelectItem>
                                           <SelectItem value="education">Education Tab</SelectItem>
                                           <SelectItem value="experience">Experience Tab</SelectItem>
                                           <SelectItem value="job-suitability">Job Suitability Tab</SelectItem>
@@ -799,7 +799,7 @@ export default function CustomFieldDrawer({
                                         <SelectContent>
                                           <SelectItem value="details">Details Tab</SelectItem>
                                           <SelectItem value="criteria">Match Criteria Tab</SelectItem>
-                                          <SelectItem value="Applicants">Applicants Tab</SelectItem>
+                                          <SelectItem value="applicants">Applicants Tab</SelectItem>
                                           <SelectItem value="headcount">Headcount Tab</SelectItem>
                                         </SelectContent>
                                       </Select>

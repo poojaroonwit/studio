@@ -449,159 +449,159 @@
       }
     ]
   },
-  "applicant": {
+  "Applicant": {
     "table": {
-      "tableName": "applicant",
-      "comment": "applicant - Job applicants and their application data"
+      "tableName": "Applicant",
+      "comment": "Applicant - Job applicants and their application data"
     },
     "columns": [
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "name",
-        "comment": "applicant full name"
+        "comment": "Applicant full name"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "email",
         "comment": "Email address"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "phone",
         "comment": "Phone number"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "positionId",
         "comment": "Applied position reference"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "recruiterId",
         "comment": "Assigned recruiter reference"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "fitScore",
         "comment": "AI-calculated fit score (0-100)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "applicationDate",
         "comment": "Application submission date"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "parsedData",
         "comment": "Parsed resume data (JSON)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "customAttributes",
         "comment": "Custom attributes (JSON)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "resumePath",
         "comment": "Path to uploaded resume file"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "avatarUrl",
         "comment": "Avatar image URL"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "dataAiHint",
         "comment": "AI hint for processing"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "assignmentJustification",
         "comment": "Justification for position assignment"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "educationData",
         "comment": "Education history (JSON array)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "experienceData",
         "comment": "Work experience history (JSON array)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "companyId",
         "comment": "Company identifier"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "sourceId",
-        "comment": "applicant source reference"
+        "comment": "Applicant source reference"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "subSource",
         "comment": "Sub-source detail"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "statusId",
         "comment": "Current recruitment status"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "isBlacklisted",
         "comment": "Whether applicant is blacklisted"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "isPinned",
         "comment": "Whether applicant is pinned"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "pinnedAt",
         "comment": "Pin timestamp"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "emailDate",
         "comment": "Email received date"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "emailSubject",
         "comment": "Email subject line"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "emailId",
         "comment": "Email message ID"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "emailMetadata",
         "comment": "Email metadata (JSON)"
       },
       {
-        "tableName": "applicant",
+        "tableName": "Applicant",
         "columnName": "expected_salary",
         "comment": "Expected salary amount"
       }
@@ -610,7 +610,7 @@
   "applicant_read_status": {
     "table": {
       "tableName": "applicant_read_status",
-      "comment": "applicantReadStatus - Tracks read/unread status per user per applicant"
+      "comment": "ApplicantReadStatus - Tracks read/unread status per user per applicant"
     },
     "columns": [
       {
@@ -990,7 +990,7 @@
       {
         "tableName": "CustomFieldDefinition",
         "columnName": "model_name",
-        "comment": "Target model name (applicant, Position, etc.)"
+        "comment": "Target model name (Applicant, Position, etc.)"
       },
       {
         "tableName": "CustomFieldDefinition",
@@ -1090,7 +1090,7 @@
       {
         "tableName": "CustomFieldDefinition",
         "columnName": "applicant_detail_section",
-        "comment": "applicant detail section"
+        "comment": "Applicant detail section"
       },
       {
         "tableName": "CustomFieldDefinition",
@@ -1492,49 +1492,49 @@
       }
     ]
   },
-  "applicantComment": {
+  "ApplicantComment": {
     "table": {
-      "tableName": "applicantComment",
-      "comment": "applicantComment - Comments and notes on applicant profiles"
+      "tableName": "ApplicantComment",
+      "comment": "ApplicantComment - Comments and notes on applicant profiles"
     },
     "columns": [
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "applicantId",
         "comment": "Reference to applicant"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "authorId",
         "comment": "Comment author reference"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "content",
         "comment": "Comment content"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "type",
         "comment": "Comment type (comment, remark)"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       },
       {
-        "tableName": "applicantComment",
+        "tableName": "ApplicantComment",
         "columnName": "attachmentIds",
         "comment": "Referenced attachment IDs"
       }
@@ -2052,59 +2052,59 @@
       }
     ]
   },
-  "applicantSource": {
+  "ApplicantSource": {
     "table": {
-      "tableName": "applicantSource",
-      "comment": "applicantSource - applicant sourcing channels (job portals, referrals, etc.)"
+      "tableName": "ApplicantSource",
+      "comment": "ApplicantSource - Applicant sourcing channels (job portals, referrals, etc.)"
     },
     "columns": [
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "name",
         "comment": "Source name (e.g., LinkedIn, JobsDB)"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "description",
         "comment": "Source description"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "allow_sub_source",
         "comment": "Whether sub-sources are allowed"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "sort_order",
         "comment": "Sort order for display"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "is_active",
         "comment": "Whether source is active"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "logo",
         "comment": "Logo URL or path"
       },
       {
-        "tableName": "applicantSource",
+        "tableName": "ApplicantSource",
         "columnName": "email",
         "comment": "Contact email for this source"
       }
@@ -2823,198 +2823,198 @@
       }
     ]
   },
-  "applicantEvaluation": {
+  "ApplicantEvaluation": {
     "table": {
-      "tableName": "applicantEvaluation",
-      "comment": "applicantEvaluation - Evaluation records for applicant assessments"
+      "tableName": "ApplicantEvaluation",
+      "comment": "ApplicantEvaluation - Evaluation records for applicant assessments"
     },
     "columns": [
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "applicantId",
         "comment": "Reference to applicant"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "positionId",
         "comment": "Reference to position"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "evaluatorId",
         "comment": "Reference to evaluator"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "status",
         "comment": "Evaluation status (in_progress, completed)"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "overall_score",
         "comment": "Overall evaluation score"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "comments",
         "comment": "Evaluator comments"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "completed_at",
         "comment": "Completion timestamp"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantEvaluation",
+        "tableName": "ApplicantEvaluation",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       }
     ]
   },
-  "applicantEvaluationLink": {
+  "ApplicantEvaluationLink": {
     "table": {
-      "tableName": "applicantEvaluationLink",
-      "comment": "applicantEvaluationLink - Secure links for external applicant evaluation"
+      "tableName": "ApplicantEvaluationLink",
+      "comment": "ApplicantEvaluationLink - Secure links for external applicant evaluation"
     },
     "columns": [
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "applicantId",
         "comment": "Reference to applicant"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "token",
         "comment": "Secure access token"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "expiresAt",
         "comment": "Token expiration timestamp"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "createdById",
         "comment": "User who created the link"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "requireLogin",
         "comment": "Whether login is required to access"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "revokedAt",
         "comment": "Link revocation timestamp"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantEvaluationLink",
+        "tableName": "ApplicantEvaluationLink",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       }
     ]
   },
-  "applicantExpertiseScore": {
+  "ApplicantExpertiseScore": {
     "table": {
-      "tableName": "applicantExpertiseScore",
-      "comment": "applicantExpertiseScore - Recorded scores for expertise skills"
+      "tableName": "ApplicantExpertiseScore",
+      "comment": "ApplicantExpertiseScore - Recorded scores for expertise skills"
     },
     "columns": [
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "evaluationId",
         "comment": "Reference to evaluation"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "skillId",
         "comment": "Reference to skill"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "score",
         "comment": "Score value"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "notes",
         "comment": "Optional notes on score"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantExpertiseScore",
+        "tableName": "ApplicantExpertiseScore",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       }
     ]
   },
-  "applicantPersonalityScore": {
+  "ApplicantPersonalityScore": {
     "table": {
-      "tableName": "applicantPersonalityScore",
-      "comment": "applicantPersonalityScore - Recorded scores for personality traits"
+      "tableName": "ApplicantPersonalityScore",
+      "comment": "ApplicantPersonalityScore - Recorded scores for personality traits"
     },
     "columns": [
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "id",
         "comment": "Unique identifier"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "evaluationId",
         "comment": "Reference to evaluation"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "traitId",
         "comment": "Reference to personality trait"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "score",
         "comment": "Score value"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "notes",
         "comment": "Optional notes on score"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "createdAt",
         "comment": "Record creation timestamp"
       },
       {
-        "tableName": "applicantPersonalityScore",
+        "tableName": "ApplicantPersonalityScore",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
       }

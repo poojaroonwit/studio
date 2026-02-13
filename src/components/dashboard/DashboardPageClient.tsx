@@ -82,7 +82,7 @@ interface DashboardPageClientProps {
   initialApplicants: Applicant[];
   initialPositions: Position[];
   initialUsers: UserProfile[]; // Or a simplified version like Pick<UserProfile, 'id' | 'role'>
-  initialMetrics: DashboardMetrics;
+  initialMetrics?: DashboardMetrics;
   initialFetchError?: string;
   authError?: boolean; // Added from server
   permissionError?: boolean; // Added from server

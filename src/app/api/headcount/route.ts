@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
 
-    const { positionId, type, status = 'vacant', applicantId: applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
+    const { positionId, type, status = 'vacant', applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     if (!positionId || !type) {
       return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });

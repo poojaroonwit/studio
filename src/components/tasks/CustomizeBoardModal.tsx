@@ -318,8 +318,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       case 'positionId':
         return positions.length > 0 ? positions.map(p => p.title || p.id) : ['No positions available'];
       case 'fitScore':
-        if (Applicants.length > 0) {
-          const scores = Applicants.map(c => c.fitScore).filter(s => typeof s === 'number');
+        if (applicants.length > 0) {
+          const scores = applicants.map(c => c.fitScore).filter(s => typeof s === 'number');
           if (scores.length > 0) {
             const min = Math.min(...scores);
             const max = Math.max(...scores);
@@ -344,8 +344,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
       default:
         // For any other field, check both root and customAttributes
-        if (Applicants.length > 0) {
-          const values = Applicants.map(c => c[fieldKey] ?? c.customAttributes?.[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
+        if (applicants.length > 0) {
+          const values = applicants.map(c => c[fieldKey] ?? c.customAttributes?.[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
           const uniqueValues = [...new Set(values)];
           return uniqueValues.length > 0 ? uniqueValues : cleanRowFieldValues.length > 0 ? cleanRowFieldValues : ['Option 1', 'Option 2', 'Option 3'];
         }
@@ -436,7 +436,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   // Update visible values when data is loaded and fields change
   useEffect(() => {
-    if (open && !initializing && (recruiters.length > 0 || positions.length > 0 || stages.length > 0 || Applicants.length > 0)) {
+    if (open && !initializing && (recruiters.length > 0 || positions.length > 0 || stages.length > 0 || applicants.length > 0)) {
       // Only update if we have data and the modal is not initializing
       const rowValues = getAllPossibleValues(rowField);
       const colValues = getAllPossibleValues(columnField);
@@ -449,7 +449,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         setVisibleColumnValues(colValues);
       }
     }
-  }, [rowField, columnField, open, recruiters, positions, stages, Applicants, initializing]);
+  }, [rowField, columnField, open, recruiters, positions, stages, applicants, initializing]);
 
   // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
   const baseRowColumnFields = [

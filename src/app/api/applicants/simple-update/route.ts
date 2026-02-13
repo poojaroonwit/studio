@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { applicantId: applicantId, updates } = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'applicantId' internally
+    const { applicantId: targetApplicantId, updates } = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'targetApplicantId' internally
 
-    if (!applicantId || !updates) {
+    if (!targetApplicantId || !updates) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         RETURNING *
       `;
       
-      const result = await client.query(updateQuery, [applicantId, ...updateValues]);
+      const result = await client.query(updateQuery, [targetApplicantId, ...updateValues]);
       
       if (result.rows.length === 0) {
         await client.query('ROLLBACK');

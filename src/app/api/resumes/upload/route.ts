@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const url = new URL(request.url);
-    const applicantId = url.searchParams.get('applicantId');
-    if (!applicantId) {
+    const targetApplicantId = url.searchParams.get('applicantId');
+    if (!targetApplicantId) {
       await logAudit('WARN', `Resume upload attempted without applicantId by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);
       return NextResponse.json({ message: 'Missing applicantId' }, { status: 400 });
     }
@@ -73,18 +73,18 @@ export async function POST(request: NextRequest) {
     // Handle sourceId properly - convert string "null" to actual null
     const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw : null;
     if (!file || typeof file === 'string') {
-      await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for Applicant ${applicantId}`, 'API:Resumes:Upload', actingUserId, { applicantId: applicantId });
+      await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for Applicant ${targetApplicantId}`, 'API:Resumes:Upload', actingUserId, { applicantId: targetApplicantId });
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
     }
     if (!positionId) {
-      await logAudit('ERROR', `Resume upload failed - missing position_id by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: applicantId, fileName: file.name });
+      await logAudit('ERROR', `Resume upload failed - missing position_id by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: targetApplicantId, fileName: file.name });
       return NextResponse.json({ message: 'position_id is required.' }, { status: 400 });
     }
 
     // SECURITY: Validate file upload (size, mimetype, extension)
     const validation = await validateFileUpload(file.name, file.type, file.size);
     if (!validation.valid) {
-      await logAudit('WARN', `Resume upload rejected: ${validation.errors.join(', ')} by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: applicantId, fileName: file.name });
+      await logAudit('WARN', `Resume upload rejected: ${validation.errors.join(', ')} by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: targetApplicantId, fileName: file.name });
       return NextResponse.json({ message: 'Invalid file', errors: validation.errors }, { status: 400 });
     }
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     // Generate filename that preserves the original name
     const jobId = randomUUID();
     const fileName = generateUniqueFilename(originalName);
-    const objectName = `resumes/${applicantId}/${fileName}`;
+    const objectName = `resumes/${targetApplicantId}/${fileName}`;
 
     // Upload to MinIO
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
@@ -110,10 +110,10 @@ export async function POST(request: NextRequest) {
 
       // Get applicant data for ownership check
       const applicantQuery = `SELECT "recruiterId" FROM "applicant" WHERE id = $1`;
-      const applicantResult = await client.query(applicantQuery, [applicantId]);
+      const applicantResult = await client.query(applicantQuery, [targetApplicantId]);
       if (applicantResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        await logAudit('ERROR', `Resume upload failed - applicant not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: applicantId, fileName: originalName });
+        await logAudit('ERROR', `Resume upload failed - applicant not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { applicantId: targetApplicantId, fileName: originalName });
         return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
       }
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
       // Update Applicant's resume path
       const updateQuery = `UPDATE "applicant" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
-      const result = await client.query(updateQuery, [objectName, applicantId]);
+      const result = await client.query(updateQuery, [objectName, targetApplicantId]);
       const updatedApplicant = result.rows[0];
 
       // Create attachment entry for resume history
@@ -139,13 +139,13 @@ export async function POST(request: NextRequest) {
         INSERT INTO "Attachment" (id, "applicantId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, 'Resume', true, NOW(), NOW(), NOW());
       `;
-      await client.query(historyQuery, [randomUUID(), applicantId, actingUserId, objectName, originalName]);
+      await client.query(historyQuery, [randomUUID(), targetApplicantId, actingUserId, objectName, originalName]);
 
       // Build webhook payload in requested format
       const webhookPayload = {
         inputs: {
           cv_url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }),
-          Applicant_id: applicantId,
+          Applicant_id: targetApplicantId,
           jobId: updatedApplicant.positionid || updatedApplicant.positionId || null, // support both casings
           filename: originalName,
           mimetype: file.type
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       await client.query('COMMIT');
 
       await logAudit('AUDIT', `Resume '${originalName}' uploaded for applicant '${applicant.name}' by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, {
-        applicantId: applicantId,
+        applicantId: targetApplicantId,
         applicantName: applicant.name,
         fileName: originalName,
         fileSize: buffer.length,

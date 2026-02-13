@@ -8,7 +8,7 @@ import { ArrowPathIcon as Loader2, ExclamationCircleIcon as AlertCircle, Printer
 
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { toast } from 'react-hot-toast';
-import type { applicant, Position } from '@/lib/types';
+import type { Applicant, Position } from '@/lib/types';
 import type { EvaluationData, AveragedEvaluationData } from './types';
 import { groupPersonalityTraits, groupExpertiseSkills } from './utils';
 import { ReportHeader } from './components/ReportHeader';
@@ -80,8 +80,8 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
         try {
             setLoading(true);
 
-            // Fetch all evaluations for this Applicant
-            const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`);
+            // Fetch all evaluations for this applicant
+            const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`);
             if (response.ok) {
                 const evaluations = await response.json();
 
@@ -168,7 +168,7 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
                 setAllEvaluations(evaluations);
             } else {
                 // Fallback to single evaluation endpoint
-                const fallbackResponse = await fetch(`/api/v1/Applicants/${applicantId}/evaluation`);
+                const fallbackResponse = await fetch(`/api/v1/applicants/${applicantId}/evaluation`);
                 if (fallbackResponse.ok) {
                     const data = await fallbackResponse.json();
                     setEvaluationData(data || null);
@@ -207,7 +207,7 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
 
     const fetchInterviewers = async () => {
         try {
-            const response = await fetch(`/api/v1/Applicants/${applicantId}/interviewers`, { credentials: 'include' });
+            const response = await fetch(`/api/v1/applicants/${applicantId}/interviewers`, { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 setInterviewers(Array.isArray(data) ? data : []);
@@ -429,7 +429,7 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    const url = window.location.origin + `/Applicants/${applicantId}/evaluate-result`;
+                                    const url = window.location.origin + `/applicants/${applicantId}/evaluate-result`;
                                     window.open(sanitizeUrl(url), '_blank', 'noopener,noreferrer');
                                 }}
                                 className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"

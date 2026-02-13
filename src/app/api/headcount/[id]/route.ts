@@ -71,7 +71,7 @@ export async function PUT(
 
     const { id } = await params;
     const body: UpdateHeadcountRequest = await request.json();
-    const { type, status, applicantId: applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
+    const { type, status, applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({

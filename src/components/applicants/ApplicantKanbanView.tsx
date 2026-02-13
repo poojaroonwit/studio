@@ -1488,7 +1488,7 @@ export function SingleRowApplicantView({
   return (
     <div className="relative w-full">
       {/* Left Navigation Button */}
-      {Applicants.length > 1 && (
+      {applicants.length > 1 && (
         <Button
           type="button"
           variant="outline"

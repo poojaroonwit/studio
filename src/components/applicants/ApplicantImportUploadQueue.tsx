@@ -1823,11 +1823,11 @@ export default function ApplicantImportUploadQueue() {
                             </div>
                           )}
 
-                          {selectedItem.processed_Applicants !== undefined && selectedItem.total_Applicants !== undefined && (
+                          {selectedItem.processed_applicants !== undefined && selectedItem.total_applicants !== undefined && (
                             <div>
                               <Label className="text-sm font-medium">Applicants Processed</Label>
                               <p className="text-sm">
-                                {selectedItem.processed_Applicants} of {selectedItem.total_Applicants} Applicants
+                                {selectedItem.processed_applicants} of {selectedItem.total_applicants} applicants
                               </p>
                             </div>
                           )}

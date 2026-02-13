@@ -38,8 +38,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { applicantId, systemPrompt, promptName, promptCategory } = validationResult.data;
-  const applicantId = applicantId;
+  const { applicantId: targetApplicantId, systemPrompt, promptName, promptCategory } = validationResult.data;
 
   try {
     // Get comprehensive Applicant data including job and matching information
@@ -214,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch comprehensive applicant data
-    const applicantData = await getApplicantData(applicantId);
+    const applicantData = await getApplicantData(targetApplicantId);
     const { applicant, comments, transitions, resumes, attachments, applicantComments, transitionRecords, jobMatches, appliedPositionData } = applicantData;
 
     // Create comprehensive context data for AI
@@ -464,7 +463,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
       `AI content generated using prompt: ${promptName} (${promptCategory}) for applicant: ${applicant.name}`,
       'API:AI:GenerateContent',
       session.user.id,
-      { applicantId: applicantId, applicantName: applicant.name, promptName, promptCategory }
+      { applicantId: targetApplicantId, applicantName: applicant.name, promptName, promptCategory }
     );
 
     return NextResponse.json({ 

@@ -439,7 +439,7 @@ model TransitionRecord {
   /// Last update timestamp
   updatedAt    DateTime  @updatedAt
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
-  applicant    Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  applicant    Applicant? @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   position     Position? @relation(fields: [positionId], references: [id])
   applicantId  String?    @map("applicant_id") @db.Uuid
 
@@ -683,7 +683,7 @@ model JobMatch {
   updatedAt             DateTime  @updatedAt
   /// Company identifier
   companyId             String?   @db.Uuid
-  applicant             Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  applicant             Applicant? @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   applicantId           String?    @map("applicant_id") @db.Uuid
 
   @@index([applicantId])

@@ -37,7 +37,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { level, message, source, timestamp, actingUserId, details } = validationResult.data;
+  const validatedData = validationResult.data;
+  const level = validatedData.level;
+  const message = validatedData.message;
+  const source = validatedData.source;
+  const timestamp = validatedData.timestamp;
+  const actingUserId = validatedData.actingUserId;
+  const details = validatedData.details;
 
   try {
     // Validate actingUserId exists; if not, null it to avoid FK violations

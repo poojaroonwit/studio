@@ -44,7 +44,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to edit positions' }, { status: 403 });
   }
 
-  const { id, userId } = await params;
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+  const userId = resolvedParams.userId;
 
   const client = await getPool().connect();
   try {

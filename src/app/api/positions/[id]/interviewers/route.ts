@@ -195,7 +195,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }, { status: 400 });
   }
 
-  const { userId } = validationResult.data;
+  const validatedData = validationResult.data;
+  const userId = validatedData.userId;
 
   // Additional validation for userId
   if (!userId || userId === 'null' || userId === 'undefined') {

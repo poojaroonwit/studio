@@ -89,7 +89,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
-  const { name, email, role, password } = validationResult.data;
+  const validatedData = validationResult.data;
+  const name = validatedData.name;
+  const email = validatedData.email;
+  const role = validatedData.role;
+  const password = validatedData.password;
 
   const client = await getPool().connect();
   try {

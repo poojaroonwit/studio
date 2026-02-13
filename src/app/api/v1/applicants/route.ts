@@ -141,7 +141,13 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
-  const { applicant_info, educationData, experienceData, job_applied, job_matches, expectedSalary } = validationResult.data;
+    const validatedData = validationResult.data;
+  const applicant_info = validatedData.applicant_info;
+  const educationData = validatedData.educationData;
+  const experienceData = validatedData.experienceData;
+  const job_applied = validatedData.job_applied;
+  const job_matches = validatedData.job_matches;
+  const expectedSalary = validatedData.expectedSalary;
 
   // Validate required fields from payload
   const applicantInfo = applicant_info as any;

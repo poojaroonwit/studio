@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { personalColor } = validationResult.data;
+  const validatedData = validationResult.data;
+  const personalColor = validatedData.personalColor;
 
   try {
     await getPool().query(

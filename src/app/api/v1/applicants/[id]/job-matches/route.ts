@@ -109,7 +109,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { job_matches } = validationResult.data;
+    const validatedData = validationResult.data;
+  const job_matches = validatedData.job_matches;
   
   try {
     
@@ -256,7 +257,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { job_matches } = validationResult.data;
+    const validatedData = validationResult.data;
+  const job_matches = validatedData.job_matches;
   
   const client = await getPool().connect();
   
@@ -378,7 +380,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { job_matches } = validationResult.data;
+    const validatedData = validationResult.data;
+  const job_matches = validatedData.job_matches;
   const client = await getPool().connect();
   
   try {

@@ -231,7 +231,22 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, userGroupIds, role, customFields, ...fieldsToUpdate } = validationResult.data;
+        const validatedData = validationResult.data;
+    const password = validatedData.password;
+    const newPassword = validatedData.newPassword;
+    const userTeamIds = validatedData.userTeamIds;
+    const userGroupIds = validatedData.userGroupIds;
+    const role = validatedData.role;
+    const customFields = validatedData.customFields;
+    
+    // Create a copy to remove suppressed fields, simulating rest destructuring
+    const fieldsToUpdate = { ...validatedData };
+    if ('password' in fieldsToUpdate) delete fieldsToUpdate.password;
+    if ('newPassword' in fieldsToUpdate) delete fieldsToUpdate.newPassword;
+    if ('userTeamIds' in fieldsToUpdate) delete fieldsToUpdate.userTeamIds;
+    if ('userGroupIds' in fieldsToUpdate) delete fieldsToUpdate.userGroupIds;
+    if ('role' in fieldsToUpdate) delete fieldsToUpdate.role;
+    if ('customFields' in fieldsToUpdate) delete fieldsToUpdate.customFields;
 
     if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !userGroupIds && role === undefined && !customFields) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });

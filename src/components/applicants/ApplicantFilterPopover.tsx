@@ -4,8 +4,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FunnelIcon as Filter, XMarkIcon as X } from '@heroicons/react/24/outline';
+import { MapPinIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon as MapPinSolidIcon } from '@heroicons/react/24/solid';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ApplicantFilters } from './ApplicantFilters';
 import type { ApplicantFilterValues, Position, RecruitmentStage, UserProfile, ApplicantSource } from '@/lib/types';
 
@@ -28,6 +31,8 @@ interface ApplicantFilterPopoverProps {
   };
   applicantCounts?: { [stageName: string]: number };
   activeFilterCount: number;
+  isFilterPinned?: boolean;
+  onTogglePin?: (pinned: boolean) => void;
 }
 
 export function ApplicantFilterPopover({
@@ -45,13 +50,22 @@ export function ApplicantFilterPopover({
   advancedQuery,
   applicantScoreCounts,
   applicantCounts,
-  activeFilterCount
+  activeFilterCount,
+  isFilterPinned = false,
+  onTogglePin
 }: ApplicantFilterPopoverProps) {
   const [open, setOpen] = useState(false);
 
   // Toggle open state
   const handleOpenChange = (newOpen: boolean) => {
+    // Don't open popover if filter is pinned as sidebar
+    if (isFilterPinned && newOpen) return;
     setOpen(newOpen);
+  };
+
+  const handlePin = () => {
+    setOpen(false);
+    onTogglePin?.(true);
   };
 
   // We wrap the onFilterChange to close the popover when filters are applied
@@ -78,6 +92,9 @@ export function ApplicantFilterPopover({
               {activeFilterCount > 9 ? '9+' : activeFilterCount}
             </Badge>
           )}
+          {isFilterPinned && (
+            <MapPinSolidIcon className="h-3 w-3 text-primary" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent 
@@ -88,14 +105,33 @@ export function ApplicantFilterPopover({
       >
         <div className="flex items-center justify-between p-4 border-b">
           <div className="font-semibold">Filter Applicants</div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8" 
-            onClick={() => setOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handlePin}
+                  >
+                    <MapPinIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Pin as sidebar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={() => setOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto">

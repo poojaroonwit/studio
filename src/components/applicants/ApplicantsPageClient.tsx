@@ -93,6 +93,14 @@ export function ApplicantsPageClient({
   // Export/Import feature toggle state
   const [exportImportFeatureEnabled, setExportImportFeatureEnabled] = useState(true);
 
+  // Filter sidebar pinned state - persisted in localStorage
+  const [isFilterPinned, setIsFilterPinned] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('applicant-filter-pinned') === 'true';
+    }
+    return false;
+  });
+
   // Add refs for height calculation
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarFilterRef = useRef<HTMLElement>(null);
@@ -1415,6 +1423,14 @@ export function ApplicantsPageClient({
     };
   }, [clearAllFilters, pageSize, fetchTableData, fetchFitScoreCounts, filterChangeTimeoutRef, searchParams, pathname, router]);
 
+  // Handle toggling filter pin state
+  const handleToggleFilterPin = useCallback((pinned: boolean) => {
+    setIsFilterPinned(pinned);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('applicant-filter-pinned', pinned ? 'true' : 'false');
+    }
+  }, []);
+
   // Handle export Applicants
   const handleExportApplicants = useCallback(async () => {
     try {
@@ -1890,9 +1906,49 @@ export function ApplicantsPageClient({
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Filters Sidebar - Hidden on mobile */}
-          {/* Filters Sidebar - Removed in favor of Popover in Header */}
-          {/* <ApplicantsPageSidebar ... /> */}
+          {/* Filters Sidebar - shown when pinned */}
+          {!isMobile && isFilterPinned && (
+            <div
+              ref={sidebarFilterRef as React.RefObject<HTMLDivElement>}
+              className="w-[320px] min-w-[320px] border-r bg-background flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-3 border-b">
+                <div className="font-semibold text-sm">Filters</div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => handleToggleFilterPin(false)}
+                    title="Unpin sidebar"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <ApplicantFilters
+                  initialFilters={filters}
+                  onFilterChange={onFilterChange}
+                  onAiSearch={handleAiSearch}
+                  onCancelAiSearch={cancelAiSearch}
+                  onClearAllFilters={handleClearAllFilters}
+                  availablePositions={effectivePositions}
+                  availableStages={effectiveStages}
+                  availableRecruiter={effectiveRecruiter}
+                  availableSources={effectiveSources}
+                  isLoading={isLoading || isFilterDataLoading}
+                  isAiSearching={isAiSearchActive}
+                  advancedQuery={searchParams.get('query') || undefined}
+                  applicantScoreCounts={memoizedApplicantScoreCounts || undefined}
+                  applicantCounts={applicantCountsByStage}
+                  autoApply={true}
+                  showActionButtons={false}
+                  className="border-none shadow-none p-0"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Table Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -1931,6 +1987,8 @@ export function ApplicantsPageClient({
               advancedQuery={searchParams.get('query') || undefined}
               applicantCounts={applicantCountsByStage}
               activeFilterCount={activeFilterCount}
+              isFilterPinned={isFilterPinned}
+              onToggleFilterPin={handleToggleFilterPin}
             />
 
             {/* Table Area */}

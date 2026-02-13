@@ -46,7 +46,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fitScore, jobId, matchReasons } = validationResult.data;
+  const validatedData = validationResult.data;
+  const fitScore = validatedData.fitScore;
+  const jobId = validatedData.jobId;
+  const matchReasons = validatedData.matchReasons;
   const client = await getPool().connect();
   
   try {

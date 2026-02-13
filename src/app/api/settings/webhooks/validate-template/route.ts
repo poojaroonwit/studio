@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { template, event_type, sample_data } = validation.data;
+    const validatedData = validation.data;
+    const template = validatedData.template;
+    const event_type = validatedData.event_type;
+    const sample_data = validatedData.sample_data;
 
     // Validate template syntax
     const templateValidation = WebhookBodyProcessor.validateTemplate(template);

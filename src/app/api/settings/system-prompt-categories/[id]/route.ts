@@ -79,7 +79,11 @@ export async function PUT(
     }, { status: 400 });
   }
 
-  const { name, description, color, isActive } = validationResult.data;
+  const validatedData = validationResult.data;
+  const name = validatedData.name;
+  const description = validatedData.description;
+  const color = validatedData.color;
+  const isActive = validatedData.isActive;
 
   try {
     // Check if another category with this name already exists (excluding current category)

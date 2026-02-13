@@ -189,7 +189,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { traitId } = validationResult.data;
+  const validatedData = validationResult.data;
+  const traitId = validatedData.traitId;
 
   let client;
   try {

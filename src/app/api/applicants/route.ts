@@ -134,7 +134,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { applicant_info, job_matches, job_applied, applicationDate } = validationResult.data;
+  const validatedData = validationResult.data;
+  const applicant_info = validatedData.applicant_info;
+  const job_matches = validatedData.job_matches;
+  const job_applied = validatedData.job_applied;
+  const applicationDate = validatedData.applicationDate;
   const name = applicant_info.personal_info && applicant_info.personal_info.firstname && applicant_info.personal_info.lastname
     ? `${applicant_info.personal_info.firstname} ${applicant_info.personal_info.lastname}`
     : undefined;

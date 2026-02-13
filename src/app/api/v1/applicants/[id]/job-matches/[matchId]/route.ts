@@ -32,7 +32,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = await params;
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+  const matchId = resolvedParams.matchId;
   const applicantId = id;
   let client: any = null;
   
@@ -98,7 +100,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = await params;
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+  const matchId = resolvedParams.matchId;
   const applicantId = id;
   let body;
   
@@ -113,7 +117,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fitScore, jobId, matchReasons } = validationResult.data;
+  const validatedData = validationResult.data;
+  const fitScore = validatedData.fitScore;
+  const jobId = validatedData.jobId;
+  const matchReasons = validatedData.matchReasons;
   let client: any = null;
   
   try {
@@ -200,7 +207,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
   }
 
-  const { id, matchId } = await params;
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+  const matchId = resolvedParams.matchId;
   const applicantId = id;
   let client: any = null;
   

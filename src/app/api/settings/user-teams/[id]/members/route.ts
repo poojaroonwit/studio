@@ -175,7 +175,8 @@ export async function POST(
     return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { userId } = validation.data;
+  const validatedData = validation.data;
+  const userId = validatedData.userId;
   const client = await getPool().connect();
 
   try {

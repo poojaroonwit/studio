@@ -47,6 +47,8 @@ interface ApplicantsPageHeaderProps {
   advancedQuery?: string;
   applicantCounts?: { [stageName: string]: number };
   activeFilterCount: number;
+  isFilterPinned?: boolean;
+  onToggleFilterPin?: (pinned: boolean) => void;
 }
 
 export function ApplicantsPageHeader({
@@ -82,7 +84,9 @@ export function ApplicantsPageHeader({
   isFilterDataLoading,
   advancedQuery,
   applicantCounts,
-  activeFilterCount
+  activeFilterCount,
+  isFilterPinned,
+  onToggleFilterPin
 }: ApplicantsPageHeaderProps) {
   // Don't show header on mobile
   if (isMobile) {
@@ -137,6 +141,8 @@ export function ApplicantsPageHeader({
             applicantScoreCounts={applicantScoreCounts || undefined}
             applicantCounts={applicantCounts}
             activeFilterCount={activeFilterCount}
+            isFilterPinned={isFilterPinned}
+            onTogglePin={onToggleFilterPin}
           />
 
           <Button

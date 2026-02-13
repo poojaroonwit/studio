@@ -164,7 +164,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, description, permissions, is_default } = validation.data;
+    const validatedData = validation.data;
+    const name = validatedData.name;
+    const description = validatedData.description;
+    const permissions = validatedData.permissions;
+    const is_default = validatedData.is_default;
     
     // Validate permissions if provided
     if (permissions && Array.isArray(permissions)) {

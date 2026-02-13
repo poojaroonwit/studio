@@ -71,7 +71,9 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { positionId, syncAll } = validationResult.data;
+  const validatedData = validationResult.data;
+  const positionId = validatedData.positionId;
+  const syncAll = validatedData.syncAll;
 
   try {
     if (syncAll) {

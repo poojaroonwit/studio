@@ -139,7 +139,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { action, positionIds, newIsOpenStatus, matchCriteria } = validationResult.data;
+    const validatedData = validationResult.data;
+  const action = validatedData.action;
+  const positionIds = validatedData.positionIds;
+  const newIsOpenStatus = validatedData.newIsOpenStatus;
+  const matchCriteria = validatedData.matchCriteria;
   let client;
   try {
     client = await getPool().connect();

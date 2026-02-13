@@ -80,7 +80,12 @@ export async function PUT(
     }, { status: 400 });
   }
 
-  const { name, description, content, categoryId, isActive } = validationResult.data;
+  const validatedData = validationResult.data;
+  const name = validatedData.name;
+  const description = validatedData.description;
+  const content = validatedData.content;
+  const categoryId = validatedData.categoryId;
+  const isActive = validatedData.isActive;
 
   try {
     // First, check if any categories exist

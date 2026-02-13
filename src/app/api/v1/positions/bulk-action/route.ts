@@ -42,7 +42,10 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { action, positionIds, data } = validationResult.data;
+  const validatedData = validationResult.data;
+  const action = validatedData.action;
+  const positionIds = validatedData.positionIds;
+  const data = validatedData.data;
 
   let client: any = null;
   try {

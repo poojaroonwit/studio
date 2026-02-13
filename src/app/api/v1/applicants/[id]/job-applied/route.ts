@@ -90,7 +90,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fitScore, jobId, justification } = validationResult.data;
+  const validatedData = validationResult.data;
+  const fitScore = validatedData.fitScore;
+  const jobId = validatedData.jobId;
+  const justification = validatedData.justification;
   const client = await getPool().connect();
   
   try {
@@ -208,7 +211,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fitScore, jobId, justification } = validationResult.data;
+  const validatedData = validationResult.data;
+  const fitScore = validatedData.fitScore;
+  const jobId = validatedData.jobId;
+  const justification = validatedData.justification;
   const client = await getPool().connect();
   
   try {

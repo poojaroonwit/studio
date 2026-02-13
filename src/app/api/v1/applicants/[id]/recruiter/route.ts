@@ -89,7 +89,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
   
-  const { recruiterId } = validationResult.data;
+  const validatedData = validationResult.data;
+  const recruiterId = validatedData.recruiterId;
   const client = await getPool().connect();
   
   try {

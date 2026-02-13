@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { positions } = validationResult.data;
+  const validatedData = validationResult.data;
+  const positions = validatedData.positions;
   const client = await getPool().connect();
   
   try {

@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { query } = validation.data;
+    const validatedData = validation.data;
+    const query = validatedData.query;
     const result = await searchApplicantsAIChat({ query });
 
     // Log audit asynchronously to avoid blocking the response

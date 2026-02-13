@@ -286,7 +286,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { action, applicantIds, newStatus, newRecruiterId, transitionNotes } = validationResult.data;
+    const validatedData = validationResult.data;
+  const action = validatedData.action;
+  const applicantIds = validatedData.applicantIds;
+  const newStatus = validatedData.newStatus;
+  const newRecruiterId = validatedData.newRecruiterId;
+  const transitionNotes = validatedData.transitionNotes;
 
   // Before using applicantIds in queries, validate:
   const applicantIdsSchema = z.string().uuid().array();

@@ -361,8 +361,12 @@ export async function POST(req: NextRequest) {
       return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid request body - ${errorMsg}`));
     }
 
-    const { fromStageId, toStageId, notes, transitionDate } = validationResult.data;
-    const targetApplicantId = validationResult.data.applicantId;
+    const validatedData = validationResult.data;
+    const fromStageId = validatedData.fromStageId;
+    const toStageId = validatedData.toStageId;
+    const notes = validatedData.notes;
+    const transitionDate = validatedData.transitionDate;
+    const targetApplicantId = validatedData.applicantId;
 
     const client = await getPool().connect();
     try {

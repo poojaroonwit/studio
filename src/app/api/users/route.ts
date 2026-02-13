@@ -310,7 +310,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, email, password, role, userTeamIds, userGroupIds, authenticationMethods, forcePasswordChange, personalColor, positionTitle } = validationResult.data;
+    const validatedData = validationResult.data;
+  const name = validatedData.name;
+  const email = validatedData.email;
+  const password = validatedData.password;
+  const role = validatedData.role;
+  const userTeamIds = validatedData.userTeamIds;
+  const userGroupIds = validatedData.userGroupIds;
+  const authenticationMethods = validatedData.authenticationMethods;
+  const forcePasswordChange = validatedData.forcePasswordChange;
+  const personalColor = validatedData.personalColor;
+  const positionTitle = validatedData.positionTitle;
 
   // Note: modulePermissions are now handled through UserGroup assignment
   // The role determines which UserGroup the user gets, and the UserGroup contains the permissions

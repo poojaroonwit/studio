@@ -263,7 +263,11 @@ export async function POST(req: NextRequest) {
       return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid request body'));
     }
 
-    const { query, positionId, limit, offset } = validationResult.data;
+    const validatedData = validationResult.data;
+    const query = validatedData.query;
+    const positionId = validatedData.positionId;
+    const limit = validatedData.limit;
+    const offset = validatedData.offset;
 
     // Log the search request
     await logAudit('INFO', `AI search request: "${query}"${positionId ? ` for position ${positionId}` : ''}`, 'AI:SearchApplicants', user.id, {

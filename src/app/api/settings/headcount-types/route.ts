@@ -94,7 +94,8 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { options } = validationResult.data;
+    const validatedData = validationResult.data;
+    const options = validatedData.options;
 
     // Validate that at least one option is active
     const activeOptions = options.filter(opt => opt.isActive);

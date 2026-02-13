@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
       return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
     }
 
-    const { notifications } = validationResult.data;
+    const validatedData = validationResult.data;
+    const notifications = validatedData.notifications;
     const results = {
       sent: 0,
       failed: 0,
@@ -113,7 +114,12 @@ export async function POST(request: NextRequest) {
       return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
     }
 
-    const { type, title, message, targetUserId, data } = validationResult.data;
+    const validatedData = validationResult.data;
+    const type = validatedData.type;
+    const title = validatedData.title;
+    const message = validatedData.message;
+    const targetUserId = validatedData.targetUserId;
+    const data = validatedData.data;
     const targetUser = targetUserId || user.id; // Default to current user if no target specified
 
     // Prevent self-notifications: don't notify users about their own actions

@@ -137,7 +137,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, description, color, isActive } = validation.data;
+    const validatedData = validation.data;
+    const name = validatedData.name;
+    const description = validatedData.description;
+    const color = validatedData.color;
+    const isActive = validatedData.isActive;
     const newId = uuidv4();
     
     const client = await getPool().connect();

@@ -29,7 +29,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
   
-  const { id: targetApplicantId } = await params;
+  const resolvedParams = await params;
+  const targetApplicantId = resolvedParams.id;
   const client = await getPool().connect();
   try {
     const query = `
@@ -72,7 +73,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant recruiter'));
   }
   
-  const { id: targetApplicantId } = await params;
+  const resolvedParams2 = await params;
+  const targetApplicantId = resolvedParams2.id;
   let body;
   try {
     body = await req.json();
@@ -216,7 +218,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to unassign Applicant recruiter'));
   }
   
-  const { id: targetApplicantId } = await params;
+  const resolvedParams3 = await params;
+  const targetApplicantId = resolvedParams3.id;
   const client = await getPool().connect();
   
   try {

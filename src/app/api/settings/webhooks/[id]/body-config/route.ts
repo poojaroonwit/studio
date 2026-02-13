@@ -31,7 +31,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: webhookId } = await params;
+    const resolvedParams = await params;
+    const webhookId = resolvedParams.id;
 
     // Get webhook body configurations
     const bodyConfigs = await prisma.webhookBodyConfig.findMany({
@@ -93,7 +94,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: webhookId } = await params;
+    const resolvedParams2 = await params;
+    const webhookId = resolvedParams2.id;
     let body;
     
     try {
@@ -177,7 +179,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: webhookId } = await params;
+    const resolvedParams3 = await params;
+    const webhookId = resolvedParams3.id;
     let body;
     
     try {

@@ -16,7 +16,8 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: positionId } = await params;
+    const resolvedParams = await params;
+    const positionId = resolvedParams.id;
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
     }
@@ -463,7 +464,8 @@ export async function GET(
     console.error('Error fetching position applicants:', error);
 
     // Log additional details for debugging
-    const { id: positionId } = await params;
+    const resolvedParams = await params;
+    const positionId = resolvedParams.id;
     console.error('Position ID:', positionId);
     console.error('Search params:', Object.fromEntries(new URL(request.url).searchParams));
     console.error('Error stack:', error.stack);

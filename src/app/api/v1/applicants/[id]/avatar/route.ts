@@ -17,7 +17,8 @@ import { SimpleErrorHandler,
 import { sanitizeFilename } from '@/lib/fileUtils';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id: applicantId } = await params;
+  const resolvedParams = await params;
+  const applicantId = resolvedParams.id;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -141,7 +142,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id: applicantId } = await params;
+  const resolvedParams2 = await params;
+  const applicantId = resolvedParams2.id;
   
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];

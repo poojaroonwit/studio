@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { applicantId: targetApplicantId, content, fileName, promptName } = body;
+    const { content, fileName, promptName } = body;
+    const targetApplicantId = body.applicantId;
 
     if (!targetApplicantId || !content) {
       return NextResponse.json({ error: 'Missing required fields: applicantId and content' }, { status: 400 });

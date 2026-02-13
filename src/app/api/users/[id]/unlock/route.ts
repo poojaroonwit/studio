@@ -56,7 +56,8 @@ export async function POST(
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
 
-    const { id: userId } = await params;
+    const resolvedParams = await params;
+    const userId = resolvedParams.id;
 
     // Unlock the account
     const success = await unlockUserAccount(userId, session.user.id);
@@ -138,7 +139,8 @@ export async function GET(
     }
 
     // Check if user has permission to view users or is viewing their own status
-    const { id: userId } = await params;
+    const resolvedParams = await params;
+    const userId = resolvedParams.id;
     if (session.user.id !== userId && !hasPermission(session.user, 'USERS_VIEW')) {
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }

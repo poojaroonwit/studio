@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { applicantId: targetApplicantId, systemPrompt, promptName, promptCategory } = validationResult.data;
+  const { systemPrompt, promptName, promptCategory } = validationResult.data;
+  const targetApplicantId = validationResult.data.applicantId;
 
   try {
     // Get comprehensive Applicant data including job and matching information

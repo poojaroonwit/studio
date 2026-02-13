@@ -113,7 +113,8 @@ export async function POST(
     );
   }
 
-  const { id: applicantId } = await params;
+  const resolvedParams = await params;
+  const applicantId = resolvedParams.id;
 
   // Validate request body
   let body;

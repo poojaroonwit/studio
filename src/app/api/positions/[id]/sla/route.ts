@@ -16,7 +16,8 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: positionId } = await params;
+    const resolvedParams = await params;
+    const positionId = resolvedParams.id;
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
     }

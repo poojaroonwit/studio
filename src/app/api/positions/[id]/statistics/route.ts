@@ -10,7 +10,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: positionId } = await params;
+    const resolvedParams = await params;
+    const positionId = resolvedParams.id;
     
     if (!positionId) {
       return NextResponse.json(

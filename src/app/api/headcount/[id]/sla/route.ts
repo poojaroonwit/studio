@@ -16,7 +16,8 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: headcountId } = await params;
+    const resolvedParams = await params;
+    const headcountId = resolvedParams.id;
     if (!headcountId) {
       return NextResponse.json({ error: 'Headcount ID is required' }, { status: 400 });
     }

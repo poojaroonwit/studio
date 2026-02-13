@@ -27,7 +27,8 @@ export async function GET(
       }, { status: 200 });
     }
 
-    const { id: positionId } = await params;
+    const resolvedParams = await params;
+    const positionId = resolvedParams.id;
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
     }

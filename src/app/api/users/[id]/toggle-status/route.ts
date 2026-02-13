@@ -55,7 +55,8 @@ export async function POST(
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
 
-    const { id: userId } = await params;
+    const resolvedParams = await params;
+    const userId = resolvedParams.id;
     const body = await request.json();
     const { isActive } = body;
 

@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { applicant: applicantData, job_matches } = validation.data;
+  const { job_matches } = validation.data;
+  const applicantData = validation.data.applicant;
   
   // Check if job match feature is enabled
   const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');

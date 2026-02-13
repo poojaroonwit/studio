@@ -15,7 +15,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: webhookId } = await params;
+    const resolvedParams = await params;
+    const webhookId = resolvedParams.id;
     const webhook = await prisma.webhook.findUnique({
       where: { id: webhookId }
     });

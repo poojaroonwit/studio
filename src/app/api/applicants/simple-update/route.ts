@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { applicantId: targetApplicantId, updates } = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'targetApplicantId' internally
+    const body = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'targetApplicantId' internally
+    const { updates } = body;
+    const targetApplicantId = body.applicantId;
 
     if (!targetApplicantId || !updates) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });

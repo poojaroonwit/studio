@@ -36,7 +36,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: notificationId } = await params;
+  const resolvedParams = await params;
+  const notificationId = resolvedParams.id;
   
   const session = await auth();
 

@@ -425,8 +425,6 @@ model TransitionRecord {
   /// Unique identifier
   id           String    @id @default(uuid()) @db.Uuid
   /// Reference to applicant
-  applicantId  String    @map("applicant_id") @db.Uuid
-  /// Reference to position
   positionId   String?   @db.Uuid
   /// Transition date
   date         DateTime  @default(now())
@@ -443,6 +441,7 @@ model TransitionRecord {
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
   applicant    Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   position     Position? @relation(fields: [positionId], references: [id])
+  applicantId  String?    @map("applicant_id") @db.Uuid
 
   @@index([applicantId])
   @@index([actingUserId])
@@ -669,8 +668,6 @@ model JobMatch {
   /// Unique identifier
   id                    String    @id @default(uuid()) @db.Uuid
   /// Reference to applicant
-  applicantId           String    @map("applicant_id") @db.Uuid
-  /// Reference to matched job
   jobId                 String?   @db.Uuid
   /// Matched job title
   jobTitle              String?   @map("jobTitle")
@@ -687,6 +684,7 @@ model JobMatch {
   /// Company identifier
   companyId             String?   @db.Uuid
   applicant             Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  applicantId           String?    @map("applicant_id") @db.Uuid
 
   @@index([applicantId])
   @@index([jobId])

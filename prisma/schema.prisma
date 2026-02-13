@@ -425,7 +425,7 @@ model TransitionRecord {
   /// Unique identifier
   id           String    @id @default(uuid()) @db.Uuid
   /// Reference to applicant
-  applicantId  String    @db.Uuid
+  applicantId  String    @map("applicant_id") @db.Uuid
   /// Reference to position
   positionId   String?   @db.Uuid
   /// Transition date
@@ -669,7 +669,7 @@ model JobMatch {
   /// Unique identifier
   id                    String    @id @default(uuid()) @db.Uuid
   /// Reference to applicant
-  applicantId           String    @db.Uuid
+  applicantId           String    @map("applicant_id") @db.Uuid
   /// Reference to matched job
   jobId                 String?   @db.Uuid
   /// Matched job title

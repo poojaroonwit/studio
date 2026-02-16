@@ -54,50 +54,43 @@ async function main() {
 
     console.log('🧹 Checking for orphaned source_id in upload_queue...');
     try {
-        // Check if upload_queue exists
-        const uploadQueueExists = await client.query(`
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'upload_queue'
-            );
+        // Use LOWER() for case-insensitive table check
+        const tableCheck = await client.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND LOWER(table_name) IN ('upload_queue', 'applicantsource');
         `);
 
-        if (uploadQueueExists.rows[0].exists) {
-            // Check if ApplicantSource exists
-            const applicantSourceExists = await client.query(`
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = 'ApplicantSource'
-                );
-            `);
+        const foundTables = tableCheck.rows.map(r => r.table_name.toLowerCase());
+        const hasUploadQueue = foundTables.includes('upload_queue');
+        const hasApplicantSource = foundTables.includes('applicantsource');
 
-            if (applicantSourceExists.rows[0].exists) {
+        if (hasUploadQueue) {
+            console.log('📍 Table "upload_queue" exists. Checking references...');
+            
+            if (hasApplicantSource) {
+                // Determine the actual table name in DB for ApplicantSource
+                const realSourceTable = tableCheck.rows.find(r => r.table_name.toLowerCase() === 'applicantsource');
+                const realSourceTableName = realSourceTable ? realSourceTable.table_name : 'ApplicantSource';
+                console.log(`📍 Using "${realSourceTableName}" as reference table.`);
+
                 const res = await client.query(`
                     UPDATE "upload_queue" 
                     SET "source_id" = NULL 
                     WHERE "source_id" IS NOT NULL 
-                    AND "source_id" NOT IN (SELECT "id" FROM "ApplicantSource");
+                    AND "source_id" NOT IN (SELECT "id" FROM "${realSourceTableName}");
                 `);
-                if (res.rowCount > 0) {
-                    console.log(`✅ Fixed ${res.rowCount} orphaned source_id references in "upload_queue"`);
-                } else {
-                    console.log('✨ No orphaned source_id references found in "upload_queue"');
-                }
+                console.log(`✅ Fixed ${res.rowCount} orphaned source_id references in "upload_queue"`);
             } else {
-                // If ApplicantSource doesn't exist, all source_ids are technically orphaned
+                console.log('📍 Table "ApplicantSource" NOT found. Resetting all source_ids in "upload_queue".');
                 const res = await client.query(`
                     UPDATE "upload_queue" SET "source_id" = NULL WHERE "source_id" IS NOT NULL;
                 `);
-                if (res.rowCount > 0) {
-                    console.log(`✅ Reset ${res.rowCount} source_id references in "upload_queue" because "ApplicantSource" table does not exist`);
-                } else {
-                    console.log('✨ No source_id references to reset in "upload_queue"');
-                }
+                console.log(`✅ Reset ${res.rowCount} source_id references in "upload_queue"`);
             }
         } else {
-            console.log('Table "upload_queue" not found, skipping cleanup.');
+            console.log('📍 Table "upload_queue" not found, skipping cleanup.');
         }
     } catch (e) {
         console.log(`⚠️ Warning during upload_queue cleanup: ${e.message}`);

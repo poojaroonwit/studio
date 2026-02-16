@@ -474,7 +474,7 @@ async function main() {
 
     for (const category of systemPromptCategories) {
       await prisma.systemPromptCategory.upsert({
-        where: { name: category.name },
+        where: { id: category.id },
         update: {},
         create: category
       });

@@ -472,12 +472,19 @@ async function main() {
       }
     ];
 
+    const categoryMap = new Map<string, string>();
     for (const category of systemPromptCategories) {
-      await prisma.systemPromptCategory.upsert({
-        where: { id: category.id },
-        update: {},
-        create: category
+      const { id, ...categoryDataWithoutId } = category;
+      const upsertedCategory = await prisma.systemPromptCategory.upsert({
+        where: { name: category.name },
+        update: {
+          description: category.description,
+          color: category.color,
+          isActive: category.isActive
+        },
+        create: categoryDataWithoutId
       });
+      categoryMap.set(category.name, upsertedCategory.id);
     }
     console.log('✓ System prompt categories created/updated');
 
@@ -789,7 +796,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
           name: 'AI Power Search - applicant Matching',
           description: 'System prompt for AI Power Search to find applicants with exact matching criteria',
           content: DEFAULT_AI_POWER_SEARCH_PROMPT,
-          categoryId: '550e8400-e29b-41d4-a716-446655440012', // applicant Assessment category
+          categoryId: categoryMap.get('applicant Assessment')!, // applicant Assessment category
           isActive: true
         }
       });

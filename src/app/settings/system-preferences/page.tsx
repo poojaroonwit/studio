@@ -747,42 +747,57 @@ export default function SystemPreferencesPage() {
     // Note: In a full refactor, this logic would also be cleaned up or moved to a hook.
     // Preserving the existing 'FormData' logic which is likely how the original file worked.
     const formData = new FormData();
-    formData.append(APP_THEME_KEY, themePreference);
-    formData.append(APP_NAME_KEY, appName);
-    formData.append(GENERATIVE_AI_CANVAS_MODE_KEY, String(generativeAICanvasMode));
-    formData.append(DRAWER_STYLE_KEY, drawerStyle);
+    const preferencesToSave: { key: string, value: string | null }[] = [];
+
+    // Add all non-file settings to preferences array
+    preferencesToSave.push(
+      { key: APP_THEME_KEY, value: themePreference },
+      { key: APP_NAME_KEY, value: appName },
+      { key: GENERATIVE_AI_CANVAS_MODE_KEY, value: String(generativeAICanvasMode) },
+      { key: DRAWER_STYLE_KEY, value: drawerStyle }
+    );
 
     // Sidebar colors
     SIDEBAR_COLOR_KEYS.forEach(key => {
-      formData.append(key, sidebarColors[key]);
+      preferencesToSave.push({ key, value: sidebarColors[key] });
     });
 
     // Login Design
-    formData.append(LOGIN_BACKGROUND_TYPE_KEY, loginBackgroundType);
-    if (loginBackgroundGradient) formData.append('loginBackgroundGradient', loginBackgroundGradient);
-    formData.append(LOGIN_BACKGROUND_COLOR_KEY, loginBackgroundColor);
-    formData.append(LOGIN_PAGE_LAYOUT_TYPE_KEY, loginLayoutType);
-    formData.append(LOGIN_PAGE_LOGO_SIZE_KEY, String(loginPageLogoSize));
+    preferencesToSave.push(
+      { key: LOGIN_BACKGROUND_TYPE_KEY, value: loginBackgroundType },
+      { key: LOGIN_BACKGROUND_COLOR_KEY, value: loginBackgroundColor },
+      { key: LOGIN_PAGE_LAYOUT_TYPE_KEY, value: loginLayoutType },
+      { key: LOGIN_PAGE_LOGO_SIZE_KEY, value: String(loginPageLogoSize) }
+    );
+    if (loginBackgroundGradient) preferencesToSave.push({ key: 'loginBackgroundGradient', value: loginBackgroundGradient });
 
     // Mobile Login Design
-    formData.append(LOGIN_BACKGROUND_TYPE_MOBILE_KEY, loginBackgroundTypeMobile);
-    if (loginBackgroundGradientMobile) formData.append(LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY, loginBackgroundGradientMobile);
-    formData.append(LOGIN_BACKGROUND_COLOR_MOBILE_KEY, loginBackgroundColorMobile);
+    preferencesToSave.push(
+      { key: LOGIN_BACKGROUND_TYPE_MOBILE_KEY, value: loginBackgroundTypeMobile },
+      { key: LOGIN_BACKGROUND_COLOR_MOBILE_KEY, value: loginBackgroundColorMobile }
+    );
+    if (loginBackgroundGradientMobile) preferencesToSave.push({ key: LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY, value: loginBackgroundGradientMobile });
 
     // Evaluate Header
-    formData.append(EVALUATE_HEADER_BACKGROUND_TYPE_KEY, evaluateHeaderBackgroundType);
-    if (evaluateHeaderBackgroundGradient) formData.append('evaluateHeaderBackgroundGradient', evaluateHeaderBackgroundGradient);
-    formData.append(EVALUATE_HEADER_BACKGROUND_COLOR_KEY, evaluateHeaderBackgroundColor);
-    formData.append(EVALUATE_HEADER_TEXT_COLOR_KEY, evaluateHeaderTextColor);
+    preferencesToSave.push(
+      { key: EVALUATE_HEADER_BACKGROUND_TYPE_KEY, value: evaluateHeaderBackgroundType },
+      { key: EVALUATE_HEADER_BACKGROUND_COLOR_KEY, value: evaluateHeaderBackgroundColor },
+      { key: EVALUATE_HEADER_TEXT_COLOR_KEY, value: evaluateHeaderTextColor }
+    );
+    if (evaluateHeaderBackgroundGradient) preferencesToSave.push({ key: 'evaluateHeaderBackgroundGradient', value: evaluateHeaderBackgroundGradient });
 
     // Sidebar settings
-    formData.append(SIDEBAR_BACKGROUND_TYPE_KEY, sidebarBackgroundType);
-    formData.append(SIDEBAR_BACKGROUND_IMAGE_FIT_KEY, sidebarImageFit);
-    formData.append(SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, sidebarImagePosition);
+    preferencesToSave.push(
+      { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: sidebarBackgroundType },
+      { key: SIDEBAR_BACKGROUND_IMAGE_FIT_KEY, value: sidebarImageFit },
+      { key: SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, value: sidebarImagePosition }
+    );
 
     // Splash Screen Settings
-    formData.append(SPLASH_BACKGROUND_COLOR_KEY, splashBackgroundColor);
-    formData.append(SPLASH_ANIMATION_TYPE_KEY, splashAnimationType);
+    preferencesToSave.push(
+      { key: SPLASH_BACKGROUND_COLOR_KEY, value: splashBackgroundColor },
+      { key: SPLASH_ANIMATION_TYPE_KEY, value: splashAnimationType }
+    );
 
     // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
     // Only append files that haven't been uploaded yet
@@ -794,7 +809,6 @@ export default function SystemPreferencesPage() {
     
     // Save logo URL if it exists (uploaded via handleLogoFileChange)
     // ... Add other files if selected (contextual logos)
-    const preferencesToSave: { key: string, value: string | null }[] = [];
     
     if (savedLogoUrl) preferencesToSave.push({ key: 'appLogoDataUrl', value: savedLogoUrl });
     if (savedLoginPageLogoLightModeUrl) preferencesToSave.push({ key: 'loginPageLogoLightMode', value: savedLoginPageLogoLightModeUrl });
@@ -807,12 +821,6 @@ export default function SystemPreferencesPage() {
     if (savedSidebarLogoExpandedDarkModeUrl) preferencesToSave.push({ key: 'sidebarLogoExpandedDarkMode', value: savedSidebarLogoExpandedDarkModeUrl });
 
     // Save Splash Logo URL if no new file selected (handled by form data otherwise)
-    // Actually, splash logo uses immediate upload flow? No, I implemented manual upload via form submission for consistency with other background images?
-    // Wait, `handleSplashLogoChange` uses `createTrackedObjectUrl`, so it's like login background image (file based save), NOT immediate upload like logos.
-    // So `selectedSplashLogoFile` is appended to formData above. `savedSplashLogoDataUrl` is for persisting existing URL if no new file.
-    // However, the backend needs to know if we are keeping the old one or removing it.
-    // Usually handled by the absence of file and presence of URL key in preferences json?
-    // Or maybe I should add it to `preferencesToSave` if `savedSplashLogoDataUrl` exists.
     if (savedSplashLogoDataUrl) preferencesToSave.push({ key: SPLASH_LOGO_DATA_URL_KEY, value: savedSplashLogoDataUrl });
 
     if (preferencesToSave.length > 0) {

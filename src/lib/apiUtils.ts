@@ -51,7 +51,7 @@ export async function fetchInitialDashboardApplicantsDb(limit: number = 10): Pro
   try {
     const query = `
       SELECT id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "applicationDate", "parsedData", "customAttributes", "resumePath", "createdAt", "updatedAt"
-      FROM "applicant"
+      FROM "Applicant"
       ORDER BY "createdAt" DESC
       LIMIT $1;
     `;
@@ -86,7 +86,7 @@ export async function getAllApplicants() {
   const pool = getPool();
   const result = await pool.query(`
     SELECT c.*, p.title as "positionTitle", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl"
-    FROM "applicant" c
+    FROM "Applicant" c
     LEFT JOIN "Position" p ON c."positionId" = p.id
     LEFT JOIN "User" r ON c."recruiterId" = r.id
     ORDER BY c."applicationDate" DESC

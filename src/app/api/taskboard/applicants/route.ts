@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
         c."avatarUrl",
         p.title as "positionTitle",
         u.name as "recruiterName"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id

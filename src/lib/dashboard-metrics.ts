@@ -15,7 +15,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
       COUNT(CASE WHEN c.status = 'Rejected' AND c."updatedAt" >= $2 THEN 1 END) as "rejectedThisMonth",
       COUNT(CASE WHEN c."fitScore" >= 80 AND c.status = ANY($1) THEN 1 END) as "highScoreApplicants",
       COUNT(CASE WHEN c."applicationDate" >= $3 THEN 1 END) as "applicationsThisWeek"
-    FROM "applicant" c
+    FROM "Applicant" c
     WHERE ($4 = true OR c."recruiterId" = $5)
   `;
   
@@ -30,7 +30,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   // 2. Average Time to Hire
   const avgTimeQuery = `
     SELECT AVG(EXTRACT(DAY FROM (tr.date - c."applicationDate"))) as "avgDays"
-    FROM "applicant" c
+    FROM "Applicant" c
     JOIN "TransitionRecord" tr ON c.id = tr."applicantId"
     WHERE tr.stage = 'Hired'
     AND ($1 = true OR c."recruiterId" = $2)
@@ -42,7 +42,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     SELECT 
       DATE_TRUNC('day', "applicationDate") as date,
       COUNT(*) as count
-    FROM "applicant"
+    FROM "Applicant"
     WHERE "applicationDate" >= CURRENT_DATE - INTERVAL '30 days'
     AND ($1 = true OR "recruiterId" = $2)
     GROUP BY date
@@ -61,7 +61,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
         ELSE 'F (<60)'
       END as range,
       COUNT(*) as count
-    FROM "applicant"
+    FROM "Applicant"
     WHERE status = ANY($1)
     AND ($2 = true OR "recruiterId" = $3)
     GROUP BY range
@@ -74,7 +74,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     SELECT 
       status as stage,
       COUNT(*) as count
-    FROM "applicant"
+    FROM "Applicant"
     WHERE status = ANY($1)
     AND ($2 = true OR "recruiterId" = $3)
     GROUP BY stage
@@ -87,7 +87,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
     SELECT 
       u.name as recruiter,
       COUNT(c.id) as count
-    FROM "applicant" c
+    FROM "Applicant" c
     LEFT JOIN "User" u ON c."recruiterId" = u.id
     WHERE c.status = ANY($1)
     AND ($2 = true OR c."recruiterId" = $3)

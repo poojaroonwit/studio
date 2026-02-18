@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   
   try {
     // First check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [id]);
     
     if (applicantResult.rows.length === 0) {
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     const result = await withDbTransaction(async (client) => {
       // Check if Applicant exists
-      const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+      const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
       const applicantResult = await client.query(applicantQuery, [applicantId]);
       
       if (applicantResult.rows.length === 0) {
@@ -266,7 +266,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {
@@ -388,7 +388,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {
@@ -462,7 +462,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   
   try {
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id, "parsedData", "assignmentJustification" FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id, "parsedData", "assignmentJustification" FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [id]);
     
     if (applicantResult.rows.length === 0) {
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await client.query('BEGIN');
     
     // Check if Applicant exists and get recruiter info for ownership check
-    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [id]);
     
     if (applicantResult.rows.length === 0) {
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Update Applicant with new parsedData and top-level fields
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
       WHERE id = $5
       RETURNING *;
@@ -221,7 +221,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
     
     // Check if Applicant exists and get recruiter info for ownership check
-    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [id]);
     
     if (applicantResult.rows.length === 0) {
@@ -264,7 +264,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Update Applicant with new parsedData and top-level fields
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
       WHERE id = $5
       RETURNING *;
@@ -325,7 +325,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query('BEGIN');
     
     // Check if Applicant exists and get recruiter info for ownership check
-    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [id]);
     
     if (applicantResult.rows.length === 0) {
@@ -353,7 +353,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     // Update Applicant with new parsedData
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET "parsedData" = $1
       WHERE id = $2
       RETURNING *;

@@ -43,7 +43,7 @@ export default async function DashboardPageServer() {
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
                rs.id as "statusId", rs.name as "status",
                COALESCE(th_data.history, '[]'::json) as "transitionHistory"
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -54,7 +54,7 @@ export default async function DashboardPageServer() {
             ) ORDER BY th.date DESC
           ) AS history
           FROM "TransitionRecord" th
-          WHERE th."applicantId" = c.id
+          WHERE th."applicant_id" = c.id
         ) AS th_data ON true
         ORDER BY c."applicationDate" DESC;
       `;

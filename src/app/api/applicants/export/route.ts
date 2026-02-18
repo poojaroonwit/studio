@@ -401,11 +401,11 @@ export async function GET(request: NextRequest) {
             ) FILTER (WHERE jm.id IS NOT NULL),
             '[]'::json
           ) as job_matches` : ''}
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" u ON c."recruiterId" = u.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
-        ${isJobMatchEnabled ? 'LEFT JOIN "JobMatch" jm ON c.id = jm."applicantId"' : ''}
+        ${isJobMatchEnabled ? 'LEFT JOIN "JobMatch" jm ON c.id = jm."applicant_id"' : ''}
         ${whereClause}
         GROUP BY c.id, p.title, u.name, rs.name
         ORDER BY c."applicationDate" DESC

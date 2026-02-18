@@ -202,7 +202,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Check if user has assigned applicants
-    const applicantsResult = await client.query('SELECT COUNT(*) FROM "applicant" WHERE "recruiterId" = $1', [id]);
+    const applicantsResult = await client.query('SELECT COUNT(*) FROM "Applicant" WHERE "recruiterId" = $1', [id]);
     const applicantCount = parseInt(applicantsResult.rows[0].count, 10);
     
     if (applicantCount > 0) {

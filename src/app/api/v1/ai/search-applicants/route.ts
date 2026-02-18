@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
           u.email as recruiterEmail,
           cs.name as sourceName,
           cs.logo as sourceLogo
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" u ON c."recruiterId" = u.id
@@ -340,7 +340,7 @@ export async function POST(req: NextRequest) {
       // Get total count for pagination
       let countQuery = `
         SELECT COUNT(*) as total
-        FROM "applicant" c
+        FROM "Applicant" c
         WHERE c.id = ANY($1::uuid[])
       `;
       const countParams: any[] = [aiSearchResult.matchedApplicantIds];

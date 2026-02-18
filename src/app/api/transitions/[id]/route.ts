@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
-      JOIN "applicant" c ON tr."applicantId" = c.id 
+      JOIN "Applicant" c ON tr."applicant_id" = c.id 
       WHERE tr.id = $1
     `;
     const getResult = await client.query(getTransitionQuery, [id]);
@@ -159,7 +159,7 @@ export async function DELETE(request: NextRequest) {
     const getTransitionQuery = `
       SELECT tr.*, c."recruiterId" 
       FROM "TransitionRecord" tr 
-      JOIN "applicant" c ON tr."applicantId" = c.id 
+      JOIN "Applicant" c ON tr."applicant_id" = c.id 
       WHERE tr.id = $1
     `;
     const getResult = await client.query(getTransitionQuery, [id]);

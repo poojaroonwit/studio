@@ -213,7 +213,7 @@ export async function searchApplicantsAIChat(input: SearchApplicantsInput): Prom
             p.title as "positionTitle",
             rec.name as "recruiterName", rec."avatarUrl" as "recruiterAvatarUrl",
             COALESCE(th_data.history, '[]'::json) as "transitionHistory"
-        FROM "applicant" c 
+        FROM "Applicant" c 
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" rec ON c."recruiterId" = rec.id
         LEFT JOIN LATERAL (

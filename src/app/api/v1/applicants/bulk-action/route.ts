@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     let queryParams: any[] = [];
 
     // Get Applicant data for ownership checks
-    const applicantsResult = await client.query('SELECT id, "recruiterId" FROM "applicant" WHERE id = ANY($1::uuid[])', [applicantIds]);
+    const applicantsResult = await client.query('SELECT id, "recruiterId" FROM "Applicant" WHERE id = ANY($1::uuid[])', [applicantIds]);
     const applicants = applicantsResult.rows;
 
     // Check ownership permissions for each Applicant
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'delete':
         // Delete Applicants
-        updateQuery = 'DELETE FROM "applicant" WHERE id = ANY($1::uuid[])';
+        updateQuery = 'DELETE FROM "Applicant" WHERE id = ANY($1::uuid[])';
         queryParams = [applicantIdsWithPermission];
         break;
 
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_status failed (missing status) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { applicantIds });
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "applicant" SET "statusId" = $1 WHERE id = ANY($2::uuid[])';
+        updateQuery = 'UPDATE "Applicant" SET "statusId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.status, applicantIdsWithPermission];
         break;
 
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { applicantIds });
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "applicant" SET "recruiterId" = $1 WHERE id = ANY($2::uuid[])';
+        updateQuery = 'UPDATE "Applicant" SET "recruiterId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.recruiterId, applicantIdsWithPermission];
         break;
 
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${getActingUserName(user)}.`, 'API:V1:Applicants:BulkAction', user.id, { applicantIds });
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "applicant" SET "positionId" = $1 WHERE id = ANY($2::uuid[])';
+        updateQuery = 'UPDATE "Applicant" SET "positionId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.positionId, applicantIdsWithPermission];
         break;
 

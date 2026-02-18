@@ -28,7 +28,7 @@ const QUERY_TIMEOUT = 10000; // Reduced from 25 to 10 seconds for faster respons
 // Fast count query for performance
 const FAST_COUNT_QUERY = `
   SELECT COUNT(*) as total 
-  FROM "applicant" c
+  FROM "Applicant" c
   WHERE 1=1
 `;
 
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
     const insertApplicantQuery = `
-      INSERT INTO "applicant" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes", "applicationDate", "sourceId", "subSource", "updatedAt")
+      INSERT INTO "Applicant" (id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes", "applicationDate", "sourceId", "subSource", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       RETURNING *;
     `;
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
           // Get the updated Applicant with recruiter information
           const updatedApplicantQuery = `
             SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
-            FROM "applicant" c
+            FROM "Applicant" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" u ON c."recruiterId" = u.id
             WHERE c.id = $1
@@ -1136,7 +1136,7 @@ export async function GET(request: NextRequest) {
     // SECURITY: whereClause is built from whitelisted fragments and parameterized values
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM "applicant" c
+      FROM "Applicant" c
       ${whereClause}
     `;
 
@@ -1191,7 +1191,7 @@ export async function GET(request: NextRequest) {
         u.name as "recruiterName",
         cs.name as "sourceName",
         c."isBlacklisted"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id

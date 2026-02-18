@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
             rs.name as "currentStage",
             rs.description as "stageDescription",
             rs.color_badge as "stageColor"
-          FROM "applicant" c
+          FROM "Applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" u ON c."recruiterId" = u.id
           LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             u.name as "actingUserName"
           FROM "TransitionRecord" tr
           LEFT JOIN "User" u ON tr."actingUserId" = u.id
-          WHERE tr."applicantId" = $1
+          WHERE tr."applicant_id" = $1
           ORDER BY tr.date DESC
           LIMIT 10
         `;
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
             p."updatedAt" as "positionUpdatedAt"
           FROM "JobMatch" jm
           LEFT JOIN "Position" p ON jm."jobId" = p.id
-          WHERE jm."applicantId" = $1
+          WHERE jm."applicant_id" = $1
           ORDER BY jm."fitScore" DESC, jm."createdAt" DESC
           LIMIT 10
         `;

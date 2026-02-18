@@ -49,7 +49,7 @@ export default async function ApplicantsPageServer() {
             r.name as "recruiterName",
             cs.name as "sourceName",
             c."isBlacklisted"
-          FROM "applicant" c
+          FROM "Applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" r ON c."recruiterId" = r.id
           LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id

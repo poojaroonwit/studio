@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     client = await getPool().connect();
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {
@@ -129,7 +129,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {
@@ -219,7 +219,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "applicant" WHERE id = $1';
+    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
     const applicantResult = await client.query(applicantQuery, [applicantId]);
     
     if (applicantResult.rows.length === 0) {

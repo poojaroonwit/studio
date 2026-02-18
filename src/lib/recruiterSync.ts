@@ -54,7 +54,7 @@ export async function syncRecruiterForPosition(
     // Get all applicants for this position with timeout
     const applicantsQuery = `
       SELECT c.id, c.name, c."recruiterId", u.name as "recruiterName"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c."positionId" = $1::uuid
     `;
@@ -81,7 +81,7 @@ export async function syncRecruiterForPosition(
 
           // Update applicant's recruiter (only for unassigned applicants)
           const updateQuery = `
-            UPDATE "applicant" 
+            UPDATE "Applicant" 
             SET "recruiterId" = $1, "updatedAt" = NOW()
             WHERE id = $2::uuid
           `;
@@ -180,7 +180,7 @@ export async function syncAllRecruiter(
     const positionsQuery = `
       SELECT DISTINCT p.id, p.title
       FROM "Position" p
-      INNER JOIN "applicant" c ON p.id = c."positionId"
+      INNER JOIN "Applicant" c ON p.id = c."positionId"
     `;
     const positionsResult = await client.query(positionsQuery);
 
@@ -233,7 +233,7 @@ export async function syncRecruiterForApplicant(
 
     // Get applicant details if positionId not provided
     if (!positionId) {
-      const applicantQuery = 'SELECT "positionId" FROM "applicant" WHERE id = $1::uuid';
+      const applicantQuery = 'SELECT "positionId" FROM "Applicant" WHERE id = $1::uuid';
       const applicantResult = await client.query(applicantQuery, [applicantId]);
       
       if (applicantResult.rows.length === 0) {
@@ -267,7 +267,7 @@ export async function syncRecruiterForApplicant(
     // Get current applicant recruiter
     const applicantQuery = `
       SELECT c."recruiterId", u.name as "recruiterName"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1::uuid
     `;
@@ -294,7 +294,7 @@ export async function syncRecruiterForApplicant(
 
     // Update Applicant's recruiter
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET "recruiterId" = $1, "updatedAt" = NOW()
       WHERE id = $2::uuid
     `;

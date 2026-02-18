@@ -435,7 +435,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Get total count
-      const countQuery = `SELECT COUNT(*) FROM "applicant" c ${whereClause}`;
+      const countQuery = `SELECT COUNT(*) FROM "Applicant" c ${whereClause}`;
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].count);
 
@@ -443,7 +443,7 @@ export async function GET(request: NextRequest) {
       const applicantsQuery = `
         SELECT c.*, rs.name as "statusName", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
                cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id

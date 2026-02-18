@@ -253,7 +253,7 @@ export async function DELETE(request: NextRequest) {
         
         // Check if the stage is currently in use by applicants or transition records
         const applicantCount = await client.query(
-            'SELECT COUNT(*) as count FROM "applicant" WHERE "statusId" = $1',
+            'SELECT COUNT(*) as count FROM "Applicant" WHERE "statusId" = $1',
             [id]
         );
         

@@ -388,7 +388,7 @@ export async function POST(req: NextRequest) {
 
       // Update Applicant status
       await client.query(
-        'UPDATE "applicant" SET "statusId" = $1 WHERE id = $2',
+        'UPDATE "Applicant" SET "statusId" = $1 WHERE id = $2',
         [toStageId, targetApplicantId]
       );
 

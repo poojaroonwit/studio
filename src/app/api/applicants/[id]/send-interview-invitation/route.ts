@@ -157,7 +157,7 @@ export async function POST(
 
     // Get Applicant information
     const applicantResult = await client.query(
-      'SELECT id, name, email, "positionId" FROM "applicant" WHERE id = $1',
+      'SELECT id, name, email, "positionId" FROM "Applicant" WHERE id = $1',
       [applicantId]
     );
 

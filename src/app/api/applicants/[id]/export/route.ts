@@ -149,7 +149,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         p.title as "positionTitle",
         p.department as "positionDepartment",
         u.name as "recruiterName"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         p.title as "positionTitle"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."applicantId" = $1::uuid
+      WHERE jm."applicant_id" = $1::uuid
       ORDER BY jm."fitScore" DESC NULLS LAST
     `;
 

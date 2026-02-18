@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
         JOIN "Position" p ON h."positionId" = p.id
         LEFT JOIN "Grade" g ON p."gradeId" = g.id
         LEFT JOIN (
-          SELECT "applicantId", MAX(date) as date
+          SELECT "applicant_id" as "applicantId", MAX(date) as date
           FROM "TransitionRecord"
           WHERE stage = 'Hired'
-          GROUP BY "applicantId"
+          GROUP BY "applicant_id"
         ) tr ON h."applicantId" = tr."applicantId"
         WHERE p."isOpen" = true
         ORDER BY h."requestDate" ASC;

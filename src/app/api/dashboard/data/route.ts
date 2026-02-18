@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       // Get basic dashboard statistics
       const statsRes = await client.query(`
         SELECT 
-          (SELECT COUNT(*) FROM "applicant") as total_Applicants,
+          (SELECT COUNT(*) FROM "Applicant") as total_Applicants,
           (SELECT COUNT(*) FROM "Position") as total_positions,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'queued') as queued_uploads,
           (SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess') as processing_uploads,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           c.name,
           c."createdAt" as timestamp,
           p.title as position_title
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         WHERE c."createdAt" >= NOW() - INTERVAL '24 hours'
         ORDER BY c."createdAt" DESC

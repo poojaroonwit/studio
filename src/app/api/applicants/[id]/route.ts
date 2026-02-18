@@ -127,7 +127,7 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
     await client.query('SET statement_timeout = 5000'); // 5 seconds for validation (reduced from 10s)
 
     // Ultra-fast existence check query - only check if ID exists
-    const validationQuery = `SELECT 1 FROM "applicant" WHERE id = $1::uuid LIMIT 1`;
+    const validationQuery = `SELECT 1 FROM "Applicant" WHERE id = $1::uuid LIMIT 1`;
 
     const startTime = Date.now();
     const result = await client.query(validationQuery, [id]);
@@ -260,7 +260,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         cs.name as "sourceName", 
         cs.description as "sourceDescription", 
         cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -525,7 +525,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Check if Applicant exists first
-    const existingResult = await client.query('SELECT * FROM "applicant" WHERE id = $1::uuid', [id]);
+    const existingResult = await client.query('SELECT * FROM "Applicant" WHERE id = $1::uuid', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       console.error('Applicant not found:', id);
@@ -785,7 +785,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}::uuid
       RETURNING *;
@@ -806,7 +806,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Fetch updated Applicant with source information
     const updatedApplicantWithSource = await client.query(`
       SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
@@ -970,7 +970,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Send notification to recruiter about status change
         const applicantWithRecruiterQuery = `
           SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
-          FROM "applicant" c
+          FROM "Applicant" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" u ON c."recruiterId" = u.id
           WHERE c.id = $1
@@ -1098,7 +1098,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const applicantResult = await client.query(`
        SELECT c.*, c."isBlacklisted", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-       FROM "applicant" c
+       FROM "Applicant" c
        LEFT JOIN "Position" p ON c."positionId" = p.id
        LEFT JOIN "User" r ON c."recruiterId" = r.id
        LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -1271,7 +1271,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await client.query('BEGIN');
 
     // Get Applicant name for audit log
-    const result = await client.query('DELETE FROM "applicant" WHERE id = $1::uuid RETURNING name', [id]);
+    const result = await client.query('DELETE FROM "Applicant" WHERE id = $1::uuid RETURNING name', [id]);
 
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');

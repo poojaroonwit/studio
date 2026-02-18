@@ -68,19 +68,19 @@ async function applyFitScoreIndexes() {
         const indexes = [
             {
                 name: 'idx_Applicant_fit_score_position',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_position ON "applicant" ("fitScore", "positionId") WHERE "fitScore" IS NOT NULL'
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_position ON "Applicant" ("fitScore", "positionId") WHERE "fitScore" IS NOT NULL'
             },
             {
                 name: 'idx_Applicant_fit_score_updated',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_updated ON "applicant" ("fitScore", "updatedAt") WHERE "fitScore" IS NOT NULL'
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_fit_score_updated ON "Applicant" ("fitScore", "updatedAt") WHERE "fitScore" IS NOT NULL'
             },
             {
                 name: 'idx_Applicant_position_fit_score',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_position_fit_score ON "applicant" ("positionId", "fitScore") WHERE "fitScore" IS NOT NULL'
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_position_fit_score ON "Applicant" ("positionId", "fitScore") WHERE "fitScore" IS NOT NULL'
             },
             {
                 name: 'idx_Applicant_status_fit_score',
-                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_status_fit_score ON "applicant" ("status", "fitScore") WHERE "fitScore" IS NOT NULL'
+                sql: 'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_Applicant_status_fit_score ON "Applicant" ("status", "fitScore") WHERE "fitScore" IS NOT NULL'
             }
         ];
         
@@ -139,7 +139,7 @@ async function analyzeFitScorePerformance() {
                 MIN("fitScore") as min_fit_score,
                 MAX("fitScore") as max_fit_score,
                 COUNT(DISTINCT "positionId") as unique_positions
-            FROM "applicant"
+            FROM "Applicant"
             WHERE "fitScore" IS NOT NULL
         `);
         
@@ -162,7 +162,7 @@ async function analyzeFitScorePerformance() {
                     ELSE '0-49 (Very Poor)'
                 END as score_range,
                 COUNT(*) as count
-            FROM "applicant"
+            FROM "Applicant"
             WHERE "fitScore" IS NOT NULL
             GROUP BY score_range
             ORDER BY MIN("fitScore") DESC
@@ -179,7 +179,7 @@ async function analyzeFitScorePerformance() {
                 p.title as position_title,
                 COUNT(c.id) as Applicant_count,
                 ROUND(AVG(c."fitScore")::numeric, 2) as avg_fit_score
-            FROM "applicant" c
+            FROM "Applicant" c
             JOIN "Position" p ON c."positionId" = p.id
             WHERE c."fitScore" IS NOT NULL
             GROUP BY p.id, p.title
@@ -214,7 +214,7 @@ async function optimizeFitScoreCalculations() {
         logInfo('Optimizing fit score calculations...');
         
         // Update statistics for better query planning
-        await client.query('ANALYZE "applicant"');
+        await client.query('ANALYZE "Applicant"');
         await client.query('ANALYZE "Position"');
         
         logSuccess('Updated table statistics for better query planning');
@@ -223,7 +223,7 @@ async function optimizeFitScoreCalculations() {
         // Note: Since there's no fitScoreUpdatedAt column, we'll check if fit scores exist
         const outdatedResult = await client.query(`
             SELECT COUNT(*) as count
-            FROM "applicant" c
+            FROM "Applicant" c
             WHERE c."fitScore" IS NOT NULL
         `);
         

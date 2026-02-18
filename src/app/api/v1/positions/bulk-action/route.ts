@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'delete':
         // Check if positions have Applicants before deleting
-        const applicantsQuery = 'SELECT COUNT(*) FROM "applicant" WHERE "positionId" = ANY($1::uuid[])';
+        const applicantsQuery = 'SELECT COUNT(*) FROM "Applicant" WHERE "positionId" = ANY($1::uuid[])';
         const applicantsResult = await client.query(applicantsQuery, [positionIds]);
         const applicantCount = parseInt(applicantsResult.rows[0].count, 10);
 

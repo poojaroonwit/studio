@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const applicantQuery = `
       SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         p.description as "positionDescription"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."applicantId" = $1
+      WHERE jm."applicant_id" = $1
       ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
@@ -197,7 +197,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   
   try {
     await client.query('BEGIN');
-    const existingResult = await client.query('SELECT * FROM "applicant" WHERE id = $1', [id]);
+    const existingResult = await client.query('SELECT * FROM "Applicant" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -352,7 +352,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     // Build and execute the update query
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING *;
@@ -364,11 +364,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Update job matches in JobMatch table if provided
     if (updateData.job_matches) {
       // Delete existing job matches
-      await client.query('DELETE FROM "JobMatch" WHERE "applicantId" = $1', [id]);
+      await client.query('DELETE FROM "JobMatch" WHERE "applicant_id" = $1', [id]);
       
       // Insert new job matches
       const insertJobMatchQuery = `
-        INSERT INTO "JobMatch" (id, "applicantId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+        INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       `;
       
@@ -387,7 +387,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Create transition record if status changed
     if (updateData.status !== undefined && oldStatus !== updateData.status) {
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       await client.query(insertTransitionQuery, [
@@ -498,7 +498,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Fetch updated Applicant with source information for response
     const updatedApplicantWithSource = await client.query(`
       SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
@@ -542,12 +542,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
-    const existingResult = await client.query('SELECT * FROM "applicant" WHERE id = $1', [id]);
+    const existingResult = await client.query('SELECT * FROM "Applicant" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }
-    await client.query('DELETE FROM "applicant" WHERE id = $1', [id]);
+    await client.query('DELETE FROM "Applicant" WHERE id = $1', [id]);
     await client.query('COMMIT');
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Applicant '${existingResult.rows[0].name}' deleted by ${actingUserName}.`, 'API:V1:Applicants:Delete', user.id, { applicantId: id });

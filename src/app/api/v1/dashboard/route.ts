@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
           COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as inProgress,
           COUNT(CASE WHEN status = 'hired' THEN 1 END) as hired,
           COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected
-        FROM "applicant"
+        FROM "Applicant"
       `);
 
       // Get position statistics
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
           COUNT(*) as total,
           COUNT(CASE WHEN "applicationDate" >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as thisMonth,
           COUNT(CASE WHEN "applicationDate" >= CURRENT_DATE - INTERVAL '60 days' AND "applicationDate" < CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as lastMonth
-        FROM "applicant"
+        FROM "Applicant"
       `);
 
       // Get recruiter statistics

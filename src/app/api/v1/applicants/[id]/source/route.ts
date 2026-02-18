@@ -97,7 +97,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const applicantQuery = `
       SELECT c.id, c.name, c."sourceId", c."subSource",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.email as "sourceEmail", cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1;
     `;
@@ -163,7 +163,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
 
     // Check if Applicant exists
-    const existingResult = await client.query('SELECT id, name, "sourceId", "subSource" FROM "applicant" WHERE id = $1', [id]);
+    const existingResult = await client.query('SELECT id, name, "sourceId", "subSource" FROM "Applicant" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -205,7 +205,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Execute update
     const updateQuery = `
-      UPDATE "applicant" 
+      UPDATE "Applicant" 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING id, name, "sourceId", "subSource";
@@ -219,7 +219,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updatedApplicantWithSource = await client.query(`
       SELECT c.id, c.name, c."sourceId", c."subSource",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);

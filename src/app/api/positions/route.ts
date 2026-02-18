@@ -378,7 +378,7 @@ export async function GET(request: NextRequest) {
               COUNT(c.id) as total_applied,
               COUNT(c.id) as applied_status_count
             FROM "Position" p
-            LEFT JOIN "applicant" c ON p.id = c."positionId"
+            LEFT JOIN "Applicant" c ON p.id = c."positionId"
             WHERE p.id = ANY($1::uuid[])
             GROUP BY p.id
           )

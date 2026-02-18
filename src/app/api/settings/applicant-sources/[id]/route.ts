@@ -274,7 +274,7 @@ export async function DELETE(
 
     // Check if any applicants are using this source
     const applicantsResult = await getPool().query(
-      'SELECT COUNT(*) as count FROM "applicant" WHERE "sourceId" = $1',
+      'SELECT COUNT(*) as count FROM "Applicant" WHERE "sourceId" = $1',
       [id]
     );
 

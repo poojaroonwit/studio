@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       const transitionsQuery = `
         SELECT 
           t.id,
-          t."applicantId",
+          t."applicant_id",
           t.stage,
           t.notes,
           t.date,
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
           t."createdAt"
         FROM "TransitionRecord" t
         LEFT JOIN "User" u ON t."actingUserId" = u.id
-        WHERE t."applicantId" = $1
+        WHERE t."applicant_id" = $1
         ORDER BY t.date ASC, t."createdAt" ASC
       `;
       

@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'delete':
-        const deleteResult = await client.query('DELETE FROM "applicant" WHERE id = ANY($1::uuid[]) RETURNING id', [applicantIds]);
+        const deleteResult = await client.query('DELETE FROM "Applicant" WHERE id = ANY($1::uuid[]) RETURNING id', [applicantIds]);
         result = { deletedCount: deleteResult.rowCount };
         auditMessage = `Bulk deleted ${deleteResult.rowCount} Applicants`;
         break;
@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
         }
 
-        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId", "recruiterId" FROM "applicant" WHERE id = ANY($1::uuid[])', [applicantIds]);
+        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId", "recruiterId" FROM "Applicant" WHERE id = ANY($1::uuid[])', [applicantIds]);
         const oldStatuses = oldStatusesResult.rows;
 
         // Check ownership permissions for each Applicant
@@ -447,7 +447,7 @@ export async function POST(request: NextRequest) {
         if (applicantsToUpdate.length > 0) {
           const applicantIdsToUpdate = applicantsToUpdate.map(c => c.id);
           const updateStatusResult = await client.query(
-            'UPDATE "applicant" SET "statusId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+            'UPDATE "Applicant" SET "statusId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
             [newStatus, applicantIdsToUpdate]
           );
 
@@ -578,7 +578,7 @@ export async function POST(request: NextRequest) {
 
         // Get current recruiter assignments for transition records
         const currentRecruiterResult = await client.query(
-          'SELECT id, "recruiterId", "positionId", "statusId" FROM "applicant" WHERE id = ANY($1::uuid[])',
+          'SELECT id, "recruiterId", "positionId", "statusId" FROM "Applicant" WHERE id = ANY($1::uuid[])',
           [applicantIds]
         );
         const currentRecruiter = currentRecruiterResult.rows;
@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
         const applicantIdsToAssign = applicantsToAssignRecruiter.map(c => c.id);
 
         const assignRecruiterResult = await client.query(
-          'UPDATE "applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+          'UPDATE "Applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
           [newRecruiterId, applicantIdsToAssign]
         );
 
@@ -673,7 +673,7 @@ export async function POST(request: NextRequest) {
               ) FILTER (WHERE a.id IS NOT NULL),
               '[]'::json
             ) as attachments
-          FROM "applicant" c
+          FROM "Applicant" c
           LEFT JOIN "Attachment" a ON c.id = a."applicantId"
           WHERE c.id = ANY($1::uuid[])
           GROUP BY c.id, c.name, c."positionId", c."sourceId", c."parsedData"

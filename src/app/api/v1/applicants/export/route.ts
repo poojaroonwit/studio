@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
           ) FILTER (WHERE jm.id IS NOT NULL),
           '[]'::json
         ) as job_matches
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       LEFT JOIN "JobMatch" jm ON c.id = jm."applicantId"

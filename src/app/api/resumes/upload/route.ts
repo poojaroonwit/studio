@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       await client.query('BEGIN');
 
       // Get applicant data for ownership check
-      const applicantQuery = `SELECT "recruiterId" FROM "applicant" WHERE id = $1`;
+      const applicantQuery = `SELECT "recruiterId" FROM "Applicant" WHERE id = $1`;
       const applicantResult = await client.query(applicantQuery, [targetApplicantId]);
       if (applicantResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Update Applicant's resume path
-      const updateQuery = `UPDATE "applicant" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
+      const updateQuery = `UPDATE "Applicant" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
       const result = await client.query(updateQuery, [objectName, targetApplicantId]);
       const updatedApplicant = result.rows[0];
 

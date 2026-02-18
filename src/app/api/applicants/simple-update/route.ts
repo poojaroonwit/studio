@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       const updateValues = Object.values(updates);
       
       const updateQuery = `
-        UPDATE "applicant" 
+        UPDATE "Applicant" 
         SET ${updateFields.join(', ')}, "updatedAt" = NOW() 
         WHERE id = $1 
         RETURNING *

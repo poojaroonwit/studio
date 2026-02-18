@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         
         // Migrate applicants using UUIDs
         const applicantResult = await client.query(
-            'UPDATE "applicant" SET "statusId" = $1 WHERE "statusId" = $2 RETURNING id',
+            'UPDATE "Applicant" SET "statusId" = $1 WHERE "statusId" = $2 RETURNING id',
             [replacementStageId, stageId]
         );
         

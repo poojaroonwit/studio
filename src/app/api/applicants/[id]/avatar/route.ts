@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       await client.query('BEGIN');
       
       // Get Applicant data for ownership check
-      const applicantQuery = 'SELECT "recruiterId" FROM "applicant" WHERE id = $1';
+      const applicantQuery = 'SELECT "recruiterId" FROM "Applicant" WHERE id = $1';
       const applicantResult = await client.query(applicantQuery, [applicantId]);
       if (applicantResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      const updateQuery = 'UPDATE "applicant" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
+      const updateQuery = 'UPDATE "Applicant" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
       const result = await client.query(updateQuery, [webAppUrl, applicantId]);
       await client.query('COMMIT');
       await logAudit('AUDIT', `Avatar uploaded for Applicant ${applicantId} by ${actingUserName}.`, 'API:Applicants:Avatar:Upload', actingUserId, { applicantId, avatarUrl: webAppUrl });
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
   const pool = getPool();
   const client = await pool.connect();
   try {
-    const result = await client.query('SELECT "avatarUrl" FROM "applicant" WHERE id = $1', [applicantId]);
+    const result = await client.query('SELECT "avatarUrl" FROM "Applicant" WHERE id = $1', [applicantId]);
     if (result.rows.length === 0) {
       return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
     }

@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const query = `
       SELECT c.id, c."recruiterId", u.name as "recruiterName", u.email as "recruiterEmail"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1;
     `;
@@ -97,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('BEGIN');
     
     // Check if Applicant exists
-    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "Applicant" WHERE id = $1', [targetApplicantId]);
     if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -133,7 +133,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Update the Applicant's recruiter
-    const updateQuery = 'UPDATE "applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *';
+    const updateQuery = 'UPDATE "Applicant" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *';
     const updateResult = await client.query(updateQuery, [recruiterId, targetApplicantId]);
     
     // Create transition record for recruiter change
@@ -142,7 +142,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     
-    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "Applicant" WHERE id = $1', [targetApplicantId]);
     const positionId = positionResult.rows[0]?.positionId;
     const status = 'Applied'; // Use default status since we don't have the actual status name
     
@@ -170,7 +170,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Fetch updated Applicant with recruiter information
     const fetchQuery = `
       SELECT c.*, u.name as "recruiterName", u.email as "recruiterEmail"
-      FROM "applicant" c
+      FROM "Applicant" c
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       WHERE c.id = $1;
     `;
@@ -227,7 +227,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await client.query('BEGIN');
     
     // Check if Applicant exists and has a recruiter
-    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
+    const applicantResult = await client.query('SELECT id, name, "recruiterId" FROM "Applicant" WHERE id = $1', [targetApplicantId]);
     if (applicantResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -240,11 +240,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     
     // Remove the recruiter assignment
-    const updateQuery = 'UPDATE "applicant" SET "recruiterId" = NULL, "updatedAt" = NOW() WHERE id = $1 RETURNING *';
+    const updateQuery = 'UPDATE "Applicant" SET "recruiterId" = NULL, "updatedAt" = NOW() WHERE id = $1 RETURNING *';
     await client.query(updateQuery, [targetApplicantId]);
     
     // Create transition record
-    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "applicant" WHERE id = $1', [targetApplicantId]);
+    const positionResult = await client.query('SELECT "positionId", "statusId" FROM "Applicant" WHERE id = $1', [targetApplicantId]);
     const positionId = positionResult.rows[0]?.positionId;
     const status = 'Applied'; // Use default status since we don't have the actual status name
     

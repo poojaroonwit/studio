@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           rs.name as status,
           COUNT(*) as count
-        FROM "applicant" c
+        FROM "Applicant" c
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
         GROUP BY rs.name
         ORDER BY rs.name ASC

@@ -137,7 +137,7 @@ export async function GET(
               'applied' as association_type,
               COALESCE(th_data.history, '[]'::json) as "transitionHistory",
               COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-            FROM "applicant" c
+            FROM "Applicant" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" r ON c."recruiterId" = r.id
             LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -148,7 +148,7 @@ export async function GET(
                 ) ORDER BY th.date DESC
               ) AS history
               FROM "TransitionRecord" th
-              WHERE th."applicantId" = c.id
+              WHERE th."applicant_id" = c.id
             ) AS th_data ON true
             LEFT JOIN LATERAL (
               SELECT json_agg(
@@ -159,7 +159,7 @@ export async function GET(
                 ) ORDER BY jm."fitScore" DESC
               ) AS jobMatches
               FROM "JobMatch" jm
-              WHERE jm."applicantId" = c.id
+              WHERE jm."applicant_id" = c.id
             ) AS jm_data ON true
             WHERE c."positionId" = $1
             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
@@ -181,7 +181,7 @@ export async function GET(
               'matched' as association_type,
               COALESCE(th_data.history, '[]'::json) as "transitionHistory",
               COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-            FROM "applicant" c
+            FROM "Applicant" c
             LEFT JOIN "Position" p ON c."positionId" = p.id
             LEFT JOIN "User" r ON c."recruiterId" = r.id
             LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -192,7 +192,7 @@ export async function GET(
                 ) ORDER BY th.date DESC
               ) AS history
               FROM "TransitionRecord" th
-              WHERE th."applicantId" = c.id
+              WHERE th."applicant_id" = c.id
             ) AS th_data ON true
             LEFT JOIN LATERAL (
               SELECT json_agg(
@@ -203,12 +203,12 @@ export async function GET(
                 ) ORDER BY jm."fitScore" DESC
               ) AS jobMatches
               FROM "JobMatch" jm
-              WHERE jm."applicantId" = c.id
+              WHERE jm."applicant_id" = c.id
             ) AS jm_data ON true
             WHERE (c."positionId" IS NULL OR c."positionId" != $1)
             AND EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."applicantId" = c.id AND jm."jobId" = $1
+              WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
             )
             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
             ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
@@ -230,7 +230,7 @@ export async function GET(
                 'applied' as association_type,
                 COALESCE(th_data.history, '[]'::json) as "transitionHistory",
                 COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-              FROM "applicant" c
+              FROM "Applicant" c
               LEFT JOIN "Position" p ON c."positionId" = p.id
               LEFT JOIN "User" r ON c."recruiterId" = r.id
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -241,7 +241,7 @@ export async function GET(
                   ) ORDER BY th.date DESC
                 ) AS history
                 FROM "TransitionRecord" th
-                WHERE th."applicantId" = c.id
+                WHERE th."applicant_id" = c.id
               ) AS th_data ON true
               LEFT JOIN LATERAL (
                 SELECT json_agg(
@@ -252,7 +252,7 @@ export async function GET(
                   ) ORDER BY jm."fitScore" DESC
                 ) AS jobMatches
                 FROM "JobMatch" jm
-                WHERE jm."applicantId" = c.id
+                WHERE jm."applicant_id" = c.id
               ) AS jm_data ON true
               WHERE c."positionId" = $1
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
@@ -270,7 +270,7 @@ export async function GET(
                 'matched' as association_type,
                 COALESCE(th_data.history, '[]'::json) as "transitionHistory",
                 COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-              FROM "applicant" c
+              FROM "Applicant" c
               LEFT JOIN "Position" p ON c."positionId" = p.id
               LEFT JOIN "User" r ON c."recruiterId" = r.id
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
@@ -281,7 +281,7 @@ export async function GET(
                   ) ORDER BY th.date DESC
                 ) AS history
                 FROM "TransitionRecord" th
-                WHERE th."applicantId" = c.id
+                WHERE th."applicant_id" = c.id
               ) AS th_data ON true
               LEFT JOIN LATERAL (
                 SELECT json_agg(
@@ -292,12 +292,12 @@ export async function GET(
                   ) ORDER BY jm."fitScore" DESC
                 ) AS jobMatches
                 FROM "JobMatch" jm
-                WHERE jm."applicantId" = c.id
+                WHERE jm."applicant_id" = c.id
               ) AS jm_data ON true
               WHERE (c."positionId" IS NULL OR c."positionId" != $1)
               AND EXISTS (
                 SELECT 1 FROM "JobMatch" jm 
-                WHERE jm."applicantId" = c.id AND jm."jobId" = $1
+                WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
               )
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
             )
@@ -321,18 +321,18 @@ export async function GET(
       if (type === 'applied') {
         countQuery = `
            SELECT COUNT(*) as total
-           FROM "applicant" c
+           FROM "Applicant" c
            WHERE c."positionId" = $1
            AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
          `;
       } else if (type === 'matched') {
         countQuery = `
            SELECT COUNT(*) as total
-           FROM "applicant" c
+           FROM "Applicant" c
            WHERE (c."positionId" IS NULL OR c."positionId" != $1)
            AND EXISTS (
              SELECT 1 FROM "JobMatch" jm 
-             WHERE jm."applicantId" = c.id AND jm."jobId" = $1
+             WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
            )
            AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
          `;
@@ -340,17 +340,17 @@ export async function GET(
         countQuery = `
            WITH applied_applicants AS (
              SELECT c.id
-             FROM "applicant" c
+             FROM "Applicant" c
              WHERE c."positionId" = $1
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
            ),
            matched_applicants AS (
              SELECT c.id
-             FROM "applicant" c
+             FROM "Applicant" c
              WHERE (c."positionId" IS NULL OR c."positionId" != $1)
              AND EXISTS (
                SELECT 1 FROM "JobMatch" jm 
-               WHERE jm."applicantId" = c.id AND jm."jobId" = $1
+               WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
              )
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
            )

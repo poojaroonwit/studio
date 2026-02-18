@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Check for existing Applicant with same email to prevent duplicates
     const existingApplicantCheck = await client.query(
-      `SELECT id, name, email FROM "applicant" WHERE email = $1`,
+      `SELECT id, name, email FROM "Applicant" WHERE email = $1`,
       [applicantData.email]
     );
 
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const insertApplicantQuery = `
-      INSERT INTO "applicant" (id, name, email, phone, "statusId", "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "emailDate", "emailSubject", "emailId", "emailMetadata", "createdAt", "updatedAt")
+      INSERT INTO "Applicant" (id, name, email, phone, "statusId", "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "emailDate", "emailSubject", "emailId", "emailMetadata", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
       RETURNING *;
     `;

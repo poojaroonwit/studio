@@ -517,7 +517,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
     }
 
-    const positionQuery = 'SELECT p.id, p.title, COUNT(c.id) as "applicantCount" FROM "Position" p LEFT JOIN "applicant" c ON p.id = c."positionId" WHERE p.id = $1 GROUP BY p.id, p.title;';
+    const positionQuery = 'SELECT p.id, p.title, COUNT(c.id) as "applicantCount" FROM "Position" p LEFT JOIN "Applicant" c ON p.id = c."positionId" WHERE p.id = $1 GROUP BY p.id, p.title;';
     const applicantCountResult = await client.query(positionQuery, [id]);
     const applicantCount = parseInt(applicantCountResult.rows[0]?.applicantCount || '0', 10);
 

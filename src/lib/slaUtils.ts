@@ -108,7 +108,7 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
     const latestHiredQuery = `
       SELECT tr.date
       FROM "TransitionRecord" tr
-      JOIN "applicant" c ON tr."applicantId" = c.id
+      JOIN "Applicant" c ON tr."applicant_id" = c.id
       WHERE tr."positionId" = $1
         AND tr.stage = 'Hired'
         AND c."positionId" = $1

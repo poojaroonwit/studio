@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await client.query('BEGIN');
       
       // Check if Applicant exists first and get recruiter info for ownership check
-      const applicantCheck = await client.query('SELECT id, name, "recruiterId" FROM "applicant" WHERE id = $1', [applicantId]);
+      const applicantCheck = await client.query('SELECT id, name, "recruiterId" FROM "Applicant" WHERE id = $1', [applicantId]);
       if (applicantCheck.rows.length === 0) {
         await client.query('ROLLBACK');
         return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
 
       // Update with correct field name (avatarUrl in Prisma schema)
-      const updateQuery = `UPDATE "applicant" SET "avatarUrl" = $1 WHERE id = $2 RETURNING *;`;
+      const updateQuery = `UPDATE "Applicant" SET "avatarUrl" = $1 WHERE id = $2 RETURNING *;`;
       const result = await client.query(updateQuery, [avatarUrl, applicantId]);
       
       if (result.rows.length === 0) {
@@ -155,7 +155,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const client = await getPool().connect();
   try {
-    const result = await client.query('SELECT "avatarUrl" FROM "applicant" WHERE id = $1', [applicantId]);
+    const result = await client.query('SELECT "avatarUrl" FROM "Applicant" WHERE id = $1', [applicantId]);
     if (result.rows.length === 0) {
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('Applicant not found'));
     }

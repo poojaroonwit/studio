@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
           if (applicant.id) {
             // Update existing Applicant
             const updateQuery = `
-              UPDATE "applicant" 
+              UPDATE "Applicant" 
               SET 
                 name = $1,
                 email = $2,
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
             // Create new Applicant
             const applicantId = uuidv4();
             const insertQuery = `
-              INSERT INTO "applicant" (
+              INSERT INTO "Applicant" (
                 id, name, email, phone, "positionId", "recruiterId", 
                 "fitScore", "statusId", "applicationDate", "parsedData", 
                 "customAttributes", "createdAt", "updatedAt"

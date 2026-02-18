@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     // Get system statistics
     const statsClient = await getSafeDbClient();
     const [ApplicantsResult, positionsResult, usersResult] = await Promise.all([
-      statsClient.query('SELECT COUNT(*) as count FROM "applicant"'),
+      statsClient.query('SELECT COUNT(*) as count FROM "Applicant"'),
       statsClient.query('SELECT COUNT(*) as count FROM "Position"'),
       statsClient.query('SELECT COUNT(*) as count FROM "User"')
     ]);

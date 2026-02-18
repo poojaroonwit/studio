@@ -235,7 +235,7 @@ export async function getHiredDateForHeadcount(headcount: any): Promise<Date | n
     const query = `
       SELECT tr.date
       FROM "TransitionRecord" tr
-      WHERE tr."applicantId" = $1
+      WHERE tr."applicant_id" = $1
         AND tr.stage = 'Hired'
       ORDER BY tr.date DESC
       LIMIT 1

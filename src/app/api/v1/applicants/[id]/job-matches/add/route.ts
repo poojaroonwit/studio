@@ -74,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Check if job match already exists for this Applicant and position
-    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE "applicantId" = $1 AND "jobId" = $2';
+    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE "applicant_id" = $1 AND "jobId" = $2';
     const existingMatchResult = await client.query(existingMatchQuery, [applicantId, jobId]);
     
     if (existingMatchResult.rows.length > 0) {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Insert new job match
     const matchId = uuidv4();
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicantId", "jobId", "fitScore", "matchReasons")
+      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons")
       VALUES ($1, $2, $3, $4, $5)
     `;
     

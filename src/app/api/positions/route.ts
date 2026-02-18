@@ -386,7 +386,7 @@ export async function GET(request: NextRequest) {
           ,position_matching AS (
             SELECT 
               p.id as position_id,
-              COUNT(DISTINCT jm."applicantId") as total_matching
+              COUNT(DISTINCT jm."applicant_id") as total_matching
             FROM "Position" p
             LEFT JOIN "JobMatch" jm ON p.id = jm."jobId"
             WHERE p.id = ANY($1::uuid[])

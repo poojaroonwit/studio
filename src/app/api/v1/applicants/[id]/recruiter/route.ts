@@ -138,7 +138,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     // Create transition record for recruiter change
     const transitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     
@@ -249,7 +249,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const status = 'Applied'; // Use default status since we don't have the actual status name
     
     const transitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     

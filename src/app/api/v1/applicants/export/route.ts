@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
-      LEFT JOIN "JobMatch" jm ON c.id = jm."applicantId"
+      LEFT JOIN "JobMatch" jm ON c.id = jm."applicant_id"
       GROUP BY c.id, p.title, p.department, r.name
       ORDER BY c."updatedAt" DESC
     `;

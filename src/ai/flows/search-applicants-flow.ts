@@ -223,7 +223,7 @@ export async function searchApplicantsAIChat(input: SearchApplicantsInput): Prom
             ) ORDER BY th.date DESC
           ) AS history
           FROM "TransitionRecord" th
-          WHERE th."applicantId" = c.id
+          WHERE th."applicant_id" = c.id
         ) AS th_data ON true
     `);
 

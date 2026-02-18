@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
             if (applicant.statusId !== newStatus) {
               const newTransitionId = uuidv4();
               await client.query(
-                'INSERT INTO "TransitionRecord" (id, "applicantId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
+                'INSERT INTO "TransitionRecord" (id, "applicant_id", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
                 [newTransitionId, applicant.id, newStatus, transitionNotes || null, actingUserId]
               );
               
@@ -628,7 +628,7 @@ export async function POST(request: NextRequest) {
               : 'Recruiter unassigned';
             
             await client.query(`
-              INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+              INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
               VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
             `, [
               newTransitionId,

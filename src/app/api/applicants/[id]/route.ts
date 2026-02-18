@@ -188,7 +188,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     try {
       authClient = await getPool().connect();
       const res = await authClient.query(
-        'SELECT id FROM "applicantEvaluationLink" WHERE token = $1 AND "applicantId" = $2::uuid AND "expiresAt" > NOW() AND "revokedAt" IS NULL',
+        'SELECT id FROM "ApplicantEvaluationLink" WHERE token = $1 AND "applicantId" = $2::uuid AND "expiresAt" > NOW() AND "revokedAt" IS NULL',
         [token, id]
       );
       if (res.rows.length > 0) isAuthorized = true;
@@ -296,7 +296,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const jobMatchesQuery = `
         SELECT 
           jm.id,
-          jm."applicantId",
+          jm."applicant_id",
           jm."jobId",
           jm."fitScore",
           jm."createdAt",
@@ -306,7 +306,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           p.description as "positionDescription"
         FROM "JobMatch" jm
         LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."applicantId" = $1::uuid
+        WHERE jm."applicant_id" = $1::uuid
         ORDER BY jm."fitScore" DESC
         LIMIT 3
       `;
@@ -778,7 +778,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Log read status change as activity in TransitionRecord
         const activityNotes = isRead ? 'Marked as read' : 'Marked as unread';
         await client.query(`
-          INSERT INTO "TransitionRecord" ("id", "applicantId", "date", "stage", "notes", "actingUserId", "createdAt", "updatedAt")
+          INSERT INTO "TransitionRecord" ("id", "applicant_id", "date", "stage", "notes", "actingUserId", "createdAt", "updatedAt")
           VALUES (gen_random_uuid(), $1::uuid, NOW(), $2, $3, $4::uuid, NOW(), NOW())
         `, [id, isRead ? 'READ_STATUS_CHANGED' : 'READ_STATUS_CHANGED', activityNotes, actingUserId]);
       }
@@ -935,7 +935,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
 
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
@@ -1025,7 +1025,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       const newTransitionId = uuidv4();
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
@@ -1118,7 +1118,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         SELECT jm.*, p.title as "positionTitle"
         FROM "JobMatch" jm
         LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."applicantId" = $1::uuid
+        WHERE jm."applicant_id" = $1::uuid
         ORDER BY jm."fitScore" DESC;
       `, [id]);
     }

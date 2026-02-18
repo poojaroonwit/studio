@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
             cc.content,
             cc."createdAt",
             u.name as "createdBy"
-          FROM "applicantComment" cc
+          FROM "ApplicantComment" cc
           LEFT JOIN "User" u ON cc."authorId" = u.id
           WHERE cc."applicantId" = $1
           ORDER BY cc."createdAt" DESC

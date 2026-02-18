@@ -92,7 +92,7 @@ export async function syncRecruiterForPosition(
 
           const newTransitionId = uuidv4();
           const insertTransitionQuery = `
-            INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+            INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
           `;
           
@@ -305,7 +305,7 @@ export async function syncRecruiterForApplicant(
 
     const newTransitionId = uuidv4();
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "applicantId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicant_id", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
     `;
     

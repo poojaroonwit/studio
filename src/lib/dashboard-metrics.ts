@@ -31,7 +31,7 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   const avgTimeQuery = `
     SELECT AVG(EXTRACT(DAY FROM (tr.date - c."applicationDate"))) as "avgDays"
     FROM "Applicant" c
-    JOIN "TransitionRecord" tr ON c.id = tr."applicantId"
+    JOIN "TransitionRecord" tr ON c.id = tr."applicant_id"
     WHERE tr.stage = 'Hired'
     AND ($1 = true OR c."recruiterId" = $2)
   `;

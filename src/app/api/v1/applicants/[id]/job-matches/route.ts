@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       SELECT jm.*, p.title as "positionTitle"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."applicantId" = $1
+      WHERE jm."applicant_id" = $1
       ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [applicantId]);
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Insert or update job matches
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicantId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `;
@@ -135,12 +135,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const updateJobMatchQuery = `
       UPDATE "JobMatch" 
       SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
-      WHERE "applicantId" = $3 AND "jobId" = $4
+      WHERE "applicant_id" = $3 AND "jobId" = $4
       RETURNING *
     `;
 
     const checkExistingQuery = `
-      SELECT id FROM "JobMatch" WHERE "applicantId" = $1 AND "jobId" = $2
+      SELECT id FROM "JobMatch" WHERE "applicant_id" = $1 AND "jobId" = $2
     `;
 
     const insertedMatches = [];
@@ -276,7 +276,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Update existing job matches or insert new ones
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicantId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `;
@@ -284,12 +284,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const updateJobMatchQuery = `
       UPDATE "JobMatch" 
       SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
-      WHERE "applicantId" = $3 AND "jobId" = $4
+      WHERE "applicant_id" = $3 AND "jobId" = $4
       RETURNING *
     `;
 
     const checkExistingQuery = `
-      SELECT id FROM "JobMatch" WHERE "applicantId" = $1 AND "jobId" = $2
+      SELECT id FROM "JobMatch" WHERE "applicant_id" = $1 AND "jobId" = $2
     `;
 
     const updatedMatches = [];
@@ -397,11 +397,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Delete existing job matches for this Applicant
-    await client.query('DELETE FROM "JobMatch" WHERE "applicantId" = $1', [applicantId]);
+    await client.query('DELETE FROM "JobMatch" WHERE "applicant_id" = $1', [applicantId]);
 
     // Insert new job matches
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicantId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `;
@@ -471,7 +471,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Delete all job matches for this Applicant
-    const deleteResult = await client.query('DELETE FROM "JobMatch" WHERE "applicantId" = $1 RETURNING id', [applicantId]);
+    const deleteResult = await client.query('DELETE FROM "JobMatch" WHERE "applicant_id" = $1 RETURNING id', [applicantId]);
     
     await client.query('COMMIT');
     

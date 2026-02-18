@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             p.description as "positionDescription"
           FROM "JobMatch" jm
           LEFT JOIN "Position" p ON jm."jobId" = p.id
-          WHERE jm."applicantId" = $1::uuid
+          WHERE jm."applicant_id" = $1::uuid
           ORDER BY jm."fitScore" DESC
           LIMIT $2 OFFSET $3
         `;
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const jobMatchesCountQuery = `
           SELECT COUNT(*) as total
           FROM "JobMatch" jm
-          WHERE jm."applicantId" = $1::uuid
+          WHERE jm."applicant_id" = $1::uuid
         `;
         const jobMatchesCountResult = await client.query(jobMatchesCountQuery, [id]);
         

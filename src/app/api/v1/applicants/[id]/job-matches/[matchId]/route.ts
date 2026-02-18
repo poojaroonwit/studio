@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       SELECT jm.*, p.title as "positionTitle"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm.id = $1 AND jm."applicantId" = $2;
+      WHERE jm.id = $1 AND jm."applicant_id" = $2;
     `;
     const jobMatchResult = await client.query(jobMatchQuery, [matchId, applicantId]);
     
@@ -138,7 +138,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Check if job match exists
-    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE id = $1 AND "applicantId" = $2';
+    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE id = $1 AND "applicant_id" = $2';
     const existingMatchResult = await client.query(existingMatchQuery, [matchId, applicantId]);
     
     if (existingMatchResult.rows.length === 0) {
@@ -150,7 +150,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updateQuery = `
       UPDATE "JobMatch" 
       SET "fitScore" = $1, "jobId" = $2, "matchReasons" = $3, "updatedAt" = NOW()
-      WHERE id = $4 AND "applicantId" = $5
+      WHERE id = $4 AND "applicant_id" = $5
       RETURNING *
     `;
     const updateResult = await client.query(updateQuery, [fitScore, jobId, matchReasons, matchId, applicantId]);
@@ -228,7 +228,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Check if job match exists
-    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE id = $1 AND "applicantId" = $2';
+    const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE id = $1 AND "applicant_id" = $2';
     const existingMatchResult = await client.query(existingMatchQuery, [matchId, applicantId]);
     
     if (existingMatchResult.rows.length === 0) {
@@ -237,7 +237,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     // Delete the job match
-    const deleteQuery = 'DELETE FROM "JobMatch" WHERE id = $1 AND "applicantId" = $2 RETURNING *';
+    const deleteQuery = 'DELETE FROM "JobMatch" WHERE id = $1 AND "applicant_id" = $2 RETURNING *';
     const deleteResult = await client.query(deleteQuery, [matchId, applicantId]);
     
     if (deleteResult.rows.length === 0) {

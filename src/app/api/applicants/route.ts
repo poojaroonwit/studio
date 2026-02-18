@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     const newApplicant = applicantResult.rows[0];
     // Create initial transition record
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "applicantId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      INSERT INTO "TransitionRecord" (id, "applicant_id", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
     `;
     await client.query(insertTransitionQuery, [
@@ -858,7 +858,7 @@ export async function GET(request: NextRequest) {
         // No matching fit score filter - Applicants with no job matches
         whereClauses.push(`(
           (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
-          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicantId" = c.id)
+          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicant_id" = c.id)
         )`);
 
       } else if (filters.includeNoScoreInMatching) {
@@ -875,7 +875,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."applicantId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              WHERE jm."applicant_id" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -892,7 +892,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."applicantId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              WHERE jm."applicant_id" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -902,7 +902,7 @@ export async function GET(request: NextRequest) {
         // Create OR condition: (regular score conditions) OR (no-score condition)
         const noScoreCondition = `(
           (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
-          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicantId" = c.id)
+          AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."applicant_id" = c.id)
         )`;
 
         if (regularScoreConditions.length > 0) {
@@ -926,7 +926,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."applicantId" = c.id AND jm."fitScore" >= $${paramIndex + 1}
+              WHERE jm."applicant_id" = c.id AND jm."fitScore" >= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);
@@ -944,7 +944,7 @@ export async function GET(request: NextRequest) {
             )
             OR EXISTS (
               SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."applicantId" = c.id AND jm."fitScore" <= $${paramIndex + 1}
+              WHERE jm."applicant_id" = c.id AND jm."fitScore" <= $${paramIndex + 1}
             )
           )`);
           queryParams.push(filterValue, filterValue);

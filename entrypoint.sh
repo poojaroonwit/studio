@@ -108,24 +108,24 @@ if [ "$FRESH_DB" -eq 1 ]; then
         echo "⚠️ Cleanup script failed, but proceeding..."
     fi
     
-    # For fresh databases, always use db push which is simpler and more reliable
-    if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
-        echo "✅ Database schema synced using db push"
-        
-        # Mark all existing migrations as applied to avoid conflicts on future upgrades
-        echo "📝 Marking existing migrations as applied..."
-        for migration_dir in prisma/migrations/*/; do
-            if [ -d "$migration_dir" ]; then
-                migration_name=$(basename "$migration_dir")
-                if [ "$migration_name" != "migration_lock.toml" ]; then
-                    echo "  - Marking $migration_name as applied"
-                    npx prisma migrate resolve --applied "$migration_name" --schema=prisma/schema.prisma 2>/dev/null || true
-                fi
-            fi
-        done
+    # For fresh databases, prefer migrate deploy if migrations exist
+    if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations)" ]; then
+        echo "🚀 Fresh deployment - migrations found, using migrate deploy..."
+        if npx prisma migrate deploy --schema=prisma/schema.prisma; then
+            echo "✅ Database schema synced using migrate deploy"
+        else
+            echo "❌ Failed to sync database schema using migrate deploy"
+            # Optional: Fallback to db push ONLY if migrate deploy failed due to mismatch? No, safer to fail.
+            exit 1
+        fi
     else
-        echo "❌ Failed to sync database schema"
-        exit 1
+        echo "🚀 Fresh deployment - no migrations found, using db push..."
+        if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
+            echo "✅ Database schema synced using db push"
+        else
+            echo "❌ Failed to sync database schema"
+            exit 1
+        fi
     fi
     
 elif [ "$PENDING_MIGRATIONS" -eq 1 ]; then
@@ -206,14 +206,14 @@ else
     echo "✓ Database is up to date - no migrations needed"
 fi
 
-# Fallback: Ensure database schema is always in sync with Prisma schema
-echo "Ensuring database schema is in sync with Prisma schema..."
-if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
-    echo "✓ Database schema verified and synced successfully"
-else
-    echo "⚠ Database schema sync failed, but continuing with deployment..."
-    echo "This might indicate a more serious database issue"
-fi
+# Fallback removed - relying on migration logic above
+# echo "Ensuring database schema is in sync with Prisma schema..."
+# if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
+#     echo "✓ Database schema verified and synced successfully"
+# else
+#     echo "⚠ Database schema sync failed, but continuing with deployment..."
+#     echo "This might indicate a more serious database issue"
+# fi
 
 # Seed the database
 if [ "$SKIP_SEED" = "true" ]; then

@@ -62,8 +62,9 @@ if ! psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM _prisma_migrations;" > /dev/n
     echo "🆕 Fresh database detected - will create initial migration"
 else
     # Additional check: if migrations table exists but is empty, treat as fresh
-    MIGRATION_COUNT=$(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM _prisma_migrations;" 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
-    if [ "$MIGRATION_COUNT" -eq "0" ]; then
+    # Use xargs to trim whitespace from psql output
+    MIGRATION_COUNT=$(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM _prisma_migrations;" 2>/dev/null | xargs || echo "0")
+    if [ "$MIGRATION_COUNT" -eq "0" ] || [ -z "$MIGRATION_COUNT" ]; then
         FRESH_DB=1
         echo "🆕 Fresh database detected (empty migrations table) - will create initial migration"
     fi
@@ -97,13 +98,12 @@ fi
 
 # Proactively resolve any failed migrations (P3009) that might block deployment
 # This is common if a previous deployment was interrupted
-FAILED_MIGRATION=$(npx prisma migrate status --schema=prisma/schema.prisma 2>/dev/null | grep "failed" | grep -E "^[0-9]{14}_" | awk '{print $1}' | head -n 1 || echo "")
+# Removed ^ from regex as migration name might not be at the start of the line
+FAILED_MIGRATION=$(npx prisma migrate status --schema=prisma/schema.prisma 2>&1 | grep "failed" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -n 1 || echo "")
 if [ -n "$FAILED_MIGRATION" ]; then
     echo "⚠️  Found failed migration: $FAILED_MIGRATION. Attempting to resolve..."
     if npx prisma migrate resolve --applied "$FAILED_MIGRATION" --schema=prisma/schema.prisma; then
         echo "✅ Successfully resolved migration: $FAILED_MIGRATION"
-        # Refresh migration status after resolution
-        MIGRATION_STATUS=$(npx prisma migrate status --schema=prisma/schema.prisma 2>/dev/null || echo "")
     else
         echo "❌ Failed to resolve migration: $FAILED_MIGRATION"
     fi

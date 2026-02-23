@@ -97,7 +97,7 @@ fi
 
 # Handle different scenarios
 if [ "$FRESH_DB" -eq 1 ]; then
-    echo "🚀 Fresh deployment - using db push to create schema..."
+    echo "🚀 Fresh deployment - initializing database..."
     
     # Run cleanup script to remove any duplicate keys that might cause P2002 errors
     # This happens if there's existing data but no migrations table

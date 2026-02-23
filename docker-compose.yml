@@ -36,6 +36,9 @@ services:
       USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-true}
 
     restart: unless-stopped
+    volumes:
+      - ./entrypoint.sh:/app/entrypoint.sh
+
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
     networks:

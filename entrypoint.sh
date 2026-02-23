@@ -95,6 +95,20 @@ if [ "$FRESH_DB" -eq 0 ]; then
     fi
 fi
 
+# Proactively resolve any failed migrations (P3009) that might block deployment
+# This is common if a previous deployment was interrupted
+FAILED_MIGRATION=$(npx prisma migrate status --schema=prisma/schema.prisma 2>/dev/null | grep "failed" | grep -E "^[0-9]{14}_" | awk '{print $1}' | head -n 1 || echo "")
+if [ -n "$FAILED_MIGRATION" ]; then
+    echo "⚠️  Found failed migration: $FAILED_MIGRATION. Attempting to resolve..."
+    if npx prisma migrate resolve --applied "$FAILED_MIGRATION" --schema=prisma/schema.prisma; then
+        echo "✅ Successfully resolved migration: $FAILED_MIGRATION"
+        # Refresh migration status after resolution
+        MIGRATION_STATUS=$(npx prisma migrate status --schema=prisma/schema.prisma 2>/dev/null || echo "")
+    else
+        echo "❌ Failed to resolve migration: $FAILED_MIGRATION"
+    fi
+fi
+
 # Handle different scenarios
 if [ "$FRESH_DB" -eq 1 ]; then
     echo "🚀 Fresh deployment - initializing database..."

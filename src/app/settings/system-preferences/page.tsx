@@ -858,7 +858,7 @@ export default function SystemPreferencesPage() {
     }
   }
 
-  if (loading || sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && pathname !== '/auth/signin' && !pathname.startsWith('/_next/')) || !isClient) {
+  if (!isClient || loading || sessionStatus === 'loading') {
     return (
       <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

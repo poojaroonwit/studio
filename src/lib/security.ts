@@ -254,6 +254,11 @@ export function sanitizeUrl(url: string): string {
     return url;
   }
 
+  // Allow data URLs for images (used for background images/logos)
+  if (url.trim().toLowerCase().startsWith('data:image/')) {
+    return url;
+  }
+
   // Check for safe protocols
   const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:', 'blob:'];
   try {

@@ -96,6 +96,11 @@ export function ApplicantsMobileListView({
           ) : (
             <p className="text-xs text-muted-foreground truncate leading-tight">No position</p>
           )}
+          {applicant.email && (
+            <div className="text-[10px] text-muted-foreground truncate mt-0.5 opacity-80" title={applicant.email}>
+              {applicant.email}
+            </div>
+          )}
         </div>
 
         {/* Status - Right side - Compact */}

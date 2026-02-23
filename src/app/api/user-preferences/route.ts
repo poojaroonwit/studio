@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
         showLastUpdateColumn: true,
         showCreatedDateColumn: false,
         columnOrder: [
-          'Applicant',
+          'applicant',
           'appliedJob',
           'jobMatches',
           'fitScore',
@@ -319,7 +319,7 @@ export async function GET(request: NextRequest) {
               break;
             case 'columnOrder':
               transformedPreferences.applicants.columnOrder = value ? JSON.parse(value) : [
-                'Applicant',
+                'applicant',
                 'appliedJob',
                 'jobMatches',
                 'fitScore',
@@ -382,13 +382,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate modelType
-    if (!['taskBoard', 'positions', 'appearance', 'Applicants', 'sidebar'].includes(modelType)) {
+    // Validate modelType - allow both "Applicants" and "applicants"
+    const validModelTypes = ['taskBoard', 'positions', 'appearance', 'Applicants', 'applicants', 'sidebar'];
+    if (!validModelTypes.includes(modelType)) {
       return NextResponse.json(
         { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
         { status: 400 }
       );
     }
+
+    // Normalize modelType for database consistency
+    const dbModelType = modelType === 'applicants' ? 'Applicants' : modelType;
 
     // Process updates
     const updatePromises = Object.entries(updates).map(async ([key, value]) => {
@@ -399,7 +403,7 @@ export async function POST(request: NextRequest) {
         where: {
           userId_modelType_attributeKey: {
             userId,
-            modelType,
+            modelType: dbModelType,
             attributeKey: key,
           }
         },
@@ -439,9 +443,10 @@ export async function DELETE(request: NextRequest) {
 
     const userId = session.user.id;
     const { searchParams } = new URL(request.url);
-    const modelType = searchParams.get('modelType');
+    // Normalize modelType for database consistency
+    const dbModelType = modelType === 'applicants' ? 'Applicants' : modelType;
 
-    if (modelType && !['taskBoard', 'positions', 'appearance', 'Applicants', 'sidebar'].includes(modelType)) {
+    if (modelType && !['taskBoard', 'positions', 'appearance', 'Applicants', 'applicants', 'sidebar'].includes(modelType)) {
       return NextResponse.json(
         { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
         { status: 400 }
@@ -450,7 +455,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete preferences
     const whereClause = modelType 
-      ? { userId, modelType }
+      ? { userId, modelType: dbModelType }
       : { userId };
 
     await prisma.userUIDisplayPreference.deleteMany({

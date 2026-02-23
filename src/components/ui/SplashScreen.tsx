@@ -11,15 +11,7 @@ export function SplashScreen() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { settings, isLoading: isSettingsLoading } = useGlobalSettings();
-  const [isVisible, setIsVisible] = useState(() => {
-    // Only show splash on initial page load/refresh, not client-side navigation
-    // Check if this is a fresh page load (not client-side navigation)
-    if (typeof window !== 'undefined') {
-      const hasInitialized = sessionStorage.getItem('splashInitialized');
-      return !hasInitialized; // Show only if not initialized (fresh load)
-    }
-    return true;
-  });
+  const [isVisible, setIsVisible] = useState(true);
   const [isMounting, setIsMounting] = useState(true);
 
   // Configuration from settings
@@ -28,8 +20,10 @@ export function SplashScreen() {
   const animationType = settings.splashAnimationType || 'spinner';
 
   useEffect(() => {
-    // If splash is not visible (client-side navigation), skip the timer
-    if (!isVisible) {
+    // Determine initial visibility only on client
+    const hasInitialized = sessionStorage.getItem('splashInitialized');
+    if (hasInitialized) {
+      setIsVisible(false);
       setIsMounting(false);
       return;
     }

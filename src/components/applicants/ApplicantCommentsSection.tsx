@@ -664,9 +664,12 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
       <div className="flex items-center border-b mb-4 overflow-x-auto no-scrollbar">
          {canViewAllComments && (
            <button
-              onClick={() => setActiveSubTab('all')}
+              onClick={() => {
+                setActiveSubTab('all');
+                setSelectedChannel('comment');
+              }}
               className={cn(
-                "px-3 py-4 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
                 activeSubTab === 'all' 
                   ? "border-primary text-primary bg-background" 
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -677,9 +680,12 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          )}
          {canViewAllComments && (
            <button
-              onClick={() => setActiveSubTab('comment')}
+              onClick={() => {
+                setActiveSubTab('comment');
+                setSelectedChannel('comment');
+              }}
               className={cn(
-                "px-3 py-4 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
                 activeSubTab === 'comment' 
                   ? "border-primary text-primary bg-background" 
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -690,9 +696,12 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          )}
          {(canViewAllComments || canViewRemarksOnly) && (
            <button
-              onClick={() => setActiveSubTab('remark')}
+              onClick={() => {
+                setActiveSubTab('remark');
+                setSelectedChannel('remark');
+              }}
               className={cn(
-                "px-3 py-4 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
                 activeSubTab === 'remark' 
                   ? "border-primary text-primary bg-background" 
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -703,9 +712,12 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          )}
          {canViewActivities && (
            <button
-              onClick={() => setActiveSubTab('activity')}
+              onClick={() => {
+                setActiveSubTab('activity');
+                setSelectedChannel('activity');
+              }}
               className={cn(
-                "px-3 py-4 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
                 activeSubTab === 'activity' 
                   ? "border-primary text-primary bg-background" 
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -907,25 +919,59 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
         )}
       </div>
 
-       {/* Channel Selector ABOVE Input - Now a Dropdown */}
-       <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-muted-foreground ml-1">Channel:</span>
-            <Select 
-              value={selectedChannel} 
-              onValueChange={(val: 'comment' | 'remark' | 'activity') => {
-                setSelectedChannel(val);
-                setActiveSubTab(val);
+       {/* Channel Selector ABOVE Input - Tab-style Selection Bar */}
+       <div className="flex items-center gap-1 mb-0 border-b border-border">
+          {canViewAllComments && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedChannel('comment');
+                setActiveSubTab('comment');
               }}
+              className={cn(
+                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
+                selectedChannel === 'comment'
+                  ? "text-primary border-b-2 border-primary -mb-[1px]"
+                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+              )}
             >
-              <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/50 border-none shadow-none hover:bg-muted transition-colors">
-                <SelectValue placeholder="Select channel" />
-              </SelectTrigger>
-              <SelectContent>
-                {canViewAllComments && <SelectItem value="comment" className="text-xs">Comment</SelectItem>}
-                {(canViewAllComments || canViewRemarksOnly) && <SelectItem value="remark" className="text-xs">Remark to HM</SelectItem>}
-                {canViewActivities && <SelectItem value="activity" className="text-xs">Activity</SelectItem>}
-              </SelectContent>
-            </Select>
+              Comment
+            </button>
+          )}
+          {(canViewAllComments || canViewRemarksOnly) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedChannel('remark');
+                setActiveSubTab('remark');
+              }}
+              className={cn(
+                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
+                selectedChannel === 'remark'
+                  ? "text-primary border-b-2 border-primary -mb-[1px]"
+                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+              )}
+            >
+              Remark to HM
+            </button>
+          )}
+          {canViewActivities && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedChannel('activity');
+                setActiveSubTab('activity');
+              }}
+              className={cn(
+                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
+                selectedChannel === 'activity'
+                  ? "text-primary border-b-2 border-primary -mb-[1px]"
+                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+              )}
+            >
+              Activity
+            </button>
+          )}
        </div>
 
 

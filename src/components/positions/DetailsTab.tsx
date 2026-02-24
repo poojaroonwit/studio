@@ -22,7 +22,6 @@ interface DetailsTabProps {
   position: Position;
   isEditMode: boolean;
   isSaving: boolean;
-  isGeneratingDescription: boolean;
   isDrawerReady: boolean;
   isLoadingLevels: boolean;
   positionLevels: Array<{ id: string; name: string; color?: string }>;
@@ -32,7 +31,6 @@ interface DetailsTabProps {
   onEdit: () => void;
   onCancel: () => void;
   onSave: (data: EditPositionFormValues) => Promise<void>;
-  onGenerateJobDescription: () => void;
   onCustomFieldChange: (fieldCode: string, value: any) => void;
 }
 
@@ -40,7 +38,6 @@ export function DetailsTab({
   position,
   isEditMode,
   isSaving,
-  isGeneratingDescription,
   isDrawerReady,
   isLoadingLevels,
   positionLevels,
@@ -50,7 +47,6 @@ export function DetailsTab({
   onEdit,
   onCancel,
   onSave,
-  onGenerateJobDescription,
   onCustomFieldChange,
 }: DetailsTabProps) {
   return (
@@ -273,6 +269,8 @@ export function DetailsTab({
               </div>
             </div>
 
+
+
             {/* Custom Fields for Details Section */}
             {isEditMode ? (
               <PositionCustomFieldEdit
@@ -290,67 +288,6 @@ export function DetailsTab({
                 title="Additional Position Information"
               />
             )}
-
-            {/* Job Description */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <FileText className="h-5 w-5" /> Job Description
-                </h3>
-                {isEditMode && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={onGenerateJobDescription}
-                    disabled={isGeneratingDescription}
-                  >
-                    {isGeneratingDescription ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <BrainCircuit className="h-4 w-4 mr-2" />
-                    )}
-                    Generate with AI
-                  </Button>
-                )}
-              </div>
-
-              <div className="border rounded-lg p-4">
-                {isEditMode ? (
-                  <Controller
-                    name="description"
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <TiptapEditorWithExpand
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="Enter job description..."
-                          className="flex-1 min-h-[200px]"
-                          isOpen={isDrawerReady}
-                          expandTitle="Edit Job Description"
-                        />
-                      </div>
-                    )}
-                  />
-                ) : (
-                  position.description ? (
-                    <div
-                      className="wysiwyg-content prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(position.description) }}
-                    />
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-muted-foreground">
-                        <FileText className="h-12 w-12 mb-4 text-muted-foreground" />
-                        <h4 className="text-lg font-medium mb-2">No job description</h4>
-                        <p className="text-sm">Click Edit to add a job description for this position.</p>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
           </form>
         </div>
       </ScrollArea>

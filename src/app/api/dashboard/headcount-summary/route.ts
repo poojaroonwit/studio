@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     try {
       const query = `
         SELECT 
-          h.id, h.status, h."positionId", h."applicantId", h."requestDate", h."onboardingDate", h."filledDate",
+          h.id, h.status, h."positionId", h."applicantId", h."requestDate", h."onboardingDate",
           p.title as "positionTitle",
           p.department as "positionDepartment",
           p."positionLevel",

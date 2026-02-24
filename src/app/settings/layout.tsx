@@ -63,14 +63,13 @@ const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/system-preferences", label: "Branding & Theme", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-prompts", label: "System Prompts & Categories", icon: BrainCircuit, description: "Manage AI system prompts and their categories.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/data-configuration", label: "Data Configuration", icon: Database, description: "Manage recruitment stages, Applicant sources, and position data.", permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/evaluation-configuration", label: "Evaluation Configuration", icon: Target, description: "Configure evaluation modules, expertise skills, and personality assessments.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 
   { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOKS_EDIT' as PlatformModuleId, adminOnlyOrPermission: true },
 
-  { href: "/settings/users", label: "User Management", icon: UsersRound, description: "Manage users, roles, permissions, and teams.", permissionId: 'USERS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference and documentation." },
   { href: "/settings/logs", label: "Application Logs", icon: ListOrdered, description: "View system and audit logs.", permissionId: 'LOGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 ];
+
 
 function SettingsLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();

@@ -12,6 +12,7 @@ import {
   useSidebar,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -197,7 +198,7 @@ const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: strin
   if (item.href === '/positions') {
     return modulePermissions.includes('POSITIONS_VIEW');
   }
-  if (item.href === '/interview') {
+  if (item.href === '/calendar') {
     return modulePermissions.includes('EVALUATION_LINKS_VIEW') ||
            modulePermissions.includes('EVALUATION_LINKS_CREATE_OWN') ||
            modulePermissions.includes('EVALUATION_LINKS_CREATE_ALL') ||
@@ -245,24 +246,45 @@ const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; 
 
 OptimizedLink.displayName = 'OptimizedLink';
 
-const SafeSidebarNavComponent = React.memo(() => {
-  const [hasError, setHasError] = React.useState(false);
+const GroupedSidebarNav = React.memo(() => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const { open } = useSidebar();
+  const { open, setOpen } = useSidebar();
   const { pendingCount } = usePendingCount();
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions();
 
-  if (hasError) return <FallbackNav />;
-
   const isAdmin = session?.user?.role === 'Admin';
   const modulePermissions = (session?.user as any)?.modulePermissions || [];
 
-  const filteredGroups = sidebarConfig.map(group => ({
-    ...group,
-    items: group.items.filter(item => hasItemPermission(item, isAdmin, modulePermissions))
-  })).filter(group => group.items.length > 0);
+  // Filter groups based on permissions
+  const filteredGroups = React.useMemo(() => {
+    return sidebarConfig.map(group => ({
+      ...group,
+      items: group.items.filter(item => hasItemPermission(item, isAdmin, modulePermissions))
+    })).filter(group => group.items.length > 0);
+  }, [isAdmin, modulePermissions]);
+
+  // Find the initially active group based on the pathname
+  const initialActiveGroupLabel = React.useMemo(() => {
+    for (const group of filteredGroups) {
+      if (group.items.some(item => pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)))) {
+        return group.label;
+      }
+    }
+    return filteredGroups[0]?.label;
+  }, [filteredGroups, pathname]);
+
+  const [activeGroupLabel, setActiveGroupLabel] = React.useState<string | undefined>(initialActiveGroupLabel);
+
+  // Update active group when pathname changes (e.g. if navigated from elsewhere)
+  React.useEffect(() => {
+    if (initialActiveGroupLabel && initialActiveGroupLabel !== activeGroupLabel) {
+      setActiveGroupLabel(initialActiveGroupLabel);
+    }
+  }, [initialActiveGroupLabel]);
+
+  const activeGroup = filteredGroups.find(g => g.label === activeGroupLabel) || filteredGroups[0];
 
   if (status === 'loading') {
     return (
@@ -273,79 +295,98 @@ const SafeSidebarNavComponent = React.memo(() => {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <SidebarMenu className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Primary Sidebar - Icon only, always semi-expanded/minimized */}
+      <div className="flex w-[80px] flex-col border-r border-border/50 bg-sidebar-primary/5 py-4 items-center gap-4">
         {filteredGroups.map((group) => (
-          <React.Fragment key={group.label}>
-            {open && (
-              <SidebarGroupLabel className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            {group.items.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <MenuItemWithTooltip label={item.label}>
-                  <OptimizedLink href={item.href} className="w-full">
-                    <SidebarMenuButton
-                      isActive={pathname === item.href}
-                      className={open ? "w-full justify-start px-3" : "w-full justify-center"}
-                      size="default"
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {open && <span className="truncate ml-3">{item.label}</span>}
-                    </SidebarMenuButton>
-                  </OptimizedLink>
-                </MenuItemWithTooltip>
-              </SidebarMenuItem>
-            ))}
-            <SidebarSeparator className="my-2 bg-border/50 mx-2" />
-          </React.Fragment>
-        ))}
-        
-        {open && sidebarPreferences?.showAssignedPositions && hasPositions && (
-          <>
-            <SidebarGroupLabel className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Job assigned
-            </SidebarGroupLabel>
-            <SidebarMenuItem>
-              <div className="px-2 min-w-0">
-                <AssignedPositionsSidebar variant="compact" />
-              </div>
-            </SidebarMenuItem>
-          </>
-        )}
-      </SidebarMenu>
-
-      <div className="mt-auto">
-        <SidebarSeparator className="my-2 bg-border/50 mx-2" />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <MenuItemWithTooltip label="Process queue">
-              <OptimizedLink href="/process-queue" className="w-full">
-                <SidebarMenuButton
-                  isActive={pathname === '/process-queue'}
-                  className={open ? "w-full justify-start px-3" : "w-full justify-center"}
-                  size="default"
+          <TooltipProvider key={group.label} delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    setActiveGroupLabel(group.label);
+                    if (!open) setOpen(true);
+                  }}
+                  className={cn(
+                    "relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200",
+                    activeGroupLabel === group.label
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
                 >
-                  <div className="relative flex items-center">
-                    <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                    {open && <span className="truncate ml-3">Process queue</span>}
-                    {pendingCount !== null && (
-                      <Badge variant={pendingCount === 0 ? "zero" : "destructive"} className={open ? "ml-auto h-5 px-2 text-xs" : "absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"}>
-                        {open ? (pendingCount > 99 ? '99+' : pendingCount) : (pendingCount > 99 ? '99+' : pendingCount)}
+                  <group.icon className="h-6 w-6" />
+                  {activeGroupLabel === group.label && (
+                    <div className="absolute -left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={10}>
+                <p className="font-medium">{group.label}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+
+        <div className="mt-auto pt-4 border-t border-border/50 w-full flex flex-col items-center gap-4">
+           <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <OptimizedLink href="/process-queue" className="relative flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all">
+                    <UploadCloud className="h-6 w-6" />
+                    {pendingCount !== null && pendingCount > 0 && (
+                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px] border-2 border-background">
+                        {pendingCount > 99 ? '99+' : pendingCount}
                       </Badge>
                     )}
-                  </div>
+                  </OptimizedLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Process queue</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+        </div>
+      </div>
+
+      {/* Secondary Sidebar - Item details */}
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 transition-all duration-300",
+        open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+      )}>
+        <div className="px-4 py-6 border-b border-border/50 bg-sidebar/50 backdrop-blur-sm">
+          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{activeGroupLabel}</h2>
+          <p className="text-xs text-muted-foreground truncate opacity-70">Navigation items for {activeGroupLabel}</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 py-4 space-y-1 custom-scrollbar">
+          {activeGroup?.items.map((item) => (
+            <SidebarMenuItem key={item.href} className="list-none">
+              <OptimizedLink href={item.href} className="w-full">
+                <SidebarMenuButton
+                  isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+                  className="w-full justify-start px-3 h-10 rounded-lg"
+                  size="default"
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span className="ml-3 font-medium text-sm truncate">{item.label}</span>
                 </SidebarMenuButton>
               </OptimizedLink>
-            </MenuItemWithTooltip>
-          </SidebarMenuItem>
-        </SidebarMenu>
+            </SidebarMenuItem>
+          ))}
+
+          {activeGroupLabel === 'Hiring' && sidebarPreferences?.showAssignedPositions && hasPositions && (
+            <div className="mt-6 pt-6 border-t border-border/40">
+              <h3 className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">Job assigned</h3>
+              <AssignedPositionsSidebar variant="compact" />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 });
 
-SafeSidebarNavComponent.displayName = 'SafeSidebarNavComponent';
+GroupedSidebarNav.displayName = 'GroupedSidebarNav';
 
-export default SafeSidebarNavComponent;
+export default GroupedSidebarNav;
+

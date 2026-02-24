@@ -438,11 +438,11 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         className="bg-background"
         data-testid="app-layout"
       >
-        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar">
-          <SidebarHeader>
+        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar" style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
+          <SidebarHeader className="p-0">
             <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="p-0 gap-0 overflow-hidden">
             <MemoizedSidebarNav />
           </SidebarContent>
         </Sidebar>

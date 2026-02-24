@@ -650,6 +650,59 @@
       }
     ]
   },
+  "applicant_reminders": {
+    "table": {
+      "tableName": "applicant_reminders",
+      "comment": "ApplicantReminder - Reminders set by users for specific applicants"
+    },
+    "columns": [
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "applicant_id",
+        "comment": "Reference to applicant"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "user_id",
+        "comment": "Reference to user who set the reminder"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "title",
+        "comment": "Reminder title"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "content",
+        "comment": "Additional reminder details"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "reminder_date",
+        "comment": "When the reminder should trigger"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "is_completed",
+        "comment": "Whether the reminder has been completed"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "created_at",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "applicant_reminders",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
   "RecruitmentStage": {
     "table": {
       "tableName": "RecruitmentStage",
@@ -706,13 +759,8 @@
       },
       {
         "tableName": "TransitionRecord",
-        "columnName": "applicantId",
-        "comment": "Reference to applicant"
-      },
-      {
-        "tableName": "TransitionRecord",
         "columnName": "positionId",
-        "comment": "Reference to position"
+        "comment": "Reference to applicant"
       },
       {
         "tableName": "TransitionRecord",
@@ -743,6 +791,11 @@
         "tableName": "TransitionRecord",
         "columnName": "updatedAt",
         "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "applicant_id",
+        "comment": ""
       }
     ]
   },
@@ -1170,13 +1223,8 @@
       },
       {
         "tableName": "JobMatch",
-        "columnName": "applicantId",
-        "comment": "Reference to applicant"
-      },
-      {
-        "tableName": "JobMatch",
         "columnName": "jobId",
-        "comment": "Reference to matched job"
+        "comment": "Reference to applicant"
       },
       {
         "tableName": "JobMatch",
@@ -1212,6 +1260,11 @@
         "tableName": "JobMatch",
         "columnName": "companyId",
         "comment": "Company identifier"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "applicant_id",
+        "comment": ""
       }
     ]
   },

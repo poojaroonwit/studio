@@ -24,9 +24,9 @@ export function ClientProviders({ children, session }: ClientProvidersProps) {
   // Routes that should render without the main AppLayout (no sidebar)
   const shouldBypassAppLayout = React.useMemo(() => {
     if (!pathname) return false;
-    // Match /Applicants/[id]/evaluate and /Applicants/[id]/evaluate-result (and any nested variants)
+    // Match /applicants/[id]/evaluate and /applicants/[id]/evaluate-result (and any nested variants)
     // The evaluate page should NOT have sidebar/header navigation
-    return /^\/Applicants\/([^/]+)\/(evaluate|evaluate-result)(\/?|$)/.test(pathname);
+    return /^\/applicants\/([^/]+)\/(evaluate|evaluate-result)(\/?|$)/i.test(pathname);
   }, [pathname]);
   return (
     <SessionProvider session={session}>

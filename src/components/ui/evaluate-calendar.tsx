@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon, ListBulletIcon as List, ClockIcon as Clock, MapPinIcon as MapPin, UsersIcon as Users, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon, ListBulletIcon as List, ClockIcon as Clock, MapPinIcon as MapPin, UsersIcon as Users, ChevronUpIcon, ChevronDownIcon, BellIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ApplicantAvatarCompact } from "@/components/ui/applicant-avatar";
@@ -23,8 +23,20 @@ export interface EvaluationApplicant {
   };
 }
 
+export interface CalendarReminder {
+  id: string;
+  title: string;
+  reminderDate: string;
+  applicant: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+  };
+}
+
 export interface EvaluateCalendarProps {
   applicants: EvaluationApplicant[];
+  reminders?: CalendarReminder[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   onApplicantClick: (applicantId: string) => void;
@@ -59,6 +71,11 @@ function getApplicantsForDate(applicants: EvaluationApplicant[], date: Date): Ev
   });
 }
 
+function getRemindersForDate(reminders: CalendarReminder[], date: Date): CalendarReminder[] {
+  const dateStr = date.toDateString();
+  return reminders.filter(r => new Date(r.reminderDate).toDateString() === dateStr);
+}
+
 // Day cell component with Applicant badges
 function DayCell({
   date,
@@ -66,6 +83,7 @@ function DayCell({
   isToday,
   isOutsideMonth,
   applicants,
+  reminders = [],
   onClick,
   onApplicantClick,
   compact = false,
@@ -75,11 +93,12 @@ function DayCell({
   isToday: boolean;
   isOutsideMonth: boolean;
   applicants: EvaluationApplicant[];
+  reminders?: CalendarReminder[];
   onClick: () => void;
   onApplicantClick?: (applicantId: string) => void;
   compact?: boolean;
 }) {
-  const hasEvents = applicants.length > 0;
+  const hasEvents = applicants.length > 0 || (reminders?.length || 0) > 0;
 
   return (
     <button
@@ -148,9 +167,23 @@ function DayCell({
               </div>
             );
           })}
-          {applicants.length > 3 && (
+          {reminders && reminders.slice(0, 2).map((reminder, idx) => (
+            <div
+              key={`rem-${reminder.id}-${idx}`}
+              className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] truncate cursor-pointer bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200"
+              title={`Reminder: ${reminder.title}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApplicantClick?.(reminder.applicant.id);
+              }}
+            >
+              <BellIcon className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{reminder.title}</span>
+            </div>
+          ))}
+          {applicants.length + (reminders?.length || 0) > 3 && (
             <span className="text-[9px] text-muted-foreground text-center">
-              +{applicants.length - 3} more
+              +{applicants.length + (reminders?.length || 0) - 3} more
             </span>
           )}
         </div>
@@ -159,46 +192,59 @@ function DayCell({
       {/* Compact badge indicator */}
       {hasEvents && compact && (
         <div className="flex gap-0.5 mt-0.5">
-          {applicants.slice(0, 3).map((applicant, idx) => {
-            const now = new Date();
-            const isExpired = new Date(applicant.evaluationLink.expiresAt) < now;
-            const isRevoked = applicant.evaluationLink.revokedAt !== null && applicant.evaluationLink.revokedAt !== undefined;
-            const interviewDateTime = applicant.evaluationLink.interviewDateTime
-              ? new Date(applicant.evaluationLink.interviewDateTime)
-              : new Date(applicant.evaluationLink.expiresAt);
-            const isPast = interviewDateTime < now;
-            const isInactive = isExpired || isRevoked || isPast;
-
-            return (
-              <div
-                key={idx}
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  isInactive ? "bg-muted-foreground opacity-50" : "bg-primary"
-                )}
-              />
-            );
-          })}
-          {applicants.length > 3 && (
-            <span className={cn(
-              "text-[8px]",
-              applicants.some(c => {
-                const now = new Date();
-                const isExpired = new Date(c.evaluationLink.expiresAt) < now;
-                const isRevoked = c.evaluationLink.revokedAt !== null && c.evaluationLink.revokedAt !== undefined;
-                const interviewDateTime = c.evaluationLink.interviewDateTime
-                  ? new Date(c.evaluationLink.interviewDateTime)
-                  : new Date(c.evaluationLink.expiresAt);
-                const isPast = interviewDateTime < now;
-                return isExpired || isRevoked || isPast;
-              }) ? "text-muted-foreground opacity-50" : "text-primary"
-            )}>
-              +{applicants.length - 3}
-            </span>
-          )}
+          {applicants.slice(0, 2).map((_, idx) => (
+            <div key={`ap-${idx}`} className="w-1.5 h-1.5 rounded-full bg-primary" />
+          ))}
+          {reminders?.slice(0, 1).map((_, idx) => (
+            <div key={`rem-${idx}`} className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          ))}
         </div>
       )}
     </button>
+  );
+}
+
+function ReminderListItem({
+  reminder,
+  onClick,
+}: {
+  reminder: CalendarReminder;
+  onClick: () => void;
+}) {
+  const reminderTime = new Date(reminder.reminderDate).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  return (
+    <div
+      className="rounded-lg p-3 cursor-pointer transition-colors bg-amber-50 hover:bg-amber-100 border border-amber-200"
+      onClick={onClick}
+    >
+      <div className="flex gap-3">
+        <div className="flex-shrink-0 w-14 text-center">
+          <div className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-700">
+            <Clock className="h-3 w-3" />
+            {reminderTime}
+          </div>
+          <div className="text-[10px] text-amber-600 mt-0.5">Reminder</div>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <BellIcon className="h-4 w-4 text-amber-500" />
+            <h4 className="font-semibold text-sm truncate text-amber-900">
+              {reminder.title}
+            </h4>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-amber-700">
+            <span className="font-medium">Applicant:</span>
+            <span className="truncate">{reminder.applicant.name}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -314,6 +360,7 @@ export function MobileEvaluateCalendar({
   onDateSelect,
   onApplicantClick,
   defaultView = 'list',
+  reminders = [],
 }: EvaluateCalendarProps & { defaultView?: 'list' | 'calendar' }) {
   const [viewMode, setViewMode] = React.useState<'list' | 'calendar'>(defaultView);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
@@ -324,6 +371,7 @@ export function MobileEvaluateCalendar({
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const applicantsForSelectedDate = getApplicantsForDate(applicants, selectedDate);
+  const remindersForSelectedDate = getRemindersForDate(reminders, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -397,19 +445,26 @@ export function MobileEvaluateCalendar({
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {dateApplicants.map(applicant => (
-                    <ApplicantListItem
-                      key={applicant.id}
-                      applicant={applicant}
-                      onClick={() => onApplicantClick(applicant.id)}
-                    />
-                  ))}
+                    {dateApplicants.map(applicant => (
+                      <ApplicantListItem
+                        key={applicant.id}
+                        applicant={applicant}
+                        onClick={() => onApplicantClick(applicant.id)}
+                      />
+                    ))}
+                    {getRemindersForDate(reminders, date).map(reminder => (
+                      <ReminderListItem
+                        key={reminder.id}
+                        reminder={reminder}
+                        onClick={() => onApplicantClick(reminder.applicant.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {Object.keys(applicantsByDate).length === 0 && (
+            {Object.keys(applicantsByDate).length === 0 && reminders.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No scheduled evaluations</p>
             </div>
@@ -479,25 +534,27 @@ export function MobileEvaluateCalendar({
           ))}
 
           {/* Day cells */}
-          {monthDays.map(date => {
-            const isSelected = date.toDateString() === selectedDate.toDateString();
-            const isToday = date.toDateString() === new Date().toDateString();
-            const dateApplicants = getApplicantsForDate(applicants, date);
+            {monthDays.map(date => {
+              const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isToday = date.toDateString() === new Date().toDateString();
+              const dateApplicants = getApplicantsForDate(applicants, date);
+              const dateReminders = getRemindersForDate(reminders, date);
 
-            return (
-              <DayCell
-                key={date.toISOString()}
-                date={date}
-                isSelected={isSelected}
-                isToday={isToday}
-                isOutsideMonth={false}
-                applicants={dateApplicants}
-                onClick={() => onDateSelect(date)}
-                onApplicantClick={onApplicantClick}
-                compact={isCollapsed}
-              />
-            );
-          })}
+              return (
+                <DayCell
+                  key={date.toISOString()}
+                  date={date}
+                  isSelected={isSelected}
+                  isToday={isToday}
+                  isOutsideMonth={false}
+                  applicants={dateApplicants}
+                  reminders={dateReminders}
+                  onClick={() => onDateSelect(date)}
+                  onApplicantClick={onApplicantClick}
+                  compact={isCollapsed}
+                />
+              );
+            })}
         </div>
       </div>
 
@@ -512,23 +569,32 @@ export function MobileEvaluateCalendar({
           })}
         </h3>
         <span className="text-sm text-muted-foreground">
-          ({applicantsForSelectedDate.length} applicant{applicantsForSelectedDate.length !== 1 ? 's' : ''})
+          ({applicantsForSelectedDate.length + remindersForSelectedDate.length} item{applicantsForSelectedDate.length + remindersForSelectedDate.length !== 1 ? 's' : ''})
         </span>
       </div>
 
-      {/* Applicants for Selected Date */}
+      {/* Items for Selected Date */}
       <div className="flex-1 overflow-y-auto space-y-2">
-        {applicantsForSelectedDate.length > 0 ? (
-          applicantsForSelectedDate.map(applicant => (
-            <ApplicantListItem
-              key={applicant.id}
-              applicant={applicant}
-              onClick={() => onApplicantClick(applicant.id)}
-            />
-          ))
+        {applicantsForSelectedDate.length > 0 || remindersForSelectedDate.length > 0 ? (
+          <>
+            {applicantsForSelectedDate.map(applicant => (
+              <ApplicantListItem
+                key={applicant.id}
+                applicant={applicant}
+                onClick={() => onApplicantClick(applicant.id)}
+              />
+            ))}
+            {remindersForSelectedDate.map(reminder => (
+              <ReminderListItem
+                key={reminder.id}
+                reminder={reminder}
+                onClick={() => onApplicantClick(reminder.applicant.id)}
+              />
+            ))}
+          </>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No interviews scheduled for this date</p>
+            <p className="text-sm">No items scheduled for this date</p>
           </div>
         )}
       </div>
@@ -539,6 +605,7 @@ export function MobileEvaluateCalendar({
 // Desktop Calendar with full month view and side panel
 export function DesktopEvaluateCalendar({
   applicants,
+  reminders = [],
   selectedDate,
   onDateSelect,
   onApplicantClick,
@@ -550,6 +617,7 @@ export function DesktopEvaluateCalendar({
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const applicantsForSelectedDate = getApplicantsForDate(applicants, selectedDate);
+  const remindersForSelectedDate = getRemindersForDate(reminders, selectedDate);
 
   // Navigate months
   const goToPrevMonth = () => {
@@ -613,6 +681,7 @@ export function DesktopEvaluateCalendar({
               const isSelected = date.toDateString() === selectedDate.toDateString();
               const isToday = date.toDateString() === new Date().toDateString();
               const dateApplicants = getApplicantsForDate(applicants, date);
+              const dateReminders = getRemindersForDate(reminders, date);
 
               return (
                 <DayCell
@@ -622,6 +691,7 @@ export function DesktopEvaluateCalendar({
                   isToday={isToday}
                   isOutsideMonth={false}
                   applicants={dateApplicants}
+                  reminders={dateReminders}
                   onClick={() => onDateSelect(date)}
                   onApplicantClick={onApplicantClick}
                 />
@@ -651,24 +721,33 @@ export function DesktopEvaluateCalendar({
             </h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            {applicantsForSelectedDate.length} evaluation{applicantsForSelectedDate.length !== 1 ? 's' : ''} scheduled
+            {applicantsForSelectedDate.length + remindersForSelectedDate.length} item{applicantsForSelectedDate.length + remindersForSelectedDate.length !== 1 ? 's' : ''} scheduled
           </p>
         </div>
 
-        {/* Applicants List */}
+        {/* List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {applicantsForSelectedDate.length > 0 ? (
-            applicantsForSelectedDate.map(applicant => (
-              <ApplicantListItem
-                key={applicant.id}
-                applicant={applicant}
-                onClick={() => onApplicantClick(applicant.id)}
-              />
-            ))
+          {applicantsForSelectedDate.length > 0 || remindersForSelectedDate.length > 0 ? (
+            <>
+              {applicantsForSelectedDate.map(applicant => (
+                <ApplicantListItem
+                  key={applicant.id}
+                  applicant={applicant}
+                  onClick={() => onApplicantClick(applicant.id)}
+                />
+              ))}
+              {remindersForSelectedDate.map(reminder => (
+                <ReminderListItem
+                  key={reminder.id}
+                  reminder={reminder}
+                  onClick={() => onApplicantClick(reminder.applicant.id)}
+                />
+              ))}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground">
               <CalendarIcon className="h-12 w-12 mb-3 opacity-30" />
-              <p className="text-sm">No interviews scheduled</p>
+              <p className="text-sm">No items scheduled</p>
               <p className="text-xs mt-1">Select a date with events to see details</p>
             </div>
           )}

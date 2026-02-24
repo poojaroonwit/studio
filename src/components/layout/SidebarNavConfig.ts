@@ -29,6 +29,7 @@ export interface SidebarNavItem {
 
 export interface SidebarNavGroup {
   label: string;
+  icon: any; // Added for primary sidebar
   items: SidebarNavItem[];
 }
 
@@ -57,6 +58,7 @@ export const iconMap = {
 export const sidebarConfigData = [
   {
     label: "Analyst",
+    icon: "BarChart3",
     items: [
       {
         label: "Dashboard",
@@ -68,6 +70,7 @@ export const sidebarConfigData = [
   },
   {
     label: "Hiring",
+    icon: "Briefcase",
     items: [
       {
         label: "My Task Board",
@@ -90,7 +93,8 @@ export const sidebarConfigData = [
     ],
   },
   {
-    label: "Shortlist & Interview",
+    label: "Shortlist & Calendar",
+    icon: "ClipboardCheck",
     items: [
       {
         label: "Candidate",
@@ -99,15 +103,16 @@ export const sidebarConfigData = [
         description: "Candidates in Hiring Manager Associate stage"
       },
       {
-        label: "Interview Page",
-        icon: "ClipboardCheck",
-        href: "/interview",
-        description: "Applicant interview portal"
+        label: "Calendar",
+        icon: "Calendar",
+        href: "/calendar",
+        description: "Applicant evaluation portal"
       },
     ],
   },
   {
     label: "Employee",
+    icon: "Users",
     items: [
       {
         label: "Organization Settings",
@@ -118,7 +123,7 @@ export const sidebarConfigData = [
       {
         label: "User Management",
         icon: "Users",
-        href: "/settings/users",
+        href: "/users",
         description: "Manage users and roles"
       },
       {
@@ -130,7 +135,7 @@ export const sidebarConfigData = [
       {
         label: "Evaluation Configuration",
         icon: "Target",
-        href: "/settings/evaluation-configuration",
+        href: "/evaluation-configuration",
         description: "Configure evaluation settings"
       },
     ],
@@ -140,6 +145,7 @@ export const sidebarConfigData = [
 // Full config with actual icon components for client-side use
 export const sidebarConfig: SidebarNavGroup[] = sidebarConfigData.map(group => ({
   ...group,
+  icon: iconMap[group.icon as keyof typeof iconMap],
   items: group.items.map(item => ({
     ...item,
     icon: iconMap[item.icon as keyof typeof iconMap]

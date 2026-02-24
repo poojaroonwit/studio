@@ -9,13 +9,14 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   // 1. KPI Queries
   const kpiQuery = `
     SELECT
-      COUNT(CASE WHEN c.status = ANY($1) THEN 1 END) as "activeApplicants",
+      COUNT(CASE WHEN rs.name = ANY($1) THEN 1 END) as "activeApplicants",
       (SELECT COUNT(*) FROM "Headcount" h JOIN "Position" p ON h."positionId" = p.id WHERE p."isOpen" = true AND h.status != 'filled') as "openHeadcounts",
-      COUNT(CASE WHEN c.status = 'Hired' AND c."updatedAt" >= $2 THEN 1 END) as "hiredThisMonth",
-      COUNT(CASE WHEN c.status = 'Rejected' AND c."updatedAt" >= $2 THEN 1 END) as "rejectedThisMonth",
-      COUNT(CASE WHEN c."fitScore" >= 80 AND c.status = ANY($1) THEN 1 END) as "highScoreApplicants",
+      COUNT(CASE WHEN rs.name = 'Hired' AND c."updatedAt" >= $2 THEN 1 END) as "hiredThisMonth",
+      COUNT(CASE WHEN rs.name = 'Rejected' AND c."updatedAt" >= $2 THEN 1 END) as "rejectedThisMonth",
+      COUNT(CASE WHEN c."fitScore" >= 80 AND rs.name = ANY($1) THEN 1 END) as "highScoreApplicants",
       COUNT(CASE WHEN c."applicationDate" >= $3 THEN 1 END) as "applicationsThisWeek"
     FROM "Applicant" c
+    LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
     WHERE ($4 = true OR c."recruiterId" = $5)
   `;
   
@@ -54,16 +55,17 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   const scoreDistQuery = `
     SELECT 
       CASE 
-        WHEN "fitScore" >= 90 THEN 'A (90-100)'
-        WHEN "fitScore" >= 80 THEN 'B (80-89)'
-        WHEN "fitScore" >= 70 THEN 'C (70-79)'
-        WHEN "fitScore" >= 60 THEN 'D (60-69)'
+        WHEN c."fitScore" >= 90 THEN 'A (90-100)'
+        WHEN c."fitScore" >= 80 THEN 'B (80-89)'
+        WHEN c."fitScore" >= 70 THEN 'C (70-79)'
+        WHEN c."fitScore" >= 60 THEN 'D (60-69)'
         ELSE 'F (<60)'
       END as range,
       COUNT(*) as count
-    FROM "Applicant"
-    WHERE status = ANY($1)
-    AND ($2 = true OR "recruiterId" = $3)
+    FROM "Applicant" c
+    LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+    WHERE rs.name = ANY($1)
+    AND ($2 = true OR c."recruiterId" = $3)
     GROUP BY range
     ORDER BY range ASC
   `;
@@ -72,11 +74,12 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
   // 5. On-Process by Stage
   const stageDistQuery = `
     SELECT 
-      status as stage,
+      rs.name as stage,
       COUNT(*) as count
-    FROM "Applicant"
-    WHERE status = ANY($1)
-    AND ($2 = true OR "recruiterId" = $3)
+    FROM "Applicant" c
+    LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+    WHERE rs.name = ANY($1)
+    AND ($2 = true OR c."recruiterId" = $3)
     GROUP BY stage
     ORDER BY count DESC
   `;
@@ -89,7 +92,8 @@ export async function fetchDashboardMetrics(client: PoolClient, userId: string, 
       COUNT(c.id) as count
     FROM "Applicant" c
     LEFT JOIN "User" u ON c."recruiterId" = u.id
-    WHERE c.status = ANY($1)
+    LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+    WHERE rs.name = ANY($1)
     AND ($2 = true OR c."recruiterId" = $3)
     GROUP BY recruiter
     ORDER BY count DESC

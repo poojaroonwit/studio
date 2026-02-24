@@ -73,6 +73,11 @@ export async function GET(
     // Filter by type (applied, matched, or all)
     const type = searchParams.get('type') || 'applied';
 
+    // Additional filters
+    const statusFilter = searchParams.get('status');
+    const recruiterIdFilter = searchParams.get('recruiterId');
+    const sourceIdFilter = searchParams.get('sourceId');
+
     let client;
     try {
       client = await getPool().connect();
@@ -119,6 +124,30 @@ export async function GET(
 
 
 
+      const searchPattern = `%${searchTerm}%`;
+      const queryParams: any[] = [positionId, searchTerm, searchPattern, limit, offset];
+      
+      // Build filter clauses
+      let filterClauses = '';
+      if (statusFilter) {
+        const statuses = statusFilter.split(',');
+        const stageClauses = statuses.map((_, i) => `$${queryParams.length + i + 1}`).join(',');
+        filterClauses += ` AND rs.name IN (${stageClauses})`;
+        queryParams.push(...statuses);
+      }
+      if (recruiterIdFilter) {
+        const recruiterIds = recruiterIdFilter.split(',');
+        const recruiterClauses = recruiterIds.map((_, i) => `$${queryParams.length + i + 1}`).join(',');
+        filterClauses += ` AND c."recruiterId" IN (${recruiterClauses}::uuid[])`;
+        queryParams.push(...recruiterIds);
+      }
+      if (sourceIdFilter) {
+        const sourceIds = sourceIdFilter.split(',');
+        const sourceClauses = sourceIds.map((_, i) => `$${queryParams.length + i + 1}`).join(',');
+        filterClauses += ` AND c."sourceId" IN (${sourceClauses}::uuid[])`;
+        queryParams.push(...sourceIds);
+      }
+
       // Build the query with proper ORDER BY clause
       let baseQuery = '';
 
@@ -163,6 +192,7 @@ export async function GET(
             ) AS jm_data ON true
             WHERE c."positionId" = $1
             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            ${filterClauses}
             ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
@@ -211,6 +241,7 @@ export async function GET(
               WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
             )
             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            ${filterClauses}
             ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
@@ -256,6 +287,7 @@ export async function GET(
               ) AS jm_data ON true
               WHERE c."positionId" = $1
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+              ${filterClauses}
             ),
             matched_applicants AS (
               SELECT 
@@ -300,6 +332,7 @@ export async function GET(
                 WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
               )
               AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+              ${filterClauses}
             )
             SELECT * FROM (
               SELECT *, 1 as sort_order FROM applied_applicants
@@ -322,49 +355,53 @@ export async function GET(
         countQuery = `
            SELECT COUNT(*) as total
            FROM "Applicant" c
+           LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
            WHERE c."positionId" = $1
-           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+           ${filterClauses};
          `;
       } else if (type === 'matched') {
         countQuery = `
            SELECT COUNT(*) as total
            FROM "Applicant" c
+           LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
            WHERE (c."positionId" IS NULL OR c."positionId" != $1)
            AND EXISTS (
              SELECT 1 FROM "JobMatch" jm 
              WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
            )
-           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+           ${filterClauses};
          `;
       } else {
         countQuery = `
            WITH applied_applicants AS (
              SELECT c.id
              FROM "Applicant" c
+             LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
              WHERE c."positionId" = $1
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+             ${filterClauses}
            ),
            matched_applicants AS (
              SELECT c.id
              FROM "Applicant" c
+             LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
              WHERE (c."positionId" IS NULL OR c."positionId" != $1)
              AND EXISTS (
                SELECT 1 FROM "JobMatch" jm 
                WHERE jm."applicant_id" = c.id AND jm."jobId" = $1
              )
              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+             ${filterClauses}
            )
            SELECT (SELECT COUNT(*) FROM applied_applicants) + (SELECT COUNT(*) FROM matched_applicants) as total;
          `;
       }
 
-      const searchPattern = `%${searchTerm}%`;
-      const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
-      const countParams = [positionId, searchTerm, searchPattern];
-
       const [applicantsResult, countResult] = await Promise.all([
         client.query(applicantsQuery, queryParams),
-        client.query(countQuery, countParams)
+        client.query(countQuery, queryParams.slice(0, queryParams.length - 2)) // Skip limit and offset for count query
       ]);
 
       const total = parseInt(countResult.rows[0].total, 10);

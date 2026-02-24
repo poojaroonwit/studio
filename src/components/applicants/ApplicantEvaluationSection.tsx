@@ -87,7 +87,7 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
     try {
       setLoading(true);
       // Fetch all evaluations to calculate averages
-      const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`, {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`, {
         credentials: 'include'
       });
 
@@ -153,7 +153,7 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
         setAllEvaluations(evaluations); // Store all individual evaluations
       } else {
         // Fallback to single evaluation endpoint
-        const fallbackResponse = await fetch(`/api/v1/Applicants/${applicantId}/evaluation`, {
+        const fallbackResponse = await fetch(`/api/v1/applicants/${applicantId}/evaluation`, {
           credentials: 'include'
         });
         if (fallbackResponse.ok) {

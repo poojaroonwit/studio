@@ -123,7 +123,7 @@ const ApplicantResumesSection: React.FC<ApplicantResumesSectionProps> = ({ appli
     }
 
     try {
-      const res = await fetch(`/api/v1/Applicants/${applicantId}/attachments`, {
+      const res = await fetch(`/api/v1/applicants/${applicantId}/attachments`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),

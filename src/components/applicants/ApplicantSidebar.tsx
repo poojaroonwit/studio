@@ -38,7 +38,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const checkEvaluationLink = async () => {
     try {
       setCheckingLink(true);
-      const response = await fetch(`/api/v1/Applicants/${applicant.id}/evaluation-link`, {
+      const response = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, {
         credentials: 'include'
       });
       if (response.ok) {

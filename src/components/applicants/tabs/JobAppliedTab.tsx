@@ -309,7 +309,10 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 ) : null;
               })()}
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <div 
+                className="flex items-center gap-2 text-sm text-muted-foreground mb-2"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Banknote className="h-3.5 w-3.5" />
                 {isEditing && register ? (
                   <div className="flex items-center gap-2 flex-1 max-w-[200px]">
@@ -489,7 +492,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedSalary(applicant.expectedSalary?.toString() || '');
                     setIsEditSalaryOpen(true);
                   }}

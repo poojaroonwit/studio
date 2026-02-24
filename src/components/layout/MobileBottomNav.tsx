@@ -10,7 +10,8 @@ import {
   ClipboardDocumentListIcon as ListTodo,
   CloudArrowUpIcon as UploadCloud,
   Cog6ToothIcon as Settings,
-  ClipboardDocumentCheckIcon as FileCheck
+  ClipboardDocumentCheckIcon as FileCheck,
+  CalendarIcon as Calendar
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +19,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home", icon: LayoutDashboard },
   { href: "/applicants", label: "Applicants", icon: Users },
   { href: "/positions", label: "Positions", icon: Briefcase },
-  { href: "/interview", label: "Interview", icon: FileCheck },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
   // Tasks removed from mobile navigation
   // { href: "/my-tasks", label: "Tasks", icon: ListTodo },
   // Queue removed from mobile navigation (will be shown in avatar modal)

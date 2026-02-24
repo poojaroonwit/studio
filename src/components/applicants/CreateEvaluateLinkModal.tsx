@@ -525,7 +525,7 @@ export function CreateEvaluateLinkModal({
     setLoading(true);
     try {
       // Create evaluation link
-      const linkResponse = await fetch(`/api/v1/Applicants/${applicant.id}/evaluation-link`, {
+      const linkResponse = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

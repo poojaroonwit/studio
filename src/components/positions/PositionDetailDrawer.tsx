@@ -47,6 +47,7 @@ import { AppliedApplicantsTable } from './AppliedApplicantsTable';
 import { PotentialApplicantsTable } from './PotentialApplicantsTable';
 import { AllApplicantsTable } from './AllApplicantsTable';
 import { DetailsTab } from './DetailsTab';
+import { JobDescriptionTab } from './JobDescriptionTab';
 import { CriteriaTab } from './CriteriaTab';
 import { ApplicantsTab } from './ApplicantsTab';
 
@@ -442,12 +443,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('searchTerm', appliedApplicantsSearchTerm);
       }
       query.append('sortColumn', appliedApplicantsSortColumn || 'fitScore');
-      query.append('limit', String(appliedApplicantsPageSize));
-      query.append('type', 'applied');
-      if (appliedApplicantsSearchTerm) {
-        query.append('searchTerm', appliedApplicantsSearchTerm);
-      }
-      query.append('sortColumn', appliedApplicantsSortColumn || 'fitScore');
       query.append('sortDirection', appliedApplicantsSortDirection || 'desc');
 
       // Add filters
@@ -465,7 +460,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
       query.append('showPinSection', 'true');
 
-      const url = `/api/positions/${positionId}/Applicants?${query.toString()}`;
+      const url = `/api/positions/${positionId}/applicants?${query.toString()}`;
 
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch applied Applicants');
@@ -499,7 +494,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
       query.append('showPinSection', 'true');
 
-      const response = await fetch(`/api/positions/${positionId}/Applicants?${query.toString()}`);
+      const response = await fetch(`/api/positions/${positionId}/applicants?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch all Applicants');
 
       const data = await response.json();
@@ -1185,6 +1180,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   Details
                 </div>
                 <div
+                  onClick={() => setActiveTab('job-description')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+                    activeTab === 'job-description'
+                      ? "text-primary border-primary"
+                      : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
+                  )}
+                >
+                  <FileText className="h-4 w-4" />
+                  Job Description
+                </div>
+                <div
                   onClick={() => setActiveTab('criteria')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
@@ -1266,11 +1273,26 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 position={position}
                 isEditMode={isEditMode}
                 isSaving={isSaving}
-                isGeneratingDescription={isGeneratingDescription}
                 isDrawerReady={isDrawerReady}
                 isLoadingLevels={isLoadingLevels}
                 positionLevels={positionLevels.map(level => ({ id: level.id, name: level.name, color: level.color || undefined }))}
                 grades={grades}
+                form={form}
+                isMobile={isMobile}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+                onCustomFieldChange={handleCustomFieldChange}
+              />
+            )}
+
+            {activeTab === 'job-description' && position && (
+              <JobDescriptionTab
+                position={position}
+                isEditMode={isEditMode}
+                isSaving={isSaving}
+                isGeneratingDescription={isGeneratingDescription}
+                isDrawerReady={isDrawerReady}
                 form={form}
                 isMobile={isMobile}
                 onEdit={handleEdit}

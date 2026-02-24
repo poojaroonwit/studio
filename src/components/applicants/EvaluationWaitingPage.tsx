@@ -85,7 +85,7 @@ export function EvaluationWaitingPage({
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/v1/Applicants/${applicantId}/evaluations`, { cache: 'no-store' });
+        const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`, { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           const evaluationsMap = new Map<string, any>();

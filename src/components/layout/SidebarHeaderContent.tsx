@@ -185,23 +185,27 @@ export function SidebarHeaderContent({
     );
   }
 
-  // Expanded mode: logo, app name, and collapse button in top right
+  // Expanded mode: logo section (aligned with primary sidebar) and app details (aligned with secondary sidebar)
   return (
-    <div className="flex items-center justify-between gap-2 px-2 py-1 min-h-[48px] flex-wrap">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
+    <div className="flex items-center h-[64px] w-full border-b border-border/50 bg-sidebar/50 backdrop-blur-sm">
+      <div className="w-[80px] flex items-center justify-center shrink-0 h-full">
         {renderLogo(false)}
-        {!showLogoOnly && <span className="font-semibold text-lg truncate">{currentAppName}</span>}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleToggle}
-        disabled={isToggling}
-        aria-label="Collapse sidebar"
-        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8 flex-shrink-0 text-sidebar-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
+      {!showLogoOnly && (
+        <div className="flex-1 flex items-center justify-between pl-2 pr-4 min-w-0 h-full">
+          <span className="font-bold text-lg truncate text-foreground leading-tight tracking-tight">{currentAppName}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleToggle}
+            disabled={isToggling}
+            aria-label="Collapse sidebar"
+            className="rounded-full bg-transparent hover:bg-sidebar-accent shadow-none h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-foreground transition-all ml-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

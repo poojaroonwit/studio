@@ -128,6 +128,7 @@ model User {
   activityLogs                 UserActivityLog[]           @relation("UserActivityLogs")
   sessions                     UserSession[]               @relation("UserSessions")
   applicantReadStatuses       ApplicantReadStatus[]       @relation("UserApplicantReadStatuses")
+  applicantReminders          ApplicantReminder[]         @relation("UserReminders")
 
   @@index([email])
   @@index([role])
@@ -356,6 +357,7 @@ model Applicant {
   transitionRecords       TransitionRecord[]
   evaluationLinks         ApplicantEvaluationLink[]
   readStatuses            ApplicantReadStatus[]
+  applicantReminders      ApplicantReminder[]
 
   @@index([email])
   @@index([positionId])
@@ -394,6 +396,37 @@ model ApplicantReadStatus {
   @@index([userId])
   @@index([isRead])
   @@map("applicant_read_status")
+}
+
+
+/// ApplicantReminder - Reminders set by users for specific applicants
+model ApplicantReminder {
+  /// Unique identifier
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Reference to applicant
+  applicantId   String    @map("applicant_id") @db.Uuid
+  /// Reference to user who set the reminder
+  userId        String    @map("user_id") @db.Uuid
+  /// Reminder title
+  title         String
+  /// Additional reminder details
+  content       String?
+  /// When the reminder should trigger
+  reminderDate  DateTime  @map("reminder_date")
+  /// Whether the reminder has been completed
+  isCompleted   Boolean   @default(false) @map("is_completed")
+  /// Record creation timestamp
+  createdAt     DateTime  @default(now()) @map("created_at")
+  /// Last update timestamp
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  applicant     Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  user          User      @relation("UserReminders", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId])
+  @@index([userId])
+  @@index([reminderDate])
+  @@map("applicant_reminders")
 }
 
 

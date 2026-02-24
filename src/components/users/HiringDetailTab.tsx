@@ -216,7 +216,7 @@ export function HiringDetailTab({ userId }: HiringDetailTabProps) {
                                     <Link
                                         href={data.applicant.positionId
                                             ? `/positions/${data.applicant.positionId}?applicantId=${data.applicant.id}`
-                                            : `/Applicants?applicantId=${data.applicant.id}` // Fallback if no position
+                                            : `/applicants?applicantId=${data.applicant.id}` // Fallback if no position
                                         }
                                         target="_blank"
                                     >

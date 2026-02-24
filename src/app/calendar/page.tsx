@@ -58,6 +58,20 @@ interface PositionValidation {
   error: string | null;
 }
 
+interface ApplicantReminder {
+  id: string;
+  applicantId: string;
+  title: string;
+  content: string | null;
+  reminderDate: string;
+  isCompleted: boolean;
+  applicant: {
+    id: string;
+    name: string;
+    position?: { title: string } | null;
+  };
+}
+
 export default function EvaluatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -98,6 +112,8 @@ export default function EvaluatePage() {
 
   // Calendar view state
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [reminders, setReminders] = useState<ApplicantReminder[]>([]);
+  const [isRemindersLoading, setIsRemindersLoading] = useState(false);
 
   // Position validation state
   const [positionValidation, setPositionValidation] = useState<PositionValidation>({
@@ -118,7 +134,7 @@ export default function EvaluatePage() {
 
     if (sessionStatus === 'unauthenticated') {
       // User is not authenticated, redirect to login with callback URL
-      const currentPath = '/interview';
+      const currentPath = '/calendar';
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`);
     }
   }, [sessionStatus, router]);
@@ -136,8 +152,25 @@ export default function EvaluatePage() {
           else if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
         })
         .catch(err => console.error('Failed to fetch QR code logo', err));
+      
+      fetchReminders();
     }
   }, [sessionStatus, query]);
+
+  const fetchReminders = async () => {
+    try {
+      setIsRemindersLoading(true);
+      const response = await fetch('/api/reminders', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setReminders(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching reminders:', err);
+    } finally {
+      setIsRemindersLoading(false);
+    }
+  };
 
   const fetchApplicantsWithEvaluationLinks = async () => {
     try {
@@ -1024,9 +1057,9 @@ export default function EvaluatePage() {
       <div className={cn("container mx-auto py-4", isMobile ? "px-4 pb-24" : "px-6")}>
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Interview</h1>
+            <h1 className="text-2xl font-bold mb-2">Calendar</h1>
             <p className="text-muted-foreground">
-              All interview sessions (active, expired, and passed)
+              All evaluation sessions (active, expired, and passed)
             </p>
           </div>
           <Button
@@ -1042,14 +1075,14 @@ export default function EvaluatePage() {
           <div className="flex flex-col items-center justify-center py-12">
             <FileCheck className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              No interview sessions
+              No evaluation sessions
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Interview sessions will appear here.
+              Evaluation sessions will appear here.
             </p>
             <Button onClick={handleOpenCreateModal} variant="outline" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              New Interview Session
+              New Evaluation Session
             </Button>
           </div>
         ) : (
@@ -1058,20 +1091,19 @@ export default function EvaluatePage() {
             {isMobile ? (
               <MobileEvaluateCalendar
                 applicants={applicants}
+                reminders={reminders as any} // We'll update the component to handle this
                 selectedDate={selectedDate}
-                onDateSelect={(date) => setSelectedDate(date)}
+                onDateSelect={setSelectedDate}
                 onApplicantClick={handleApplicantClick}
-                isMobile={true}
-                defaultView="list"
               />
             ) : (
               /* Desktop Calendar View - Full page month calendar with side panel */
               <DesktopEvaluateCalendar
                 applicants={applicants}
+                reminders={reminders as any}
                 selectedDate={selectedDate}
-                onDateSelect={(date) => setSelectedDate(date)}
+                onDateSelect={setSelectedDate}
                 onApplicantClick={handleApplicantClick}
-                isMobile={false}
               />
             )}
           </>

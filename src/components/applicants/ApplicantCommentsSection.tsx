@@ -10,6 +10,14 @@ import { TiptapEditor } from '../ui/tiptap-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { PlusIcon, ClockIcon as BellIcon } from '@heroicons/react/24/outline';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Label } from '../ui/label';
+import { toast } from 'react-hot-toast';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -98,6 +106,45 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
 
   // Activity pagination state
   const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
+
+  // Reminder states
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState('');
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(new Date());
+  const [reminderTime, setReminderTime] = useState('09:00');
+  const [creatingReminder, setCreatingReminder] = useState(false);
+
+  const handleCreateReminder = async () => {
+    if (!reminderDate || !reminderTitle.trim()) return;
+
+    setCreatingReminder(true);
+    try {
+      const [hours, minutes] = reminderTime.split(':').map(Number);
+      const combinedDate = new Date(reminderDate);
+      combinedDate.setHours(hours, minutes, 0, 0);
+
+      const response = await fetch(`/api/applicants/${applicantId}/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: reminderTitle,
+          reminderDate: combinedDate.toISOString(),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create reminder');
+
+      toast.success('Reminder created successfully');
+      setIsReminderDialogOpen(false);
+      setReminderTitle('');
+      onCommentsChange(); // Refresh activity log to show the reminder activity
+    } catch (err) {
+      console.error('Error creating reminder:', err);
+      toast.error('Failed to create reminder');
+    } finally {
+      setCreatingReminder(false);
+    }
+  };
   const [hasMoreActivities, setHasMoreActivities] = useState(true);
   const [activitiesOffset, setActivitiesOffset] = useState(0);
   const ACTIVITIES_PER_LOAD = 5;
@@ -1014,16 +1061,42 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
             />
           </div>
           <div className="flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1"
-            >
-              <Paperclip className="w-4 h-4" />
-              <span className="text-xs">Attach</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    <span className="text-xs">Add</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer">
+                    <Paperclip className="w-4 h-4 mr-2" />
+                    <span>Add Attachment</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsReminderDialogOpen(true)} className="cursor-pointer">
+                    <BellIcon className="w-4 h-4 mr-2" />
+                    <span>Add Reminder</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                title="Attach files"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+            </div>
             <Button
               type="button"
               onClick={handleAddComment}
@@ -1064,6 +1137,65 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
         onOpenChange={setIsFileViewerOpen}
         file={selectedFile}
       />
+
+      {/* Add Reminder Dialog */}
+      <Dialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Reminder</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Reminder for what?</Label>
+              <Input
+                id="title"
+                placeholder="e.g. Follow up with candidate"
+                value={reminderTitle}
+                onChange={(e) => setReminderTitle(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>When?</Label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !reminderDate && "text-muted-foreground"
+                      )}
+                    >
+                      <BellIcon className="mr-2 h-4 w-4" />
+                      {reminderDate ? format(reminderDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={reminderDate}
+                      onSelect={setReminderDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Input
+                  type="time"
+                  className="w-[120px]"
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReminderDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateReminder} disabled={creatingReminder || !reminderTitle.trim() || !reminderDate}>
+              {creatingReminder ? 'Creating...' : 'Create Reminder'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

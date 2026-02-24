@@ -38,12 +38,20 @@ export function ApplicantsMobileListView({
     const fitScoreValue = applicant.fitScore;
     const appliedPosition = allDbPositions.find(p => p.id === applicant.positionId);
 
+    const isUnread = applicant.isRead !== true;
+
     return (
       <div
         key={applicant.id}
         className={cn(
-          "flex items-center gap-2 px-3 py-4 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50",
-          applicant.isPinned && "bg-primary/5"
+          "flex items-center gap-2 px-3 py-4 transition-all duration-150 cursor-pointer border-b border-border/50",
+          applicant.isBlacklisted 
+            ? "border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20" 
+            : applicant.isPinned 
+              ? "border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20" 
+              : isUnread 
+                ? "border-l-4 border-l-blue-500 bg-blue-50/20 dark:bg-blue-950/10" 
+                : "bg-background active:bg-muted/70"
         )}
         onClick={(e) => onApplicantClick(applicant, e)}
       >
@@ -78,13 +86,15 @@ export function ApplicantsMobileListView({
             <h3 className={cn(
               "font-semibold text-xs leading-tight truncate", 
               nameInfo.fontClass,
-              applicant.isBlacklisted && "text-destructive"
+              applicant.isBlacklisted ? "text-destructive" :
+              applicant.isPinned ? "text-amber-600 dark:text-amber-500" :
+              isUnread ? "text-blue-600 dark:text-blue-400 font-bold" : "text-foreground"
             )} lang={nameInfo.lang}>
               {nameInfo.name}
-              {applicant.isBlacklisted && <Ban className="inline-block ml-1 h-2.5 w-2.5" />}
+              {applicant.isBlacklisted && <Ban className="inline-block ml-1 h-2.5 w-2.5 text-destructive" />}
             </h3>
             {applicant.isPinned && (
-              <Pin className="h-3 w-3 text-primary fill-current rotate-45 flex-shrink-0" />
+              <Pin className="h-3 w-3 text-amber-500 fill-current rotate-45 flex-shrink-0" />
             )}
           </div>
 

@@ -291,6 +291,7 @@ export async function GET(request: NextRequest) {
 
     const { session, error } = await requireSessionAndPermission('Applicants_VIEW', request);
     if (error) return error;
+    const actingUserId = session.user.id;
 
     const { searchParams } = new URL(request.url);
     const isForCounts = searchParams.get('forCounts') === 'true';
@@ -1190,26 +1191,26 @@ export async function GET(request: NextRequest) {
         p.title as "positionTitle",
         u.name as "recruiterName",
         cs.name as "sourceName",
-        c."isBlacklisted"
+        c."isBlacklisted",
+        ars.is_read as "isRead"
       FROM "Applicant" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "ApplicantSource" cs ON c."sourceId" = cs.id
       LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+      LEFT JOIN "applicant_read_status" ars ON (c.id = ars.applicant_id AND ars.user_id = $${paramIndex++})
       ${whereClause}
       ORDER BY 
         ${sortClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-
-
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
       // deepcode ignore Sqli: Safe query
       client.query(countQuery, queryParams),
       // deepcode ignore Sqli: Sort clause is from whitelist, where clause is parameterized
-      client.query(dataQuery, [...queryParams, limit, offset])
+      client.query(dataQuery, [...queryParams, actingUserId, limit, offset])
     ]);
 
     const total = parseInt(countResult.rows[0].total);
@@ -1237,6 +1238,7 @@ export async function GET(request: NextRequest) {
       recruiter: row.recruiterName ? { name: row.recruiterName } : null,
       source: row.sourceName ? { name: row.sourceName } : null,
       isBlacklisted: row.isBlacklisted,
+      isRead: row.isRead ?? null,
     }));
 
     const responseTime = Date.now() - startTime;

@@ -658,7 +658,7 @@ export default function ManageUsersPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-6 pb-0">
+      <div className="p-4 pb-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
@@ -691,14 +691,14 @@ export default function ManageUsersPage() {
 
       {/* Tabs */}
       <div className="px-6">
-        <div className="flex w-full border-b border-border/50 mb-6">
+        <div className="flex w-full border-b border-border/50 mb-4 gap-6">
           <div
             onClick={() => setActiveTab('users')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'users'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <UsersRound className="h-4 w-4" />
@@ -707,10 +707,10 @@ export default function ManageUsersPage() {
           <div
             onClick={() => setActiveTab('teams')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'teams'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <Users className="h-4 w-4" />
@@ -719,10 +719,10 @@ export default function ManageUsersPage() {
           <div
             onClick={() => setActiveTab('groups')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'groups'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <ShieldCheck className="h-4 w-4" />
@@ -733,12 +733,12 @@ export default function ManageUsersPage() {
 
       {/* Content with ScrollArea */}
       <ScrollArea className="flex-1 px-6 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Users Tab */}
           {activeTab === 'users' && (
             <>
               {/* Filters Section */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                   <div className="space-y-1">
                     <Label htmlFor="name-filter">Name</Label>

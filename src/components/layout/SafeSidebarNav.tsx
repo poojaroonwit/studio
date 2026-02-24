@@ -2,7 +2,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Squares2X2Icon as LayoutDashboard, UsersIcon as Users, BriefcaseIcon as Briefcase, Cog6ToothIcon as Settings, ClipboardDocumentListIcon as ListTodo, CloudArrowUpIcon as UploadCloud, ViewColumnsIcon as Kanban, ClipboardDocumentCheckIcon as ClipboardCheck } from "@heroicons/react/24/outline";
+import { sidebarConfig, iconMap } from "./SidebarNavConfig";
 import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenu,
@@ -22,17 +22,16 @@ import { useSession } from "next-auth/react";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useHasAssignedPositions } from "@/hooks/use-has-assigned-positions";
 import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
-
-// Completely isolated navigation items - no external dependencies
-const NAV_ITEMS = {
-  dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  applicants: { href: "/applicants", label: "Applicants", icon: Users },
-  positions: { href: "/positions", label: "Positions", icon: Briefcase },
-  evaluate: { href: "/interview", label: "Interview", icon: ClipboardCheck },
-  processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
-  settings: { href: "/settings", label: "Settings", icon: Settings }
-};
+import {
+  Squares2X2Icon as LayoutDashboard,
+  UsersIcon as Users,
+  BriefcaseIcon as Briefcase,
+  Cog6ToothIcon as Settings,
+  ClipboardDocumentListIcon as ListTodo,
+  CloudArrowUpIcon as UploadCloud,
+  ViewColumnsIcon as Kanban,
+  ClipboardDocumentCheckIcon as ClipboardCheck
+} from "@heroicons/react/24/outline";
 
 // Real-time pending count hook with 1s polling and SSE integration
 const usePendingCount = () => {
@@ -45,7 +44,6 @@ const usePendingCount = () => {
   React.useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        // Avoid toggling loading state on every 1s poll to prevent UI flicker
         const response = await fetch('/api/upload-queue/health', {
           method: 'GET',
           headers: {
@@ -55,25 +53,18 @@ const usePendingCount = () => {
 
         if (response.ok) {
           const data = await response.json();
-          // Compute queued + inprocess from health endpoint
           const queued = Number(data?.queue_stats?.queued || 0);
           const inprocess = Number(data?.queue_stats?.inprocess || 0);
           setPendingCount(queued + inprocess);
-          // Health endpoint is public in our API; treat as allowed
           setHasPermission(true);
         } else if (response.status === 403) {
-          // User doesn't have permission to view process queue data
-          // This is expected behavior, not an error
           setPendingCount(null);
           setHasPermission(false);
         } else {
-          // Only log warnings for actual errors, not permission issues
-          console.warn('Failed to fetch pending count:', response.status);
           setPendingCount(null);
           setHasPermission(false);
         }
       } catch (error) {
-        console.error('Error fetching pending count:', error);
         setPendingCount(null);
         setHasPermission(false);
       } finally {
@@ -81,61 +72,32 @@ const usePendingCount = () => {
       }
     };
 
-    // Initial fetch
     fetchPendingCount();
-    // Start polling for realtime updates - reduced frequency for lower CPU usage
-    // Actual realtime updates come via SSE below
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
-    pollIntervalRef.current = setInterval(fetchPendingCount, 30000); // Optimized: 30s (was 1s)
+    pollIntervalRef.current = setInterval(fetchPendingCount, 30000);
 
-    // Only set up SSE connection if user has permission
     if (hasPermission !== false) {
-      // Set up SSE connection for real-time updates
       try {
         const eventSource = new EventSource('/api/sse');
         eventSourceRef.current = eventSource;
 
-        eventSource.onopen = () => {
-        };
-
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-
-            // Listen for upload queue updates
-            if (data.type === 'upload_queue_update' && data.summary) {
+            if ((data.type === 'upload_queue_update' || data.type === 'queue') && data.summary) {
               const { queued, inprocess } = data.summary;
               const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
               setPendingCount(newPendingCount);
             }
-
-            // Listen for general queue updates
-            if (data.type === 'queue' && data.summary) {
-              const { queued, inprocess } = data.summary;
-              const newPendingCount = Number(queued || 0) + Number(inprocess || 0);
-              setPendingCount(newPendingCount);
-            }
-          } catch (error) {
-          }
+          } catch (error) {}
         };
 
-        eventSource.onerror = (error) => {
-          // Provide more specific error information
-          if (eventSource.readyState === EventSource.CONNECTING) {
-          } else if (eventSource.readyState === EventSource.CLOSED) {
-          } else {
-          }
-          // Polling is already active at 1s; nothing else to do here
-        };
-
-      } catch (error) {
-        // Polling is already active at 1s; nothing else to do here
-      }
+        eventSource.onerror = () => {};
+      } catch (error) {}
     }
 
-    // Cleanup function
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -146,7 +108,7 @@ const usePendingCount = () => {
         pollIntervalRef.current = null;
       }
     };
-  }, [hasPermission]); // Add hasPermission to dependency array to re-run effect when permissions change
+  }, [hasPermission]);
 
   return { pendingCount, isLoading };
 };
@@ -154,10 +116,7 @@ const usePendingCount = () => {
 // Simple tooltip component
 const MenuItemWithTooltip = React.memo(({ children, label }: { children: React.ReactNode; label: string }) => {
   const { open } = useSidebar();
-
-  if (open) {
-    return <>{children}</>;
-  }
+  if (open) return <>{children}</>;
 
   return (
     <TooltipProvider>
@@ -198,67 +157,7 @@ const FallbackNav = React.memo(() => {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/positions" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
-                <Briefcase className="h-5 w-5" />
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/interview" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
-                <ClipboardCheck className="h-5 w-5" />
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/process-queue" className="w-full">
-              <SidebarMenuButton className="w-full justify-center relative" size="default">
-                <div className="relative">
-                  <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                  {pendingCount !== null && (
-                    <Badge
-                      variant={pendingCount === 0 ? "zero" : "destructive"}
-                      className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
-                    >
-                      {pendingCount > 99 ? '99+' : pendingCount}
-                    </Badge>
-                  )}
-                </div>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mt-auto">
-          <SidebarSeparator className="my-2 bg-border/50" />
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Link href="/process-queue" className="w-full">
-                <SidebarMenuButton className="w-full justify-center relative" size="default">
-                  <div className="relative">
-                    <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                    {pendingCount !== null && (
-                      <Badge
-                        variant={pendingCount === 0 ? "zero" : "destructive"}
-                        className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
-                      >
-                        {pendingCount > 99 ? '99+' : pendingCount}
-                      </Badge>
-                    )}
-                  </div>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href="/settings" className="w-full">
-                <SidebarMenuButton className="w-full justify-center" size="default">
-                  <Settings className="h-5 w-5" />
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
       </div>
     );
   }
@@ -275,206 +174,64 @@ const FallbackNav = React.memo(() => {
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/applicants" className="w-full">
-            <SidebarMenuButton className="w-full justify-start" size="default">
-              <Users className="h-5 w-5" />
-              <span className="truncate">Applicants</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/my-tasks" className="w-full">
-            <SidebarMenuButton className="w-full justify-start" size="default">
-              <Kanban className="h-5 w-5" />
-              <span className="truncate">My Task Board</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/positions" className="w-full">
-            <SidebarMenuButton className="w-full justify-start" size="default">
-              <Briefcase className="h-5 w-5" />
-              <span className="truncate">Positions</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/interview" className="w-full">
-            <SidebarMenuButton className="w-full justify-start" size="default">
-              <ClipboardCheck className="h-5 w-5" />
-              <span className="truncate">Interview</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
       </SidebarMenu>
-      <div className="mt-auto">
-        <SidebarSeparator className="my-2 bg-border/50" />
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/process-queue" className="w-full">
-              <SidebarMenuButton className="w-full justify-start" size="default">
-                <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                <span className="truncate">Process queue</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/settings" className="w-full">
-              <SidebarMenuButton className="w-full justify-start" size="default">
-                <Settings className="h-5 w-5" />
-                <span className="truncate">Settings</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </div>
     </div>
   );
 });
 
 FallbackNav.displayName = 'FallbackNav';
 
-// Safe navigation items generator
-const getSafeNavigationItems = (
-  canViewDashboard: boolean,
-  canAccessMyTasks: boolean,
-  canViewPositions: boolean,
-  canViewInterviews: boolean
-) => {
-  try {
-    const items = [];
-
-    if (canViewDashboard) {
-      items.push(NAV_ITEMS.dashboard);
-    }
-
-    // Only add My Tasks if user has permission
-    if (canAccessMyTasks) {
-      items.push(NAV_ITEMS.myTasks);
-    }
-
-    items.push(NAV_ITEMS.applicants);
-
-    if (canViewPositions) {
-      items.push(NAV_ITEMS.positions);
-    }
-
-    if (canViewInterviews) {
-      items.push(NAV_ITEMS.evaluate);
-    }
-
-    return items;
-  } catch (error) {
-    console.error('Error generating navigation items:', error);
-    return [NAV_ITEMS.dashboard, NAV_ITEMS.applicants, NAV_ITEMS.positions, NAV_ITEMS.evaluate];
+// Helper to check if user has permission for an item
+const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: string[]) => {
+  if (isAdmin) return true;
+  if (item.adminOnly) return false;
+  
+  if (item.href === '/dashboard' || item.href === '/') {
+    return modulePermissions.includes('DASHBOARD_VIEW');
   }
-};
-
-// Safe session checker
-const getSafeSessionInfo = (session: any) => {
-  try {
-    if (!session?.user) {
-      return {
-        canViewDashboard: false,
-        canAccessMyTasks: false,
-        canViewPositions: false,
-        canViewInterviews: false,
-        modulePermissions: []
-      };
-    }
-
-    const role = session.user.role;
-    const isAdmin = role === 'Admin';
-    const modulePermissions = session.user.modulePermissions || [];
-
-    const canViewDashboard = isAdmin || modulePermissions.includes('DASHBOARD_VIEW');
-
-    const canAccessMyTasks = isAdmin ||
-      modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
-      modulePermissions.includes('TASK_BOARD_VIEW') ||
-      modulePermissions.includes('Applicants_VIEW');
-
-    const canViewPositions = isAdmin || modulePermissions.includes('POSITIONS_VIEW');
-
-    const canViewInterviews = isAdmin ||
-      modulePermissions.includes('EVALUATION_LINKS_VIEW') ||
-      modulePermissions.includes('EVALUATION_LINKS_CREATE_OWN') ||
-      modulePermissions.includes('EVALUATION_LINKS_CREATE_ALL') ||
-      modulePermissions.includes('EVALUATION_LINKS_MANAGE_OWN') ||
-      modulePermissions.includes('EVALUATION_LINKS_MANAGE_ALL');
-
-    return {
-      canViewDashboard,
-      canAccessMyTasks,
-      canViewPositions,
-      canViewInterviews,
-      modulePermissions
-    };
-  } catch (error) {
-    console.error('Error getting session info:', error);
-    return {
-      canViewDashboard: false,
-      canAccessMyTasks: false,
-      canViewPositions: false,
-      canViewInterviews: false,
-      modulePermissions: []
-    };
+  if (item.href === '/my-tasks') {
+    return modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
+           modulePermissions.includes('TASK_BOARD_VIEW') ||
+           modulePermissions.includes('Applicants_VIEW');
   }
+  if (item.href === '/positions') {
+    return modulePermissions.includes('POSITIONS_VIEW');
+  }
+  if (item.href === '/interview') {
+    return modulePermissions.includes('EVALUATION_LINKS_VIEW') ||
+           modulePermissions.includes('EVALUATION_LINKS_CREATE_OWN') ||
+           modulePermissions.includes('EVALUATION_LINKS_CREATE_ALL') ||
+           modulePermissions.includes('EVALUATION_LINKS_MANAGE_OWN') ||
+           modulePermissions.includes('EVALUATION_LINKS_MANAGE_ALL');
+  }
+  if (item.href.startsWith('/settings/users')) {
+    return modulePermissions.includes('USERS_MANAGE') || modulePermissions.includes('ADMIN');
+  }
+
+  return true;
 };
 
 // Optimized Link component with minimal click protection
 const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; children: React.ReactNode;[key: string]: any }) => {
   const router = useRouter();
   const isNavigatingRef = React.useRef(false);
-  const navigationTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = React.useRef(true);
 
   React.useEffect(() => {
     isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-      }
-    };
+    return () => { isMountedRef.current = false; };
   }, []);
 
   const handleClick = React.useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-
-    // Check if component is still mounted
-    if (!isMountedRef.current) {
-      return;
-    }
-
-    // Prevent navigation if already navigating
-    if (isNavigatingRef.current) {
-      return;
-    }
+    if (!isMountedRef.current || isNavigatingRef.current) return;
 
     isNavigatingRef.current = true;
-
-    // Clear any existing timeout
-    if (navigationTimeoutRef.current) {
-      clearTimeout(navigationTimeoutRef.current);
-    }
-
-    // Reset navigation state after a short delay
-    navigationTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        isNavigatingRef.current = false;
-      }
-    }, 300);
+    setTimeout(() => { if (isMountedRef.current) isNavigatingRef.current = false; }, 300);
 
     try {
       router.push(href);
     } catch (error) {
-      console.error("Navigation error:", error);
-      if (isMountedRef.current) {
-        isNavigatingRef.current = false;
-      }
-      // Fallback to window.location
       window.location.href = href;
     }
   }, [href, router]);
@@ -490,209 +247,103 @@ OptimizedLink.displayName = 'OptimizedLink';
 
 const SafeSidebarNavComponent = React.memo(() => {
   const [hasError, setHasError] = React.useState(false);
-
-  // Move all hooks to the top level - never call hooks conditionally or inside try-catch
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session, status } = useSession();
   const { open } = useSidebar();
-  const { pendingCount, isLoading } = usePendingCount();
+  const { pendingCount } = usePendingCount();
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions();
 
-  // Get safe session info
-  const { canViewDashboard, canAccessMyTasks, canViewPositions, canViewInterviews } = getSafeSessionInfo(session);
+  if (hasError) return <FallbackNav />;
 
-  // Generate safe navigation items
-  const navigationItems = React.useMemo(() => {
-    return getSafeNavigationItems(canViewDashboard, canAccessMyTasks, canViewPositions, canViewInterviews);
-  }, [canViewDashboard, canAccessMyTasks, canViewPositions, canViewInterviews]);
+  const isAdmin = session?.user?.role === 'Admin';
+  const modulePermissions = (session?.user as any)?.modulePermissions || [];
 
-  // Redirect if on dashboard without permission
-  React.useEffect(() => {
-    if (status === 'authenticated' && pathname === '/' && !canViewDashboard && navigationItems.length > 0) {
-      const firstItem = navigationItems[0];
-      if (firstItem && firstItem.href !== '/') {
-        router.replace(firstItem.href);
-      }
-    }
-  }, [status, pathname, canViewDashboard, navigationItems, router]);
+  const filteredGroups = sidebarConfig.map(group => ({
+    ...group,
+    items: group.items.filter(item => hasItemPermission(item, isAdmin, modulePermissions))
+  })).filter(group => group.items.length > 0);
 
-  if (hasError) {
-    return <FallbackNav />;
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center p-2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      </div>
+    );
   }
 
-  try {
-
-    // Simple loading state
-    if (status === 'loading') {
-      return (
-        <div className="flex items-center justify-center p-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        </div>
-      );
-    }
-
-    // Collapsed mode
-    if (!open) {
-      return (
-        <div className="flex flex-col h-full">
-          <SidebarMenu className="flex-1">
-            {navigationItems.map((item, index) => (
-              <React.Fragment key={item.href}>
-                <SidebarMenuItem>
-                  <MenuItemWithTooltip label={item.label}>
-                    <OptimizedLink href={item.href} className="w-full">
-                      <SidebarMenuButton
-                        isActive={pathname === item.href}
-                        className="w-full justify-center"
-                        size="default"
-                      >
-                        <item.icon className="h-5 w-5" />
-                      </SidebarMenuButton>
-                    </OptimizedLink>
-                  </MenuItemWithTooltip>
-                </SidebarMenuItem>
-                {/* Add separator between My Task Board and Applicants */}
-                {canAccessMyTasks && item.href === '/my-tasks' && (
-                  <SidebarSeparator className="my-2 bg-border/50" />
-                )}
-              </React.Fragment>
-            ))}
-          </SidebarMenu>
-
-          <div className="mt-auto">
-            <SidebarSeparator className="my-2 bg-border/50" />
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <MenuItemWithTooltip label="Process queue">
-                  <OptimizedLink href="/process-queue" className="w-full">
-                    <SidebarMenuButton
-                      isActive={pathname === '/process-queue'}
-                      className="w-full justify-center relative"
-                      size="default"
-                    >
-                      <div className="relative">
-                        <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                        {pendingCount !== null && (
-                          <Badge
-                            variant={pendingCount === 0 ? "zero" : "destructive"}
-                            className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"
-                          >
-                            {pendingCount > 99 ? '99+' : pendingCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </SidebarMenuButton>
-                  </OptimizedLink>
-                </MenuItemWithTooltip>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <MenuItemWithTooltip label="Settings">
-                  <OptimizedLink href="/settings" className="w-full">
-                    <SidebarMenuButton
-                      isActive={pathname === '/settings'}
-                      className="w-full justify-center"
-                      size="default"
-                    >
-                      <Settings className="h-5 w-5" />
-                    </SidebarMenuButton>
-                  </OptimizedLink>
-                </MenuItemWithTooltip>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </div>
-        </div>
-      );
-    }
-
-    // Expanded mode
-    return (
-      <div className="flex flex-col h-full min-h-0">
-        <SidebarMenu className="flex-1 min-h-0 overflow-hidden">
-          <SidebarSeparator className="my-2 bg-border/50" />
-          <SidebarGroupLabel>General</SidebarGroupLabel>
-          {navigationItems.map((item, index) => (
-            <React.Fragment key={item.href}>
-              <SidebarMenuItem>
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <SidebarMenu className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        {filteredGroups.map((group) => (
+          <React.Fragment key={group.label}>
+            {open && (
+              <SidebarGroupLabel className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </SidebarGroupLabel>
+            )}
+            {group.items.map((item) => (
+              <SidebarMenuItem key={item.href}>
                 <MenuItemWithTooltip label={item.label}>
                   <OptimizedLink href={item.href} className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === item.href}
-                      className="w-full justify-start"
+                      className={open ? "w-full justify-start px-3" : "w-full justify-center"}
                       size="default"
                     >
                       <item.icon className="h-5 w-5" />
-                      <span className="truncate">{item.label}</span>
+                      {open && <span className="truncate ml-3">{item.label}</span>}
                     </SidebarMenuButton>
                   </OptimizedLink>
                 </MenuItemWithTooltip>
               </SidebarMenuItem>
-              {/* Add separator between My Task Board and Applicants */}
-              {canAccessMyTasks && item.href === '/my-tasks' && (
-                <SidebarSeparator className="my-2 bg-border/50" />
-              )}
-            </React.Fragment>
-          ))}
-          {/* Assigned positions inside the SidebarMenu list */}
-          {sidebarPreferences?.showAssignedPositions && hasPositions && (
-            <>
-              <SidebarGroupLabel>Job assigned</SidebarGroupLabel>
-              <SidebarMenuItem>
-                <div className="px-2 min-w-0 max-h-[280px] overflow-hidden">
-                  <AssignedPositionsSidebar variant="compact" />
-                </div>
-              </SidebarMenuItem>
-            </>
-          )}
-        </SidebarMenu>
-
-
-        <div className="mt-auto">
-          <SidebarSeparator className="my-2 bg-border/50" />
-          <SidebarMenu>
+            ))}
+            <SidebarSeparator className="my-2 bg-border/50 mx-2" />
+          </React.Fragment>
+        ))}
+        
+        {open && sidebarPreferences?.showAssignedPositions && hasPositions && (
+          <>
+            <SidebarGroupLabel className="px-3 mt-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Job assigned
+            </SidebarGroupLabel>
             <SidebarMenuItem>
-              <MenuItemWithTooltip label="Process queue">
-                <OptimizedLink href="/process-queue" className="w-full">
-                  <SidebarMenuButton
-                    isActive={pathname === '/process-queue'}
-                    className="w-full justify-start"
-                    size="default"
-                  >
+              <div className="px-2 min-w-0">
+                <AssignedPositionsSidebar variant="compact" />
+              </div>
+            </SidebarMenuItem>
+          </>
+        )}
+      </SidebarMenu>
+
+      <div className="mt-auto">
+        <SidebarSeparator className="my-2 bg-border/50 mx-2" />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <MenuItemWithTooltip label="Process queue">
+              <OptimizedLink href="/process-queue" className="w-full">
+                <SidebarMenuButton
+                  isActive={pathname === '/process-queue'}
+                  className={open ? "w-full justify-start px-3" : "w-full justify-center"}
+                  size="default"
+                >
+                  <div className="relative flex items-center">
                     <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
-                    <span className="truncate">Process queue</span>
+                    {open && <span className="truncate ml-3">Process queue</span>}
                     {pendingCount !== null && (
-                      <Badge variant={pendingCount === 0 ? "zero" : "destructive"} className="ml-auto h-5 px-2 text-xs">
-                        {pendingCount > 99 ? '99+' : pendingCount}
+                      <Badge variant={pendingCount === 0 ? "zero" : "destructive"} className={open ? "ml-auto h-5 px-2 text-xs" : "absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px]"}>
+                        {open ? (pendingCount > 99 ? '99+' : pendingCount) : (pendingCount > 99 ? '99+' : pendingCount)}
                       </Badge>
                     )}
-                  </SidebarMenuButton>
-                </OptimizedLink>
-              </MenuItemWithTooltip>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <MenuItemWithTooltip label="Settings">
-                <OptimizedLink href="/settings" className="w-full">
-                  <SidebarMenuButton
-                    isActive={pathname === '/settings'}
-                    className="w-full justify-start"
-                    size="default"
-                  >
-                    <Settings className="h-5 w-5" />
-                    <span className="truncate">Settings</span>
-                  </SidebarMenuButton>
-                </OptimizedLink>
-              </MenuItemWithTooltip>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
+                  </div>
+                </SidebarMenuButton>
+              </OptimizedLink>
+            </MenuItemWithTooltip>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </div>
-    );
-  } catch (error) {
-    console.error('SafeSidebarNav error:', error);
-    setHasError(true);
-    return <FallbackNav />;
-  }
+    </div>
+  );
 });
 
 SafeSidebarNavComponent.displayName = 'SafeSidebarNavComponent';

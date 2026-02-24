@@ -34,6 +34,12 @@ interface JobAppliedTabProps {
   onRefresh?: () => void;
   hideApplicantDetails?: boolean;
   resumes?: any[];
+  // Form props
+  register?: any;
+  errors?: any;
+  watch?: any;
+  setValue?: any;
+  control?: any;
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -53,7 +59,12 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   availableSources = [],
   onRefresh,
   hideApplicantDetails = false,
-  resumes = []
+  resumes = [],
+  register,
+  errors,
+  watch,
+  setValue,
+  control
 }) => {
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditRecruiterOpen, setIsEditRecruiterOpen] = useState(false);
@@ -82,9 +93,15 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ statusId: selectedStatus }),
+        body: JSON.stringify({ status: selectedStatus }),
       });
       if (!res.ok) throw new Error('Failed to update status');
+      
+      // Synchronize with main form state
+      if (setValue) {
+        setValue('status', selectedStatus);
+      }
+      
       toast.success('Status updated successfully');
       setIsEditStatusOpen(false);
       if (onRefresh) onRefresh();
@@ -105,6 +122,12 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         body: JSON.stringify({ recruiterId: selectedRecruiterId || null }),
       });
       if (!res.ok) throw new Error('Failed to update recruiter');
+      
+      // Synchronize with main form state
+      if (setValue) {
+        setValue('recruiterId', selectedRecruiterId || null);
+      }
+      
       toast.success('Recruiter updated successfully');
       setIsEditRecruiterOpen(false);
       if (onRefresh) onRefresh();
@@ -125,6 +148,12 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         body: JSON.stringify({ sourceId: selectedSourceId || null }),
       });
       if (!res.ok) throw new Error('Failed to update source');
+      
+      // Synchronize with main form state
+      if (setValue) {
+        setValue('sourceId', selectedSourceId || null);
+      }
+      
       toast.success('Source updated successfully');
       setIsEditSourceOpen(false);
       if (onRefresh) onRefresh();
@@ -148,6 +177,12 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         body: JSON.stringify({ expectedSalary: salaryValue }),
       });
       if (!res.ok) throw new Error('Failed to update salary');
+      
+      // Synchronize with main form state
+      if (setValue) {
+        setValue('expectedSalary', salaryValue);
+      }
+      
       toast.success('Salary updated successfully');
       setIsEditSalaryOpen(false);
       if (onRefresh) onRefresh();
@@ -276,20 +311,32 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                 <Banknote className="h-3.5 w-3.5" />
-                <span>Expected: {applicant.expectedSalary ? `฿${applicant.expectedSalary.toLocaleString()}` : 'N/A'}</span>
-                {isEditing && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 hover:bg-muted rounded-full ml-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSalary(applicant.expectedSalary?.toString() || '');
-                      setIsEditSalaryOpen(true);
-                    }}
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </Button>
+                {isEditing && register ? (
+                  <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+                    <span className="text-xs">฿</span>
+                    <input
+                      {...register('expectedSalary')}
+                      type="number"
+                      placeholder="Expected Salary"
+                      className="h-7 w-full bg-background/50 border border-input/50 rounded px-2 text-xs focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <span>Expected: {applicant.expectedSalary ? `฿${applicant.expectedSalary.toLocaleString()}` : 'N/A'}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-muted rounded-full ml-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSalary(applicant.expectedSalary?.toString() || '');
+                        setIsEditSalaryOpen(true);
+                      }}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  </>
                 )}
               </div>
               {appliedJobBadge && (

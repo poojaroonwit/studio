@@ -71,24 +71,22 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
         <div className="space-y-4">
           <div className="relative group">
             <Label htmlFor="2fa-code" className="sr-only">Verification Code</Label>
-            <div className="flex justify-center my-4">
+            <div className="flex justify-center my-6">
               <InputOTP
                 maxLength={6}
                 value={code}
                 onChange={(value) => setCode(value)}
                 disabled={isLoading}
                 autoFocus
+                containerClassName="gap-3"
               >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                </InputOTPGroup>
-                <InputOTPSeparator />
-                <InputOTPGroup>
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
+                <InputOTPGroup className="gap-3">
+                  <InputOTPSlot index={0} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={1} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={2} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={3} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={4} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={5} className="w-14 h-16 text-2xl font-bold shadow-sm" />
                 </InputOTPGroup>
               </InputOTP>
             </div>

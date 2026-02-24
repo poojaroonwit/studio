@@ -17,6 +17,7 @@ import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 import { format, formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import { formatDateInTimezone } from '@/lib/dateUtils';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 import type { Applicant, Position, ApplicantSource } from '@/lib/types';
 import type { ApplicantSettings } from './ApplicantSettingsDrawer';
 
@@ -161,11 +162,21 @@ const ApplicantTableRowComponent = ({
   };
 
   // Determine if applicant is unread
-  const isUnread = applicant.isRead === false;
+  const isUnread = applicant.isRead !== true;
 
   return (
     <TableRow
-      className={`hover:bg-muted/40 transition-colors group ${rowPaddingClass} ${isUnread ? 'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/30' : ''}`}
+      className={cn(
+        "hover:bg-muted/40 transition-colors group",
+        rowPaddingClass,
+        applicant.isBlacklisted
+          ? "border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20"
+          : applicant.isPinned
+            ? "border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+            : isUnread
+              ? "border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/10"
+              : ""
+      )}
       style={rowHeightStyle}
       data-applicant-id={applicant.id}
     >
@@ -179,10 +190,10 @@ const ApplicantTableRowComponent = ({
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTogglePin(); }}
-                  className={`p-1 rounded hover:bg-muted transition-colors ${applicant.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`p-1 rounded hover:bg-muted transition-colors ${applicant.isPinned ? 'text-amber-500' : 'text-muted-foreground hover:text-foreground'}`}
                   title={applicant.isPinned ? 'Unpin applicant' : 'Pin applicant to top'}
                 >
-                  {applicant.isPinned ? <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" /> : <PinIcon className="h-4 w-4 text-foreground rotate-45" />}
+                  {applicant.isPinned ? <PinIcon className="h-4 w-4 text-amber-500 fill-current rotate-45" /> : <PinIcon className="h-4 w-4 text-foreground rotate-45" />}
                 </button>
               </TableCell>
             );
@@ -202,7 +213,13 @@ const ApplicantTableRowComponent = ({
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenDetail(applicant.id, applicant.name); }}
-                        className={`hover:underline cursor-pointer truncate block text-left ${nameInfo.fontClass} ${isUnread ? 'font-bold text-blue-600 dark:text-blue-400' : 'font-medium text-foreground'}`}
+                        className={cn(
+                          "hover:underline cursor-pointer truncate block text-left",
+                          nameInfo.fontClass,
+                          applicant.isBlacklisted ? "text-destructive" :
+                          applicant.isPinned ? "text-amber-600 dark:text-amber-500" :
+                          isUnread ? "font-bold text-blue-600 dark:text-blue-400" : "font-medium text-foreground"
+                        )}
                         lang={nameInfo.lang}
                         title={nameInfo.name}
                       >

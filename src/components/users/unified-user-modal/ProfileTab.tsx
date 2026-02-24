@@ -31,10 +31,10 @@ export function ProfileTab({
     onCustomFieldChange
 }: ProfileTabProps) {
     return (
-        <div className="space-y-8 mt-4 focus-visible:ring-0 focus-visible:outline-none">
+        <div className="space-y-4 mt-2 focus-visible:ring-0 focus-visible:outline-none">
             {/* Unified Profile Information */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between border-b pb-4">
+            <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <BadgeInfo className="h-5 w-5 text-primary" />
                         Profile Information
@@ -47,7 +47,7 @@ export function ProfileTab({
                     )}
                 </div>
 
-                <div className="space-y-6 px-2">
+                <div className="space-y-4 px-2">
                     {/* Organization Details Fields */}
                     <FormField
                         control={form.control}
@@ -165,7 +165,7 @@ export function ProfileTab({
 
             {/* Additional Information (Custom Fields) */}
             {customFieldDefinitions.length > 0 && (
-                <div className="space-y-6 pt-4 border-t">
+                <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Calendar className="h-5 w-5 text-primary" />
                         Additional Information

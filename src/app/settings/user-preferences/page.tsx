@@ -168,7 +168,7 @@ export default function UserPreferencesPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -195,15 +195,15 @@ export default function UserPreferencesPage() {
       </div>
 
       {/* Main Content with Tabs */}
-      <div className="space-y-6">
-        <div className="flex w-full border-b border-border/50">
+      <div className="space-y-4">
+        <div className="flex w-full border-b border-border/50 gap-6">
           <div
             onClick={() => setActiveTab('appearance')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'appearance'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <Palette className="w-4 h-4" />
@@ -212,10 +212,10 @@ export default function UserPreferencesPage() {
           <div
             onClick={() => setActiveTab('taskboard')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'taskboard'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <Layout className="w-4 h-4" />
@@ -224,10 +224,10 @@ export default function UserPreferencesPage() {
           <div
             onClick={() => setActiveTab('positions')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'positions'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <Filter className="w-4 h-4" />
@@ -236,10 +236,10 @@ export default function UserPreferencesPage() {
           <div
             onClick={() => setActiveTab('sidebar')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'sidebar'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <Layout className="w-4 h-4" />
@@ -248,10 +248,10 @@ export default function UserPreferencesPage() {
           <div
             onClick={() => setActiveTab('security')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
               activeTab === 'security'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -261,7 +261,7 @@ export default function UserPreferencesPage() {
 
         {/* Appearance Tab */}
         {activeTab === 'appearance' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Theme Preference Configuration */}
             <ThemeSelector
               themePreference={preferences.appearance.themePreference}
@@ -338,7 +338,7 @@ export default function UserPreferencesPage() {
 
         {/* Task Board Tab */}
         {activeTab === 'taskboard' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Card Customization Settings */}
             <CardCustomizationSettings
               preferences={memoizedTaskBoardPreferences}
@@ -347,7 +347,7 @@ export default function UserPreferencesPage() {
               isSaving={false}
             />
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Current Settings Summary */}
             <Card>
               <CardHeader>
@@ -453,7 +453,7 @@ export default function UserPreferencesPage() {
 
         {/* Positions Tab */}
         {activeTab === 'positions' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Current Settings Summary */}
             <Card>
               <CardHeader>
@@ -572,7 +572,7 @@ export default function UserPreferencesPage() {
 
         {/* Sidebar Preferences Tab */}
         {activeTab === 'sidebar' && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

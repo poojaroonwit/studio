@@ -429,7 +429,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
 
   // Memoize the main layout JSX to prevent unnecessary re-renders
   const mainLayout = useMemo(() => (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={false}>
       <MemoizedFaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
       <LayoutContainer

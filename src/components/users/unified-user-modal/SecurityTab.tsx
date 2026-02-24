@@ -31,7 +31,7 @@ export function SecurityTab({
     handleDisable2FA
 }: SecurityTabProps) {
     return (
-        <div className="space-y-6 mt-0 focus-visible:ring-0 focus-visible:outline-none">
+        <div className="space-y-4 mt-0 focus-visible:ring-0 focus-visible:outline-none">
             {/* Two-Factor Auth Section */}
             <Card>
                 <CardHeader>
@@ -99,9 +99,9 @@ export function SecurityTab({
                         Update password or force reset on next login
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                     {/* Change Password Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="newPassword"

@@ -753,6 +753,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         mobileHeaderBackgroundType={mobileHeaderBackgroundType}
         mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
         organizationName={organizationName}
+        loginStage={loginStage}
+        onStageChange={setLoginStage}
       />
     );
   }
@@ -849,10 +851,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             )}
 
             {basicAuthEnabled && (
-              <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+              <CredentialsSignInForm 
+                activeFontColor={activeFontColor} 
+                activeBgStart={activeBgStart} 
+                activeBgEnd={activeBgEnd} 
+                onStageChange={setLoginStage}
+              />
             )}
 
-            {(isAzureAdConfigured) && (
+            {(isAzureAdConfigured && loginStage === 'email') && (
               <div className="mt-2">
                  {(basicAuthEnabled) && (
                     <div className="relative mb-4">

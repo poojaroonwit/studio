@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import ApplicantDetailModal from './ApplicantDetailModal';
 import FullApplicantDetail from './FullApplicantDetail';
 import { BlacklistBadge } from './BlacklistBadge';
-import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronRight, ChevronRightIcon as ChevronLeft, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as PinIcon, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronRight, ChevronRightIcon as ChevronLeft, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatApplicantName, formatApplicantNameWithLang } from "@/lib/applicantUtils";
 import { getApplicantPersonalColor, getApplicantCardStyles } from "@/lib/personalColorUtils";
@@ -306,24 +306,48 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
   // Check if mobile (for border removal)
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
+  // Determine if applicant is unread
+  const isUnread = applicant.isRead !== true;
+
   return (
     <Card
       className={cn(
-        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
+        "w-full p-4 hover:shadow-md transition-all duration-200 flex flex-col gap-3 relative",
         columnField === 'status' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         isDragged && "opacity-60 scale-95 shadow-lg",
         isDragStarting && "scale-105 shadow-xl",
-        isMobile && "border-0"
+        isMobile && "border-0",
+        // Special states - precedence: Blacklisted > Pinned > Unread
+        applicant.isBlacklisted
+          ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50"
+          : applicant.isPinned
+            ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 shadow-sm"
+            : isUnread
+              ? "bg-blue-50/30 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900/30"
+              : "bg-card border-border"
       )}
       style={{
-        borderColor: personalColor,
-        backgroundColor: `${personalColor}05`,
+        borderColor: !applicant.isBlacklisted && !applicant.isPinned && !isUnread ? personalColor : undefined,
+        backgroundColor: !applicant.isBlacklisted && !applicant.isPinned && !isUnread ? `${personalColor}05` : undefined,
       }}
       onClick={onClick}
       draggable={columnField === 'status'}
       onDragStart={columnField === 'status' ? handleDragStart : undefined}
       onDragEnd={columnField === 'status' ? handleDragEnd : undefined}
     >
+      {/* Pinned indicator */}
+      {applicant.isPinned && (
+        <div className="absolute top-2 right-2">
+          <PinIcon className="h-4 w-4 text-amber-500 fill-current rotate-45" />
+        </div>
+      )}
+
+      {/* Unread indicator dot */}
+      {isUnread && !applicant.isBlacklisted && !applicant.isPinned && (
+        <div className="absolute top-2 right-2">
+          <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+        </div>
+      )}
       {/* Name and position always shown */}
       {visibleFields.includes('name') && (() => {
         const nameInfo = formatApplicantNameWithLang(applicant);

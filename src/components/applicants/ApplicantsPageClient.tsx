@@ -168,6 +168,41 @@ export function ApplicantsPageClient({
     setIsAiSearchActive(active);
   }, []);
 
+  // Initialize filters from searchParams if not provided via props
+  const computedInitialFilters = React.useMemo(() => {
+    if (initialFilters) return initialFilters;
+    
+    const params: ApplicantFilterValues = {
+      selectedPositionIds: [],
+      selectedStatuses: [],
+      selectedRecruiterIds: []
+    };
+
+    if (searchParams) {
+      const statusParam = searchParams.get('status');
+      if (statusParam) {
+        params.selectedStatuses = statusParam.split(',').filter(Boolean);
+      }
+
+      const positionParam = searchParams.get('positionId');
+      if (positionParam) {
+        params.selectedPositionIds = positionParam.split(',').filter(Boolean);
+      }
+
+      const recruiterParam = searchParams.get('recruiterId');
+      if (recruiterParam) {
+        params.selectedRecruiterIds = recruiterParam.split(',').filter(Boolean);
+      }
+      
+      const queryParam = searchParams.get('query');
+      if (queryParam) {
+        params.name = queryParam; // Use query as name filter fallback or handled by useApplicantFetching
+      }
+    }
+
+    return params;
+  }, [initialFilters, searchParams]);
+
   // Use our custom hooks
   const {
     filters: filtersFromHook,
@@ -185,7 +220,7 @@ export function ApplicantsPageClient({
     filterChangeTimeoutRef,
     lastAppliedFiltersRef,
     optimisticUpdateRef
-  } = useApplicantFilters(initialFilters);
+  } = useApplicantFilters(computedInitialFilters);
 
   // Use optimized filter data fetching
   const {

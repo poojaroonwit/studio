@@ -496,7 +496,7 @@ export function UnifiedUserModal({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 bg-background h-full">
 
             {/* Header Section */}
-            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-sm border-b border-border p-6 flex-shrink-0 relative">
+            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-sm border-b border-border p-4 flex-shrink-0 relative">
               <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                 <Check className="h-6 w-6 opacity-0" />
                 <span className="sr-only">Close</span>
@@ -511,7 +511,7 @@ export function UnifiedUserModal({
                 </svg>
               </button>
 
-              <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="flex flex-col md:flex-row items-center gap-4">
                 {/* Avatar */}
                 <div className="flex-shrink-0 relative">
                   <div className="relative group">
@@ -616,26 +616,26 @@ export function UnifiedUserModal({
                   <TabsList className="h-12 bg-transparent p-0 gap-6 w-full justify-start overflow-x-auto no-scrollbar">
                     <TabsTrigger
                       value="personal"
-                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 font-medium transition-all"
                     >
                        Personal Info
                     </TabsTrigger>
                     <TabsTrigger
                       value="account"
-                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 font-medium transition-all"
                     >
                       Account
                     </TabsTrigger>
                     <TabsTrigger
                       value="security"
-                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
+                      className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 font-medium transition-all"
                     >
                       Security
                     </TabsTrigger>
                     {(mode === 'profile' || (mode === 'edit' && user)) && (
                       <TabsTrigger
                         value="preferences"
-                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
+                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 font-medium transition-all"
                       >
                         Preferences
                       </TabsTrigger>
@@ -653,7 +653,7 @@ export function UnifiedUserModal({
 
                 <div className="flex-1 overflow-hidden relative">
                   <ScrollArea className="h-full w-full">
-                    <div className="p-6 max-w-5xl mx-auto space-y-8 pb-20">
+                    <div className="p-4 max-w-5xl mx-auto space-y-4 pb-16">
                       {activeTab === 'hiring' && user?.id ? (
                         <HiringDetailTab userId={user.id} />
                       ) : (
@@ -669,7 +669,7 @@ export function UnifiedUserModal({
                             />
                           </TabsContent>
 
-                          <TabsContent value="account" className="space-y-6 mt-0 focus-visible:ring-0 focus-visible:outline-none">
+                          <TabsContent value="account" className="space-y-4 mt-0 focus-visible:ring-0 focus-visible:outline-none">
                             <UserManagementForm
                               form={form}
                               userGroups={userGroups}

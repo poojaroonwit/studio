@@ -37,6 +37,8 @@ interface MobileSignInViewProps {
     mobileHeaderBackgroundType?: 'gradient' | 'transparent' | 'solid';
     mobileLoginLogoDataUrl?: string | null;
     organizationName?: string;
+    loginStage: 'email' | 'otp';
+    onStageChange: (stage: 'email' | 'otp') => void;
 }
 
 export function MobileSignInView({
@@ -63,6 +65,8 @@ export function MobileSignInView({
     mobileHeaderBackgroundType = 'gradient',
     mobileLoginLogoDataUrl,
     organizationName,
+    loginStage,
+    onStageChange,
 }: MobileSignInViewProps) {
     // Determine which logo to use based on theme
     let logoToUse = mobileLoginLogoDataUrl || appLogoUrl;
@@ -75,15 +79,26 @@ export function MobileSignInView({
     }
     const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
+    // Determine header background style
+    const headerStyle: React.CSSProperties = {
+        color: mobileHeaderFontColor,
+        backgroundImage: 'none', // Force remove background image
+    };
+
+    if (mobileHeaderBackgroundType === 'gradient') {
+        headerStyle.background = `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`;
+    } else if (mobileHeaderBackgroundType === 'solid') {
+        headerStyle.backgroundColor = mobileHeaderGradient1;
+    } else if (mobileHeaderBackgroundType === 'transparent') {
+        headerStyle.background = 'transparent';
+    }
+
     return (
         <div style={loginPageStyle} className="min-h-[100dvh] w-full h-[100dvh] flex flex-col p-0 overflow-hidden">
-            {/* Header - uses same background as login page */}
+            {/* Header - uses mobile-specific background settings */}
             <div
                 className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
-                style={{
-                    ...loginPageStyle,
-                    color: mobileHeaderFontColor,
-                }}
+                style={headerStyle}
             >
                 <div>
                     <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium" style={{ color: 'inherit' }}>Welcome to</div>
@@ -127,10 +142,11 @@ export function MobileSignInView({
                                 activeFontColor={activeFontColor}
                                 activeBgStart={activeBgStart}
                                 activeBgEnd={activeBgEnd}
+                                onStageChange={onStageChange}
                             />
                         )}
 
-                        {(basicAuthEnabled && isAzureAdConfigured) && (
+                        {(basicAuthEnabled && isAzureAdConfigured && loginStage === 'email') && (
                             <div className="mt-4">
                                 <div className="relative mb-4">
                                     <div className="absolute inset-0 flex items-center">
@@ -144,7 +160,7 @@ export function MobileSignInView({
                             </div>
                         )}
 
-                        {(!basicAuthEnabled && isAzureAdConfigured) && (
+                        {(!basicAuthEnabled && isAzureAdConfigured && loginStage === 'email') && (
                             <div className="mt-4">
                                 <AzureAdSignInButton />
                             </div>

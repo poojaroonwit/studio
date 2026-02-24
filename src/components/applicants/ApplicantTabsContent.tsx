@@ -126,6 +126,11 @@ export const ApplicantTabsContent: React.FC<ApplicantTabsContentProps> = ({
             onCustomFieldChange={onCustomFieldChange}
             hideApplicantDetails={true}
             resumes={resumes}
+            register={register}
+            errors={errors}
+            watch={watch}
+            setValue={setValue}
+            control={control}
           />
           {isJobMatchEnabled && (
             <JobMatchTab

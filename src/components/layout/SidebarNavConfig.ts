@@ -56,13 +56,24 @@ export const iconMap = {
 // Config with icon names instead of components for API serialization
 export const sidebarConfigData = [
   {
-    label: "Overview",
+    label: "Analyst",
     items: [
       {
         label: "Dashboard",
         icon: "LayoutDashboard",
-        href: "/",
+        href: "/dashboard",
         description: "Overview and analytics"
+      },
+    ],
+  },
+  {
+    label: "Hiring",
+    items: [
+      {
+        label: "My Task Board",
+        icon: "ListTodo",
+        href: "/my-tasks",
+        description: "Personal task management"
       },
       {
         label: "Applicants",
@@ -76,52 +87,51 @@ export const sidebarConfigData = [
         href: "/positions",
         description: "Job positions and openings"
       },
-      {
-        label: "Process queue",
-        icon: "UploadCloud",
-        href: "/process-queue",
-        description: "Monitor and manage Applicant import queue"
-      },
     ],
   },
   {
-    label: "Recruitment",
+    label: "Shortlist & Interview",
     items: [
       {
-        label: "My Task Board",
-        icon: "ListTodo",
-        href: "/my-tasks",
-        description: "Personal task management"
+        label: "Candidate",
+        icon: "Users",
+        href: "/applicants?status=Hiring Manager Associate",
+        description: "Candidates in Hiring Manager Associate stage"
       },
       {
-        label: "Interview",
+        label: "Interview Page",
         icon: "ClipboardCheck",
         href: "/interview",
         description: "Applicant interview portal"
       },
-      {
-        label: "SLA Monitoring",
-        icon: "AlertTriangle",
-        href: "/sla-monitoring",
-        description: "Monitor Service Level Agreement compliance"
-      },
     ],
   },
   {
-    label: "System",
+    label: "Employee",
     items: [
       {
-        label: "Settings",
+        label: "Organization Settings",
         icon: "Settings",
         href: "/settings",
         description: "System configuration"
       },
       {
-        label: "Security Logs",
-        icon: "Shield",
-        href: "/settings/security-logs",
-        description: "Monitor security incidents",
-        adminOnly: true
+        label: "User Management",
+        icon: "Users",
+        href: "/settings/users",
+        description: "Manage users and roles"
+      },
+      {
+        label: "Meeting Room",
+        icon: "Calendar",
+        href: "/settings/rooms",
+        description: "Manage meeting rooms"
+      },
+      {
+        label: "Evaluation Configuration",
+        icon: "Target",
+        href: "/settings/evaluation-configuration",
+        description: "Configure evaluation settings"
       },
     ],
   },

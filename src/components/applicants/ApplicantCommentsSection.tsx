@@ -661,7 +661,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
   return (
     <div className="h-full flex flex-col min-h-0 p-4">
       {/* Sub Tabs */}
-      <div className="flex items-center border-b mb-4 overflow-x-auto no-scrollbar">
+      <div className="flex items-center border-b mb-4 overflow-x-auto no-scrollbar gap-6">
          {canViewAllComments && (
            <button
               onClick={() => {
@@ -669,12 +669,13 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
                 activeSubTab === 'all' 
-                  ? "border-primary text-primary bg-background" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
               )}
            >
+              <FileIcon className="h-4 w-4" />
               All {counts.all > 0 && `(${counts.all})`}
            </button>
          )}
@@ -685,12 +686,13 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
                 activeSubTab === 'comment' 
-                  ? "border-primary text-primary bg-background" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
               )}
            >
+              <MessageSquare className="h-4 w-4" />
               Comment {counts.comment > 0 && `(${counts.comment})`}
            </button>
          )}
@@ -701,12 +703,13 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('remark');
               }}
               className={cn(
-                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
                 activeSubTab === 'remark' 
-                  ? "border-primary text-primary bg-background" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
               )}
            >
+              <MessageSquare className="h-4 w-4 text-purple-500" />
               Remark {counts.remark > 0 && `(${counts.remark})`}
            </button>
          )}
@@ -717,12 +720,13 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('activity');
               }}
               className={cn(
-                "px-3 py-2 text-[10px] uppercase tracking-wider font-semibold border-b-2 transition-all flex-shrink-0 whitespace-nowrap",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
                 activeSubTab === 'activity' 
-                  ? "border-primary text-primary bg-background" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
               )}
            >
+              <Activity className="h-4 w-4" />
               Activity {counts.activity > 0 && `(${counts.activity})`}
            </button>
          )}
@@ -919,60 +923,34 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
         )}
       </div>
 
-       {/* Channel Selector ABOVE Input - Tab-style Selection Bar */}
-       <div className="flex items-center gap-1 mb-0 border-b border-border">
-          {canViewAllComments && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedChannel('comment');
-                setActiveSubTab('comment');
-              }}
-              className={cn(
-                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
-                selectedChannel === 'comment'
-                  ? "text-primary border-b-2 border-primary -mb-[1px]"
-                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
-              )}
-            >
-              Comment
-            </button>
-          )}
-          {(canViewAllComments || canViewRemarksOnly) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedChannel('remark');
-                setActiveSubTab('remark');
-              }}
-              className={cn(
-                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
-                selectedChannel === 'remark'
-                  ? "text-primary border-b-2 border-primary -mb-[1px]"
-                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
-              )}
-            >
-              Remark to HM
-            </button>
-          )}
-          {canViewActivities && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedChannel('activity');
-                setActiveSubTab('activity');
-              }}
-              className={cn(
-                "px-4 py-2 text-[11px] font-semibold transition-colors relative whitespace-nowrap",
-                selectedChannel === 'activity'
-                  ? "text-primary border-b-2 border-primary -mb-[1px]"
-                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
-              )}
-            >
-              Activity
-            </button>
-          )}
-       </div>
+      {/* Channel Selector ABOVE Input - Dropdown Style */}
+      <div className="flex items-center gap-2 mb-2">
+        <Select
+          value={selectedChannel}
+          onValueChange={(value: 'comment' | 'remark' | 'activity') => {
+            setSelectedChannel(value);
+            setActiveSubTab(value);
+          }}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-[11px] font-semibold border-none bg-transparent hover:bg-muted/50 transition-colors focus:ring-0">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Post as:</span>
+              <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {canViewAllComments && (
+              <SelectItem value="comment" className="text-[11px]">Comment</SelectItem>
+            )}
+            {(canViewAllComments || canViewRemarksOnly) && (
+              <SelectItem value="remark" className="text-[11px]">Remark to HM</SelectItem>
+            )}
+            {canViewActivities && (
+              <SelectItem value="activity" className="text-[11px]">Activity</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
 
 
       {/* Chat-like Comment Input - Fixed at bottom */}

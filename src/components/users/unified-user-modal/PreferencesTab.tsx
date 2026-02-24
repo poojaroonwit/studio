@@ -26,17 +26,17 @@ export function PreferencesTab({
     isPrefsLoading
 }: PreferencesTabProps) {
     return (
-        <div className="space-y-10 mt-4 focus-visible:ring-0 focus-visible:outline-none">
+        <div className="space-y-4 mt-2 focus-visible:ring-0 focus-visible:outline-none">
             {/* UI Customization */}
-            <div className="space-y-6">
-                <div className="flex items-center justify-between border-b pb-4">
+            <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Palette className="h-5 w-5 text-primary" />
                         Interface Settings
                     </h3>
                 </div>
 
-                <div className="space-y-8 px-2">
+                <div className="space-y-4 px-2">
                     {/* Theme Preference Field */}
                     <div className="grid grid-cols-1 md:grid-cols-[200px,1fr] items-center gap-2 md:gap-8 space-y-0">
                         <Label className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
@@ -107,8 +107,8 @@ export function PreferencesTab({
             </div>
 
             {/* Card Customization */}
-            <div className="space-y-6 pt-6 border-t">
-                <div className="flex items-center justify-between border-b pb-4">
+            <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between border-b pb-2">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Layout className="h-5 w-5 text-primary" />
                         Task Board Cards

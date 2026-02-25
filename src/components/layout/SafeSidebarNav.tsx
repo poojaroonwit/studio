@@ -297,7 +297,7 @@ const GroupedSidebarNav = React.memo(() => {
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
       {/* Primary Sidebar - Icon only, always semi-expanded/minimized */}
-      <div className="flex w-[64px] flex-col border-r border-border/40 bg-sidebar/40 backdrop-blur-xl py-6 items-center gap-6 z-20">
+      <div className="flex w-[56px] flex-col border-r border-border/40 bg-sidebar/40 backdrop-blur-xl py-6 items-center gap-6 z-20">
         {filteredGroups.map((group) => (
           <TooltipProvider key={group.label} delayDuration={0}>
             <Tooltip>
@@ -320,7 +320,7 @@ const GroupedSidebarNav = React.memo(() => {
                   )}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={20} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+              <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
                 <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
               </TooltipContent>
             </Tooltip>
@@ -340,7 +340,7 @@ const GroupedSidebarNav = React.memo(() => {
                     )}
                   </OptimizedLink>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={15}>
+                <TooltipContent side="right" sideOffset={12}>
                   <p className="font-semibold text-xs">Process queue</p>
                 </TooltipContent>
               </Tooltip>

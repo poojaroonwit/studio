@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
-import { useSidebar } from '@/components/ui/sidebar';
+
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
@@ -110,11 +110,15 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
 interface HeaderProps {
   pageTitle: string;
   showLogoOnly?: boolean;
+  appLogoUrl?: string | null;
+  currentAppName?: string;
+  contextualLogos?: any;
+  isLogoLoading?: boolean;
 }
 
-export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: HeaderProps) {
-  const { isMobile: sidebarIsMobile, open, toggleSidebar } = useSidebar();
+export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appLogoUrl: propLogoUrl, currentAppName: propAppName, contextualLogos: propContextualLogos, isLogoLoading: propIsLogoLoading }: HeaderProps) {
   const isMobile = useIsMobile();
+
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
@@ -127,8 +131,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
-  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [currentAppName, setCurrentAppName] = useState<string>(propAppName || DEFAULT_APP_NAME);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(propLogoUrl || null);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
 
@@ -477,54 +481,56 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0 border-b border-border/40" style={{ zIndex: 100 }}>
-        <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
-          {/* Back button - only visible on mobile */}
-          {isMobile && pathname.includes('/evaluate') && (
-            <Button variant="ghost" size="icon" className="-ml-2 rounded-none shadow-none" onClick={() => router.back()}>
+      <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50 flex items-center justify-between px-4 lg:px-8 relative z-50 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-zinc-900/20">
+        <div className="flex items-center space-x-6">
+          {/* Brand Logo */}
+          <div className="flex items-center group">
+            {appLogoUrl ? (
+              <img
+                src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
+                alt={currentAppName}
+                className="w-9 h-9 rounded-xl flex-shrink-0 object-contain shadow-lg mr-4 group-hover:shadow-xl transition-all duration-300"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-blue-600/25 mr-4 group-hover:shadow-blue-600/40 transition-all duration-300">
+                {currentAppName?.[0] || 'F'}
+              </div>
+            )}
+            <div className="hidden md:block overflow-hidden whitespace-nowrap">
+              {!showLogoOnly && (
+                <>
+                  <h1 className="font-bold text-gray-900 dark:text-white tracking-tight text-xl leading-none mb-0.5">{currentAppName}</h1>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-widest leading-none">Platform</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Menu Button */}
+          {isMobile && pathname?.includes('/evaluate') && (
+            <Button variant="ghost" size="icon" className="lg:hidden -ml-2 rounded-none shadow-none" onClick={() => router.back()}>
               <ChevronLeft className="w-6 h-6" />
             </Button>
           )}
 
-          {/* Mobile logo - only visible on mobile */}
-          {!isLoading && sidebarIsMobile && (
-            <div className="md:hidden flex items-center h-8 relative">
-              {appLogoUrl ? (
-                <>
-                  <img
-                    src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
-                    alt={currentAppName}
-                    className="h-8 w-auto object-contain"
-                    style={{ maxHeight: '32px', maxWidth: '120px' }}
-                    onError={(e) => {
-                      // Fallback to icon if logo fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling as HTMLElement;
-                      if (fallback) {
-                        fallback.style.display = 'block';
-                      }
-                    }}
-                  />
-                  <Package2 className="h-6 w-6 hidden" />
-                </>
-              ) : (
-                <Package2 className="h-6 w-6" />
-              )}
-            </div>
-          )}
-          {isLoading ? (
-            <>
-              <div className="h-8 w-8 rounded-md bg-muted animate-pulse hidden md:block" />
-              <div className="h-6 w-32 rounded bg-muted animate-pulse hidden md:block" />
-            </>
-          ) : (
-            <div className="hidden md:block">
-              <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
-            </div>
-          )}
+          {/* Vertical Divider */}
+          <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent dark:via-zinc-800 mx-6" />
+
+          {/* Page Title */}
+          <div className="hidden sm:block">
+            {isLoading ? (
+              <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+            ) : (
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{effectivePageTitle}</h2>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center space-x-4 md:space-x-6">
           {isLoading ? (
             <>
               <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />

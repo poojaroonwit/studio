@@ -3,14 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import React, { useEffect, useState, useMemo, useCallback, memo, useRef } from 'react';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider, SidebarSeparator, SidebarTrigger } from '@/components/ui/sidebar';
-import { useSidebar } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronRightIcon as ChevronRight, Bars3Icon as Menu } from '@heroicons/react/24/outline';
 import SidebarNav from '@/components/layout/SafeSidebarNav';
-import { SidebarHeaderContent } from '@/components/layout/SidebarHeaderContent';
 import { Header } from '@/components/layout/Header';
 import { GlobalLoadingOverlay } from '@/components/layout/GlobalLoadingOverlay';
 import { usePageLoading } from '@/hooks/use-page-loading';
@@ -19,7 +12,6 @@ import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { useSessionValidation } from '@/hooks/use-session-validation';
 import { useTheme } from '@/hooks/use-theme';
 import { useRenderMonitor } from '@/hooks/use-render-monitor';
-import { OptimizedContainer, LayoutContainer } from '@/components/ui/optimized-container';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
 
 const DEFAULT_APP_NAME = "FitScan";
@@ -30,7 +22,7 @@ interface AppLayoutProps {
 
 // Memoized component to prevent unnecessary re-renders
 const MemoizedFaviconUpdater = memo(FaviconUpdater);
-const MemoizedSidebarHeaderContent = memo(SidebarHeaderContent);
+
 const MemoizedHeader = memo(Header);
 const MemoizedSidebarNav = memo(SidebarNav);
 MemoizedSidebarNav.displayName = 'MemoizedSidebarNav';
@@ -394,32 +386,13 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
 
   // Memoize page title calculation
   const pageTitle = useMemo(() => {
-    const pathSegments = pathname.split("/");
+    const pathSegments = (pathname || '').split("/");
     const lastSegment = pathSegments[pathSegments.length - 1];
-    return pathname === "/" ? "Dashboard" :
+    return pathname === "/" || !pathname ? "Dashboard" :
       (lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Page");
   }, [pathname]);
 
-  // Memoize sidebar header props to prevent unnecessary re-renders
-  const sidebarHeaderProps = useMemo(() => ({
-    currentAppName,
-    appLogoUrl,
-    isClient,
-    isLogoLoading,
-    showLogoOnly,
-    sidebarLogoSize,
-    collapsedSidebarLogoSize,
-    contextualLogos,
-  }), [
-    currentAppName,
-    appLogoUrl,
-    isClient,
-    isLogoLoading,
-    showLogoOnly,
-    sidebarLogoSize,
-    collapsedSidebarLogoSize,
-    contextualLogos,
-  ]);
+
 
   // Memoize header props
   const headerProps = useMemo(() => ({
@@ -429,40 +402,37 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
 
   // Memoize the main layout JSX to prevent unnecessary re-renders
   const mainLayout = useMemo(() => (
-    <SidebarProvider defaultOpen={false}>
+    <>
       <MemoizedFaviconUpdater faviconDataUrl={faviconDataUrl} />
-      <SidebarToggleButton />
-      <LayoutContainer
-        layout="flex"
-        direction="row"
-        className="bg-background"
-        data-testid="app-layout"
-      >
-        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar" style={{ "--sidebar-width": "260px" } as React.CSSProperties}>
-          <SidebarHeader className="p-0">
-            <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
-          </SidebarHeader>
-          <SidebarContent className="p-0 gap-0 overflow-hidden">
-            <MemoizedSidebarNav />
-          </SidebarContent>
-        </Sidebar>
-        <LayoutContainer
-          layout="flex"
-          direction="column"
-          className="flex-1 min-w-0 h-full"
-        >
-          <MemoizedHeader {...headerProps} />
-          <OptimizedContainer as="main" className="flex-1 main-content-area p-0">
-            {isLoading && <GlobalLoadingOverlay />}
-            {children}
-          </OptimizedContainer>
-        </LayoutContainer>
-      </LayoutContainer>
-    </SidebarProvider>
+      <div className="h-screen bg-gray-50 dark:bg-zinc-950 flex flex-col overflow-hidden" data-testid="app-layout">
+        {/* Top Header - full width */}
+        <MemoizedHeader {...headerProps} appLogoUrl={appLogoUrl} currentAppName={currentAppName} showLogoOnly={showLogoOnly} contextualLogos={contextualLogos} isLogoLoading={isLogoLoading} />
+
+        {/* Main content area with sidebars */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* SidebarNav renders both Rail + Menu as siblings */}
+          <MemoizedSidebarNav />
+
+          {/* Content */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-gray-50 dark:bg-zinc-950">
+            <main className="flex-1 overflow-y-auto relative bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
+              <div className="p-6 w-full mx-auto">
+                {isLoading && <GlobalLoadingOverlay />}
+                {children}
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+    </>
   ), [
     faviconDataUrl,
-    sidebarHeaderProps,
     headerProps,
+    appLogoUrl,
+    currentAppName,
+    showLogoOnly,
+    contextualLogos,
+    isLogoLoading,
     isLoading,
     children
   ]);
@@ -490,77 +460,4 @@ AppLayoutComponent.displayName = 'AppLayoutComponent';
 export const AppLayout = memo(AppLayoutComponent);
 AppLayout.displayName = 'AppLayout';
 
-// Memoize the SidebarToggleButton component
-const SidebarToggleButton = memo(() => {
-  const { open, toggleSidebar } = useSidebar();
-  const [mounted, setMounted] = useState(false);
-  const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTogglingRef = useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handleToggle = useCallback(() => {
-    // Prevent multiple rapid clicks
-    if (isTogglingRef.current) {
-      return;
-    }
-
-    isTogglingRef.current = true;
-    toggleSidebar();
-
-    // Reset after animation completes
-    if (toggleTimeoutRef.current) {
-      clearTimeout(toggleTimeoutRef.current);
-    }
-
-    toggleTimeoutRef.current = setTimeout(() => {
-      isTogglingRef.current = false;
-    }, 200);
-  }, [toggleSidebar]);
-
-  useEffect(() => {
-    return () => {
-      if (toggleTimeoutRef.current) {
-        clearTimeout(toggleTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Only show the toggle button when sidebar is collapsed and component is mounted
-  if (!mounted || open) {
-    return null;
-  }
-
-  return (
-    <div
-      className="fixed top-[12px] left-[var(--sidebar-width-icon,3.5rem)] z-[110] transition-all duration-200"
-      style={{
-        left: 'var(--sidebar-width-icon, 3.5rem)',
-        transform: 'translateX(-50%)'
-      }}
-    >
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background/90 text-sidebar-foreground"
-              onClick={handleToggle}
-              disabled={isTogglingRef.current}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Open sidebar</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-});
-
-SidebarToggleButton.displayName = 'SidebarToggleButton';

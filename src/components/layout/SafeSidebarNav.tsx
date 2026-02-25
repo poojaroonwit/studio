@@ -35,7 +35,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 // Real-time pending count hook with 1s polling and SSE integration
-const usePendingCount = () => {
+export const usePendingCount = () => {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
@@ -114,74 +114,6 @@ const usePendingCount = () => {
   return { pendingCount, isLoading };
 };
 
-// Simple tooltip component
-const MenuItemWithTooltip = React.memo(({ children, label }: { children: React.ReactNode; label: string }) => {
-  const { open } = useSidebar();
-  if (open) return <>{children}</>;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {children}
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <span>{label}</span>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-});
-
-MenuItemWithTooltip.displayName = 'MenuItemWithTooltip';
-
-// Fallback navigation component
-const FallbackNav = React.memo(() => {
-  const { open } = useSidebar();
-  const { pendingCount } = usePendingCount();
-
-  if (!open) {
-    return (
-      <div className="flex flex-col h-full">
-        <SidebarMenu className="flex-1">
-          <SidebarMenuItem>
-            <Link href="/" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
-                <LayoutDashboard className="h-5 w-5" />
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Link href="/applicants" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
-                <Users className="h-5 w-5" />
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      <SidebarMenu className="flex-1">
-        <SidebarGroupLabel>General</SidebarGroupLabel>
-        <SidebarMenuItem>
-          <Link href="/" className="w-full">
-            <SidebarMenuButton className="w-full justify-start" size="default">
-              <LayoutDashboard className="h-5 w-5" />
-              <span className="truncate">Dashboard</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </div>
-  );
-});
-
-FallbackNav.displayName = 'FallbackNav';
-
 // Helper to check if user has permission for an item
 const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: string[]) => {
   if (isAdmin) return true;
@@ -246,13 +178,169 @@ const OptimizedLink = React.memo(({ href, children, ...props }: { href: string; 
 
 OptimizedLink.displayName = 'OptimizedLink';
 
+/* ─────────────── Sidebar Rail ─────────────── */
+export const SidebarRail = React.memo(({ 
+  filteredGroups, 
+  activeGroupLabel, 
+  onHubClick 
+}: { 
+  filteredGroups: any[]; 
+  activeGroupLabel: string | undefined; 
+  onHubClick: (label: string) => void;
+}) => {
+  return (
+    <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[68px]">
+      {/* Spacer to align below header */}
+      <div className="h-4" />
+
+      {/* Hub Navigation */}
+      <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
+        {filteredGroups.map((group) => {
+          const isHubActive = activeGroupLabel === group.label;
+          return (
+            <TooltipProvider key={group.label} delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onHubClick(group.label)}
+                    className={cn(
+                      "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
+                      isHubActive
+                        ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
+                        : "text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]"
+                    )}
+                  >
+                    {/* Active indicator bar */}
+                    {isHubActive && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
+                    )}
+                    <group.icon className={cn(
+                      "w-5 h-5 flex-shrink-0 transition-all duration-200",
+                      isHubActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105"
+                    )} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+                  <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Actions */}
+      <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-gray-100 dark:border-zinc-800/80">
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => onHubClick('Employee')}
+                className="w-11 h-11 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-all duration-200 rounded-xl"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+              <p className="font-bold text-[10px] uppercase tracking-widest">Settings</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </aside>
+  );
+});
+
+SidebarRail.displayName = 'SidebarRail';
+
+/* ─────────────── Sidebar Menu ─────────────── */
+export const SidebarMenuPanel = React.memo(({
+  activeGroup,
+  pathname,
+  pendingCount,
+  sidebarPreferences,
+  hasPositions,
+  activeGroupLabel,
+}: {
+  activeGroup: any;
+  pathname: string;
+  pendingCount: number | null;
+  sidebarPreferences: any;
+  hasPositions: boolean;
+  activeGroupLabel: string | undefined;
+}) => {
+  if (!activeGroup) return null;
+
+  return (
+    <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
+      {/* Hub Label */}
+      <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800/80 mb-3">
+        <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">
+          {activeGroup.label}
+        </h2>
+      </div>
+
+      {/* Navigation Items */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
+        {activeGroup.items.map((item: any) => {
+          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+          return (
+            <OptimizedLink key={item.href} href={item.href} className="block">
+              <button
+                className={cn(
+                  "w-full flex items-center px-3 py-2 text-[13px] font-medium transition-all duration-150 rounded-lg group",
+                  isActive
+                    ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/60"
+                )}
+              >
+                <span className={cn(
+                  "w-5 h-5 mr-3 flex items-center justify-center transition-colors",
+                  isActive
+                    ? "text-blue-500 dark:text-blue-400"
+                    : "text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300"
+                )}>
+                  <item.icon className="w-[18px] h-[18px]" />
+                </span>
+                <span>{item.label}</span>
+                {item.href === '/process-queue' && pendingCount !== null && pendingCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="ml-auto min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] px-1 font-bold animate-pulse shadow-sm"
+                  >
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </Badge>
+                )}
+                {isActive && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />
+                )}
+              </button>
+            </OptimizedLink>
+          );
+        })}
+
+        {activeGroupLabel === 'Hiring' && sidebarPreferences?.showAssignedPositions && hasPositions && (
+          <div className="mt-8 pt-8 border-t border-gray-200/60 dark:border-zinc-800/60">
+            <h3 className="px-3 mb-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-600">Job assigned</h3>
+            <div className="px-1">
+              <AssignedPositionsSidebar variant="compact" />
+            </div>
+          </div>
+        )}
+      </nav>
+    </aside>
+  );
+});
+
+SidebarMenuPanel.displayName = 'SidebarMenuPanel';
+
+/* ─────────────── Main Grouped Navigation ─────────────── */
 const GroupedSidebarNav = React.memo(() => {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const { data: session, status } = useSession();
-  const { open, setOpen } = useSidebar();
   const { pendingCount } = usePendingCount();
   const { sidebar: sidebarPreferences } = useUserPreferences();
-  const { hasPositions } = useHasAssignedPositions();
+  const { hasPositions } = useHasAssignedPositions() as { hasPositions: boolean };
 
   const isAdmin = session?.user?.role === 'Admin';
   const modulePermissions = (session?.user as any)?.modulePermissions || [];
@@ -277,7 +365,7 @@ const GroupedSidebarNav = React.memo(() => {
 
   const [activeGroupLabel, setActiveGroupLabel] = React.useState<string | undefined>(initialActiveGroupLabel);
 
-  // Update active group when pathname changes (e.g. if navigated from elsewhere)
+  // Update active group when pathname changes
   React.useEffect(() => {
     if (initialActiveGroupLabel && initialActiveGroupLabel !== activeGroupLabel) {
       setActiveGroupLabel(initialActiveGroupLabel);
@@ -285,6 +373,10 @@ const GroupedSidebarNav = React.memo(() => {
   }, [initialActiveGroupLabel]);
 
   const activeGroup = filteredGroups.find(g => g.label === activeGroupLabel) || filteredGroups[0];
+
+  const handleHubClick = React.useCallback((label: string) => {
+    setActiveGroupLabel(label);
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -295,105 +387,24 @@ const GroupedSidebarNav = React.memo(() => {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background">
-      {/* Primary Sidebar - Icon only, always semi-expanded/minimized */}
-      <div className="flex w-[56px] flex-col border-r border-border/40 bg-sidebar/40 backdrop-blur-xl py-6 items-center gap-6 z-20">
-        {filteredGroups.map((group) => (
-          <TooltipProvider key={group.label} delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    setActiveGroupLabel(group.label);
-                    if (!open) setOpen(true);
-                  }}
-                  className={cn(
-                    "relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-300 group",
-                    activeGroupLabel === group.label
-                      ? "bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25 scale-105"
-                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-                  )}
-                >
-                  <group.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", activeGroupLabel === group.label && "animate-pulse")} />
-                  {activeGroupLabel === group.label && (
-                    <div className="absolute -left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
-                <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))}
-
-        <div className="mt-auto pt-6 border-t border-border/20 w-full flex flex-col items-center gap-6">
-        </div>
-      </div>
-
-      {/* Secondary Sidebar - Item details */}
-      <div className={cn(
-        "flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out bg-sidebar/20 backdrop-blur-lg border-r border-border/30",
-        open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full pointer-events-none"
-      )}>
-        <div className="px-6 py-8 border-b border-border/30">
-          <h2 className="text-xl font-bold tracking-tight text-foreground/90">{activeGroupLabel}</h2>
-          <p className="text-[10px] font-extrabold text-muted-foreground/50 uppercase tracking-[0.2em] mt-1.5">Management Hub</p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-6 space-y-1.5 custom-scrollbar">
-          {activeGroup?.items.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-            return (
-              <SidebarMenuItem key={item.href} className="list-none">
-                <OptimizedLink href={item.href} className="w-full">
-                  <SidebarMenuButton
-                    isActive={isActive}
-                    className={cn(
-                      "w-full justify-start px-4 h-11 rounded-xl transition-all duration-200",
-                      isActive 
-                        ? "bg-indigo-500/5 text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-600 shadow-sm border border-indigo-500/10" 
-                        : "text-muted-foreground/80 hover:bg-sidebar-accent/50 hover:text-foreground"
-                    )}
-                    size="default"
-                  >
-                    <item.icon className={cn("h-4.5 w-4.5 shrink-0", isActive && "text-indigo-500")} />
-                    <span className={cn("ml-3 font-semibold text-sm truncate", isActive && "text-indigo-600 tracking-tight")}>
-                      {item.label}
-                    </span>
-                    {item.href === '/process-queue' && pendingCount !== null && pendingCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="ml-auto min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] px-1 font-bold animate-pulse shadow-sm"
-                      >
-                        {pendingCount > 99 ? '99+' : pendingCount}
-                      </Badge>
-                    )}
-                    {isActive && (
-                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                    )}
-                  </SidebarMenuButton>
-                </OptimizedLink>
-              </SidebarMenuItem>
-            );
-          })}
-
-          {activeGroupLabel === 'Hiring' && sidebarPreferences?.showAssignedPositions && hasPositions && (
-            <div className="mt-8 pt-8 border-t border-border/20">
-              <h3 className="px-4 mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Job assigned</h3>
-              <div className="px-1">
-                <AssignedPositionsSidebar variant="compact" />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <>
+      <SidebarRail
+        filteredGroups={filteredGroups}
+        activeGroupLabel={activeGroupLabel}
+        onHubClick={handleHubClick}
+      />
+      <SidebarMenuPanel
+        activeGroup={activeGroup}
+        pathname={pathname}
+        pendingCount={pendingCount}
+        sidebarPreferences={sidebarPreferences}
+        hasPositions={hasPositions}
+        activeGroupLabel={activeGroupLabel}
+      />
+    </>
   );
 });
 
 GroupedSidebarNav.displayName = 'GroupedSidebarNav';
 
 export default GroupedSidebarNav;
-
-

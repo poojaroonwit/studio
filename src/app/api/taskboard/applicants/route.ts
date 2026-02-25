@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   let client: any = null;
 
   try {
-    const { session, error } = await requireSessionAndPermission('Applicants_VIEW', request);
+    const { session, error } = await requireSessionAndPermission('applicantS_VIEW', request);
     if (error) return error;
 
     const { searchParams } = new URL(request.url);
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Auto-filter for recruiters
-    const isRecruiterViewRestricted = !hasPermission(session.user, 'Applicants_VIEW');
+    const isRecruiterViewRestricted = !hasPermission(session.user, 'applicantS_VIEW');
     if (isRecruiterViewRestricted && !filters.recruiterId && !filters.positionId) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const isHiringManager = session.user.role === 'Hiring Manager';
     if (isHiringManager) {
       // Check if user has permission to view all Applicants (overrides system setting)
-      const hasViewAllPermission = hasPermission(session.user, 'Applicants_VIEW_ALL');
+      const hasViewAllPermission = hasPermission(session.user, 'applicantS_VIEW_ALL');
 
       if (!hasViewAllPermission) {
         // Check system setting to see if restriction is enabled
@@ -264,3 +264,4 @@ export async function GET(request: NextRequest) {
     }
   }
 }
+

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to send notifications
   // Users should be able to send notifications if they can edit Applicants (basic interaction)
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_EDIT_BASIC')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('applicantS_EDIT_BASIC')) {
     return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to send notifications'));
   }
 
@@ -226,3 +226,4 @@ export async function OPTIONS(request: NextRequest) {
   
   return new Response(null, { status: 200, headers });
 }
+

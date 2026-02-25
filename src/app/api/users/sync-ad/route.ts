@@ -409,7 +409,7 @@ export async function POST(request: NextRequest) {
                 hiringManagerGroupId,
                 'Hiring Manager',
                 'View-only access for hiring decisions',
-                ['Applicants_VIEW', 'Applicants_VIEW_DETAILED', 'Applicants_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
+                ['applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
                 false,
                 false
               ]
@@ -592,3 +592,4 @@ export async function POST(request: NextRequest) {
     headers: { 'Content-Type': 'application/json' }, // We'll parse NDJSON or just concatenated JSONs, but let's stick to text/plain or stick to chunks
   });
 }
+

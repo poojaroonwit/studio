@@ -67,8 +67,8 @@ export function canEditApplicant(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global edit permissions (can edit any Applicant)
-  const hasGlobalBasicEdit = perms.includes('Applicants_EDIT_BASIC') || perms.includes('Applicants_EDIT_BASIC_ALL');
-  const hasGlobalSensitiveEdit = perms.includes('Applicants_EDIT_SENSITIVE') || perms.includes('Applicants_EDIT_SENSITIVE_ALL');
+  const hasGlobalBasicEdit = perms.includes('applicantS_EDIT_BASIC') || perms.includes('applicantS_EDIT_BASIC_ALL');
+  const hasGlobalSensitiveEdit = perms.includes('applicantS_EDIT_SENSITIVE') || perms.includes('applicantS_EDIT_SENSITIVE_ALL');
   
   if (hasGlobalBasicEdit || hasGlobalSensitiveEdit) {
     return { canEdit: true };
@@ -76,8 +76,8 @@ export function canEditApplicant(
 
   // Check for ownership-based permissions
   const isOwnApplicant = applicantRecruiterId === userId;
-  const hasOwnBasicEdit = perms.includes('Applicants_EDIT_BASIC_OWN');
-  const hasOwnSensitiveEdit = perms.includes('Applicants_EDIT_SENSITIVE_OWN');
+  const hasOwnBasicEdit = perms.includes('applicantS_EDIT_BASIC_OWN');
+  const hasOwnSensitiveEdit = perms.includes('applicantS_EDIT_SENSITIVE_OWN');
   
   if (isOwnApplicant && (hasOwnBasicEdit || hasOwnSensitiveEdit)) {
     return { canEdit: true };
@@ -108,13 +108,13 @@ export function canUpdateApplicantPipelineStage(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global pipeline update permission
-  if (perms.includes('Applicants_PIPELINE_STAGE_UPDATE') || perms.includes('Applicants_PIPELINE_STAGE_UPDATE_ALL')) {
+  if (perms.includes('applicantS_PIPELINE_STAGE_UPDATE') || perms.includes('applicantS_PIPELINE_STAGE_UPDATE_ALL')) {
     return { canUpdate: true };
   }
 
   // Check for ownership-based pipeline update permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('Applicants_PIPELINE_STAGE_UPDATE_OWN')) {
+  if (isOwnApplicant && perms.includes('applicantS_PIPELINE_STAGE_UPDATE_OWN')) {
     return { canUpdate: true };
   }
 
@@ -143,13 +143,13 @@ export function canAssignRecruiter(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global recruiter assignment permission
-  if (perms.includes('Applicants_RECRUITER_ASSIGN') || perms.includes('Applicants_RECRUITER_ASSIGN_ALL')) {
+  if (perms.includes('applicantS_RECRUITER_ASSIGN') || perms.includes('applicantS_RECRUITER_ASSIGN_ALL')) {
     return { canAssign: true };
   }
 
   // Check for ownership-based recruiter assignment permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('Applicants_RECRUITER_ASSIGN_OWN')) {
+  if (isOwnApplicant && perms.includes('applicantS_RECRUITER_ASSIGN_OWN')) {
     return { canAssign: true };
   }
 
@@ -178,13 +178,13 @@ export function canAddComments(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global comment add permission
-  if (perms.includes('Applicants_COMMENTS_ADD') || perms.includes('Applicants_COMMENTS_ADD_ALL')) {
+  if (perms.includes('applicantS_COMMENTS_ADD') || perms.includes('applicantS_COMMENTS_ADD_ALL')) {
     return { canAdd: true };
   }
 
   // Check for ownership-based comment add permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('Applicants_COMMENTS_ADD_OWN')) {
+  if (isOwnApplicant && perms.includes('applicantS_COMMENTS_ADD_OWN')) {
     return { canAdd: true };
   }
 
@@ -213,13 +213,13 @@ export function canUploadResumes(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global resume upload permission
-  if (perms.includes('Applicants_RESUMES_UPLOAD') || perms.includes('Applicants_RESUMES_UPLOAD_ALL')) {
+  if (perms.includes('applicantS_RESUMES_UPLOAD') || perms.includes('applicantS_RESUMES_UPLOAD_ALL')) {
     return { canUpload: true };
   }
 
   // Check for ownership-based resume upload permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('Applicants_RESUMES_UPLOAD_OWN')) {
+  if (isOwnApplicant && perms.includes('applicantS_RESUMES_UPLOAD_OWN')) {
     return { canUpload: true };
   }
 

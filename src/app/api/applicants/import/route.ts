@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if user has permission to import Applicants
-  if (!hasPermission(session.user, 'Applicants_IMPORT')) {
+  if (!hasPermission(session.user, 'applicantS_IMPORT')) {
     await logAudit('WARN', `Forbidden attempt to import Applicants by ${actingUserName}`, 'API:Applicants:Import', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import Applicants' }, { status: 403 });
   }
@@ -361,7 +361,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to import Applicants
-  if (!hasPermission(session.user, 'Applicants_IMPORT')) {
+  if (!hasPermission(session.user, 'applicantS_IMPORT')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import Applicants' }, { status: 403 });
   }
 
@@ -489,7 +489,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="Applicants_import_template.xlsx"',
+        'Content-Disposition': 'attachment; filename="applicantS_import_template.xlsx"',
       },
     });
 
@@ -497,3 +497,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate template', details: (error as Error).message }, { status: 500 });
   }
 }
+

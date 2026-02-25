@@ -79,9 +79,9 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
   const userPerms = session?.user?.modulePermissions || [];
   const isAdmin = session?.user?.role === 'Admin';
   
-  const canViewAllComments = isAdmin || userPerms.includes('Applicants_COMMENTS_VIEW');
-  const canViewRemarksOnly = userPerms.includes('Applicants_COMMENTS_VIEW_REMARK_ONLY');
-  const canViewActivities = isAdmin || userPerms.includes('Applicants_ACTIVITIES_VIEW');
+  const canViewAllComments = isAdmin || userPerms.includes('applicantS_COMMENTS_VIEW');
+  const canViewRemarksOnly = userPerms.includes('applicantS_COMMENTS_VIEW_REMARK_ONLY');
+  const canViewActivities = isAdmin || userPerms.includes('applicantS_ACTIVITIES_VIEW');
 
   // Tabs and Channels
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'comment' | 'remark' | 'activity'>('all');
@@ -421,7 +421,14 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
 
   // Limit displayed activities based on height
   const combinedActivities = filteredActivities.slice(0, displayedItems);
-  const hasMoreItems = displayedItems < filteredActivities.length || hasMoreComments || hasMoreActivities;
+  const hasMoreItemsInView = displayedItems < filteredActivities.length;
+  // Only show "Load More" for data types relevant to the active tab
+  const hasMoreDataToFetch = activeSubTab === 'all'
+    ? (hasMoreComments || hasMoreActivities)
+    : activeSubTab === 'activity'
+      ? hasMoreActivities
+      : hasMoreComments; // 'comment' and 'remark' tabs
+  const hasMoreItems = hasMoreItemsInView || hasMoreDataToFetch;
 
   // Drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {

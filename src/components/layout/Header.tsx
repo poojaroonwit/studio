@@ -61,9 +61,7 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     }
   }
 
-  if (pathname.startsWith("/users")) {
-    items.push({ label: "Manage Users", href: "/users" });
-  }
+
 
   if (pathname.startsWith("/my-tasks")) {
     items.push({ label: "My Task Board", href: "/my-tasks" });
@@ -84,7 +82,7 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     } else if (pathname.startsWith("/settings/user-groups")) {
       items.push({ label: "User Groups", href: "/settings/user-groups" });
     } else if (pathname.startsWith("/settings/users")) {
-      items.push({ label: "Users", href: "/settings/users" });
+      items.push({ label: "User Management", href: "/settings/users" });
     } else if (pathname.startsWith("/settings/webhooks")) {
       items.push({ label: "Webhooks", href: "/settings/webhooks" });
     } else if (pathname.startsWith("/settings/logs")) {
@@ -716,16 +714,19 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
+                        <div className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-accent/20 transition-all duration-200 cursor-pointer group">
                           <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                          <div className="hidden sm:block text-left pr-1">
+                            <p className="text-sm font-semibold leading-none capitalize">{user.name?.split(' ')[0] || 'User'}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase mt-0.5 tracking-wider">{user.role || 'Admin'}</p>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
                         </div>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-50">
-                        <DropdownMenuLabel className="font-normal">
-                          <div className="flex flex-col space-y-1">
-                            <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>
-                            {user.email && (<p className="text-xs leading-none text-muted-foreground"> {user.email} </p>)}
-                          </div>
+                      <DropdownMenuContent align="start" className="w-72 rounded-2xl border border-border/50 shadow-2xl">
+                        <DropdownMenuLabel className="font-normal px-5 py-4">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">Signed in as</p>
+                          <p className="text-sm font-semibold truncate mt-1">{user.email || user.name || 'User'}</p>
                         </DropdownMenuLabel>
                         <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
                         {/* Appearance - Hidden on mobile */}

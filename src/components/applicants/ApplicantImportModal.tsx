@@ -46,7 +46,7 @@ export default function ApplicantImportModal({ isOpen, onOpenChange, onImportSuc
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Applicants_import_template.xlsx';
+      a.download = 'applicantS_import_template.xlsx';
       // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
       const safeUrl = sanitizeUrl(url);
       if (safeUrl) {
@@ -261,3 +261,4 @@ export default function ApplicantImportModal({ isOpen, onOpenChange, onImportSuc
     </Dialog>
   );
 }
+

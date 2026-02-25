@@ -39,7 +39,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // View Permissions
   {
-    id: 'Applicants_VIEW',
+    id: 'applicantS_VIEW',
     label: 'View Applicants',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View basic Applicant profiles",
@@ -49,7 +49,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_VIEW_ALL',
+    id: 'applicantS_VIEW_ALL',
     label: 'View All Applicants (Unrestricted)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View all Applicants regardless of position assignment",
@@ -59,7 +59,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_VIEW_DETAILED',
+    id: 'applicantS_VIEW_DETAILED',
     label: 'View Detailed Info',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View resumes and interview notes",
@@ -70,7 +70,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Create/Edit Permissions
   {
-    id: 'Applicants_CREATE',
+    id: 'applicantS_CREATE',
     label: 'Create New Applicants',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Add new Applicant profiles to the system",
@@ -80,7 +80,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EDIT_BASIC',
+    id: 'applicantS_EDIT_BASIC',
     label: 'Edit Applicants',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit main contact details",
@@ -90,7 +90,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EDIT_SENSITIVE',
+    id: 'applicantS_EDIT_SENSITIVE',
     label: 'Edit Sensitive Applicant Information',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit sensitive Applicant data including salary and notes",
@@ -101,7 +101,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Ownership-based Edit Permissions
   {
-    id: 'Applicants_EDIT_BASIC_OWN',
+    id: 'applicantS_EDIT_BASIC_OWN',
     label: 'Edit Basic Information (Own Assigned)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit basic Applicant details for Applicants assigned to you",
@@ -111,7 +111,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EDIT_SENSITIVE_OWN',
+    id: 'applicantS_EDIT_SENSITIVE_OWN',
     label: 'Edit Sensitive Information (Own Assigned)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit sensitive Applicant data for Applicants assigned to you",
@@ -121,7 +121,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EDIT_BASIC_ALL',
+    id: 'applicantS_EDIT_BASIC_ALL',
     label: 'Edit Basic Information (All Applicants)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit basic Applicant details for all Applicants",
@@ -131,7 +131,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EDIT_SENSITIVE_ALL',
+    id: 'applicantS_EDIT_SENSITIVE_ALL',
     label: 'Edit Sensitive Information (All Applicants)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit sensitive Applicant data for all Applicants",
@@ -142,7 +142,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Delete Permissions
   {
-    id: 'Applicants_DELETE',
+    id: 'applicantS_DELETE',
     label: 'Delete Applicant Profiles',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Permanently remove Applicant profiles from the system",
@@ -156,7 +156,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // File Management
   {
-    id: 'Applicants_RESUMES_UPLOAD',
+    id: 'applicantS_RESUMES_UPLOAD',
     label: 'Upload Applicant Resumes',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Upload and manage Applicant resumes and documents",
@@ -166,7 +166,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RESUMES_UPLOAD_OWN',
+    id: 'applicantS_RESUMES_UPLOAD_OWN',
     label: 'Upload Resumes (Own Assigned)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Upload resumes for Applicants assigned to you",
@@ -176,7 +176,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RESUMES_UPLOAD_ALL',
+    id: 'applicantS_RESUMES_UPLOAD_ALL',
     label: 'Upload Resumes (All Applicants)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Upload resumes for any Applicant",
@@ -186,7 +186,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RESUMES_DELETE',
+    id: 'applicantS_RESUMES_DELETE',
     label: 'Delete Applicant Documents',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Remove Applicant resumes and attachments",
@@ -197,7 +197,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Comments and Notes
   {
-    id: 'Applicants_COMMENTS_VIEW',
+    id: 'applicantS_COMMENTS_VIEW',
     label: 'View Applicant Comments',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View comments and notes on Applicant profiles",
@@ -207,7 +207,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_COMMENTS_ADD',
+    id: 'applicantS_COMMENTS_ADD',
     label: 'Add Applicant Comments',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Add comments and notes to Applicant profiles",
@@ -217,7 +217,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_COMMENTS_ADD_OWN',
+    id: 'applicantS_COMMENTS_ADD_OWN',
     label: 'Add Comments (Own Assigned)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Add comments to Applicants assigned to you",
@@ -227,7 +227,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_COMMENTS_ADD_ALL',
+    id: 'applicantS_COMMENTS_ADD_ALL',
     label: 'Add Comments (All Applicants)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Add comments to any Applicant",
@@ -237,7 +237,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_COMMENTS_EDIT',
+    id: 'applicantS_COMMENTS_EDIT',
     label: 'Edit Applicant Comments',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Edit and delete Applicant comments and notes",
@@ -247,7 +247,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_COMMENTS_VIEW_REMARK_ONLY',
+    id: 'applicantS_COMMENTS_VIEW_REMARK_ONLY',
     label: 'View Remarks to HM Only',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Only allowed to view 'Remark to HM' comments",
@@ -257,7 +257,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_ACTIVITIES_VIEW',
+    id: 'applicantS_ACTIVITIES_VIEW',
     label: 'View Applicant Activities',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "View activity logs and status changes",
@@ -268,7 +268,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Source Assignment
   {
-    id: 'Applicants_SOURCE_ASSIGN',
+    id: 'applicantS_SOURCE_ASSIGN',
     label: 'Assign Applicant Source',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign and change Applicant source (e.g., LinkedIn, Referral, Job Board)",
@@ -278,7 +278,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_SOURCE_ASSIGN_BULK',
+    id: 'applicantS_SOURCE_ASSIGN_BULK',
     label: 'Bulk Source Assignment',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign source for multiple Applicants at once",
@@ -289,7 +289,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Recruiter Assignment
   {
-    id: 'Applicants_RECRUITER_ASSIGN',
+    id: 'applicantS_RECRUITER_ASSIGN',
     label: 'Assign Recruiters',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign Applicants to recruiters",
@@ -299,7 +299,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RECRUITER_ASSIGN_OWN',
+    id: 'applicantS_RECRUITER_ASSIGN_OWN',
     label: 'Assign Own Applicants to Recruiter',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign only your own Applicants to other recruiters",
@@ -309,7 +309,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RECRUITER_ASSIGN_ALL',
+    id: 'applicantS_RECRUITER_ASSIGN_ALL',
     label: 'Assign All Applicants to Recruiter',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign any Applicant to recruiters",
@@ -319,7 +319,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_RECRUITER_ASSIGN_BULK',
+    id: 'applicantS_RECRUITER_ASSIGN_BULK',
     label: 'Bulk Recruiter Assignment',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Assign multiple Applicants to recruiters at once",
@@ -330,7 +330,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Pipeline Stage Management
   {
-    id: 'Applicants_PIPELINE_STAGE_UPDATE',
+    id: 'applicantS_PIPELINE_STAGE_UPDATE',
     label: 'Move Applicants',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Advance Applicants in pipeline",
@@ -340,7 +340,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_PIPELINE_STAGE_UPDATE_OWN',
+    id: 'applicantS_PIPELINE_STAGE_UPDATE_OWN',
     label: 'Update Pipeline Stage (Own Assigned)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Move own assigned Applicants through pipeline stages",
@@ -350,7 +350,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_PIPELINE_STAGE_UPDATE_ALL',
+    id: 'applicantS_PIPELINE_STAGE_UPDATE_ALL',
     label: 'Update Pipeline Stage (All Applicants)',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Move any Applicant through pipeline stages",
@@ -360,7 +360,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_PIPELINE_STAGE_BULK_UPDATE',
+    id: 'applicantS_PIPELINE_STAGE_BULK_UPDATE',
     label: 'Bulk Pipeline Stage Updates',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Update pipeline stage for multiple Applicants at once",
@@ -372,7 +372,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   // Import/Export
   {
-    id: 'Applicants_IMPORT',
+    id: 'applicantS_IMPORT',
     label: 'Import Applicant Data',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Bulk import Applicant data from external sources",
@@ -383,7 +383,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
 
   {
-    id: 'Applicants_EXPORT',
+    id: 'applicantS_EXPORT',
     label: 'Export Applicant Data',
     category: PLATFORM_MODULE_CATEGORIES.APPLICANT_MANAGEMENT,
     description: "Export Applicant data to external formats",
@@ -612,6 +612,26 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     description: "Modify system configuration settings",
     detailedDescription: "Ability to modify system settings including application name, logo, branding, and basic configuration.",
     impact: "Can modify system appearance and basic configuration. Affects all users.",
+    riskLevel: 'MEDIUM'
+  },
+
+  {
+    id: 'WARNING_CONFIGURATIONS_VIEW',
+    label: 'View Warning Configurations',
+    category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION,
+    description: "View warning threshold settings",
+    detailedDescription: "Access to view system-wide warning threshold configurations, such as SLA violation limits and performance alerts.",
+    impact: "Read-only access to system warning triggers.",
+    riskLevel: 'LOW'
+  },
+
+  {
+    id: 'WARNING_CONFIGURATIONS_MANAGE',
+    label: 'Manage Warning Configurations',
+    category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION,
+    description: "Modify warning threshold settings",
+    detailedDescription: "Ability to create and modify system-wide warning threshold configurations. Affects what triggers SLA notifications and UI alerts.",
+    impact: "Can change warning thresholds. Affects monitoring and alerting accuracy.",
     riskLevel: 'MEDIUM'
   },
 
@@ -1855,3 +1875,4 @@ export interface UploadQueueCountResponse {
 export interface UploadQueuePendingCountResponse {
   count: number;
 }
+

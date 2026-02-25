@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Inter, IBM_Plex_Sans_Thai } from 'next/font/google';
+import { DM_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 import { auth } from '@/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { initializeServices } from '@/lib/startup';
@@ -18,10 +18,11 @@ import { RightClickProtection } from '@/components/security/RightClickProtection
 import { ScreenCaptureProtection } from '@/components/security/ScreenCaptureProtection';
 import { PageTransition } from '@/components/ui/PageTransition';
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-dm-sans',
   fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
   adjustFontFallback: true,
   preload: true,
@@ -91,7 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = fastDev ? null : await auth();
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${ibmPlexSansThai.variable}`}>
       <head>
         {/* Viewport configuration */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0" />

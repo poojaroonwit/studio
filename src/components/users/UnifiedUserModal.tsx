@@ -643,7 +643,7 @@ export function UnifiedUserModal({
                     {user?.id && (
                       <TabsTrigger
                         value="hiring"
-                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 font-medium transition-all"
+                        className="h-12 !rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 font-medium transition-all"
                       >
                         Hiring
                       </TabsTrigger>

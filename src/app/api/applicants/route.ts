@@ -116,7 +116,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
 }
 
 export async function POST(request: NextRequest) {
-  const { session, error } = await requireSessionAndPermission('Applicants_CREATE', request);
+  const { session, error } = await requireSessionAndPermission('applicantS_CREATE', request);
   if (error) return error;
   const actingUserId = session.user.id;
   const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;
@@ -289,7 +289,7 @@ export async function GET(request: NextRequest) {
 
   try {
 
-    const { session, error } = await requireSessionAndPermission('Applicants_VIEW', request);
+    const { session, error } = await requireSessionAndPermission('applicantS_VIEW', request);
     if (error) return error;
     const actingUserId = session.user.id;
 
@@ -724,9 +724,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-filter: If user is a recruiter (not Admin and doesn't have Applicants_VIEW permission), 
+    // Auto-filter: If user is a recruiter (not Admin and doesn't have applicantS_VIEW permission), 
     // only show their assigned Applicants unless explicit filters are set
-    const isRecruiterViewRestricted = !hasPermission(session.user, 'Applicants_VIEW');
+    const isRecruiterViewRestricted = !hasPermission(session.user, 'applicantS_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
     const positionIdFromFilter = filters.positionId;
 
@@ -738,9 +738,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter for hiring managers: only show Applicants for positions where they are assigned as interviewers
-    // This restriction is bypassed if the user has the Applicants_VIEW_ALL permission
+    // This restriction is bypassed if the user has the applicantS_VIEW_ALL permission
     const isHiringManager = session.user.role === 'Hiring Manager';
-    if (isHiringManager && !hasPermission(session.user, 'Applicants_VIEW_ALL')) {
+    if (isHiringManager && !hasPermission(session.user, 'applicantS_VIEW_ALL')) {
       // Check system setting to see if restriction is enabled (defaults to true)
       const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
       const shouldRestrict = restrictSetting !== 'false';
@@ -1286,3 +1286,4 @@ export async function GET(request: NextRequest) {
     }
   }
 }
+

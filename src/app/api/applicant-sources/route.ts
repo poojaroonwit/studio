@@ -32,11 +32,11 @@ export async function GET(request: NextRequest) {
   // Check if user has permission to view Applicant sources
   // Users should be able to view sources if they can view Applicants (since sources are used for Applicant management)
   // Also allow Admin role to access
-  const hasViewPermission = hasPermission(session.user, 'Applicants_VIEW') || 
+  const hasViewPermission = hasPermission(session.user, 'applicantS_VIEW') || 
                            session.user.role === 'Admin';
   
   if (!hasViewPermission) {
-    console.warn(`Permission denied for user ${session.user.id} (${session.user.name}) - missing Applicants_VIEW permission`);
+    console.warn(`Permission denied for user ${session.user.id} (${session.user.name}) - missing applicantS_VIEW permission`);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to view Applicant sources" }, { status: 403 });
   }
 
@@ -166,3 +166,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Error creating Applicant source", error: error.message }, { status: 500 });
   }
 }
+

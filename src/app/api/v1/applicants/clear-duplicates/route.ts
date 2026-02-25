@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // console.log('[Clear Duplicates] User authenticated:', user.id, user.role);
 
     // Check permissions
-    if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_DELETE')) {
+    if (user.role !== 'Admin' && !user.modulePermissions?.includes('applicantS_DELETE')) {
       // console.log('[Clear Duplicates] Permission denied for user:', user.id);
       return NextResponse.json({
         success: false,
@@ -331,3 +331,4 @@ export async function POST(req: NextRequest) {
     }, { status: 500, headers });
   }
 }
+

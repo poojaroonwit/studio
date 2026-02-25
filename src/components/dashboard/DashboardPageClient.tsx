@@ -234,7 +234,7 @@ export default function DashboardPageClient({
   const canGenerateReports = hasPermission(session?.user, 'REPORTS_GENERATE');
 
   // Check if user can view all Applicants (for conditional rendering)
-  const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
+  const canViewAllApplicants = hasPermission(session?.user, 'applicantS_VIEW');
 
 
 
@@ -261,7 +261,7 @@ export default function DashboardPageClient({
       const fetchOptions = { credentials: 'include' as const, timeoutMs: 10000 };
       const promises = [];
       // Check permissions to determine what data to fetch
-      const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
+      const canViewAllApplicants = hasPermission(session?.user, 'applicantS_VIEW');
       const canViewAllUsers = hasPermission(session?.user, 'USERS_VIEW') ||
         hasPermission(session?.user, 'USERS_CREATE') ||
         hasPermission(session?.user, 'USERS_EDIT') ||
@@ -453,7 +453,7 @@ export default function DashboardPageClient({
     setFilteredApplicants(initialApplicants || []);
 
     // Check if user can view all Applicants or only their assigned ones
-    const canViewAllApplicants = hasPermission(session?.user, 'Applicants_VIEW');
+    const canViewAllApplicants = hasPermission(session?.user, 'applicantS_VIEW');
 
     if (!canViewAllApplicants) {
       // User can only see their assigned Applicants
@@ -877,7 +877,7 @@ export default function DashboardPageClient({
     // Determine the best fallback route based on permissions
     const canAccessMyTasks = hasPermission(session?.user, 'TASK_BOARD_MANAGE_OWN') ||
       hasPermission(session?.user, 'TASK_BOARD_VIEW') ||
-      hasPermission(session?.user, 'Applicants_VIEW');
+      hasPermission(session?.user, 'applicantS_VIEW');
     const canViewPositions = hasPermission(session?.user, 'POSITIONS_VIEW');
 
     let redirectTo = '/applicants'; // Default fallback

@@ -843,15 +843,15 @@ export function ApplicantsPageClient({
 
   // Permissions
   const modulePermissions = session?.user?.modulePermissions || [];
-  const canExportApplicants = modulePermissions.includes('Applicants_EXPORT') || false;
-  const canCreateApplicants = modulePermissions.includes('Applicants_CREATE') || false;
-  const canEditApplicants = modulePermissions.includes('Applicants_EDIT_BASIC') || modulePermissions.includes('Applicants_EDIT_BASIC_OWN') || modulePermissions.includes('Applicants_EDIT_BASIC_ALL') || false;
-  const canDeleteApplicants = modulePermissions.includes('Applicants_DELETE') || false;
-  const canChangeStatus = modulePermissions.includes('Applicants_PIPELINE_STAGE_UPDATE') || modulePermissions.includes('Applicants_PIPELINE_STAGE_UPDATE_OWN') || modulePermissions.includes('Applicants_PIPELINE_STAGE_UPDATE_ALL') || false;
-  const canBulkChangeStatus = modulePermissions.includes('Applicants_PIPELINE_STAGE_BULK_UPDATE') || modulePermissions.includes('Applicants_PIPELINE_STAGE_UPDATE_OWN') || modulePermissions.includes('Applicants_PIPELINE_STAGE_UPDATE_ALL') || false;
-  const canViewDetailed = modulePermissions.includes('Applicants_VIEW_DETAILED') || false;
-  const canAssignSource = modulePermissions.includes('Applicants_SOURCE_ASSIGN') || false;
-  const canAssignRecruiter = modulePermissions.includes('Applicants_RECRUITER_ASSIGN') || modulePermissions.includes('Applicants_RECRUITER_ASSIGN_OWN') || modulePermissions.includes('Applicants_RECRUITER_ASSIGN_ALL') || false;
+  const canExportApplicants = modulePermissions.includes('applicantS_EXPORT') || false;
+  const canCreateApplicants = modulePermissions.includes('applicantS_CREATE') || false;
+  const canEditApplicants = modulePermissions.includes('applicantS_EDIT_BASIC') || modulePermissions.includes('applicantS_EDIT_BASIC_OWN') || modulePermissions.includes('applicantS_EDIT_BASIC_ALL') || false;
+  const canDeleteApplicants = modulePermissions.includes('applicantS_DELETE') || false;
+  const canChangeStatus = modulePermissions.includes('applicantS_PIPELINE_STAGE_UPDATE') || modulePermissions.includes('applicantS_PIPELINE_STAGE_UPDATE_OWN') || modulePermissions.includes('applicantS_PIPELINE_STAGE_UPDATE_ALL') || false;
+  const canBulkChangeStatus = modulePermissions.includes('applicantS_PIPELINE_STAGE_BULK_UPDATE') || modulePermissions.includes('applicantS_PIPELINE_STAGE_UPDATE_OWN') || modulePermissions.includes('applicantS_PIPELINE_STAGE_UPDATE_ALL') || false;
+  const canViewDetailed = modulePermissions.includes('applicantS_VIEW_DETAILED') || false;
+  const canAssignSource = modulePermissions.includes('applicantS_SOURCE_ASSIGN') || false;
+  const canAssignRecruiter = modulePermissions.includes('applicantS_RECRUITER_ASSIGN') || modulePermissions.includes('applicantS_RECRUITER_ASSIGN_OWN') || modulePermissions.includes('applicantS_RECRUITER_ASSIGN_ALL') || false;
 
   // Calculate total pages for pagination
   const totalPages = useMemo(() => {
@@ -2160,3 +2160,4 @@ export function ApplicantsPageClient({
     </>
   );
 }
+

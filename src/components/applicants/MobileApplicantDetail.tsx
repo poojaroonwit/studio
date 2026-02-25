@@ -125,7 +125,7 @@ export default function MobileApplicantDetail({
           credentials: 'include',
           signal: abortControllerRef.current.signal
         }),
-        fetch(`/api/applicants/${applicantId}/transitions`, {
+        fetch(`/api/transitions?applicantId=${applicantId}`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
         })

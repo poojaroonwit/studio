@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-    if (!hasPermission(session.user, 'Applicants_VIEW')) {
+    if (!hasPermission(session.user, 'applicantS_VIEW')) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -62,3 +62,4 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

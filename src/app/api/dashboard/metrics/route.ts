@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const canViewAll = hasPermission(session.user, 'Applicants_VIEW');
+    const canViewAll = hasPermission(session.user, 'applicantS_VIEW');
     
     const pool = getPool();
     const client = await pool.connect();
@@ -30,3 +30,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

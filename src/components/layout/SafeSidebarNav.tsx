@@ -193,7 +193,7 @@ const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: strin
   if (item.href === '/my-tasks') {
     return modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
            modulePermissions.includes('TASK_BOARD_VIEW') ||
-           modulePermissions.includes('Applicants_VIEW');
+           modulePermissions.includes('applicantS_VIEW');
   }
   if (item.href === '/positions') {
     return modulePermissions.includes('POSITIONS_VIEW');
@@ -389,4 +389,5 @@ const GroupedSidebarNav = React.memo(() => {
 GroupedSidebarNav.displayName = 'GroupedSidebarNav';
 
 export default GroupedSidebarNav;
+
 

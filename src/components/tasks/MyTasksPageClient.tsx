@@ -296,14 +296,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
 
 
-  // Permission check: If user is a recruiter (not Admin and doesn't have Applicants_VIEW permission), 
+  // Permission check: If user is a recruiter (not Admin and doesn't have applicantS_VIEW permission), 
   // only show their assigned Applicants
   const isRecruiter = userSession?.role === 'Recruiter' && 
-    !userSession?.modulePermissions?.includes('Applicants_VIEW');
+    !userSession?.modulePermissions?.includes('applicantS_VIEW');
 
-  // Check if user can see all recruiters (has USERS_VIEW or Applicants_VIEW permission)
+  // Check if user can see all recruiters (has USERS_VIEW or applicantS_VIEW permission)
   const canSeeAllRecruiter = userSession?.modulePermissions?.includes('USERS_VIEW') || 
-    userSession?.modulePermissions?.includes('Applicants_VIEW');
+    userSession?.modulePermissions?.includes('applicantS_VIEW');
 
   // Set initial recruiter filter for recruiters (but not when no stages are selected)
   useEffect(() => {
@@ -1308,3 +1308,4 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     </div>
   );
 }
+

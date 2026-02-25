@@ -918,7 +918,7 @@ export function getSwaggerSpec() {
         },
         post: {
           summary: 'Send notifications (V1 API)',
-          description: 'Send custom notifications. Supports both single and bulk notifications. Requires Bearer token authentication and Applicants_EDIT_BASIC permission or Admin role.',
+          description: 'Send custom notifications. Supports both single and bulk notifications. Requires Bearer token authentication and applicantS_EDIT_BASIC permission or Admin role.',
           tags: ['V1 Notifications'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -1242,3 +1242,4 @@ export function getSwaggerSpec() {
 }
 
 export default getSwaggerSpec();
+

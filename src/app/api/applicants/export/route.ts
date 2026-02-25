@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to export Applicants
-  if (!hasPermission(session.user, 'Applicants_EXPORT')) {
+  if (!hasPermission(session.user, 'applicantS_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export Applicants by ${actingUserName}`, 'API:Applicants:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export Applicants' }, { status: 403 });
   }
@@ -465,7 +465,7 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': 'attachment; filename="Applicants_export.xlsx"',
+          'Content-Disposition': 'attachment; filename="applicantS_export.xlsx"',
         },
       });
     } else {
@@ -481,7 +481,7 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': 'attachment; filename="Applicants_export.csv"',
+          'Content-Disposition': 'attachment; filename="applicantS_export.csv"',
         },
       });
     }
@@ -528,5 +528,6 @@ export async function GET(request: NextRequest) {
     }
   }
 }
+
 
 

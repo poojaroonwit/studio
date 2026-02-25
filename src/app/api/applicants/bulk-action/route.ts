@@ -242,16 +242,16 @@ export async function POST(request: NextRequest) {
   
   switch (actionType) {
     case 'assign_recruiter':
-      hasPermission = hasAnyPermission(session.user, ['Applicants_RECRUITER_ASSIGN', 'Applicants_RECRUITER_ASSIGN_OWN']);
+      hasPermission = hasAnyPermission(session.user, ['applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_OWN']);
       break;
     case 'change_status':
-      hasPermission = hasAnyPermission(session.user, ['Applicants_PIPELINE_STAGE_BULK_UPDATE', 'Applicants_PIPELINE_STAGE_UPDATE_OWN']);
+      hasPermission = hasAnyPermission(session.user, ['applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN']);
       break;
     case 'delete':
-      hasPermission = hasAnyPermission(session.user, ['Applicants_DELETE']);
+      hasPermission = hasAnyPermission(session.user, ['applicantS_DELETE']);
       break;
     case 'reprocess':
-      hasPermission = hasAnyPermission(session.user, ['Applicants_EDIT_BASIC', 'Applicants_EDIT_BASIC_OWN']);
+      hasPermission = hasAnyPermission(session.user, ['applicantS_EDIT_BASIC', 'applicantS_EDIT_BASIC_OWN']);
       break;
     default:
       hasPermission = false;
@@ -262,16 +262,16 @@ export async function POST(request: NextRequest) {
     
     switch (actionType) {
       case 'change_status':
-        specificMessage = 'Forbidden: You do not have permission to update Applicant status. Please contact your administrator to request the "Applicants_PIPELINE_STAGE_BULK_UPDATE" permission.';
+        specificMessage = 'Forbidden: You do not have permission to update Applicant status. Please contact your administrator to request the "applicantS_PIPELINE_STAGE_BULK_UPDATE" permission.';
         break;
       case 'assign_recruiter':
-        specificMessage = 'Forbidden: You do not have permission to assign recruiters to Applicants. Please contact your administrator to request the "Applicants_RECRUITER_ASSIGN" permission.';
+        specificMessage = 'Forbidden: You do not have permission to assign recruiters to Applicants. Please contact your administrator to request the "applicantS_RECRUITER_ASSIGN" permission.';
         break;
       case 'delete':
-        specificMessage = 'Forbidden: You do not have permission to delete Applicants. Please contact your administrator to request the "Applicants_DELETE" permission.';
+        specificMessage = 'Forbidden: You do not have permission to delete Applicants. Please contact your administrator to request the "applicantS_DELETE" permission.';
         break;
       case 'reprocess':
-        specificMessage = 'Forbidden: You do not have permission to re-process Applicants. Please contact your administrator to request the "Applicants_EDIT_BASIC" permission.';
+        specificMessage = 'Forbidden: You do not have permission to re-process Applicants. Please contact your administrator to request the "applicantS_EDIT_BASIC" permission.';
         break;
       default:
         specificMessage = 'Forbidden: You do not have permission to perform this action on Applicants. Please contact your administrator.';
@@ -868,3 +868,4 @@ export async function POST(request: NextRequest) {
     }
   }
 }
+

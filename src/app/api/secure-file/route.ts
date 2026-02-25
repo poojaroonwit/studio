@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to access files
-  if (!hasPermission(session.user, 'Applicants_VIEW')) {
+  if (!hasPermission(session.user, 'applicantS_VIEW')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to access files' }, { status: 403 });
   }
 
@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Check ownership-based permissions
-      const hasGlobalEditPermission = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') || 
-                                    session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE');
-      const hasOwnEditPermission = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') || 
-                                 session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN');
+      const hasGlobalEditPermission = session.user.modulePermissions?.includes('applicantS_EDIT_BASIC') || 
+                                    session.user.modulePermissions?.includes('applicantS_EDIT_SENSITIVE');
+      const hasOwnEditPermission = session.user.modulePermissions?.includes('applicantS_EDIT_BASIC_OWN') || 
+                                 session.user.modulePermissions?.includes('applicantS_EDIT_SENSITIVE_OWN');
 
       if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
         return NextResponse.json({ error: 'Insufficient permissions to access Applicant files' }, { status: 403 });
@@ -104,3 +104,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

@@ -44,7 +44,7 @@ function getScoreGrade(score: number | null): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const { session, error } = await requireSessionAndPermission('Applicants_VIEW', request);
+    const { session, error } = await requireSessionAndPermission('applicantS_VIEW', request);
     if (error) return error;
 
     const { searchParams } = new URL(request.url);
@@ -420,3 +420,4 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

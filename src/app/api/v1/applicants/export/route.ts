@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('Applicants_EXPORT')) {
+  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('applicantS_EXPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to export Applicants' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -126,3 +126,4 @@ export async function OPTIONS(request: NextRequest) {
   const headers = handleCors(request);
   return new Response(null, { status: 200, headers });
 } 
+

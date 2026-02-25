@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   // Check if user has permission to use AI search
   // Users should be able to use AI search if they can view Applicants or have AI-specific permissions
-  if (!hasPermission(session.user, 'Applicants_VIEW') && 
+  if (!hasPermission(session.user, 'applicantS_VIEW') && 
       !hasPermission(session.user, 'AI_INTEGRATION_VIEW')) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to use AI search" }, { status: 403 });
   }
@@ -64,3 +64,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

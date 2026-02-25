@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalEditPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'Applicants_EDIT_BASIC', 'Applicants_EDIT_SENSITIVE']);
-  const hasOwnEditPermission = hasAnyPermission(session.user, ['Applicants_EDIT_BASIC_OWN', 'Applicants_EDIT_SENSITIVE_OWN']);
+  const hasGlobalEditPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE']);
+  const hasOwnEditPermission = hasAnyPermission(session.user, ['applicantS_EDIT_BASIC_OWN', 'applicantS_EDIT_SENSITIVE_OWN']);
   
   if (!hasGlobalEditPermission && !hasOwnEditPermission) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage Applicant attachments' }, { status: 403 });
@@ -157,3 +157,4 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

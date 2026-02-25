@@ -232,7 +232,7 @@ export function PWAInstallPrompt() {
   // console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">
+    <div className="fixed top-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-top-5">
       <div className="bg-background border border-border rounded-lg shadow-lg p-4 relative">
         {/* Close button in top-right corner */}
         <Button

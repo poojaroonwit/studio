@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     // For other images, require view permissions
     if (!isSettingsImage) {
       const hasAnyViewPermission =
-        hasPermission(session.user, 'Applicants_VIEW') ||
+        hasPermission(session.user, 'applicantS_VIEW') ||
         hasPermission(session.user, 'POSITIONS_VIEW') ||
         session.user.role === 'Admin';
 
@@ -136,10 +136,10 @@ export async function GET(request: NextRequest) {
             select: { id: true, recruiterId: true }
           });
         if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 });
-        const hasGlobalEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC') ||
-          session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE');
-        const hasOwnEdit = session.user.modulePermissions?.includes('Applicants_EDIT_BASIC_OWN') ||
-          session.user.modulePermissions?.includes('Applicants_EDIT_SENSITIVE_OWN');
+        const hasGlobalEdit = session.user.modulePermissions?.includes('applicantS_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('applicantS_EDIT_SENSITIVE');
+        const hasOwnEdit = session.user.modulePermissions?.includes('applicantS_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('applicantS_EDIT_SENSITIVE_OWN');
         if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
@@ -358,3 +358,4 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+

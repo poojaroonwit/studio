@@ -134,7 +134,7 @@ async function analyzeFitScorePerformance() {
         const statsResult = await client.query(`
             SELECT 
                 COUNT(*) as total_Applicants,
-                COUNT("fitScore") as Applicants_with_fit_score,
+                COUNT("fitScore") as applicantS_with_fit_score,
                 ROUND(AVG("fitScore")::numeric, 2) as avg_fit_score,
                 MIN("fitScore") as min_fit_score,
                 MAX("fitScore") as max_fit_score,
@@ -145,7 +145,7 @@ async function analyzeFitScorePerformance() {
         
         const stats = statsResult.rows[0];
         logInfo(`Fit Score Statistics:`);
-        logInfo(`  - Total Applicants with fit scores: ${stats.Applicants_with_fit_score}`);
+        logInfo(`  - Total Applicants with fit scores: ${stats.applicantS_with_fit_score}`);
         logInfo(`  - Average fit score: ${stats.avg_fit_score}`);
         logInfo(`  - Fit score range: ${stats.min_fit_score} - ${stats.max_fit_score}`);
         logInfo(`  - Unique positions: ${stats.unique_positions}`);
@@ -294,3 +294,4 @@ if (require.main === module) {
         process.exit(1);
     });
 }
+

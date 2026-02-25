@@ -48,16 +48,16 @@ export async function POST(req: NextRequest) {
 
   switch (actionType) {
     case 'assign_recruiter':
-      hasPermission = hasAnyPermission(user, ['Applicants_RECRUITER_ASSIGN', 'Applicants_RECRUITER_ASSIGN_OWN']);
+      hasPermission = hasAnyPermission(user, ['applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_OWN']);
       break;
     case 'assign_position':
-      hasPermission = hasAnyPermission(user, ['Applicants_EDIT_BASIC', 'Applicants_EDIT_BASIC_OWN']);
+      hasPermission = hasAnyPermission(user, ['applicantS_EDIT_BASIC', 'applicantS_EDIT_BASIC_OWN']);
       break;
     case 'update_status':
-      hasPermission = hasAnyPermission(user, ['Applicants_PIPELINE_STAGE_BULK_UPDATE', 'Applicants_PIPELINE_STAGE_UPDATE_OWN']);
+      hasPermission = hasAnyPermission(user, ['applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN']);
       break;
     case 'delete':
-      hasPermission = hasAnyPermission(user, ['Applicants_DELETE']);
+      hasPermission = hasAnyPermission(user, ['applicantS_DELETE']);
       break;
     default:
       hasPermission = false;
@@ -329,3 +329,4 @@ export async function OPTIONS(request: NextRequest) {
   const headers = handleCors(request);
   return new Response(null, { status: 200, headers });
 } 
+

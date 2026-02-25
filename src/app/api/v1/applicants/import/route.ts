@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('Applicants_IMPORT')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('applicantS_IMPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import Applicants' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -364,3 +364,4 @@ export async function OPTIONS(request: NextRequest) {
   const headers = handleCors(request);
   return new Response(null, { status: 200, headers });
 } 
+

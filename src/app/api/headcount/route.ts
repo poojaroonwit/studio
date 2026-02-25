@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Check if user has permission to view headcount data
     // Users should be able to view headcount if they can view positions or Applicants
     if (!hasPermission(session.user, 'POSITIONS_VIEW') &&
-      !hasPermission(session.user, 'Applicants_VIEW')) {
+      !hasPermission(session.user, 'applicantS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
     }
 
@@ -236,3 +236,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
+

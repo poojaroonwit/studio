@@ -154,7 +154,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (err) {
     console.error(`[GET /api/applicants/${id}/comments] Error:`, err);
     
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      message: 'Internal server error', 
+      error: err instanceof Error ? err.message : String(err) 
+    }, { status: 500 });
   }
 }
 

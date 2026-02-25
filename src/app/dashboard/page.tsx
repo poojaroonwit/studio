@@ -65,7 +65,7 @@ export default async function DashboardPageServer() {
     
     try {
       const userId = session.user.id;
-      const canViewAll = hasPermission(session.user, 'Applicants_VIEW');
+      const canViewAll = hasPermission(session.user, 'applicantS_VIEW');
 
       // Fetch optimized metrics
       initialMetrics = await fetchDashboardMetrics(client, userId, canViewAll);
@@ -219,3 +219,4 @@ export default async function DashboardPageServer() {
     );
   }
 }
+

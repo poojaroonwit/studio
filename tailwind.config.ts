@@ -88,6 +88,9 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)',
+  			macos: '12px',
+  			'macos-lg': '16px',
+  			'macos-xl': '20px',
   			'sidebar': 'var(--sidebar-border-radius)',
   			'sidebar-menu': 'var(--sidebar-menu-item-border-radius)',
   		},
@@ -108,6 +111,38 @@ export default {
   					height: '0'
   				}
   			},
+  			fadeIn: {
+  				'0%': { opacity: '0' },
+  				'100%': { opacity: '1' }
+  			},
+  			fadeOut: {
+  				'0%': { opacity: '1' },
+  				'100%': { opacity: '0' }
+  			},
+  			slideUp: {
+  				'0%': { transform: 'translateY(8px)', opacity: '0' },
+  				'100%': { transform: 'translateY(0)', opacity: '1' }
+  			},
+  			slideDown: {
+  				'0%': { transform: 'translateY(-8px)', opacity: '0' },
+  				'100%': { transform: 'translateY(0)', opacity: '1' }
+  			},
+  			scaleIn: {
+  				'0%': { transform: 'scale(0.95)', opacity: '0' },
+  				'100%': { transform: 'scale(1)', opacity: '1' }
+  			},
+  			scaleOut: {
+  				'0%': { transform: 'scale(1)', opacity: '1' },
+  				'100%': { transform: 'scale(0.95)', opacity: '0' }
+  			},
+  			tooltip: {
+  				'0%': { transform: 'translateY(4px)', opacity: '0' },
+  				'100%': { transform: 'translateY(0)', opacity: '1' }
+  			},
+  			shimmer: {
+  				'0%': { backgroundPosition: '-1000px 0' },
+  				'100%': { backgroundPosition: '1000px 0' }
+  			},
   			'fade-in': {
   				from: {
   					opacity: '0',
@@ -122,9 +157,19 @@ export default {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			'fade-in': 'fade-in 0.3s ease-out'
+  			'fade-in': 'fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'fade-out': 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'slide-up': 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'slide-down': 'slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'scale-in': 'scaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  			'scale-out': 'scaleOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  			tooltip: 'tooltip 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  			shimmer: 'shimmer 2s linear infinite'
   		},
   		spacing: {
+  			macos: '8px',
+  			'macos-lg': '16px',
+  			'macos-xl': '24px',
   			'sidebar-padding-x': 'var(--sidebar-padding-x)',
   			'sidebar-padding-y': 'var(--sidebar-padding-y)',
   			'sidebar-margin': 'var(--sidebar-margin)',
@@ -160,6 +205,11 @@ export default {
   			'sidebar': 'var(--sidebar-border-width)',
   		},
   		boxShadow: {
+  			macos: '0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04)',
+  			'macos-lg': '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06)',
+  			'macos-xl': '0 12px 48px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.08)',
+  			'macos-inset': 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+  			'macos-focus': '0 0 0 3px rgba(13, 126, 255, 0.2)',
   			'sidebar': 'var(--sidebar-shadow)',
   			'sidebar-hover': 'var(--sidebar-shadow-hover)',
   			'sidebar-active': 'var(--sidebar-shadow-active)',
@@ -177,13 +227,19 @@ export default {
   		textDecoration: {
   			'sidebar': 'var(--sidebar-text-decoration)',
   		},
+  		backdropBlur: {
+  			xs: '2px',
+  			macos: '20px',
+  			'macos-lg': '40px',
+  		},
   				fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'inter': ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'english': ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'dm-sans': ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'english': ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['"DM Sans"', '"IBM Plex Sans Thai"', 'var(--font-dm-sans)', 'var(--font-ibm-plex-sans-thai)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'mono': ['SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 'Courier New', 'monospace'],
 		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',

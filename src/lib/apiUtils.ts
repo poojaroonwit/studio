@@ -50,13 +50,13 @@ export async function fetchInitialDashboardApplicantsDb(limit: number = 10): Pro
   const pool = getPool();
   try {
     const query = `
-      SELECT id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "applicationDate", "parsedData", "customAttributes", "resumePath", "createdAt", "updatedAt"
+      SELECT id, name, email, phone, "positionId", "recruiterId", "fitScore", "statusId", "applicationDate", "parsedData", "customAttributes", "resumePath", "createdAt", "updatedAt"
       FROM "Applicant"
       ORDER BY "createdAt" DESC
       LIMIT $1;
     `;
     const result = await pool.query(query, [limit]);
-    return result.rows.map((row: Applicant) => ({
+    return result.rows.map((row: any) => ({
       ...row,
       fitScore: normalizeFitScore(row.fitScore),
     }));

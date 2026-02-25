@@ -62,7 +62,7 @@ const userGroupSchema = z.object({
  *               value:
  *                 name: "Recruiter"
  *                 description: "Group for all recruiters"
- *                 permissions: ["Applicants_VIEW", "Applicants_MANAGE"]
+ *                 permissions: ["applicantS_VIEW", "applicantS_MANAGE"]
  *     responses:
  *       201:
  *         description: User group created
@@ -77,7 +77,7 @@ const userGroupSchema = z.object({
  *                   id: "uuid"
  *                   name: "Recruiter"
  *                   description: "Group for all recruiters"
- *                   permissions: ["Applicants_VIEW", "Applicants_MANAGE"]
+ *                   permissions: ["applicantS_VIEW", "applicantS_MANAGE"]
  *                   is_default: false
  *                   is_system_role: false
  *                   user_count: 1
@@ -240,3 +240,4 @@ export async function POST(request: NextRequest) {
         client.release();
     }
 }
+

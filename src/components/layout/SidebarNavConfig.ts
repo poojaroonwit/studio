@@ -123,7 +123,7 @@ export const sidebarConfigData = [
       {
         label: "User Management",
         icon: "Users",
-        href: "/users",
+        href: "/settings/users",
         description: "Manage users and roles"
       },
       {

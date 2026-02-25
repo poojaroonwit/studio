@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
-  if (!hasPermission(user, 'Applicants_CREATE')) {
+  if (!hasPermission(user, 'applicantS_CREATE')) {
     return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to create Applicants'));
   }
 
@@ -523,3 +523,4 @@ export async function OPTIONS(request: NextRequest) {
 
   return new Response(null, { status: 200, headers });
 } 
+

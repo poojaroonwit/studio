@@ -306,9 +306,9 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
             ? session.user.modulePermissions
             : [];
 
-        return modulePermissions.includes('Applicants_EDIT_BASIC') ||
-            modulePermissions.includes('Applicants_EDIT_BASIC_OWN') ||
-            modulePermissions.includes('Applicants_EDIT_BASIC_ALL');
+        return modulePermissions.includes('applicantS_EDIT_BASIC') ||
+            modulePermissions.includes('applicantS_EDIT_BASIC_OWN') ||
+            modulePermissions.includes('applicantS_EDIT_BASIC_ALL');
     };
 
     const handleAvatarUpload = async (file: File) => {
@@ -494,3 +494,4 @@ export function EvaluateReportSection({ applicantId, isEmbedded = false }: Evalu
         </>
     );
 }
+

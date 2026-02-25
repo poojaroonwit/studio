@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view recruitment stages
     // Users should be able to view stages if they can view Applicants (for filtering purposes)
-    if (!hasPermission(session.user, 'Applicants_VIEW')) {
+    if (!hasPermission(session.user, 'applicantS_VIEW')) {
         return NextResponse.json({ message: "Forbidden: Insufficient permissions to view recruitment stages" }, { status: 403 });
     }
 
@@ -70,3 +70,4 @@ export async function GET(request: NextRequest) {
         client.release();
     }
 }
+

@@ -438,7 +438,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         className="bg-background"
         data-testid="app-layout"
       >
-        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar" style={{ "--sidebar-width": "300px" } as React.CSSProperties}>
+        <Sidebar collapsible="icon" className="border-r border-border" data-testid="sidebar" style={{ "--sidebar-width": "280px" } as React.CSSProperties}>
           <SidebarHeader className="p-0">
             <MemoizedSidebarHeaderContent {...sidebarHeaderProps} />
           </SidebarHeader>
@@ -535,9 +535,9 @@ const SidebarToggleButton = memo(() => {
 
   return (
     <div
-      className="fixed top-[12px] left-[var(--sidebar-width-icon,5rem)] z-[110] transition-all duration-200"
+      className="fixed top-[12px] left-[var(--sidebar-width-icon,4rem)] z-[110] transition-all duration-200"
       style={{
-        left: 'var(--sidebar-width-icon, 5rem)',
+        left: 'var(--sidebar-width-icon, 4rem)',
         transform: 'translateX(-50%)'
       }}
     >

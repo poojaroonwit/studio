@@ -44,9 +44,9 @@ const usePreventAriaHidden = (ref: React.RefObject<HTMLElement>, isCollapsed: bo
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+const SIDEBAR_WIDTH = "17.5rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "5rem" // 80px
+const SIDEBAR_WIDTH_ICON = "4rem" // 64px
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {

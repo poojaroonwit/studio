@@ -295,9 +295,9 @@ const GroupedSidebarNav = React.memo(() => {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden bg-background">
       {/* Primary Sidebar - Icon only, always semi-expanded/minimized */}
-      <div className="flex w-[80px] flex-col border-r border-border/50 bg-sidebar-primary/5 py-4 items-center gap-4">
+      <div className="flex w-[64px] flex-col border-r border-border/40 bg-sidebar/40 backdrop-blur-xl py-6 items-center gap-6 z-20">
         {filteredGroups.map((group) => (
           <TooltipProvider key={group.label} delayDuration={0}>
             <Tooltip>
@@ -308,40 +308,40 @@ const GroupedSidebarNav = React.memo(() => {
                     if (!open) setOpen(true);
                   }}
                   className={cn(
-                    "relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200",
+                    "relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-300 group",
                     activeGroupLabel === group.label
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      ? "bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg shadow-indigo-500/25 scale-105"
+                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
                   )}
                 >
-                  <group.icon className="h-6 w-6" />
+                  <group.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", activeGroupLabel === group.label && "animate-pulse")} />
                   {activeGroupLabel === group.label && (
-                    <div className="absolute -left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                    <div className="absolute -left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                   )}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>
-                <p className="font-medium">{group.label}</p>
+              <TooltipContent side="right" sideOffset={20} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+                <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ))}
 
-        <div className="mt-auto pt-4 border-t border-border/50 w-full flex flex-col items-center gap-4">
+        <div className="mt-auto pt-6 border-t border-border/20 w-full flex flex-col items-center gap-6">
            <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <OptimizedLink href="/process-queue" className="relative flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all">
-                    <UploadCloud className="h-6 w-6" />
+                  <OptimizedLink href="/process-queue" className="relative flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-all group">
+                    <UploadCloud className="h-5 w-5 group-hover:scale-110" />
                     {pendingCount !== null && pendingCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px] border-2 border-background">
+                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px] border-2 border-background animate-bounce">
                         {pendingCount > 99 ? '99+' : pendingCount}
                       </Badge>
                     )}
                   </OptimizedLink>
                 </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Process queue</p>
+                <TooltipContent side="right" sideOffset={15}>
+                  <p className="font-semibold text-xs">Process queue</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -350,34 +350,49 @@ const GroupedSidebarNav = React.memo(() => {
 
       {/* Secondary Sidebar - Item details */}
       <div className={cn(
-        "flex-1 flex flex-col min-w-0 transition-all duration-300",
-        open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+        "flex-1 flex flex-col min-w-0 transition-all duration-500 ease-in-out bg-sidebar/20 backdrop-blur-lg border-r border-border/30",
+        open ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full pointer-events-none"
       )}>
-        <div className="px-4 py-6 border-b border-border/50 bg-sidebar/50 backdrop-blur-sm">
-          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{activeGroupLabel}</h2>
-          <p className="text-xs text-muted-foreground truncate opacity-70">Navigation items for {activeGroupLabel}</p>
+        <div className="px-6 py-8 border-b border-border/30">
+          <h2 className="text-xl font-bold tracking-tight text-foreground/90">{activeGroupLabel}</h2>
+          <p className="text-[10px] font-extrabold text-muted-foreground/50 uppercase tracking-[0.2em] mt-1.5">Management Hub</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 py-4 space-y-1 custom-scrollbar">
-          {activeGroup?.items.map((item) => (
-            <SidebarMenuItem key={item.href} className="list-none">
-              <OptimizedLink href={item.href} className="w-full">
-                <SidebarMenuButton
-                  isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
-                  className="w-full justify-start px-3 h-10 rounded-lg"
-                  size="default"
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span className="ml-3 font-medium text-sm truncate">{item.label}</span>
-                </SidebarMenuButton>
-              </OptimizedLink>
-            </SidebarMenuItem>
-          ))}
+        <div className="flex-1 overflow-y-auto px-3 py-6 space-y-1.5 custom-scrollbar">
+          {activeGroup?.items.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            return (
+              <SidebarMenuItem key={item.href} className="list-none">
+                <OptimizedLink href={item.href} className="w-full">
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    className={cn(
+                      "w-full justify-start px-4 h-11 rounded-xl transition-all duration-200",
+                      isActive 
+                        ? "bg-indigo-500/5 text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-600 shadow-sm border border-indigo-500/10" 
+                        : "text-muted-foreground/80 hover:bg-sidebar-accent/50 hover:text-foreground"
+                    )}
+                    size="default"
+                  >
+                    <item.icon className={cn("h-4.5 w-4.5 shrink-0", isActive && "text-indigo-500")} />
+                    <span className={cn("ml-3 font-semibold text-sm truncate", isActive && "text-indigo-600 tracking-tight")}>
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                    )}
+                  </SidebarMenuButton>
+                </OptimizedLink>
+              </SidebarMenuItem>
+            );
+          })}
 
           {activeGroupLabel === 'Hiring' && sidebarPreferences?.showAssignedPositions && hasPositions && (
-            <div className="mt-6 pt-6 border-t border-border/40">
-              <h3 className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">Job assigned</h3>
-              <AssignedPositionsSidebar variant="compact" />
+            <div className="mt-8 pt-8 border-t border-border/20">
+              <h3 className="px-4 mb-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Job assigned</h3>
+              <div className="px-1">
+                <AssignedPositionsSidebar variant="compact" />
+              </div>
             </div>
           )}
         </div>

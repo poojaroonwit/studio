@@ -369,6 +369,7 @@ const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragSt
                 lang={nameInfo.lang}
               >
                 {nameInfo.name}
+                {applicant.isPinned && <PinIcon className="h-3 w-3 text-amber-500 fill-current rotate-45 flex-shrink-0 ml-1" />}
                 {applicant.isBlacklisted && <BlacklistBadge className="px-1.5 py-0" iconClassName="h-2.5 w-2.5" />}
               </p>
               {visibleFields.includes('positionId') && (

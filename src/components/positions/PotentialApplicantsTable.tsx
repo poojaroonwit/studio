@@ -97,71 +97,89 @@ export function PotentialApplicantsTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {applicants.map((applicant) => (
-          <TableRow key={applicant.id} className={applicant.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}>
-            <TableCell>{rowNumber++}</TableCell>
-            <TableCell>
-              <div>
-                <div 
-                  className={cn(
-                    "font-medium cursor-pointer hover:text-primary hover:underline flex items-center gap-2",
-                    applicant.isBlacklisted && "text-destructive"
-                  )}
-                  onClick={() => onApplicantClick(applicant.id)}
-                >
-                  {applicant.name}
-                  {applicant.isBlacklisted && <Ban className="h-3 w-3" />}
+        {applicants.map((applicant) => {
+          const isUnread = applicant.isRead !== true;
+          return (
+            <TableRow 
+              key={applicant.id} 
+              className={cn(
+                "transition-colors group",
+                applicant.isBlacklisted
+                  ? "border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-950/20"
+                  : applicant.isPinned
+                    ? "border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                    : isUnread
+                      ? "border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/10"
+                      : ""
+              )}
+            >
+              <TableCell>{rowNumber++}</TableCell>
+              <TableCell>
+                <div>
+                  <div 
+                    className={cn(
+                      "cursor-pointer hover:underline flex items-center gap-2",
+                      applicant.isBlacklisted ? "text-destructive" :
+                      applicant.isPinned ? "text-amber-600 dark:text-amber-500" :
+                      isUnread ? "font-bold text-blue-600 dark:text-blue-400" : "font-medium text-foreground"
+                    )}
+                    onClick={() => onApplicantClick(applicant.id)}
+                  >
+                    {applicant.name}
+                    {applicant.isPinned && <PinIcon className="inline-block h-3.5 w-3.5 text-amber-500 fill-current rotate-45" />}
+                    {applicant.isBlacklisted && <Ban className="h-3 w-3 text-destructive" />}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{applicant.email}</div>
                 </div>
-                <div className="text-xs text-muted-foreground">{applicant.email}</div>
-              </div>
-            </TableCell>
-            <TableCell>
-              {applicant.fitScore !== undefined && applicant.fitScore !== null ? (
-                <ScoreBadge score={applicant.fitScore}>
-                  {formatScoreWithGrade(applicant.fitScore)}
-                </ScoreBadge>
-              ) : (
-                <Badge variant="outline">No Score</Badge>
-              )}
-            </TableCell>
-            <TableCell>
-              {applicant.isBlacklisted ? (
-                <BlacklistBadge />
-              ) : (
-                <StatusBadge statusId={applicant.statusId} stageNames={stageNames} />
-              )}
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onApplicantClick(applicant.id)}
-                  className="hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="ml-1 text-xs">View</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onPinToggle(applicant);
-                  }}
-                  title={applicant.isPinned ? 'Unpin' : 'Pin'}
-                  className="hover:bg-primary/10"
-                >
-                  {applicant.isPinned ? (
-                    <PinIcon className="h-4 w-4 text-blue-600 fill-current rotate-45" />
-                  ) : (
-                    <PinIcon className="h-4 w-4 text-black rotate-45" />
-                  )}
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+              <TableCell>
+                {applicant.fitScore !== undefined && applicant.fitScore !== null ? (
+                  <ScoreBadge score={applicant.fitScore}>
+                    {formatScoreWithGrade(applicant.fitScore)}
+                  </ScoreBadge>
+                ) : (
+                  <Badge variant="outline">No Score</Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {applicant.isBlacklisted ? (
+                  <BlacklistBadge />
+                ) : (
+                  <StatusBadge statusId={applicant.statusId} stageNames={stageNames} />
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onApplicantClick(applicant.id)}
+                    className="hover:bg-primary/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-1 text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await onPinToggle(applicant);
+                    }}
+                    title={applicant.isPinned ? 'Unpin' : 'Pin'}
+                    className="hover:bg-primary/10"
+                  >
+                    {applicant.isPinned ? (
+                      <PinIcon className="h-4 w-4 text-amber-500 fill-current rotate-45" />
+                    ) : (
+                      <PinIcon className="h-4 w-4 text-muted-foreground rotate-45" />
+                    )}
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

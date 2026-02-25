@@ -328,23 +328,6 @@ const GroupedSidebarNav = React.memo(() => {
         ))}
 
         <div className="mt-auto pt-6 border-t border-border/20 w-full flex flex-col items-center gap-6">
-           <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <OptimizedLink href="/process-queue" className="relative flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground transition-all group">
-                    <UploadCloud className="h-5 w-5 group-hover:scale-110" />
-                    {pendingCount !== null && pendingCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px] border-2 border-background animate-bounce">
-                        {pendingCount > 99 ? '99+' : pendingCount}
-                      </Badge>
-                    )}
-                  </OptimizedLink>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={12}>
-                  <p className="font-semibold text-xs">Process queue</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
         </div>
       </div>
 
@@ -378,6 +361,14 @@ const GroupedSidebarNav = React.memo(() => {
                     <span className={cn("ml-3 font-semibold text-sm truncate", isActive && "text-indigo-600 tracking-tight")}>
                       {item.label}
                     </span>
+                    {item.href === '/process-queue' && pendingCount !== null && pendingCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-auto min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] px-1 font-bold animate-pulse shadow-sm"
+                      >
+                        {pendingCount > 99 ? '99+' : pendingCount}
+                      </Badge>
+                    )}
                     {isActive && (
                       <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
                     )}

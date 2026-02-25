@@ -224,6 +224,7 @@ const ApplicantTableRowComponent = ({
                         title={nameInfo.name}
                       >
                         {nameInfo.name}
+                        {applicant.isPinned && <PinIcon className="inline-block ml-2 h-3.5 w-3.5 text-amber-500 fill-current rotate-45 align-text-top" />}
                         {applicant.isBlacklisted && <Ban className="inline-block ml-2 h-3 w-3 text-destructive align-text-top" />}
                       </button>
                     ) : (

@@ -63,6 +63,34 @@ export const useApplicantDetail = (applicantId: string) => {
   const [isSaving, setIsSaving] = useState(false);
   const [formPopulated, setFormPopulated] = useState(false);
   const [customFieldsRefreshTrigger, setCustomFieldsRefreshTrigger] = useState(0);
+  const autoMarkReadAttempted = useRef<string | null>(null);
+
+  // Auto-mark as read when applicant data is loaded and it's currently unread
+  useEffect(() => {
+    if (applicant && applicant.id && applicant.isRead === false && autoMarkReadAttempted.current !== applicant.id) {
+      autoMarkReadAttempted.current = applicant.id;
+
+      // Small delay to ensure everything is settled
+      const timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/applicants/${applicant.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isRead: true }),
+            credentials: 'include',
+          });
+
+          if (res.ok) {
+            setApplicant(prev => prev ? { ...prev, isRead: true } : prev);
+          }
+        } catch (error) {
+          console.error('[useApplicantDetail] Failed to auto-mark as read:', error);
+        }
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [applicant]);
 
   // Add refs for cleanup
   const avatarForceRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);

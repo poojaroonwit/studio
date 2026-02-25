@@ -90,6 +90,12 @@ export const sidebarConfigData = [
         href: "/positions",
         description: "Job positions and openings"
       },
+      {
+        label: "Process Queue",
+        icon: "UploadCloud",
+        href: "/process-queue",
+        description: "Review and manage uploaded files"
+      },
     ],
   },
   {

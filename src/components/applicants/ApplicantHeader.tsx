@@ -287,6 +287,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
                   lang={nameInfo.lang}
                 >
                   {nameInfo.name}
+                  {applicant.isPinned && <Pin className="inline-block ml-2 h-4 w-4 text-amber-500 fill-current rotate-45 align-text-top" />}
                 </span>
                 <div className="flex items-center gap-2">
                   {!isMobile && applicant.id && (

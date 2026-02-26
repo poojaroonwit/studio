@@ -43,4 +43,9 @@ export {
   applySidebarBackgroundToCSS,
   initializeSidebarBackground,
   cleanupSidebarBackground,
+  
+  // Header branding
+  applyHeaderBrandingSettings,
+  applyHeaderBrandingToCSS,
+  initializeHeaderBranding,
 } from './theme';

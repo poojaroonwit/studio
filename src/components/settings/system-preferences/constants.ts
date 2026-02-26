@@ -39,6 +39,14 @@ export const EVALUATE_PLATFORM_LOGO_DATA_URL_KEY = 'evaluatePlatformLogoDataUrl'
 export const EVALUATE_REPORT_LOGO_DATA_URL_KEY = 'evaluateReportLogoDataUrl';
 export const ORGANIZATION_LOGO_DATA_URL_KEY = 'organizationLogoDataUrl';
 
+// Header branding keys
+export const HEADER_BACKGROUND_TYPE_KEY = 'headerBackgroundType';
+export const HEADER_BACKGROUND_IMAGE_KEY = 'headerBackgroundImageUrl';
+export const HEADER_BACKGROUND_COLOR_KEY = 'headerBackgroundColor';
+export const HEADER_BACKGROUND_GRADIENT_KEY = 'headerBackgroundGradient';
+export const HEADER_TEXT_COLOR_KEY = 'headerTextColor';
+
+
 // Interviewer selection colors
 export const INTERVIEWER_SELECTED_BG_COLOR_KEY = 'interviewerSelectedBackgroundColor';
 export const INTERVIEWER_SELECTED_TEXT_COLOR_KEY = 'interviewerSelectedTextColor';
@@ -53,8 +61,10 @@ export const INTERVIEWER_NAME_COLOR_KEY = 'interviewerNameColor';
 export type ThemePreference = "light" | "dark" | "system";
 export type LoginBackgroundType = 'image' | 'gradient' | 'solid';
 export type EvaluateHeaderBackgroundType = 'image' | 'gradient' | 'solid';
+export type HeaderBackgroundType = 'image' | 'gradient' | 'solid';
 
 // --- Sidebar color keys/types/utilities ---
+
 export const DEFAULT_PRIMARY_GRADIENT_START = "179 67% 66%";
 export const DEFAULT_PRIMARY_GRADIENT_END = "238 74% 61%";
 
@@ -269,6 +279,11 @@ export const DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START = '179 67% 66%';
 export const DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END = '238 74% 61%';
 export const DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR = '220 25% 97%';
 export const DEFAULT_EVALUATE_HEADER_TEXT_COLOR = '0 0% 0%'; // Black by default
+
+// Header defaults
+export const DEFAULT_HEADER_BACKGROUND_TYPE: HeaderBackgroundType = 'solid';
+export const DEFAULT_HEADER_BACKGROUND_COLOR = '0 0% 100%'; 
+export const DEFAULT_HEADER_TEXT_COLOR = '240 10% 3.9%'; // Foreground default
 
 // Interviewer selection defaults
 export const DEFAULT_INTERVIEWER_SELECTED_BG_COLOR = '220 25% 97%';

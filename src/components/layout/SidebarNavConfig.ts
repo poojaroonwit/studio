@@ -15,7 +15,12 @@ import {
   FlagIcon as Target,
   ViewColumnsIcon as Kanban,
   ExclamationTriangleIcon as AlertTriangle,
-  ClipboardDocumentCheckIcon as ClipboardCheck
+  ClipboardDocumentCheckIcon as ClipboardCheck,
+  PaintBrushIcon as Palette,
+  CpuChipIcon as BrainCircuit,
+  ShareIcon as Webhook,
+  CodeBracketIcon as Code2,
+  ListBulletIcon as ListOrdered
 } from "@heroicons/react/24/outline";
 
 export interface SidebarNavItem {
@@ -51,7 +56,12 @@ export const iconMap = {
   Target,
   Kanban,
   AlertTriangle,
-  ClipboardCheck
+  ClipboardCheck,
+  Palette,
+  BrainCircuit,
+  Webhook,
+  Code2,
+  ListOrdered
 };
 
 // Config with icon names instead of components for API serialization
@@ -117,14 +127,32 @@ export const sidebarConfigData = [
     ],
   },
   {
-    label: "Employee",
-    icon: "Users",
+    label: "Settings",
+    icon: "Settings",
     items: [
       {
-        label: "Organization Settings",
-        icon: "Settings",
-        href: "/settings",
-        description: "System configuration"
+        label: "System Settings",
+        icon: "Database",
+        href: "/settings/system-settings",
+        description: "System-wide configuration and integrations"
+      },
+      {
+        label: "Branding & Theme",
+        icon: "Palette",
+        href: "/settings/system-preferences",
+        description: "Global branding, theme, and logo settings"
+      },
+      {
+        label: "Prompts & Categories",
+        icon: "BrainCircuit",
+        href: "/settings/system-prompts",
+        description: "Manage AI system prompts and categories"
+      },
+      {
+        label: "Data Configuration",
+        icon: "Database",
+        href: "/settings/data-configuration",
+        description: "Manage stages, sources, and positions"
       },
       {
         label: "User Management",
@@ -133,16 +161,28 @@ export const sidebarConfigData = [
         description: "Manage users and roles"
       },
       {
+        label: "Webhook Management",
+        icon: "Webhook",
+        href: "/settings/webhooks",
+        description: "Create and manage outgoing webhooks"
+      },
+      {
+        label: "API Documentation",
+        icon: "Code2",
+        href: "/settings/api-docs",
+        description: "Developer API reference"
+      },
+      {
+        label: "Application Logs",
+        icon: "ListOrdered",
+        href: "/settings/logs",
+        description: "View system and audit logs"
+      },
+      {
         label: "Meeting Room",
         icon: "Calendar",
         href: "/settings/rooms",
-        description: "Manage meeting rooms"
-      },
-      {
-        label: "Evaluation Configuration",
-        icon: "Target",
-        href: "/evaluation-configuration",
-        description: "Configure evaluation settings"
+        description: "Manage integrated meeting rooms"
       },
     ],
   },

@@ -153,6 +153,14 @@ const settingsItems = [
     permissionId: 'LOGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
+  { 
+    href: "/settings/rooms", 
+    label: "Meeting Room", 
+    icon: Target, 
+    description: "Manage integrated meeting rooms from Azure AD.", 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
+    adminOnlyOrPermission: true
+  },
 ];
 
 function SettingsPageContent() {

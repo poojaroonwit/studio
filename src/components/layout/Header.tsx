@@ -434,6 +434,26 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
     }
   };
 
+  // Listen for header branding changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleBrandingChange = () => {
+      // Force re-render if needed or just let the CSS variables handle it
+      setMounted(prev => !prev);
+      setTimeout(() => setMounted(true), 0);
+    };
+
+    window.addEventListener('headerBrandingChanged', handleBrandingChange);
+    
+    // Initialize header branding
+    import('@/lib/theme/header-branding').then(m => m.initializeHeaderBranding());
+
+    return () => {
+      window.removeEventListener('headerBrandingChanged', handleBrandingChange);
+    };
+  }, []);
+
   const handleOpenProfileModal = useCallback(async () => {
     if (!session?.user?.id) return;
 
@@ -481,7 +501,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
 
   return (
     <>
-      <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50 flex items-center justify-between px-4 lg:px-8 relative z-50 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-zinc-900/20">
+      <header 
+        className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50 flex items-center justify-between px-4 lg:px-8 relative z-50 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-zinc-900/20 transition-all duration-300"
+        style={{
+          background: 'var(--header-background)',
+          color: 'var(--header-foreground)'
+        }}
+      >
         <div className="flex items-center space-x-6">
           {/* Brand Logo */}
           <div className="flex items-center group">
@@ -503,8 +529,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             <div className="hidden md:block overflow-hidden whitespace-nowrap">
               {!showLogoOnly && (
                 <>
-                  <h1 className="font-bold text-gray-900 dark:text-white tracking-tight text-xl leading-none mb-0.5">{currentAppName}</h1>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-widest leading-none">Platform</p>
+                  <h1 className="font-bold tracking-tight text-xl leading-none mb-0.5" style={{ color: 'var(--header-foreground, inherit)' }}>{currentAppName}</h1>
+                  <p className="text-[10px] font-medium uppercase tracking-widest leading-none opacity-70" style={{ color: 'var(--header-foreground, inherit)' }}>Platform</p>
                 </>
               )}
             </div>
@@ -525,7 +551,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             {isLoading ? (
               <div className="h-5 w-32 rounded bg-muted animate-pulse" />
             ) : (
-              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{effectivePageTitle}</h2>
+              <h2 className="text-sm font-semibold opacity-80" style={{ color: 'var(--header-foreground, inherit)' }}>{effectivePageTitle}</h2>
             )}
           </div>
         </div>
@@ -543,16 +569,30 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
 
               {user ? (
                 <div className="flex items-center space-x-2 md:space-x-3">
+                  {/* Notification Bell */}
+                  <NotificationIcon />
+
                   {/* User Profile Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="relative group transition-transform hover:scale-105 active:scale-95 focus:outline-none">
-                        <UserAvatarCompact
-                          user={user}
-                          size="sm"
-                          className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all rounded-full"
-                          forceRefresh={refreshKey > 0}
-                        />
+                      <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-100/50 dark:hover:bg-zinc-800/50 transition-all focus:outline-none group">
+                        <div className="relative">
+                          <UserAvatarCompact
+                            user={user}
+                            size="sm"
+                            className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all rounded-full"
+                            forceRefresh={refreshKey > 0}
+                          />
+                        </div>
+                        <div className="hidden sm:flex flex-col items-start mr-1">
+                          <span className="text-[13px] font-bold leading-tight truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                            {user.name}
+                          </span>
+                          <span className="text-[10px] font-medium uppercase tracking-tight opacity-60" style={{ color: 'var(--header-foreground, inherit)' }}>
+                            {user.role || 'User'}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" style={{ color: 'var(--header-foreground, inherit)' }} />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-gray-100 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
@@ -622,9 +662,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                       </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
-
-                  {/* Notification Bell */}
-                  <NotificationIcon />
                 </div>
               ) : (
                 <Button variant="outline" onClick={() => signIn()}>

@@ -190,6 +190,8 @@ const systemSettingKeyEnum = z.enum([
   // Security features
   'screenCaptureProtectionEnabled',
   'rightClickProtectionEnabled',
+  // Header branding settings
+  'headerBackgroundType', 'headerBackgroundGradient', 'headerBackgroundColor', 'headerBackgroundImageUrl', 'headerTextColor',
   'globalTwoFactorEnabled',
   'loginPageDevToolsProtectionEnabled',
 ]);

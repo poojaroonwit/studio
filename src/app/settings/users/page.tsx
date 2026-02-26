@@ -6,7 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw, ChevronDown, CheckCircle2 } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw, ChevronDown, CheckCircle2, ChevronLeft } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -660,9 +660,19 @@ export default function ManageUsersPage() {
       {/* Header */}
       <div className="p-4 pb-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
-            <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => router.push('/settings')}
+              className="h-9 w-9 rounded-full hover:bg-muted"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
+              <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
+            </div>
           </div>
           {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
             <div className="flex gap-2">

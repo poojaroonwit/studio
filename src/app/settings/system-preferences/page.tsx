@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from 'react-hot-toast';
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors, applySidebarStyles, applySidebarBackgroundSettings, cleanupSidebarBackground } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles, applySidebarBackgroundSettings, cleanupSidebarBackground, applyHeaderBrandingSettings } from "@/lib/themeUtils";
 
 import { GeneralTab } from "@/components/settings/system-preferences/GeneralTab";
 import { AppearanceTab } from "@/components/settings/system-preferences/AppearanceTab";
@@ -82,6 +82,17 @@ import {
   SPLASH_ANIMATION_TYPE_KEY,
   DEFAULT_SPLASH_BACKGROUND_COLOR,
   DEFAULT_SPLASH_ANIMATION_TYPE,
+
+  // Header branding constants
+  HEADER_BACKGROUND_TYPE_KEY,
+  HEADER_BACKGROUND_IMAGE_KEY,
+  HEADER_BACKGROUND_COLOR_KEY,
+  HEADER_BACKGROUND_GRADIENT_KEY,
+  HEADER_TEXT_COLOR_KEY,
+  DEFAULT_HEADER_BACKGROUND_TYPE,
+  DEFAULT_HEADER_BACKGROUND_COLOR,
+  DEFAULT_HEADER_TEXT_COLOR,
+  HeaderBackgroundType,
 } from "@/components/settings/system-preferences/constants";
 
 import { hslGradientToGradientString, gradientStringToHslGradient } from "@/components/settings/system-preferences/utils";
@@ -159,6 +170,16 @@ export default function SystemPreferencesPage() {
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
   const [evaluateReportLogoPreviewUrl, setEvaluateReportLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluateReportLogoUrl, setSavedEvaluateReportLogoUrl] = useState<string | null>(null);
+
+  // Header background state
+  const [headerBackgroundType, setHeaderBackgroundType] = useState<HeaderBackgroundType>(DEFAULT_HEADER_BACKGROUND_TYPE);
+  const [selectedHeaderImageFile, setSelectedHeaderImageFile] = useState<File | null>(null);
+  const [headerImagePreviewUrl, setHeaderImagePreviewUrl] = useState<string | null>(null);
+  const [savedHeaderImageDataUrl, setSavedHeaderImageDataUrl] = useState<string | null>(null);
+  const [headerBackgroundGradient, setHeaderBackgroundGradient] = useState<string | null>(null);
+  const [headerBackgroundColor, setHeaderBackgroundColor] = useState<string>(DEFAULT_HEADER_BACKGROUND_COLOR);
+  const [headerTextColor, setHeaderTextColor] = useState<string>(DEFAULT_HEADER_TEXT_COLOR);
+
 
 
   // Loading/saving/error
@@ -442,10 +463,34 @@ export default function SystemPreferencesPage() {
     if (shouldRemoveSaved) {
       setSavedEvaluateHeaderImageDataUrl(null);
       setEvaluateHeaderImagePreviewUrl(null);
-    } else {
-      setEvaluateHeaderImagePreviewUrl(savedEvaluateHeaderImageDataUrl);
     }
   };
+
+  // --- Handlers for Header Image ---
+  const handleHeaderImageFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedHeaderImageFile(file);
+      const url = createTrackedObjectUrl(file);
+      setHeaderImagePreviewUrl(url);
+    }
+  };
+
+  const removeSelectedHeaderImage = (shouldRemoveSaved: boolean) => {
+    setSelectedHeaderImageFile(null);
+    if (headerImagePreviewUrl && objectUrlsRef.current.has(headerImagePreviewUrl)) {
+      URL.revokeObjectURL(headerImagePreviewUrl);
+      objectUrlsRef.current.delete(headerImagePreviewUrl);
+    }
+
+    if (shouldRemoveSaved) {
+      setSavedHeaderImageDataUrl(null);
+      setHeaderImagePreviewUrl(null);
+    } else {
+      setHeaderImagePreviewUrl(savedHeaderImageDataUrl);
+    }
+  };
+
 
 
   // --- Handlers for Sidebar Background Image ---
@@ -509,7 +554,7 @@ export default function SystemPreferencesPage() {
     isMountedRef.current = true;
     setIsClient(true);
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: pathname ?? undefined });
     } else if (sessionStatus === 'authenticated') {
       // Fetch from backend
       async function fetchPrefs() {
@@ -661,6 +706,15 @@ export default function SystemPreferencesPage() {
           setSavedSplashLogoDataUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
           setSplashLogoPreviewUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
 
+          // Load header background settings
+          setHeaderBackgroundType((data[HEADER_BACKGROUND_TYPE_KEY] as HeaderBackgroundType) || DEFAULT_HEADER_BACKGROUND_TYPE);
+          setSavedHeaderImageDataUrl(data[HEADER_BACKGROUND_IMAGE_KEY] || null);
+          setHeaderImagePreviewUrl(data[HEADER_BACKGROUND_IMAGE_KEY] || null);
+          setHeaderBackgroundGradient(data[HEADER_BACKGROUND_GRADIENT_KEY] || null);
+          setHeaderBackgroundColor(data[HEADER_BACKGROUND_COLOR_KEY] || DEFAULT_HEADER_BACKGROUND_COLOR);
+          setHeaderTextColor(data[HEADER_TEXT_COLOR_KEY] || DEFAULT_HEADER_TEXT_COLOR);
+
+
 
 
           // Load generative AI canvas mode setting
@@ -740,6 +794,23 @@ export default function SystemPreferencesPage() {
 
 
 
+  // Apply header branding settings when they change
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+
+    try {
+      applyHeaderBrandingSettings({
+        headerBackgroundType,
+        headerBackgroundColor,
+        headerBackgroundGradient,
+        headerBackgroundImageUrl: headerImagePreviewUrl || undefined,
+        headerTextColor,
+      });
+    } catch (e) {
+      console.warn('Failed to apply header branding settings', e);
+    }
+  }, [headerBackgroundType, headerBackgroundColor, headerBackgroundGradient, headerImagePreviewUrl, headerTextColor]);
+
   async function handleSavePreferences() {
     setSaving(true);
 
@@ -790,14 +861,26 @@ export default function SystemPreferencesPage() {
     preferencesToSave.push(
       { key: SIDEBAR_BACKGROUND_TYPE_KEY, value: sidebarBackgroundType },
       { key: SIDEBAR_BACKGROUND_IMAGE_FIT_KEY, value: sidebarImageFit },
-      { key: SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, value: sidebarImagePosition }
+      { key: SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, value: sidebarImagePosition },
+      { key: HEADER_BACKGROUND_TYPE_KEY, value: headerBackgroundType },
+      { key: HEADER_BACKGROUND_COLOR_KEY, value: headerBackgroundColor },
+      { key: HEADER_BACKGROUND_GRADIENT_KEY, value: headerBackgroundGradient },
+      { key: HEADER_TEXT_COLOR_KEY, value: headerTextColor }
     );
 
-    // Splash Screen Settings
     preferencesToSave.push(
       { key: SPLASH_BACKGROUND_COLOR_KEY, value: splashBackgroundColor },
       { key: SPLASH_ANIMATION_TYPE_KEY, value: splashAnimationType }
     );
+
+    // Header branding settings
+    preferencesToSave.push(
+      { key: HEADER_BACKGROUND_TYPE_KEY, value: headerBackgroundType },
+      { key: HEADER_BACKGROUND_COLOR_KEY, value: headerBackgroundColor },
+      { key: HEADER_TEXT_COLOR_KEY, value: headerTextColor }
+    );
+    if (headerBackgroundGradient) preferencesToSave.push({ key: HEADER_BACKGROUND_GRADIENT_KEY, value: headerBackgroundGradient });
+
 
     // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
     // Only append files that haven't been uploaded yet
@@ -1062,6 +1145,18 @@ export default function SystemPreferencesPage() {
                     removeSplashLogo={removeSplashLogo}
                     loginPageLogoSize={loginPageLogoSize}
                     setLoginPageLogoSize={setLoginPageLogoSize}
+
+                    headerBackgroundType={headerBackgroundType}
+                    setHeaderBackgroundType={setHeaderBackgroundType}
+                    headerImagePreviewUrl={headerImagePreviewUrl}
+                    removeSelectedHeaderImage={removeSelectedHeaderImage}
+                    handleHeaderImageFileChange={handleHeaderImageFileChange}
+                    headerBackgroundGradient={headerBackgroundGradient}
+                    setHeaderBackgroundGradient={setHeaderBackgroundGradient}
+                    headerBackgroundColor={headerBackgroundColor}
+                    setHeaderBackgroundColor={setHeaderBackgroundColor}
+                    headerTextColor={headerTextColor}
+                    setHeaderTextColor={setHeaderTextColor}
                   />
                 )}
 

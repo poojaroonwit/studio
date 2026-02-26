@@ -9,6 +9,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
+import { HeaderBackgroundType, DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END } from './constants';
+import { hslGradientToGradientString, gradientStringToHslGradient } from './utils';
+
 
 interface BrandingTabProps {
     canEdit: boolean;
@@ -56,7 +59,21 @@ interface BrandingTabProps {
     removeSplashLogo: (shouldRemoveSaved: boolean) => void;
     loginPageLogoSize: number;
     setLoginPageLogoSize: (size: number) => void;
+
+    // Header Branding Props
+    headerBackgroundType: HeaderBackgroundType;
+    setHeaderBackgroundType: (type: HeaderBackgroundType) => void;
+    headerImagePreviewUrl: string | null;
+    removeSelectedHeaderImage: (shouldRemoveSaved: boolean) => void;
+    handleHeaderImageFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    headerBackgroundGradient: string | null;
+    setHeaderBackgroundGradient: (gradient: string | null) => void;
+    headerBackgroundColor: string;
+    setHeaderBackgroundColor: (color: string) => void;
+    headerTextColor: string;
+    setHeaderTextColor: (color: string) => void;
 }
+
 
 export function BrandingTab({
     canEdit,
@@ -103,7 +120,20 @@ export function BrandingTab({
     removeSplashLogo,
     loginPageLogoSize,
     setLoginPageLogoSize,
+
+    headerBackgroundType,
+    setHeaderBackgroundType,
+    headerImagePreviewUrl,
+    removeSelectedHeaderImage,
+    handleHeaderImageFileChange,
+    headerBackgroundGradient,
+    setHeaderBackgroundGradient,
+    headerBackgroundColor,
+    setHeaderBackgroundColor,
+    headerTextColor,
+    setHeaderTextColor,
 }: BrandingTabProps) {
+
     return (
         <ScrollArea className="h-full pr-4">
             <div className="space-y-6">
@@ -517,9 +547,180 @@ export function BrandingTab({
                                 </div>
                             </div>
                         </div>
-
-                        {/* Splash Screen Configuration */}
+                        
                         <Separator />
+
+
+                        {/* Header Branding Configuration */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Label className="text-lg font-semibold">Header Branding</Label>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                    New
+                                </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground -mt-4 mb-4">Configure the background and appearance of the application header</p>
+
+                            <div className="grid gap-8">
+                                {/* Header Background Type */}
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="md:col-span-4 space-y-1">
+                                        <Label className="text-base font-medium">Background Style</Label>
+                                        <p className="text-sm text-muted-foreground">Choose the background style for the header</p>
+                                    </div>
+                                    <div className="md:col-span-8 flex gap-4">
+                                        {(['solid', 'gradient', 'image'] as HeaderBackgroundType[]).map((type) => (
+                                            <Button
+                                                key={type}
+                                                variant={headerBackgroundType === type ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setHeaderBackgroundType(type)}
+                                                className="capitalize"
+                                                disabled={!canEdit}
+                                            >
+                                                {type}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Background Color / Gradient / Image picker based on type */}
+                                {headerBackgroundType === 'solid' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                        <div className="md:col-span-4 space-y-1">
+                                            <Label className="text-base font-medium">Background Color</Label>
+                                            <p className="text-sm text-muted-foreground">Pick a solid color for the header background</p>
+                                        </div>
+                                        <div className="md:col-span-8">
+                                            <PersonalColorPicker 
+                                                personalColor={headerBackgroundColor}
+                                                onColorChange={setHeaderBackgroundColor}
+                                                className="w-full max-w-sm"
+                                                disabled={!canEdit}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {headerBackgroundType === 'gradient' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                        <div className="md:col-span-4 space-y-1">
+                                            <Label className="text-base font-medium">Background Gradient</Label>
+                                            <p className="text-sm text-muted-foreground">Define a custom gradient for the header</p>
+                                        </div>
+                                        <div className="md:col-span-8 space-y-4">
+                                            <div className="flex gap-4 items-center">
+                                                <div className="flex-1">
+                                                    <Label className="text-xs mb-2 block">Start Color</Label>
+                                                    <PersonalColorPicker 
+                                                        personalColor={gradientStringToHslGradient(headerBackgroundGradient || '')?.start || DEFAULT_PRIMARY_GRADIENT_START}
+                                                        onColorChange={(color) => {
+                                                            const current = gradientStringToHslGradient(headerBackgroundGradient || '') || { start: DEFAULT_PRIMARY_GRADIENT_START, end: DEFAULT_PRIMARY_GRADIENT_END };
+                                                            setHeaderBackgroundGradient(hslGradientToGradientString(color, current.end));
+                                                        }}
+                                                        disabled={!canEdit}
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <Label className="text-xs mb-2 block">End Color</Label>
+                                                    <PersonalColorPicker 
+                                                        personalColor={gradientStringToHslGradient(headerBackgroundGradient || '')?.end || DEFAULT_PRIMARY_GRADIENT_END}
+                                                        onColorChange={(color) => {
+                                                            const current = gradientStringToHslGradient(headerBackgroundGradient || '') || { start: DEFAULT_PRIMARY_GRADIENT_START, end: DEFAULT_PRIMARY_GRADIENT_END };
+                                                            setHeaderBackgroundGradient(hslGradientToGradientString(current.start, color));
+                                                        }}
+                                                        disabled={!canEdit}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div 
+                                                className="w-full h-12 rounded-lg border shadow-inner"
+                                                style={{ 
+                                                    background: `linear-gradient(to right, ${(() => {
+                                                        const g = gradientStringToHslGradient(headerBackgroundGradient || '') || { start: DEFAULT_PRIMARY_GRADIENT_START, end: DEFAULT_PRIMARY_GRADIENT_END };
+                                                        return `hsl(${g.start}), hsl(${g.end})`;
+                                                    })()})`
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {headerBackgroundType === 'image' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                        <div className="md:col-span-4 space-y-1">
+                                            <Label className="text-base font-medium">Background Image</Label>
+                                            <p className="text-sm text-muted-foreground">Upload an image to use as the header background</p>
+                                        </div>
+                                        <div className="md:col-span-8 flex items-center gap-4">
+                                            <div className="flex-shrink-0">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleHeaderImageFileChange}
+                                                    disabled={!canEdit}
+                                                    className="hidden"
+                                                    id="header-bg-upload"
+                                                />
+                                                <Label
+                                                    htmlFor="header-bg-upload"
+                                                    className="cursor-pointer block"
+                                                >
+                                                    <div className="w-32 h-20 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                                        {headerImagePreviewUrl ? (
+                                                            <div className="relative group w-full h-full">
+                                                                <img
+                                                                    src={headerImagePreviewUrl}
+                                                                    alt="Header background preview"
+                                                                    className="w-full h-full object-cover rounded p-1"
+                                                                />
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full bg-background border shadow-sm"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        removeSelectedHeaderImage(true);
+                                                                    }}
+                                                                    disabled={!canEdit}
+                                                                >
+                                                                    <X className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-center text-muted-foreground">
+                                                                <ImageUp className="h-8 w-8 mx-auto mb-1 opacity-60" />
+                                                                <p className="text-xs">Upload Image</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Header Text Color */}
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="md:col-span-4 space-y-1">
+                                        <Label className="text-base font-medium">Text & Icon Color</Label>
+                                        <p className="text-sm text-muted-foreground">Adjust text/icon color for readability on background</p>
+                                    </div>
+                                    <div className="md:col-span-8">
+                                        <PersonalColorPicker 
+                                            personalColor={headerTextColor}
+                                            onColorChange={setHeaderTextColor}
+                                            className="w-full max-w-sm"
+                                            disabled={!canEdit}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+
                         {/* Splash Screen Configuration */}
                         <Separator />
                         <div className="space-y-6">

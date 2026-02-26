@@ -49,3 +49,10 @@ export {
   initializeSidebarBackground,
   cleanupSidebarBackground,
 } from './sidebar-background';
+
+// Re-export header branding
+export {
+  applyHeaderBrandingSettings,
+  applyHeaderBrandingToCSS,
+  initializeHeaderBranding,
+} from './header-branding';

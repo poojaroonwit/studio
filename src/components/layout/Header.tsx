@@ -530,11 +530,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 md:space-x-6">
+        <div className="flex items-center space-x-3 md:space-x-4">
           {isLoading ? (
             <>
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
               <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
-              <div className="h-10 w-10 rounded-md bg-muted animate-pulse" />
             </>
           ) : (
             <>
@@ -542,7 +542,90 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
               {user && <div className="hidden md:block"><UserPresenceIndicator /></div>}
 
               {user ? (
-                <NotificationIcon />
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  {/* User Profile Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="relative group transition-transform hover:scale-105 active:scale-95 focus:outline-none">
+                        <UserAvatarCompact
+                          user={user}
+                          size="sm"
+                          className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all rounded-full"
+                          forceRefresh={refreshKey > 0}
+                        />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-gray-100 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
+                      <DropdownMenuLabel className="px-3 py-4">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-zinc-500 font-medium uppercase tracking-tight truncate">{user.email || user.role}</p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+
+                      <div className="p-1 space-y-0.5">
+                        <DropdownMenuItem onClick={handleOpenProfileModal} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <Edit3 className="mr-3 h-4 w-4" />
+                          <span>My Profile</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <KeyRound className="mr-3 h-4 w-4" />
+                          <span>Security</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push('/settings')} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <Settings className="mr-3 h-4 w-4" />
+                          <span>Settings</span>
+                        </DropdownMenuItem>
+                      </div>
+
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+
+                      <div className="p-1">
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            {currentTheme === 'dark' ? <Moon className="mr-3 h-4 w-4" /> : <Sun className="mr-3 h-4 w-4" />}
+                            <span>Appearance</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="p-1 min-w-[150px] rounded-xl border-gray-100 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl shadow-xl">
+                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'light' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                              <Sun className="mr-2 h-3.5 w-3.5" />
+                              Light
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'dark' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                              <Moon className="mr-2 h-3.5 w-3.5" />
+                              Dark
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'system' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                              <Monitor className="mr-2 h-3.5 w-3.5" />
+                              System
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuItem onClick={handleClearCache} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                          <Trash2 className="mr-3 h-4 w-4" />
+                          <span>Clear Cache</span>
+                        </DropdownMenuItem>
+                      </div>
+
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+
+                      <div className="p-1">
+                        <DropdownMenuItem onClick={handleSignOut} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                          <LogOut className="mr-3 h-4 w-4" />
+                          <span>Sign Out</span>
+                        </DropdownMenuItem>
+                      </div>
+
+                      <div className="px-3 pt-2 pb-1 text-center">
+                        <p className="text-[9px] font-bold text-gray-300 dark:text-zinc-600 uppercase tracking-widest">Version {APP_VERSION}</p>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Notification Bell */}
+                  <NotificationIcon />
+                </div>
               ) : (
                 <Button variant="outline" onClick={() => signIn()}>
                   <LogIn className="mr-2 h-4 w-4" />

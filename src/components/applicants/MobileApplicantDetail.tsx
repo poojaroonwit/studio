@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, FlagIcon as Pin, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { Pin } from 'lucide-react';
 import { StatusBadge } from './ApplicantKanbanView';
 import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';
@@ -485,7 +486,7 @@ export default function MobileApplicantDetail({
               </h2>
               {applicant.isBlacklisted && <Ban className="h-3.5 w-3.5 text-destructive flex-shrink-0" />}
               {applicant.isPinned && (
-                <Pin className="h-3.5 w-3.5 text-primary rotate-45 fill-current flex-shrink-0" />
+                <Pin className="h-3.5 w-3.5 text-primary fill-current flex-shrink-0" />
               )}
             </div>
             {applicant.email && (
@@ -746,7 +747,7 @@ export default function MobileApplicantDetail({
                 )}
                 {applicant.isPinned && (
                   <Badge variant="secondary" className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full">
-                    <Pin className="h-3 w-3 rotate-45 fill-current" />
+                    <Pin className="h-3 w-3 fill-current" />
                     Pinned
                   </Badge>
                 )}

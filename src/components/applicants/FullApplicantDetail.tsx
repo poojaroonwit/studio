@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, DocumentCheckIcon as Save, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, PhoneIcon as Phone, AcademicCapIcon as GraduationCap, ClockIcon as Clock, FlagIcon as Target, ChatBubbleLeftRightIcon as MessageSquare, CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ClipboardDocumentIcon as Copy, ArrowTopRightOnSquareIcon as ExternalLink, MapPinIcon as MapPin, CalendarIcon as CalendarIcon, UsersIcon as Users, PencilSquareIcon as Edit, ChevronLeftIcon as ChevronLeft } from '@heroicons/react/24/outline';
+import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, DocumentCheckIcon as Save, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, PhoneIcon as Phone, AcademicCapIcon as GraduationCap, ClockIcon as Clock, FlagIcon as Target, ChatBubbleLeftRightIcon as MessageSquare, CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ClipboardDocumentIcon as Copy, ArrowTopRightOnSquareIcon as ExternalLink, MapPinIcon as MapPin, CalendarIcon as CalendarIcon, UsersIcon as Users, PencilSquareIcon as Edit, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight } from '@heroicons/react/24/outline';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
@@ -99,6 +99,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
 
   // QR Modal State
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -700,6 +701,124 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     }
   }
 
+  const handleStatusUpdate = useCallback(async (status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
+    if (!applicantId) return;
+
+    setIsStatusUpdating(true);
+    // Store original state for potential reversion
+    const originalApplicant = applicant;
+    const originalTransitionHistory = transitionHistory;
+
+    try {
+      // Check if this is a status change to "Hired" or similar hiring status
+      // First, find the stage name for the given status ID
+      const selectedStage = availableStages.find(stage => stage.id === status);
+      const stageName = selectedStage?.name || status;
+
+      const isHiringStatus = stageName.toLowerCase().includes('hired') ||
+        stageName.toLowerCase().includes('hiring') ||
+        stageName.toLowerCase().includes('employed');
+
+      if (isHiringStatus && applicant?.positionId) {
+        // Check headcount availability before proceeding
+        try {
+          const response = await fetch(`/api/headcount/validate-hiring?applicantId=${applicantId}&positionId=${applicant.positionId}`);
+          const validationResult = await response.json();
+
+          if (!validationResult.canHire) {
+            // Close the ManageTransitionsModal when showing headcount warning
+            setIsTransitionsModalOpen(false);
+            setPreselectedStage(null);
+
+            // Get position title for the warning
+            const positionTitle = allDbPositions.find(p => p.id === applicant.positionId)?.title;
+
+            // Set warning data and show modal
+            setHeadcountWarningDataWithDebug({
+              applicantName: applicant?.name || 'Unknown applicant',
+              positionTitle,
+              errorMessage: validationResult.message
+            });
+
+            // Open modal to block the status change
+            headcountModalOpenTimeRef.current = Date.now();
+            setHeadcountWarningShownTime(Date.now());
+            setIsHeadcountWarningModalOpen(true);
+
+            // IMPORTANT: Status change was blocked
+            return;
+          }
+        } catch (validationError) {
+          console.error('Error validating headcount availability:', validationError);
+          // If validation fails, show error and don't proceed
+          toastError('Failed to validate headcount availability. Please try again.');
+          return false;
+        }
+      }
+
+      // If we reach here, either it's not a hiring status or headcount is available
+      // Proceed with normal status update logic
+
+      // Apply optimistic update immediately
+      if (applicant) {
+        // Optimistically update the Applicant status
+        setApplicant(prev => prev ? {
+          ...prev,
+          statusId: status,
+          updatedAt: new Date().toISOString()
+        } : null);
+
+        // Optimistically add a new transition record
+        const optimisticTransition: TransitionRecord = {
+          id: `temp-${Date.now()}`,
+          applicantId: applicantId,
+          stage: status,
+          notes: notes || undefined,
+          actingUserId: session?.user?.id || null,
+          date: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        // Update transition history optimistically
+        setTransitionHistory(prev => [optimisticTransition, ...(Array.isArray(prev) ? prev : [])]);
+      }
+
+      // Make the actual API call
+      await updateApplicantStatusWithNotes(applicantId, status, notes, suppressToast, {
+        success: toastSuccess,
+        error: toastError
+      });
+
+      // Successfully completed - return true to indicate transaction passed
+      return true;
+    } catch (error: any) {
+      console.error('FullApplicantDetail - Error updating Applicant status:', error);
+
+      // For any errors, revert optimistic updates
+      if (originalApplicant) {
+        // Revert Applicant status to original
+        setApplicant(originalApplicant);
+
+        // Revert transition history to original
+        setTransitionHistory(originalTransitionHistory);
+      }
+
+      // Show error toast
+      if (!suppressToast) {
+        toastError(error?.message || 'Failed to update status.');
+      } else {
+        // If suppressToast is true, re-throw the error so the calling component can handle it
+        throw error;
+      }
+
+      // Error handled - return false to indicate transaction failed
+      return false;
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  }, [applicantId, applicant, availableStages, transitionHistory, allDbPositions, session?.user?.id, toastSuccess, toastError, setApplicant, setTransitionHistory]);
+
   return (
     <div className={isModal ? "h-full flex flex-col bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
       {/* Mobile Header with Back Button */}
@@ -982,124 +1101,8 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
         }}
         applicant={applicant}
         availableStages={availableStages}
-        onUpdateApplicant={async (applicantId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
-
-          // Store original state for potential reversion
-          const originalApplicant = applicant;
-          const originalTransitionHistory = transitionHistory;
-
-          try {
-            // Check if this is a status change to "Hired" or similar hiring status
-            // First, find the stage name for the given status ID
-            const selectedStage = availableStages.find(stage => stage.id === status);
-            const stageName = selectedStage?.name || status;
-
-            const isHiringStatus = stageName.toLowerCase().includes('hired') ||
-              stageName.toLowerCase().includes('hiring') ||
-              stageName.toLowerCase().includes('employed');
-
-
-
-            if (isHiringStatus && applicant?.positionId) {
-
-
-              // Check headcount availability before proceeding
-              try {
-                const response = await fetch(`/api/headcount/validate-hiring?applicantId=${applicantId}&positionId=${applicant.positionId}`);
-                const validationResult = await response.json();
-
-                if (!validationResult.canHire) {
-                  // Close the ManageTransitionsModal when showing headcount warning
-                  setIsTransitionsModalOpen(false);
-                  setPreselectedStage(null);
-
-                  // Get position title for the warning
-                  const positionTitle = allDbPositions.find(p => p.id === applicant.positionId)?.title;
-
-                  // Set warning data and show modal
-                  setHeadcountWarningDataWithDebug({
-                    applicantName: applicant?.name || 'Unknown applicant',
-                    positionTitle,
-                    errorMessage: validationResult.message
-                  });
-
-                  // Open modal to block the status change
-                  headcountModalOpenTimeRef.current = Date.now();
-                  setHeadcountWarningShownTime(Date.now());
-                  setIsHeadcountWarningModalOpen(true);
-
-                  // IMPORTANT: Status change was blocked
-                  return;
-                } else {
-                }
-              } catch (validationError) {
-                console.error('Error validating headcount availability:', validationError);
-                // If validation fails, show error and don't proceed
-                toastError('Failed to validate headcount availability. Please try again.');
-                return false;
-              }
-            }
-
-            // If we reach here, either it's not a hiring status or headcount is available
-            // Proceed with normal status update logic
-
-            // Apply optimistic update immediately
-            if (applicant) {
-              // Optimistically update the Applicant status
-              setApplicant(prev => prev ? {
-                ...prev,
-                statusId: status,
-                updatedAt: new Date().toISOString()
-              } : null);
-
-              // Optimistically add a new transition record
-              const optimisticTransition: TransitionRecord = {
-                id: `temp-${Date.now()}`,
-                applicantId: applicantId,
-                stage: status,
-                notes: notes || undefined,
-                actingUserId: session?.user?.id || null,
-                date: new Date().toISOString(),
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              };
-
-              // Update transition history optimistically
-              setTransitionHistory(prev => [optimisticTransition, ...(Array.isArray(prev) ? prev : [])]);
-            }
-
-            // Make the actual API call
-            await updateApplicantStatusWithNotes(applicantId, status, notes, suppressToast, {
-              success: toastSuccess,
-              error: toastError
-            });
-
-            // Successfully completed - return true to indicate transaction passed
-
-            return true;
-          } catch (error: any) {
-            console.error('FullApplicantDetail - Error updating Applicant status:', error);
-
-            // For any errors, revert optimistic updates
-            if (originalApplicant) {
-              // Revert Applicant status to original
-              setApplicant(originalApplicant);
-
-              // Revert transition history to original
-              setTransitionHistory(originalTransitionHistory);
-            }
-
-            // Show error toast
-            if (!suppressToast) {
-              toastError(error?.message || 'Failed to update status.');
-            } else {
-              // If suppressToast is true, re-throw the error so the calling component can handle it
-              throw error;
-            }
-
-            // Error handled - return false to indicate transaction failed
-            return false;
-          }
+        onUpdateApplicant={async (id: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
+          return handleStatusUpdate(status, notes, suppressToast);
         }}
         onRefreshApplicantData={async (applicantId: string) => {
           // Refresh Applicant data
@@ -1402,6 +1405,51 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
               Cancel
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Footer Actions - Reject and Next Stage */}
+      {!isEditing && applicant && (
+        <div className="border-t bg-background p-4 flex justify-end items-center gap-3 sticky bottom-0 z-[50]">
+          {(() => {
+            const rejectedStage = availableStages.find(s => s.name.toLowerCase() === 'rejected');
+            const currentStatus = applicant.statusId || applicant.status;
+            const currentStageIndex = availableStages.findIndex(s => s.id === currentStatus || s.name === currentStatus);
+            const nextStage = currentStageIndex !== -1 && currentStageIndex < availableStages.length - 1
+              ? availableStages[currentStageIndex + 1]
+              : null;
+
+            return (
+              <>
+                {rejectedStage && applicant.statusId !== rejectedStage.id && (
+                  <Button
+                    variant="outline"
+                    disabled={isStatusUpdating}
+                    onClick={() => handleStatusUpdate(rejectedStage.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                  >
+                    Reject
+                  </Button>
+                )}
+                {nextStage && (
+                  <Button
+                    disabled={isStatusUpdating}
+                    onClick={() => handleStatusUpdate(nextStage.id)}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
+                  >
+                    {isStatusUpdating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        Move to {nextStage.name}
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

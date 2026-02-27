@@ -3,7 +3,8 @@
 import React from 'react';
 import { ApplicantAvatar } from '@/components/ui/applicant-avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FlagIcon as Pin, ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
 import { BlacklistBadge } from './BlacklistBadge';

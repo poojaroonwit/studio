@@ -4,7 +4,8 @@ import React, { memo } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { StatusBadge } from "./ApplicantKanbanView";
 import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
-import { ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, EllipsisVerticalIcon as MoreVertical, EllipsisHorizontalIcon as MoreHorizontal, EyeIcon as Eye, FlagIcon as PinIcon, TrashIcon as Trash2, NoSymbolIcon as Ban, ArrowPathIcon as RefreshCw, BriefcaseIcon as Briefcase, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, EllipsisVerticalIcon as MoreVertical, EllipsisHorizontalIcon as MoreHorizontal, EyeIcon as Eye, TrashIcon as Trash2, NoSymbolIcon as Ban, ArrowPathIcon as RefreshCw, BriefcaseIcon as Briefcase, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { Pin as PinIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useApplicantDetail } from './hooks/use-applicant-detail';
 import { ScoreBadge } from '@/components/ui/score-color';
@@ -193,7 +194,7 @@ const ApplicantTableRowComponent = ({
                   className={`p-1 rounded hover:bg-muted transition-colors ${applicant.isPinned ? 'text-amber-500' : 'text-muted-foreground hover:text-foreground'}`}
                   title={applicant.isPinned ? 'Unpin applicant' : 'Pin applicant to top'}
                 >
-                  {applicant.isPinned ? <PinIcon className="h-4 w-4 text-amber-500 fill-current rotate-45" /> : <PinIcon className="h-4 w-4 text-foreground rotate-45" />}
+                  {applicant.isPinned ? <PinIcon className="h-4 w-4 text-amber-500 fill-current" /> : <PinIcon className="h-4 w-4 text-foreground" />}
                 </button>
               </TableCell>
             );
@@ -224,7 +225,7 @@ const ApplicantTableRowComponent = ({
                         title={nameInfo.name}
                       >
                         {nameInfo.name}
-                        {applicant.isPinned && <PinIcon className="inline-block ml-2 h-3.5 w-3.5 text-amber-500 fill-current rotate-45 align-text-top" />}
+                        {applicant.isPinned && <PinIcon className="inline-block ml-2 h-3.5 w-3.5 text-amber-500 fill-current align-text-top" />}
                         {applicant.isBlacklisted && <Ban className="inline-block ml-2 h-3 w-3 text-destructive align-text-top" />}
                       </button>
                     ) : (

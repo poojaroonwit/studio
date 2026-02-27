@@ -945,6 +945,22 @@ audio::-webkit-scrollbar-button {
       0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45),
       0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
 
+    /* Destructive button shadow variables - light theme */
+    --destructive-button-shadow-l: 
+      0 8px 32px 0 hsla(var(--destructive), 0.35),
+      0 4px 16px 0 hsla(var(--destructive), 0.25);
+    --destructive-button-shadow-hover-l: 
+      0 12px 40px 0 hsla(var(--destructive), 0.45),
+      0 6px 20px 0 hsla(var(--destructive), 0.3);
+
+    /* Secondary button shadow variables - light theme */
+    --secondary-button-shadow-l: 
+      0 8px 32px 0 hsla(var(--secondary), 0.25),
+      0 4px 16px 0 hsla(var(--secondary), 0.15);
+    --secondary-button-shadow-hover-l: 
+      0 12px 40px 0 hsla(var(--secondary), 0.35),
+      0 6px 20px 0 hsla(var(--secondary), 0.2);
+
     --secondary: 220 14% 96%;
     /* Very light gray */
     --secondary-foreground: 220 25% 25%;
@@ -1123,6 +1139,22 @@ audio::-webkit-scrollbar-button {
     --primary-button-shadow-hover-d:
       0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55),
       0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
+
+    /* Destructive button shadow variables - dark theme */
+    --destructive-button-shadow-d: 
+      0 8px 32px 0 hsla(var(--destructive), 0.45),
+      0 4px 16px 0 hsla(var(--destructive), 0.3);
+    --destructive-button-shadow-hover-d: 
+      0 12px 40px 0 hsla(var(--destructive), 0.55),
+      0 6px 20px 0 hsla(var(--destructive), 0.35);
+
+    /* Secondary button shadow variables - dark theme */
+    --secondary-button-shadow-d: 
+      0 8px 32px 0 hsla(var(--secondary), 0.35),
+      0 4px 16px 0 hsla(var(--secondary), 0.2);
+    --secondary-button-shadow-hover-d: 
+      0 12px 40px 0 hsla(var(--secondary), 0.45),
+      0 6px 20px 0 hsla(var(--secondary), 0.25);
 
     --secondary: 220 15% 25%;
     /* Darker secondary elements */
@@ -1473,6 +1505,43 @@ audio::-webkit-scrollbar-button {
     );
   }
 
+  /* Destructive button gradient with shadow */
+  .btn-destructive-gradient {
+    background-color: hsl(var(--destructive));
+    color: var(--destructive-foreground) !important;
+    border: none;
+    box-shadow: var(
+      --destructive-button-shadow-l,
+      0 8px 32px 0 hsla(var(--destructive), 0.35),
+      0 4px 16px 0 hsla(var(--destructive), 0.25)
+    );
+  }
+
+  .dark .btn-destructive-gradient {
+    box-shadow: var(
+      --destructive-button-shadow-d,
+      0 8px 32px 0 hsla(var(--destructive), 0.45),
+      0 4px 16px 0 hsla(var(--destructive), 0.3)
+    );
+  }
+
+  .btn-destructive-gradient:hover {
+    filter: brightness(1.1);
+    box-shadow: var(
+      --destructive-button-shadow-hover-l,
+      0 12px 40px 0 hsla(var(--destructive), 0.45),
+      0 6px 20px 0 hsla(var(--destructive), 0.3)
+    );
+  }
+
+  .dark .btn-destructive-gradient:hover {
+    box-shadow: var(
+      --destructive-button-shadow-hover-d,
+      0 12px 40px 0 hsla(var(--destructive), 0.55),
+      0 6px 20px 0 hsla(var(--destructive), 0.35)
+    );
+  }
+
   /* Blue gradient hover for secondary and outline button types */
   .btn-hover-primary-gradient:hover {
     background-image: linear-gradient(
@@ -1621,27 +1690,37 @@ audio::-webkit-scrollbar-button {
 
   /* Secondary button gradient with shadow */
   .btn-secondary-gradient {
-    box-shadow:
-      0 2px 8px 0 hsla(220, 14%, 96%, 0.3),
-      0 1px 3px 0 hsla(220, 14%, 96%, 0.2);
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground)) !important;
+    box-shadow: var(
+      --secondary-button-shadow-l,
+      0 8px 32px 0 hsla(var(--secondary), 0.25),
+      0 4px 16px 0 hsla(var(--secondary), 0.15)
+    );
   }
 
   .dark .btn-secondary-gradient {
-    box-shadow:
-      0 2px 8px 0 hsla(220, 15%, 25%, 0.4),
-      0 1px 3px 0 hsla(220, 15%, 25%, 0.3);
+    box-shadow: var(
+      --secondary-button-shadow-d,
+      0 8px 32px 0 hsla(var(--secondary), 0.35),
+      0 4px 16px 0 hsla(var(--secondary), 0.2)
+    );
   }
 
   .btn-secondary-gradient:hover {
-    box-shadow:
-      0 4px 12px 0 hsla(220, 14%, 96%, 0.4),
-      0 2px 4px 0 hsla(220, 14%, 96%, 0.25);
+    box-shadow: var(
+      --secondary-button-shadow-hover-l,
+      0 12px 40px 0 hsla(var(--secondary), 0.35),
+      0 6px 20px 0 hsla(var(--secondary), 0.2)
+    );
   }
 
   .dark .btn-secondary-gradient:hover {
-    box-shadow:
-      0 4px 12px 0 hsla(220, 15%, 25%, 0.5),
-      0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
+    box-shadow: var(
+      --secondary-button-shadow-hover-d,
+      0 12px 40px 0 hsla(var(--secondary), 0.45),
+      0 6px 20px 0 hsla(var(--secondary), 0.25)
+    );
   }
 
   /* Evaluate page card with increased rounded top corners */

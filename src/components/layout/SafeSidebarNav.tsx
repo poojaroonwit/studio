@@ -194,11 +194,15 @@ OptimizedLink.displayName = 'OptimizedLink';
 export const SidebarRail = React.memo(({ 
   filteredGroups, 
   activeGroupLabel, 
-  onHubClick 
+  hoveredGroupLabel,
+  onHubClick,
+  onHubHover
 }: { 
   filteredGroups: any[]; 
   activeGroupLabel: string | undefined; 
+  hoveredGroupLabel: string | undefined;
   onHubClick: (label: string) => void;
+  onHubHover: (label: string | undefined) => void;
 }) => {
   return (
     <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[68px]">
@@ -207,28 +211,31 @@ export const SidebarRail = React.memo(({
 
       {/* Hub Navigation */}
       <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
-        {filteredGroups.filter(g => g.label !== 'Employee').map((group) => {
+        {filteredGroups.filter(g => g.label !== 'Settings').map((group) => {
           const isHubActive = activeGroupLabel === group.label;
+          const isHubHovered = hoveredGroupLabel === group.label;
+          const isEffectivelyActive = isHubHovered || (isHubActive && !hoveredGroupLabel);
           return (
             <TooltipProvider key={group.label} delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => onHubClick(group.label)}
+                    onMouseEnter={() => onHubHover(group.label)}
                     className={cn(
                       "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
-                      isHubActive
+                      isEffectivelyActive
                         ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
                         : "text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]"
                     )}
                   >
                     {/* Active indicator bar */}
-                    {isHubActive && (
+                    {isEffectivelyActive && (
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
                     )}
                     <group.icon className={cn(
                       "w-5 h-5 flex-shrink-0 transition-all duration-200",
-                      isHubActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105"
+                      isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105"
                     )} />
                   </button>
                 </TooltipTrigger>
@@ -247,24 +254,27 @@ export const SidebarRail = React.memo(({
           <Tooltip>
             {(() => {
               const isSettingsActive = activeGroupLabel === 'Settings';
+              const isSettingsHovered = hoveredGroupLabel === 'Settings';
+              const isEffectivelyActive = isSettingsHovered || (isSettingsActive && !hoveredGroupLabel);
               return (
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => onHubClick('Settings')}
+                    onMouseEnter={() => onHubHover('Settings')}
                     className={cn(
                       "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
-                      isSettingsActive
+                      isEffectivelyActive
                         ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
                         : "text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]"
                     )}
                   >
                     {/* Active indicator bar */}
-                    {isSettingsActive && (
+                    {isEffectivelyActive && (
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
                     )}
                     <Settings className={cn(
                       "w-5 h-5 flex-shrink-0 transition-all duration-200",
-                      isSettingsActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105"
+                      isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105"
                     )} />
                   </button>
                 </TooltipTrigger>
@@ -370,6 +380,7 @@ const GroupedSidebarNav = React.memo(() => {
   const { pendingCount } = usePendingCount();
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions() as { hasPositions: boolean };
+  const router = useRouter();
 
   const isAdmin = session?.user?.role === 'Admin';
   const modulePermissions = (session?.user as any)?.modulePermissions || [];
@@ -389,19 +400,28 @@ const GroupedSidebarNav = React.memo(() => {
         return group.label;
       }
     }
+    // Explicitly handle root settings path to avoid defaulting to first group
+    if (pathname.startsWith('/settings')) {
+      const settingsGroup = filteredGroups.find(g => g.label === 'Settings');
+      if (settingsGroup) return 'Settings';
+    }
     return filteredGroups[0]?.label;
   }, [filteredGroups, pathname]);
 
   const [activeGroupLabel, setActiveGroupLabel] = React.useState<string | undefined>(initialActiveGroupLabel);
+  const [hoveredGroupLabel, setHoveredGroupLabel] = React.useState<string | undefined>(undefined);
+
+  // Use hovered label for display if present, otherwise fallout to active label
+  const displayedGroupLabel = hoveredGroupLabel || activeGroupLabel;
 
   // Update active group when pathname changes
   React.useEffect(() => {
     if (initialActiveGroupLabel && initialActiveGroupLabel !== activeGroupLabel) {
       setActiveGroupLabel(initialActiveGroupLabel);
     }
-  }, [initialActiveGroupLabel]);
+  }, [initialActiveGroupLabel, activeGroupLabel]);
 
-  const activeGroup = filteredGroups.find(g => g.label === activeGroupLabel) || filteredGroups[0];
+  const activeGroup = filteredGroups.find(g => g.label === displayedGroupLabel) || filteredGroups[0];
 
   const handleHubClick = React.useCallback((label: string) => {
     setActiveGroupLabel(label);
@@ -421,11 +441,16 @@ const GroupedSidebarNav = React.memo(() => {
   }
 
   return (
-    <>
+    <div 
+      className="flex h-full"
+      onMouseLeave={() => setHoveredGroupLabel(undefined)}
+    >
       <SidebarRail
         filteredGroups={filteredGroups}
         activeGroupLabel={activeGroupLabel}
+        hoveredGroupLabel={hoveredGroupLabel}
         onHubClick={handleHubClick}
+        onHubHover={setHoveredGroupLabel}
       />
       {pathname !== '/settings/users' && (
         <SidebarMenuPanel
@@ -434,10 +459,10 @@ const GroupedSidebarNav = React.memo(() => {
           pendingCount={pendingCount}
           sidebarPreferences={sidebarPreferences}
           hasPositions={hasPositions}
-          activeGroupLabel={activeGroupLabel}
+          activeGroupLabel={displayedGroupLabel}
         />
       )}
-    </>
+    </div>
   );
 });
 

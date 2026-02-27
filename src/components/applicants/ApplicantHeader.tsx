@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Pin, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
+import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
+import { Pin } from 'lucide-react';
 import { formatApplicantNameWithLang } from "@/lib/applicantUtils";
 import { useToast } from '@/hooks/use-toast';
 import type { Applicant, UserProfile, RecruitmentStage, ApplicantSource } from '@/lib/types';
@@ -287,7 +288,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
                   lang={nameInfo.lang}
                 >
                   {nameInfo.name}
-                  {applicant.isPinned && <Pin className="inline-block ml-2 h-4 w-4 text-amber-500 fill-current rotate-45 align-text-top" />}
+                  {applicant.isPinned && <Pin className="inline-block ml-2 h-4 w-4 text-amber-500 fill-current align-text-top" />}
                 </span>
                 <div className="flex items-center gap-2">
                   {!isMobile && applicant.id && (

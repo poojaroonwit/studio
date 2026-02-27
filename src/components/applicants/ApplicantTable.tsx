@@ -16,7 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { EllipsisHorizontalIcon as MoreHorizontal, TrashIcon as Trash2, EyeIcon as Eye, UsersIcon as Users, EllipsisVerticalIcon as MoreVertical, ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, FlagIcon as PinIcon, FlagIcon as PinOff, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
+import { EllipsisHorizontalIcon as MoreHorizontal, TrashIcon as Trash2, EyeIcon as Eye, UsersIcon as Users, EllipsisVerticalIcon as MoreVertical, ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
+import { Pin as PinIcon, PinOff } from 'lucide-react';
 import { ApplicantsMobileListView } from './ApplicantsMobileListView';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatApplicantName, formatApplicantNameWithLang } from "@/lib/applicantUtils";
@@ -446,12 +447,12 @@ export function ApplicantTable({
                       >
                         {applicant.isPinned ? (
                           <>
-                            <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                            <PinOff className="mr-2 h-4 w-4 text-blue-600 fill-current" />
                             Unpin from top
                           </>
                         ) : (
                           <>
-                            <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                            <PinIcon className="mr-2 h-4 w-4 text-foreground" />
                             Pin to top (shared)
                           </>
                         )}
@@ -579,12 +580,12 @@ export function ApplicantTable({
                           >
                             {applicant.isPinned ? (
                               <>
-                                <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                                <PinOff className="mr-2 h-4 w-4 text-blue-600 fill-current" />
                                 Unpin from top
                               </>
                             ) : (
                               <>
-                                <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                                <PinIcon className="mr-2 h-4 w-4 text-foreground" />
                                 Pin to top (shared)
                               </>
                             )}
@@ -687,7 +688,7 @@ export function ApplicantTable({
           {settings?.showPinSection && pinned.length > 0 && (
             <div>
               <div className="flex items-center gap-2 px-4 py-2 bg-muted/30">
-                <PinIcon className="h-4 w-4 text-primary rotate-45" />
+                <PinIcon className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-primary text-sm">Pinned Applicants</h3>
                 <span className="text-xs text-muted-foreground">({pinned.length})</span>
               </div>
@@ -809,7 +810,7 @@ export function ApplicantTable({
                         >
                           <TableCell colSpan={getVisibleColumnCount()} className="px-4">
                             <div className="flex items-center gap-2">
-                              <PinIcon className="h-4 w-4 text-primary rotate-45" />
+                              <PinIcon className="h-4 w-4 text-primary" />
                               <span className="font-semibold text-primary">Pinned Applicants</span>
                               <span className="text-sm text-muted-foreground">({pinned.length} applicant{pinned.length !== 1 ? 's' : ''})</span>
                             </div>

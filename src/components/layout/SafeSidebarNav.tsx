@@ -205,7 +205,7 @@ export const SidebarRail = React.memo(({
   onHubHover: (label: string | undefined) => void;
 }) => {
   return (
-    <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[68px]">
+    <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[60px]">
       {/* Spacer to align below header */}
       <div className="h-4" />
 
@@ -311,7 +311,7 @@ export const SidebarMenuPanel = React.memo(({
   if (!activeGroup) return null;
 
   return (
-    <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
+    <aside className="hidden lg:flex flex-col w-[220px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
       {/* Hub Label */}
       <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800/80 mb-3">
         <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">
@@ -395,12 +395,18 @@ const GroupedSidebarNav = React.memo(() => {
 
   // Find the initially active group based on the pathname
   const initialActiveGroupLabel = React.useMemo(() => {
+    // Explicitly handle root settings path to avoid defaulting to Employee group
+    if (pathname === '/settings') return 'Settings';
+    if (pathname === '/dashboard') return 'Analyst';
+    if (pathname === '/hiring') return 'Hiring';
+    if (pathname === '/shortlist-calendar') return 'Shortlist & Calendar';
+    
     for (const group of filteredGroups) {
       if (group.items.some(item => pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)))) {
         return group.label;
       }
     }
-    // Explicitly handle root settings path to avoid defaulting to first group
+    
     if (pathname.startsWith('/settings')) {
       const settingsGroup = filteredGroups.find(g => g.label === 'Settings');
       if (settingsGroup) return 'Settings';
@@ -426,9 +432,15 @@ const GroupedSidebarNav = React.memo(() => {
   const handleHubClick = React.useCallback((label: string) => {
     setActiveGroupLabel(label);
     
-    // If clicking Settings hub, also navigate to /settings grid page
+    // Auto-navigate to hub grid pages when clicking main rail icons
     if (label === 'Settings') {
       router.push('/settings');
+    } else if (label === 'Analyst') {
+      router.push('/dashboard');
+    } else if (label === 'Hiring') {
+      router.push('/hiring');
+    } else if (label === 'Shortlist & Calendar') {
+      router.push('/shortlist-calendar');
     }
   }, [router]);
 
@@ -452,7 +464,8 @@ const GroupedSidebarNav = React.memo(() => {
         onHubClick={handleHubClick}
         onHubHover={setHoveredGroupLabel}
       />
-      {pathname !== '/settings/users' && (
+      {/* Hide secondary sidebar on hub grid pages and root pages */}
+      {!(['/', '/dashboard', '/hiring', '/shortlist-calendar', '/settings'].includes(pathname) || pathname.startsWith('/settings/users')) && (
         <SidebarMenuPanel
           activeGroup={activeGroup}
           pathname={pathname}

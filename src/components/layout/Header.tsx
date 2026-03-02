@@ -584,15 +584,15 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                             forceRefresh={refreshKey > 0}
                           />
                         </div>
-                        <div className="hidden sm:flex flex-col items-start mr-1">
-                          <span className="text-[13px] font-bold leading-tight truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                        <div className="flex flex-col items-start mr-1 text-left">
+                          <span className="text-[13px] font-bold leading-tight truncate max-w-[90px] sm:max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
                             {user.name}
                           </span>
-                          <span className="text-[10px] font-medium uppercase tracking-tight opacity-60" style={{ color: 'var(--header-foreground, inherit)' }}>
+                          <span className="text-[10px] font-medium uppercase tracking-tight opacity-60 truncate max-w-[90px] sm:max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
                             {user.role || 'User'}
                           </span>
                         </div>
-                        <ChevronDown className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" style={{ color: 'var(--header-foreground, inherit)' }} />
+                        <ChevronDown className="hidden sm:block w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" style={{ color: 'var(--header-foreground, inherit)' }} />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-gray-100 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl animate-in fade-in zoom-in duration-200">

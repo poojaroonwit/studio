@@ -1409,19 +1409,24 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       )}
 
       {/* Footer Actions - Reject and Next Stage */}
-      {!isEditing && applicant && (
-        <div className="border-t bg-background p-4 flex justify-end items-center gap-3 sticky bottom-0 z-[50]">
+      {!isEditing && applicant && availableStages.length > 0 && (
+        <div className="border-t bg-background p-4 flex justify-end items-center gap-3 flex-shrink-0 z-[50]">
           {(() => {
             const rejectedStage = availableStages.find(s => s.name.toLowerCase() === 'rejected');
-            const currentStatus = applicant.statusId || applicant.status;
-            const currentStageIndex = availableStages.findIndex(s => s.id === currentStatus || s.name === currentStatus);
+            const currentStatusId = applicant.statusId;
+            const currentStatusName = (applicant.status || '').toLowerCase();
+            
+            const currentStageIndex = availableStages.findIndex(s => 
+              s.id === currentStatusId || s.name.toLowerCase() === currentStatusName
+            );
+            
             const nextStage = currentStageIndex !== -1 && currentStageIndex < availableStages.length - 1
               ? availableStages[currentStageIndex + 1]
               : null;
 
             return (
               <>
-                {rejectedStage && applicant.statusId !== rejectedStage.id && (
+                {rejectedStage && currentStatusId !== rejectedStage.id && currentStatusName !== 'rejected' && (
                   <Button
                     variant="outline"
                     disabled={isStatusUpdating}

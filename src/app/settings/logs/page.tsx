@@ -67,10 +67,12 @@ export default function ApplicationLogsPage() {
 
   const fetchLogUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users?pageSize=1000'); // Fetch enough for the filter
       if (!response.ok) throw new Error('Failed to fetch users for log filter');
-      const usersData: UserProfile[] = await response.json();
-      setAllUsers((usersData || []).map(u => ({ id: u.id, name: u.name })));
+      const data = await response.json();
+      // Handle both array and paginated object formats
+      const usersArray = Array.isArray(data) ? data : (data.users || data.data || []);
+      setAllUsers(usersArray.map((u: UserProfile) => ({ id: u.id, name: u.name })));
     } catch (error) {
       console.error("Error fetching users for log filter:", error);
       setAllUsers([]); // Ensure fallback to empty array on error

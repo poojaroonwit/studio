@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { Pin } from 'lucide-react';
 import { StatusBadge } from './ApplicantKanbanView';
 import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
@@ -73,6 +73,7 @@ export default function MobileApplicantDetail({
     applicantId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -290,6 +291,7 @@ export default function MobileApplicantDetail({
 
   const handleChangeStatus = async () => {
     if (!applicant?.id || !newStatus) return;
+    setIsStatusUpdating(true);
     try {
       const res = await fetch('/api/applicants/bulk-action', {
         method: 'POST',
@@ -311,6 +313,37 @@ export default function MobileApplicantDetail({
       handleRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update status');
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  };
+
+  const handleStatusUpdate = async (statusId: string) => {
+    if (!applicant?.id) return;
+    setIsStatusUpdating(true);
+    try {
+      const res = await fetch('/api/applicants/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'change_status',
+          applicantIds: [applicant.id],
+          newStatus: statusId
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to update status');
+      }
+
+      toast.success('Status updated');
+      handleRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status');
+    } finally {
+      setIsStatusUpdating(false);
     }
   };
 
@@ -946,6 +979,56 @@ export default function MobileApplicantDetail({
         onOpenChange={setIsFileViewerOpen}
         file={selectedFile}
       />
+
+      {/* Footer Actions - Reject and Next Stage */}
+      {applicant && availableStages.length > 0 && (
+        <div className="border-t bg-background p-4 flex justify-end items-center gap-3 flex-shrink-0 z-[40] relative">
+          {(() => {
+            const rejectedStage = availableStages.find(s => s.name.toLowerCase() === 'rejected');
+            const currentStatusId = applicant.statusId;
+            const currentStatusName = (applicant.status || '').toLowerCase();
+            
+            const currentStageIndex = availableStages.findIndex(s => 
+              s.id === currentStatusId || s.name.toLowerCase() === currentStatusName
+            );
+            
+            const nextStage = currentStageIndex !== -1 && currentStageIndex < availableStages.length - 1
+              ? availableStages[currentStageIndex + 1]
+              : null;
+
+            return (
+              <>
+                {rejectedStage && currentStatusId !== rejectedStage.id && currentStatusName !== 'rejected' && (
+                  <Button
+                    variant="outline"
+                    disabled={isStatusUpdating}
+                    onClick={() => handleStatusUpdate(rejectedStage.id)}
+                    className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 h-11"
+                  >
+                    Reject
+                  </Button>
+                )}
+                {nextStage && (
+                  <Button
+                    disabled={isStatusUpdating}
+                    onClick={() => handleStatusUpdate(nextStage.id)}
+                    className="flex-[2] bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all h-11"
+                  >
+                    {isStatusUpdating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        Move to {nextStage.name}
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div >
   );
 }

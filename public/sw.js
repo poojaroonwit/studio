@@ -178,12 +178,11 @@ self.addEventListener('fetch', (event) => {
           })
           .catch((error) => {
             console.warn('Service Worker: Network fetch failed:', error);
-            // Return error response for non-navigation requests
-            return new Response('Network error', {
-              status: 408,
-              statusText: 'Request Timeout',
-              headers: { 'Content-Type': 'text/plain' }
-            });
+            // Instead of returning a 408, just let the fetch fail naturally 
+            // for non-navigation requests so the browser handles it appropriately.
+            // This prevents MIME type errors when the browser expects a script/css
+            // but gets our 'Network error' text/plain response.
+            throw error;
           });
       })
       .catch((error) => {

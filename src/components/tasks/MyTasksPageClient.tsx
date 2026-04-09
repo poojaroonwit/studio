@@ -20,7 +20,6 @@ import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown, Wifi } from 'lucide-react';
 import { TaskBoard, TaskStage } from '@/components/tasks/TaskBoard';
 import { Task } from '@/components/tasks/TaskCard';
-import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';
 
@@ -79,7 +78,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [recruiters, setRecruiter] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
 
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [selectedApplicantSummary, setSelectedApplicantSummary] = useState<{ id: string; name: string } | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [isStageFilterOpen, setIsStageFilterOpen] = useState(false);
@@ -96,6 +96,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   
   // Add debouncing for preference updates to prevent rapid changes
   const preferenceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -380,6 +381,29 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleFocusSearch = () => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    };
+
+    const handleOpenFilters = () => {
+      setIsStageFilterOpen(true);
+    };
+
+    window.addEventListener('mytasks:focus-search', handleFocusSearch);
+    window.addEventListener('mytasks:open-filters', handleOpenFilters);
+
+    return () => {
+      window.removeEventListener('mytasks:focus-search', handleFocusSearch);
+      window.removeEventListener('mytasks:open-filters', handleOpenFilters);
+    };
+  }, []);
+
   // Manual view mode toggle handler
   const handleViewModeChange = useCallback((newViewMode: string) => {
     // Prevent changes during initial load
@@ -396,6 +420,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
     setViewMode(newViewMode);
   }, [viewMode, isLoaded]);
+
+  const openApplicantDetail = useCallback((applicant: any) => {
+    if (!applicant?.id) {
+      return;
+    }
+
+    setSelectedApplicantSummary({
+      id: applicant.id,
+      name: applicant.name || 'Applicant',
+    });
+    setIsDetailModalOpen(true);
+  }, []);
 
   // Fetch stages, recruiters, positions on mount
   useEffect(() => {
@@ -752,6 +788,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [stages, selectedStages]);
 
+  const stageNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    stages.forEach((stage) => {
+      if (stage.id && stage.name) {
+        map[stage.id] = stage.name;
+      }
+    });
+    return map;
+  }, [stages]);
+
   // Handle authentication
   if (status === 'loading') {
     return (
@@ -865,6 +911,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                  )}
                  <Input
+                   ref={searchInputRef}
                    className="pl-10 h-9 w-48 text-sm"
                    placeholder="Search Applicants..."
                    value={filters.name || ''}
@@ -1182,7 +1229,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   tasks={convertApplicantsToTasks(displayedApplicants)}
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
-                  onTaskClick={(task) => setSelectedTask(task.originalapplicant)}
+                  onTaskClick={(task) => openApplicantDetail(task.originalapplicant ?? task)}
                   cardPreferences={{
                     cardWidth: memoizedPreferences.cardWidth,
                     customCardWidth: memoizedPreferences.customCardWidth,
@@ -1219,10 +1266,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         key={applicant.id} 
                         className="cursor-pointer hover:bg-muted/40 content-fade-in"
                         style={{ animationDelay: `${index * 20}ms` }}
-                        onClick={() => {
-                       
-                        setSelectedTask(applicant);
-                      }}>
+                        onClick={() => openApplicantDetail(applicant)}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <ApplicantAvatarCompact
@@ -1241,17 +1285,20 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                             </div>
                           </div>
                         </TableCell>
-                                                  <TableCell>
-                            <StatusBadge statusId={applicant.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
-                          </TableCell>
+                        <TableCell>
+                          <StatusBadge
+                            statusId={applicant.statusId}
+                            stageNames={stageNames}
+                            className="text-xs font-medium px-2.5 py-0.5 rounded-full"
+                          />
+                        </TableCell>
                         <TableCell className="text-foreground">{applicant.position?.title || applicant.positionId}</TableCell>
                         <TableCell className="text-foreground">{applicant.recruiter?.name || applicant.recruiterId}</TableCell>
                         <TableCell className="hidden sm:table-cell text-foreground">{formatScoreWithGrade(applicant.fitScore)}</TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
-                           
-                            setSelectedTask(applicant); 
+                            openApplicantDetail(applicant); 
                           }}>
                             View
                           </Button>
@@ -1268,16 +1315,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       </div>
 
       {/* Modals */}
-      {selectedTask && (
-        <>
-          <ApplicantDetailModal
-            applicantId={selectedTask.id}
-            open={!!selectedTask}
-            onClose={() => {
-              setSelectedTask(null);
-            }}
-          />
-        </>
+      {selectedApplicantSummary && (
+        <ApplicantDetailModal
+          applicantId={selectedApplicantSummary.id}
+          open={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setTimeout(() => {
+              setSelectedApplicantSummary(null);
+            }, 100);
+          }}
+        />
       )}
 
       {/* Card Settings Drawer */}

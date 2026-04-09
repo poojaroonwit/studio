@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
+import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, MagnifyingGlassIcon as Search, FunnelIcon as Funnel } from '@heroicons/react/24/outline';
 
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -46,6 +46,10 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
       items.push({ label: "Applicant Details", href: pathname });
     }
+  }
+
+  if (pathname.startsWith("/candidate")) {
+    items.push({ label: "Candidate", href: "/candidate" });
   }
 
   if (pathname === "/process-queue") {
@@ -479,6 +483,45 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   // Use a more robust mounting strategy to prevent double rendering in StrictMode
   // Only render the actual header once we're fully mounted and have session data
   const isLoading = !mounted || status === "loading";
+  const isMyTasksHeader = pathname?.startsWith('/my-tasks');
+  const supportsHeaderSearch = pathname?.startsWith('/applicants') || pathname?.startsWith('/positions') || isMyTasksHeader;
+  const supportsHeaderFilter = isMyTasksHeader;
+  const headerSearchLabel = pathname?.startsWith('/positions')
+    ? 'Search positions'
+    : isMyTasksHeader
+      ? 'Search my tasks'
+      : 'Search applicants';
+  const searchDialogTitle = pathname === '/positions'
+    ? 'Search Positions'
+    : isMyTasksHeader
+      ? 'Search My Tasks'
+      : 'Search Applicants';
+  const searchDialogPlaceholder = pathname === '/positions'
+    ? 'Search by title, department...'
+    : isMyTasksHeader
+      ? 'Search by applicant, email...'
+      : 'Search by name, email...';
+
+  const handleHeaderSearch = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (isMyTasksHeader) {
+      window.dispatchEvent(new Event('mytasks:focus-search'));
+      return;
+    }
+
+    setIsSearchModalOpen(true);
+  }, [isMyTasksHeader]);
+
+  const handleHeaderFilter = useCallback(() => {
+    if (typeof window === 'undefined' || !supportsHeaderFilter) {
+      return;
+    }
+
+    window.dispatchEvent(new Event('mytasks:open-filters'));
+  }, [supportsHeaderFilter]);
 
   // Check if we should hide the header on mobile for detail pages
   const isDetailPage = useMemo(() => {
@@ -494,6 +537,20 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
     return isApplicantDetail || isPositionDetail;
   }, [pathname]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !supportsHeaderSearch) return;
+
+    const handleHeaderSearchShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        handleHeaderSearch();
+      }
+    };
+
+    window.addEventListener('keydown', handleHeaderSearchShortcut);
+    return () => window.removeEventListener('keydown', handleHeaderSearchShortcut);
+  }, [handleHeaderSearch, supportsHeaderSearch]);
+
   // Hide header on mobile for detail pages
   if (isMobile && isDetailPage) {
     return null;
@@ -502,43 +559,54 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   return (
     <>
       <header 
-        className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-zinc-800/50 flex items-center justify-between px-4 lg:px-8 relative z-50 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-zinc-900/20 transition-all duration-300"
+        className="sticky top-0 z-50 h-16 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between transition-all duration-300"
         style={{
           background: 'var(--header-background)',
           color: 'var(--header-foreground)'
         }}
       >
-        <div className="flex items-center space-x-6">
+        <div className="flex min-w-0 items-center space-x-4 lg:space-x-6">
           {/* Brand Logo */}
-          <div className="flex items-center group">
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="flex min-w-0 items-center group text-left transition-transform duration-200 active:scale-95"
+          >
             {appLogoUrl ? (
-              <img
-                src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
-                alt={currentAppName}
-                className="w-9 h-9 rounded-xl flex-shrink-0 object-contain shadow-lg mr-4 group-hover:shadow-xl transition-all duration-300"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
+              <div className="relative">
+                <img
+                  src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
+                  alt={currentAppName}
+                  className="w-9 h-9 flex-shrink-0 object-contain mr-4"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             ) : (
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-blue-600/25 mr-4 group-hover:shadow-blue-600/40 transition-all duration-300">
+              <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-[0_4px_12px_rgba(37,99,235,0.3)] mr-4 group-hover:shadow-[0_8px_20px_rgba(37,99,235,0.4)] group-hover:-translate-y-0.5 transition-all duration-300 overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700">
                 {currentAppName?.[0] || 'F'}
               </div>
             )}
-            <div className="hidden md:block overflow-hidden whitespace-nowrap">
+            <div className="hidden lg:flex items-center gap-3 overflow-hidden whitespace-nowrap">
               {!showLogoOnly && (
-                <>
-                  <h1 className="font-bold tracking-tight text-xl leading-none mb-0.5" style={{ color: 'var(--header-foreground, inherit)' }}>{currentAppName}</h1>
-                  <p className="text-[10px] font-medium uppercase tracking-widest leading-none opacity-70" style={{ color: 'var(--header-foreground, inherit)' }}>Platform</p>
-                </>
+                <div className="flex flex-col justify-center overflow-hidden">
+                  <h1 className="font-bold tracking-tight text-lg leading-tight truncate" style={{ color: 'var(--header-foreground, inherit)' }}>
+                    {currentAppName}
+                  </h1>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] leading-none mt-0.5 text-blue-600 dark:text-blue-400">
+                    Platform
+                  </p>
+                </div>
               )}
             </div>
-          </div>
+          </button>
 
           {/* Mobile Menu Button */}
           {isMobile && pathname?.includes('/evaluate') && (
-            <Button variant="ghost" size="icon" className="lg:hidden -ml-2 rounded-none shadow-none" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" className="lg:hidden rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800" onClick={() => router.back()}>
               <ChevronLeft className="w-6 h-6" />
             </Button>
           )}
@@ -546,17 +614,51 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
           {/* Vertical Divider */}
           <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent dark:via-zinc-800 mx-6" />
 
+          {supportsHeaderSearch && (
+            <div className="hidden md:flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleHeaderSearch}
+                className="md:flex md:w-[260px] lg:w-[320px] items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/75 px-4 py-2 text-sm text-slate-500 shadow-sm transition-all duration-200 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:bg-zinc-900"
+              >
+                <span className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5" />
+                  <span>{headerSearchLabel}</span>
+                </span>
+                <kbd className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
+                  <span>Ctrl</span>
+                  <span>K</span>
+                </kbd>
+              </button>
+
+              {supportsHeaderFilter && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleHeaderFilter}
+                  className="h-[42px] rounded-2xl border-slate-200/80 bg-white/75 px-3 text-slate-600 shadow-sm transition-all duration-200 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  <Funnel className="mr-2 h-4 w-4" />
+                  Filters
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Page Title */}
           <div className="hidden sm:block">
             {isLoading ? (
               <div className="h-5 w-32 rounded bg-muted animate-pulse" />
             ) : (
-              <h2 className="text-sm font-semibold opacity-80" style={{ color: 'var(--header-foreground, inherit)' }}>{effectivePageTitle}</h2>
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200" style={{ color: 'var(--header-foreground, inherit)' }}>
+                {effectivePageTitle}
+              </h2>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 md:space-x-4">
+        <div className="flex items-center space-x-3 md:space-x-5">
           {isLoading ? (
             <>
               <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
@@ -575,55 +677,56 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                   {/* User Profile Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-100/50 dark:hover:bg-zinc-800/50 transition-all focus:outline-none group">
+                      <button className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none">
                         <div className="relative">
                           <UserAvatarCompact
                             user={user}
                             size="sm"
-                            className="ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all rounded-full"
+                            className="rounded-full"
                             forceRefresh={refreshKey > 0}
                           />
                         </div>
-                        <div className="flex flex-col items-start mr-1 text-left">
-                          <span className="text-[13px] font-bold leading-tight truncate max-w-[90px] sm:max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                        <div className="hidden sm:block text-left pr-3">
+                          <span className="block text-sm font-semibold leading-none truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
                             {user.name}
                           </span>
-                          <span className="text-[10px] font-medium uppercase tracking-tight opacity-60 truncate max-w-[90px] sm:max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                          <span className="block text-[10px] font-medium uppercase mt-0.5 tracking-wider opacity-60 truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
                             {user.role || 'User'}
                           </span>
                         </div>
-                        <ChevronDown className="hidden sm:block w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" style={{ color: 'var(--header-foreground, inherit)' }} />
+                        <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200 shrink-0" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-gray-100 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
-                      <DropdownMenuLabel className="px-3 py-4">
+                    <DropdownMenuContent align="end" className="w-72 p-0 rounded-2xl shadow-2xl border border-border/50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
+                      <DropdownMenuLabel className="px-5 py-4">
                         <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
-                          <p className="text-[10px] text-gray-500 dark:text-zinc-500 font-medium uppercase tracking-tight truncate">{user.email || user.role}</p>
+                          <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Signed in as</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-1">{user.email || user.name}</p>
                         </div>
                       </DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
 
-                      <div className="p-1 space-y-0.5">
-                        <DropdownMenuItem onClick={handleOpenProfileModal} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      <div className="p-3 space-y-1">
+                        <DropdownMenuItem onClick={handleOpenProfileModal} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
                           <Edit3 className="mr-3 h-4 w-4" />
                           <span>My Profile</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
                           <KeyRound className="mr-3 h-4 w-4" />
                           <span>Security</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/settings')} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <DropdownMenuItem onClick={() => router.push('/settings')} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
                           <Settings className="mr-3 h-4 w-4" />
                           <span>Settings</span>
                         </DropdownMenuItem>
                       </div>
 
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
 
-                      <div className="p-1">
+                      <div className="p-4">
+                        <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-3 mb-3">Appearance</p>
                         <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          <DropdownMenuSubTrigger className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
                             {currentTheme === 'dark' ? <Moon className="mr-3 h-4 w-4" /> : <Sun className="mr-3 h-4 w-4" />}
                             <span>Appearance</span>
                           </DropdownMenuSubTrigger>
@@ -642,22 +745,22 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
-                        <DropdownMenuItem onClick={handleClearCache} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <DropdownMenuItem onClick={handleClearCache} className="mt-2 flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
                           <Trash2 className="mr-3 h-4 w-4" />
                           <span>Clear Cache</span>
                         </DropdownMenuItem>
                       </div>
 
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60 my-1" />
+                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
 
-                      <div className="p-1">
-                        <DropdownMenuItem onClick={handleSignOut} className="flex items-center px-3 py-2.5 rounded-xl cursor-pointer text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                      <div className="p-3">
+                        <DropdownMenuItem onClick={handleSignOut} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 transition-colors">
                           <LogOut className="mr-3 h-4 w-4" />
                           <span>Sign Out</span>
                         </DropdownMenuItem>
                       </div>
 
-                      <div className="px-3 pt-2 pb-1 text-center">
+                      <div className="px-3 pt-1 pb-3 text-center">
                         <p className="text-[9px] font-bold text-gray-300 dark:text-zinc-600 uppercase tracking-widest">Version {APP_VERSION}</p>
                       </div>
                     </DropdownMenuContent>
@@ -697,19 +800,19 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             >
               <VisuallyHidden>
                 <DialogTitle>
-                  {pathname === '/positions' ? 'Search Positions' : 'Search Applicants'}
+                  {searchDialogTitle}
                 </DialogTitle>
               </VisuallyHidden>
               <DialogHeader className="border-b px-4 pt-6 pb-4 flex-shrink-0">
                 <DialogTitle className="text-lg font-semibold text-center">
-                  {pathname === '/positions' ? 'Search Positions' : 'Search Applicants'}
+                  {searchDialogTitle}
                 </DialogTitle>
               </DialogHeader>
               <div className="p-4 flex flex-col gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder={pathname === '/positions' ? 'Search by title, department...' : 'Search by name, email...'}
+                    placeholder={searchDialogPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 h-12 text-base"

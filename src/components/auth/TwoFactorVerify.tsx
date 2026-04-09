@@ -57,8 +57,8 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
         <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform hover:scale-105">
           <ShieldCheck className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle className="text-2xl font-bold">Verify your identity</CardTitle>
-        <CardDescription className="text-base">
+        <CardTitle className="text-xl font-bold">Verify identity</CardTitle>
+        <CardDescription className="text-sm">
           {isEmailMethod ? (
             <>We've sent a code to <span className="font-medium text-foreground">{email}</span>. Enter it below to continue.</>
           ) : (
@@ -106,7 +106,7 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
         <div className="space-y-4">
           <Button
             type="submit"
-            className="w-full h-12 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
+            className="w-full h-10 text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
             disabled={isLoading || code.length < 6}
           >
             {isLoading ? (

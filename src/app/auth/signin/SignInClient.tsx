@@ -775,8 +775,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
       {/* Main Container for Form */}
       <div className={cn(
-        "relative z-10 w-full h-[calc(100dvh-2rem)] my-4 flex flex-col transition-all duration-500",
-        loginLayoutType === '2column' ? "md:w-[40%] md:mr-8 lg:mr-12" : "md:w-[40%]"
+        "relative z-10 w-full h-auto max-h-[calc(100dvh-4rem)] my-auto flex flex-col transition-all duration-500 mx-4",
+        loginLayoutType === '2column' ? "md:max-w-[420px] md:mr-12 lg:mr-20" : "md:max-w-[420px]"
       )}>
         
         {/* Mobile Header (Hidden on Desktop) */}
@@ -808,10 +808,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         </div>
 
         {/* Login Card Panel - Single Unified Card */}
-        <Card className="flex-1 w-full bg-background/95 backdrop-blur-md shadow-2xl border-none md:rounded-2xl overflow-hidden flex flex-col">
-          <CardHeader className="text-center pb-2 pt-12 flex-shrink-0">
+        <Card className="w-full bg-background/95 backdrop-blur-md shadow-2xl border border-border/10 md:rounded-3xl overflow-hidden flex flex-col">
+          <CardHeader className="text-center pb-2 pt-10 flex-shrink-0">
              {/* Desktop Logo (Hidden on Mobile) */}
-             <div className="hidden md:flex justify-center mb-6">
+             <div className="hidden md:flex justify-center mb-4">
                {isClient && (() => {
                   let logoToUse = appLogoUrl;
                   if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
@@ -841,7 +841,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </>
             )}
           </CardHeader>
-          <CardContent className="flex-1 space-y-6 p-8 sm:p-10 pt-4 overflow-y-auto flex flex-col justify-center">
+          <CardContent className="space-y-6 p-6 sm:p-8 pt-2 overflow-y-auto flex flex-col">
              {errorMessage && (
               <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4" />

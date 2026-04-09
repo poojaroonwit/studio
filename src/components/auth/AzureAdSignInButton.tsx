@@ -49,8 +49,7 @@ export function AzureAdSignInButton() {
     <Button
       onClick={handleSignIn}
       variant="secondary"
-      className="w-full h-14 text-base"
-      size="lg"
+      className="w-full h-10 text-sm rounded-xl font-medium shadow-sm border border-border/20 transition-all hover:bg-secondary/80 active:scale-[0.98]"
     >
       <MicrosoftLogo />
       Sign in with Microsoft

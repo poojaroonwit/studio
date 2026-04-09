@@ -97,7 +97,7 @@ export function MobileSignInView({
         <div style={loginPageStyle} className="min-h-[100dvh] w-full h-[100dvh] flex flex-col p-0 overflow-hidden">
             {/* Header - uses mobile-specific background settings */}
             <div
-                className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
+                className="h-[80px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
                 style={headerStyle}
             >
                 <div>
@@ -123,8 +123,8 @@ export function MobileSignInView({
 
             {/* Main Content Card - mimics evaluate page mobile layout */}
             <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg mt-0">
-                <CardContent className="h-full p-8 sm:p-12 overflow-y-auto">
-                    <div className="w-full max-w-md mx-auto space-y-6">
+                <CardContent className="h-full p-6 sm:p-8 overflow-y-auto">
+                    <div className="w-full max-w-md mx-auto space-y-4">
                         {loginPageContent && (
                             <div className="mb-4 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
                         )}

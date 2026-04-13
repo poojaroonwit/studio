@@ -7,7 +7,7 @@ import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from 'react-hot-toast';
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { setThemeAndColors, applySidebarStyles, applySidebarBackgroundSettings, cleanupSidebarBackground, applyHeaderBrandingSettings } from "@/lib/themeUtils";
 
@@ -106,7 +106,7 @@ export default function SystemPreferencesPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/system-preferences';
 
   // Preferences state
   const [themePreference, setThemePreference] = useState<ThemePreference>(DEFAULT_THEME);
@@ -554,7 +554,7 @@ export default function SystemPreferencesPage() {
     isMountedRef.current = true;
     setIsClient(true);
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname ?? undefined });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       // Fetch from backend
       async function fetchPrefs() {
@@ -760,7 +760,7 @@ export default function SystemPreferencesPage() {
       cleanupObjectUrls();
       cleanupSidebarBackground();
     };
-  }, [sessionStatus, pathname, cleanupObjectUrls]);
+  }, [sessionStatus, currentPath, cleanupObjectUrls]);
 
   useEffect(() => {
     if (isMountedRef.current) {

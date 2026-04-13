@@ -89,183 +89,192 @@ export function DetailsTab({
             </div>
 
             {/* Position Information Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4 bg-muted/20 p-4 rounded-lg border border-border/50">
               {/* Position Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">Position Title *</Label>
-                {isEditMode ? (
-                  <Controller
-                    name="title"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Enter position title"
-                        className={form.formState.errors.title ? 'border-red-500' : ''}
-                      />
-                    )}
-                  />
-                ) : (
-                  <div className="text-base font-medium">{position.title}</div>
-                )}
-                {form.formState.errors.title && (
-                  <p className="text-sm text-red-500">{form.formState.errors.title.message}</p>
-                )}
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 border-b border-border/30 last:border-0">
+                <Label htmlFor="title" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Position Title *</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="title"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          placeholder="Enter position title"
+                          className={cn("bg-background", form.formState.errors.title ? 'border-red-500' : '')}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <div className="text-base font-bold text-foreground">{position.title}</div>
+                  )}
+                  {form.formState.errors.title && (
+                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.title.message}</p>
+                  )}
+                </div>
               </div>
 
               {/* Department */}
-              <div className="space-y-2">
-                <Label htmlFor="department">Department *</Label>
-                {isEditMode ? (
-                  <Controller
-                    name="department"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        placeholder="Enter department"
-                        className={form.formState.errors.department ? 'border-red-500' : ''}
-                      />
-                    )}
-                  />
-                ) : (
-                  <div className="text-base">{position.department}</div>
-                )}
-                {form.formState.errors.department && (
-                  <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
-                )}
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 border-b border-border/30 last:border-0">
+                <Label htmlFor="department" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Department *</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="department"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          placeholder="Enter department"
+                          className={cn("bg-background", form.formState.errors.department ? 'border-red-500' : '')}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <div className="text-base text-foreground">{position.department}</div>
+                  )}
+                  {form.formState.errors.department && (
+                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.department.message}</p>
+                  )}
+                </div>
               </div>
 
               {/* Position Level */}
-              <div className="space-y-2">
-                <Label htmlFor="positionLevel">Position Level</Label>
-                {isEditMode ? (
-                  <Controller
-                    name="positionLevel"
-                    control={form.control}
-                    render={({ field }) => (
-                      <MobileSelect
-                        onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
-                        value={field.value || 'none'}
-                        placeholder="Select Position Level"
-                        selectId="position-level-select"
-                      >
-                        <SelectTrigger disabled={isLoadingLevels}>
-                          <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Level</SelectItem>
-                          {positionLevels.map((level) => (
-                            <SelectItem key={level.id} value={level.name}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: level.color || '#6B7280' }}
-                                />
-                                {level.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </MobileSelect>
-                    )}
-                  />
-                ) : (
-                  <div className="text-base">{position.positionLevel || 'Not specified'}</div>
-                )}
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 border-b border-border/30 last:border-0">
+                <Label htmlFor="positionLevel" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Position Level</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="positionLevel"
+                      control={form.control}
+                      render={({ field }) => (
+                        <MobileSelect
+                          onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
+                          value={field.value || 'none'}
+                          placeholder="Select Position Level"
+                          selectId="position-level-select"
+                        >
+                          <SelectTrigger className="bg-background" disabled={isLoadingLevels}>
+                            <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Level</SelectItem>
+                            {positionLevels.map((level) => (
+                              <SelectItem key={level.id} value={level.name}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: level.color || '#6B7280' }}
+                                  />
+                                  {level.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </MobileSelect>
+                      )}
+                    />
+                  ) : (
+                    <div className="text-base text-foreground">{position.positionLevel || 'Not specified'}</div>
+                  )}
+                </div>
               </div>
 
               {/* Grade */}
-              <div className="space-y-2">
-                <Label htmlFor="gradeId">Grade</Label>
-                {isEditMode ? (
-                  <Controller
-                    name="gradeId"
-                    control={form.control}
-                    render={({ field }) => (
-                      <MobileSelect
-                        onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
-                        value={field.value || 'none'}
-                        placeholder="Select Grade"
-                        selectId="grade-select"
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select grade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Grade</SelectItem>
-                          {grades.map((grade) => (
-                            <SelectItem key={grade.id} value={grade.id}>
-                              {grade.label || grade.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </MobileSelect>
-                    )}
-                  />
-                ) : (
-                  position.gradeId && position.grade ? (
-                    <div className="flex flex-col gap-1">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 border-b border-border/30 last:border-0">
+                <Label htmlFor="gradeId" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Grade</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="gradeId"
+                      control={form.control}
+                      render={({ field }) => (
+                        <MobileSelect
+                          onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
+                          value={field.value || 'none'}
+                          placeholder="Select Grade"
+                          selectId="grade-select"
+                        >
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select grade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Grade</SelectItem>
+                            {grades.map((grade) => (
+                              <SelectItem key={grade.id} value={grade.id}>
+                                {grade.label || grade.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </MobileSelect>
+                      )}
+                    />
+                  ) : (
+                    position.gradeId && position.grade ? (
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className="text-xs"
+                          className="text-xs font-bold"
                           style={{
                             borderColor: position.grade.color || '#3B82F6',
-                            color: position.grade.color || '#3B82F6'
+                            color: position.grade.color || '#3B82F6',
+                            backgroundColor: `${position.grade.color}10`
                           }}
                         >
                           {position.grade.name}
                         </Badge>
                         {position.grade.label && (
-                          <span className="text-sm text-muted-foreground">
-                            {position.grade.label}
+                          <span className="text-sm text-muted-foreground italic">
+                            ({position.grade.label})
                           </span>
                         )}
                       </div>
-                    </div>
-                  ) : (
-                    <Badge variant="outline" className="ml-2 text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">
-                      No Grade
-                    </Badge>
-                  )
-                )}
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30 bg-muted/10">
+                        No Grade
+                      </Badge>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Status */}
-              <div className="space-y-2">
-                <Label htmlFor="isOpen">Status</Label>
-                {isEditMode ? (
-                  <Controller
-                    name="isOpen"
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                        <span className="text-sm">
-                          {field.value ? 'Open' : 'Closed'}
-                        </span>
-                      </div>
-                    )}
-                  />
-                ) : (
-                  <div className="text-base">
-                    {(() => {
-                      const statusBadge = getPositionStatusBadge(position.isOpen, false);
-                      return (
-                        <Badge
-                          variant={statusBadge.variant}
-                          className={statusBadge.className}
-                        >
-                          {statusBadge.text}
-                        </Badge>
-                      );
-                    })()}
-                  </div>
-                )}
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 last:border-0">
+                <Label htmlFor="isOpen" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Status</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="isOpen"
+                      control={form.control}
+                      render={({ field }) => (
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                          <Badge variant={field.value ? "success" : "secondary"}>
+                            {field.value ? 'Open' : 'Closed'}
+                          </Badge>
+                        </div>
+                      )}
+                    />
+                  ) : (
+                    <div className="flex items-center">
+                      {(() => {
+                        const statusBadge = getPositionStatusBadge(position.isOpen, false);
+                        return (
+                          <Badge
+                            variant={statusBadge.variant}
+                            className={cn(statusBadge.className, "font-bold")}
+                          >
+                            {statusBadge.text}
+                          </Badge>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -91,6 +91,18 @@ export function ManageTransitionsModal({
   });
   const { dismissById, loadingWithId } = useToast();
 
+  const resolveStageId = useCallback((stageIdOrName?: string | null) => {
+    if (!stageIdOrName) {
+      return '';
+    }
+
+    const matchedStage = stages.find(
+      (stage) => stage.id === stageIdOrName || stage.name === stageIdOrName,
+    );
+
+    return matchedStage?.id || stageIdOrName;
+  }, [stages]);
+
 
   // Refs for cleanup and preventing memory leaks
   const modalCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -141,7 +153,7 @@ export function ManageTransitionsModal({
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
     defaultValues: {
-      newStatus: applicant?.statusId || applicant?.status || (stages[0]?.id || ''),
+      newStatus: resolveStageId(applicant?.statusId || applicant?.status || stages[0]?.id || ''),
       notes: '',
     },
   });
@@ -150,13 +162,13 @@ export function ManageTransitionsModal({
   useEffect(() => {
     if (isMountedRef.current && applicant && isOpen) {
       form.reset({
-        newStatus: (preselectedStage || applicant.statusId || applicant.status || ''),
+        newStatus: resolveStageId(preselectedStage || applicant.statusId || applicant.status || ''),
         notes: '',
       });
       setEditingTransitionId(null);
       setStatusSearchQuery('');
     }
-  }, [applicant?.id, isOpen, preselectedStage]); // Removed form and stages from dependencies to prevent infinite loops
+  }, [applicant?.id, isOpen, preselectedStage, resolveStageId]); // Removed form and stages from dependencies to prevent infinite loops
 
   // Cleanup function to prevent memory leaks
   const cleanup = useCallback(() => {
@@ -215,19 +227,20 @@ export function ManageTransitionsModal({
           setIsSaving(false);
           return;
         }
-        console.log('ManageTransitionsModal - Calling onUpdateApplicant...');
+        console.log('ManageTransitionsModal - Calling onUpdateApplicant for applicant:', applicant.id, 'with new status:', data.newStatus);
         const result = await onUpdateApplicant(applicant.id, data.newStatus, trimmedNotes, true);
-        console.log('ManageTransitionsModal - onUpdateApplicant result:', result);
+        console.log('ManageTransitionsModal - onUpdateApplicant call completed. Result:', result);
 
         // Check if the update was blocked (e.g., by headcount warning)
         // If onUpdateApplicant returns undefined or false, it means the update was blocked
         if (result === false || result === undefined) {
-          console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
+          console.warn('ManageTransitionsModal - Update was blocked or returned no result. Not proceeding with success flow.');
           // Dismiss loading toast
           dismissById(loadingToastId);
           setIsSaving(false); // Reset saving state
           return; // Don't show success toast or close modal - the blocking logic should handle user feedback
         }
+        console.log('ManageTransitionsModal - Update confirmed success. Proceeding with closing modal.');
       } else {
         console.error('onUpdateApplicant function is not provided');
         throw new Error('Update function not available');
@@ -395,7 +408,7 @@ export function ManageTransitionsModal({
     // Reset form to initial state
     if (applicant) {
       form.reset({
-        newStatus: (preselectedStage || applicant.statusId || applicant.status || ''),
+        newStatus: resolveStageId(preselectedStage || applicant.statusId || applicant.status || ''),
         notes: '',
       });
     }
@@ -403,7 +416,7 @@ export function ManageTransitionsModal({
     setStatusSearchQuery('');
     cleanup();
     onOpenChange(false);
-  }, [applicant, preselectedStage, form, cleanup, onOpenChange]);
+  }, [applicant, preselectedStage, form, cleanup, onOpenChange, resolveStageId]);
 
   const handleSaveClick = useCallback(async () => {
     try {
@@ -473,17 +486,14 @@ export function ManageTransitionsModal({
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 py-4">
-            <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Select a new stage and add notes. This will update the Applicant&#39;s current status and record the change.
-            </p>
             <form id="transition-form" className="space-y-4" onSubmit={(e) => e.preventDefault()}>
               <div>
+                <Label htmlFor="new-stage-select" className="text-sm font-medium text-muted-foreground">New Stage</Label>
                 <StageSelect
+                  id="new-stage-select"
                   value={form.watch('newStatus')}
                   onChange={val => form.setValue('newStatus', val)}
                   availableStages={stages}
-                  label="New Stage"
                   error={form.formState.errors.newStatus?.message}
                   loading={false}
                 />

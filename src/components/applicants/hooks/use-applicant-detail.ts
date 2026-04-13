@@ -40,11 +40,16 @@ const editApplicantDetailSchema = z.object({
 
 type EditApplicantFormValues = z.infer<typeof editApplicantDetailSchema>;
 
-export const useApplicantDetail = (applicantId: string) => {
-  const { success: toastSuccess, error: toastError } = useToast();
+interface UseApplicantDetailOptions {
+  initialApplicant?: Applicant | null;
+}
 
-  const [applicant, setApplicant] = useState<Applicant | null>(null);
-  const [loading, setLoading] = useState(true);
+export const useApplicantDetail = (applicantId: string, options?: UseApplicantDetailOptions) => {
+  const { success: toastSuccess, error: toastError } = useToast();
+  const initialApplicant = options?.initialApplicant ?? null;
+
+  const [applicant, setApplicant] = useState<Applicant | null>(initialApplicant);
+  const [loading, setLoading] = useState(!initialApplicant);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
@@ -325,7 +330,14 @@ export const useApplicantDetail = (applicantId: string) => {
     // If we reach here, all attempts failed
     setError(lastError instanceof Error ? lastError.message : 'Failed to load Applicant details');
     setLoading(false);
-  }, [applicantId]);
+  }, [applicant, applicantId]);
+
+  useEffect(() => {
+    if (!initialApplicant) return;
+
+    setApplicant(prev => prev ?? initialApplicant);
+    setLoading(false);
+  }, [initialApplicant]);
 
   // Memoized fetch functions for static data
   const fetchPositions = useCallback(async () => {

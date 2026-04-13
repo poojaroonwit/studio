@@ -82,25 +82,17 @@ export function PositionCustomFieldDisplay({
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="p-0">
+        <div className="bg-muted/20 p-4 rounded-lg border border-border/50 space-y-0">
           {fieldDefinitions.map((definition) => {
             const value = customFields[definition.field_code];
             
             return (
-              <div key={definition.id} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {definition.label}
-                    {definition.is_required && (
-                      <span className="text-destructive ml-1">*</span>
-                    )}
-                  </label>
-                  <Badge variant="outline" className="text-xs">
-                    {definition.field_type.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <div className="text-sm">
+              <div key={definition.id} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-3 border-b border-border/30 last:border-0">
+                <label className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  {definition.label}
+                </label>
+                <div className="flex-1 text-sm font-bold text-foreground">
                   {renderCustomFieldValue(definition, value)}
                 </div>
               </div>

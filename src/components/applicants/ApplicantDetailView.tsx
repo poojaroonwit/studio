@@ -4,6 +4,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, UserMinusIcon as UserX } from '@heroicons/react/24/outline';
 import FullApplicantDetail from './FullApplicantDetail';
+import { ApplicantDetailSkeleton } from './ApplicantDetailSkeleton';
+import type { Applicant } from '@/lib/types';
 
 interface ApplicantDetailViewProps {
   applicantId: string;
@@ -18,6 +20,7 @@ const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({ applicantId, 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [applicantExists, setApplicantExists] = useState<boolean | null>(null);
+  const [initialApplicant, setInitialApplicant] = useState<Applicant | null>(null);
 
   // Tracking for debugging
   const loadDataCount = useRef(0);
@@ -83,7 +86,7 @@ const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({ applicantId, 
           credentials: 'include',
           signal: abortControllerRef.current.signal
         }),
-        fetch(`/api/applicants/${applicantId}`, {
+        fetch(`/api/applicants/${applicantId}?lite=1`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
         })
@@ -132,15 +135,25 @@ const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({ applicantId, 
       // Handle applicant existence check
       if (applicantRes.status === 'fulfilled') {
         if (applicantRes.value.ok) {
+          try {
+            const applicantData = await applicantRes.value.json();
+            setInitialApplicant(applicantData);
+          } catch (parseError) {
+            console.warn('Failed to parse applicant response:', parseError);
+            setInitialApplicant(null);
+          }
           setApplicantExists(true);
         } else if (applicantRes.value.status === 404) {
+          setInitialApplicant(null);
           setApplicantExists(false);
           setError('Applicant not found');
         } else {
+          setInitialApplicant(null);
           setApplicantExists(true);
         }
       } else if (applicantRes.status === 'rejected') {
         if (applicantRes.reason?.name === 'AbortError') return;
+        setInitialApplicant(null);
         setApplicantExists(true);
       }
 
@@ -191,14 +204,7 @@ const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({ applicantId, 
   }, [loadData, onRefresh]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="animate-spin h-8 w-8 text-primary" />
-          <p className="text-muted-foreground">Loading applicant details...</p>
-        </div>
-      </div>
-    );
+    return <ApplicantDetailSkeleton />;
   }
 
   if (error) {
@@ -245,6 +251,7 @@ const ApplicantDetailView: React.FC<ApplicantDetailViewProps> = ({ applicantId, 
       comments={comments}
       resumes={attachments}
       onRefresh={handleRefresh}
+      initialApplicant={initialApplicant}
     />
   );
 };

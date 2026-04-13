@@ -222,6 +222,19 @@ export function ApplicantsPageClient({
     optimisticUpdateRef
   } = useApplicantFilters(computedInitialFilters);
 
+  // Listen for global search events from Header
+  useEffect(() => {
+    const handleGlobalSearch = (event: any) => {
+      const query = event.detail;
+      if (query !== undefined) {
+        handleFilterChange({ name: query });
+      }
+    };
+
+    window.addEventListener('global:search', (handleGlobalSearch as EventListener));
+    return () => window.removeEventListener('global:search', (handleGlobalSearch as EventListener));
+  }, [handleFilterChange]);
+
   // Use optimized filter data fetching
   const {
     filterData,
@@ -1899,7 +1912,7 @@ export function ApplicantsPageClient({
   // Render the component
   return (
     <>
-      <div className={cn("flex flex-col h-[calc(100vh-4rem)]", isMobile && "bg-secondary/50")}>
+      <div className={cn("flex flex-col h-full", isMobile && "bg-secondary/50")}>
         {/* Mobile Search Input */}
         {isMobile && (
           <ApplicantsPageMobileSearch

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertTriangle, XCircle, Settings, Database, HardDrive, Zap, KeyRound, Info, ListChecks, ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useSession, signIn } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface StatusItem {
@@ -28,7 +27,7 @@ export default function SystemStatusPage() {
   const [isClient, setIsClient] = useState(false);
   const [statuses, setStatuses] = useState<StatusItem[]>([]);
   const { data: session, status: sessionStatus } = useSession();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
   const initialStatuses: StatusItem[] = [
     {
@@ -171,7 +170,7 @@ export default function SystemStatusPage() {
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, sessionStatus, pathname]); // initialStatuses is stable
+  }, [isClient, sessionStatus, currentPath]); // initialStatuses is stable
 
    useEffect(() => {
     setStatuses(prev => prev.map(item => {
@@ -225,7 +224,7 @@ export default function SystemStatusPage() {
   }
 
 
-  if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && pathname !== '/auth/signin' && !pathname.startsWith('/_next/')) || !isClient) {
+  if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && currentPath !== '/auth/signin' && !currentPath.startsWith('/_next/')) || !isClient) {
     return (
       <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

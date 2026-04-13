@@ -26,7 +26,7 @@ async function main() {
           email: adminEmail,
           password: hashedPassword,
           role: 'Admin',
-          authenticationMethod: 'basic',
+          authenticationMethods: ['basic'],
           forcePasswordChange: false
         }
       });

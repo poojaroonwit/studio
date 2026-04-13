@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import { RemarksSection } from './components/RemarksSection';
 import { OrganizationFooter } from './components/OrganizationFooter';
 import { PrintStyles } from './components/PrintStyles';
 
-export default function EvaluateResultPage() {
+function EvaluateResultPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -632,6 +632,22 @@ export default function EvaluateResultPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function EvaluateResultPageFallback() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+export default function EvaluateResultPage() {
+  return (
+    <Suspense fallback={<EvaluateResultPageFallback />}>
+      <EvaluateResultPageContent />
+    </Suspense>
   );
 }
 

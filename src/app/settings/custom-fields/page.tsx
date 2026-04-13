@@ -36,7 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { CustomFieldDefinition, CustomFieldType, CustomFieldOption } from '@/lib/types';
 import { CUSTOM_FIELD_TYPES } from '@/lib/types';
 import { PlusCircle, Edit3, Trash2, ListChecks, Save, Loader2, ServerCrash, ShieldAlert, Settings2, X } from 'lucide-react';
@@ -86,7 +86,7 @@ type CustomFieldFormValues = z.infer<typeof customFieldFormSchema>;
 export default function CustomFieldsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/custom-fields';
 
   const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +106,7 @@ export default function CustomFieldsPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch definitions' }));
         if (response.status === 401) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         } else if (response.status === 403) {
           throw new Error('No permission');
@@ -121,11 +121,11 @@ export default function CustomFieldsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname]);
+  }, [sessionStatus, currentPath]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       // Check if user has Admin role or CUSTOM_FIELDS_EDIT permission
       if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('CUSTOM_FIELDS_EDIT')) {
@@ -135,7 +135,7 @@ export default function CustomFieldsPage() {
         fetchDefinitions();
       }
     }
-  }, [sessionStatus, session, fetchDefinitions, pathname]);
+  }, [sessionStatus, session, fetchDefinitions, currentPath]);
 
   useEffect(() => {
     if (fetchError) {

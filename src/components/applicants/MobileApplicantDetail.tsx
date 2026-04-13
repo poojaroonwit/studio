@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
 import { Pin } from 'lucide-react';
 import { StatusBadge } from './ApplicantKanbanView';
 import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
@@ -28,6 +30,7 @@ import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { DeleteApplicantModal } from './DeleteApplicantModal';
 import { TiptapEditor } from '../ui/tiptap-editor';
+import { MobileApplicantDetailSkeleton } from './ApplicantDetailSkeleton';
 
 interface MobileApplicantDetailProps {
   applicantId: string;
@@ -74,6 +77,10 @@ export default function MobileApplicantDetail({
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [footerStatusNote, setFooterStatusNote] = useState('');
+  const [footerRejectNote, setFooterRejectNote] = useState('');
+  const [isFooterPopoverOpen, setIsFooterPopoverOpen] = useState(false);
+  const [isRejectPopoverOpen, setIsRejectPopoverOpen] = useState(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -474,11 +481,7 @@ export default function MobileApplicantDetail({
   }, [applicant]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <MobileApplicantDetailSkeleton />;
   }
 
   if (error || !applicant) {
@@ -999,30 +1002,148 @@ export default function MobileApplicantDetail({
             return (
               <>
                 {rejectedStage && currentStatusId !== rejectedStage.id && currentStatusName !== 'rejected' && (
-                  <Button
-                    variant="outline"
-                    disabled={isStatusUpdating}
-                    onClick={() => handleStatusUpdate(rejectedStage.id)}
-                    className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 h-11"
-                  >
-                    Reject
-                  </Button>
+                  <Popover open={isRejectPopoverOpen} onOpenChange={setIsRejectPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={isStatusUpdating}
+                        className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 h-11"
+                      >
+                        Reject
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[calc(100vw-2rem)] p-4 border-destructive/20 shadow-lg shadow-destructive/5" align="start" side="top" sideOffset={10}>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold leading-none text-destructive flex items-center gap-2">
+                            <Ban className="h-4 w-4" />
+                            Confirm Rejection
+                          </h4>
+                          <p className="text-sm text-muted-foreground text-xs">
+                            Move applicant to <span className="font-semibold text-foreground">Reject</span> stage.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="mobile-reject-note" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            REASON / NOTE (OPTIONAL)
+                          </label>
+                          <Textarea
+                            id="mobile-reject-note"
+                            placeholder="Add a reason for rejection..."
+                            value={footerRejectNote}
+                            onChange={(e) => setFooterRejectNote(e.target.value)}
+                            className="min-h-[100px] text-sm resize-none focus:ring-1 focus:ring-destructive/20"
+                          />
+                        </div>
+                        <div className="flex justify-start gap-2 pt-2">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            disabled={isStatusUpdating}
+                            onClick={async () => {
+                              const result = await handleStatusUpdate(rejectedStage.id, footerRejectNote);
+                              if (result) {
+                                setFooterRejectNote('');
+                                setIsRejectPopoverOpen(false);
+                              }
+                            }}
+                            className="h-10 px-4 text-xs font-semibold"
+                          >
+                            {isStatusUpdating ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              'Confirm Rejection'
+                            )}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsRejectPopoverOpen(false);
+                              setFooterRejectNote('');
+                            }}
+                            disabled={isStatusUpdating}
+                            className="h-10 px-3 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
                 {nextStage && (
-                  <Button
-                    disabled={isStatusUpdating}
-                    onClick={() => handleStatusUpdate(nextStage.id)}
-                    className="flex-[2] bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all h-11"
-                  >
-                    {isStatusUpdating ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        Move to {nextStage.name}
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                  <Popover open={isFooterPopoverOpen} onOpenChange={setIsFooterPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        disabled={isStatusUpdating}
+                        className="flex-[2] bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all h-11"
+                      >
+                        {isStatusUpdating ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Move to {nextStage.name}
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[calc(100vw-2rem)] p-4" align="end" side="top" sideOffset={10}>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold leading-none text-foreground">Confirm Next Step</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Move applicant to <strong>{nextStage.name}</strong> stage.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="mobile-footer-note" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            OPTIONAL NOTE
+                          </label>
+                          <Textarea
+                            id="mobile-footer-note"
+                            placeholder="Add a note about this transition..."
+                            value={footerStatusNote}
+                            onChange={(e) => setFooterStatusNote(e.target.value)}
+                            className="min-h-[100px] text-sm resize-none focus:ring-1 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsFooterPopoverOpen(false);
+                              setFooterStatusNote('');
+                            }}
+                            disabled={isStatusUpdating}
+                            className="h-10 px-4 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            disabled={isStatusUpdating}
+                            onClick={async () => {
+                              const result = await handleStatusUpdate(nextStage.id, footerStatusNote);
+                              if (result) {
+                                setFooterStatusNote('');
+                                setIsFooterPopoverOpen(false);
+                              }
+                            }}
+                            className="h-10 px-6 text-xs font-semibold"
+                          >
+                            {isStatusUpdating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Confirm'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </>
             );

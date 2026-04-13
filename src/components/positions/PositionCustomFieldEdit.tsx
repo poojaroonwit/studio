@@ -227,18 +227,22 @@ export function PositionCustomFieldEdit({
       <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {fieldDefinitions.map((definition) => (
-          <div key={definition.field_code} className="space-y-2">
-            <Label htmlFor={`custom_${definition.field_code}`} className="text-sm font-medium">
-              {definition.label}
-              {definition.is_required && (
-                <span className="text-destructive ml-1">*</span>
-              )}
-            </Label>
-            {renderFieldInput(definition)}
-          </div>
-        ))}
+      <CardContent className="space-y-0 p-0">
+        <div className="bg-muted/20 p-4 rounded-lg border border-border/50 space-y-2">
+          {fieldDefinitions.map((definition) => (
+            <div key={definition.field_code} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-3 border-b border-border/30 last:border-0">
+              <Label htmlFor={`custom_${definition.field_code}`} className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                {definition.label}
+                {definition.is_required && (
+                  <span className="text-destructive ml-1">*</span>
+                )}
+              </Label>
+              <div className="flex-1">
+                {renderFieldInput(definition)}
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

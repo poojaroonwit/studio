@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { AutoFont } from '@/components/ui/auto-font';
@@ -40,8 +41,15 @@ export function EvaluateHeader({
         </div>
       </div>
       {appLogoUrl && (
-        <div>
-          <img src={appLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto" />
+        <div className="relative h-8 w-20 sm:h-10 sm:w-24">
+          <Image
+            src={appLogoUrl}
+            alt="App Logo"
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 80px, 96px"
+            className="object-contain"
+          />
         </div>
       )}
     </div>

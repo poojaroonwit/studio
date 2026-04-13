@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { RecruitmentStage } from '@/lib/types';
 import { PlusCircle, Edit3, Trash2, KanbanSquare, Save, Loader2, ServerCrash, ShieldAlert, AlertCircle, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -61,7 +61,7 @@ type StageFormValues = z.infer<typeof stageFormSchema>;
 export default function RecruitmentStagesPage() {
   const { data: session, status: sessionStatus } = useSession() as { data: Session | null, status: 'loading' | 'authenticated' | 'unauthenticated' };
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/stages';
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
 
   const [stages, setStages] = useState<RecruitmentStage[]>([]);
@@ -108,11 +108,11 @@ export default function RecruitmentStagesPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       fetchStages();
     }
-  }, [sessionStatus, pathname, fetchStages]);
+  }, [sessionStatus, currentPath, fetchStages]);
 
   // Fetch showLogoOnly setting
   useEffect(() => {

@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
 import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal, AlertTriangle } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -143,7 +143,7 @@ type RoleFormValues = z.infer<typeof roleFormSchema>;
 function RolesPermissionsPageContent() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/user-groups';
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
 
   const [roles, setRoles] = useState<UserGroup[]>([]); // UserGroups are now "Roles"
@@ -184,7 +184,7 @@ function RolesPermissionsPageContent() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch roles' }));
         if (response.status === 401) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         } else if (response.status === 403) {
           throw new Error('No permission');
@@ -207,11 +207,11 @@ function RolesPermissionsPageContent() {
     } finally {
       if (!background) setIsLoading(false);
     }
-  }, [sessionStatus, pathname]);
+  }, [sessionStatus, currentPath]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_VIEW')) {
         setFetchError("You do not have permission to manage user groups.");
@@ -220,7 +220,7 @@ function RolesPermissionsPageContent() {
         fetchRoles();
       }
     }
-  }, [sessionStatus, session, pathname, fetchRoles]);
+  }, [sessionStatus, session, currentPath, fetchRoles]);
 
   useEffect(() => {
     if (fetchError) {

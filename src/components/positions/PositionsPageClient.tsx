@@ -249,27 +249,35 @@ export default function PositionsPageClient() {
       const searchParams = new URLSearchParams(window.location.search);
       const statusParam = searchParams.get('status');
       const queryParam = searchParams.get('query');
-      let newStatus: 'all' | 'open' | 'closed' = 'all';
-      if (statusParam && statusParam.toLowerCase() === 'open') newStatus = 'open';
-      if (statusParam && statusParam.toLowerCase() === 'closed') newStatus = 'closed';
-      if (queryParam) {
-        const match = queryParam.match(/status:(open|closed)/i);
-        if (match) {
-          if (match[1].toLowerCase() === 'open') newStatus = 'open';
-          if (match[1].toLowerCase() === 'closed') newStatus = 'closed';
-        }
+      
+      let newStatus: 'all' | 'open' | 'closed' = statusFilter;
+      if (statusParam) {
+        if (statusParam.toLowerCase() === 'open') newStatus = 'open';
+        else if (statusParam.toLowerCase() === 'closed') newStatus = 'closed';
       }
-      // Only update if the value actually changed to prevent unnecessary re-renders
-      // Use functional update to avoid dependency on statusFilter
-      setStatusFilter(prevStatus => {
-        if (prevStatus !== newStatus) {
-          return newStatus;
-        }
-        return prevStatus;
-      });
+
+      if (newStatus !== statusFilter) {
+        setStatusFilter(newStatus);
+      }
+      
+      if (queryParam && queryParam !== searchTerm) {
+        setSearchTerm(queryParam);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]); // Remove statusFilter from dependencies to prevent infinite loop
+  }, [searchParams, statusFilter, searchTerm]);
+
+  // Listen for global search events from Header
+  useEffect(() => {
+    const handleGlobalSearch = (event: any) => {
+      const query = event.detail;
+      if (query !== undefined && query !== searchTerm) {
+        setSearchTerm(query);
+      }
+    };
+
+    window.addEventListener('global:search', (handleGlobalSearch as EventListener));
+    return () => window.removeEventListener('global:search', (handleGlobalSearch as EventListener));
+  }, [searchTerm]);
 
   // Update local state when preferences are loaded (only once on initial load)
   useEffect(() => {
@@ -1485,7 +1493,7 @@ export default function PositionsPageClient() {
   const columnCount = isJobMatchEnabled ? 9 : 8;
 
   return (
-    <div className={cn("w-full h-[calc(100vh-4rem)] positions-page-container overflow-hidden", isMobile && "bg-secondary/50")}>
+    <div className={cn("w-full h-full positions-page-container overflow-hidden", isMobile && "bg-secondary/50")}>
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
@@ -1600,6 +1608,14 @@ export default function PositionsPageClient() {
                     gradeFilter={gradeFilter}
                     onGradeChange={handleGradeSelect}
                     allGrades={allGrades.map(g => ({ ...g, color: g.color || undefined }))}
+                    onPositionSelect={(positionId) => {
+                      if (isMobile) {
+                        router.push(`/positions/${positionId}`);
+                        return;
+                      }
+                      setSelectedPositionId(positionId);
+                      setIsNewDrawerOpen(true);
+                    }}
                   />
                 </div>
               </div>
@@ -1690,7 +1706,7 @@ export default function PositionsPageClient() {
             <div className="positions-table-container border-t  flex-1 overflow-hidden flex flex-col">
               {filteredPositions.length === 0 ? (
                 <div className="text-center py-12 empty-state">
-                  <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <Briefcase className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No positions found</h3>
                   <p className="text-muted-foreground mb-4">
                     {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || selectedRecruiterId

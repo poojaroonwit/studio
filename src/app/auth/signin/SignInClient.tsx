@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useSession, signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { AzureAdSignInButton } from "@/components/auth/AzureAdSignInButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -11,11 +11,11 @@ import Image from 'next/image';
 import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import type { SystemSetting, LoginPageBackgroundType, LoginPageLayoutType } from '@/lib/types';
 import { setThemeAndColors } from '@/lib/themeUtils';
-import { cn, sanitizeHtml, sanitizeUrl } from '@/lib/utils';
+import { sanitizeUrl } from '@/lib/utils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileSignInView } from './MobileSignInView';
-import { safeRedirect, getSafeRedirectUrl } from '@/lib/safe-redirect';
+import { safeRedirect } from '@/lib/safe-redirect';
 
 interface SignInClientProps {
   initialSettings?: SystemSetting[];
@@ -56,7 +56,6 @@ const LEGACY_LOGIN_BG_COLOR2_KEY = 'loginPageBackgroundColor2';
 
 export default function SignInClient({ initialSettings }: SignInClientProps) {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const isMobile = useIsMobile();
   const nextSearchParams = useSearchParams();
   const redirectAttemptedRef = useRef(false);
@@ -117,11 +116,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [mobileHeaderBackgroundType, setMobileHeaderBackgroundType] = useState<'gradient' | 'transparent' | 'solid'>('gradient');
   const [mobileLoginLogoDataUrl, setMobileLoginLogoDataUrl] = useState<string | null>(null);
   const [organizationName, setOrganizationName] = useState<string>('');
-
-  // SECURITY: Validate callback URL to prevent open redirect attacks
-  const rawCallbackUrl = nextSearchParams.get('callbackUrl');
-  // Use centralized safe redirect utility for URL validation
-  const callbackUrl = getSafeRedirectUrl(rawCallbackUrl, '/');
 
   const [loginStage, setLoginStage] = useState<'email' | 'otp'>('email');
 
@@ -583,7 +577,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       // SECURITY: Use safeRedirect for validated redirection
       safeRedirect(redirectUrl, '/');
     }, 100); // Small delay to ensure cookies are set
-  }, [status, session, router]); // Removed nextSearchParams from dependencies to prevent re-triggers
+  }, [status, session]); // Removed nextSearchParams from dependencies to prevent re-triggers
 
   // Use backend-provided Azure AD config status
   const [isAzureAdConfigured, setIsAzureAdConfigured] = useState<boolean>(false);
@@ -624,7 +618,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
 
   const errorParam = nextSearchParams.get('error');
-  const errorDescription = nextSearchParams.get('errorDescription');
   let errorMessage = '';
   if (errorParam) {
     if (errorParam === "CredentialsSignin") {
@@ -760,26 +753,60 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }
 
   return (
-    <div 
-      className={cn(
-        "relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden flex items-center justify-center",
-        loginLayoutType === '2column' ? "md:justify-end" : "md:justify-center"
-      )}
+    <div
+      className="relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden"
       style={{
         ...loginPageStyle,
         fontFamily: 'var(--font-inter), sans-serif',
       }}
     >
-      {/* Background Overlay */}
-      <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(110deg,rgba(248,250,252,0.06),rgba(15,23,42,0.08))]" />
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.18),transparent_32%)]" />
 
-      {/* Main Container for Form */}
-      <div className={cn(
-        "relative z-10 w-full h-auto max-h-[calc(100dvh-4rem)] my-auto flex flex-col transition-all duration-500 mx-4",
-        loginLayoutType === '2column' ? "md:max-w-[420px] md:mr-12 lg:mr-20" : "md:max-w-[420px]"
-      )}>
-        
-        {/* Mobile Header (Hidden on Desktop) */}
+      <div className="relative z-10 flex h-full w-full flex-col md:flex-row">
+        <div className="hidden md:flex flex-1 items-center px-12 lg:px-20">
+          <div className="max-w-3xl space-y-6 text-slate-900 dark:text-white">
+            <div className="flex items-center gap-4">
+              {isClient && (() => {
+                let logoToUse = appLogoUrl;
+                if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+                  logoToUse = contextualLogos.loginPageLogoDarkMode;
+                } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+                  logoToUse = contextualLogos.loginPageLogoLightMode;
+                }
+                const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
+
+                return secureLogoUrl ? (
+                  <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-white/70 shadow-xl dark:bg-white/10">
+                    <Image
+                      src={secureLogoUrl}
+                      alt={currentAppName}
+                      fill
+                      unoptimized
+                      sizes="64px"
+                      className="object-contain p-2"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/40 bg-white/70 text-xl font-bold shadow-xl dark:border-white/10 dark:bg-white/10">
+                    {currentAppName.slice(0, 2).toUpperCase()}
+                  </div>
+                );
+              })()}
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-600/80 dark:text-white/60">Welcome back</p>
+                <h1 className="text-4xl font-bold tracking-tight lg:text-6xl">{currentAppName}</h1>
+              </div>
+            </div>
+            <p className="max-w-2xl text-lg leading-8 text-slate-700/85 dark:text-white/75 lg:text-2xl">
+              Access your workspace, review candidates, and keep hiring workflows moving from one secure console.
+            </p>
+          </div>
+        </div>
+
+        <div className={`flex w-full items-center justify-center px-4 py-6 md:w-[46%] md:min-w-[420px] md:px-6 lg:px-8 ${loginLayoutType === '2column' ? 'md:justify-end' : 'md:justify-center'}`}>
+          <div className="w-full max-w-[580px]">
+            {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
            <div>
             <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
@@ -798,7 +825,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
             return secureLogoUrl ? (
-              <img src={secureLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto rounded-md" />
+              <div className="relative h-8 w-20 sm:h-10 sm:w-24">
+                <Image
+                  src={secureLogoUrl}
+                  alt="App Logo"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 640px) 80px, 96px"
+                  className="rounded-md object-contain"
+                />
+              </div>
             ) : (
               <div className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
                 <span className="text-sm font-bold text-primary-foreground">CT</span>
@@ -808,40 +844,17 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         </div>
 
         {/* Login Card Panel - Single Unified Card */}
-        <Card className="w-full bg-background/95 backdrop-blur-md shadow-2xl border border-border/10 md:rounded-3xl overflow-hidden flex flex-col">
-          <CardHeader className="text-center pb-2 pt-10 flex-shrink-0">
-             {/* Desktop Logo (Hidden on Mobile) */}
-             <div className="hidden md:flex justify-center mb-4">
-               {isClient && (() => {
-                  let logoToUse = appLogoUrl;
-                  if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-                    logoToUse = contextualLogos.loginPageLogoDarkMode;
-                  } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-                    logoToUse = contextualLogos.loginPageLogoLightMode;
-                  }
-                  const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
-
-                  return secureLogoUrl ? (
-                    <img 
-                      src={secureLogoUrl} 
-                      alt={currentAppName} 
-                      style={{ width: loginPageLogoSize, height: loginPageLogoSize }} 
-                      className="object-contain rounded-xl shadow-sm mx-auto" 
-                    />
-                  ) : null;
-               })()}
-             </div>
-
+        <Card className="flex w-full flex-col overflow-hidden border border-slate-200/80 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-white md:min-h-[calc(100dvh-3rem)] md:rounded-[2rem]">
+          <CardContent className="flex flex-1 flex-col justify-center space-y-6 overflow-y-auto p-6 sm:p-8 md:px-10">
             {!showLogoOnly && (
-              <>
-                <CardTitle className="text-2xl font-bold text-foreground">{currentAppName}</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Sign in to your account
+              <div className="space-y-2 text-center">
+                <CardTitle className="text-3xl font-bold tracking-tight text-foreground">Sign in</CardTitle>
+                <CardDescription className="text-base text-muted-foreground">
+                  Continue to {currentAppName}
                 </CardDescription>
-              </>
+              </div>
             )}
-          </CardHeader>
-          <CardContent className="space-y-6 p-6 sm:p-8 pt-2 overflow-y-auto flex flex-col">
+
              {errorMessage && (
               <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4" />
@@ -892,7 +905,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
              )}
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
-} 
+}

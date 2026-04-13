@@ -1523,9 +1523,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   variant="ghost"
                   size="icon"
                   onClick={handleManualClose}
-                  className="h-9 w-9 -ml-2"
+                  className="h-9 w-9 -ml-2 text-muted-foreground hover:text-foreground"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <X className="h-5 w-5" />
                 </Button>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5" />
@@ -1608,8 +1608,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             }
           }}
         >
-          <div className="h-full flex flex-col overflow-hidden">
-            <DialogHeader className={cn("border-b", "p-6")}>
+          <div className="h-full flex flex-col overflow-hidden relative">
+            <DialogHeader className={cn("border-b", "p-6 pr-16")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleManualClose}
+                className="absolute right-4 top-4 h-9 w-9 text-muted-foreground hover:text-foreground z-10"
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </Button>
               <DialogTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
                 {position ? position.title : 'Position Details'}

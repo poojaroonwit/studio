@@ -207,7 +207,7 @@ export const SidebarRail = React.memo(({
   return (
     <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[60px]">
       {/* Spacer to align below header */}
-      <div className="h-4" />
+      <div />
 
       {/* Hub Navigation */}
       <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
@@ -312,6 +312,19 @@ export const SidebarMenuPanel = React.memo(({
 }) => {
   if (!activeGroup) return null;
 
+  const sectionedItems: Array<{ label: string; items: any[] }> = activeGroup.items.reduce((groups: Array<{ label: string; items: any[] }>, item: any) => {
+    const sectionLabel = item.section || activeGroup.label;
+    const existingGroup = groups.find((group) => group.label === sectionLabel);
+
+    if (existingGroup) {
+      existingGroup.items.push(item);
+      return groups;
+    }
+
+    groups.push({ label: sectionLabel, items: [item] });
+    return groups;
+  }, []);
+
   return (
     <aside className="hidden lg:flex flex-col w-[220px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
       {/* Hub Label */}
@@ -323,42 +336,53 @@ export const SidebarMenuPanel = React.memo(({
 
       {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
-        {activeGroup.items.map((item: any) => {
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-          return (
-            <OptimizedLink key={item.href} href={item.href} className="block">
-              <button
-                className={cn(
-                  "w-full flex items-center px-3 py-2 text-[13px] font-medium transition-all duration-150 rounded-lg group",
-                  isActive
-                    ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                    : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/60"
-                )}
-              >
-                <span className={cn(
-                  "w-5 h-5 mr-3 flex items-center justify-center transition-colors",
-                  isActive
-                    ? "text-blue-500 dark:text-blue-400"
-                    : "text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300"
-                )}>
-                  <item.icon className="w-[18px] h-[18px]" />
-                </span>
-                <span>{item.label}</span>
-                {item.href === '/process-queue' && pendingCount !== null && pendingCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="ml-auto min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] px-1 font-bold animate-pulse shadow-sm"
-                  >
-                    {pendingCount > 99 ? '99+' : pendingCount}
-                  </Badge>
-                )}
-                {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />
-                )}
-              </button>
-            </OptimizedLink>
-          );
-        })}
+        {sectionedItems.map((section: { label: string; items: any[] }, sectionIndex: number) => (
+          <div key={section.label} className={cn(sectionIndex > 0 && "mt-5 pt-5 border-t border-gray-200/60 dark:border-zinc-800/60")}>
+            {(activeGroupLabel === 'Settings' || section.label !== activeGroup.label) && (
+              <div className="px-3 pb-2">
+                <SidebarGroupLabel className="h-auto px-0 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-zinc-600">
+                  {section.label}
+                </SidebarGroupLabel>
+              </div>
+            )}
+
+            <div className="space-y-0.5">
+              {section.items.map((item: any) => {
+                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                return (
+                  <OptimizedLink key={item.href} href={item.href} className="block">
+                    <button
+                      className={cn(
+                        "w-full flex items-center px-3 py-2 text-[13px] font-medium transition-all duration-150 rounded-lg group",
+                        isActive
+                          ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          : "text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/60"
+                      )}
+                    >
+                      <span className={cn(
+                        "w-5 h-5 mr-3 flex items-center justify-center transition-colors",
+                        isActive
+                          ? "text-blue-500 dark:text-blue-400"
+                          : "text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300"
+                      )}>
+                        <item.icon className="w-[18px] h-[18px]" />
+                      </span>
+                      <span>{item.label}</span>
+                      {item.href === '/process-queue' && pendingCount !== null && pendingCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="ml-auto min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] px-1 font-bold animate-pulse shadow-sm"
+                        >
+                          {pendingCount > 99 ? '99+' : pendingCount}
+                        </Badge>
+                      )}
+                    </button>
+                  </OptimizedLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         {activeGroupLabel === 'Hiring' && sidebarPreferences?.showAssignedPositions && hasPositions && (
           <div className="mt-8 pt-8 border-t border-gray-200/60 dark:border-zinc-800/60">

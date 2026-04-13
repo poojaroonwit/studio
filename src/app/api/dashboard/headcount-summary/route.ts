@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
           p.department as "positionDepartment",
           p."positionLevel",
           g.name as "gradeName",
-          g."slaDays",
+          g.sla_days as "slaDays",
           g.color as "gradeColor",
           tr.date as "hiredDate"
         FROM "Headcount" h

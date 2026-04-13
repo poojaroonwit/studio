@@ -8,7 +8,10 @@ let acknowledgeSecurityAlert: any;
 let resolveSecurityAlert: any;
 let requireSessionAndPermission: any;
 
-async function handler(req: NextRequest, { params }: { params: { alertId: string } }) {
+async function handler(
+  req: NextRequest,
+  { params }: { params: Promise<{ alertId: string }> }
+) {
   try {
     if (!acknowledgeSecurityAlert || !resolveSecurityAlert || !requireSessionAndPermission) {
       const sec = await import('@/lib/securityMonitor');
@@ -17,7 +20,7 @@ async function handler(req: NextRequest, { params }: { params: { alertId: string
       const authMod = await import('@/lib/auth');
       requireSessionAndPermission = authMod.requireSessionAndPermission;
     }
-    const { alertId } = params;
+    const { alertId } = await params;
     const { action } = await req.json();
 
     if (!alertId) {

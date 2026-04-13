@@ -416,7 +416,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
           {/* Content */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-gray-50 dark:bg-zinc-950">
             <main className="flex-1 overflow-y-auto relative bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
-              <div className="w-full mx-auto">
+              <div className="w-full mx-auto h-full flex flex-col">
                 {isLoading && <GlobalLoadingOverlay />}
                 {children}
               </div>

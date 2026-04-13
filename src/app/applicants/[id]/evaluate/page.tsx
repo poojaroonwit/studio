@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ import { DesktopEvaluatePage } from './DesktopEvaluatePage';
 import { ExpiredLinkPage } from './components/ExpiredLinkPage';
 import { EvaluateRightPanel } from './components/EvaluateRightPanel';
 
-export default function ApplicantEvaluationPage() {
+function ApplicantEvaluationPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2226,8 +2227,15 @@ export default function ApplicantEvaluationPage() {
           </div>
         </div>
         {appLogoUrl && (
-          <div>
-            <img src={sanitizeUrl(appLogoUrl)} alt="App Logo" className="h-8 sm:h-10 w-auto" />
+          <div className="relative h-8 w-20 sm:h-10 sm:w-24">
+            <Image
+              src={sanitizeUrl(appLogoUrl) || ''}
+              alt="App Logo"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 80px, 96px"
+              className="object-contain"
+            />
           </div>
         )}
       </div>
@@ -2417,6 +2425,22 @@ export default function ApplicantEvaluationPage() {
       ) : null}
 
     </div>
+  );
+}
+
+function ApplicantEvaluationPageFallback() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+export default function ApplicantEvaluationPage() {
+  return (
+    <Suspense fallback={<ApplicantEvaluationPageFallback />}>
+      <ApplicantEvaluationPageContent />
+    </Suspense>
   );
 }
 

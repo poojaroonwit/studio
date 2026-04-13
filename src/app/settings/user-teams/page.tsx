@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import type { UserTeam } from '@/lib/types';
 import { hasAnyPermission } from '@/lib/permissions';
 import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, Users, UserPlus, Search, X, MoreHorizontal } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,7 +89,7 @@ export default function UserTeamsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/user-teams';
 
   const [teams, setTeams] = useState<UserTeam[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<UserTeam | null>(null);
@@ -127,7 +127,7 @@ export default function UserTeamsPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch teams' }));
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         throw new Error(errorData.message);
@@ -139,7 +139,7 @@ export default function UserTeamsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname]);
+  }, [sessionStatus, currentPath]);
 
   // Team members management functions
   const loadTeamMembers = async (teamId: string) => {
@@ -185,7 +185,7 @@ export default function UserTeamsPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated' && session) {
       if (session.user.role !== 'Admin' &&  !hasAnyPermission(session.user, ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE'])) {
         setFetchError("You do not have permission to manage user teams.");
@@ -194,7 +194,7 @@ export default function UserTeamsPage() {
         fetchTeams();
       }
     }
-  }, [sessionStatus, session, pathname, fetchTeams]);
+  }, [sessionStatus, session, currentPath, fetchTeams]);
 
   useEffect(() => {
     if (fetchError) {

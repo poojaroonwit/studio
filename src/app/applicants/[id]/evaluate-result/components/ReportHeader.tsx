@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Camera, Users } from 'lucide-react';
@@ -42,15 +43,16 @@ export function ReportHeader({
         <div className="flex items-center gap-4">
           {organizationLogoUrl && (
             <>
-              <img
-                src={organizationLogoUrl}
-                alt="Organization Logo"
-                className="h-8 w-auto"
-                onError={(e) => {
-                  console.error('Failed to load organization logo:', organizationLogoUrl);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <div className="relative h-8 w-24">
+                <Image
+                  src={organizationLogoUrl}
+                  alt="Organization Logo"
+                  fill
+                  unoptimized
+                  sizes="96px"
+                  className="object-contain"
+                />
+              </div>
               {organizationName && <span className="text-muted-foreground/60">|</span>}
             </>
           )}
@@ -60,15 +62,16 @@ export function ReportHeader({
           {appLogoUrl && (
             <>
               <span className="text-muted-foreground/60">|</span>
-              <img
-                src={appLogoUrl}
-                alt="Application Logo"
-                className="h-12 w-auto"
-                onError={(e) => {
-                  console.error('Failed to load application logo:', appLogoUrl);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <div className="relative h-12 w-28">
+                <Image
+                  src={appLogoUrl}
+                  alt="Application Logo"
+                  fill
+                  unoptimized
+                  sizes="112px"
+                  className="object-contain"
+                />
+              </div>
             </>
           )}
         </div>

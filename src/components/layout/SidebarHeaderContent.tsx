@@ -157,11 +157,13 @@ export function SidebarHeaderContent({
 
       return (
         <div className="relative">
-          <img
+          <Image
             src={logoToUse}
             alt="App Logo"
-            width={100}
-            height={100}
+            width={effectiveLogoSize}
+            height={effectiveLogoSize}
+            unoptimized
+            sizes={`${effectiveLogoSize}px`}
             style={{
               maxWidth: `${effectiveLogoSize}px`,
               maxHeight: `${effectiveLogoSize}px`,
@@ -170,12 +172,6 @@ export function SidebarHeaderContent({
             }}
             className="object-contain"
             data-ai-hint="company logo"
-            onError={(e) => {
-              // Logo failed to load - fallback icon will be shown
-            }}
-            onLoad={() => {
-              // Logo loaded successfully
-            }}
           />
           {/* Fallback icon that shows if image fails to load */}
           <Package2 className="h-6 w-6 absolute inset-0 m-auto opacity-0" style={{ pointerEvents: 'none' }} />

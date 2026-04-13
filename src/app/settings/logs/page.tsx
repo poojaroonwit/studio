@@ -14,7 +14,7 @@ import parseISO from 'date-fns/parseISO';
 import { ListOrdered, ServerCrash, ShieldAlert, Info, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Loader2, Search, CalendarIcon, UserCircle, FilterX, ChevronsUpDown, Check, X } from "lucide-react";
 import type { LogEntry, LogLevel, UserProfile } from '@/lib/types';
 import { useSession, signIn } from "next-auth/react";
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'react-hot-toast';
@@ -58,7 +58,7 @@ export default function ApplicationLogsPage() {
   const [formData, setFormData] = useState<any>({});
 
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/logs';
 
   const totalPages = Math.ceil(totalLogs / ITEMS_PER_PAGE);
   const currentYear = new Date().getFullYear();
@@ -127,12 +127,12 @@ export default function ApplicationLogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [status, toast, pathname]);
+  }, [status, toast, currentPath]);
 
   useEffect(() => {
     setIsClient(true);
     if (status === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (status === 'authenticated') {
       // Debug: Log user permissions for troubleshooting
       
@@ -148,7 +148,7 @@ export default function ApplicationLogsPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session, currentPage, levelFilter, searchQuery, actingUserIdFilter, startDate, endDate, pathname, fetchLogUsers]);
+  }, [status, session, currentPage, levelFilter, searchQuery, actingUserIdFilter, startDate, endDate, currentPath, fetchLogUsers]);
 
   useEffect(() => {
     if (fetchError) {

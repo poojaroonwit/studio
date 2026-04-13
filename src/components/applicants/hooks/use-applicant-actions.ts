@@ -100,6 +100,7 @@ export function useApplicantActions({
       // Refresh the applicant list to ensure consistency
       fetchTableData(filters, page, pageSize);
       
+      return true;
     } catch (error) {
       // Revert optimistic update on error
       setFilteredApplicants((prev: Applicant[]) => prev.map(app => 

@@ -87,7 +87,7 @@ export function RecruiterFilterSidebar({
           {(!searchTerm.trim() || 'all recruiters'.includes(searchTerm.toLowerCase())) && (
             <div 
               className={cn(
-                "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                "group flex items-center px-6 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-16 cursor-pointer",
                 selectedRecruiterId === null
                   ? "bg-muted/60 text-primary font-bold"
                   : "text-muted-foreground"
@@ -111,7 +111,7 @@ export function RecruiterFilterSidebar({
                     "text-sm leading-relaxed break-words line-clamp-2 font-medium",
                     selectedRecruiterId === null ? "text-primary/80" : "text-muted-foreground/80"
                   )}>
-                    View all positions across all recruiters
+                    {/* View all positions across all recruiters */}
                   </p>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export function RecruiterFilterSidebar({
               {/* Unassigned Positions Option */}
               <div 
                 className={cn(
-                  "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                  "group flex items-center px-6 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-16 cursor-pointer",
                   selectedRecruiterId === 'unassigned'
                     ? "bg-muted/60 text-primary font-bold"
                     : "text-muted-foreground"
@@ -150,7 +150,7 @@ export function RecruiterFilterSidebar({
                       "text-sm leading-relaxed break-words line-clamp-2 font-medium",
                       selectedRecruiterId === 'unassigned' ? "text-primary/80" : "text-muted-foreground/80"
                     )}>
-                      {recruiterStats.unassigned} positions without recruiter • {recruiterStats.unassignedVacant || 0} vacant
+                      {/* {recruiterStats.unassigned} positions without recruiter • {recruiterStats.unassignedVacant || 0} vacant */}
                     </p>
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export function RecruiterFilterSidebar({
                   <React.Fragment key={recruiterId}>
                     <div 
                       className={cn(
-                        "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                        "group flex items-center px-6 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-16 cursor-pointer",
                         isActive
                           ? "bg-muted/60 text-primary font-bold"
                           : "text-muted-foreground"
@@ -223,19 +223,19 @@ export function RecruiterFilterSidebar({
                               borderColor: isActive ? recruiterColor : 'transparent'
                             }}
                           >
-                            <User className="h-10 w-10" />
+                            <User className="h-8 w-10" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="mb-1">
                             <span className="truncate font-semibold text">{recruiterName}</span>
                           </div>
-                          <p className={cn(
+                          {/* <p className={cn(
                             "text-sm leading-relaxed break-words line-clamp-2 font-medium",
                             isActive ? "text-primary/80" : "text-muted-foreground/80"
                           )}>
                             {positionCount} active positions • {recruiter?.vacantHeadcount || 0} vacant
-                          </p>
+                          </p> */}
                         </div>
                       </div>
                     </div>

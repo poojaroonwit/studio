@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { 
   Settings2, 
   KanbanSquare, 
@@ -1042,7 +1042,7 @@ export default function DataConfigurationPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/data-configuration';
   
   // Flattened state for active page
   const [activePage, setActivePage] = useState<string>('recruitment-stages');
@@ -1060,9 +1060,9 @@ export default function DataConfigurationPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     }
-  }, [sessionStatus, pathname]);
+  }, [sessionStatus, currentPath]);
 
   // Fetch showLogoOnly setting
   useEffect(() => {

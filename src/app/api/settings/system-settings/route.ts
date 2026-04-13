@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
 
         for (const setting of settingsToInsert) {
           await client.query(
-            'INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())',
+            'INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (key) DO NOTHING',
             [setting.key, setting.value]
           );
         }

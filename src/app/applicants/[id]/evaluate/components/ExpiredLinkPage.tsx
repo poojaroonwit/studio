@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -105,8 +106,15 @@ export function ExpiredLinkPage({
           </h1>
         </div>
         {appLogoUrl && (
-          <div>
-            <img src={appLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto" />
+          <div className="relative h-8 w-20 sm:h-10 sm:w-24">
+            <Image
+              src={appLogoUrl}
+              alt="App Logo"
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 80px, 96px"
+              className="object-contain"
+            />
           </div>
         )}
       </div>

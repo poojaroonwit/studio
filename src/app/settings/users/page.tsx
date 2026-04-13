@@ -19,7 +19,7 @@ import { UserActivityLogsDrawer } from '@/components/users/UserActivityLogsDrawe
 import { UserGroupsTab } from '@/components/settings/UserGroupsTab';
 import { UserTeamsTab } from '@/components/settings/UserTeamsTab';
 
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,7 +120,7 @@ export default function ManageUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/users';
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('users');
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0); // Add refresh key for avatars
@@ -293,7 +293,7 @@ export default function ManageUsersPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText || `Status: ${response.status}` }));
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         setFetchError(errorData.message || 'Failed to fetch users');
@@ -328,11 +328,11 @@ export default function ManageUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname, currentPage, pageSize]);
+  }, [sessionStatus, currentPath, currentPage, pageSize]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       // Check permission instead of role
       if (!hasPermission(session.user, 'USERS_VIEW')) {
@@ -343,7 +343,7 @@ export default function ManageUsersPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus, session, pathname]);
+  }, [sessionStatus, session, currentPath]);
 
   useEffect(() => {
     if (fetchError) {
@@ -393,7 +393,7 @@ export default function ManageUsersPage() {
       const result = await response.json();
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         throw new Error(result.message || 'Failed to add user');
@@ -416,7 +416,7 @@ export default function ManageUsersPage() {
       const result = await response.json();
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         throw new Error(result.message || 'Failed to update user');
@@ -473,7 +473,7 @@ export default function ManageUsersPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "Failed to delete user." }));
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         throw new Error(errorData.message || 'Failed to delete user');
@@ -499,7 +499,7 @@ export default function ManageUsersPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to update user status' }));
         if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         throw new Error(errorData.message || 'Failed to update user status');
@@ -539,7 +539,7 @@ export default function ManageUsersPage() {
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           toast.dismiss(toastId);
-          signIn(undefined, { callbackUrl: pathname });
+          signIn(undefined, { callbackUrl: currentPath });
           return;
         }
         const errorResult = await response.json();
@@ -634,7 +634,7 @@ export default function ManageUsersPage() {
     fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, 1, newPageSize);
   };
 
-  if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && !pathname.startsWith('/auth/signin')) || (isLoading && !fetchError && users.length === 0)) {
+  if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && !currentPath.startsWith('/auth/signin')) || (isLoading && !fetchError && users.length === 0)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

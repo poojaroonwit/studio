@@ -18,7 +18,7 @@ import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { sanitizeRichHtml } from '@/lib/security';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import DOMPurify from 'isomorphic-dompurify';
+
 
 interface Interviewer {
   id: string;
@@ -861,8 +861,8 @@ export function SendInterviewInvitationModal({
                 <div className="bg-background border rounded-lg p-4 overflow-auto max-h-[400px]">
                   <div
                     className="prose prose-sm dark:prose-invert max-w-none"
-                    // SECURITY: Explicitly sanitize HTML content using DOMPurify before rendering
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailBody) }}
+                    // SECURITY: Explicitly sanitize HTML content using sanitizeRichHtml before rendering
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
                   />
                 </div>
               </div>

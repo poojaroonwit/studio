@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, DocumentCheckIcon as Save, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, PhoneIcon as Phone, AcademicCapIcon as GraduationCap, ClockIcon as Clock, FlagIcon as Target, ChatBubbleLeftRightIcon as MessageSquare, CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ClipboardDocumentIcon as Copy, ArrowTopRightOnSquareIcon as ExternalLink, MapPinIcon as MapPin, CalendarIcon as CalendarIcon, UsersIcon as Users, PencilSquareIcon as Edit, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight } from '@heroicons/react/24/outline';
+import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, DocumentCheckIcon as Save, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, PhoneIcon as Phone, AcademicCapIcon as GraduationCap, ClockIcon as Clock, FlagIcon as Target, ChatBubbleLeftRightIcon as MessageSquare, CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ClipboardDocumentIcon as Copy, ArrowTopRightOnSquareIcon as ExternalLink, MapPinIcon as MapPin, CalendarIcon as CalendarIcon, UsersIcon as Users, PencilSquareIcon as Edit, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
@@ -47,7 +47,11 @@ import type { Applicant, Position } from '@/lib/types';
 import type { TransitionRecord } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { TiptapEditor } from '../ui/tiptap-editor';
 import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
+import { ApplicantDetailSkeleton } from './ApplicantDetailSkeleton';
 
 interface FullApplicantDetailProps {
   applicantId: string;
@@ -56,6 +60,7 @@ interface FullApplicantDetailProps {
   comments: any[];
   resumes: any[];
   onRefresh: () => void;
+  initialApplicant?: Applicant | null;
 }
 
 const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
@@ -64,7 +69,8 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   onClose,
   comments,
   resumes,
-  onRefresh
+  onRefresh,
+  initialApplicant = null,
 }) => {
   const { data: session } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
@@ -100,6 +106,10 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [footerStatusNote, setFooterStatusNote] = useState('');
+  const [footerRejectNote, setFooterRejectNote] = useState('');
+  const [isFooterPopoverOpen, setIsFooterPopoverOpen] = useState(false);
+  const [isRejectPopoverOpen, setIsRejectPopoverOpen] = useState(false);
 
   // QR Modal State
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -444,7 +454,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     handleTogglePin,
     handleToggleBlacklist,
     handleToggleRead,
-  } = useApplicantDetail(applicantId);
+  } = useApplicantDetail(applicantId, { initialApplicant });
 
   // Handle custom field changes - MUST be called after use-applicant-detail but before any early returns
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -474,15 +484,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
   // Loading state - must happen after all hooks
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="animate-spin h-8 w-8 text-primary" />
-          <p className="text-muted-foreground">Loading Applicant details...</p>
-          <p className="text-xs text-muted-foreground">This may take a few moments</p>
-        </div>
-      </div>
-    );
+    return <ApplicantDetailSkeleton />;
   }
 
   // Error state
@@ -510,14 +512,21 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
   // Event handlers
 
-  const openManageTransitionsModal = (stageName?: string) => {
+  const openManageTransitionsModal = (stageIdOrName?: string) => {
     // Prevent opening transitions modal if headcount warning was recently shown (within last 3 seconds)
     if (headcountWarningShownTime && (Date.now() - headcountWarningShownTime) < 3000) {
       toastError('Please resolve the headcount constraint before changing Applicant status.');
       return;
     }
 
-    setPreselectedStage(stageName || applicant?.status || availableStages[0]?.name || null);
+    const resolvedStageId =
+      availableStages.find((stage) => stage.id === stageIdOrName || stage.name === stageIdOrName)?.id ||
+      applicant?.statusId ||
+      availableStages.find((stage) => stage.name === applicant?.status)?.id ||
+      availableStages[0]?.id ||
+      null;
+
+    setPreselectedStage(resolvedStageId);
     setIsTransitionsModalOpen(true);
   };
 
@@ -628,10 +637,16 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
 
       const fullName = [title, firstName, lastName].filter(Boolean).join(' ').trim();
 
+      const resolvedStatusId =
+        availableStages.find((stage) => stage.id === data.status || stage.name === data.status)?.id ||
+        applicant.statusId ||
+        data.status;
+
       // Add the composed name and custom fields to the data being sent
       const dataWithName = {
         ...data,
         name: fullName || applicant.name, // Fallback to existing name if composition is empty
+        status: resolvedStatusId,
         customFields: applicant.customFields || {} // Include updated custom fields from state
       };
 
@@ -701,7 +716,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     }
   }
 
-  const handleStatusUpdate = useCallback(async (status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
+  const handleStatusUpdate = async (status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
     if (!applicantId) return;
 
     setIsStatusUpdating(true);
@@ -765,6 +780,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
         setApplicant(prev => prev ? {
           ...prev,
           statusId: status,
+          status: selectedStage?.name || prev.status,
           updatedAt: new Date().toISOString()
         } : null);
 
@@ -817,7 +833,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     } finally {
       setIsStatusUpdating(false);
     }
-  }, [applicantId, applicant, availableStages, transitionHistory, allDbPositions, session?.user?.id, toastSuccess, toastError, setApplicant, setTransitionHistory]);
+  };
 
   return (
     <div className={isModal ? "h-full flex flex-col bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
@@ -1427,30 +1443,148 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
             return (
               <>
                 {rejectedStage && currentStatusId !== rejectedStage.id && currentStatusName !== 'rejected' && (
-                  <Button
-                    variant="outline"
-                    disabled={isStatusUpdating}
-                    onClick={() => handleStatusUpdate(rejectedStage.id)}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
-                  >
-                    Reject
-                  </Button>
+                  <Popover open={isRejectPopoverOpen} onOpenChange={setIsRejectPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={isStatusUpdating}
+                        className="text-destructive hover:text-white hover:bg-destructive border-destructive/20 font-medium transition-all"
+                      >
+                        Reject
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4 border-destructive/20 shadow-lg shadow-destructive/5" align="start" side="top" sideOffset={10}>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold leading-none text-destructive flex items-center gap-2">
+                            <Ban className="h-4 w-4" />
+                            Confirm Rejection
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            This will move the applicant to the <span className="font-semibold text-foreground">Reject</span> stage.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="reject-note" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            REASON / NOTE (OPTIONAL)
+                          </label>
+                          <Textarea
+                            id="reject-note"
+                            placeholder="Add a reason for rejection..."
+                            value={footerRejectNote}
+                            onChange={(e) => setFooterRejectNote(e.target.value)}
+                            className="min-h-[100px] text-sm resize-none focus:ring-1 focus:ring-destructive/20"
+                          />
+                        </div>
+                        <div className="flex justify-start gap-2 pt-2">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            disabled={isStatusUpdating}
+                            onClick={async () => {
+                              const result = await handleStatusUpdate(rejectedStage.id, footerRejectNote);
+                              if (result) {
+                                setFooterRejectNote('');
+                                setIsRejectPopoverOpen(false);
+                              }
+                            }}
+                            className="h-8 px-4 text-xs font-semibold"
+                          >
+                            {isStatusUpdating ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              'Confirm Rejection'
+                            )}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsRejectPopoverOpen(false);
+                              setFooterRejectNote('');
+                            }}
+                            disabled={isStatusUpdating}
+                            className="h-8 px-3 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
                 {nextStage && (
-                  <Button
-                    disabled={isStatusUpdating}
-                    onClick={() => handleStatusUpdate(nextStage.id)}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
-                  >
-                    {isStatusUpdating ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        Move to {nextStage.name}
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                  <Popover open={isFooterPopoverOpen} onOpenChange={setIsFooterPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        disabled={isStatusUpdating}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
+                      >
+                        {isStatusUpdating ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Move to {nextStage.name}
+                            <ChevronRight className="ml-2 h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4" align="end" side="top" sideOffset={10}>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h4 className="font-semibold leading-none text-foreground">Confirm Next Step</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Move applicant to <strong>{nextStage.name}</strong> stage.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <label htmlFor="footer-note" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            OPTIONAL NOTE
+                          </label>
+                          <Textarea
+                            id="footer-note"
+                            placeholder="Add a note about this transition..."
+                            value={footerStatusNote}
+                            onChange={(e) => setFooterStatusNote(e.target.value)}
+                            className="min-h-[100px] text-sm resize-none focus:ring-1 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsFooterPopoverOpen(false);
+                              setFooterStatusNote('');
+                            }}
+                            disabled={isStatusUpdating}
+                            className="h-8 px-3 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            disabled={isStatusUpdating}
+                            onClick={async () => {
+                              const result = await handleStatusUpdate(nextStage.id, footerStatusNote);
+                              if (result) {
+                                setFooterStatusNote('');
+                                setIsFooterPopoverOpen(false);
+                              }
+                            }}
+                            className="h-8 px-4 text-xs font-semibold"
+                          >
+                            {isStatusUpdating ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              'Confirm'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </>
             );

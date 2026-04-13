@@ -30,6 +30,7 @@ export interface SidebarNavItem {
   adminOnly?: boolean;
   badge?: string;
   description?: string;
+  section?: string;
 }
 
 export interface SidebarNavGroup {
@@ -134,55 +135,64 @@ export const sidebarConfigData = [
         label: "System Settings",
         icon: "Database",
         href: "/settings/system-settings",
-        description: "System-wide configuration and integrations"
+        description: "System-wide configuration and integrations",
+        section: "Platform"
       },
       {
         label: "Branding & Theme",
         icon: "Palette",
         href: "/settings/system-preferences",
-        description: "Global branding, theme, and logo settings"
+        description: "Global branding, theme, and logo settings",
+        section: "Platform"
       },
       {
         label: "Prompts & Categories",
         icon: "BrainCircuit",
         href: "/settings/system-prompts",
-        description: "Manage AI system prompts and categories"
+        description: "Manage AI system prompts and categories",
+        section: "Configuration"
       },
       {
         label: "Data Configuration",
         icon: "Database",
         href: "/settings/data-configuration",
-        description: "Manage stages, sources, and positions"
+        description: "Manage stages, sources, and positions",
+        section: "Configuration"
       },
       {
         label: "User Management",
         icon: "Users",
         href: "/settings/users",
-        description: "Manage users and roles"
+        description: "Manage users and roles",
+        section: "Workspace"
       },
       {
         label: "Webhook Management",
         icon: "Webhook",
         href: "/settings/webhooks",
-        description: "Create and manage outgoing webhooks"
+        description: "Create and manage outgoing webhooks",
+        section: "Workspace"
       },
       {
         label: "API Documentation",
         icon: "Code2",
         href: "/settings/api-docs",
-        description: "Developer API reference"
+        description: "Developer API reference",
+        section: "Developer"
       },
       {
         label: "Application Logs",
         icon: "ListOrdered",
         href: "/settings/logs",
-        description: "View system and audit logs"
+        description: "View system and audit logs",
+        section: "Developer"
       },
       {
         label: "Meeting Room",
         icon: "Calendar",
         href: "/settings/rooms",
-        description: "Manage integrated meeting rooms"
+        description: "Manage integrated meeting rooms",
+        section: "Workspace"
       },
     ],
   },

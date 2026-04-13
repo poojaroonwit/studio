@@ -113,7 +113,16 @@ export function MobileSignInView({
                     )}
                 </div>
                 {secureLogoUrl ? (
-                    <img src={secureLogoUrl} alt="App Logo" className="h-[35px] w-[90px] rounded-md" />
+                    <div className="relative h-[35px] w-[90px]">
+                        <Image
+                            src={secureLogoUrl}
+                            alt="App Logo"
+                            fill
+                            unoptimized
+                            sizes="90px"
+                            className="rounded-md object-contain"
+                        />
+                    </div>
                 ) : (
                     <div className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center" style={{ width: '48px', height: '48px' }}>
                         <span className="text-base font-bold text-primary-foreground">CT</span>

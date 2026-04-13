@@ -719,16 +719,16 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          {canViewAllComments && (
            <button
               onClick={() => {
-                setActiveSubTab('all');
+               setActiveSubTab('all');
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
                 activeSubTab === 'all' 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
+                  ? "border-primary text-foreground" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
-           >
+            >
               <FileIcon className="h-4 w-4" />
               All {counts.all > 0 && `(${counts.all})`}
            </button>
@@ -736,16 +736,16 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          {canViewAllComments && (
            <button
               onClick={() => {
-                setActiveSubTab('comment');
+               setActiveSubTab('comment');
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
                 activeSubTab === 'comment' 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
+                  ? "border-primary text-foreground" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
-           >
+            >
               <MessageSquare className="h-4 w-4" />
               Comment {counts.comment > 0 && `(${counts.comment})`}
            </button>
@@ -753,16 +753,16 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          {(canViewAllComments || canViewRemarksOnly) && (
            <button
               onClick={() => {
-                setActiveSubTab('remark');
+               setActiveSubTab('remark');
                 setSelectedChannel('remark');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
                 activeSubTab === 'remark' 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
+                  ? "border-primary text-foreground" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
-           >
+            >
               <MessageSquare className="h-4 w-4 text-purple-500" />
               Remark {counts.remark > 0 && `(${counts.remark})`}
            </button>
@@ -770,16 +770,16 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
          {canViewActivities && (
            <button
               onClick={() => {
-                setActiveSubTab('activity');
+               setActiveSubTab('activity');
                 setSelectedChannel('activity');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
                 activeSubTab === 'activity' 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/50"
+                  ? "border-primary text-foreground" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               )}
-           >
+            >
               <Activity className="h-4 w-4" />
               Activity {counts.activity > 0 && `(${counts.activity})`}
            </button>

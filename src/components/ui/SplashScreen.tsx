@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
-import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function SplashScreen() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { settings, isLoading: isSettingsLoading } = useGlobalSettings();
+  const { settings } = useGlobalSettings();
   const [isVisible, setIsVisible] = useState(true);
-  const [isMounting, setIsMounting] = useState(true);
 
   // Configuration from settings
   const backgroundColor = settings.splashBackgroundColor || '#ffffff';
@@ -24,7 +20,6 @@ export function SplashScreen() {
     const hasInitialized = sessionStorage.getItem('splashInitialized');
     if (hasInitialized) {
       setIsVisible(false);
-      setIsMounting(false);
       return;
     }
 
@@ -40,7 +35,6 @@ export function SplashScreen() {
     // Hide after allowing content to fully load
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setIsMounting(false);
     }, 4000); // 4s maximum splash duration
 
     return () => {
@@ -91,10 +85,13 @@ export function SplashScreen() {
                 transition={{ delay: 0.1, duration: 0.4 }}
                 className="relative w-48 h-24 md:w-64 md:h-32"
               >
-                <img 
-                  src={logoUrl} 
-                  alt="App Logo" 
-                  className="w-full h-full object-contain"
+                <Image
+                  src={logoUrl}
+                  alt="App Logo"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 192px, 256px"
+                  className="object-contain"
                 />
               </motion.div>
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,12 @@ export default function ApplicantDetailPage() {
   const { data: session, status: sessionStatus } = useSession();
   const applicantId = params.id as string;
 
+  useEffect(() => {
+    if (sessionStatus === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [router, sessionStatus]);
+
   // Loading state while session is being determined
   if (sessionStatus === 'loading') {
     return (
@@ -27,7 +33,6 @@ export default function ApplicantDetailPage() {
 
   // Redirect to login if not authenticated
   if (sessionStatus === 'unauthenticated') {
-    router.push('/auth/signin');
     return null;
   }
 

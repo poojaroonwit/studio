@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Save, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, CheckCircle, Search, Mail, Building, UploadCloud, Smartphone, ShieldAlert, FileText, Key, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,7 +90,7 @@ export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/system-settings';
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -330,11 +330,11 @@ export default function SystemSettingsPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: pathname });
+      signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
       fetchSystemSettings();
     }
-  }, [sessionStatus, pathname, fetchSystemSettings]);
+  }, [sessionStatus, currentPath, fetchSystemSettings]);
 
   // Set editor as ready after component mounts and data is loaded
   useEffect(() => {

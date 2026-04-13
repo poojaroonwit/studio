@@ -4,13 +4,11 @@ import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@/components/ui/visually-hidden';
+
 import { useIsMobile } from '@/hooks/use-mobile';
-import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, MagnifyingGlassIcon as Search, FunnelIcon as Funnel } from '@heroicons/react/24/outline';
+import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, FunnelIcon as Funnel } from '@heroicons/react/24/outline';
 
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -19,6 +17,7 @@ import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { UnifiedUserModal } from '@/components/users/UnifiedUserModal';
 import { useTheme } from '@/hooks/use-theme';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Image from 'next/image';
 
 import type { UserProfile } from '@/lib/types';
 import type { UnifiedUserFormValues } from '@/components/users/UnifiedUserModal';
@@ -29,6 +28,7 @@ import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
 import { APP_VERSION } from '@/lib/version';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { HeaderUniversalSearch } from '@/components/search/HeaderUniversalSearch';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
@@ -132,8 +132,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const [currentAppName, setCurrentAppName] = useState<string>(propAppName || DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(propLogoUrl || null);
@@ -484,35 +482,16 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   // Only render the actual header once we're fully mounted and have session data
   const isLoading = !mounted || status === "loading";
   const isMyTasksHeader = pathname?.startsWith('/my-tasks');
-  const supportsHeaderSearch = pathname?.startsWith('/applicants') || pathname?.startsWith('/positions') || isMyTasksHeader;
-  const supportsHeaderFilter = isMyTasksHeader;
-  const headerSearchLabel = pathname?.startsWith('/positions')
-    ? 'Search positions'
-    : isMyTasksHeader
-      ? 'Search my tasks'
-      : 'Search applicants';
-  const searchDialogTitle = pathname === '/positions'
-    ? 'Search Positions'
-    : isMyTasksHeader
-      ? 'Search My Tasks'
-      : 'Search Applicants';
-  const searchDialogPlaceholder = pathname === '/positions'
-    ? 'Search by title, department...'
-    : isMyTasksHeader
-      ? 'Search by applicant, email...'
-      : 'Search by name, email...';
+  const supportsHeaderSearch = !pathname?.startsWith('/auth/');
+  const supportsHeaderFilter = false;
+  const headerSearchLabel = 'Search everything';
 
   const handleHeaderSearch = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+    // Legacy support for focusing search, but use inline search now
+    if (typeof window === 'undefined') return;
     if (isMyTasksHeader) {
       window.dispatchEvent(new Event('mytasks:focus-search'));
-      return;
     }
-
-    setIsSearchModalOpen(true);
   }, [isMyTasksHeader]);
 
   const handleHeaderFilter = useCallback(() => {
@@ -540,10 +519,14 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   useEffect(() => {
     if (typeof window === 'undefined' || !supportsHeaderSearch) return;
 
+    // Handle keyboard shortcut to focus the inline search input
     const handleHeaderSearchShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        handleHeaderSearch();
+        const searchInput = document.getElementById('header-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
       }
     };
 
@@ -573,15 +556,14 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             className="flex min-w-0 items-center group text-left transition-transform duration-200 active:scale-95"
           >
             {appLogoUrl ? (
-              <div className="relative">
-                <img
+              <div className="relative mr-4 h-9 w-9 flex-shrink-0">
+                <Image
                   src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
                   alt={currentAppName}
-                  className="w-9 h-9 flex-shrink-0 object-contain mr-4"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
+                  fill
+                  unoptimized
+                  sizes="36px"
+                  className="object-contain"
                 />
                 <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
@@ -613,36 +595,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
 
           {/* Vertical Divider */}
           <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent dark:via-zinc-800 mx-6" />
-
           {supportsHeaderSearch && (
-            <div className="hidden md:flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleHeaderSearch}
-                className="md:flex md:w-[260px] lg:w-[320px] items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/75 px-4 py-2 text-sm text-slate-500 shadow-sm transition-all duration-200 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:bg-zinc-900"
-              >
-                <span className="flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5" />
-                  <span>{headerSearchLabel}</span>
-                </span>
-                <kbd className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
-                  <span>Ctrl</span>
-                  <span>K</span>
-                </kbd>
-              </button>
-
-              {supportsHeaderFilter && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleHeaderFilter}
-                  className="h-[42px] rounded-2xl border-slate-200/80 bg-white/75 px-3 text-slate-600 shadow-sm transition-all duration-200 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                >
-                  <Funnel className="mr-2 h-4 w-4" />
-                  Filters
-                </Button>
-              )}
+            <div className="hidden md:flex items-center w-[300px] lg:w-[400px] ml-4">
+              <HeaderUniversalSearch placeholder={headerSearchLabel} />
             </div>
           )}
 
@@ -789,60 +744,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             user={fullUserData || session?.user as UserProfile | null}
             onSave={handleEditProfile}
           />
-          {/* Mobile Search Modal */}
-          <Dialog open={isSearchModalOpen} onOpenChange={(open) => {
-            setIsSearchModalOpen(open);
-            if (!open) setSearchQuery('');
-          }}>
-            <DialogContent
-              className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background flex flex-col"
-              dialogId="search-modal"
-            >
-              <VisuallyHidden>
-                <DialogTitle>
-                  {searchDialogTitle}
-                </DialogTitle>
-              </VisuallyHidden>
-              <DialogHeader className="border-b px-4 pt-6 pb-4 flex-shrink-0">
-                <DialogTitle className="text-lg font-semibold text-center">
-                  {searchDialogTitle}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="p-4 flex flex-col gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={searchDialogPlaceholder}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-12 text-base"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchQuery.trim()) {
-                        setIsSearchModalOpen(false);
-                        router.push(`${pathname}?q=${encodeURIComponent(searchQuery.trim())}`);
-                        setSearchQuery('');
-                      }
-                    }}
-                  />
-                </div>
-                <Button
-                  className="w-full h-12"
-                  disabled={!searchQuery.trim()}
-                  onClick={() => {
-                    if (searchQuery.trim()) {
-                      setIsSearchModalOpen(false);
-                      router.push(`${pathname}?q=${encodeURIComponent(searchQuery.trim())}`);
-                      setSearchQuery('');
-                    }
-                  }}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  Search
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+
         </>
       )}
 

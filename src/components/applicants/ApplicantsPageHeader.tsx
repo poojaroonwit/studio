@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { PlusCircleIcon as PlusCircle, ArrowDownTrayIcon as FileDown, TableCellsIcon as FileSpreadsheet, Cog6ToothIcon as Settings, EllipsisVerticalIcon as MoreVertical, CpuChipIcon as Brain } from '@heroicons/react/24/outline';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { ApplicantFilterPopover } from './ApplicantFilterPopover';
+
 import type { ApplicantSettings } from './ApplicantSettingsDrawer';
 import type { Applicant, ApplicantFilterValues, Position, RecruitmentStage, UserProfile, ApplicantSource } from '@/lib/types';
 
@@ -125,6 +126,8 @@ export function ApplicantsPageHeader({
         </div>
 
         <div className="flex items-center space-x-3 ml-3">
+
+
           <ApplicantFilterPopover
             filters={filters}
             onFilterChange={onFilterChange}

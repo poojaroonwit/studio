@@ -97,6 +97,7 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 # Copy entrypoint scripts
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
+COPY --from=builder /app/entrypoint-local.sh ./entrypoint-local.sh
 
 # Copy scripts directory for migrations and seeds
 COPY --from=builder /app/scripts ./scripts
@@ -104,7 +105,8 @@ COPY --from=builder /app/src/scripts ./src/scripts
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh && \
-    chmod +x ./entrypoint-processor.sh
+    chmod +x ./entrypoint-processor.sh && \
+    chmod +x ./entrypoint-local.sh
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app

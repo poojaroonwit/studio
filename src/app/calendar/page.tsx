@@ -3,7 +3,7 @@
 
 import { sanitizeUrl } from '@/lib/utils';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,7 +72,7 @@ interface ApplicantReminder {
   };
 }
 
-export default function EvaluatePage() {
+function EvaluatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q');
@@ -1254,5 +1254,21 @@ export default function EvaluatePage() {
         />
       )}
     </>
+  );
+}
+
+function EvaluatePageFallback() {
+  return (
+    <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+export default function EvaluatePage() {
+  return (
+    <Suspense fallback={<EvaluatePageFallback />}>
+      <EvaluatePageContent />
+    </Suspense>
   );
 }

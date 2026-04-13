@@ -11,12 +11,12 @@ export interface StageSelectProps {
   value: string;
   onChange: (stageId: string) => void;
   availableStages: { id: string; name: string }[];
-  label?: string;
   error?: string;
   loading?: boolean;
+  id?: string;
 }
 
-export function StageSelect({ value, onChange, availableStages, label, error, loading = false }: StageSelectProps) {
+export function StageSelect({ value, onChange, availableStages, error, loading = false, id }: StageSelectProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -37,16 +37,15 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
 
   return (
     <div>
-      {label && <Label className="text-base font-semibold text-foreground mb-1">{label}</Label>}
-      <div className="text-xs text-muted-foreground mb-2">Select the next stage for this Applicant.</div>
       <Popover open={searchOpen} onOpenChange={setSearchOpen}>
         <PopoverTrigger asChild>
           <Button
+            id={id}
             ref={triggerRef}
             variant="outline"
             role="combobox"
             aria-expanded={searchOpen}
-            className="w-full justify-between mt-1 border-2 border-primary/30 shadow-sm font-medium"
+            className="flex h-8 w-full items-center justify-between !rounded-lg border border-input bg-gray-100 dark:bg-gray-600 px-2.5 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
             disabled={loading}
           >
             {loading ? (

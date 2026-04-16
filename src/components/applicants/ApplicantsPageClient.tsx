@@ -46,6 +46,10 @@ import { ApplicantsPageTableArea } from './ApplicantsPageTableArea';
 import { ApplicantsPageModals } from './ApplicantsPageModals';
 import { ApplicantsPageMobileFilter } from './ApplicantsPageMobileFilter';
 import { ApplicantsPageMobileSearch } from './ApplicantsPageMobileSearch';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+import { ApplicantsMobileListView } from './ApplicantsMobileListView';
+import ApplicantDetailModal from './ApplicantDetailModal';
+import { useStageColors } from '@/hooks/use-stage-colors';
 import { ApplicantsPageMobileFitScoreFilter } from './ApplicantsPageMobileFitScoreFilter';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useApplicantSettings } from '@/hooks/use-applicant-settings';
@@ -144,6 +148,11 @@ export function ApplicantsPageClient({
   const [aiMatchedApplicantIds, setAiMatchedApplicantIds] = useState<string[] | null>(null);
   const [aiRecordCount, setAiRecordCount] = useState<number>(0);
   const [isAiSearchActive, setIsAiSearchActive] = useState(false);
+
+  // Search Drawer state
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
+  const [selectedApplicantForDetail, setSelectedApplicantForDetail] = useState<{ id: string, name: string } | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Performance Monitor state
 
@@ -344,6 +353,25 @@ export function ApplicantsPageClient({
       updatedAt: undefined,
     }))
     : (Array.isArray(availableSources) ? availableSources : []);
+
+  // Stage Names map for mobile list view
+  const stageNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    effectiveStages.forEach((s) => {
+      if (s.id && s.name) map[s.id] = s.name;
+    });
+    return map;
+  }, [effectiveStages]);
+
+  const uniqueStageIds = useMemo(() => {
+    const ids = new Set<string>();
+    filteredApplicants.forEach(a => {
+      if (a.statusId) ids.add(a.statusId);
+    });
+    return Array.from(ids);
+  }, [filteredApplicants]);
+
+  const { stageColors } = useStageColors(uniqueStageIds);
 
   // Define useApplicantFetching first with dynamic showPinSection
   const {
@@ -1819,6 +1847,13 @@ export function ApplicantsPageClient({
     }
   }, [sessionStatus, hasInitialDataFetch, initialApplicants.length]);
 
+  // Listen for mobile search drawer toggle
+  useEffect(() => {
+    const handleOpenSearch = () => setIsSearchDrawerOpen(true);
+    window.addEventListener('applicants:toggle-mobile-search', handleOpenSearch);
+    return () => window.removeEventListener('applicants:toggle-mobile-search', handleOpenSearch);
+  }, []);
+
   // Cleanup timeout on component unmount - FIXED: Use regular useEffect instead of useEmergencySafeEffect
   useEffect(() => {
     return () => {
@@ -1913,14 +1948,7 @@ export function ApplicantsPageClient({
   return (
     <>
       <div className={cn("flex flex-col h-full", isMobile && "bg-secondary/50")}>
-        {/* Mobile Search Input */}
-        {isMobile && (
-          <ApplicantsPageMobileSearch
-            filters={filters}
-            onFilterChange={onFilterChange}
-            isMobile={isMobile}
-          />
-        )}
+        {/* Mobile Search Input removed - now in Header Drawer */}
 
         {/* Mobile Fit Score Filter */}
         {isMobile && applicantSettings?.showHorizontalFitScoreFilters && (
@@ -2170,7 +2198,80 @@ export function ApplicantsPageClient({
         advancedQuery={searchParams.get('query') || undefined}
       />
 
+      {/* Mobile Search Drawer */}
+      <Drawer open={isSearchDrawerOpen} onOpenChange={setIsSearchDrawerOpen}>
+        <DrawerContent className="h-[92vh] flex flex-col">
+          <DrawerHeader className="border-b pb-4 px-4 sticky top-0 bg-background z-10">
+            <div className="flex items-center justify-between gap-4">
+              <DrawerTitle className="text-xl font-black">Search Applicants</DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </DrawerClose>
+            </div>
+            <div className="mt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, or phone..."
+                  value={filters.name || ''}
+                  onChange={(e) => handleFilterChange({ ...filters, name: e.target.value || undefined })}
+                  className="pl-10 h-10 text-base"
+                  autoFocus
+                />
+              </div>
+            </div>
+          </DrawerHeader>
+          
+          <div className="flex-1 overflow-hidden relative">
+            {tableLoading && (
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+            
+            <ScrollArea className="h-full">
+              <div className="p-1">
+                {filteredApplicants.length > 0 ? (
+                  <ApplicantsMobileListView
+                    applicants={filteredApplicants}
+                    selectedApplicantIds={new Set()} // No checkbox selection in search drawer
+                    onToggleSelectApplicant={() => {}}
+                    onApplicantClick={(applicant) => {
+                      setSelectedApplicantForDetail({ id: applicant.id, name: applicant.name });
+                      setIsDetailModalOpen(true);
+                      setIsSearchDrawerOpen(false);
+                    }}
+                    stageNames={stageNames}
+                    stageColors={stageColors as any}
+                    allDbPositions={effectivePositions}
+                  />
+                ) : !tableLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                    <Search className="h-10 w-10 mb-2 opacity-20" />
+                    <p className="text-sm">No results found for "{filters.name || ''}"</p>
+                  </div>
+                ) : null}
+              </div>
+            </ScrollArea>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Detail Modal for Search Results */}
+      {selectedApplicantForDetail && (
+        <ApplicantDetailModal
+          applicantId={selectedApplicantForDetail.id}
+          open={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setTimeout(() => setSelectedApplicantForDetail(null), 100);
+          }}
+        />
+      )}
     </>
+
   );
 }
 

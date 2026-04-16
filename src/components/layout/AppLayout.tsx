@@ -6,6 +6,7 @@ import React, { useEffect, useState, useMemo, useCallback, memo, useRef } from '
 import SidebarNav from '@/components/layout/SafeSidebarNav';
 import { Header } from '@/components/layout/Header';
 import { GlobalLoadingOverlay } from '@/components/layout/GlobalLoadingOverlay';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 import { usePageLoading } from '@/hooks/use-page-loading';
 import { useFavicon } from '@/hooks/use-favicon';
 import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
@@ -419,7 +420,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-gray-50 dark:bg-zinc-950">
             <main className="flex-1 overflow-y-auto relative bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
               <div className="w-full mx-auto h-full flex flex-col">
-                {isLoading && <GlobalLoadingOverlay />}
+                {isLoading && <SplashScreen persistent />}
                 {children}
               </div>
             </main>
@@ -441,7 +442,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
 
   // Early return for loading states
   if (status === "loading" || !themeMounted) {
-    return <GlobalLoadingOverlay />;
+    return <SplashScreen persistent />;
   }
 
   if (!session) {

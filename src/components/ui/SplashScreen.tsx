@@ -6,7 +6,7 @@ import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function SplashScreen() {
+export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
   const { settings } = useGlobalSettings();
   const [isVisible, setIsVisible] = useState(true);
 
@@ -16,6 +16,12 @@ export function SplashScreen() {
   const animationType = settings.splashAnimationType || 'spinner';
 
   useEffect(() => {
+    // If persistent, we keep it visible regardless of sessionStorage or timers
+    if (persistent) {
+      setIsVisible(true);
+      return;
+    }
+
     // Determine initial visibility only on client
     const hasInitialized = sessionStorage.getItem('splashInitialized');
     if (hasInitialized) {
@@ -41,13 +47,7 @@ export function SplashScreen() {
       clearTimeout(timer);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isVisible]);
-
-
-
-
-
-
+  }, [isVisible, persistent]);
   // Listen for manual triggers (e.g., from login flow)
   useEffect(() => {
     const handleShow = () => setIsVisible(true);

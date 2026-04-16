@@ -677,6 +677,43 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
 
               {user ? (
                 <div className="flex items-center space-x-2 md:space-x-3">
+                  {/* Search Icon (Mobile Applicants/Candidates Page Only) */}
+                  {isMobile && (
+                    pathname === '/applicants' || 
+                    pathname === '/Applicants' || 
+                    pathname === '/candidates' || 
+                    pathname === '/Candidates' ||
+                    pathname === '/positions' ||
+                    pathname === '/Positions'
+                  ) && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn(
+                        "rounded-full transition-all duration-200",
+                        "text-gray-500 hover:text-primary hover:bg-primary/10",
+                        "active:scale-90"
+                      )}
+                      onClick={() => {
+                        const isApplicants = pathname.toLowerCase().startsWith('/applicants');
+                        const isCandidates = pathname.toLowerCase().startsWith('/candidates');
+                        const isPositions = pathname.toLowerCase().startsWith('/positions');
+                        
+                        let eventName = '';
+                        if (isApplicants) eventName = 'applicants:toggle-mobile-search';
+                        else if (isCandidates) eventName = 'candidates:toggle-mobile-search';
+                        else if (isPositions) eventName = 'positions:toggle-mobile-search';
+                        
+                        if (eventName) {
+                          window.dispatchEvent(new CustomEvent(eventName));
+                        }
+                      }}
+                      aria-label="Search items"
+                    >
+                      <Search className="w-5 h-5" />
+                    </Button>
+                  )}
+
                   {/* Notification Bell */}
                   <NotificationIcon />
 

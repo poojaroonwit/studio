@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Table as TableIcon, Search, Filter, AlertCircle, ChevronDown, Check, User, Briefcase, Zap } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Search, Filter, AlertCircle, ChevronDown, Check, User, Briefcase, Zap, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PositionGroup } from './PositionGroup';
 import ApplicantDetailModal from '@/components/applicants/ApplicantDetailModal';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -26,6 +28,7 @@ export function CandidatesPageClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Applicant | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Filters
@@ -65,6 +68,11 @@ export function CandidatesPageClient() {
 
   useEffect(() => {
     fetchStages();
+    
+    // Listen for mobile search drawer toggle
+    const handleOpenSearch = () => setIsSearchDrawerOpen(true);
+    window.addEventListener('candidates:toggle-mobile-search', handleOpenSearch);
+    return () => window.removeEventListener('candidates:toggle-mobile-search', handleOpenSearch);
   }, []);
 
   const fetchData = async () => {
@@ -124,16 +132,18 @@ export function CandidatesPageClient() {
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-              <Input 
-                placeholder="Search candidates..." 
-                className="pl-10 h-10 border-zinc-200 bg-white dark:bg-zinc-900 dark:border-zinc-800 focus:ring-primary/20"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            {/* Search - Hidden on Mobile, now in Drawer */}
+            {!isMobile && (
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Input 
+                  placeholder="Search candidates..." 
+                  className="pl-10 h-10 border-zinc-200 bg-white dark:bg-zinc-900 dark:border-zinc-800 focus:ring-primary/20"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            )}
 
             <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200/50 dark:border-zinc-700/50">
               <Button 
@@ -374,6 +384,67 @@ export function CandidatesPageClient() {
           )}
         </div>
       </div>
+
+      {/* Mobile Search Drawer */}
+      <Drawer open={isSearchDrawerOpen} onOpenChange={setIsSearchDrawerOpen}>
+        <DrawerContent className="h-[92vh] flex flex-col">
+          <DrawerHeader className="border-b pb-4 px-4 sticky top-0 bg-background z-10">
+            <div className="flex items-center justify-between gap-4">
+              <DrawerTitle className="text-xl font-black italic uppercase tracking-tight">
+                Search <span className="text-primary NOT-italic">Candidates</span>
+              </DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </DrawerClose>
+            </div>
+            <div className="mt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-12 text-base border-zinc-200 focus:ring-primary/20"
+                  autoFocus
+                />
+              </div>
+            </div>
+          </DrawerHeader>
+          
+          <div className="flex-1 overflow-hidden relative bg-zinc-50/30 dark:bg-zinc-950/20">
+            {loading && (
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+            
+            <ScrollArea className="h-full">
+              <div className="p-4 flex flex-col gap-8">
+                {filteredData.length > 0 ? (
+                  filteredData.map((position) => (
+                    <PositionGroup 
+                      key={position.id} 
+                      position={position} 
+                      viewMode="list"
+                      onCandidateClick={(candidate) => {
+                        handleCandidateClick(candidate);
+                        setIsSearchDrawerOpen(false);
+                      }}
+                    />
+                  ))
+                ) : !loading ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                    <Search className="h-10 w-10 mb-2 opacity-20" />
+                    <p className="text-sm">No results found for "{searchQuery}"</p>
+                  </div>
+                ) : null}
+              </div>
+            </ScrollArea>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Detail Modal */}
       {selectedCandidate && (

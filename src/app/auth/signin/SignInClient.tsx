@@ -15,6 +15,7 @@ import { sanitizeUrl } from '@/lib/utils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileSignInView } from './MobileSignInView';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 import { safeRedirect } from '@/lib/safe-redirect';
 
 interface SignInClientProps {
@@ -625,8 +626,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     } else if (errorParam === "SessionExpired") {
       errorMessage = "Your session has expired. Please sign in again.";
     } else if (errorParam === "Configuration") {
-      // "Configuration" error usually indicates a credentials issue in some NextAuth versions/configs
-      // or a server config issue, but for security/UX we should show a generic login error
       errorMessage = "Invalid email or password. Please try again.";
     } else if (errorParam === "OAuthSignin" || errorParam === "OAuthCallback" || errorParam === "OAuthCreateAccount" || errorParam === "EmailCreateAccount" || errorParam === "Callback" || errorParam === "OAuthAccountNotLinked" || errorParam === "EmailSignin" || errorParam === "SessionRequired") {
       errorMessage = "There was an error signing in with Azure AD. Please try again or contact support.";
@@ -639,58 +638,25 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const loginPageContent = initialSettings?.find(s => s.key === 'loginPageContent')?.value || '';
   const loginPageFooter = initialSettings?.find(s => s.key === 'loginPageFooter')?.value || '';
 
-  // Listen for appConfigChanged and force re-render
-  useEffect(() => {
-    const handleAppConfigChange = () => {
-      // Just force a re-render by updating a dummy state
-      setAppLogoUrl(prev => prev ? prev + '' : prev);
-      setLoginLayoutType(prev => prev ? prev : DEFAULT_LOGIN_LAYOUT_TYPE);
-      setLoginPageLogoSize(prev => prev ? prev : DEFAULT_LOGIN_PAGE_LOGO_SIZE);
-      // Optionally, you can refetch settings or reload the page if needed
-    };
-    window.addEventListener('appConfigChanged', handleAppConfigChange);
-    return () => window.removeEventListener('appConfigChanged', handleAppConfigChange);
-  }, []);
-
   // Determine active colors from settings
   const getActiveColors = () => {
     let activeFontColor = '';
     let activeBgStart = '';
     let activeBgEnd = '';
     if (initialSettings) {
-      // Use primary gradient colors as the source of truth for sidebar active colors
-      const primaryGradient = initialSettings.find(s => s.key === 'primaryGradient')?.value;
-      const primaryGradientStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value;
-      const primaryGradientEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value;
-
-      // Parse gradient to get start/end if full gradient is available
-      let parsedStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-      let parsedEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
-      if (primaryGradient) {
-        const match = primaryGradient.match(/linear-gradient\([^,]+,\s*(.+)\)/);
-        if (match) {
-          const stopsStr = match[1];
-          const colorMatches = Array.from(stopsStr.matchAll(/(#[0-9A-Fa-f]{6})\s+(\d+)%/g));
-          if (colorMatches.length >= 2) {
-            const sorted = colorMatches.sort((a, b) => parseInt(a[2]) - parseInt(b[2]));
-            // Convert first and last hex to HSL (simplified - using defaults if conversion fails)
-            parsedStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-            parsedEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
-          }
-        }
-      }
+      const primaryStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+      const primaryEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
 
       if (isThemeDark) {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextD')?.value || '#fff';
-        activeBgStart = parsedStart;
-        activeBgEnd = parsedEnd;
+        activeBgStart = primaryStart;
+        activeBgEnd = primaryEnd;
       } else {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextL')?.value || '#fff';
-        activeBgStart = parsedStart;
-        activeBgEnd = parsedEnd;
+        activeBgStart = primaryStart;
+        activeBgEnd = primaryEnd;
       }
     } else {
-      // fallback to CSS variables or defaults
       activeFontColor = '#fff';
       activeBgStart = DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
       activeBgEnd = DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
@@ -699,24 +665,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   };
   const { activeFontColor, activeBgStart, activeBgEnd } = getActiveColors();
 
-
   if (status === "loading" || !isClient) {
-    return (
-      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading authentication...</p>
-      </div>
-    );
+    return <SplashScreen persistent />;
   }
 
   if (status === "authenticated") {
-    return (
-      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
-        <p className="text-lg font-medium">Redirecting to dashboard...</p>
-        <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
-        <p className="mt-2 text-sm text-muted-foreground">Please wait while we redirect you</p>
-      </div>
-    );
+    return <SplashScreen persistent />;
   }
 
   // Main Desktop/Tablet View

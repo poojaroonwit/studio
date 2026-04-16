@@ -440,7 +440,12 @@ function EvaluatePageContent() {
     }
   };
 
-  const handleApplicantClick = (applicantId: string) => {
+  const handleApplicantClick = (applicantId: string, isReminder?: boolean) => {
+    if (isReminder) {
+      router.push(`/applicants/${applicantId}`);
+      return;
+    }
+
     const applicant = applicants.find(c => c.id === applicantId);
     if (applicant && applicant.evaluationLink?.url) {
       setQrData({

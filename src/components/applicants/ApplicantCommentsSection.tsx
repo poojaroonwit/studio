@@ -10,7 +10,7 @@ import { TiptapEditor } from '../ui/tiptap-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { PlusIcon, ClockIcon as BellIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BellIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
@@ -113,6 +113,38 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
   const [reminderDate, setReminderDate] = useState<Date | undefined>(new Date());
   const [reminderTime, setReminderTime] = useState('09:00');
   const [creatingReminder, setCreatingReminder] = useState(false);
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [remindersLoading, setRemindersLoading] = useState(false);
+
+  const fetchReminders = useCallback(async () => {
+    try {
+      setRemindersLoading(true);
+      const response = await fetch(`/api/applicants/${applicantId}/reminders`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedReminders = Array.isArray(data.data) ? data.data : [];
+        setReminders(fetchedReminders);
+        
+        // Update counts to include reminders in All and Remark tabs
+        setCounts(prev => ({
+          ...prev,
+          all: prev.comment + prev.remark + prev.activity + fetchedReminders.length,
+          remark: prev.remark + fetchedReminders.length,
+          activity: prev.activity + fetchedReminders.length
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching reminders:', err);
+    } finally {
+      setRemindersLoading(false);
+    }
+  }, [applicantId]);
+
+  useEffect(() => {
+    fetchReminders();
+  }, [fetchReminders]);
 
   const handleCreateReminder = async () => {
     if (!reminderDate || !reminderTitle.trim()) return;
@@ -137,6 +169,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
       toast.success('Reminder created successfully');
       setIsReminderDialogOpen(false);
       setReminderTitle('');
+      fetchReminders();
       onCommentsChange(); // Refresh activity log to show the reminder activity
     } catch (err) {
       console.error('Error creating reminder:', err);
@@ -399,6 +432,16 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
       user: log.user || 'System',
       note: log.note || '',
       time: log.time || ''
+    })),
+    // Add reminders
+    ...(Array.isArray(reminders) ? reminders : []).map(reminder => ({
+      id: `reminder-${reminder.id || 'unknown'}`,
+      type: 'activity' as const,
+      rawType: 'reminder',
+      action: `Reminder: ${reminder.title}`,
+      user: reminder.user?.name || 'System',
+      note: reminder.content || '',
+      time: reminder.reminderDate || ''
     }))
   ].sort((a, b) => {
     const dateA = (a as any).createdAt || (a as any).time;
@@ -413,9 +456,9 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
   // Filter based on Tabs
   const filteredActivities = allCombinedActivities.filter(item => {
     if (activeSubTab === 'all') return true;
-    if (activeSubTab === 'activity') return item.rawType === 'activity';
+    if (activeSubTab === 'activity') return item.rawType === 'activity' || item.rawType === 'reminder';
     if (activeSubTab === 'comment') return item.rawType === 'comment' || !item.rawType;
-    if (activeSubTab === 'remark') return item.rawType === 'remark';
+    if (activeSubTab === 'remark') return item.rawType === 'remark' || item.rawType === 'reminder';
     return true;
   });
 
@@ -723,10 +766,10 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap pb-3 border-b-2 px-1 rounded-none bg-transparent pt-1",
                 activeSubTab === 'all' 
                   ? "border-primary text-foreground" 
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
               )}
             >
               <FileIcon className="h-4 w-4" />
@@ -740,10 +783,10 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('comment');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap pb-3 border-b-2 px-1 rounded-none bg-transparent pt-1",
                 activeSubTab === 'comment' 
                   ? "border-primary text-foreground" 
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
               )}
             >
               <MessageSquare className="h-4 w-4" />
@@ -757,10 +800,10 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('remark');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap pb-3 border-b-2 px-1 rounded-none bg-transparent pt-1",
                 activeSubTab === 'remark' 
                   ? "border-primary text-foreground" 
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
               )}
             >
               <MessageSquare className="h-4 w-4 text-purple-500" />
@@ -774,10 +817,10 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                 setSelectedChannel('activity');
               }}
               className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1 rounded-none bg-transparent",
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap pb-3 border-b-2 px-1 rounded-none bg-transparent pt-1",
                 activeSubTab === 'activity' 
                   ? "border-primary text-foreground" 
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
               )}
             >
               <Activity className="h-4 w-4" />
@@ -801,6 +844,10 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                   {(item.rawType === 'remark') ? (
                     <div className="px-1.5 py-0.5 bg-purple-500/10 dark:bg-purple-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
                         <MessageSquare className="w-3 h-3 text-purple-600 dark:text-purple-300" />
+                    </div>
+                  ) : item.rawType === 'reminder' ? (
+                    <div className="px-1.5 py-0.5 bg-amber-500/10 dark:bg-amber-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                        <BellIcon className="w-3 h-3 text-amber-600 dark:text-amber-300" />
                     </div>
                   ) : item.type === 'comment' ? (
                     <div className="px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
@@ -826,6 +873,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
                         </span>
                         {item.rawType === 'remark' && <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">Remark to HM</span>}
                          {item.rawType === 'activity' && <span className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">Activity Log</span>}
+                         {item.rawType === 'reminder' && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">Reminder</span>}
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs text-muted-foreground">
                           {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}

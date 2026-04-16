@@ -807,13 +807,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         <div className={`flex w-full items-center justify-center px-4 py-6 md:w-[46%] md:min-w-[420px] md:px-6 lg:px-8 ${loginLayoutType === '2column' ? 'md:justify-end' : 'md:justify-center'}`}>
           <div className="w-full max-w-[580px]">
             {/* Mobile Header (Hidden on Desktop) */}
-        <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
-           <div>
-            <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
-             <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
-               {currentAppName}
-             </h1>
-           </div>
+        <div className="block md:hidden py-6 flex items-center justify-start gap-4 px-6 sm:px-10 flex-shrink-0 w-full mb-4">
+
+
+
+
+
+
            {isClient && (() => {
              // Mobile Logo Logic
             let logoToUse = appLogoUrl;
@@ -841,6 +841,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </div>
             );
            })()}
+           <div>
+            <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
+             <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+               {currentAppName}
+             </h1>
+           </div>
+
         </div>
 
         {/* Login Card Panel - Single Unified Card */}

@@ -31,6 +31,7 @@ export interface SidebarNavItem {
   badge?: string;
   description?: string;
   section?: string;
+  permissionId?: string;
 }
 
 export interface SidebarNavGroup {
@@ -75,7 +76,8 @@ export const sidebarConfigData = [
         label: "Dashboard",
         icon: "LayoutDashboard",
         href: "/dashboard",
-        description: "Overview and analytics"
+        description: "Overview and analytics",
+        permissionId: "DASHBOARD_VIEW"
       },
     ],
   },
@@ -87,43 +89,49 @@ export const sidebarConfigData = [
         label: "My Task Board",
         icon: "ListTodo",
         href: "/my-tasks",
-        description: "Personal task management"
+        description: "Personal task management",
+        permissionId: "TASK_BOARD_VIEW"
       },
       {
         label: "Applicants",
         icon: "Users",
         href: "/applicants",
-        description: "Manage Applicant profiles"
+        description: "Manage Applicant profiles",
+        permissionId: "applicantS_VIEW"
       },
       {
         label: "Positions",
         icon: "Briefcase",
         href: "/positions",
-        description: "Job positions and openings"
+        description: "Job positions and openings",
+        permissionId: "POSITIONS_VIEW"
       },
       {
         label: "Process Queue",
         icon: "UploadCloud",
         href: "/process-queue",
-        description: "Review and manage uploaded files"
+        description: "Review and manage uploaded files",
+        permissionId: "UPLOAD_QUEUE_VIEW"
       },
     ],
   },
   {
-    label: "Shortlist & Calendar",
+    label: "Shortlist & Interview Calendar",
     icon: "ClipboardCheck",
     items: [
       {
-        label: "Candidate",
+        label: "Candidates",
         icon: "Users",
-        href: "/applicants?status=Hiring Manager Associate",
-        description: "Candidates in Hiring Manager Associate stage"
+        href: "/candidates",
+        description: "Focus view for hiring managers and interviewers",
+        permissionId: "applicantS_VIEW"
       },
       {
-        label: "Calendar",
+        label: "Interview Calendar",
         icon: "Calendar",
         href: "/calendar",
-        description: "Applicant evaluation portal"
+        description: "Applicant evaluation portal",
+        permissionId: "EVALUATION_LINKS_VIEW"
       },
     ],
   },
@@ -136,42 +144,48 @@ export const sidebarConfigData = [
         icon: "Database",
         href: "/settings/system-settings",
         description: "System-wide configuration and integrations",
-        section: "Platform"
+        section: "Platform",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
         label: "Branding & Theme",
         icon: "Palette",
         href: "/settings/system-preferences",
         description: "Global branding, theme, and logo settings",
-        section: "Platform"
+        section: "Platform",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
         label: "Prompts & Categories",
         icon: "BrainCircuit",
         href: "/settings/system-prompts",
         description: "Manage AI system prompts and categories",
-        section: "Configuration"
+        section: "Configuration",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
         label: "Data Configuration",
         icon: "Database",
         href: "/settings/data-configuration",
         description: "Manage stages, sources, and positions",
-        section: "Configuration"
+        section: "Configuration",
+        permissionId: "RECRUITMENT_STAGES_VIEW"
       },
       {
         label: "User Management",
         icon: "Users",
         href: "/settings/users",
         description: "Manage users and roles",
-        section: "Workspace"
+        section: "Workspace",
+        permissionId: "USERS_VIEW"
       },
       {
         label: "Webhook Management",
         icon: "Webhook",
         href: "/settings/webhooks",
         description: "Create and manage outgoing webhooks",
-        section: "Workspace"
+        section: "Workspace",
+        permissionId: "WEBHOOKS_VIEW"
       },
       {
         label: "API Documentation",
@@ -185,14 +199,16 @@ export const sidebarConfigData = [
         icon: "ListOrdered",
         href: "/settings/logs",
         description: "View system and audit logs",
-        section: "Developer"
+        section: "Developer",
+        permissionId: "LOGS_VIEW"
       },
       {
         label: "Meeting Room",
         icon: "Calendar",
         href: "/settings/rooms",
         description: "Manage integrated meeting rooms",
-        section: "Workspace"
+        section: "Workspace",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
       },
     ],
   },

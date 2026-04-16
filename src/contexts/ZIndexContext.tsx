@@ -38,57 +38,43 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
   const nextZIndexRef = useRef(INITIAL_Z_INDEX);
 
   const registerComponent = useCallback((id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') => {
-    const timestamp = Date.now();
-    
     setComponents(prev => {
-      // Remove existing component with same id if it exists
+      // Check if component already exists with same properties to avoid unnecessary updates
+      const existing = prev.find(comp => comp.id === id);
+      if (existing && existing.type === type) {
+        return prev;
+      }
+      
+      const timestamp = Date.now();
       const filtered = prev.filter(comp => comp.id !== id);
       
-      // New approach: Handle complex stacking scenarios
-      // 1. Toasts (overlay) ALWAYS go on top - they have absolute priority
-      // 2. All other components follow a "most recent on top" approach
-      // 3. This handles scenarios like: overlay -> drawer -> overlay -> modal -> toast
-      
       let zIndex: number;
-      
       if (type === 'overlay') {
-        // Toasts have absolute priority - they ALWAYS go on top
-        // This ensures users always see important notifications regardless of the stack
         if (filtered.length > 0) {
           const highestExisting = Math.max(...filtered.map(comp => comp.zIndex));
-          // Toasts get a significant boost to ensure they're always visible
           zIndex = calculateZIndex(highestExisting, 3);
         } else {
-          // If no other components exist, use a high starting point for toasts
           zIndex = calculateZIndex(INITIAL_Z_INDEX, 5);
         }
       } else {
-        // For non-toast components, use a "most recent on top" approach
-        // This handles complex nesting scenarios naturally
         if (filtered.length > 0) {
           const highestExisting = Math.max(...filtered.map(comp => comp.zIndex));
-          // Each new component goes on top of the previous highest
           zIndex = calculateZIndex(highestExisting, 1);
         } else {
-          // First component starts at the initial z-index
           zIndex = INITIAL_Z_INDEX;
         }
       }
       
-      // Ensure z-index is never below the initial value
       zIndex = Math.max(zIndex, INITIAL_Z_INDEX);
       
       const newComponent = { id, type, zIndex, timestamp };
-      const updatedComponents = [...filtered, newComponent];
-      
-      // Update nextZIndexRef to be higher than the highest component
-      const maxZIndex = Math.max(...updatedComponents.map(comp => comp.zIndex));
-      nextZIndexRef.current = maxZIndex + Z_INDEX_INCREMENT;
-      
-      return updatedComponents;
+      return [...filtered, newComponent];
     });
     
-    return nextZIndexRef.current - Z_INDEX_INCREMENT;
+    // We can't return the exact z-index synchronously here because it's calculated in the next state update.
+    // However, getDynamicZIndex hook will update the component value via useMemo when the state changes.
+    // For synchronous return (if needed), we might need a more complex approach but current hooks use state updates.
+    return INITIAL_Z_INDEX; 
   }, []);
 
   const unregisterComponent = useCallback((id: string) => {

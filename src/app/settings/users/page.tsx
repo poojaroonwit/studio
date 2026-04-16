@@ -46,8 +46,6 @@ import { hasPermission } from '@/lib/permissions';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 
-// Role options will be fetched dynamically from user-groups API
-
 // Error boundary component for tab content
 class TabErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
@@ -73,7 +71,6 @@ class TabErrorBoundary extends React.Component<
           <ServerCrash className="w-16 h-16 text-destructive mb-4" />
           <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
           <p className="text-muted-foreground mb-4">There was an error loading this tab content.</p>
-          null
         </div>
       );
     }
@@ -93,7 +90,6 @@ function SafeTeamsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h3 className="text-lg font-semibold mb-2">Error Loading Teams</h3>
         <p className="text-muted-foreground mb-4">Failed to load teams component</p>
-        {null}
       </div>
     );
   }
@@ -109,7 +105,6 @@ function SafeGroupsTab() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h3 className="text-lg font-semibold mb-2">Error Loading Roles</h3>
         <p className="text-muted-foreground mb-4">Failed to load groups component</p>
-        {null}
       </div>
     );
   }
@@ -123,7 +118,7 @@ export default function ManageUsersPage() {
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/users';
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('users');
-  const [avatarRefreshKey, setAvatarRefreshKey] = useState(0); // Add refresh key for avatars
+  const [avatarRefreshKey, setAvatarRefreshKey] = useState(0);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -138,14 +133,12 @@ export default function ManageUsersPage() {
   const [teams, setTeams] = useState<UserTeam[]>([]);
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
 
-
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [isActivityLogsDrawerOpen, setIsActivityLogsDrawerOpen] = useState(false);
   const [userForActivityLogs, setUserForActivityLogs] = useState<UserProfile | null>(null);
-
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Bulk selection state
@@ -154,7 +147,6 @@ export default function ManageUsersPage() {
   const [selectionMode, setSelectionMode] = useState<'none' | 'page' | 'allFiltered' | 'all'>('none');
   const [isLoadingSelection, setIsLoadingSelection] = useState(false);
 
-  // Handlers for selection
   const handleSelectAllOnPage = (checked: boolean) => {
     if (checked) {
       const allOnPage = new Set(selectedUserIds);
@@ -169,7 +161,6 @@ export default function ManageUsersPage() {
     }
   };
 
-  // Select all users matching current filter across ALL pages
   const handleSelectAllFiltered = async () => {
     setIsLoadingSelection(true);
     try {
@@ -194,7 +185,6 @@ export default function ManageUsersPage() {
     }
   };
 
-  // Select ALL users (ignoring filters)
   const handleSelectAllUsers = async () => {
     setIsLoadingSelection(true);
     try {
@@ -230,17 +220,11 @@ export default function ManageUsersPage() {
 
   const isAllSelectedOnPage = users.length > 0 && users.every(u => selectedUserIds.has(u.id));
   const isSomeSelectedOnPage = users.some(u => selectedUserIds.has(u.id)) && !isAllSelectedOnPage;
-  const hasActiveFilter = nameFilter || emailFilter || (roleFilter && roleFilter !== "ALL_ROLES") || (teamFilter && teamFilter !== "ALL_TEAMS");
-
 
   const handleBulkAction = async (action: 'delete' | 'activate' | 'deactivate' | 'changeRole', data?: any) => {
     if (selectedUserIds.size === 0) return;
-
-    // Confirmation for delete
     if (action === 'delete') {
-      if (!confirm(`Are you sure you want to delete ${selectedUserIds.size} users? This cannot be undone.`)) {
-        return;
-      }
+      if (!confirm(`Are you sure you want to delete ${selectedUserIds.size} users? This cannot be undone.`)) return;
     }
 
     setIsProcessingBulk(true);
@@ -248,20 +232,14 @@ export default function ManageUsersPage() {
       const response = await fetch('/api/users/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userIds: Array.from(selectedUserIds),
-          action,
-          data
-        }),
+        body: JSON.stringify({ userIds: Array.from(selectedUserIds), action, data }),
       });
 
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'Bulk action failed');
-      }
+      if (!response.ok) throw new Error(result.message || 'Bulk action failed');
 
       toast.success(result.message);
-      setSelectedUserIds(new Set()); // Clear selection
+      setSelectedUserIds(new Set());
       fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
     } catch (error) {
       toast.error((error as Error).message);
@@ -270,9 +248,7 @@ export default function ManageUsersPage() {
     }
   };
 
-
-
-  const fetchUsers = useCallback(async (currentFilters: { name?: string, email?: string, role?: UserProfile['role'] | "ALL_ROLES", teamId?: string | "ALL_TEAMS" } = {}, currentPageParam?: number, currentPageSize?: number) => {
+  const fetchUsers = useCallback(async (currentFilters: any = {}, currentPageParam?: number, currentPageSize?: number) => {
     if (sessionStatus !== 'authenticated') return;
     setIsLoading(true);
     setFetchError(null);
@@ -291,39 +267,28 @@ export default function ManageUsersPage() {
     try {
       const response = await fetch(`/api/users?${queryParams.toString()}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: response.statusText || `Status: ${response.status}` }));
         if (response.status === 401 || response.status === 403) {
           signIn(undefined, { callbackUrl: currentPath });
           return;
         }
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
         setFetchError(errorData.message || 'Failed to fetch users');
         setUsers([]);
         return;
       }
       const data = await response.json();
-
-      // Handle both old array format and new paginated format
       if (Array.isArray(data)) {
         setUsers(data);
         setTotalPages(1);
         setTotalCount(data.length);
-        setCurrentPage(1);
-        setPageSize(data.length);
       } else {
         setUsers(data.users || []);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalCount(data.pagination?.totalCount || 0);
-        setCurrentPage(data.pagination?.currentPage || 1);
-        setPageSize(data.pagination?.pageSize || 10);
       }
-
-      // Force avatar refresh when user list is updated
       setAvatarRefreshKey(prev => prev + 1);
     } catch (error) {
-      const errorMessage = (error as Error).message || "An unexpected error occurred.";
-      if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
-        setFetchError(errorMessage);
-      }
+      setFetchError((error as Error).message);
       setUsers([]);
     } finally {
       setIsLoading(false);
@@ -334,46 +299,35 @@ export default function ManageUsersPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: currentPath });
     } else if (sessionStatus === 'authenticated') {
-      // Check permission instead of role
       if (!hasPermission(session.user, 'USERS_VIEW')) {
-        setFetchError("You do not have permission to manage users.");
+        router.push('/unauthorized');
         setIsLoading(false);
       } else {
         fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionStatus, session, currentPath]);
 
   useEffect(() => {
-    if (fetchError) {
-      toast.error(fetchError);
-    }
+    if (fetchError) toast.error(fetchError);
   }, [fetchError]);
 
   const handleApplyFilters = () => {
-    setCurrentPage(1); // Reset to first page when applying filters
+    setCurrentPage(1);
     fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, 1, pageSize);
   };
 
-  // Fetch teams and roles for filters
   useEffect(() => {
     const loadFilters = async () => {
       if (sessionStatus !== 'authenticated') return;
       try {
-        // Load teams
         const teamsResponse = await fetch('/api/settings/user-teams');
-        if (teamsResponse.ok) {
-          const teamsData = await teamsResponse.json();
-          setTeams(Array.isArray(teamsData) ? teamsData : []);
-        }
+        if (teamsResponse.ok) setTeams(await teamsResponse.json());
 
-        // Load roles from user-groups
         const rolesResponse = await fetch('/api/settings/user-groups');
         if (rolesResponse.ok) {
           const rolesData = await rolesResponse.json();
-          const rolesList = Array.isArray(rolesData) ? rolesData : [];
-          setRoles(rolesList.map((r: any) => ({ id: r.id, name: r.name })));
+          setRoles(rolesData.map((r: any) => ({ id: r.id, name: r.name })));
         }
       } catch (e) {
         console.error('Error loading filter options:', e);
@@ -382,7 +336,6 @@ export default function ManageUsersPage() {
     loadFilters();
   }, [sessionStatus]);
 
-
   const handleAddUser = async (data: UnifiedUserFormValues) => {
     try {
       const response = await fetch('/api/users', {
@@ -390,16 +343,9 @@ export default function ManageUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      const result = await response.json();
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        }
-        throw new Error(result.message || 'Failed to add user');
-      }
+      if (!response.ok) throw new Error('Failed to add user');
       fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
-      toast.success(`User ${result.name} added successfully.`);
+      toast.success(`User added successfully.`);
       handleModalClose();
     } catch (error) {
       toast.error((error as Error).message);
@@ -413,37 +359,13 @@ export default function ManageUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Failed to update user');
       const result = await response.json();
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        }
-        throw new Error(result.message || 'Failed to update user');
-      }
-      // Update local users state to refresh related components without reloading the page
-      const matchesCurrentFilters = (u: UserProfile) => {
-        const nameOk = !nameFilter || (u.name || '').toLowerCase().includes(nameFilter.toLowerCase());
-        const emailOk = !emailFilter || (u.email || '').toLowerCase().includes(emailFilter.toLowerCase());
-        const roleOk = roleFilter === 'ALL_ROLES' || u.role === roleFilter;
-        const teamOk = teamFilter === 'ALL_TEAMS' || ((u.teams || []).some((t: any) => t.id === teamFilter));
-        return nameOk && emailOk && roleOk && teamOk;
-      };
-      setUsers(prev => {
-        const updated = prev.map(u => u.id === result.id ? { ...u, ...result } : u);
-        return matchesCurrentFilters(result) ? updated : updated.filter(u => u.id !== result.id);
-      });
-      // Force avatar refresh after user update
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...result } : u));
       setAvatarRefreshKey(prev => prev + 1);
-      toast.success(`User ${result.name} updated successfully.`);
+      toast.success(`User updated successfully.`);
       handleModalClose();
-
-      // If the current user is editing their own permissions, refresh the session
-      if (session?.user?.id === userId) {
-        // Force a session refresh to update permissions
-        await updateSession();
-        toast.success("Your session has been refreshed with the new permissions.");
-      }
+      if (session?.user?.id === userId) await updateSession();
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -458,28 +380,15 @@ export default function ManageUsersPage() {
   const handleModalClose = () => {
     setIsUserModalOpen(false);
     setSelectedUser(null);
-    // Force refresh of avatars when modal is closed
-    setAvatarRefreshKey(prev => prev + 1);
-  };
-
-  const confirmDeleteUser = (user: UserProfile) => {
-    setUserToDelete(user);
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     try {
       const response = await fetch(`/api/users/${userToDelete.id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to delete user." }));
-        if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        }
-        throw new Error(errorData.message || 'Failed to delete user');
-      }
+      if (!response.ok) throw new Error('Failed to delete user');
       fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter }, currentPage, pageSize);
-      toast.success(`User ${userToDelete.name} deleted.`);
+      toast.success(`User deleted.`);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -495,108 +404,23 @@ export default function ManageUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: newStatus }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to update user status' }));
-        if (response.status === 401 || response.status === 403) {
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        }
-        throw new Error(errorData.message || 'Failed to update user status');
-      }
-
-      // Update local state
-      setUsers(prev => prev.map(u =>
-        u.id === user.id ? { ...u, isActive: newStatus } : u
-      ));
-
-      toast.success(`User ${user.name} ${newStatus ? 'enabled' : 'disabled'} successfully.`);
+      if (!response.ok) throw new Error('Failed to update status');
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: newStatus } : u));
+      toast.success(`User ${newStatus ? 'enabled' : 'disabled'} successfully.`);
     } catch (error) {
       toast.error((error as Error).message);
     }
   };
 
-  const handleViewActivityLogs = (user: UserProfile) => {
-    setUserForActivityLogs(user);
-    setIsActivityLogsDrawerOpen(true);
-  };
-
   const handleSyncFromAD = async () => {
-    if (!hasPermission(session?.user, 'USERS_CREATE')) {
-      toast.error('You do not have permission to sync users from Azure AD.');
-      return;
-    }
-
     setIsSyncing(true);
-    const toastId = toast.loading('Initializing Azure AD sync...');
-
+    const toastId = toast.loading('Syncing with Azure AD...');
     try {
-      const response = await fetch('/api/users/sync-ad', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          toast.dismiss(toastId);
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        }
-        const errorResult = await response.json();
-        throw new Error(errorResult.message || 'Failed to start sync');
-      }
-
-      if (!response.body) {
-        throw new Error('No response body received');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-
-        // Process all complete lines
-        buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-
-          try {
-            const data = JSON.parse(line);
-
-            if (data.type === 'progress') {
-              toast.loading(data.message, { id: toastId });
-            } else if (data.type === 'result') {
-              if (data.success) {
-                const message = data.results
-                  ? `Sync completed: ${data.results.created} created, ${data.results.updated} updated${data.results.errors.length > 0 ? `, ${data.results.errors.length} errors` : ''}`
-                  : data.message || 'Sync completed successfully';
-
-                toast.success(message, { id: toastId });
-
-                // Refresh users list
-                fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
-              } else {
-                toast.error(data.message || 'Sync failed', { id: toastId });
-              }
-            }
-          } catch (e) {
-            console.warn('Error parsing sync update:', e);
-          }
-        }
-      }
-
+      const response = await fetch('/api/users/sync-ad', { method: 'POST' });
+      if (!response.ok) throw new Error('Sync failed');
+      toast.success('Sync completed successfully', { id: toastId });
+      fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
     } catch (error) {
-      console.error('Sync error:', error);
       toast.error((error as Error).message, { id: toastId });
     } finally {
       setIsSyncing(false);
@@ -606,23 +430,14 @@ export default function ManageUsersPage() {
   const formatLastLogin = (lastLogin: string | null | undefined) => {
     if (!lastLogin) return 'Never';
     try {
-      const date = new Date(lastLogin);
-      const now = new Date();
-      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-      if (diffInSeconds < 60) return 'Just now';
-      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
       return format(parseISO(lastLogin), 'MMM dd, yyyy');
     } catch {
       return 'Invalid date';
     }
   };
 
-  const isManager = session?.user?.role === 'Hiring Manager' || hasPermission(session?.user, 'USERS_VIEW');
+  const isManager = hasPermission(session?.user, 'USERS_VIEW');
 
-  // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, page, pageSize);
@@ -630,27 +445,14 @@ export default function ManageUsersPage() {
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
     fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, 1, newPageSize);
   };
 
-  if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && !currentPath.startsWith('/auth/signin')) || (isLoading && !fetchError && users.length === 0)) {
+  if (sessionStatus === 'loading' || (isLoading && users.length === 0)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (fetchError && !isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-4">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Users</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {fetchError === "You do not have permission to view this page." ? (
-          <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
-        ) : null}
       </div>
     );
   }
@@ -661,35 +463,19 @@ export default function ManageUsersPage() {
       <div className="p-4 pb-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => router.push('/settings')}
-              className="h-9 w-9 rounded-full hover:bg-muted"
-            >
+            <Button variant="ghost" size="icon" onClick={() => router.push('/settings')} className="h-9 w-9 rounded-full">
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
               <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
-              <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
+              <p className="text-muted-foreground">Manage users, roles, and teams</p>
             </div>
           </div>
           {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleSyncFromAD}
-                disabled={isSyncing}
-              >
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" /> Sync from Azure AD
-                  </>
-                )}
+              <Button variant="outline" onClick={handleSyncFromAD} disabled={isSyncing}>
+                <RefreshCw className={cn("mr-2 h-4 w-4", isSyncing && "animate-spin")} />
+                Sync from Azure AD
               </Button>
               <Button variant="default" onClick={() => openUserModal('create')}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New User
@@ -701,401 +487,173 @@ export default function ManageUsersPage() {
 
       {/* Tabs */}
       <div className="px-6">
-        <div className="flex w-full border-b border-border/50 mb-4 gap-6">
+        <div className="flex w-full border-b-2 border-zinc-200 dark:border-zinc-800 mb-4 gap-6">
           <div
             onClick={() => setActiveTab('users')}
             className={cn(
-              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2 -mb-[2px]",
               activeTab === 'users'
-                ? "text-primary border-primary"
+                ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
-            <UsersRound className="h-4 w-4" />
-            Users
+            <UsersRound className="h-4 w-4" /> Users
           </div>
           <div
             onClick={() => setActiveTab('teams')}
             className={cn(
-              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2 -mb-[2px]",
               activeTab === 'teams'
-                ? "text-primary border-primary"
+                ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
-            <Users className="h-4 w-4" />
-            User Teams
+            <Users className="h-4 w-4" /> User Teams
           </div>
           <div
             onClick={() => setActiveTab('groups')}
             className={cn(
-              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
+              "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2 -mb-[2px]",
               activeTab === 'groups'
-                ? "text-primary border-primary"
+                ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
           >
-            <ShieldCheck className="h-4 w-4" />
-            Roles & Permissions
+            <ShieldCheck className="h-4 w-4" /> Roles & Permissions
           </div>
         </div>
       </div>
 
-      {/* Content with ScrollArea */}
-      <ScrollArea className="flex-1 px-6 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
+      {/* Content */}
+      <ScrollArea className="flex-1 px-6">
         <div className="space-y-4">
-          {/* Users Tab */}
           {activeTab === 'users' && (
             <>
-              {/* Filters Section */}
-              <div className="mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                  <div className="space-y-1">
-                    <Label htmlFor="name-filter">Name</Label>
-                    <Input id="name-filter" placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} disabled={isLoading} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="email-filter">Email</Label>
-                    <Input id="email-filter" placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} disabled={isLoading} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="role-filter">Role</Label>
-                    <Select value={roleFilter || ''} onValueChange={(value) => setRoleFilter(value as UserProfile['role'] | "ALL_ROLES")} disabled={isLoading}>
-                      <SelectTrigger id="role-filter"><SelectValue placeholder="Select role..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL_ROLES">All Roles</SelectItem>
-                        {roles.map(role => (
-                          <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="team-filter">Team</Label>
-                    <Select value={teamFilter || ''} onValueChange={(value) => setTeamFilter(value as string | "ALL_TEAMS")} disabled={isLoading}>
-                      <SelectTrigger id="team-filter"><SelectValue placeholder="Select team..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL_TEAMS">All Teams</SelectItem>
-                        {teams.map(team => (
-                          <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto"><Search className="mr-2 h-4 w-4" />Apply</Button>
-                  </div>
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end mb-4">
+                <div className="space-y-1">
+                  <Label>Name</Label>
+                  <Input placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} />
                 </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Role</Label>
+                  <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+                    <SelectTrigger><SelectValue placeholder="Select role..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL_ROLES">All Roles</SelectItem>
+                      {roles.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Team</Label>
+                  <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v)}>
+                    <SelectTrigger><SelectValue placeholder="Select team..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL_TEAMS">All Teams</SelectItem>
+                      {teams.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleApplyFilters}><Search className="mr-2 h-4 w-4" /> Apply</Button>
               </div>
 
-              {/* Bulk Action Bar */}
-              {selectedUserIds.size > 0 && (
-                <div className="mb-4 p-3 bg-muted/50 border rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-2" disabled={isLoadingSelection}>
-                          {isLoadingSelection ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Checkbox
-                              checked={isAllSelectedOnPage}
-                              className="pointer-events-none"
-                            />
-                          )}
-                          <span className="text-sm font-medium">
-                            {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
-                            {selectionMode === 'allFiltered' && ' (filtered)'}
-                            {selectionMode === 'all' && ' (all)'}
-                          </span>
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-[280px]">
-                        <DropdownMenuItem onClick={() => handleSelectAllOnPage(true)}>
-                          <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'page' ? "text-primary" : "text-muted-foreground")} />
-                          Select all on this page ({users.length})
-                        </DropdownMenuItem>
-                        {hasActiveFilter && (
-                          <DropdownMenuItem onClick={handleSelectAllFiltered} disabled={isLoadingSelection}>
-                            <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'allFiltered' ? "text-primary" : "text-muted-foreground")} />
-                            Select all matching filter ({totalCount})
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={handleSelectAllUsers} disabled={isLoadingSelection}>
-                          <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'all' ? "text-primary" : "text-muted-foreground")} />
-                          Select all users
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={clearSelection}>
-                          <XCircle className="h-4 w-4 mr-2 text-muted-foreground" />
-                          Clear selection
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="flex gap-2">
-                    {hasPermission(session?.user, 'USERS_EDIT') && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleBulkAction('activate')}
-                          disabled={isProcessingBulk}
-                        >
-                          {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                          Activate
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleBulkAction('deactivate')}
-                          disabled={isProcessingBulk}
-                        >
-                          {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                          Deactivate
-                        </Button>
-                      </>
-                    )}
-                    {hasPermission(session?.user, 'USERS_DELETE') && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleBulkAction('delete')}
-                        disabled={isProcessingBulk}
-                      >
-                        {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {isLoading && users.length === 0 && !fetchError ? (
-                <div className="text-center py-10">
-                  <UsersRound className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
-                  <p className="mt-4 text-muted-foreground">Loading users...</p>
-                </div>
-              ) : users.length === 0 && !fetchError ? (
+              {/* Table */}
+              {users.length === 0 ? (
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                  {(hasPermission(session?.user, 'USERS_CREATE')) && (
-                    <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add First User
-                    </Button>
-                  )}
+                  <p className="mt-4 text-muted-foreground">No users found.</p>
                 </div>
               ) : (
-                <>
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[40px] px-2">
-                            <Checkbox
-                              checked={isAllSelectedOnPage}
-                              onCheckedChange={handleSelectAllOnPage}
-                              aria-label="Select all on page"
-                            />
-                          </TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead className="hidden sm:table-cell">Email</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead className="hidden md:table-cell">Teams</TableHead>
-                          {isManager && <TableHead className="hidden lg:table-cell">Last Login</TableHead>}
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px] px-2">
+                          <Checkbox checked={isAllSelectedOnPage} onCheckedChange={handleSelectAllOnPage} />
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Teams</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="px-2">
+                            <Checkbox checked={selectedUserIds.has(user.id)} onCheckedChange={(c) => handleSelectUser(user.id, c as boolean)} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <UserAvatarCompact user={user} size="md" />
+                              <span className="font-medium">{user.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell><Badge variant="secondary">{(user as any).userGroupName || user.role}</Badge></TableCell>
+                          <TableCell>
+                            {user.teams?.map(t => <Badge key={t.id} variant="outline" className="mr-1">{t.name}</Badge>)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.isActive !== false ? "default" : "destructive"}>
+                              {user.isActive !== false ? "Active" : "Disabled"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openUserModal('edit', user)}><Edit3 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}><ShieldAlert className="mr-2 h-4 w-4" /> Toggle Status</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => confirmDeleteUser(user)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow key={user.id} data-state={selectedUserIds.has(user.id) ? "selected" : undefined}>
-                            <TableCell className="px-2">
-                              <Checkbox
-                                checked={selectedUserIds.has(user.id)}
-                                onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <UserAvatarCompact
-                                  user={user}
-                                  size="md"
-                                  forceRefresh={avatarRefreshKey > 0} // Pass refresh key
-                                />
-                                <span className="font-medium">{user.name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                            <TableCell>
-                              {(() => {
-                                const displayRole = (user as any).userGroupName || user.role;
-                                const isAdminBadge = displayRole === 'Admin';
-                                return (
-                                  <Badge variant={isAdminBadge ? "default" : "secondary"} className={isAdminBadge ? 'bg-primary hover:bg-primary/90' : ''}>
-                                    {displayRole}
-                                  </Badge>
-                                );
-                              })()}
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell">
-                              {user.teams && user.teams.length > 0
-                                ? user.teams.map(t => <Badge key={t.id} variant="outline" className="mr-1 mb-1">{t.name}</Badge>)
-                                : <span className="text-xs text-muted-foreground">No teams</span>
-                              }
-                            </TableCell>
-                            {isManager && (
-                              <TableCell className="hidden lg:table-cell">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{formatLastLogin((user as any).lastLogin)}</span>
-                                </div>
-                              </TableCell>
-                            )}
-                            <TableCell>
-                              <Badge variant={user.isActive !== false ? "default" : "destructive"}>
-                                {user.isActive !== false ? "Active" : "Disabled"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {(hasPermission(session?.user, 'USERS_EDIT') || hasPermission(session?.user, 'WARNING_CONFIGURATIONS_MANAGE')) && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
-                                      <Edit3 className="mr-2 h-4 w-4" />
-                                      Edit User
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleViewActivityLogs(user)}>
-                                      <ListOrdered className="mr-2 h-4 w-4" />
-                                      View Activity Logs
-                                    </DropdownMenuItem>
-
-                                    {hasPermission(session?.user, 'USERS_EDIT') && (
-                                      <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
-                                        {user.isActive !== false ? (
-                                          <>
-                                            <ShieldAlert className="mr-2 h-4 w-4" />
-                                            Disable User
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ShieldCheck className="mr-2 h-4 w-4" />
-                                            Enable User
-                                          </>
-                                        )}
-                                      </DropdownMenuItem>
-                                    )}
-
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => setUserToDelete(user)}
-                                      className="text-destructive focus:text-destructive"
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete User
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      pageSize={pageSize}
-                      total={totalCount}
-                      onPageChange={handlePageChange}
-                      onPageSizeChange={handlePageSizeChange}
-                      pageSizeOptions={[5, 10, 20, 50]}
-                      showPageSizeSelector={true}
-                      className="mt-6"
-                    />
-                  )}
-                </>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </>
           )}
 
-          {/* User Teams Tab */}
-          {activeTab === 'teams' && (
-            <TabErrorBoundary>
-              <SafeTeamsTab />
-            </TabErrorBoundary>
-          )}
-
-          {/* Roles & Permissions Tab */}
-          {activeTab === 'groups' && (
-            <TabErrorBoundary>
-              <SafeGroupsTab />
-            </TabErrorBoundary>
-          )}
+          {activeTab === 'teams' && <SafeTeamsTab />}
+          {activeTab === 'groups' && <SafeGroupsTab />}
         </div>
       </ScrollArea>
 
-      {/* Modals */}
       <UnifiedUserModal
         isOpen={isUserModalOpen}
-        onOpenChange={(isOpen: boolean) => {
-          if (!isOpen) {
-            // Handle modal close (e.g., clicking outside, pressing escape)
-            handleModalClose();
-          } else {
-            setIsUserModalOpen(isOpen);
-          }
-        }}
+        onOpenChange={setIsUserModalOpen}
         mode={modalMode}
         user={selectedUser}
-        onSave={selectedUser ? (data: UnifiedUserFormValues) => handleEditUser(selectedUser.id, data) : handleAddUser}
+        onSave={selectedUser ? (data) => handleEditUser(selectedUser.id, data) : handleAddUser}
         onEditUser={handleEditUser}
         onAddUser={handleAddUser}
       />
 
-
-
       {userToDelete && (
-        <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if (!open) setUserToDelete(null); }}>
+        <AlertDialog open={!!userToDelete} onOpenChange={(o) => !o && setUserToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the user <strong>{userToDelete.name}</strong>.
-              </AlertDialogDescription>
+              <AlertDialogTitle>Delete User</AlertDialogTitle>
+              <AlertDialogDescription>Are you sure you want to delete {userToDelete.name}?</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteUser} className={buttonVariants({ variant: "destructive" })}>
-                Delete User
-              </AlertDialogAction>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} className={buttonVariants({ variant: "destructive" })}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       )}
-
-      {/* User Activity Logs Drawer */}
-      <UserActivityLogsDrawer
-        isOpen={isActivityLogsDrawerOpen}
-        onClose={() => {
-          setIsActivityLogsDrawerOpen(false);
-          setUserForActivityLogs(null);
-        }}
-        user={userForActivityLogs}
-      />
     </div>
   );
 }
-

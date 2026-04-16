@@ -1,9 +1,21 @@
-// src/app/positions/page.tsx (Server Component)
 import { Suspense } from 'react';
 import PositionsPageClient from '@/components/positions/PositionsPageClient';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { hasPermission } from '@/lib/permissions';
 
 export default async function PositionsPageServer() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect('/auth/signin');
+  }
+
+  if (!hasPermission(session.user, 'POSITIONS_VIEW')) {
+    redirect('/unauthorized');
+  }
+
   return (
     <ErrorBoundary>
       <Suspense fallback={

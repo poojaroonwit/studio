@@ -41,7 +41,7 @@ export function ApplicantAvatar({
   forceRefresh = false
 }: ApplicantAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(() => !!(user.avatarUrl || user.image));
+  const [isLoading, setIsLoading] = useState(() => !!(user?.avatarUrl || user?.image));
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Refs to track previous values and prevent unnecessary reloads
@@ -51,9 +51,9 @@ export function ApplicantAvatar({
   const lastImageRef = useRef<string | null | undefined>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const userId = user.id;
-  const avatarUrl = user.avatarUrl;
-  const image = user.image;
+  const userId = user?.id;
+  const avatarUrl = user?.avatarUrl;
+  const image = user?.image;
 
   // Handle avatar loading with caching and optimization to prevent unnecessary reloads
   useEffect(() => {
@@ -162,11 +162,11 @@ export function ApplicantAvatar({
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
-  const initials = getInitials(user.name);
-  const tooltipText = showTooltip ? `${user.name}${user.email ? ` (${user.email})` : ''}` : undefined;
+  const initials = getInitials(user?.name);
+  const tooltipText = showTooltip ? `${user?.name}${user?.email ? ` (${user.email})` : ''}` : undefined;
 
   // Use personal color for styling if available
-  const personalColor = user.personalColor || '#3b82f6'; // Default blue
+  const personalColor = user?.personalColor || '#3b82f6'; // Default blue
 
   return (
     <Avatar
@@ -182,7 +182,7 @@ export function ApplicantAvatar({
       {imageUrl ? (
         <AvatarImage
           src={imageUrl}
-          alt={user.name}
+          alt={user?.name || 'Applicant'}
           className={`object-cover object-top rounded-md image-fade-in ${imageLoaded ? 'loaded' : ''}`}
           onLoad={() => {
             setImageLoaded(true);

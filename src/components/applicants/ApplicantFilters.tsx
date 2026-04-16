@@ -286,6 +286,15 @@ export function ApplicantFilters({
     onFilterChangeRef.current = onFilterChange;
   }, [onFilterChange]);
 
+  // Utility to check if two sets are equal
+  const isSetEqual = (setA: Set<string>, setB: Set<string>) => {
+    if (setA.size !== setB.size) return false;
+    for (const item of setA) {
+      if (!setB.has(item)) return false;
+    }
+    return true;
+  };
+
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
 
@@ -346,6 +355,11 @@ export function ApplicantFilters({
       }
     });
 
+    // Handle custom field filters separately to ensure they are cleaned up
+    if (newFilters.customFieldFilters && Object.keys(newFilters.customFieldFilters).length === 0) {
+      delete newFilters.customFieldFilters;
+    }
+
     const newFiltersString = JSON.stringify(newFilters);
     if (lastAppliedFiltersRef.current === newFiltersString) {
       setIsApplyingFilters(false);
@@ -386,7 +400,7 @@ export function ApplicantFilters({
       clearTimeout(applyingFiltersTimeoutRef.current);
     }
     applyingFiltersTimeoutRef.current = timeoutId;
-  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds, isApplyingFilters]); // Added isApplyingFilters to dependencies
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, location, locationOperator, experienceYearsRange, applicationDateRange, selectedRecruiterIds, customFieldFilters, isApplyingFilters]); // Added isApplyingFilters and customFieldFilters to dependencies
 
   // Single consolidated auto-apply effect for all filter changes
   useEffect(() => {
@@ -915,6 +929,45 @@ export function ApplicantFilters({
   // Handle initialFilters changes after initial load (e.g., when clear all is clicked)
   useEffect(() => {
     if (!isInitialLoadRef.current && isComponentInitializedRef.current) {
+      // Create string representations to check for actual changes
+      const currentFilters = {
+        name, email, phone,
+        selectedPositionIds: Array.from(selectedPositionIds),
+        selectedStatuses: Array.from(selectedStatuses),
+        selectedSourceIds: Array.from(selectedSourceIds),
+        skills: Array.from(skills).join(','),
+        location, locationOperator,
+        minExperienceYears: experienceYearsRange[0],
+        maxExperienceYears: experienceYearsRange[1],
+        applicationDateStart: applicationDateRange?.from,
+        applicationDateEnd: applicationDateRange?.to,
+        selectedRecruiterIds: Array.from(selectedRecruiterIds),
+        customFieldFilters
+      };
+
+      const incomingFilters = {
+        name: initialFilters.name || '',
+        email: initialFilters.email || '',
+        phone: initialFilters.phone || '',
+        selectedPositionIds: initialFilters.selectedPositionIds || [],
+        selectedStatuses: initialFilters.selectedStatuses || [],
+        selectedSourceIds: initialFilters.selectedSourceIds || [],
+        skills: initialFilters.skills || '',
+        location: initialFilters.location || '',
+        locationOperator: initialFilters.locationOperator || 'contains',
+        minExperienceYears: initialFilters.minExperienceYears ?? 0,
+        maxExperienceYears: initialFilters.maxExperienceYears || 50,
+        applicationDateStart: initialFilters.applicationDateStart,
+        applicationDateEnd: initialFilters.applicationDateEnd,
+        selectedRecruiterIds: initialFilters.selectedRecruiterIds || [],
+        customFieldFilters: initialFilters.customFieldFilters || {}
+      };
+
+      // If filters are meaningfully the same, don't update to avoid loops
+      if (JSON.stringify(currentFilters) === JSON.stringify(incomingFilters)) {
+        return;
+      }
+
       // Mark that we're syncing local state from incoming props to avoid feedback loops
       isSyncingFromInitialFiltersRef.current = true;
 
@@ -922,13 +975,28 @@ export function ApplicantFilters({
       if (!isTypingName) setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
-      setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
-      setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
-      setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
-      setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
+      
+      const newPosIds = new Set(initialFilters.selectedPositionIds || []);
+      if (!isSetEqual(selectedPositionIds, newPosIds)) setSelectedPositionIds(newPosIds);
+      
+      const newStatuses = new Set(initialFilters.selectedStatuses || []);
+      if (!isSetEqual(selectedStatuses, newStatuses)) setSelectedStatuses(newStatuses);
+      
+      const newSourceIds = new Set(initialFilters.selectedSourceIds || []);
+      if (!isSetEqual(selectedSourceIds, newSourceIds)) setSelectedSourceIds(newSourceIds);
+      
+      const skillString = initialFilters.skills || '';
+      const newSkills = new Set(skillString.split(',').filter(Boolean));
+      if (!isSetEqual(skills, newSkills)) setSkills(newSkills);
+      
       if (!isTypingLocation) setLocation(initialFilters.location || '');
       setLocationOperator(initialFilters.locationOperator || 'contains');
-      setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
+      
+      const newExpRange: [number, number] = [initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50];
+      if (experienceYearsRange[0] !== newExpRange[0] || experienceYearsRange[1] !== newExpRange[1]) {
+        setExperienceYearsRange(newExpRange);
+      }
+
       setApplicationDateRange(
         initialFilters.applicationDateStart && initialFilters.applicationDateEnd
           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
@@ -936,31 +1004,32 @@ export function ApplicantFilters({
             ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
             : undefined
       );
-      setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
+
+      const newRecruiterIds = new Set(initialFilters.selectedRecruiterIds || []);
+      if (!isSetEqual(selectedRecruiterIds, newRecruiterIds)) setSelectedRecruiterIds(newRecruiterIds);
+      
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
+      setCustomFieldFilters(initialFilters.customFieldFilters || {});
+
       // Don't clear advanced query input if we have an advanced query from URL
-      // Only clear if we're not currently processing an advanced query
-      // Also preserve the advanced tab if the user is currently on it and has input
       if (!advancedQuery && !processedAdvancedQueryRef.current) {
         setAdvancedQueryInput('');
-        // Only switch to filters tab if user is not currently on advanced tab or has no advanced input
         if (activeTab !== 'advanced' || !advancedQueryInput.trim()) {
           setActiveTab('filters');
         }
       }
 
-      // Defer unsetting the syncing flag to the next tick to let dependent effects settle
-      // Clear any existing timeout
+      // Defer unsetting the syncing flag
       if (syncingTimeoutRef.current) {
         clearTimeout(syncingTimeoutRef.current);
       }
       syncingTimeoutRef.current = setTimeout(() => {
         isSyncingFromInitialFiltersRef.current = false;
-      }, 0);
+      }, 50); // Increased slightly for stability
     }
-  }, [initialFilters]);
+  }, [initialFilters, name, email, phone, location, locationOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, skills, experienceYearsRange, applicationDateRange, selectedRecruiterIds, customFieldFilters, activeTab, advancedQuery, advancedQueryInput, isTypingName, isTypingLocation]);
 
   // Auto-apply filters when they are set from URL parameters
   useEffect(() => {

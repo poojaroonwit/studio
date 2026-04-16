@@ -475,7 +475,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedApplicants([]);
       setAppliedApplicantsTotal(0);
     }
-  }, [positionId, appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, sessionStatus]);
+  }, [positionId, appliedApplicantsPage, appliedApplicantsPageSize, appliedApplicantsSearchTerm, appliedApplicantsSortColumn, appliedApplicantsSortDirection, sessionStatus, applicantFilters]);
 
   // Fetch all Applicants related to this position
   const fetchAllApplicants = useCallback(async () => {
@@ -522,7 +522,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('searchTerm', potentialApplicantsSearchTerm);
       }
       query.append('sortColumn', potentialApplicantsSortColumn || 'matchScore');
-      query.append('sortColumn', potentialApplicantsSortColumn || 'matchScore');
       query.append('sortDirection', potentialApplicantsSortDirection || 'desc');
       
       // Add filters
@@ -547,7 +546,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialApplicants([]);
       setPotentialApplicantsTotal(0);
     }
-  }, [positionId, potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, isJobMatchEnabled]);
+  }, [positionId, potentialApplicantsPage, potentialApplicantsPageSize, potentialApplicantsSearchTerm, potentialApplicantsSortColumn, potentialApplicantsSortDirection, isJobMatchEnabled, applicantFilters]);
 
   // Fetch headcount count for this position
   const fetchHeadcountCount = useCallback(async () => {

@@ -5,11 +5,23 @@ import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 
 import { useIsMobile } from '@/hooks/use-mobile';
-import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, FunnelIcon as Funnel } from '@heroicons/react/24/outline';
+import { 
+  Drawer, 
+  DrawerContent, 
+  DrawerHeader, 
+  DrawerTitle, 
+  DrawerDescription, 
+  DrawerFooter, 
+  DrawerTrigger,
+  DrawerClose
+} from "@/components/ui/drawer";
+import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, FunnelIcon as Funnel, EyeIcon as Eye, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 
+import { cn } from '@/lib/utils';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
@@ -132,6 +144,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
+  const [previewUsers, setPreviewUsers] = useState<any[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
   const [currentAppName, setCurrentAppName] = useState<string>(propAppName || DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(propLogoUrl || null);
@@ -456,6 +470,40 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
     };
   }, []);
 
+  const handleUserSearch = async (query: string) => {
+    if (query.length < 2) {
+      setPreviewUsers([]);
+      return;
+    }
+    setIsSearchingUsers(true);
+    try {
+      const res = await fetch(`/api/users?search=${encodeURIComponent(query)}&isActive=true&limit=5`);
+      const data = await res.json();
+      setPreviewUsers(data.users || []);
+    } catch (error) {
+      console.error('[HEADER] User search error:', error);
+    } finally {
+      setIsSearchingUsers(false);
+    }
+  };
+
+  const handleStartImpersonation = async (userId: string | null, role: string | null) => {
+    try {
+      toast.loading(userId ? 'Switching to user view...' : `Switching to ${role} view...`, { id: 'impersonate-toast' });
+      await updateSession({ 
+        impersonatedUserId: userId, 
+        impersonatedRole: role 
+      });
+      toast.success('Preview mode active', { id: 'impersonate-toast' });
+      // Small delay to ensure session state is fully settled before reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      toast.error('Failed to start preview mode', { id: 'impersonate-toast' });
+    }
+  };
+
   const handleOpenProfileModal = useCallback(async () => {
     if (!session?.user?.id) return;
 
@@ -542,7 +590,10 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
   return (
     <>
       <header 
-        className="sticky top-0 z-50 h-16 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between transition-all duration-300"
+        className={cn(
+          "sticky z-50 h-16 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between transition-all duration-300",
+          (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) ? "top-8" : "top-0"
+        )}
         style={{
           background: 'var(--header-background)',
           color: 'var(--header-foreground)'
@@ -629,97 +680,382 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                   {/* Notification Bell */}
                   <NotificationIcon />
 
-                  {/* User Profile Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none">
-                        <div className="relative">
+                  {/* User Profile Dropdown / Drawer */}
+                  {isMobile ? (
+                    <Drawer>
+                      <DrawerTrigger asChild>
+                        <button className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
                           <UserAvatarCompact
                             user={user}
                             size="sm"
-                            className="rounded-full"
+                            className="rounded-full ring-1 ring-border/50"
                             forceRefresh={refreshKey > 0}
                           />
+                          <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200 shrink-0" />
+                        </button>
+                      </DrawerTrigger>
+                      <DrawerContent className="max-h-[85vh]">
+                        <div className="max-w-md mx-auto w-full overflow-y-auto px-4 pb-8 pt-4 custom-scrollbar">
+                          <DrawerHeader className="px-1 text-left">
+                            <div className="flex items-center gap-4 mb-2">
+                              <UserAvatarCompact
+                                user={user}
+                                size="md"
+                                className="rounded-2xl"
+                                forceRefresh={refreshKey > 0}
+                              />
+                              <div className="flex flex-col">
+                                <DrawerTitle className="text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
+                                  {user.name}
+                                </DrawerTitle>
+                                <DrawerDescription className="text-sm font-medium text-zinc-500 truncate max-w-[200px]">
+                                  {user.email}
+                                </DrawerDescription>
+                                <Badge variant="secondary" className="mt-1 w-fit bg-primary/5 text-primary border-primary/10 text-[10px] uppercase font-bold tracking-wider">
+                                  {user.role || 'User'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </DrawerHeader>
+
+                          <div className="space-y-6 mt-4">
+                            {/* Profile Actions */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <button 
+                                onClick={() => { handleOpenProfileModal(); }}
+                                className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 transition-colors gap-2"
+                              >
+                                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+                                  <Edit3 className="w-5 h-5" />
+                                </div>
+                                <span className="text-sm font-bold">Profile</span>
+                              </button>
+                              <button 
+                                onClick={() => { setIsChangePasswordModalOpen(true); }}
+                                className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 transition-colors gap-2"
+                              >
+                                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600">
+                                  <KeyRound className="w-5 h-5" />
+                                </div>
+                                <span className="text-sm font-bold">Security</span>
+                              </button>
+                            </div>
+
+                            {/* Core Navigation */}
+                            <div className="space-y-1">
+                              <button 
+                                onClick={() => { router.push('/settings'); }}
+                                className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all group gap-4"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                  <Settings className="w-5 h-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-sm font-bold">Settings</span>
+                                  <span className="text-[11px] text-zinc-500">App preferences and system config</span>
+                                </div>
+                              </button>
+                            </div>
+
+                            {/* Admin Tools */}
+                            {(user.role === 'Admin' || session?.user?.adminId) && (
+                              <div className="space-y-3 p-1">
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 px-4">Admin Preview Tools</h4>
+                                <div className="flex flex-col gap-2">
+                                  <div className="grid grid-cols-2 gap-2 px-1">
+                                    <button 
+                                      onClick={() => handleStartImpersonation(null, 'Recruiter')}
+                                      className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 text-amber-700 dark:text-amber-400 gap-1.5"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                      <span className="text-[10px] font-black uppercase">Recruiter View</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => handleStartImpersonation(null, 'Hiring Manager')}
+                                      className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 text-amber-700 dark:text-amber-400 gap-1.5"
+                                    >
+                                      <Package2 className="w-4 h-4" />
+                                      <span className="text-[10px] font-black uppercase">Manager View</span>
+                                    </button>
+                                  </div>
+
+                                  <div className="px-1 mt-1">
+                                    <div className="bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+                                      <div className="p-3 border-b border-zinc-100 dark:border-zinc-800">
+                                        <div className="relative">
+                                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                                          <input 
+                                            type="text" 
+                                            placeholder="Search users to preview..." 
+                                            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                                            onChange={(e) => handleUserSearch(e.target.value)}
+                                          />
+                                        </div>
+                                      </div>
+                                      <ScrollArea className="max-h-[200px]">
+                                        <div className="p-1">
+                                          {isSearchingUsers ? (
+                                            <div className="py-8 text-center">
+                                              <RefreshCw className="h-5 w-5 animate-spin mx-auto text-amber-500/50" />
+                                            </div>
+                                          ) : previewUsers.length > 0 ? (
+                                            <div className="space-y-0.5">
+                                              {previewUsers.map((u) => (
+                                                <button 
+                                                  key={u.id} 
+                                                  onClick={() => handleStartImpersonation(u.id, null)} 
+                                                  className="flex items-center w-full px-3 py-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors gap-3 group text-left"
+                                                >
+                                                  <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-700 dark:text-amber-400 text-xs font-bold">
+                                                    {u.name.charAt(0)}
+                                                  </div>
+                                                  <div className="flex flex-col min-w-0">
+                                                    <span className="text-sm font-bold truncate group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">{u.name}</span>
+                                                    <span className="text-[10px] text-zinc-500 truncate">{u.role}</span>
+                                                  </div>
+                                                </button>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <div className="py-8 text-center px-4">
+                                              <p className="text-[11px] text-zinc-400 font-medium">
+                                                Enter search term to find users to preview as
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </ScrollArea>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Appearance */}
+                            <div className="space-y-3 p-1">
+                              <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 px-4">Appearance</h4>
+                              <div className="flex items-center gap-2 px-1">
+                                {[
+                                  { id: 'light', label: 'Light', icon: Sun },
+                                  { id: 'dark', label: 'Dark', icon: Moon },
+                                  { id: 'system', label: 'System', icon: Monitor },
+                                ].map((t) => (
+                                  <button
+                                    key={t.id}
+                                    onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: t.id as any }))}
+                                    className={cn(
+                                      "flex-1 flex flex-col items-center py-3 rounded-2xl border transition-all gap-1.5",
+                                      currentTheme === t.id 
+                                        ? "bg-white dark:bg-zinc-800 border-primary text-primary shadow-sm"
+                                        : "bg-zinc-50 dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-500"
+                                    )}
+                                  >
+                                    <t.icon className="w-4 h-4" />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">{t.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* System Actions */}
+                            <div className="space-y-1">
+                              <button 
+                                onClick={handleClearCache}
+                                className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group gap-4 text-amber-600 dark:text-amber-400"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                                  <Trash2 className="w-5 h-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-sm font-bold">Clear Cache</span>
+                                  <span className="text-[11px] opacity-70">Refresh local data and assets</span>
+                                </div>
+                              </button>
+                              
+                              <button 
+                                onClick={handleSignOut}
+                                className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group gap-4 text-red-600 dark:text-red-400"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                                  <LogOut className="w-5 h-5" />
+                                </div>
+                                <div className="flex flex-col text-left">
+                                  <span className="text-sm font-bold tracking-tight">Sign Out</span>
+                                  <span className="text-[11px] opacity-70">End your current session</span>
+                                </div>
+                              </button>
+                            </div>
+
+                            <div className="text-center pt-2">
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-300 dark:text-zinc-600">
+                                 Version {APP_VERSION}
+                               </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="hidden sm:block text-left pr-3">
-                          <span className="block text-sm font-semibold leading-none truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
-                            {user.name}
-                          </span>
-                          <span className="block text-[10px] font-medium uppercase mt-0.5 tracking-wider opacity-60 truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
-                            {user.role || 'User'}
-                          </span>
+                      </DrawerContent>
+                    </Drawer>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none">
+                          <div className="relative">
+                            <UserAvatarCompact
+                              user={user}
+                              size="sm"
+                              className="rounded-full"
+                              forceRefresh={refreshKey > 0}
+                            />
+                          </div>
+                          <div className="hidden sm:block text-left pr-3">
+                            <span className="block text-sm font-semibold leading-none truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                              {user.name}
+                            </span>
+                            <span className="block text-[10px] font-medium uppercase mt-0.5 tracking-wider opacity-60 truncate max-w-[120px]" style={{ color: 'var(--header-foreground, inherit)' }}>
+                              {user.role || 'User'}
+                            </span>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200 shrink-0" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-72 p-0 rounded-2xl shadow-2xl border border-border/50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
+                        <DropdownMenuLabel className="px-5 py-4">
+                          <div className="flex flex-col space-y-1">
+                            <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Signed in as</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-1">{user.email || user.name}</p>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
+
+                        <div className="p-3 space-y-1">
+                          <DropdownMenuItem onClick={handleOpenProfileModal} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
+                            <Edit3 className="mr-3 h-4 w-4" />
+                            <span>My Profile</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
+                            <KeyRound className="mr-3 h-4 w-4" />
+                            <span>Security</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push('/settings')} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
+                            <Settings className="mr-3 h-4 w-4" />
+                            <span>Settings</span>
+                          </DropdownMenuItem>
                         </div>
-                        <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200 shrink-0" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72 p-0 rounded-2xl shadow-2xl border border-border/50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl animate-in fade-in zoom-in duration-200">
-                      <DropdownMenuLabel className="px-5 py-4">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-widest">Signed in as</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-1">{user.email || user.name}</p>
+
+                        {/* Preview Mode / Impersonation Tools - Admin Only */}
+                        {(user.role === 'Admin' || session?.user?.adminId) && (
+                          <>
+                            <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
+                            <div className="p-3 space-y-1">
+                              <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest px-3 mb-2">Preview Tools</p>
+                              
+                              {/* Role Preview */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50/50 dark:hover:bg-amber-500/5 transition-colors">
+                                  <Eye className="mr-3 h-4 w-4 text-amber-500" />
+                                  <span>Preview as Role</span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="p-1 min-w-[180px] rounded-xl border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl">
+                                  <DropdownMenuItem onClick={() => handleStartImpersonation(null, 'Recruiter')} className="px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                                    Recruiter View
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStartImpersonation(null, 'Hiring Manager')} className="px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                                    Hiring Manager View
+                                  </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+
+                              {/* User Preview */}
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50/50 dark:hover:bg-amber-500/5 transition-colors">
+                                  <Package2 className="mr-3 h-4 w-4 text-amber-500" />
+                                  <span>Preview as User</span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="p-0 min-w-[240px] max-h-[300px] overflow-hidden rounded-xl border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl flex flex-col">
+                                  <div className="p-2 border-b border-border/50">
+                                    <input 
+                                      type="text" 
+                                      placeholder="Search users..." 
+                                      className="w-full px-3 py-1.5 text-xs rounded-md bg-muted/50 border-none focus:ring-1 focus:ring-amber-500 outline-none"
+                                      autoFocus
+                                      onChange={(e) => handleUserSearch(e.target.value)}
+                                    />
+                                  </div>
+                                  <ScrollArea className="flex-1 max-h-[220px]">
+                                    <div className="p-1">
+                                      {isSearchingUsers ? (
+                                        <div className="py-8 text-center">
+                                          <RefreshCw className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
+                                        </div>
+                                      ) : previewUsers.length > 0 ? (
+                                        previewUsers.map((u) => (
+                                          <DropdownMenuItem 
+                                            key={u.id} 
+                                            onClick={() => handleStartImpersonation(u.id, null)} 
+                                            className="flex flex-col items-start px-3 py-2 rounded-lg cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors"
+                                          >
+                                            <span className="text-xs font-semibold">{u.name}</span>
+                                            <span className="text-[10px] text-muted-foreground">{u.email} • {u.role}</span>
+                                          </DropdownMenuItem>
+                                        ))
+                                      ) : (
+                                        <p className="p-4 text-[10px] text-muted-foreground italic text-center">
+                                          Type at least 2 characters to search active users
+                                        </p>
+                                      )}
+                                    </div>
+                                  </ScrollArea>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            </div>
+                          </>
+                        )}
+
+                        <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
+
+                        <div className="p-4">
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-3 mb-3">Appearance</p>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
+                              {currentTheme === 'dark' ? <Moon className="mr-3 h-4 w-4" /> : <Sun className="mr-3 h-4 w-4" />}
+                              <span>Appearance</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="p-1 min-w-[150px] rounded-xl border-gray-100 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl shadow-xl">
+                              <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'light' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                                <Sun className="mr-2 h-3.5 w-3.5" />
+                                Light
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'dark' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                                <Moon className="mr-2 h-3.5 w-3.5" />
+                                Dark
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'system' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
+                                <Monitor className="mr-2 h-3.5 w-3.5" />
+                                System
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuItem onClick={handleClearCache} className="mt-2 flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                            <Trash2 className="mr-3 h-4 w-4" />
+                            <span>Clear Cache</span>
+                          </DropdownMenuItem>
                         </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
 
-                      <div className="p-3 space-y-1">
-                        <DropdownMenuItem onClick={handleOpenProfileModal} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
-                          <Edit3 className="mr-3 h-4 w-4" />
-                          <span>My Profile</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
-                          <KeyRound className="mr-3 h-4 w-4" />
-                          <span>Security</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/settings')} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
-                          <Settings className="mr-3 h-4 w-4" />
-                          <span>Settings</span>
-                        </DropdownMenuItem>
-                      </div>
+                        <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
 
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
+                        <div className="p-3">
+                          <DropdownMenuItem onClick={handleSignOut} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 transition-colors">
+                            <LogOut className="mr-3 h-4 w-4" />
+                            <span>Sign Out</span>
+                          </DropdownMenuItem>
+                        </div>
 
-                      <div className="p-4">
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest px-3 mb-3">Appearance</p>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-50/80 dark:hover:bg-zinc-800/80 transition-colors">
-                            {currentTheme === 'dark' ? <Moon className="mr-3 h-4 w-4" /> : <Sun className="mr-3 h-4 w-4" />}
-                            <span>Appearance</span>
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="p-1 min-w-[150px] rounded-xl border-gray-100 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl shadow-xl">
-                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'light' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
-                              <Sun className="mr-2 h-3.5 w-3.5" />
-                              Light
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'dark' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
-                              <Moon className="mr-2 h-3.5 w-3.5" />
-                              Dark
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: 'system' }))} className="flex items-center px-3 py-2 rounded-lg cursor-pointer text-[12px] font-medium">
-                              <Monitor className="mr-2 h-3.5 w-3.5" />
-                              System
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem onClick={handleClearCache} className="mt-2 flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                          <Trash2 className="mr-3 h-4 w-4" />
-                          <span>Clear Cache</span>
-                        </DropdownMenuItem>
-                      </div>
-
-                      <DropdownMenuSeparator className="bg-gray-100 dark:bg-zinc-800/60" />
-
-                      <div className="p-3">
-                        <DropdownMenuItem onClick={handleSignOut} className="flex items-center px-4 py-3 rounded-xl cursor-pointer text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 transition-colors">
-                          <LogOut className="mr-3 h-4 w-4" />
-                          <span>Sign Out</span>
-                        </DropdownMenuItem>
-                      </div>
-
-                      <div className="px-3 pt-1 pb-3 text-center">
-                        <p className="text-[9px] font-bold text-gray-300 dark:text-zinc-600 uppercase tracking-widest">Version {APP_VERSION}</p>
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <div className="px-3 pt-1 pb-3 text-center">
+                          <p className="text-[9px] font-bold text-gray-300 dark:text-zinc-600 uppercase tracking-widest">Version {APP_VERSION}</p>
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               ) : (
                 <Button variant="outline" onClick={() => signIn()}>

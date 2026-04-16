@@ -669,8 +669,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
 
       {/* File Preview Modal */}
       <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] p-0" dialogId="file-preview-modal">
-          <DialogHeader className="px-6 py-4 border-b">
+        <DialogContent className="max-w-5xl h-[90vh] p-0 flex flex-col overflow-hidden" dialogId="file-preview-modal">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-red-500" />
@@ -686,11 +686,11 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 min-h-[600px]">
+          <div className="flex-1 bg-zinc-100 dark:bg-zinc-900 min-h-0">
             {selectedAttachment && (
               <iframe
                 src={selectedAttachment.url}
-                className="w-full h-[600px]"
+                className="w-full h-full"
                 title="File Preview"
                 style={{ border: 'none' }}
               />

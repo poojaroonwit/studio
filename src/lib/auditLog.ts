@@ -11,7 +11,8 @@ export async function logAudit(
   message: string,
   source: string,
   actingUserId: string | null = null,
-  details: Record<string, any> | null = null
+  details: Record<string, any> | null = null,
+  impersonatorId: string | null = null
 ) {
   const client = await getSafeDbClient();
   try {
@@ -28,12 +29,8 @@ export async function logAudit(
         sanitizedActingUserId = null;
       }
     }
-    const logId = uuidv4();
-    const query = `
-      INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
-      VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
-    `;
-    await client.query(query, [logId, level, message, source, sanitizedActingUserId, details]);
+    const enrichedDetails = impersonatorId ? { ...details, impersonatorId } : details;
+    await client.query(query, [logId, level, message, source, sanitizedActingUserId, enrichedDetails]);
     
     const logEntry = {
       id: logId,
@@ -42,7 +39,7 @@ export async function logAudit(
       message,
       source,
       actingUserId: sanitizedActingUserId,
-      details,
+      details: enrichedDetails,
     };
     
 
@@ -63,7 +60,8 @@ export async function logAuditEvent(
   action: string,
   entity: string,
   entityId: string,
-  details: Record<string, any> | null = null
+  details: Record<string, any> | null = null,
+  impersonatorId: string | null = null
 ) {
   const client = await getSafeDbClient();
   try {
@@ -85,7 +83,8 @@ export async function logAuditEvent(
     // Map action/entity/entityId to message/source
     const message = `${action} on ${entity} (${entityId})`;
     const source = `logAuditEvent:${entity}`;
-    await client.query(query, [logId, 'AUDIT', message, source, sanitizedUserId, details]);
+    const enrichedDetails = impersonatorId ? { ...details, impersonatorId } : details;
+    await client.query(query, [logId, 'AUDIT', message, source, sanitizedUserId, enrichedDetails]);
     
     const logEntry = {
       id: logId,
@@ -94,7 +93,7 @@ export async function logAuditEvent(
       message,
       source,
       actingUserId: sanitizedUserId,
-      details,
+      details: enrichedDetails,
     };
     
 

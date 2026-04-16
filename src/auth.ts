@@ -178,7 +178,7 @@ const getAuthConfig = async () => {
       signIn: '/auth/signin',
     },
     callbacks: {
-      async jwt({ token, user, profile, trigger }: any) {
+      async jwt({ token, user, profile, trigger, session }: any) {
         try {
           // Detect mobile from user-agent if not already set
           if (!('isMobile' in token)) {
@@ -186,13 +186,29 @@ const getAuthConfig = async () => {
             token.isMobile = false;
           }
 
-          // If trigger is update, refresh user data from database
-          if (trigger === "update" && typeof token.id === "string") {
-            const userData = await getUserSessionData(token.id);
-            if (userData) {
-              token.name = userData.name;
-              // NOTE: avatarUrl and personalColor are NOT stored in token to keep cookie small
-              // They are fetched fresh from database in session callback
+          // If trigger is update, handle user data refresh and impersonation context
+          if (trigger === "update") {
+            // Standard data refresh as before
+            if (typeof token.id === "string") {
+              const userData = await getUserSessionData(token.id);
+              if (userData) {
+                token.name = userData.name;
+              }
+            }
+
+            // Handle impersonation updates passed through session.update()
+            const isAuthorizedToImpersonate = token.role === 'Admin' || (token as any).role === 'Admin' || token.adminId;
+            
+            if (isAuthorizedToImpersonate) {
+              // Adopt impersonation fields from updated session data
+              if (session?.impersonatedUserId !== undefined) {
+                token.impersonatedUserId = session.impersonatedUserId;
+                token.adminId = session.impersonatedUserId ? (token.id as string) : (session.impersonatedRole ? (token.id as string) : undefined);
+              }
+              if (session?.impersonatedRole !== undefined) {
+                token.impersonatedRole = session.impersonatedRole;
+                token.adminId = session.impersonatedRole ? (token.id as string) : (session.impersonatedUserId ? (token.id as string) : undefined);
+              }
             }
           }
 
@@ -274,9 +290,16 @@ const getAuthConfig = async () => {
 
         // OPTIMIZED: Validate session AND fetch all user context in a Single Query
         const sessionToken = (token as any).sessionToken;
+        const impersonatedUserId = token.impersonatedUserId as string | undefined;
+        const impersonatedRole = token.impersonatedRole as string | undefined;
 
         if (sessionToken) {
           try {
+            // If impersonating a specific user, we still need the original session token to validate it,
+            // but we might want to fetch the OTHER user's profile.
+            // For now, let's keep it simple: fetch original user profile then override.
+            // But a better way is to fetch the target user profile directly if impersonating.
+            
             const context = await getUserFullContext(sessionToken);
 
             if (!context.isValid) {
@@ -318,6 +341,39 @@ const getAuthConfig = async () => {
               session.user.twoFactorMethod = (dbUser.twoFactorMethod as 'email' | 'totp') || undefined;
               session.user.modulePermissions = dbUser.modulePermissions || [];
 
+              // APPLY IMPERSONATION OVERRIDES
+              // Check if the original user has administrative privileges
+              const isAdmin = dbUser.role === 'Admin' || 
+                              dbUser.role === 'System Admin' || 
+                              dbUser.role?.toLowerCase() === 'admin' ||
+                              dbUser.role?.toLowerCase()?.includes('admin');
+
+              if (isAdmin) {
+                if (impersonatedUserId) {
+                  // If impersonating a user, fetch THAT user's profile
+                  // Note: We skip the heavy full context fetch here and just get session data
+                  // In a real production app, we'd want to fetch permissions too.
+                  const targetUser = await getUserSessionData(impersonatedUserId);
+                  if (targetUser) {
+                    session.user.id = targetUser.id;
+                    session.user.name = `Preview: ${targetUser.name}`;
+                    session.user.role = targetUser.role as UserProfile['role'];
+                    session.user.impersonatedUserId = targetUser.id;
+                    session.user.adminId = dbUser.id;
+                    
+                    // Fetch permissions for the target user specifically
+                    const targetPermissions = await getUserPermissions(targetUser.id);
+                    session.user.modulePermissions = targetPermissions;
+                  }
+                } else if (impersonatedRole) {
+                  // If just switching role, override role and name indicator
+                  session.user.role = impersonatedRole as UserProfile['role'];
+                  session.user.name = `Preview: ${impersonatedRole}`;
+                  session.user.impersonatedRole = impersonatedRole as UserProfile['role'];
+                  session.user.adminId = dbUser.id;
+                }
+              }
+
               // Update token with role/name for consistency (optional but good)
               token.role = dbUser.role;
               (token as any).name = dbUser.name;
@@ -355,6 +411,20 @@ const getAuthConfig = async () => {
           session.user.personalColor = (token as any).personalColor || null;
           session.user.twoFactorEnabled = (token as any).twoFactorEnabled;
           session.user.twoFactorMethod = (token as any).twoFactorMethod;
+
+          // Propagate impersonation context from token during fallback
+          if (token.impersonatedUserId) {
+            session.user.impersonatedUserId = token.impersonatedUserId as string;
+            session.user.adminId = token.adminId as string;
+            // Set indicator if we have a name in token or fallback
+            const impersonatedName = (token as any).impersonatedName || 'User';
+            session.user.name = `Preview: ${impersonatedName}`;
+          }
+          if (token.impersonatedRole) {
+            session.user.impersonatedRole = token.impersonatedRole as any;
+            session.user.adminId = token.adminId as string;
+            session.user.name = `Preview: ${token.impersonatedRole}`;
+          }
         } catch (error) {
           console.error('[SESSION CALLBACK] Critical error in fallback:', error);
           return {

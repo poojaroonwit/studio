@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ApplicantAvatar } from '@/components/ui/applicant-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban, EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
@@ -16,7 +17,7 @@ import { StatusBadge } from './ApplicantKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 import { getCachedAvatarUrl, convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
-import { sanitizeUrl } from '@/lib/utils';
+import { sanitizeUrl, cn } from '@/lib/utils';
 
 interface ApplicantHeaderProps {
   applicant: Applicant;
@@ -83,6 +84,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
   onAvatarUpload,
   realtimeConnected
 }) => {
+  const { data: session } = useSession();
   const { success: toastSuccess } = useToast();
   const { contentZIndex } = useDynamicZIndex('applicant-header', 'overlay');
   const nameInfo = formatApplicantNameWithLang(applicant);
@@ -160,7 +162,14 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
 
   return (
     <div
-      className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-16 pointer-events-auto"
+      className={cn(
+        "bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky pointer-events-auto",
+        isModal 
+          ? "top-0" 
+          : (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) 
+            ? "top-24" 
+            : "top-16"
+      )}
       style={{ zIndex: contentZIndex }}
     >
 

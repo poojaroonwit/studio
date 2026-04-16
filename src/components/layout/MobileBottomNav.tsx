@@ -15,26 +15,31 @@ import {
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
+import { useSession } from "next-auth/react";
+import { hasPermission } from "@/lib/permissions";
+
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: LayoutDashboard },
-  { href: "/applicants", label: "Applicants", icon: Users },
-  { href: "/positions", label: "Positions", icon: Briefcase },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  // Tasks removed from mobile navigation
-  // { href: "/my-tasks", label: "Tasks", icon: ListTodo },
-  // Queue removed from mobile navigation (will be shown in avatar modal)
-  // { href: "/process-queue", label: "Queue", icon: UploadCloud },
-  // Settings removed from mobile navigation (will be shown in avatar modal)
-  // { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/applicants", label: "Applicants", icon: Users, permissionId: "applicantS_VIEW" },
+  { href: "/candidates", label: "Candidates", icon: Users, permissionId: "applicantS_VIEW" },
+  { href: "/positions", label: "Positions", icon: Briefcase, permissionId: "POSITIONS_VIEW" },
+  { href: "/calendar", label: "Interview Calendar", icon: Calendar, permissionId: "EVALUATION_LINKS_VIEW" },
 ];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   // Hide on login page
-  if (pathname === '/auth/signin') {
+  if (pathname === '/auth/signin' || !session) {
     return null;
   }
+
+  // Filter items based on permissions
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (!item.permissionId) return true;
+    return hasPermission(session.user, item.permissionId);
+  });
 
   // Hide on larger screens
   return (
@@ -43,15 +48,9 @@ export function MobileBottomNav() {
         "fixed bottom-0 left-0 right-0 z-[100] border-t bg-card/95 backdrop-blur-md md:hidden no-print",
         "shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       )}
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0
-      }}
     >
       <div className="flex justify-around items-stretch h-14 safe-area-inset-bottom">
-        {NAV_ITEMS.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
           const Icon = item.icon;
           return (

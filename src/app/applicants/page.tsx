@@ -1,6 +1,7 @@
 // src/app/Applicants/page.tsx - Server Component
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { hasPermission } from '@/lib/permissions';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { ApplicantsPageClient } from '@/components/applicants/ApplicantsPageClient';
@@ -13,6 +14,14 @@ import { safeJsonParse } from '@/lib/utils';
 
 export default async function ApplicantsPageServer() {
   const session = await auth();
+
+  if (!session?.user) {
+    redirect('/auth/signin');
+  }
+
+  if (!hasPermission(session.user, 'applicantS_VIEW')) {
+    redirect('/unauthorized');
+  }
 
   let initialApplicants: Applicant[] = [];
   let initialAvailablePositions: Position[] = [];

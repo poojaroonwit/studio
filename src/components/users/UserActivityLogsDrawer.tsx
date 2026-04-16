@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Loader2, RefreshCw, Calendar, Server, ListOrdered } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import type { LogEntry, LogLevel, UserProfile } from '@/lib/types';
@@ -125,8 +126,20 @@ export function UserActivityLogsDrawer({ isOpen, onClose, user }: UserActivityLo
 
           <div className="flex-1 overflow-hidden">
             {isLoading && logs.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-4 px-6 py-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-[150px]" />
+                      <Skeleton className="h-5 w-[60px]" />
+                    </div>
+                    <Skeleton className="h-4 w-full" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-3 w-[80px]" />
+                      <Skeleton className="h-3 w-[100px]" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : logs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">

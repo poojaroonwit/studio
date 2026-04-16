@@ -114,11 +114,19 @@ export const usePendingCount = () => {
   return { pendingCount, isLoading };
 };
 
+import { hasPermission } from "@/lib/permissions";
+
 // Helper to check if user has permission for an item
-const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: string[]) => {
+const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: string[], user: any) => {
   if (isAdmin) return true;
   if (item.adminOnly) return false;
   
+  // Use centralized permissionId if provided
+  if (item.permissionId) {
+    return hasPermission(user, item.permissionId);
+  }
+
+  // Fallback for items without explicit permissionId (keeping existing logic for safety)
   if (item.href === '/dashboard' || item.href === '/') {
     return modulePermissions.includes('DASHBOARD_VIEW');
   }
@@ -138,7 +146,7 @@ const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: strin
            modulePermissions.includes('EVALUATION_LINKS_MANAGE_ALL');
   }
   if (item.href.startsWith('/settings/users')) {
-    return modulePermissions.includes('USERS_MANAGE') || isAdmin;
+    return modulePermissions.includes('USERS_VIEW') || isAdmin;
   }
   if (item.href === '/settings/system-settings' || item.href === '/settings/system-preferences' || item.href === '/settings/system-prompts') {
     return modulePermissions.includes('SYSTEM_SETTINGS_VIEW') || isAdmin;
@@ -147,7 +155,7 @@ const hasItemPermission = (item: any, isAdmin: boolean, modulePermissions: strin
     return modulePermissions.includes('RECRUITMENT_STAGES_VIEW') || isAdmin;
   }
   if (item.href === '/settings/webhooks') {
-    return modulePermissions.includes('WEBHOOKS_EDIT') || isAdmin;
+    return modulePermissions.includes('WEBHOOKS_VIEW') || isAdmin;
   }
   if (item.href === '/settings/logs') {
     return modulePermissions.includes('LOGS_VIEW') || isAdmin;
@@ -415,9 +423,9 @@ const GroupedSidebarNav = React.memo(() => {
   const filteredGroups = React.useMemo(() => {
     return sidebarConfig.map(group => ({
       ...group,
-      items: group.items.filter(item => hasItemPermission(item, isAdmin, modulePermissions))
+      items: group.items.filter(item => hasItemPermission(item, isAdmin, modulePermissions, session?.user))
     })).filter(group => group.items.length > 0);
-  }, [isAdmin, modulePermissions]);
+  }, [isAdmin, modulePermissions, session?.user]);
 
   // Find the initially active group based on the pathname
   const initialActiveGroupLabel = React.useMemo(() => {
@@ -458,17 +466,12 @@ const GroupedSidebarNav = React.memo(() => {
   const handleHubClick = React.useCallback((label: string) => {
     setActiveGroupLabel(label);
     
-    // Auto-navigate to hub grid pages when clicking main rail icons
-    if (label === 'Settings') {
-      router.push('/settings');
-    } else if (label === 'Analyst') {
-      router.push('/dashboard');
-    } else if (label === 'Hiring') {
-      router.push('/hiring');
-    } else if (label === 'Shortlist & Calendar') {
-      router.push('/shortlist-calendar');
+    // Auto-navigate to first sub-item when clicking main rail icons instead of grid pages
+    const group = filteredGroups.find(g => g.label === label);
+    if (group && group.items.length > 0) {
+      router.push(group.items[0].href);
     }
-  }, [router]);
+  }, [filteredGroups, router]);
 
   if (status === 'loading') {
     return (
@@ -490,8 +493,8 @@ const GroupedSidebarNav = React.memo(() => {
         onHubClick={handleHubClick}
         onHubHover={setHoveredGroupLabel}
       />
-      {/* Hide secondary sidebar on hub grid pages and root pages */}
-      {!(['/', '/dashboard', '/hiring', '/shortlist-calendar', '/settings'].includes(pathname) || pathname.startsWith('/settings/users')) && (
+      {/* Hide secondary sidebar only on home and main settings hub; show it on detail pages like User Management */}
+      {!(['/', '/settings'].includes(pathname)) && (
         <SidebarMenuPanel
           activeGroup={activeGroup}
           pathname={pathname}

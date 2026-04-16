@@ -208,7 +208,7 @@ export function CredentialsSignInForm({
                 <Mail className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
-                    className="h-12 rounded-2xl border-border/60 bg-background/80 pl-11 shadow-sm transition-all hover:bg-background focus:border-primary/40 focus:bg-background"
+                    className="h-12 rounded-2xl border-border/60 bg-zinc-100/80 pl-11 shadow-sm transition-all hover:bg-zinc-100 focus:border-primary/40 focus:bg-zinc-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800"
                     type="email"
                     placeholder="name@example.com"
                     {...field}
@@ -231,7 +231,7 @@ export function CredentialsSignInForm({
                 <Lock className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
-                    className="h-12 rounded-2xl border-border/60 bg-background/80 pl-11 pr-12 shadow-sm transition-all hover:bg-background focus:border-primary/40 focus:bg-background"
+                    className="h-12 rounded-2xl border-border/60 bg-zinc-100/80 pl-11 pr-12 shadow-sm transition-all hover:bg-zinc-100 focus:border-primary/40 focus:bg-zinc-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     {...field}

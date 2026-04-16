@@ -10,6 +10,7 @@ import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 import ApplicantDetailModal from './ApplicantDetailModal';
 import FullApplicantDetail from './FullApplicantDetail';
 import { BlacklistBadge } from './BlacklistBadge';
@@ -748,6 +749,8 @@ export function FlexibleKanbanView({
   visibleColumnValues = [],
   isLoading = false
 }: ApplicantKanbanViewProps) {
+  const { data: session } = useSession();
+  const isImpersonating = !!(session?.user?.impersonatedUserId || session?.user?.impersonatedRole);
   const [draggedApplicant, setDraggedApplicant] = useState<Applicant | null>(null);
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
@@ -985,7 +988,10 @@ export function FlexibleKanbanView({
                 "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
                 dragOverColumn === colValue && dragOverRow === 'none' && "ring-2 ring-primary ring-opacity-50 bg-primary/5"
               )}>
-                <CardHeader className="p-4 border-b border-border sticky top-16 bg-card z-10 flex-shrink-0">
+                <CardHeader className={cn(
+                  "p-4 border-b border-border sticky bg-card z-10 flex-shrink-0",
+                  isImpersonating ? "top-24" : "top-16"
+                )}>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">

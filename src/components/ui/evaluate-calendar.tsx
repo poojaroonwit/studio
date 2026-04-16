@@ -39,7 +39,7 @@ export interface EvaluateCalendarProps {
   reminders?: CalendarReminder[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
-  onApplicantClick: (applicantId: string) => void;
+  onApplicantClick: (applicantId: string, isReminder?: boolean) => void;
   isMobile?: boolean;
 }
 
@@ -174,7 +174,7 @@ function DayCell({
               title={`Reminder: ${reminder.title}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onApplicantClick?.(reminder.applicant.id);
+                onApplicantClick?.(reminder.applicant.id, true);
               }}
             >
               <BellIcon className="w-3 h-3 flex-shrink-0" />
@@ -456,7 +456,7 @@ export function MobileEvaluateCalendar({
                       <ReminderListItem
                         key={reminder.id}
                         reminder={reminder}
-                        onClick={() => onApplicantClick(reminder.applicant.id)}
+                        onClick={() => onApplicantClick(reminder.applicant.id, true)}
                       />
                     ))}
                   </div>
@@ -588,7 +588,7 @@ export function MobileEvaluateCalendar({
               <ReminderListItem
                 key={reminder.id}
                 reminder={reminder}
-                onClick={() => onApplicantClick(reminder.applicant.id)}
+                onClick={() => onApplicantClick(reminder.applicant.id, true)}
               />
             ))}
           </>
@@ -740,7 +740,7 @@ export function DesktopEvaluateCalendar({
                 <ReminderListItem
                   key={reminder.id}
                   reminder={reminder}
-                  onClick={() => onApplicantClick(reminder.applicant.id)}
+                  onClick={() => onApplicantClick(reminder.applicant.id, true)}
                 />
               ))}
             </>

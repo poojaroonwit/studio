@@ -490,12 +490,12 @@ export default function ReprocessModal({
 
         return (
           <Dialog open={previewMode === 'fullscreen'} onOpenChange={() => setPreviewMode('thumbnail')}>
-            <DialogContent className="max-w-4xl max-h-[90vh] p-0" dialogId="reprocess-preview-modal">
+            <DialogContent className="max-w-4xl h-[90vh] p-0 flex flex-col overflow-hidden" dialogId="reprocess-preview-modal">
               <DialogHeader className="sr-only">
                 <DialogTitle>{attachment.fileName}</DialogTitle>
                 <DialogDescription>PDF Preview</DialogDescription>
               </DialogHeader>
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-red-500" />
                   <div>
@@ -541,7 +541,7 @@ export default function ReprocessModal({
                   </Button>
                 </div>
               </div>
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 bg-zinc-100 dark:bg-zinc-900 min-h-0">
                 <iframe
                   key={`fullscreen-${attachment.id}`}
                   src={sanitizeUrl(attachment.url.includes('/api/secure-file/stream')
@@ -549,7 +549,7 @@ export default function ReprocessModal({
                     : attachment.url.includes('/api/secure-file/preview')
                       ? attachment.url
                       : attachment.url)}
-                  className="w-full h-[calc(90vh-80px)]"
+                  className="w-full h-full"
                   title="PDF Preview"
                   allow="fullscreen"
                   onLoad={() => {
@@ -558,6 +558,7 @@ export default function ReprocessModal({
                   onError={() => {
                     console.warn('Failed to load PDF preview in fullscreen');
                   }}
+                  style={{ border: 'none' }}
                 />
               </div>
             </DialogContent>

@@ -44,7 +44,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   // Only initialize loading to true if there IS an avatar to load
-  const [isLoading, setIsLoading] = useState(!!(user.avatarUrl || user.image));
+  const [isLoading, setIsLoading] = useState(!!(user?.avatarUrl || user?.image));
   const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -53,9 +53,9 @@ export function UserAvatar({
   const lastUserIdRef = useRef<string | null>(null);
 
   // Memoize user properties to prevent unnecessary reloads
-  const userId = user.id;
-  const avatarUrl = user.avatarUrl;
-  const image = user.image;
+  const userId = user?.id;
+  const avatarUrl = user?.avatarUrl;
+  const image = user?.image;
 
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
@@ -140,8 +140,8 @@ export function UserAvatar({
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
-  const initials = getInitials(user.name);
-  const tooltipText = showTooltip ? `${user.name}${user.email ? ` (${user.email})` : ''}` : undefined;
+  const initials = getInitials(user?.name);
+  const tooltipText = showTooltip ? `${user?.name}${user?.email ? ` (${user.email})` : ''}` : undefined;
 
   // Use personal color for styling if available
   const personalColor = user.personalColor || '#3b82f6'; // Default blue
@@ -216,7 +216,7 @@ export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }
 export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   // Only initialize loading to true if there IS an avatar to load
-  const [isLoading, setIsLoading] = useState(!!(user.avatarUrl || user.image));
+  const [isLoading, setIsLoading] = useState(!!(user?.avatarUrl || user?.image));
   const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -225,9 +225,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   const lastUserIdRef = useRef<string | null>(null);
 
   // Memoize user properties to prevent unnecessary reloads
-  const userId = user.id;
-  const avatarUrl = user.avatarUrl;
-  const image = user.image;
+  const userId = user?.id;
+  const avatarUrl = user?.avatarUrl;
+  const image = user?.image;
 
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
@@ -311,9 +311,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
-  const initials = getInitials(user.name);
-  const tooltipText = `${user.name}${user.email ? ` (${user.email})` : ''}`;
-  const personalColor = user.personalColor || '#3b82f6'; // Default blue
+  const initials = getInitials(user?.name);
+  const tooltipText = `${user?.name}${user?.email ? ` (${user.email})` : ''}`;
+  const personalColor = user?.personalColor || '#3b82f6'; // Default blue
 
   return (
     <div className="relative group">

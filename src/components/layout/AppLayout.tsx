@@ -12,6 +12,7 @@ import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { useSessionValidation } from '@/hooks/use-session-validation';
 import { useTheme } from '@/hooks/use-theme';
 import { useRenderMonitor } from '@/hooks/use-render-monitor';
+import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { useAppLayoutState } from '@/hooks/use-app-layout-state';
 
 const DEFAULT_APP_NAME = "FitScan";
@@ -405,6 +406,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     <>
       <MemoizedFaviconUpdater faviconDataUrl={faviconDataUrl} />
       <div className="h-screen bg-gray-50 dark:bg-zinc-950 flex flex-col overflow-hidden" data-testid="app-layout">
+        <ImpersonationBanner />
         {/* Top Header - full width */}
         <MemoizedHeader {...headerProps} appLogoUrl={appLogoUrl} currentAppName={currentAppName} showLogoOnly={showLogoOnly} contextualLogos={contextualLogos} isLogoLoading={isLogoLoading} />
 

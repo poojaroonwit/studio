@@ -81,12 +81,12 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
                 containerClassName="gap-3"
               >
                 <InputOTPGroup className="gap-3">
-                  <InputOTPSlot index={0} className="w-14 h-16 text-2xl font-bold shadow-sm" />
-                  <InputOTPSlot index={1} className="w-14 h-16 text-2xl font-bold shadow-sm" />
-                  <InputOTPSlot index={2} className="w-14 h-16 text-2xl font-bold shadow-sm" />
-                  <InputOTPSlot index={3} className="w-14 h-16 text-2xl font-bold shadow-sm" />
-                  <InputOTPSlot index={4} className="w-14 h-16 text-2xl font-bold shadow-sm" />
-                  <InputOTPSlot index={5} className="w-14 h-16 text-2xl font-bold shadow-sm" />
+                  <InputOTPSlot index={0} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  <InputOTPSlot index={1} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  <InputOTPSlot index={2} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  <InputOTPSlot index={3} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  <InputOTPSlot index={4} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  <InputOTPSlot index={5} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
                 </InputOTPGroup>
               </InputOTP>
             </div>

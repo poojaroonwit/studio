@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { CandidateCard } from './CandidateCard';
 import type { Applicant, Position } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 interface PositionGroupProps {
   position: Position & { applicants: Applicant[] };
@@ -17,6 +18,11 @@ interface PositionGroupProps {
 export function PositionGroup({ position, viewMode, onCandidateClick }: PositionGroupProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const applicantCount = position.applicants.length;
+  const getDisplayFitScore = (candidate: Applicant) => (
+    candidate.fitScore === null || candidate.fitScore === undefined
+      ? null
+      : normalizeFitScore(candidate.fitScore)
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,49 +114,52 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                     />
                   ))
                 ) : viewMode === 'list' ? (
-                  position.applicants.map((candidate) => (
-                    <div 
-                      key={candidate.id}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl hover:border-primary/30 transition-all cursor-pointer group"
-                      onClick={() => onCandidateClick(candidate)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase">
-                          {candidate.name.charAt(0)}
-                        </div>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate">
-                            {candidate.name}
-                          </span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-primary/20 text-primary bg-primary/5 font-normal">
-                              {(candidate as any).statusName || 'New'}
-                            </Badge>
-                            <span className="text-[10px] text-zinc-400">
-                              {candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}
+                  position.applicants.map((candidate) => {
+                    const fitScore = getDisplayFitScore(candidate);
+                    return (
+                      <div 
+                        key={candidate.id}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl hover:border-primary/30 transition-all cursor-pointer group"
+                        onClick={() => onCandidateClick(candidate)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase">
+                            {candidate.name.charAt(0)}
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate">
+                              {candidate.name}
                             </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-primary/20 text-primary bg-primary/5 font-normal">
+                                {(candidate as any).statusName || 'New'}
+                              </Badge>
+                              <span className="text-[10px] text-zinc-400">
+                                {candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 line-clamp-1 mt-1 italic">
+                              {(candidate as any).assignmentJustification || "No justification provided."}
+                            </p>
                           </div>
-                          <p className="text-[10px] text-zinc-500 line-clamp-1 mt-1 italic">
-                            {(candidate as any).assignmentJustification || "No justification provided."}
-                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {fitScore !== null && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{fitScore}%</span>
+                              <div className="w-12 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary" 
+                                  style={{ width: `${fitScore}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-primary transition-colors" />
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {candidate.fitScore !== null && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{Math.round(candidate.fitScore)}%</span>
-                            <div className="w-12 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary" 
-                                style={{ width: `${candidate.fitScore}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-primary transition-colors" />
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -164,12 +173,14 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                         </tr>
                       </thead>
                       <tbody>
-                        {position.applicants.map((candidate) => (
-                          <tr 
-                            key={candidate.id}
-                            className="group hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors border-b border-zinc-50 dark:border-zinc-800 last:border-0"
-                            onClick={() => onCandidateClick(candidate)}
-                          >
+                        {position.applicants.map((candidate) => {
+                          const fitScore = getDisplayFitScore(candidate);
+                          return (
+                            <tr 
+                              key={candidate.id}
+                              className="group hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors border-b border-zinc-50 dark:border-zinc-800 last:border-0"
+                              onClick={() => onCandidateClick(candidate)}
+                            >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase" style={{ background: (candidate as any).statusColor ? `${(candidate as any).statusColor}20` : undefined, color: (candidate as any).statusColor || undefined }}>
@@ -194,15 +205,15 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                               </Badge>
                             </td>
                             <td className="px-6 py-4">
-                              {candidate.fitScore !== null && (
+                              {fitScore !== null && (
                                 <div className="flex items-center gap-2">
                                   <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                                    {Math.round(candidate.fitScore)}%
+                                    {fitScore}%
                                   </div>
                                   <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-primary" 
-                                      style={{ width: `${candidate.fitScore}%` }}
+                                      style={{ width: `${fitScore}%` }}
                                     />
                                   </div>
                                 </div>
@@ -219,7 +230,8 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                                {candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

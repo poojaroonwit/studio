@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import type { RecruitmentStage } from '@/lib/types';
+import type { Applicant, Position, RecruitmentStage } from '@/lib/types';
 
 type GroupedPosition = Position & { applicants: Applicant[] };
 
@@ -35,6 +35,7 @@ export function CandidatesPageClient() {
   const [isOpenFilter, setIsOpenFilter] = useState<boolean | 'any'>(true); // Default to open
   const [mineOnlyFilter, setMineOnlyFilter] = useState(true); // Default to my positions
   const [pipelineOnlyFilter, setPipelineOnlyFilter] = useState<string[]>([]); // Default will be set after stages fetch
+  const [isPipelineFilterInitialized, setIsPipelineFilterInitialized] = useState(false);
   const [stages, setStages] = useState<RecruitmentStage[]>([]);
   const [isStagesLoading, setIsStagesLoading] = useState(false);
 
@@ -61,7 +62,9 @@ export function CandidatesPageClient() {
       setPipelineOnlyFilter(defaultStages);
     } catch (err: any) {
       console.error('Error fetching stages:', err);
+      setError('Could not load recruitment stages');
     } finally {
+      setIsPipelineFilterInitialized(true);
       setIsStagesLoading(false);
     }
   };
@@ -109,8 +112,9 @@ export function CandidatesPageClient() {
   };
 
   useEffect(() => {
+    if (!isPipelineFilterInitialized) return;
     fetchData();
-  }, [isOpenFilter, mineOnlyFilter, pipelineOnlyFilter]);
+  }, [isOpenFilter, mineOnlyFilter, pipelineOnlyFilter, isPipelineFilterInitialized]);
 
   const handleCandidateClick = (candidate: Applicant) => {
     setSelectedCandidate(candidate);

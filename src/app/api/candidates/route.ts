@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { auth } from '@/auth';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+type CandidatePositionRow = {
+  id: string;
+  [key: string]: any;
+};
+
+type CandidateApplicantRow = {
+  positionId: string;
+  fitScore?: number | string | null;
+  [key: string]: any;
+};
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -20,7 +32,6 @@ export async function GET(request: NextRequest) {
   
   const isOpen = isOpenParam === 'any' ? 'any' : (isOpenParam === null ? true : isOpenParam === 'true'); 
   const mineOnly = mineOnlyParam === null ? true : mineOnlyParam === 'true';
-  const pipelineOnly = pipelineOnlyParam === 'true';
 
   // We check permissions
   const canViewAll = hasPermission(session.user, 'applicantS_VIEW_ALL');
@@ -62,7 +73,7 @@ export async function GET(request: NextRequest) {
     `;
     
     const positionResult = await client.query(positionQuery, queryParams);
-    const positions = positionResult.rows;
+    const positions = positionResult.rows as CandidatePositionRow[];
 
     if (positions.length === 0) {
       return NextResponse.json({ positions: [] });
@@ -94,11 +105,18 @@ export async function GET(request: NextRequest) {
     `;
 
     const applicantResult = await client.query(applicantQuery, applicantQueryParams);
-    const applicants = applicantResult.rows;
+    const applicants = applicantResult.rows as CandidateApplicantRow[];
 
     // 4. Group applicants by position
     const groupedData = positions.map(pos => {
-      const posApplicants = applicants.filter(app => app.positionId === pos.id);
+      const posApplicants = applicants
+        .filter(app => app.positionId === pos.id)
+        .map(app => ({
+          ...app,
+          fitScore: app.fitScore === null || app.fitScore === undefined
+            ? null
+            : normalizeFitScore(Number(app.fitScore)),
+        }));
       return {
         ...pos,
         applicants: posApplicants

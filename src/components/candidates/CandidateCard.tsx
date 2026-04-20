@@ -8,6 +8,7 @@ import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { Mail, Phone, MapPin, Calendar, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 import type { Applicant } from '@/lib/types';
 
 interface CandidateCardProps {
@@ -27,7 +28,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
     : 'Recently';
 
   const fitScore = candidate.fitScore !== null && candidate.fitScore !== undefined 
-    ? Math.round(candidate.fitScore) 
+    ? normalizeFitScore(candidate.fitScore)
     : null;
 
   return (

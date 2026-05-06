@@ -106,9 +106,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
-  const [footerStatusNote, setFooterStatusNote] = useState('');
   const [footerRejectNote, setFooterRejectNote] = useState('');
-  const [isFooterPopoverOpen, setIsFooterPopoverOpen] = useState(false);
   const [isRejectPopoverOpen, setIsRejectPopoverOpen] = useState(false);
 
   // QR Modal State
@@ -1514,77 +1512,20 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                   </Popover>
                 )}
                 {nextStage && (
-                  <Popover open={isFooterPopoverOpen} onOpenChange={setIsFooterPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        disabled={isStatusUpdating}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
-                      >
-                        {isStatusUpdating ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            Move to {nextStage.name}
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-4" align="end" side="top" sideOffset={10}>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold leading-none text-foreground">Confirm Next Step</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Move applicant to <strong>{nextStage.name}</strong> stage.
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="footer-note" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            OPTIONAL NOTE
-                          </label>
-                          <Textarea
-                            id="footer-note"
-                            placeholder="Add a note about this transition..."
-                            value={footerStatusNote}
-                            onChange={(e) => setFooterStatusNote(e.target.value)}
-                            className="min-h-[100px] text-sm resize-none focus:ring-1 focus:ring-primary/20"
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => {
-                              setIsFooterPopoverOpen(false);
-                              setFooterStatusNote('');
-                            }}
-                            disabled={isStatusUpdating}
-                            className="h-8 px-3 text-xs"
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            disabled={isStatusUpdating}
-                            onClick={async () => {
-                              const result = await handleStatusUpdate(nextStage.id, footerStatusNote);
-                              if (result) {
-                                setFooterStatusNote('');
-                                setIsFooterPopoverOpen(false);
-                              }
-                            }}
-                            className="h-8 px-4 text-xs font-semibold"
-                          >
-                            {isStatusUpdating ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              'Confirm'
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  <Button
+                    disabled={isStatusUpdating}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
+                    onClick={() => handleStatusUpdate(nextStage.id)}
+                  >
+                    {isStatusUpdating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        Move to {nextStage.name}
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 )}
               </>
             );

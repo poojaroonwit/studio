@@ -1,6 +1,6 @@
 // Service Worker for FitScan PWA
-// v2: Added auth page exclusions to prevent cached authenticated pages after logout
-const CACHE_NAME = 'fitscan-v2';
+// v2.1.1: Force stale service worker/cache cleanup after chunk loading failures
+const CACHE_NAME = 'fitscan-v2.1.1';
 const urlsToCache = [
   '/',
   '/api/manifest.json',
@@ -190,11 +190,7 @@ self.addEventListener('fetch', (event) => {
         // Fallback to network
         return fetch(request).catch((networkError) => {
           console.error('Service Worker: All fetch attempts failed:', networkError);
-          return new Response('Service unavailable', {
-            status: 503,
-            statusText: 'Service Unavailable',
-            headers: { 'Content-Type': 'text/plain' }
-          });
+          throw networkError;
         });
       })
   );

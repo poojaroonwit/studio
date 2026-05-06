@@ -2,6 +2,7 @@
 import { Pool } from 'pg';
 import { addProcessHandler } from './process-manager';
 import { isBuildTime } from './build-check';
+import { expandPermissionSet } from './permission-aliases';
 
 // Suppress pg-native warning by setting environment variable
 process.env.PG_NATIVE = 'false';
@@ -318,7 +319,7 @@ export async function getMergedUserPermissions(userId: string): Promise<string[]
       return [];
     }
     
-    return result.rows[0].permissions || [];
+    return expandPermissionSet(result.rows[0].permissions || []);
   } catch (error) {
     console.error('Error getting merged user permissions:', error);
     return [];

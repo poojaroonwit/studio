@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertTriangle, Bug } from 'lucide-react';
 import { globalErrorHandler, isFilterError } from '@/lib/error-handler';
+import { isChunkLoadError, recoverFromChunkLoadError } from '@/lib/chunk-load-recovery';
 
 interface Props {
   children: ReactNode;
@@ -63,6 +64,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // Log error for monitoring
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+
+    if (isChunkLoadError(error)) {
+      recoverFromChunkLoadError(error).catch((recoveryError) => {
+        console.error('Chunk load recovery failed:', recoveryError);
+      });
+    }
   }
 
   private getFilterErrorContext(error: Error): any {
@@ -174,9 +181,14 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReload = () => {
-    // Don't automatically reload - let user decide
-    // window.location.reload();
-    this.handleRetry();
+    if (this.state.error && isChunkLoadError(this.state.error)) {
+      recoverFromChunkLoadError(this.state.error).catch(() => {
+        window.location.reload();
+      });
+      return;
+    }
+
+    window.location.reload();
   };
 
   public render() {
@@ -190,6 +202,7 @@ export class ErrorBoundary extends Component<Props, State> {
       const isChartError = this.state.error?.message?.includes('Filler plugin');
       const isMimeError = this.state.error?.message?.includes('MIME type');
       const isDateError = this.state.error?.message?.includes('getTime is not a function');
+      const isChunkError = this.state.error ? isChunkLoadError(this.state.error) : false;
 
       return (
         <div className="min-flex items-center justify-center bg-background p-4">
@@ -242,7 +255,17 @@ export class ErrorBoundary extends Component<Props, State> {
                     </p>
                   </div>
                 )}
-                {!isFilterErrorType && !isChartError && !isMimeError && !isDateError && (
+                {isChunkError && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-700">
+                      The app loaded an outdated page asset. We are clearing cached files and refreshing.
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Error: {this.state.error?.message}
+                    </p>
+                  </div>
+                )}
+                {!isFilterErrorType && !isChartError && !isMimeError && !isDateError && !isChunkError && (
                   <div className="space-y-2">
                     <p className="text-sm text-red-700">
                       An unexpected error occurred. Please try refreshing the page.

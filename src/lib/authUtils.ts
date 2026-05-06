@@ -5,6 +5,7 @@ import { verifyTotpCode, generateEmailOtp, sendEmailOtp } from '@/lib/twoFactorA
 import { sendEmail } from '@/lib/emailService';
 import { webhookFetch } from '@/lib/webhookFetch';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { expandPermissionSet } from '@/lib/permission-aliases';
 
 // Account lockout configuration
 const LOCKOUT_CONFIG = {
@@ -403,7 +404,7 @@ export async function authenticateUser(email: string, password?: string, twoFact
       WHERE u.id = $1
     `, [user.id]);
 
-    const permissions = permissionsResult.rows[0]?.permissions || [];
+    const permissions = expandPermissionSet(permissionsResult.rows[0]?.permissions || []);
 
     return {
       success: true,
@@ -579,7 +580,9 @@ export async function getUserPermissions(userId: string): Promise<PlatformModule
     `, [userId]);
 
     // Extract permissions from the result
-    const permissions = result.rows.map((row: any) => row.permission) as PlatformModuleId[];
+    const permissions = expandPermissionSet(
+      result.rows.map((row: any) => row.permission) as PlatformModuleId[]
+    );
     return permissions;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -889,7 +892,7 @@ export async function getUserFullContext(sessionToken: string): Promise<{
         isActive: row.user_active,
         twoFactorEnabled: row.two_factor_enabled,
         twoFactorMethod: row.two_factor_method,
-        modulePermissions: row.permissions || []
+        modulePermissions: expandPermissionSet(row.permissions || [])
       }
     };
 

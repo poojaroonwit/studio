@@ -18,11 +18,48 @@ interface PositionGroupProps {
 export function PositionGroup({ position, viewMode, onCandidateClick }: PositionGroupProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const applicantCount = position.applicants.length;
+
   const getDisplayFitScore = (candidate: Applicant) => (
     candidate.fitScore === null || candidate.fitScore === undefined
       ? null
       : normalizeFitScore(candidate.fitScore)
   );
+
+  const getFitScoreColor = (fitScore: number) => (
+    fitScore >= 80
+      ? "text-emerald-600 bg-emerald-500"
+      : fitScore >= 60
+        ? "text-blue-600 bg-blue-500"
+        : fitScore >= 40
+          ? "text-amber-600 bg-amber-500"
+          : "text-zinc-500 bg-zinc-400"
+  );
+
+  const renderFitScore = (fitScore: number | null, barWidthClassName: string) => {
+    if (fitScore === null) {
+      return (
+        <span className="text-xs font-medium text-zinc-400 whitespace-nowrap">
+          Not scored
+        </span>
+      );
+    }
+
+    const [textColorClassName, barColorClassName] = getFitScoreColor(fitScore).split(' ');
+
+    return (
+      <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+        <span className={cn("text-xs font-bold", textColorClassName)}>
+          {fitScore}%
+        </span>
+        <div className={cn("h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden", barWidthClassName)}>
+          <div
+            className={cn("h-full rounded-full", barColorClassName)}
+            style={{ width: `${fitScore}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -143,18 +180,8 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                             </p>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {fitScore !== null && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{fitScore}%</span>
-                              <div className="w-12 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-primary" 
-                                  style={{ width: `${fitScore}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {renderFitScore(fitScore, "w-16")}
                           <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-primary transition-colors" />
                         </div>
                       </div>
@@ -205,19 +232,7 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                               </Badge>
                             </td>
                             <td className="px-6 py-4">
-                              {fitScore !== null && (
-                                <div className="flex items-center gap-2">
-                                  <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                                    {fitScore}%
-                                  </div>
-                                  <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-primary" 
-                                      style={{ width: `${fitScore}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              )}
+                              {renderFitScore(fitScore, "w-20")}
                             </td>
                             <td className="px-6 py-4">
                               <div className="pt-1 flex-1">

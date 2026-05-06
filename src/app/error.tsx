@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { isChunkLoadError, recoverFromChunkLoadError } from '@/lib/chunk-load-recovery'
 
 export default function Error({
   error,
@@ -16,6 +17,12 @@ export default function Error({
       stack: error.stack,
       digest: error.digest,
     })
+
+    if (isChunkLoadError(error)) {
+      recoverFromChunkLoadError(error).catch((recoveryError) => {
+        console.error('Chunk load recovery failed:', recoveryError)
+      })
+    }
   }, [error])
 
   return (
@@ -28,7 +35,14 @@ export default function Error({
           {error.message || 'An unexpected error occurred'}
         </p>
         <button
-          onClick={reset}
+          onClick={() => {
+            if (isChunkLoadError(error)) {
+              recoverFromChunkLoadError(error).catch(() => window.location.reload())
+              return
+            }
+
+            reset()
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           Try again

@@ -1,4 +1,5 @@
 import type { PlatformModuleId } from '@/lib/types';
+import { expandPermissionSet, permissionMatches } from '@/lib/permission-aliases';
 
 export interface SessionLikeUser {
   modulePermissions?: PlatformModuleId[];
@@ -11,7 +12,7 @@ export function hasPermission(user: SessionLikeUser | null | undefined, permissi
   if (user.role === 'Admin') {
     return true;
   }
-  return Array.isArray(user.modulePermissions) && user.modulePermissions.includes(permission);
+  return permissionMatches(user.modulePermissions, permission);
 }
 
 export function hasAnyPermission(user: SessionLikeUser | null | undefined, required: PlatformModuleId[]): boolean {
@@ -20,8 +21,8 @@ export function hasAnyPermission(user: SessionLikeUser | null | undefined, requi
   if (user.role === 'Admin') {
     return true;
   }
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
-  return required.some(p => perms.includes(p));
+  const perms = expandPermissionSet(user.modulePermissions);
+  return required.some(p => permissionMatches(perms, p));
 }
 
 export function hasAllPermissions(user: SessionLikeUser | null | undefined, required: PlatformModuleId[]): boolean {
@@ -30,8 +31,8 @@ export function hasAllPermissions(user: SessionLikeUser | null | undefined, requ
   if (user.role === 'Admin') {
     return true;
   }
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
-  return required.every(p => perms.includes(p));
+  const perms = expandPermissionSet(user.modulePermissions);
+  return required.every(p => permissionMatches(perms, p));
 }
 
 // New function to check permissions with role and module permissions
@@ -46,7 +47,7 @@ export function checkPermission(
   }
   
   // Check if user has the specific permission
-  return Array.isArray(modulePermissions) && modulePermissions.includes(permissionId);
+  return permissionMatches(modulePermissions, permissionId);
 }
 
 // Ownership-based permission checking functions
@@ -64,11 +65,11 @@ export function canEditApplicant(
     return { canEdit: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global edit permissions (can edit any Applicant)
-  const hasGlobalBasicEdit = perms.includes('applicantS_EDIT_BASIC') || perms.includes('applicantS_EDIT_BASIC_ALL');
-  const hasGlobalSensitiveEdit = perms.includes('applicantS_EDIT_SENSITIVE') || perms.includes('applicantS_EDIT_SENSITIVE_ALL');
+  const hasGlobalBasicEdit = permissionMatches(perms, 'applicantS_EDIT_BASIC') || permissionMatches(perms, 'applicantS_EDIT_BASIC_ALL');
+  const hasGlobalSensitiveEdit = permissionMatches(perms, 'applicantS_EDIT_SENSITIVE') || permissionMatches(perms, 'applicantS_EDIT_SENSITIVE_ALL');
   
   if (hasGlobalBasicEdit || hasGlobalSensitiveEdit) {
     return { canEdit: true };
@@ -76,8 +77,8 @@ export function canEditApplicant(
 
   // Check for ownership-based permissions
   const isOwnApplicant = applicantRecruiterId === userId;
-  const hasOwnBasicEdit = perms.includes('applicantS_EDIT_BASIC_OWN');
-  const hasOwnSensitiveEdit = perms.includes('applicantS_EDIT_SENSITIVE_OWN');
+  const hasOwnBasicEdit = permissionMatches(perms, 'applicantS_EDIT_BASIC_OWN');
+  const hasOwnSensitiveEdit = permissionMatches(perms, 'applicantS_EDIT_SENSITIVE_OWN');
   
   if (isOwnApplicant && (hasOwnBasicEdit || hasOwnSensitiveEdit)) {
     return { canEdit: true };
@@ -105,16 +106,16 @@ export function canUpdateApplicantPipelineStage(
     return { canUpdate: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global pipeline update permission
-  if (perms.includes('applicantS_PIPELINE_STAGE_UPDATE') || perms.includes('applicantS_PIPELINE_STAGE_UPDATE_ALL')) {
+  if (permissionMatches(perms, 'applicantS_PIPELINE_STAGE_UPDATE') || permissionMatches(perms, 'applicantS_PIPELINE_STAGE_UPDATE_ALL')) {
     return { canUpdate: true };
   }
 
   // Check for ownership-based pipeline update permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('applicantS_PIPELINE_STAGE_UPDATE_OWN')) {
+  if (isOwnApplicant && permissionMatches(perms, 'applicantS_PIPELINE_STAGE_UPDATE_OWN')) {
     return { canUpdate: true };
   }
 
@@ -140,16 +141,16 @@ export function canAssignRecruiter(
     return { canAssign: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global recruiter assignment permission
-  if (perms.includes('applicantS_RECRUITER_ASSIGN') || perms.includes('applicantS_RECRUITER_ASSIGN_ALL')) {
+  if (permissionMatches(perms, 'applicantS_RECRUITER_ASSIGN') || permissionMatches(perms, 'applicantS_RECRUITER_ASSIGN_ALL')) {
     return { canAssign: true };
   }
 
   // Check for ownership-based recruiter assignment permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('applicantS_RECRUITER_ASSIGN_OWN')) {
+  if (isOwnApplicant && permissionMatches(perms, 'applicantS_RECRUITER_ASSIGN_OWN')) {
     return { canAssign: true };
   }
 
@@ -175,16 +176,16 @@ export function canAddComments(
     return { canAdd: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global comment add permission
-  if (perms.includes('applicantS_COMMENTS_ADD') || perms.includes('applicantS_COMMENTS_ADD_ALL')) {
+  if (permissionMatches(perms, 'applicantS_COMMENTS_ADD') || permissionMatches(perms, 'applicantS_COMMENTS_ADD_ALL')) {
     return { canAdd: true };
   }
 
   // Check for ownership-based comment add permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('applicantS_COMMENTS_ADD_OWN')) {
+  if (isOwnApplicant && permissionMatches(perms, 'applicantS_COMMENTS_ADD_OWN')) {
     return { canAdd: true };
   }
 
@@ -210,16 +211,16 @@ export function canUploadResumes(
     return { canUpload: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global resume upload permission
-  if (perms.includes('applicantS_RESUMES_UPLOAD') || perms.includes('applicantS_RESUMES_UPLOAD_ALL')) {
+  if (permissionMatches(perms, 'applicantS_RESUMES_UPLOAD') || permissionMatches(perms, 'applicantS_RESUMES_UPLOAD_ALL')) {
     return { canUpload: true };
   }
 
   // Check for ownership-based resume upload permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('applicantS_RESUMES_UPLOAD_OWN')) {
+  if (isOwnApplicant && permissionMatches(perms, 'applicantS_RESUMES_UPLOAD_OWN')) {
     return { canUpload: true };
   }
 
@@ -243,14 +244,14 @@ export function canViewEvaluationLinks(
     return { canView: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for view permission
-  if (perms.includes('EVALUATION_LINKS_VIEW') || 
-      perms.includes('EVALUATION_LINKS_CREATE_OWN') || 
-      perms.includes('EVALUATION_LINKS_CREATE_ALL') ||
-      perms.includes('EVALUATION_LINKS_MANAGE_OWN') ||
-      perms.includes('EVALUATION_LINKS_MANAGE_ALL')) {
+  if (permissionMatches(perms, 'EVALUATION_LINKS_VIEW') || 
+      permissionMatches(perms, 'EVALUATION_LINKS_CREATE_OWN') || 
+      permissionMatches(perms, 'EVALUATION_LINKS_CREATE_ALL') ||
+      permissionMatches(perms, 'EVALUATION_LINKS_MANAGE_OWN') ||
+      permissionMatches(perms, 'EVALUATION_LINKS_MANAGE_ALL')) {
     return { canView: true };
   }
 
@@ -274,16 +275,16 @@ export function canCreateEvaluationLink(
     return { canCreate: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global create permission
-  if (perms.includes('EVALUATION_LINKS_CREATE_ALL')) {
+  if (permissionMatches(perms, 'EVALUATION_LINKS_CREATE_ALL')) {
     return { canCreate: true };
   }
 
   // Check for ownership-based create permission
   const isOwnApplicant = applicantRecruiterId === userId;
-  if (isOwnApplicant && perms.includes('EVALUATION_LINKS_CREATE_OWN')) {
+  if (isOwnApplicant && permissionMatches(perms, 'EVALUATION_LINKS_CREATE_OWN')) {
     return { canCreate: true };
   }
 
@@ -309,16 +310,16 @@ export function canManageEvaluationLink(
     return { canManage: true };
   }
 
-  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  const perms = expandPermissionSet(user.modulePermissions);
   
   // Check for global manage permission
-  if (perms.includes('EVALUATION_LINKS_MANAGE_ALL')) {
+  if (permissionMatches(perms, 'EVALUATION_LINKS_MANAGE_ALL')) {
     return { canManage: true };
   }
 
   // Check for ownership-based manage permission
   const isOwnLink = linkCreatedById === userId;
-  if (isOwnLink && perms.includes('EVALUATION_LINKS_MANAGE_OWN')) {
+  if (isOwnLink && permissionMatches(perms, 'EVALUATION_LINKS_MANAGE_OWN')) {
     return { canManage: true };
   }
 

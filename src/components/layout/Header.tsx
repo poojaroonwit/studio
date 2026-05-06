@@ -607,19 +607,19 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
             className="flex min-w-0 items-center group text-left transition-transform duration-200 active:scale-95"
           >
             {appLogoUrl ? (
-              <div className="relative mr-4 h-9 w-9 flex-shrink-0">
+              <div className="relative mr-4 h-12 w-12 flex-shrink-0">
                 <Image
                   src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
                   alt={currentAppName}
                   fill
                   unoptimized
-                  sizes="36px"
+                  sizes="48px"
                   className="object-contain"
                 />
                 <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-[0_4px_12px_rgba(37,99,235,0.3)] mr-4 group-hover:shadow-[0_8px_20px_rgba(37,99,235,0.4)] group-hover:-translate-y-0.5 transition-all duration-300 overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700">
+              <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center font-bold text-white text-base shadow-[0_4px_12px_rgba(37,99,235,0.3)] mr-4 group-hover:shadow-[0_8px_20px_rgba(37,99,235,0.4)] group-hover:-translate-y-0.5 transition-all duration-300 overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700">
                 {currentAppName?.[0] || 'F'}
               </div>
             )}

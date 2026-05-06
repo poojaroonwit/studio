@@ -403,8 +403,14 @@ const getAuthConfig = async () => {
           const userRole = (token.role as UserProfile['role']) || 'Recruiter';
           session.user.role = userRole;
 
-          // Fallback for permissions if not fetched
-          session.user.modulePermissions = [];
+          // Fallback for permissions if the optimized session lookup could not hydrate them.
+          // Older cookies may not carry a custom sessionToken, so fetch role permissions from DB
+          // instead of silently returning an empty permission set.
+          if (session.user.id) {
+            session.user.modulePermissions = await getUserPermissions(session.user.id);
+          } else {
+            session.user.modulePermissions = [];
+          }
 
           session.user.name = (token as any).name || session.user.name;
           session.user.avatarUrl = (token as any).avatarUrl || null;

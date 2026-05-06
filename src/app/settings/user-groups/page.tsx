@@ -4,7 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { hasDefaultPermissionsTemplate } from '@/lib/default-role-permissions';
 
 // Error boundary component for role permissions page
 class RolePermissionsErrorBoundary extends React.Component<
@@ -155,6 +156,8 @@ function RolesPermissionsPageContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<UserGroup | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<UserGroup | null>(null);
+  const [roleToReset, setRoleToReset] = useState<UserGroup | null>(null);
+  const [isResettingRoleId, setIsResettingRoleId] = useState<string | null>(null);
 
   // Convert IIFE to useMemo to prevent initialization errors
   const platformModuleIds = useMemo(() => {
@@ -325,6 +328,36 @@ function RolesPermissionsPageContent() {
     }
   };
 
+  const confirmResetPermissions = (role: UserGroup) => {
+    setRoleToReset(role);
+  };
+
+  const handleResetPermissions = async () => {
+    if (!roleToReset) {
+      return;
+    }
+
+    setIsResettingRoleId(roleToReset.id);
+    try {
+      const response = await fetch(`/api/settings/user-groups/${roleToReset.id}/reset-permissions`, {
+        method: 'POST',
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to reset role permissions');
+      }
+
+      toast.success(result.message || `Permissions for "${roleToReset.name}" were reset to default.`);
+      await fetchRoles(true);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsResettingRoleId(null);
+      setRoleToReset(null);
+    }
+  };
+
   if (sessionStatus === 'loading' || (isLoading && !fetchError && roles.length === 0 && !selectedRole)) {
     return ( <div className="flex h-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
@@ -442,6 +475,17 @@ function RolesPermissionsPageContent() {
                           <DropdownMenuItem onClick={e => { e.stopPropagation(); handleSelectRole(role); }}>
                             <Edit3 className="mr-2 h-4 w-4" /> Manage Role
                           </DropdownMenuItem>
+                          {hasDefaultPermissionsTemplate(role.name) && (
+                            <DropdownMenuItem
+                              onClick={e => {
+                                e.stopPropagation();
+                                confirmResetPermissions(role);
+                              }}
+                              disabled={isResettingRoleId === role.id}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" /> Reset Permissions to Default
+                            </DropdownMenuItem>
+                          )}
                           {!role.isSystemRole && (
                             <>
                               <DropdownMenuSeparator />
@@ -530,6 +574,41 @@ function RolesPermissionsPageContent() {
               <AlertDialogCancel onClick={() => setRoleToDelete(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} className={buttonVariants({ variant: "destructive" })}>
                 Delete Role
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Reset Permissions Confirmation */}
+      {roleToReset && (
+        <AlertDialog open={!!roleToReset} onOpenChange={(open) => { if (!open) setRoleToReset(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset role permissions?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will reset the permissions for "<strong>{roleToReset.name}</strong>" back to its default bundle.
+                All {roleToReset.user_count || 0} users assigned to this role will immediately inherit the reset permissions.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRoleToReset(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleResetPermissions}
+                className={buttonVariants({ variant: "default" })}
+                disabled={isResettingRoleId === roleToReset.id}
+              >
+                {isResettingRoleId === roleToReset.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Reset to Default
+                  </>
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

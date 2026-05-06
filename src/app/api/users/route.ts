@@ -12,6 +12,7 @@ import { dispatchWebhooks } from '@/lib/webhooks';
 
 import { hasAnyPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
+import { expandPermissionSet } from '@/lib/permission-aliases';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -227,7 +228,7 @@ export async function GET(request: NextRequest) {
       return {
         ...user,
         teams: userTeam ? [userTeam] : [],
-        modulePermissions: userGroup?.permissions || [],
+        modulePermissions: expandPermissionSet(userGroup?.permissions || []),
         // Expose derived group name for UI display
         userGroupName: userGroup?.name || null,
         lastLogin: lastLogin
@@ -545,7 +546,7 @@ export async function POST(request: NextRequest) {
       ...newUser,
       teams: userTeamIds || [],
       // Get permissions from UserGroup, not from direct field
-      modulePermissions: userGroup?.permissions || []
+      modulePermissions: expandPermissionSet(userGroup?.permissions || [])
     };
 
     // Clear user validation cache for the new user

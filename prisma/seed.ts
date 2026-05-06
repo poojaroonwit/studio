@@ -98,27 +98,8 @@ async function main() {
     // Create or update admin group
     let adminGroup;
     if (existingAdminGroup) {
-      console.log('   Updating existing Administrators group...');
-      adminGroup = await prisma.userGroup.update({
-        where: { id: existingAdminGroup.id },
-        data: {
-          description: 'Full system access and management',
-          permissions: [
-            // applicant permissions
-                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_OWN', 'applicantS_EDIT_SENSITIVE_OWN', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_DELETE', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
-            // Position permissions
-            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_DELETE', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
-            // User management permissions
-            'USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE',
-            // System permissions
-            'SYSTEM_SETTINGS_VIEW', 'SYSTEM_SETTINGS_EDIT', 'RECRUITMENT_STAGES_VIEW', 'RECRUITMENT_STAGES_EDIT', 'CUSTOM_FIELDS_VIEW', 'CUSTOM_FIELDS_EDIT', 'WEBHOOKS_VIEW', 'WEBHOOKS_EDIT', 'AI_INTEGRATION_VIEW', 'AI_INTEGRATION_EDIT',
-            // Other permissions
-            'UPLOAD_QUEUE_VIEW', 'UPLOAD_QUEUE_MANAGE', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW', 'LOGS_VIEW', 'LOGS_EXPORT', 'APP_PERFORMANCE_VIEW', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL', 'JOB_MATCH_VIEW', 'JOB_MATCH_MANAGE', 'WARNING_CONFIGURATIONS_VIEW', 'WARNING_CONFIGURATIONS_MANAGE', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL'
-          ],
-          isDefault: false,
-          isSystemRole: true,
-        }
-      });
+      console.log('   Preserving existing Administrators group configuration...');
+      adminGroup = existingAdminGroup;
     } else {
       console.log('   Creating new Administrators group...');
       adminGroup = await prisma.userGroup.create({
@@ -146,23 +127,8 @@ async function main() {
     // Create or update recruiter group
     let recruiterGroup;
     if (existingRecruiterGroup) {
-      console.log('   Updating existing Recruiter group...');
-      recruiterGroup = await prisma.userGroup.update({
-        where: { id: existingRecruiterGroup.id },
-        data: {
-          description: 'Standard recruiter access',
-          permissions: [
-            // applicant management
-                        'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_BASIC_OWN', 'applicantS_SOURCE_ASSIGN', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_OWN', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_OWN', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_OWN', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_OWN', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
-            // Position management
-            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
-            // Other permissions
-            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE'
-          ],
-          isDefault: true,
-          isSystemRole: false,
-        }
-      });
+      console.log('   Preserving existing Recruiter group configuration...');
+      recruiterGroup = existingRecruiterGroup;
     } else {
       console.log('   Creating new Recruiter group...');
       recruiterGroup = await prisma.userGroup.create({
@@ -190,23 +156,8 @@ async function main() {
 
     let recruiterManagerGroup;
     if (existingRecruiterManagerGroup) {
-      console.log('   Updating existing Recruiter Manager group...');
-      recruiterManagerGroup = await prisma.userGroup.update({
-        where: { id: existingRecruiterManagerGroup.id },
-        data: {
-          description: 'Lead recruiter with advanced access',
-          permissions: [
-            // applicant management (Full access except Delete)
-                        'applicantS_VIEW', 'applicantS_VIEW_ALL', 'applicantS_VIEW_DETAILED', 'applicantS_CREATE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE', 'applicantS_EDIT_BASIC_ALL', 'applicantS_EDIT_SENSITIVE_ALL', 'applicantS_SOURCE_ASSIGN', 'applicantS_SOURCE_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN', 'applicantS_RECRUITER_ASSIGN_BULK', 'applicantS_RECRUITER_ASSIGN_ALL', 'applicantS_PIPELINE_STAGE_UPDATE', 'applicantS_PIPELINE_STAGE_BULK_UPDATE', 'applicantS_PIPELINE_STAGE_UPDATE_ALL', 'applicantS_RESUMES_UPLOAD', 'applicantS_RESUMES_UPLOAD_ALL', 'applicantS_RESUMES_DELETE', 'applicantS_COMMENTS_VIEW', 'applicantS_COMMENTS_ADD', 'applicantS_COMMENTS_ADD_ALL', 'applicantS_COMMENTS_EDIT', 'applicantS_IMPORT', 'applicantS_EXPORT', 'applicantS_ACTIVITIES_VIEW',
-            // Position management
-            'POSITIONS_VIEW', 'POSITIONS_VIEW_ALL', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
-            // Other permissions
-            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_ALL', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW'
-          ],
-          isDefault: false,
-          isSystemRole: false,
-        }
-      });
+      console.log('   Preserving existing Recruiter Manager group configuration...');
+      recruiterManagerGroup = existingRecruiterManagerGroup;
     } else {
       console.log('   Creating new Recruiter Manager group...');
       recruiterManagerGroup = await prisma.userGroup.create({
@@ -230,18 +181,8 @@ async function main() {
     // Create or update hiring manager group
     let hiringManagerGroup;
     if (existingHiringManagerGroup) {
-      console.log('   Updating existing Hiring Managers group...');
-      hiringManagerGroup = await prisma.userGroup.update({
-        where: { id: existingHiringManagerGroup.id },
-        data: {
-          description: 'View-only access for hiring decisions',
-          permissions: [
-            'applicantS_VIEW', 'applicantS_VIEW_DETAILED', 'applicantS_COMMENTS_VIEW_REMARK_ONLY', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
-          ],
-          isDefault: false,
-          isSystemRole: false,
-        }
-      });
+      console.log('   Preserving existing Hiring Managers group configuration...');
+      hiringManagerGroup = existingHiringManagerGroup;
     } else {
       console.log('   Creating new Hiring Managers group...');
       hiringManagerGroup = await prisma.userGroup.create({
@@ -260,18 +201,8 @@ async function main() {
     // Create or update pre-registered user group
     let preRegisteredGroup;
     if (existingPreRegisteredGroup) {
-      console.log('   Updating existing Pre-Registered User group...');
-      preRegisteredGroup = await prisma.userGroup.update({
-        where: { id: existingPreRegisteredGroup.id },
-        data: {
-          description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
-          permissions: [
-            'USER_PREFERENCES_MANAGE_OWN', 'ROLES_MANAGE'
-          ],
-          isDefault: false,
-          isSystemRole: true,
-        }
-      });
+      console.log('   Preserving existing Pre-Registered User group configuration...');
+      preRegisteredGroup = existingPreRegisteredGroup;
     } else {
       console.log('   Creating new Pre-Registered User group...');
       preRegisteredGroup = await prisma.userGroup.create({
@@ -294,12 +225,16 @@ async function main() {
     console.log('Assigning admin user to Administrators group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
-      // Update user with direct foreign key
-      await prisma.user.update({
-        where: { id: adminUser.id },
-        data: { userGroupId: adminGroup.id }
-      });
-      console.log('✓ Admin user assigned to Administrators group');
+      if (!adminUser.userGroupId) {
+        // Only assign the default admin group when the user has no explicit group yet.
+        await prisma.user.update({
+          where: { id: adminUser.id },
+          data: { userGroupId: adminGroup.id }
+        });
+        console.log('✓ Admin user assigned to Administrators group');
+      } else {
+        console.log('   Preserving existing admin user group assignment...');
+      }
     }
 
     // Create basic system settings

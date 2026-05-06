@@ -173,15 +173,11 @@ export async function POST(request: NextRequest) {
         const existingUser = existingUsersByEmail.get(email) || existingUsersByOid.get(userData.azureOid);
 
         if (existingUser) {
-          // User exists - update azure_oid if missing
-          if (!existingUser.azure_oid) {
-            usersToUpdate.push({
-              id: existingUser.id,
-              azureOid: userData.azureOid
-            });
-          } else {
-            results.skipped++;
-          }
+          // User exists - sync only Azure AD linkage metadata without changing local auth config.
+          usersToUpdate.push({
+            id: existingUser.id,
+            azureOid: userData.azureOid
+          });
         } else {
           // User doesn't exist - prepare for creation
           usersToCreate.push(userData);
@@ -200,8 +196,8 @@ export async function POST(request: NextRequest) {
       try {
         for (const user of usersToUpdate) {
           await client.query(
-            'UPDATE "User" SET "azure_oid" = $1, "authentication_methods" = $2 WHERE id = $3',
-            [user.azureOid, ['azure_ad'], user.id]
+            'UPDATE "User" SET "azure_oid" = COALESCE("azure_oid", $1), "deleted_from_ad" = false WHERE id = $2',
+            [user.azureOid, user.id]
           );
         }
         await client.query('COMMIT');

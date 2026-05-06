@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
               }
 
               if (existingUser) {
-                // User exists - update details with all Azure AD profile fields
+                // User exists - sync profile fields only, preserving local auth/permission config.
                 usersToUpdate.push({
                   id: existingUser.id,
                   azureOid: userData.azureOid,
@@ -321,9 +321,9 @@ export async function POST(request: NextRequest) {
                   employeeType: userData.employeeType,
                   hireDate: userData.hireDate,
                   manager: userData.manager,
+                  managerEmail: userData.managerEmail,
                   samAccountName: userData.samAccountName,
-                  contactInfo: userData.contactInfo,
-                  isActive: userData.accountEnabled // Sync account enabled status
+                  contactInfo: userData.contactInfo
                 });
               } else if (userData.accountEnabled) {
                 // Only create NEW users if account is enabled in Azure AD
@@ -348,28 +348,30 @@ export async function POST(request: NextRequest) {
           await client.query('BEGIN');
           try {
             for (const user of usersToUpdate) {
-              // Update with all Azure AD profile fields including account status
+              // Update Azure AD-linked profile data only. Preserve local auth methods,
+              // role/group permissions, 2FA state, and manually managed activation state.
               await client.query(
                 `UPDATE "User" SET 
-                  "azure_oid" = $1, "authentication_methods" = $2, "department" = $3, 
-                  "userTeamId" = $4, "avatarUrl" = COALESCE($5, "avatarUrl"),
-                  "office_location" = COALESCE($6, "office_location"),
-                  "employee_id" = COALESCE($7, "employee_id"),
-                  "company_name" = COALESCE($8, "company_name"),
-                  "employee_type" = COALESCE($9, "employee_type"),
-                  "hire_date" = COALESCE($10, "hire_date"),
-                  "manager" = COALESCE($11, "manager"),
-                  "manager_email" = COALESCE($12, "manager_email"),
-                  "sam_account_name" = COALESCE($13, "sam_account_name"),
-                  "contact_info" = COALESCE($14, "contact_info"),
-                  "is_active" = $15
-                WHERE id = $16`,
+                  "azure_oid" = COALESCE("azure_oid", $1),
+                  "deleted_from_ad" = false,
+                  "department" = $2, 
+                  "userTeamId" = $3,
+                  "avatarUrl" = COALESCE($4, "avatarUrl"),
+                  "office_location" = COALESCE($5, "office_location"),
+                  "employee_id" = COALESCE($6, "employee_id"),
+                  "company_name" = COALESCE($7, "company_name"),
+                  "employee_type" = COALESCE($8, "employee_type"),
+                  "hire_date" = COALESCE($9, "hire_date"),
+                  "manager" = COALESCE($10, "manager"),
+                  "manager_email" = COALESCE($11, "manager_email"),
+                  "sam_account_name" = COALESCE($12, "sam_account_name"),
+                  "contact_info" = COALESCE($13, "contact_info")
+                WHERE id = $14`,
                 [
-                  user.azureOid, ['azure_ad'], user.department, user.userTeamId, user.avatarUrl,
+                  user.azureOid, user.department, user.userTeamId, user.avatarUrl,
                   user.officeLocation, user.employeeId, user.companyName, user.employeeType,
                   user.hireDate, user.manager, user.managerEmail, user.samAccountName,
                   user.contactInfo ? JSON.stringify(user.contactInfo) : null,
-                  user.isActive,
                   user.id
                 ]
               );
@@ -488,7 +490,7 @@ export async function POST(request: NextRequest) {
             action: 'AD_SYNC_UPDATE',
             details: {
               syncedBy: session.user.email,
-              isActive: user.isActive
+              deletedFromAd: false
             },
             performedBy: session.user.id
           });
@@ -513,9 +515,9 @@ export async function POST(request: NextRequest) {
           await client.query('BEGIN');
           try {
             for (const deletedUser of usersDeletedFromAD) {
-              // Mark as deleted from AD and disable account
+              // Mark as deleted from AD without altering local account/auth configuration.
               await client.query(
-                'UPDATE "User" SET "deleted_from_ad" = true, "is_active" = false WHERE id = $1',
+                'UPDATE "User" SET "deleted_from_ad" = true WHERE id = $1',
                 [deletedUser.id]
               );
 

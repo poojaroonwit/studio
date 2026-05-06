@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2, UserPlusIcon as UserPlus } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, Position, ApplicantStatus, positionLevel, RecruitmentStage } from '@/lib/types';
@@ -206,7 +205,7 @@ export function AddApplicantModal({ isOpen, onOpenChange, onAddApplicant, availa
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <ScrollArea className="flex-1 p-6 pt-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-4 pb-6">
             <div className="space-y-6">
               <div>
                 <Label htmlFor="cv_language">CV Language</Label>
@@ -600,10 +599,8 @@ export function AddApplicantModal({ isOpen, onOpenChange, onAddApplicant, availa
                 </Button>
               </fieldset>
 
-
-
             </div>
-          </ScrollArea>
+          </div>
           <DialogFooter className="p-6 pt-4 flex-shrink-0 bg-card border-t">
             <DialogClose asChild>
               <Button type="button" variant="outline">

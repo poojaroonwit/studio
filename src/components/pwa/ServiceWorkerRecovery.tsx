@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { recoverFromChunkLoadError } from '@/lib/chunk-load-recovery';
 
 /**
  * Automatic Service Worker Recovery Component
@@ -71,10 +72,29 @@ export function ServiceWorkerRecovery() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    const handleChunkLoadFailure = (error: unknown) => {
+      recoverFromChunkLoadError(error).catch((recoveryError) => {
+        console.error('Chunk load recovery failed:', recoveryError);
+      });
+    };
+
+    const handleWindowError = (event: ErrorEvent) => {
+      handleChunkLoadFailure(event.error || event.message);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      handleChunkLoadFailure(event.reason);
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
     return () => {
       window.fetch = originalFetch;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 

@@ -325,8 +325,8 @@ export default function MobileApplicantDetail({
     }
   };
 
-  const handleStatusUpdate = async (statusId: string) => {
-    if (!applicant?.id) return;
+  const handleStatusUpdate = async (statusId: string, notes?: string): Promise<boolean> => {
+    if (!applicant?.id) return false;
     setIsStatusUpdating(true);
     try {
       const res = await fetch('/api/applicants/bulk-action', {
@@ -336,7 +336,8 @@ export default function MobileApplicantDetail({
         body: JSON.stringify({
           action: 'change_status',
           applicantIds: [applicant.id],
-          newStatus: statusId
+          newStatus: statusId,
+          ...(notes ? { transitionNotes: notes } : {})
         })
       });
 
@@ -347,8 +348,10 @@ export default function MobileApplicantDetail({
 
       toast.success('Status updated');
       handleRefresh();
+      return true;
     } catch (error: any) {
       toast.error(error.message || 'Failed to update status');
+      return false;
     } finally {
       setIsStatusUpdating(false);
     }

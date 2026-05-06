@@ -183,7 +183,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         setValue('expectedSalary', salaryValue);
       }
       
-      toast.success('Salary updated successfully');
+      toast.success('Applicant updated successfully');
       setIsEditSalaryOpen(false);
       if (onRefresh) onRefresh();
     } catch (error: any) {

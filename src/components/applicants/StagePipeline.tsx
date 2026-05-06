@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { InformationCircleIcon as Info, PencilSquareIcon as Edit, UserIcon as User, ClockIcon as Clock } from '@heroicons/react/24/outline';
+import { InformationCircleIcon as Info } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
-import { StageDetailModal } from './StageDetailModal';
 
 interface StagePipelineProps {
   stages: RecruitmentStage[];
@@ -37,12 +36,6 @@ export function StagePipeline({
 
   // Track which popover is open by index
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
-  // Track which tooltip is hovered by index
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  // Track modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
-  const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
 
   // Real-time state management
   const [localStages, setLocalStages] = useState<RecruitmentStage[]>(stages);
@@ -172,13 +165,6 @@ export function StagePipeline({
     onStageClick(stageName);
   }, [localTransitionHistory, onStageClick, localCurrentStatus]);
 
-  // Handle opening modal for passed stages
-  const handleStageDetailClick = useCallback((stage: RecruitmentStage, records: TransitionRecord[]) => {
-    setSelectedStage(stage);
-    setSelectedRecords(records);
-    setModalOpen(true);
-  }, []);
-
   // Cleanup timeout on unmount to prevent resource leaks
   useEffect(() => {
     return () => {
@@ -247,13 +233,11 @@ export function StagePipeline({
                      ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                    `}
                   onClick={() => {
-                    if (isCompleted) {
-                      handleStageDetailClick(stage, records);
-                    } else {
+                    if (!isCompleted) {
                       handleStageClick(stage.id);
                     }
                   }}
-                  title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isCompleted ? ' - Click to view details' : ''}`}
+                  title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                 >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all duration-300
@@ -395,24 +379,6 @@ export function StagePipeline({
                   <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
                 )}
 
-                {/* View Details button for completed stages */}
-                {isCompleted && records.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-muted">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStageDetailClick(stage, records);
-                      }}
-                    >
-                      <Info className="h-3 w-3 mr-1" />
-                      View Details
-                    </Button>
-                  </div>
-                )}
-
                 {/* Duration information */}
                 <div className="mt-3 pt-2 border-t border-muted">
                   <div className="text-xs text-muted-foreground mb-1">Duration:</div>
@@ -471,123 +437,9 @@ export function StagePipeline({
               </PopoverContent>
             </Popover>
 
-            {/* Hover zone for tooltip to the right of the button */}
-            <div
-              className="absolute left-full top-0 h-full w-8"
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{ cursor: 'pointer' }}
-            />
-
-            {/* Enhanced tooltip that appears when hovering the hover zone */}
-            {hoveredIdx === idx && (
-              <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[280px] max-h-64 overflow-y-auto">
-                <div className="mb-2 font-semibold text-sm">{stage.name}</div>
-                <div className="text-[10px] text-gray-300 mb-2">
-                  {isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
-                </div>
-
-                {records.length > 0 ? (
-                  <>
-                    <div className="text-[10px] text-gray-300 mb-1 font-medium">Stage Updates:</div>
-                    <ul className="space-y-2">
-                      {records.map((record, i) => (
-                        <li key={record.id} className="border-b border-gray-700 pb-1 last:border-b-0 last:pb-0">
-                          <div className="mb-1 text-xs">
-                            {record.notes || <span className='italic text-gray-300'>No note</span>}
-                          </div>
-                          <div className="text-[10px] text-gray-300 flex items-center gap-1">
-                            <span className="flex items-center gap-1"><User className="w-3 h-3" /> {record.actingUserName || 'Unknown'}</span>
-                          </div>
-                          <div className="text-[10px] text-gray-300 flex items-center gap-1">
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <div className="text-[10px] text-gray-300">
-                    {isCompleted ? 'Stage completed but no notes were added.' :
-                      isCurrent ? 'No updates recorded for current stage.' :
-                        'This stage has not been reached yet.'}
-                  </div>
-                )}
-
-                {/* Duration information */}
-                <div className="mt-2 pt-1 border-t border-gray-700">
-                  <div className="text-[10px] text-gray-300 mb-1">Duration:</div>
-                  <div className="text-xs">
-                    {(() => {
-                      // Only show duration for passed stages and current stage
-                      if (isCompleted || isCurrent) {
-                        // If there's a transition record for this stage, calculate actual duration
-                        if (latestRecord && latestRecord.date) {
-                          const stageDate = new Date(latestRecord.date);
-                          let endDate;
-
-                          if (isCurrent) {
-                            // For current stage, use current time
-                            endDate = new Date();
-                          } else {
-                            // For passed stages, find the next stage record to calculate duration
-                            const nextStageRecord = localTransitionHistory
-                              .filter(record => record.stage !== stage.id)
-                              .find(record => {
-                                const recordDate = new Date(record.date);
-                                return recordDate > stageDate;
-                              });
-
-                            if (nextStageRecord) {
-                              // If there's a next stage, calculate duration between stages
-                              endDate = new Date(nextStageRecord.date);
-                            } else {
-                              // If no next stage found, return empty
-                              return '';
-                            }
-                          }
-
-                          const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                          if (diffDays === 1) {
-                            return '1 day';
-                          } else if (diffDays < 7) {
-                            return `${diffDays} days`;
-                          } else if (diffDays < 30) {
-                            const weeks = Math.floor(diffDays / 7);
-                            return `${weeks} week${weeks > 1 ? 's' : ''}`;
-                          } else {
-                            const months = Math.floor(diffDays / 30);
-                            return `${months} month${months > 1 ? 's' : ''}`;
-                          }
-                        }
-                      }
-
-                      // Don't show any duration for future stages
-                      return '';
-                    })()}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         );
       })}
-
-      {/* Stage Detail Modal */}
-      {selectedStage && (
-        <StageDetailModal
-          isOpen={modalOpen}
-          onOpenChange={setModalOpen}
-          stage={selectedStage}
-          records={selectedRecords}
-          editableNotes={editableNotes}
-          onNoteEdit={handleNoteEdit}
-          onTimestampEdit={handleTimestampEdit}
-          isUpdating={isUpdating}
-        />
-      )}
     </div>
   );
 } 

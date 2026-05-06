@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { ChartBarIcon as Activity, CheckCircleIcon as CheckCircle, PencilIcon as Edit3, InformationCircleIcon as Info, PencilSquareIcon as Edit, UsersIcon as Users, ClockIcon as Clock } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
-import { StageDetailModal } from './StageDetailModal';
 import { sanitizeHtml } from '@/lib/utils';
 
 interface RecruitmentPipelineCardProps {
@@ -42,10 +41,6 @@ export function RecruitmentPipelineCard({
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
-  // Track modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
-  const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
   // Removed: const [isConnected, setIsConnected] = useState(false);
 
   // Real-time state management
@@ -172,13 +167,6 @@ export function RecruitmentPipelineCard({
     onStageClick(stageId);
   }, [onStageClick, localCurrentStatus]);
 
-  // Handle opening modal for passed stages
-  const handleStageDetailClick = useCallback((stage: RecruitmentStage, records: TransitionRecord[]) => {
-    setSelectedStage(stage);
-    setSelectedRecords(records);
-    setModalOpen(true);
-  }, []);
-
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
   const safeLocalTransitionHistory = Array.isArray(localTransitionHistory) ? localTransitionHistory : [];
@@ -291,17 +279,12 @@ export function RecruitmentPipelineCard({
                       {/* Stage Circle */}
                       <div
                         className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
-                        onMouseEnter={() => {
-                          if (isActuallyCompleted) {
-                            handleStageDetailClick(stage, records);
-                          }
-                        }}
                         onClick={() => {
                           if (!isActuallyCompleted) {
                             handleStageClick(stage.id);
                           }
                         }}
-                        title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Hover to view details' : ''}`}
+                        title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
                       >
                         {/* Show info popover for all stages on hover of cycle */}
                         <Popover open={openPopoverIdx === index}>
@@ -414,24 +397,6 @@ export function RecruitmentPipelineCard({
                                     This stage has not been reached yet.
                                   </div>
                                 )}
-                              </div>
-                            )}
-
-                            {/* View Details button for completed stages */}
-                            {isActuallyCompleted && records.length > 0 && (
-                              <div className="mt-3 pt-2 border-t border-muted">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStageDetailClick(stage, records);
-                                  }}
-                                >
-                                  <Info className="h-3 w-3 mr-1" />
-                                  Open Details Modal
-                                </Button>
                               </div>
                             )}
 
@@ -602,20 +567,6 @@ export function RecruitmentPipelineCard({
           )}
         </div>
       </div>
-
-      {/* Stage Detail Modal */}
-      {selectedStage && (
-        <StageDetailModal
-          isOpen={modalOpen}
-          onOpenChange={setModalOpen}
-          stage={selectedStage}
-          records={selectedRecords}
-          editableNotes={editableNotes}
-          onNoteEdit={handleNoteEdit}
-          onTimestampEdit={handleTimestampEdit}
-          isUpdating={isUpdating}
-        />
-      )}
     </>
   );
 } 

@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Table as TableIcon, Search, Filter, AlertCircle, ChevronDown, Check, User, Briefcase, Zap, X, RefreshCw } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Search, Filter, AlertCircle, ChevronDown, Check, User, Briefcase, Zap, X, RefreshCw, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PositionGroup } from './PositionGroup';
 import ApplicantDetailModal from '@/components/applicants/ApplicantDetailModal';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -149,44 +150,26 @@ export function CandidatesPageClient() {
               </div>
             )}
 
-            <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200/50 dark:border-zinc-700/50">
-              <Button 
-                variant={viewMode === 'card' ? 'secondary' : 'ghost'} 
-                size="sm" 
-                className={cn(
-                  "h-8 px-3 gap-2 transition-all",
-                  viewMode === 'card' && "bg-white shadow-sm hover:bg-white text-primary"
-                )}
-                onClick={() => setViewMode('card')}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline">Cards</span>
-              </Button>
-              <Button 
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
-                size="sm" 
-                className={cn(
-                  "h-8 px-3 gap-2 transition-all",
-                  viewMode === 'list' && "bg-white shadow-sm hover:bg-white text-primary"
-                )}
-                onClick={() => setViewMode('list')}
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">List</span>
-              </Button>
-              <Button 
-                variant={viewMode === 'table' ? 'secondary' : 'ghost'} 
-                size="sm" 
-                className={cn(
-                  "h-8 px-3 gap-2 transition-all",
-                  viewMode === 'table' && "bg-white shadow-sm hover:bg-white text-primary"
-                )}
-                onClick={() => setViewMode('table')}
-              >
-                <TableIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Table</span>
-              </Button>
-            </div>
+            <Tabs
+              value={viewMode}
+              onValueChange={(value) => setViewMode(value as 'card' | 'table' | 'list')}
+              className="w-auto"
+            >
+              <TabsList className="grid w-auto grid-cols-3 h-9">
+                <TabsTrigger value="card" className="text-xs px-2 gap-1.5">
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cards</span>
+                </TabsTrigger>
+                <TabsTrigger value="list" className="text-xs px-2 gap-1.5">
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">List</span>
+                </TabsTrigger>
+                <TabsTrigger value="table" className="text-xs px-2 gap-1.5">
+                  <TableIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Table</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <Popover>
               <PopoverTrigger asChild>

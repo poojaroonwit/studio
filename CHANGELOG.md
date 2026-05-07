@@ -5,7 +5,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
-## [1.2.4-beta.2] - 2026-02-02
+## [1.2.5] - 2026-05-07
 
 ### Added
 - ✨ **applicant Filter Popover**: Refactored applicant filters from a persistent sidebar to a modern popover button in the header, including an **Active Filter Badge** for immediate feedback on applied filters.

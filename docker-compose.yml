@@ -52,7 +52,7 @@ services:
 
   app:
     container_name: fitscan_app
-    image: nccgit.qsncc.com:5555/ba/fitscan:latest
+    image: nccgit.qsncc.com:5555/ba/fitscan:1.2.5
     # build:
     #   context: .
     #   dockerfile: Dockerfile

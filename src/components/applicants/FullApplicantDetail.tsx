@@ -1213,7 +1213,10 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
           setEvalLinkCreatedBy(null);
         }
       }}>
-        <DialogContent className="max-w-lg w-[95vw]">
+        <DialogContent
+          dialogId={`evaluation-link-modal-${applicant.id}`}
+          className="max-w-lg w-[95vw]"
+        >
           <DialogHeader>
             <DialogTitle>Evaluation link</DialogTitle>
           </DialogHeader>

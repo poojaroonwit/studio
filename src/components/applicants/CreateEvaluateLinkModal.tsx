@@ -95,6 +95,7 @@ export function CreateEvaluateLinkModal({
   const isMobile = useIsMobile();
   const { isInterviewInvitationEnabled, editorMode: systemEditorMode, isLoading: featureLoading } = useInterviewInvitationFeature();
   const { zIndex: popoverZIndex } = useDynamicZIndex('popover');
+  const modalLayerId = `create-evaluate-link-modal-${applicant.id}${editMode ? '-edit' : ''}`;
 
   const [currentStep, setCurrentStep] = useState<Step>('configure');
   const [loading, setLoading] = useState(false);
@@ -1168,7 +1169,11 @@ export function CreateEvaluateLinkModal({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
+        <SheetContent
+          side="bottom"
+          sheetId={modalLayerId}
+          className="max-h-[90vh] overflow-y-auto rounded-t-3xl"
+        >
           <SheetHeader className="relative">
             <SheetTitle>Create Evaluate Link</SheetTitle>
             <button
@@ -1188,7 +1193,10 @@ export function CreateEvaluateLinkModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        dialogId={modalLayerId}
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader className="relative">
           <DialogTitle>Create Evaluate Link</DialogTitle>
           <button

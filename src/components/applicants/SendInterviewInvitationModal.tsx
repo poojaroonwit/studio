@@ -406,9 +406,14 @@ export function SendInterviewInvitationModal({
     }
   };
 
+  const dialogId = `send-interview-invitation-modal-${applicant.id}`;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        dialogId={dialogId}
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Send Interview Invitation</DialogTitle>
           <DialogDescription>

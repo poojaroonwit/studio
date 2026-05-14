@@ -56,6 +56,7 @@ const systemSettingKeyEnum = z.enum([
   'primaryButtonShadowL', 'primaryButtonShadowHoverL', 'primaryButtonShadowD', 'primaryButtonShadowHoverD', // Primary button shadows
   'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
   'geminiApiKey',
+  'openaiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
   'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
   'loginPageLayoutType',
@@ -149,12 +150,18 @@ const systemSettingKeyEnum = z.enum([
   // AI Configuration
   'aiPowerSearchSystemPrompt',
   'jobDescriptionSystemPrompt',
+  'aiProviderSelection',
   'geminiModelSelection',
+  'openaiModelSelection',
   // AI API Key Fallback Configuration
   'geminiApiKey_1', 'geminiApiKey_2', 'geminiApiKey_3', 'geminiApiKey_4', 'geminiApiKey_5',
   'geminiApiKey_1_errorCount', 'geminiApiKey_2_errorCount', 'geminiApiKey_3_errorCount', 'geminiApiKey_4_errorCount', 'geminiApiKey_5_errorCount',
   'geminiApiKey_1_lastError', 'geminiApiKey_2_lastError', 'geminiApiKey_3_lastError', 'geminiApiKey_4_lastError', 'geminiApiKey_5_lastError',
   'geminiApiKey_1_lastUsed', 'geminiApiKey_2_lastUsed', 'geminiApiKey_3_lastUsed', 'geminiApiKey_4_lastUsed', 'geminiApiKey_5_lastUsed',
+  'openaiApiKey_1', 'openaiApiKey_2', 'openaiApiKey_3', 'openaiApiKey_4', 'openaiApiKey_5',
+  'openaiApiKey_1_errorCount', 'openaiApiKey_2_errorCount', 'openaiApiKey_3_errorCount', 'openaiApiKey_4_errorCount', 'openaiApiKey_5_errorCount',
+  'openaiApiKey_1_lastError', 'openaiApiKey_2_lastError', 'openaiApiKey_3_lastError', 'openaiApiKey_4_lastError', 'openaiApiKey_5_lastError',
+  'openaiApiKey_1_lastUsed', 'openaiApiKey_2_lastUsed', 'openaiApiKey_3_lastUsed', 'openaiApiKey_4_lastUsed', 'openaiApiKey_5_lastUsed',
   // Upload Queue Processor settings
   'processorIntervalMs', 'processorQuietMode', 'processorConnectionTimeoutMs', 'processorRequestTimeoutMs',
   'processQueueEnabled',
@@ -213,6 +220,7 @@ export async function GET(request: NextRequest) {
     // Define environment variable mappings
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
+      { key: 'openaiApiKey', envVar: 'OPENAI_API_KEY' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
@@ -234,9 +242,8 @@ export async function GET(request: NextRequest) {
     const settingsToInsert: Array<{ key: string, value: string }> = [];
 
     for (const mapping of envMappings) {
-      // Skip auto-sync of geminiApiKey entirely - we use the multi-key format (geminiApiKey_1, etc.)
-      // This prevents environment variable from being re-added when user removes all keys
-      if (mapping.key === 'geminiApiKey') {
+      // Skip single-key AI provider env sync here - the AI settings use provider-specific multi-key entries.
+      if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey') {
         continue;
       }
 
@@ -284,8 +291,8 @@ export async function GET(request: NextRequest) {
 
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {
-      // Skip geminiApiKey - we use the multi-key format (geminiApiKey_1, etc.)
-      if (mapping.key === 'geminiApiKey') {
+      // Skip single-key AI provider env sync here - the AI settings use provider-specific multi-key entries.
+      if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey') {
         continue;
       }
 
@@ -485,6 +492,7 @@ export async function POST(request: NextRequest) {
     // Apply the same environment variable mappings as in GET handler for consistency
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
+      { key: 'openaiApiKey', envVar: 'OPENAI_API_KEY' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
@@ -497,8 +505,8 @@ export async function POST(request: NextRequest) {
 
     // Add runtime fallbacks for any missing values
     for (const mapping of envMappings) {
-      // Skip geminiApiKey - we use the multi-key format (geminiApiKey_1, etc.)
-      if (mapping.key === 'geminiApiKey') {
+      // Skip single-key AI provider env sync here - the AI settings use provider-specific multi-key entries.
+      if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey') {
         continue;
       }
 

@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
+import { getAvailableModels, getSelectedAiProvider, type AiProvider } from '@/lib/aiProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,35 +61,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
-    // Fetch available models using API key fallback
-    const result = await executeWithApiKeyFallback(async (apiKey) => {
-      const url = "https://generativelanguage.googleapis.com/v1/models";
-      
-      const fetchRes = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-goog-api-key": apiKey,
-        },
-      });
+    const requestedProvider = request.nextUrl.searchParams.get('provider');
+    const provider: AiProvider = requestedProvider === 'openai'
+      ? 'openai'
+      : requestedProvider === 'gemini'
+        ? 'gemini'
+        : await getSelectedAiProvider();
 
-      if (!fetchRes.ok) {
-        const errorText = await fetchRes.text();
-        console.error('Gemini API: HTTP Error Response:', fetchRes.status, fetchRes.statusText);
-        console.error('Gemini API: Error Details:', errorText);
-        throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
-      }
-
-      const data = await fetchRes.json();
-      
-      // Check for API errors
-      if (data.error) {
-        console.error('Gemini API error:', data.error);
-        throw new Error(`Gemini API error: ${data.error.message || JSON.stringify(data.error)}`);
-      }
-      
-      return data;
-    }, 'Fetch Available Models');
+    const result = await executeWithApiKeyFallback(
+      async (apiKey, _model, activeProvider) => getAvailableModels(activeProvider, apiKey),
+      'Fetch Available Models',
+      provider
+    );
 
     if (!result.success) {
       console.error('Failed to fetch available models:', result.error);
@@ -102,39 +86,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const apiData = result.data;
-    const models = apiData.models || [];
+    const availableModels = result.data || [];
 
-    // Filter and format models for our use case
-    const availableModels = models
-      .filter((model: any) => 
-        model.supportedGenerationMethods?.includes('generateContent') &&
-        model.name?.includes('gemini')
-      )
-      .map((model: any) => ({
-        name: model.name,
-        displayName: model.displayName || model.name,
-        description: model.description || '',
-        supportedGenerationMethods: model.supportedGenerationMethods || []
-      }))
-      .sort((a: any, b: any) => {
-        // Sort by model name, putting newer models first
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        
-        // Prioritize gemini-1.5-pro, then gemini-1.5-flash, then others
-        if (aName.includes('gemini-1.5-pro')) return -1;
-        if (bName.includes('gemini-1.5-pro')) return 1;
-        if (aName.includes('gemini-1.5-flash')) return -1;
-        if (bName.includes('gemini-1.5-flash')) return 1;
-        
-        return aName.localeCompare(bName);
-      });
-
-    await logAudit('AUDIT', `Available models fetched by ${session.user.name}. Found ${availableModels.length} models.`, 'API:AvailableModels:Fetch', session.user.id);
+    await logAudit('AUDIT', `Available ${provider} models fetched by ${session.user.name}. Found ${availableModels.length} models.`, 'API:AvailableModels:Fetch', session.user.id, {
+      provider,
+      modelCount: availableModels.length,
+    });
 
     return NextResponse.json({
       success: true,
+      provider,
       models: availableModels
     });
 

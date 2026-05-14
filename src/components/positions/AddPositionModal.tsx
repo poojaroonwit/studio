@@ -219,6 +219,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const performJobDescriptionGeneration = async (title: string, department: string, positionLevel: string) => {
     setIsGeneratingDescription(true);
     try {
+      const existingDescription = form.getValues('description');
       const response = await fetch('/api/ai/generate-job-description', {
         method: 'POST',
         headers: {
@@ -227,7 +228,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         body: JSON.stringify({
           title,
           department,
-          positionLevel: positionLevel || 'Not specified'
+          positionLevel: positionLevel || 'Not specified',
+          existingDescription: existingDescription || ''
         }),
       });
 
@@ -236,7 +238,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
-          throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings > AI Configuration.');
+          throw new Error('AI features are not configured. Please configure an AI provider and API key in System Settings > AI API Keys.');
         }
         throw new Error(data.error || 'Failed to generate job description');
       }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getApiKeys, saveApiKeys } from '@/lib/aiApiKeyManager';
+import type { AiProvider } from '@/lib/aiProvider';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
@@ -12,7 +13,8 @@ const reorderApiKeysSchema = z.object({
     key: z.string(),
     priority: z.number().positive(),
     selectedModel: z.string().optional()
-  }))
+  })),
+  provider: z.enum(['gemini', 'openai']).optional()
 });
 
 /**
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
     try {
       const parsed = reorderApiKeysSchema.parse(body);
       apiKeys = parsed.apiKeys;
+      body.provider = parsed.provider;
     } catch (parseError: any) {
       console.error('Schema validation error:', parseError);
       return NextResponse.json(
@@ -105,7 +108,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current API keys to validate that all keys exist
-    const currentApiKeys = await getApiKeys();
+    const provider: AiProvider = body.provider === 'openai' ? 'openai' : 'gemini';
+    const currentApiKeys = await getApiKeys(provider);
     
     // Validate currentApiKeys is an array
     if (!Array.isArray(currentApiKeys)) {
@@ -128,10 +132,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the reordered API keys
-    await saveApiKeys(apiKeys);
+    await saveApiKeys(apiKeys, provider);
 
     // Log the reorder operation
-    await logAudit('INFO', `AI API keys reordered by ${session.user.name}. Total keys: ${apiKeys.length}`, 'API:AiApiKeys:Reorder', session.user.id, {
+    await logAudit('INFO', `${provider} AI API keys reordered by ${session.user.name}. Total keys: ${apiKeys.length}`, 'API:AiApiKeys:Reorder', session.user.id, {
+      provider,
       keyCount: apiKeys.length,
       priorities: apiKeys.map(key => key.priority)
     });

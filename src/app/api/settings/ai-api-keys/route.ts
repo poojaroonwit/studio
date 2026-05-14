@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getApiKeys, saveApiKeys, getApiKeyStats } from '@/lib/aiApiKeyManager';
+import { getSelectedAiProvider, type AiProvider } from '@/lib/aiProvider';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -43,9 +44,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const stats = await getApiKeyStats();
+    const selectedProvider = await getSelectedAiProvider();
+    const provider = (request.nextUrl.searchParams.get('provider') === 'openai'
+      ? 'openai'
+      : request.nextUrl.searchParams.get('provider') === 'gemini'
+        ? 'gemini'
+        : selectedProvider) as AiProvider;
+    const stats = await getApiKeyStats(provider);
     
     return NextResponse.json({
+      provider,
+      selectedProvider,
       apiKeys: stats,
       totalKeys: stats.length,
       activeKeys: stats.filter(key => key.isActive).length,
@@ -69,7 +78,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { apiKeys } = body;
+    const { apiKeys, provider } = body;
+    const resolvedProvider: AiProvider = provider === 'openai' ? 'openai' : 'gemini';
 
     if (!Array.isArray(apiKeys)) {
       return NextResponse.json(
@@ -84,7 +94,7 @@ export async function POST(request: NextRequest) {
       .map((key: any) => ({
         key: key.key.trim(),
         priority: parseInt(key.priority),
-        selectedModel: key.selectedModel || 'gemini-1.0-pro'
+        selectedModel: key.selectedModel
       }))
       .sort((a: any, b: any) => a.priority - b.priority);
 
@@ -125,10 +135,11 @@ export async function POST(request: NextRequest) {
       }));
       
       // Save the deduplicated keys
-      await saveApiKeys(reorderedKeys);
+      await saveApiKeys(reorderedKeys, resolvedProvider);
       
       return NextResponse.json({
         success: true,
+        provider: resolvedProvider,
         message: "Duplicate API keys removed. Priorities have been reassigned.",
         apiKeys: reorderedKeys,
         removedDuplicates: validApiKeys.length - reorderedKeys.length
@@ -136,19 +147,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the API keys (saveApiKeys will handle deduplication internally)
-    await saveApiKeys(validApiKeys);
+    await saveApiKeys(validApiKeys, resolvedProvider);
 
     // Log the update
-    await logAudit('AUDIT', `AI API keys updated by ${session.user.name}. Total keys: ${validApiKeys.length}`, 'API:AiApiKeys:Update', session.user.id, {
+    await logAudit('AUDIT', `${resolvedProvider} AI API keys updated by ${session.user.name}. Total keys: ${validApiKeys.length}`, 'API:AiApiKeys:Update', session.user.id, {
+      provider: resolvedProvider,
       keyCount: validApiKeys.length,
       priorities: validApiKeys.map(key => key.priority)
     });
 
     // Return updated stats
-    const stats = await getApiKeyStats();
+    const stats = await getApiKeyStats(resolvedProvider);
     
     return NextResponse.json({
       success: true,
+      provider: resolvedProvider,
       message: `Successfully updated ${validApiKeys.length} API keys`,
       apiKeys: stats,
       totalKeys: stats.length,

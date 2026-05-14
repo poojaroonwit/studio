@@ -25,9 +25,12 @@ interface ApiKey {
   lastError?: string;
   lastUsed?: Date;
   selectedModel?: string;
+  provider?: 'gemini' | 'openai';
 }
 
 interface ApiKeyStats {
+  provider?: 'gemini' | 'openai';
+  selectedProvider?: 'gemini' | 'openai';
   apiKeys: ApiKey[];
   totalKeys: number;
   activeKeys: number;
@@ -35,6 +38,7 @@ interface ApiKeyStats {
 }
 
 export default function AiApiKeysTab() {
+  const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'openai'>('gemini');
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [newApiKey, setNewApiKey] = useState('');
   const [newPriority, setNewPriority] = useState(1);
@@ -47,10 +51,13 @@ export default function AiApiKeysTab() {
   const [availableModels, setAvailableModels] = useState<Array<{ name: string, displayName: string }>>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
 
+  const providerLabel = selectedProvider === 'openai' ? 'OpenAI' : 'Gemini';
+  const providerDefaultModel = selectedProvider === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash';
+
   const fetchApiKeys = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/settings/ai-api-keys');
+      const response = await fetch(`/api/settings/ai-api-keys?provider=${selectedProvider}`);
       if (!response.ok) {
         throw new Error('Failed to fetch API keys');
       }
@@ -58,6 +65,11 @@ export default function AiApiKeysTab() {
 
       // Validate response data
       if (data && Array.isArray(data.apiKeys)) {
+        if (!stats && (data.selectedProvider === 'openai' || data.selectedProvider === 'gemini') && data.selectedProvider !== selectedProvider) {
+          setSelectedProvider(data.selectedProvider);
+          setIsLoading(false);
+          return;
+        }
         setApiKeys(data.apiKeys);
         setStats(data);
       } else {
@@ -85,7 +97,7 @@ export default function AiApiKeysTab() {
 
     setIsFetchingModels(true);
     try {
-      const response = await fetch('/api/ai/available-models');
+      const response = await fetch(`/api/ai/available-models?provider=${selectedProvider}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.models && data.models.length > 0) {
@@ -110,7 +122,24 @@ export default function AiApiKeysTab() {
     } finally {
       setIsFetchingModels(false);
     }
-  }, [apiKeys.length]);
+  }, [apiKeys.length, selectedProvider]);
+
+  const updateProviderSelection = async (provider: 'gemini' | 'openai') => {
+    setSelectedProvider(provider);
+    try {
+      await fetch('/api/settings/system-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          { key: 'aiProviderSelection', value: provider },
+        ]),
+      });
+    } catch (error) {
+      console.error('Error saving AI provider selection:', error);
+    }
+  };
 
   const updateSystemModelSelection = async (model: string) => {
     try {
@@ -120,7 +149,7 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify([
-          { key: 'geminiModelSelection', value: model }
+          { key: selectedProvider === 'openai' ? 'openaiModelSelection' : 'geminiModelSelection', value: model }
         ])
       });
 
@@ -139,7 +168,7 @@ export default function AiApiKeysTab() {
 
   useEffect(() => {
     fetchApiKeys();
-  }, []);
+  }, [selectedProvider]);
 
   // Fetch models when API keys are loaded or updated
   useEffect(() => {
@@ -199,7 +228,8 @@ export default function AiApiKeysTab() {
       isActive: true,
       source: `Priority ${finalPriority}`,
       errorCount: 0,
-      selectedModel: 'gemini-1.0-pro'
+      selectedModel: providerDefaultModel,
+      provider: selectedProvider,
     };
 
     // Add new key and re-sort
@@ -232,8 +262,9 @@ export default function AiApiKeysTab() {
           apiKeys: reorderedWithNewPriorities.map(key => ({
             key: key.key,
             priority: key.priority,
-            selectedModel: key.selectedModel || 'gemini-1.0-pro'
-          }))
+            selectedModel: key.selectedModel || providerDefaultModel
+          })),
+          provider: selectedProvider
         })
       });
 
@@ -304,8 +335,9 @@ export default function AiApiKeysTab() {
           apiKeys: reorderedKeys.map(key => ({
             key: key.key,
             priority: key.priority,
-            selectedModel: key.selectedModel || 'gemini-1.0-pro'
-          }))
+            selectedModel: key.selectedModel || providerDefaultModel
+          })),
+          provider: selectedProvider
         })
       });
 
@@ -377,7 +409,7 @@ export default function AiApiKeysTab() {
         .map(key => ({
           key: key.key,
           priority: key.priority,
-          selectedModel: key.selectedModel || 'gemini-1.0-pro'
+          selectedModel: key.selectedModel || providerDefaultModel
         }));
 
       const response = await fetch('/api/settings/ai-api-keys', {
@@ -386,7 +418,8 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: deduplicatedKeys
+          apiKeys: deduplicatedKeys,
+          provider: selectedProvider
         })
       });
 
@@ -479,7 +512,7 @@ export default function AiApiKeysTab() {
       .map(item => ({
         key: item.key,
         priority: item.priority,
-        selectedModel: item.selectedModel || 'gemini-pro'
+        selectedModel: item.selectedModel || providerDefaultModel
       }));
 
     // Validate we have keys to send
@@ -494,7 +527,8 @@ export default function AiApiKeysTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          apiKeys: apiKeysForRequest
+          apiKeys: apiKeysForRequest,
+          provider: selectedProvider
         }),
       });
 
@@ -569,18 +603,30 @@ export default function AiApiKeysTab() {
               <Plus className="h-5 w-5 text-primary" />
               <div className="text-left">
                 <div className="font-semibold">Add New API Key</div>
-                <div className="text-xs text-muted-foreground font-normal">Add a new Gemini API key with priority. Lower priority numbers are used first.</div>
+                <div className="text-xs text-muted-foreground font-normal">{`Add a new ${providerLabel} API key with priority. Lower priority numbers are used first.`}</div>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-4 pt-2">
+            <div className="mb-4 grid gap-2 max-w-xs">
+              <Label htmlFor="ai-provider">AI Provider</Label>
+              <Select value={selectedProvider} onValueChange={(value: 'gemini' | 'openai') => updateProviderSelection(value)}>
+                <SelectTrigger id="ai-provider">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Google Gemini</SelectItem>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-4">
               <div className="flex-1">
                 <Label htmlFor="new-api-key">API Key</Label>
                 <Input
                   id="new-api-key"
                   type="password"
-                  placeholder="Enter your Gemini API Key"
+                  placeholder={`Enter your ${providerLabel} API Key`}
                   value={newApiKey}
                   onChange={(e) => setNewApiKey(e.target.value)}
                 />
@@ -619,7 +665,7 @@ export default function AiApiKeysTab() {
           <AccordionContent className="px-6 pb-4 pt-2">
             {!apiKeys || !Array.isArray(apiKeys) || apiKeys.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No API keys configured. Add your first API key above.
+                {`No ${providerLabel} API keys configured. Add your first API key above.`}
               </div>
             ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
@@ -707,7 +753,7 @@ export default function AiApiKeysTab() {
                                         AI Model
                                       </Label>
                                       <Select
-                                        value={apiKey.selectedModel || 'gemini-1.0-pro'}
+                                        value={apiKey.selectedModel || providerDefaultModel}
                                         onValueChange={async (value) => {
                                           // Capture previous state for potential revert
                                           const previousKeys = [...apiKeys];
@@ -731,8 +777,9 @@ export default function AiApiKeysTab() {
                                                 apiKeys: updatedKeys.map(key => ({
                                                   key: key.key,
                                                   priority: key.priority,
-                                                  selectedModel: key.selectedModel || 'gemini-1.0-pro'
-                                                }))
+                                                  selectedModel: key.selectedModel || providerDefaultModel
+                                                })),
+                                                provider: selectedProvider
                                               })
                                             });
 
@@ -764,7 +811,7 @@ export default function AiApiKeysTab() {
                                               </SelectItem>
                                             ))
                                           ) : (
-                                            <div className="px-2 py-1.5 text-sm text-muted-foreground">No models available. Please configure API keys.</div>
+                                            <div className="px-2 py-1.5 text-sm text-muted-foreground">{`No ${providerLabel} models available. Please configure valid API keys.`}</div>
                                           )}
                                         </SelectContent>
                                       </Select>

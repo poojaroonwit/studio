@@ -60,6 +60,7 @@ const editPositionFormSchema = z.object({
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
   gradeId: z.string().uuid().optional().nullable(),
+  recruiterId: z.string().uuid().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -182,6 +183,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Tab states - declare these before using them in useEffect
   const [activeTab, setActiveTab] = useState('details');
   const [activeApplicantTab, setActiveApplicantTab] = useState('applied');
+  const hasInitializedDefaultApplicantFiltersRef = useRef(false);
+
+  const getDefaultApplicantFilters = useCallback((stages: Array<{ id?: string; name?: string }>) => {
+    const includedStatusIds = stages
+      .filter((stage) => {
+        const stageName = (stage.name || '').trim().toLowerCase();
+        return stageName !== 'hiring' && !stageName.includes('reject');
+      })
+      .map((stage) => stage.id)
+      .filter((id): id is string => Boolean(id));
+
+    return includedStatusIds.length > 0
+      ? { selectedStatuses: includedStatusIds }
+      : {};
+  }, []);
 
   // When Job Match is disabled, ensure we don't show or stay on the potential tab
   useEffect(() => {
@@ -231,6 +247,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       isOpen: true,
       positionLevel: '',
       gradeId: null,
+      recruiterId: null,
     },
   });
 
@@ -404,6 +421,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: data.isOpen ?? true,
         positionLevel: data.positionLevel || '',
         gradeId: data.gradeId || null,
+        recruiterId: data.recruiterId || null,
       });
 
       // Set drawer as ready for WYSIWYG editors
@@ -492,6 +510,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       query.append('sortColumn', allApplicantsSortColumn || 'fitScore');
       query.append('sortDirection', allApplicantsSortDirection || 'desc');
 
+      if (applicantFilters) {
+        if (applicantFilters.selectedStatuses && applicantFilters.selectedStatuses.length > 0) {
+          query.append('status', applicantFilters.selectedStatuses.join(','));
+        }
+        if (applicantFilters.selectedRecruiterIds && applicantFilters.selectedRecruiterIds.length > 0) {
+          query.append('recruiterId', applicantFilters.selectedRecruiterIds.join(','));
+        }
+        if (applicantFilters.selectedSourceIds && applicantFilters.selectedSourceIds.length > 0) {
+          query.append('sourceId', applicantFilters.selectedSourceIds.join(','));
+        }
+      }
+
       query.append('showPinSection', 'true');
 
       const response = await fetch(`/api/positions/${positionId}/applicants?${query.toString()}`);
@@ -506,7 +536,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredApplicants([]);
       setFilteredApplicantsTotal(0);
     }
-  }, [positionId, allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, sessionStatus]);
+  }, [positionId, allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, sessionStatus, applicantFilters]);
 
   // Fetch potential Applicants (Applicants with job matches for this position but not applied)
   const fetchPotentialApplicants = useCallback(async () => {
@@ -578,6 +608,31 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       console.error('Error fetching recruitment stages:', error);
     }
   }, [sessionStatus]);
+
+  const handleClearApplicantFilters = useCallback(() => {
+    setApplicantFilters(getDefaultApplicantFilters(recruitmentStages));
+  }, [getDefaultApplicantFilters, recruitmentStages]);
+
+  useEffect(() => {
+    if (!isOpen || recruitmentStages.length === 0 || hasInitializedDefaultApplicantFiltersRef.current) {
+      return;
+    }
+
+    setApplicantFilters((currentFilters) => {
+      const hasCustomFilters = Object.keys(currentFilters || {}).some((key) => {
+        const value = currentFilters[key as keyof ApplicantFilterValues];
+        return value !== undefined && value !== null && (Array.isArray(value) ? value.length > 0 : value !== '');
+      });
+
+      if (hasCustomFilters) {
+        hasInitializedDefaultApplicantFiltersRef.current = true;
+        return currentFilters;
+      }
+
+      hasInitializedDefaultApplicantFiltersRef.current = true;
+      return getDefaultApplicantFilters(recruitmentStages);
+    });
+  }, [isOpen, recruitmentStages, getDefaultApplicantFilters]);
 
   // Fetch recruiters for filters
   const fetchRecruiters = useCallback(async () => {
@@ -677,6 +732,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
+        recruiterId: position.recruiterId || null,
       });
 
       // Force re-render of WYSIWYG editors with new content
@@ -720,6 +776,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
+        recruiterId: position.recruiterId || null,
       });
     }
     setIsEditMode(false);
@@ -755,6 +812,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const performJobDescriptionGeneration = async (title: string, department: string, positionLevel: string) => {
     setIsGeneratingDescription(true);
     try {
+      const existingDescription = form.getValues('description');
       const response = await fetch('/api/ai/generate-job-description', {
         method: 'POST',
         headers: {
@@ -763,7 +821,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         body: JSON.stringify({
           title,
           department,
-          positionLevel: positionLevel || 'Not specified'
+          positionLevel: positionLevel || 'Not specified',
+          existingDescription: existingDescription || ''
         }),
       });
 
@@ -771,7 +830,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
-          throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings > AI Configuration.');
+          throw new Error('AI features are not configured. Please configure an AI provider and API key in System Settings > AI API Keys.');
         }
         throw new Error(data.error || 'Failed to generate job description');
       }
@@ -967,6 +1026,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredApplicantsOpenMenu(null);
       // Reset filters
       setApplicantFilters({});
+      hasInitializedDefaultApplicantFiltersRef.current = false;
     }
   }, [isOpen, form]);
 
@@ -1026,7 +1086,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         allApplicantsSearchTimeoutRef.current = null;
       }
     };
-  }, [allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, positionId, sessionStatus, fetchAllApplicants]);
+  }, [allApplicantsPage, allApplicantsPageSize, allApplicantsSearchTerm, allApplicantsSortColumn, allApplicantsSortDirection, positionId, sessionStatus, fetchAllApplicants, applicantFilters]);
 
   // Debounced search for potential Applicants
   useEffect(() => {
@@ -1068,6 +1128,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
+        recruiterId: position.recruiterId || null,
       });
     }
   }, [position, isEditMode, form]);
@@ -1276,6 +1337,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 isLoadingLevels={isLoadingLevels}
                 positionLevels={positionLevels.map(level => ({ id: level.id, name: level.name, color: level.color || undefined }))}
                 grades={grades}
+                availableRecruiters={availableRecruiters}
                 form={form}
                 isMobile={isMobile}
                 onEdit={handleEdit}
@@ -1362,6 +1424,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   // Filter Props
                   applicantFilters={applicantFilters}
                   onFilterChange={setApplicantFilters}
+                  onClearFilters={handleClearApplicantFilters}
                   availableRecruiters={availableRecruiters}
                   availableStages={recruitmentStages}
                   availableSources={availableSources}

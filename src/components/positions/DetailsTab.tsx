@@ -26,6 +26,7 @@ interface DetailsTabProps {
   isLoadingLevels: boolean;
   positionLevels: Array<{ id: string; name: string; color?: string }>;
   grades: Grade[];
+  availableRecruiters: Array<{ id: string; name: string }>;
   form: UseFormReturn<EditPositionFormValues>;
   isMobile: boolean;
   onEdit: () => void;
@@ -42,6 +43,7 @@ export function DetailsTab({
   isLoadingLevels,
   positionLevels,
   grades,
+  availableRecruiters,
   form,
   isMobile,
   onEdit,
@@ -235,6 +237,45 @@ export function DetailsTab({
                         No Grade
                       </Badge>
                     )
+                  )}
+                </div>
+              </div>
+
+              {/* Assigned Recruiter */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 py-2 border-b border-border/30 last:border-0">
+                <Label htmlFor="recruiterId" className="md:w-1/3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Assigned Recruiter</Label>
+                <div className="flex-1">
+                  {isEditMode ? (
+                    <Controller
+                      name="recruiterId"
+                      control={form.control}
+                      render={({ field }) => (
+                        <MobileSelect
+                          onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
+                          value={field.value || 'none'}
+                          placeholder="Select Recruiter"
+                          selectId="recruiter-select"
+                        >
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select recruiter" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Unassigned</SelectItem>
+                            {availableRecruiters.map((recruiter) => (
+                              <SelectItem key={recruiter.id} value={recruiter.id}>
+                                {recruiter.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </MobileSelect>
+                      )}
+                    />
+                  ) : position.recruiterName ? (
+                    <div className="text-base text-foreground">{position.recruiterName}</div>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30 bg-muted/10">
+                      Unassigned
+                    </Badge>
                   )}
                 </div>
               </div>

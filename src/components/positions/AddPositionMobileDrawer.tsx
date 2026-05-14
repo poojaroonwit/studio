@@ -177,17 +177,23 @@ export function AddPositionMobileDrawer({ isOpen, onOpenChange, onAddPosition }:
   const performJobDescriptionGeneration = async (title: string, department: string, positionLevel: string) => {
     setIsGeneratingDescription(true);
     try {
+      const existingDescription = form.getValues('description');
       const response = await fetch('/api/ai/generate-job-description', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, department, positionLevel: positionLevel || 'Not specified' }),
+        body: JSON.stringify({
+          title,
+          department,
+          positionLevel: positionLevel || 'Not specified',
+          existingDescription: existingDescription || ''
+        }),
       });
 
       const data = await response.json();
       
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
-          throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings.');
+          throw new Error('AI features are not configured. Please configure an AI provider and API key in System Settings > AI API Keys.');
         }
         throw new Error(data.error || 'Failed to generate job description');
       }

@@ -1,5 +1,5 @@
 /**
- * @fileOverview Direct Google Gemini API flow for AI-powered Applicant search.
+ * @fileOverview Provider-aware AI flow for Applicant search.
  *
  * - searchApplicantsAIChat - Performs a natural language search across Applicant profiles.
  * - SearchApplicantsInput - Input schema for the search query.
@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
-import { buildGeminiApiUrl } from '@/lib/aiModelManager';
+import { generateTextWithProvider, getProviderLabel } from '@/lib/aiProvider';
 import type { Applicant, ApplicantDetails, EducationEntry, ExperienceEntry, SkillEntry, TransitionRecord } from '@/lib/types';
 import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
@@ -379,51 +379,20 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       .replace(/\{query\}/g, input.query)
       .replace(/\{ApplicantData\}/g, effectiveApplicantData);
 
-    // Call Google Gemini API with fallback
-    const apiResult = await executeWithApiKeyFallback(async (apiKey, model) => {
-      // Normalize model name (extract from path if needed)
-      const { normalizeModelName } = await import('@/lib/geminiModels');
-      let modelName = normalizeModelName(model);
-      
-      const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent`;
-
-      const fetchRes = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: prompt }]
-            }
-          ]
-        }),
-      });
-
-      if (!fetchRes.ok) {
-        const errorText = await fetchRes.text();
-        throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
-      }
-
-      const data = await fetchRes.json();
-      // Gemini API returns applicants[0].content.parts[0].text
-      const modelText = data.applicants?.[0]?.content?.parts?.[0]?.text || "";
-
-      return modelText;
-    }, 'AI Search');
+    const apiResult = await executeWithApiKeyFallback(
+      async (apiKey, model, provider) => generateTextWithProvider(provider, apiKey, model, prompt),
+      'AI Search'
+    );
 
     if (!apiResult.success) {
       return {
         matchedApplicantIds: [],
-        aiReasoning: `AI features are not available due to API key failures. Please check your API key configuration. Attempts: ${apiResult.attempts}, Last error: ${apiResult.error}`,
+        aiReasoning: `AI features are not available because all configured ${getProviderLabel(apiResult.provider)} keys failed. Attempts: ${apiResult.attempts}, Last error: ${apiResult.error}`,
         recordCount: 0
       };
     }
 
-    const modelText = apiResult.data;
+    const modelText = apiResult.data || '';
 
     let result;
     try {

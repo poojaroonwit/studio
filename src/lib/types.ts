@@ -1530,6 +1530,7 @@ export type SystemSettingKey =
 
   | 'preventDuplicateWebhookProcessing'
   | 'geminiApiKey'
+  | 'openaiApiKey'
   | 'loginPageBackgroundType'
   | 'loginPageBackgroundImageUrl'
   | 'loginPageBackgroundColor1'
@@ -1578,7 +1579,9 @@ export type SystemSettingKey =
   | 'loginPageFooter'
   | 'maxConcurrentProcessors'
   | 'aiPowerSearchSystemPrompt'
+  | 'aiProviderSelection'
   | 'geminiModelSelection'
+  | 'openaiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'basicAuthEnabled'
   | 'processQueueEnabled'
@@ -1875,4 +1878,3 @@ export interface UploadQueueCountResponse {
 export interface UploadQueuePendingCountResponse {
   count: number;
 }
-

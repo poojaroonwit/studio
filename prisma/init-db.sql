@@ -2,14 +2,14 @@
 -- This script works with the postgres user and studio_production database
 
 -- Create default admin user (password: nccadmin)
-INSERT INTO "User" (id, name, email, password, role, "authentication_method", "force_password_change", "createdAt", "updatedAt") 
+INSERT INTO "User" (id, name, email, password, role, "authentication_methods", "force_password_change", "createdAt", "updatedAt") 
 VALUES (
   gen_random_uuid(),
   'Admin User',
   'admin@ncc.com',
   '$2a$10$dwiCxbUtCqnXeB2O8BmiyeWHL0e7rOqahafQAUACsnD4EZ9nGqPx2',
   'Admin',
-  'basic',
+  ARRAY['basic'],
   false,
   NOW(),
   NOW()
@@ -42,10 +42,10 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Assign admin user to Admin group
-INSERT INTO "User_UserGroup" ("userId", "groupId")
-SELECT u.id, '00000000-0000-0000-0000-000000000001'
-FROM "User" u
-WHERE u.email = 'admin@ncc.com'
-ON CONFLICT ("userId", "groupId") DO NOTHING;
+UPDATE "User"
+SET "userGroupId" = '00000000-0000-0000-0000-000000000001',
+    "updatedAt" = NOW()
+WHERE email = 'admin@ncc.com'
+  AND ("userGroupId" IS NULL OR "userGroupId" <> '00000000-0000-0000-0000-000000000001');
 
  

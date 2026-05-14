@@ -14,6 +14,61 @@ const MODEL_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
 const modelCache = new Map<string, { timestamp: number; models: AiModelInfo[] }>();
 const CACHE_DURATION = 5 * 60 * 1000;
 
+function buildOpenAiChatRequestBody(
+  model: string,
+  prompt: string,
+  options?: {
+    temperature?: number;
+    topK?: number;
+    topP?: number;
+    maxOutputTokens?: number;
+  },
+  tokenField: 'max_completion_tokens' | 'max_tokens' = 'max_completion_tokens'
+): Record<string, unknown> {
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages: [{ role: 'user', content: prompt }],
+  };
+
+  if (typeof options?.temperature === 'number') {
+    requestBody.temperature = options.temperature;
+  }
+
+  if (typeof options?.topP === 'number') {
+    requestBody.top_p = options.topP;
+  }
+
+  if (typeof options?.maxOutputTokens === 'number') {
+    requestBody[tokenField] = options.maxOutputTokens;
+  }
+
+  return requestBody;
+}
+
+async function callOpenAiChatCompletions(
+  apiKey: string,
+  requestBody: Record<string, unknown>
+) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
+function shouldRetryOpenAiWithAlternateTokenField(data: any): boolean {
+  const errorParam = data?.error?.param;
+  const errorCode = data?.error?.code;
+  return errorCode === 'unsupported_parameter'
+    && (errorParam === 'max_completion_tokens' || errorParam === 'max_tokens');
+}
+
 export async function getSelectedAiProvider(): Promise<AiProvider> {
   const selectedProvider = await getSystemSetting('aiProviderSelection');
   return selectedProvider === 'openai' ? 'openai' : 'gemini';
@@ -118,22 +173,17 @@ export async function generateTextWithProvider(
   }
 ): Promise<string> {
   if (provider === 'openai') {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: options?.temperature ?? 0.7,
-        top_p: options?.topP,
-        max_tokens: options?.maxOutputTokens,
-      }),
-    });
+    let { response, data } = await callOpenAiChatCompletions(
+      apiKey,
+      buildOpenAiChatRequestBody(model, prompt, options, 'max_completion_tokens')
+    );
 
-    const data = await response.json().catch(() => ({}));
+    if (!response.ok && shouldRetryOpenAiWithAlternateTokenField(data)) {
+      ({ response, data } = await callOpenAiChatCompletions(
+        apiKey,
+        buildOpenAiChatRequestBody(model, prompt, options, 'max_tokens')
+      ));
+    }
 
     if (!response.ok) {
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);

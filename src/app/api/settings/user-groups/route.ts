@@ -10,8 +10,25 @@ import { PLATFORM_MODULES } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '../../../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { expandPermissionSet } from '@/lib/permission-aliases';
 
 import { auth } from '@/auth';
+const validPlatformModuleIds = new Set(PLATFORM_MODULES.map(m => m.id));
+
+function normalizePermissions(permissions?: string[] | null): PlatformModuleId[] {
+  if (!Array.isArray(permissions)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      expandPermissionSet(permissions).filter((permission): permission is PlatformModuleId =>
+        validPlatformModuleIds.has(permission as PlatformModuleId)
+      )
+    )
+  );
+}
+
 const userGroupSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.'),
   description: z.string().optional().nullable(),
@@ -116,7 +133,10 @@ export async function GET(request: NextRequest) {
       ORDER BY ug."is_system_role" DESC, ug.name ASC
     `);
 
-    const groups: UserGroup[] = result.rows;
+    const groups: UserGroup[] = result.rows.map((group: UserGroup) => ({
+      ...group,
+      permissions: normalizePermissions(group.permissions),
+    }));
     
     // Collect all permissions found in the database
     const allDbPermissions = new Set<string>();
@@ -167,20 +187,15 @@ export async function POST(request: NextRequest) {
     const validatedData = validation.data;
     const name = validatedData.name;
     const description = validatedData.description;
-    const permissions = validatedData.permissions;
+    const permissions = normalizePermissions(validatedData.permissions);
     const is_default = validatedData.is_default;
     
     // Validate permissions if provided
-    if (permissions && Array.isArray(permissions)) {
-        const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
-        const invalidPermissions = permissions.filter(permission => !platformModuleIds.includes(permission));
-        if (invalidPermissions.length > 0) {
-            console.error('POST /api/settings/user-groups - Invalid permissions:', invalidPermissions);
-            return NextResponse.json({ 
-                message: 'Invalid permissions provided', 
-                errors: { permissions: [`Invalid permissions: ${invalidPermissions.join(', ')}`] } 
-            }, { status: 400 });
-        }
+    if (validatedData.permissions && permissions.length === 0 && validatedData.permissions.length > 0) {
+        return NextResponse.json({ 
+            message: 'Invalid permissions provided', 
+            errors: { permissions: ['No valid permissions were provided'] } 
+        }, { status: 400 });
     }
     const newId = uuidv4();
     

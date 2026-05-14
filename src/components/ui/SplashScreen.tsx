@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
+import { useSession } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
   const { settings } = useGlobalSettings();
+  const { status } = useSession();
   const [isVisible, setIsVisible] = useState(true);
 
   // Configuration from settings
@@ -38,10 +40,10 @@ export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     
-    // Hide after allowing content to fully load
+    // Hide after allowing content to fully load, but keep this brief
     const timer = setTimeout(() => {
       setIsVisible(false);
-    }, 4000); // 4s maximum splash duration
+    }, 1200);
 
     return () => {
       clearTimeout(timer);
@@ -61,6 +63,12 @@ export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
       window.removeEventListener('hideSplashScreen', handleHide);
     };
   }, []);
+
+  useEffect(() => {
+    if (!persistent && status === 'authenticated') {
+      setIsVisible(false);
+    }
+  }, [persistent, status]);
 
   // Removed early return - show splash screen immediately with defaults while settings load
   // The splash screen will update when settings are fetched

@@ -10,8 +10,25 @@ import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '../../../../../lib/db';
+import { expandPermissionSet } from '@/lib/permission-aliases';
+import { clearUserFullContextCache } from '@/lib/authUtils';
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id);
+const validPlatformModuleIds = new Set(platformModuleIds);
+
+function normalizePermissions(permissions?: string[] | null): PlatformModuleId[] {
+  if (!Array.isArray(permissions)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      expandPermissionSet(permissions).filter((permission): permission is PlatformModuleId =>
+        validPlatformModuleIds.has(permission as PlatformModuleId)
+      )
+    )
+  );
+}
 
 // Test specific permissions from the error message
 const errorPermissions = [
@@ -116,7 +133,10 @@ export async function GET(request: NextRequest) {
     if (groupResult.rows.length === 0) {
       return NextResponse.json({ message: "User group (role) not found" }, { status: 404 });
     }
-    const group: UserGroup = groupResult.rows[0];
+    const group: UserGroup = {
+      ...groupResult.rows[0],
+      permissions: normalizePermissions(groupResult.rows[0].permissions),
+    };
     
 
 
@@ -209,6 +229,8 @@ export async function PUT(request: NextRequest) {
     
     // Validate permissions if provided
     if (fields.permissions && Array.isArray(fields.permissions)) {
+        fields.permissions = normalizePermissions(fields.permissions);
+
         // console.log('PUT /api/settings/user-groups/[id] - Validating permissions:', {
         //     receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
         //     totalReceived: fields.permissions.length,
@@ -272,9 +294,14 @@ export async function PUT(request: NextRequest) {
         if (result.rowCount === 0) {
             return NextResponse.json({ message: "User group not found" }, { status: 404 });
         }
+
+        clearUserFullContextCache();
         
         await logAudit('AUDIT', `User group '${result.rows[0].name}' updated.`, 'API:UserGroups:Update', actingUserId, { groupId: id, changes: fields });
-        return NextResponse.json(result.rows[0]);
+        return NextResponse.json({
+          ...result.rows[0],
+          permissions: normalizePermissions(result.rows[0].permissions),
+        });
     } catch (error: any) {
         console.error(`Failed to update user group ${id}:`, error);
         await logAudit('ERROR', `Failed to update user group (ID: ${id}). Error: ${error.message}`, 'API:UserGroups:Update', actingUserId, { groupId: id, input: body });

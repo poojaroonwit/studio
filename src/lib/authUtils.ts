@@ -7,6 +7,38 @@ import { webhookFetch } from '@/lib/webhookFetch';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { expandPermissionSet } from '@/lib/permission-aliases';
 
+const SESSION_CONTEXT_CACHE_TTL_MS = 5000;
+const sessionContextCache = new Map<string, {
+  expiresAt: number;
+  value: {
+    isValid: boolean;
+    reason?: 'VALID' | 'NOT_FOUND' | 'EXPIRED' | 'INVALIDATED' | 'ERROR';
+    userId?: string;
+    user?: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      image: string | null;
+      avatarUrl: string | null;
+      personalColor: string | null;
+      isActive: boolean;
+      twoFactorEnabled: boolean;
+      twoFactorMethod: string | null;
+      modulePermissions: PlatformModuleId[];
+    };
+  };
+}>();
+
+export function clearUserFullContextCache(sessionToken?: string) {
+  if (sessionToken) {
+    sessionContextCache.delete(sessionToken);
+    return;
+  }
+
+  sessionContextCache.clear();
+}
+
 // Account lockout configuration
 const LOCKOUT_CONFIG = {
   MAX_FAILED_ATTEMPTS: 3,           // Lock after 3 failed attempts
@@ -782,6 +814,7 @@ export async function invalidateSession(sessionToken: string): Promise<boolean> 
         VALUES (gen_random_uuid(), $1, 'SIGN_OUT', $2, NOW())
       `, [userId, JSON.stringify({ method: 'session_invalidation' })]);
 
+      clearUserFullContextCache(sessionToken);
       console.log(`[SESSION] Session invalidated for user: ${userId}`);
       return true;
     }
@@ -838,6 +871,11 @@ export async function getUserFullContext(sessionToken: string): Promise<{
     modulePermissions: PlatformModuleId[];
   };
 }> {
+  const cached = sessionContextCache.get(sessionToken);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const client = await getPool().connect();
   try {
     const result = await client.query(`
@@ -877,7 +915,7 @@ export async function getUserFullContext(sessionToken: string): Promise<{
       await client.query('UPDATE "UserSession" SET last_activity_at = NOW() WHERE id = $1', [row.session_id]);
     }
 
-    return {
+    const response = {
       isValid: true,
       reason: 'VALID',
       userId: row.user_id,
@@ -896,8 +934,16 @@ export async function getUserFullContext(sessionToken: string): Promise<{
       }
     };
 
+    sessionContextCache.set(sessionToken, {
+      expiresAt: Date.now() + SESSION_CONTEXT_CACHE_TTL_MS,
+      value: response,
+    });
+
+    return response;
+
   } catch (error) {
     console.error('[AUTH UTILS] Get user full context error:', error);
+    sessionContextCache.delete(sessionToken);
     return { isValid: false, reason: 'ERROR' };
   } finally {
     client.release();

@@ -460,7 +460,7 @@ export function getSwaggerSpec() {
           }
         }
       },
-      '/api/v1/Applicants/bulk-upload-cv': {
+      '/api/v1/applicants/bulk-upload-cv': {
         post: {
           summary: 'Upload CV with optional additional attachments (v1 API)',
           description: 'Upload a single CV file for a Applicant with optional additional attachments (e.g., cover letters, portfolios, certificates). Requires Bearer token authentication.',

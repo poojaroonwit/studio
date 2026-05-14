@@ -176,6 +176,7 @@ export function UnifiedRoleDrawer({
   const permissionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastPermissionUpdateRef = useRef<string>('');
+  const lastCommittedPermissionsRef = useRef<PlatformModuleId[]>([]);
 
   // Simple tracking for debugging (removed complex infinite loop prevention)
   const permissionUpdateCount = useRef(0);
@@ -220,16 +221,19 @@ export function UnifiedRoleDrawer({
         // Additional validation to ensure all permissions are valid strings
         const validPermissions = rolePermissions.filter(p => typeof p === 'string' && p.length > 0);
         setCurrentPermissions(validPermissions);
+        lastCommittedPermissionsRef.current = validPermissions;
       } else {
         // Defensive check to prevent React error #185
         const rolePermissions = Array.isArray(role?.permissions) ? role?.permissions : [];
         // Additional validation to ensure all permissions are valid strings
         const validPermissions = rolePermissions.filter(p => typeof p === 'string' && p.length > 0);
         setCurrentPermissions(validPermissions);
+        lastCommittedPermissionsRef.current = validPermissions;
       }
     } else {
       // Reset permissions when role is null
       setCurrentPermissions([]);
+      lastCommittedPermissionsRef.current = [];
     }
   }, [role?.id, role?.isSystemRole, allPermissions]); // FIXED: Only depend on role properties that matter
 
@@ -288,6 +292,7 @@ export function UnifiedRoleDrawer({
       
       // For system roles, show their assigned permissions (don't modify)
       setCurrentPermissions(role?.permissions || []);
+      lastCommittedPermissionsRef.current = Array.isArray(role?.permissions) ? role.permissions : [];
       
       if (activeTab === 'members') {
         loadGroupMembers();
@@ -356,7 +361,7 @@ export function UnifiedRoleDrawer({
     }
     
     // Prevent duplicate permission updates
-    const permissionString = JSON.stringify(permissions.sort());
+    const permissionString = JSON.stringify([...permissions].sort());
     if (lastPermissionUpdateRef.current === permissionString) {
       return;
     }
@@ -398,6 +403,7 @@ export function UnifiedRoleDrawer({
         const result = await response.json();
         // Update with server source of truth (should match optimistic state)
         setCurrentPermissions(result.permissions || []);
+        lastCommittedPermissionsRef.current = Array.isArray(result.permissions) ? result.permissions : permissions;
         toast.success('Permissions updated successfully');
         // onRoleChange?.(); // Don't trigger parent refresh for permission updates to avoid drawer reset
       } catch (error) {
@@ -409,10 +415,7 @@ export function UnifiedRoleDrawer({
         // Revert optimistic update on error
         console.error('Error updating permissions:', error);
         toast.error((error as Error).message || 'Failed to update permissions');
-        // Revert to original role permissions 
-        if (role?.permissions) {
-             setCurrentPermissions(role.permissions);
-        }
+        setCurrentPermissions(lastCommittedPermissionsRef.current);
       } finally {
         setIsUpdatingPermissions(false);
       }

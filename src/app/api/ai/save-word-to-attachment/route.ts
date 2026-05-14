@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalEditPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE']);
+  const hasGlobalEditPermission = hasAnyPermission(session.user, ['applicantS_EDIT_BASIC', 'applicantS_EDIT_SENSITIVE']);
   const hasOwnEditPermission = hasAnyPermission(session.user, ['applicantS_EDIT_BASIC_OWN', 'applicantS_EDIT_SENSITIVE_OWN']);
   
   if (!hasGlobalEditPermission && !hasOwnEditPermission) {

@@ -8,6 +8,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { canEditApplicant } from '@/lib/permissions';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 const jobAppliedSchema = z.object({
   fitScore: z.number().min(0).max(1),
@@ -68,8 +69,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasGlobalSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
@@ -190,8 +191,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasGlobalSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
@@ -311,8 +312,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
   
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasGlobalSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });

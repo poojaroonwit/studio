@@ -15,6 +15,7 @@ import { SimpleErrorHandler,
   createInternalServerError
 } from '@/lib/errors';;
 import { sanitizeFilename } from '@/lib/fileUtils';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -29,8 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC');
-  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN');
+  const hasGlobalEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC');
+  const hasOwnEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload avatars'));

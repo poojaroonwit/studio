@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user has permission to view SLA violations
-  // Users should be able to view SLA data if they can view Applicants or have SLA-specific permissions
+  // Users should be able to view SLA data if they can view Applicants or performance monitoring data
   if (!hasPermission(session.user, 'applicantS_VIEW') &&
-      !hasPermission(session.user, 'SLA_MONITORING_VIEW')) {
+      !hasPermission(session.user, 'APP_PERFORMANCE_VIEW')) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view SLA violations' }, { status: 403 });
   }
 

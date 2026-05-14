@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalResumePermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'applicantS_RESUMES_UPLOAD']);
+  const hasGlobalResumePermission = hasAnyPermission(session.user, ['applicantS_RESUMES_UPLOAD']);
   const hasOwnResumePermission = hasAnyPermission(session.user, ['applicantS_RESUMES_UPLOAD_OWN']);
 
   if (!hasGlobalResumePermission && !hasOwnResumePermission) {

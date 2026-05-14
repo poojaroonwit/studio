@@ -14,6 +14,7 @@ import { SimpleErrorHandler,
   createInternalServerError
 } from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 const updateApplicantSourceSchema = z.object({
   sourceId: z.string().uuid().nullable().optional(),
@@ -136,7 +137,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_SOURCE_ASSIGN'))) {
+  if (!user || (user.role !== 'Admin' && !permissionMatches(user.modulePermissions, 'APPLICANTS_SOURCE_ASSIGN'))) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant sources'));
   }
 

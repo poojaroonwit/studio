@@ -17,6 +17,7 @@ import type { EvaluationData, AveragedEvaluationData } from './types';
 import { groupPersonalityTraits, groupExpertiseSkills } from './utils';
 import { sanitizeUrl } from '@/lib/utils';
 import { safeWindowOpen } from '@/lib/safe-redirect';
+import { permissionMatches } from '@/lib/permission-aliases';
 import { ReportHeader } from './components/ReportHeader';
 import { ExecutiveSummary } from './components/ExecutiveSummary';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
@@ -346,9 +347,9 @@ function EvaluateResultPageContent() {
       : [];
 
     // Check for sensitive edit permissions (which includes evaluation scores and comments)
-    return modulePermissions.includes('APPLICANTS_EDIT_SENSITIVE') ||
-      modulePermissions.includes('APPLICANTS_EDIT_SENSITIVE_OWN') ||
-      modulePermissions.includes('APPLICANTS_EDIT_SENSITIVE_ALL');
+    return permissionMatches(modulePermissions, 'APPLICANTS_EDIT_SENSITIVE') ||
+      permissionMatches(modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN') ||
+      permissionMatches(modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_ALL');
   };
 
   // Check if user can edit Applicant basic info (including avatar)
@@ -360,9 +361,9 @@ function EvaluateResultPageContent() {
       ? session.user.modulePermissions
       : [];
 
-    return modulePermissions.includes('APPLICANTS_EDIT_BASIC') ||
-      modulePermissions.includes('APPLICANTS_EDIT_BASIC_OWN') ||
-      modulePermissions.includes('APPLICANTS_EDIT_BASIC_ALL');
+    return permissionMatches(modulePermissions, 'APPLICANTS_EDIT_BASIC') ||
+      permissionMatches(modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN') ||
+      permissionMatches(modulePermissions, 'APPLICANTS_EDIT_BASIC_ALL');
   };
 
   const handleAvatarUpload = async (file: File) => {

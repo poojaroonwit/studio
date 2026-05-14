@@ -15,6 +15,7 @@ import { SimpleErrorHandler,
   createInternalServerError
 } from '@/lib/errors';;
 import { canEditApplicant, canUploadResumes } from '@/lib/permissions';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 const ENDPOINT = '/api/v1/applicants/[id]/attachments';
 
@@ -321,8 +322,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Check ownership-based permissions for viewing attachments
-    const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-    const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+    const hasGlobalEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+    const hasOwnEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
     
     if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
       return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view attachments'));
@@ -375,8 +376,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD');
-  const hasOwnResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD_OWN');
+  const hasGlobalResumePermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RESUMES_UPLOAD');
+  const hasOwnResumePermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
@@ -510,8 +511,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD');
-  const hasOwnResumePermission = user.modulePermissions?.includes('APPLICANTS_RESUMES_UPLOAD_OWN');
+  const hasGlobalResumePermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RESUMES_UPLOAD');
+  const hasOwnResumePermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
@@ -653,8 +654,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasGlobalEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
@@ -712,8 +713,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-  const hasOwnEditPermission = user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasGlobalEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+  const hasOwnEditPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN') || permissionMatches(user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));

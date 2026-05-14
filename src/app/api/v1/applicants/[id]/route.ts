@@ -18,6 +18,7 @@ import { SimpleErrorHandler,
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 const updateApplicantSchema = z.object({
   // Legacy fields for backward compatibility
@@ -171,9 +172,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasBasicEditPermission = user?.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || user?.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN');
-  const hasSensitiveEditPermission = user?.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE') || user?.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
-  const hasPipelineUpdatePermission = user?.modulePermissions?.includes('APPLICANTS_PIPELINE_STAGE_UPDATE') || user?.modulePermissions?.includes('APPLICANTS_PIPELINE_STAGE_UPDATE_OWN');
+  const hasBasicEditPermission = permissionMatches(user?.modulePermissions, 'APPLICANTS_EDIT_BASIC') || permissionMatches(user?.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN');
+  const hasSensitiveEditPermission = permissionMatches(user?.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE') || permissionMatches(user?.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
+  const hasPipelineUpdatePermission = permissionMatches(user?.modulePermissions, 'APPLICANTS_PIPELINE_STAGE_UPDATE') || permissionMatches(user?.modulePermissions, 'APPLICANTS_PIPELINE_STAGE_UPDATE_OWN');
   
   if (!user || (user.role !== 'Admin' && !hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission)) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update applicants'));
@@ -535,7 +536,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_DELETE'))) {
+  if (!user || (user.role !== 'Admin' && !permissionMatches(user.modulePermissions, 'APPLICANTS_DELETE'))) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete applicants'));
   }
   const { id } = await params;

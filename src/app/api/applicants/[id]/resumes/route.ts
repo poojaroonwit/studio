@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { z } from 'zod';
 import { canEditApplicant } from '@/lib/permissions';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 
 import { auth } from '@/auth';
@@ -213,8 +214,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     
     // Check ownership-based permissions for deleting attachments
-    const hasGlobalEditPermission = session.user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC') || session.user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE');
-    const hasOwnEditPermission = session.user.modulePermissions?.includes('APPLICANTS_EDIT_BASIC_OWN') || session.user.modulePermissions?.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+    const hasGlobalEditPermission = permissionMatches(session.user.modulePermissions, 'APPLICANTS_EDIT_BASIC') || permissionMatches(session.user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE');
+    const hasOwnEditPermission = permissionMatches(session.user.modulePermissions, 'APPLICANTS_EDIT_BASIC_OWN') || permissionMatches(session.user.modulePermissions, 'APPLICANTS_EDIT_SENSITIVE_OWN');
     
     if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
       return NextResponse.json({ message: 'Insufficient permissions to delete attachments' }, { status: 403 });

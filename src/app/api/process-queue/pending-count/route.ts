@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has permission to view process queue data
-    // Users should be able to view queue data if they can manage uploads or have system monitoring permissions
+    // Users should be able to view queue data if they can manage uploads or view performance monitoring data
     if (!hasPermission(session.user, 'UPLOAD_QUEUE_VIEW') && 
-        !hasPermission(session.user, 'SYSTEM_MONITORING_VIEW')) {
+        !hasPermission(session.user, 'APP_PERFORMANCE_VIEW')) {
       return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view process queue data' }, { status: 403 });
     }
 

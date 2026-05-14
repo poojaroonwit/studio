@@ -36,6 +36,7 @@ import { AttachmentThumbnailButton } from './components/AttachmentThumbnailButto
 import { DesktopEvaluatePage } from './DesktopEvaluatePage';
 import { ExpiredLinkPage } from './components/ExpiredLinkPage';
 import { EvaluateRightPanel } from './components/EvaluateRightPanel';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 function ApplicantEvaluationPageContent() {
   const params = useParams();
@@ -120,11 +121,11 @@ function ApplicantEvaluationPageContent() {
     if (session.user.role === 'Admin') return true;
     // Check for sensitive edit permissions
     const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
-    const hasGlobalSensitiveEdit = perms.includes('APPLICANTS_EDIT_SENSITIVE') || perms.includes('APPLICANTS_EDIT_SENSITIVE_ALL');
+    const hasGlobalSensitiveEdit = permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE') || permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE_ALL');
     if (hasGlobalSensitiveEdit) return true;
     // Check for ownership-based permissions
     const isOwnApplicant = applicantRecruiterId === session.user.id;
-    const hasOwnSensitiveEdit = perms.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+    const hasOwnSensitiveEdit = permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE_OWN');
     return isOwnApplicant && hasOwnSensitiveEdit;
   }, [session?.user, applicantRecruiterId]);
 
@@ -135,11 +136,11 @@ function ApplicantEvaluationPageContent() {
     if (session.user.role === 'Admin') return true;
     // Check for edit permissions (basic or sensitive)
     const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
-    const hasGlobalEdit = perms.includes('APPLICANTS_EDIT_BASIC') || perms.includes('APPLICANTS_EDIT_SENSITIVE') || perms.includes('APPLICANTS_EDIT_SENSITIVE_ALL');
+    const hasGlobalEdit = permissionMatches(perms, 'APPLICANTS_EDIT_BASIC') || permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE') || permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE_ALL');
     if (hasGlobalEdit) return true;
     // Check for ownership-based permissions
     const isOwnApplicant = applicantRecruiterId === session.user.id;
-    const hasOwnEdit = perms.includes('APPLICANTS_EDIT_BASIC_OWN') || perms.includes('APPLICANTS_EDIT_SENSITIVE_OWN');
+    const hasOwnEdit = permissionMatches(perms, 'APPLICANTS_EDIT_BASIC_OWN') || permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE_OWN');
     return isOwnApplicant && hasOwnEdit;
   }, [session?.user, applicantRecruiterId]);
 
@@ -153,7 +154,7 @@ function ApplicantEvaluationPageContent() {
     if (session.user.role === 'Admin') return true;
     // Check for edit permissions
     const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
-    return perms.includes('APPLICANTS_EDIT_SENSITIVE') || perms.includes('APPLICANTS_EDIT_SENSITIVE_ALL');
+    return permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE') || permissionMatches(perms, 'APPLICANTS_EDIT_SENSITIVE_ALL');
   }, [session?.user]);
 
   // Check if user can remove interviewers

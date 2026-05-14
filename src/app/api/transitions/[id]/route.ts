@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving transition data
-  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'APPLICANTS_PIPELINE_STAGE_UPDATE']);
+  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE']);
   const hasOwnTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE_OWN']);
   
   if (!hasGlobalTransitionPermission && !hasOwnTransitionPermission) {
@@ -145,7 +145,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving transition data
-  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'APPLICANTS_PIPELINE_STAGE_UPDATE']);
+  const hasGlobalTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE']);
   const hasOwnTransitionPermission = hasAnyPermission(session.user, ['APPLICANTS_PIPELINE_STAGE_UPDATE_OWN']);
   
   if (!hasGlobalTransitionPermission && !hasOwnTransitionPermission) {

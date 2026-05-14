@@ -16,6 +16,7 @@ import { SimpleErrorHandler,
 } from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 import { canAssignRecruiter } from '@/lib/permissions';
+import { permissionMatches } from '@/lib/permission-aliases';
 
 const updateRecruiterSchema = z.object({
   recruiterId: z.string().uuid().nullable(),
@@ -66,8 +67,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   // Initial permission check - we'll do detailed ownership check after retrieving Applicant data
-  const hasGlobalRecruiterPermission = user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN');
-  const hasOwnRecruiterPermission = user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN_OWN');
+  const hasGlobalRecruiterPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RECRUITER_ASSIGN');
+  const hasOwnRecruiterPermission = permissionMatches(user.modulePermissions, 'APPLICANTS_RECRUITER_ASSIGN_OWN');
   
   if (!user || (user.role !== 'Admin' && !hasGlobalRecruiterPermission && !hasOwnRecruiterPermission)) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update Applicant recruiter'));
@@ -215,7 +216,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('APPLICANTS_RECRUITER_ASSIGN'))) {
+  if (!user || (user.role !== 'Admin' && !permissionMatches(user.modulePermissions, 'APPLICANTS_RECRUITER_ASSIGN'))) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to unassign Applicant recruiter'));
   }
   

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check permissions
-    if (!hasPermission(session.user, 'USERS_MANAGE') && !hasPermission(session.user, 'WEBHOOK_ANALYTICS_VIEW')) {
+    if (!hasPermission(session.user, 'WEBHOOK_ANALYTICS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view webhook analytics' }, { status: 403 });
     }
 

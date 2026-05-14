@@ -5,6 +5,12 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.6] - 2026-05-14
+
+### Fixed
+- OpenAI provider compatibility: Added fallback handling for `max_completion_tokens` and `max_tokens` so AI features keep working across different OpenAI model families.
+
+
 ## [1.2.5] - 2026-05-07
 
 ### Added

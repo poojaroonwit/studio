@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     let query = `
       SELECT 
         id, model_name, field_key, field_code, label, field_type, options, 
-        is_required, sort_order, attribute_code, attribute_label,
+        is_required, sort_order, attribute_code,
         view_roles, edit_roles, show_in_filter, show_in_applicant_detail,
         show_in_full_applicant_detail, show_in_task_board_filter,
         show_in_position_settings, show_in_headcount_detail, applicant_detail_section, position_detail_section, allow_custom_options,

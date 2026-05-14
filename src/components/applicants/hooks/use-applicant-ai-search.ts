@@ -90,10 +90,17 @@ export function useApplicantAiSearch({
       
       if (!response.ok) {
         // Provide detailed error message from API response
-        const errorMessage = result.message || 
-                            result.error || 
-                            (typeof result.details === 'string' ? result.details : JSON.stringify(result.details)) || 
-                            `AI search failed with status: ${response.status}`;
+        let errorMessage = result.message || 
+                          result.error || 
+                          (typeof result.details === 'string' ? result.details : JSON.stringify(result.details)) || 
+                          `AI search failed with status: ${response.status}`;
+
+        if (response.status === 403) {
+          errorMessage = result.message || 'You do not have permission to use AI search.';
+        } else if (response.status === 503) {
+          errorMessage = result.message || 'AI search is temporarily unavailable. Please check your AI provider configuration.';
+        }
+
         throw new Error(errorMessage);
       }
       

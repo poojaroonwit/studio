@@ -157,6 +157,12 @@ export function GenerativeAIModal({
 
       if (response.ok) {
         const data = await response.json();
+        if (data.unavailable || data.success === false) {
+          setGeneratedContent('');
+          toast.error(data.message || 'AI content generation is temporarily unavailable');
+          return;
+        }
+
         setGeneratedContent(data.content || '');
         toast.success('Content generated successfully');
       } else {

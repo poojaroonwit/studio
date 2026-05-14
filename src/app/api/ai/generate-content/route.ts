@@ -398,12 +398,14 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
       console.error('Generative AI: All API keys failed');
       return NextResponse.json(
         { 
+          success: false,
+          unavailable: true,
+          content: '',
           message: `AI features are not available because all configured ${getProviderLabel(result.provider)} keys failed. Please check your AI provider configuration.`,
           error: 'API_KEY_FAILURE',
           attempts: result.attempts,
           lastError: result.error
-        },
-        { status: 503 }
+        }
       );
     }
 
@@ -425,6 +427,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     );
 
     return NextResponse.json({ 
+      success: true,
       content: generatedContent,
       promptUsed: promptName,
       category: promptCategory

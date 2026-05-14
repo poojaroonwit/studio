@@ -4,6 +4,8 @@ import ApplicantCommentsSection from './ApplicantCommentsSection';
 import ApplicantResumesSection from './ApplicantResumesSection';
 import ApplicantEvaluationSection from './ApplicantEvaluationSection';
 import type { Applicant } from '@/lib/types';
+import { useSession } from 'next-auth/react';
+import { canViewEvaluationLinks } from '@/lib/permissions';
 
 
 import { EvaluateReportSection } from './evaluate-report/EvaluateReportSection';
@@ -27,15 +29,28 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   calculateTotalExperienceDuration,
   calculateAverageDurationPerCompany
 }) => {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<string>('comments');
   const [hasEvaluationLink, setHasEvaluationLink] = useState<boolean>(false);
   const [checkingLink, setCheckingLink] = useState(true);
+  const canViewLinks = canViewEvaluationLinks(session?.user).canView;
 
   useEffect(() => {
+    if (!canViewLinks) {
+      setHasEvaluationLink(false);
+      setCheckingLink(false);
+      return;
+    }
     checkEvaluationLink();
-  }, [applicant.id]);
+  }, [applicant.id, canViewLinks]);
 
   const checkEvaluationLink = async () => {
+    if (!canViewLinks) {
+      setHasEvaluationLink(false);
+      setCheckingLink(false);
+      return;
+    }
+
     try {
       setCheckingLink(true);
       const response = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, {
@@ -150,4 +165,3 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     </div>
   );
 };
-

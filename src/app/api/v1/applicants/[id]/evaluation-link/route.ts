@@ -46,8 +46,47 @@ async function getActiveLink(applicantId: string) {
   })
 }
 
+async function getActiveLinkByToken(applicantId: string, token: string) {
+  const now = new Date()
+  const model = prisma.applicantEvaluationLink
+  if (!model) {
+    throw new Error('ApplicantEvaluationLink model not available. Run prisma generate and database migrations.');
+  }
+  return model.findFirst({
+    where: {
+      applicantId,
+      token,
+      revokedAt: null,
+      expiresAt: { gt: now },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const applicantId = (await params).id
+    const token = request.nextUrl.searchParams.get('token')
+
+    // Ensure Applicant exists
+    const applicant = await prisma.applicant.findUnique({ where: { id: applicantId } })
+    if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
+
+    if (token) {
+      const link = await getActiveLinkByToken(applicantId, token)
+      if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+      return NextResponse.json({
+        id: link.id,
+        token: link.token,
+        url: buildEvaluateUrl(applicantId, link.token),
+        expiresAt: link.expiresAt,
+        revokedAt: link.revokedAt,
+        createdAt: link.createdAt,
+        requireLogin: link.requireLogin,
+      })
+    }
+
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -56,12 +95,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!canView) {
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
-
-    const applicantId = (await params).id
-
-    // Ensure Applicant exists
-    const applicant = await prisma.applicant.findUnique({ where: { id: applicantId } })
-    if (!applicant) return NextResponse.json({ error: 'Applicant not found' }, { status: 404 })
 
     const link = await getActiveLink(applicantId)
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -74,6 +107,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       revokedAt: link.revokedAt,
       createdAt: link.createdAt,
       createdBy: link.createdBy,
+      requireLogin: link.requireLogin,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal Server Error'
@@ -289,5 +323,4 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Internal Server Error', message, hint }, { status: 500 })
   }
 }
-
 

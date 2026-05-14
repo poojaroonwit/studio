@@ -383,8 +383,10 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
   const copiedJobMatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoized callback for comments change - MUST be called before use-applicant-detail hook
-  const handleCommentsChange = useCallback(() => {
-    onRefresh();
+  const handleCommentsChange = useCallback((options?: { refreshApplicantData?: boolean }) => {
+    if (options?.refreshApplicantData) {
+      onRefresh();
+    }
   }, [onRefresh]);
 
   // Use custom hook for Applicant detail logic
@@ -455,6 +457,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
     handleToggleBlacklist,
     handleToggleRead,
   } = useApplicantDetail(applicantId, { initialApplicant });
+  const canOpenEvalActions = canViewEvalLinks || canCreateEvalLink(applicant);
 
   // Handle custom field changes - MUST be called after use-applicant-detail but before any early returns
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
@@ -868,6 +871,16 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
           onReprocess={() => setIsReprocessModalOpen(true)}
           onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
           onEvaluate={async () => {
+            if (!canOpenEvalActions) {
+              toastError('You do not have permission to manage interview sessions.');
+              return;
+            }
+
+            if (!canViewEvalLinks) {
+              setIsCreateEvalLinkModalOpen(true);
+              return;
+            }
+
             // Reset existing link data
             setEvalLinkUrl(null);
             setEvalLinkExpiresAt(null);
@@ -1350,16 +1363,18 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
             setIsEditingEvalLink(false);
 
             // Refresh parent's knowledge
-            fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, { credentials: 'include' })
-              .then(res => res.json())
-              .then(data => {
-                if (data.url) {
-                  setEvalLinkUrl(data.url);
-                  setEvalLinkExpiresAt(data.expiresAt);
-                  setEvalLinkCreatedBy(data.createdBy || null);
-                }
-              })
-              .catch(console.error);
+            if (canViewEvalLinks) {
+              fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, { credentials: 'include' })
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                  if (data?.url) {
+                    setEvalLinkUrl(data.url);
+                    setEvalLinkExpiresAt(data.expiresAt);
+                    setEvalLinkCreatedBy(data.createdBy || null);
+                  }
+                })
+                .catch(console.error);
+            }
           }}
         />
       )}

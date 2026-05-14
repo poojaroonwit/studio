@@ -1576,7 +1576,10 @@ function ApplicantEvaluationPageContent() {
     }
 
     try {
-      const res = await fetch(`/api/v1/applicants/${applicantId}/evaluation-link`, { credentials: 'include' });
+      const res = await fetch(
+        `/api/v1/applicants/${applicantId}/evaluation-link?token=${encodeURIComponent(token)}`,
+        { credentials: 'include' }
+      );
       if (res.ok) {
         const data = await res.json();
         setEvaluationLinkRequireLogin(Boolean(data.requireLogin ?? true));

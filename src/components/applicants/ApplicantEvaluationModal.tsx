@@ -122,10 +122,14 @@ export function ApplicantEvaluationModal({
     if (isOpen && applicant?.id) {
       fetchEvaluationData();
       fetchAttachments();
-      fetchEvaluationLink();
+      if (canViewLinks) {
+        fetchEvaluationLink();
+      } else {
+        setLinkInfo(null);
+      }
       validatePosition();
     }
-  }, [isOpen, applicant?.id]);
+  }, [isOpen, applicant?.id, canViewLinks]);
 
   const validatePosition = async () => {
     const positionId = applicant?.positionId || position?.id;
@@ -307,6 +311,10 @@ export function ApplicantEvaluationModal({
 
   const fetchEvaluationLink = async () => {
     if (!applicant?.id) return;
+    if (!canViewLinks) {
+      setLinkInfo(null);
+      return;
+    }
     try {
       setLinkLoading(true);
       const res = await fetch(`/api/v1/applicants/${applicant.id}/evaluation-link`, { credentials: 'include' });

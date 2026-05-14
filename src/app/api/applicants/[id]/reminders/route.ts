@@ -5,12 +5,21 @@ import { z } from 'zod';
 import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const reminderSchema = z.object({
   title: z.string().min(1),
   content: z.string().optional(),
   reminderDate: z.string().datetime(),
 });
+
+function isMissingReminderTableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('applicantreminder') ||
+    message.includes('applicant_reminders') ||
+    message.includes('relation') ||
+    message.includes('table');
+}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,6 +38,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: reminders });
   } catch (err) {
     console.error(`[GET /api/applicants/${id}/reminders] Error:`, err);
+    if (isMissingReminderTableError(err)) {
+      return NextResponse.json({
+        data: [],
+        warning: 'Applicant reminders are unavailable because the reminders table is not available in this environment.',
+      });
+    }
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
@@ -67,6 +82,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ data: reminder }, { status: 201 });
   } catch (err) {
     console.error(`[POST /api/applicants/${id}/reminders] Error:`, err);
+    if (isMissingReminderTableError(err)) {
+      return NextResponse.json({
+        message: 'Applicant reminders are unavailable because the reminders table is not available in this environment.',
+      }, { status: 503 });
+    }
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

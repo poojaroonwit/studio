@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
-import { getAvailableModels, getSelectedAiProvider, type AiProvider } from '@/lib/aiProvider';
+import { getAvailableModels, getFallbackModels, getSelectedAiProvider, type AiProvider } from '@/lib/aiProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,8 +54,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
+    const canManageSystemSettings = !!session?.user && hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT');
+    const canManageAiIntegration = !!session?.user && hasPermission(session.user, 'AI_INTEGRATION_EDIT');
     
-    if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+    if (!session?.user || (!canManageSystemSettings && !canManageAiIntegration)) {
       // console.log('Access denied - insufficient permissions for model fetching');
       await logAudit('WARN', `Forbidden attempt to fetch available models by user ${session?.user?.email || 'Unknown'}.`, 'API:AvailableModels:Fetch', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
@@ -75,14 +77,31 @@ export async function GET(request: NextRequest) {
     );
 
     if (!result.success) {
-      console.error('Failed to fetch available models:', result.error);
-      return NextResponse.json(
-        { 
-          error: 'Failed to fetch available models. Please check your API key configuration.',
+      console.warn('Falling back to bundled models because live model fetch failed:', result.error);
+      const fallbackModels = getFallbackModels(provider);
+
+      await logAudit(
+        'WARN',
+        `Falling back to bundled ${provider} models for ${session.user.name}.`,
+        'API:AvailableModels:Fallback',
+        session.user.id,
+        {
+          provider,
+          reason: result.error,
           attempts: result.attempts,
-          lastError: result.error
-        },
-        { status: 503 }
+          fallbackModelCount: fallbackModels.length,
+        }
+      );
+
+      return NextResponse.json(
+        {
+          success: true,
+          provider,
+          models: fallbackModels,
+          fallback: true,
+          warning: result.error,
+          attempts: result.attempts,
+        }
       );
     }
 

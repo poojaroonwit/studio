@@ -95,6 +95,7 @@ export default function SystemSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('organize');
+  const isAdmin = session?.user?.role === 'Admin';
 
   // System/Integration settings state
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState(5);
@@ -336,6 +337,12 @@ export default function SystemSettingsPage() {
     }
   }, [sessionStatus, currentPath, fetchSystemSettings]);
 
+  useEffect(() => {
+    if (!isAdmin && activeTab === 'system-api-keys') {
+      setActiveTab('security');
+    }
+  }, [activeTab, isAdmin]);
+
   // Set editor as ready after component mounts and data is loaded
   useEffect(() => {
     if (!isLoading && !fetchError) {
@@ -541,12 +548,18 @@ export default function SystemSettingsPage() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {menuItems.map((group) => (
+                {menuItems.map((group) => {
+                  const visibleItems = group.items.filter((item) => item.id !== 'system-api-keys' || isAdmin);
+                  if (!visibleItems.length) {
+                    return null;
+                  }
+
+                  return (
                   <React.Fragment key={group.group}>
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/30">
                       {group.group}
                     </div>
-                    {group.items.map((item) => (
+                    {visibleItems.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         <div className="flex items-center gap-2">
                           <item.icon className="h-4 w-4" />
@@ -555,7 +568,8 @@ export default function SystemSettingsPage() {
                       </SelectItem>
                     ))}
                   </React.Fragment>
-                ))}
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -564,13 +578,19 @@ export default function SystemSettingsPage() {
             <div className="w-64 border-r bg-muted/10 flex-col hidden md:flex">
               <ScrollArea className="flex-1">
                 <div className="p-4 space-y-6">
-                  {menuItems.map((group) => (
+                  {menuItems.map((group) => {
+                    const visibleItems = group.items.filter((item) => item.id !== 'system-api-keys' || isAdmin);
+                    if (!visibleItems.length) {
+                      return null;
+                    }
+
+                    return (
                     <div key={group.group}>
                       <h4 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         {group.group}
                       </h4>
                       <div className="space-y-1">
-                        {group.items.map((item) => (
+                        {visibleItems.map((item) => (
                           <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
@@ -587,7 +607,8 @@ export default function SystemSettingsPage() {
                         ))}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </div>
@@ -764,7 +785,7 @@ export default function SystemSettingsPage() {
                 />
               )}
 
-              {activeTab === 'system-api-keys' && (
+              {activeTab === 'system-api-keys' && isAdmin && (
                 <ScrollArea className="h-full">
                   <SystemApiKeysTab />
                 </ScrollArea>

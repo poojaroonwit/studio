@@ -285,7 +285,7 @@ async function fetchOpenAiModels(apiKey: string): Promise<AiModelInfo[]> {
   }
 }
 
-function getFallbackModels(provider: AiProvider): AiModelInfo[] {
+export function getFallbackModels(provider: AiProvider): AiModelInfo[] {
   if (provider === 'openai') {
     return [
       { name: 'gpt-4o-mini', displayName: 'gpt-4o-mini', description: 'Fast and cost-efficient OpenAI model', supportedGenerationMethods: ['chat.completions'] },

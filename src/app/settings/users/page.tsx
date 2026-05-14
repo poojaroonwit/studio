@@ -382,6 +382,10 @@ export default function ManageUsersPage() {
     setSelectedUser(null);
   };
 
+  const confirmDeleteUser = (user: UserProfile) => {
+    setUserToDelete(user);
+  };
+
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     try {

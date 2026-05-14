@@ -23,7 +23,12 @@ export function useApplicantActions({
   aiMatchedApplicantIds
 }: UseApplicantActionsProps) {
   
-  const updateApplicantStatus = useCallback(async (applicantId: string, newStatus: ApplicantStatus, notes?: string, suppressToast?: boolean) => {
+  const updateApplicantStatus = useCallback(async (
+    applicantId: string,
+    newStatus: ApplicantStatus,
+    notes?: string,
+    suppressToast?: boolean
+  ): Promise<void> => {
     if (aiMatchedApplicantIds !== null) {
       toast('AI Search Active: Please clear AI search to perform updates.');
       return;
@@ -100,7 +105,7 @@ export function useApplicantActions({
       // Refresh the applicant list to ensure consistency
       fetchTableData(filters, page, pageSize);
       
-      return true;
+      return;
     } catch (error) {
       // Revert optimistic update on error
       setFilteredApplicants((prev: Applicant[]) => prev.map(app => 
@@ -113,6 +118,7 @@ export function useApplicantActions({
       if (!suppressToast) {
         toast.error(getErrorMessage(error), { id: applicantId });
       }
+      return;
     }
   }, [setFilteredApplicants, setAllApplicantsForCounts, fetchTableData, filters, page, pageSize, aiMatchedApplicantIds]);
 

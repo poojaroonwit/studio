@@ -1,5 +1,4 @@
 import { DefaultSession } from "next-auth";
-import { JWT } from "next-auth/jwt";
 import { UserProfile, PlatformModuleId } from "@/lib/types";
 
 declare module "next-auth" {
@@ -39,3 +38,5 @@ declare module "next-auth/jwt" {
     adminId?: string;
   }
 }
+
+export {};

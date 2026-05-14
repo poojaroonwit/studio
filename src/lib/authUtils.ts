@@ -915,7 +915,24 @@ export async function getUserFullContext(sessionToken: string): Promise<{
       await client.query('UPDATE "UserSession" SET last_activity_at = NOW() WHERE id = $1', [row.session_id]);
     }
 
-    const response = {
+    const response: {
+      isValid: boolean;
+      reason?: 'VALID' | 'NOT_FOUND' | 'EXPIRED' | 'INVALIDATED' | 'ERROR';
+      userId?: string;
+      user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        image: string | null;
+        avatarUrl: string | null;
+        personalColor: string | null;
+        isActive: boolean;
+        twoFactorEnabled: boolean;
+        twoFactorMethod: string | null;
+        modulePermissions: PlatformModuleId[];
+      };
+    } = {
       isValid: true,
       reason: 'VALID',
       userId: row.user_id,

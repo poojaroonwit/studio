@@ -443,6 +443,7 @@ export async function DELETE(request: NextRequest) {
 
     const userId = session.user.id;
     const { searchParams } = new URL(request.url);
+    const modelType = searchParams.get('modelType');
     // Normalize modelType for database consistency
     const dbModelType = modelType === 'applicants' ? 'Applicants' : modelType;
 
@@ -454,7 +455,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete preferences
-    const whereClause = modelType 
+    const whereClause = dbModelType
       ? { userId, modelType: dbModelType }
       : { userId };
 

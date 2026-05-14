@@ -16,6 +16,11 @@ export async function logAudit(
 ) {
   const client = await getSafeDbClient();
   try {
+    const logId = uuidv4();
+    const query = `
+      INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
+    `;
     console.log('[AUDIT LOG] Starting audit log for:', { level, message, source, actingUserId });
     // Ensure actingUserId refers to an existing user; otherwise set to null to avoid FK errors
     let sanitizedActingUserId: string | null = actingUserId;

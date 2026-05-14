@@ -13,9 +13,14 @@ import { EyeIcon as Eye } from '@heroicons/react/24/outline';
  */
 export function ImpersonationBanner() {
   const { data: session, update } = useSession();
+  const sessionUser = session?.user as {
+    name?: string | null;
+    impersonatedUserId?: string | null;
+    impersonatedRole?: string | null;
+  } | undefined;
 
   // Only show if impersonating
-  if (!session?.user?.impersonatedUserId && !session?.user?.impersonatedRole) {
+  if (!sessionUser?.impersonatedUserId && !sessionUser?.impersonatedRole) {
     return null;
   }
 
@@ -34,7 +39,7 @@ export function ImpersonationBanner() {
 
   // We show the name with a "Preview:" prefix if we're in impersonation mode
   // The prefix is already added in the session callback in auth.ts
-  const displayName = session.user.name || 'Unknown User';
+  const displayName = sessionUser?.name || 'Unknown User';
 
   return (
     <div className="sticky top-0 bg-amber-600 dark:bg-amber-700 text-white px-4 py-1.5 flex items-center justify-between text-sm font-medium z-[100] border-b border-amber-500 shadow-sm transition-all duration-300 h-8">

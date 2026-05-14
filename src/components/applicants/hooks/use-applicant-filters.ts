@@ -143,7 +143,10 @@ export function useApplicantFilters(initialFilters?: ApplicantFilterValues) {
     return newFilters;
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
-  const handleFilterChange = useCallback((newFilters: ApplicantFilterValues, onFilterChange: (filters: ApplicantFilterValues) => void) => {
+  const handleFilterChange = useCallback((
+    newFilters: ApplicantFilterValues,
+    onFilterChange?: (filters: ApplicantFilterValues) => void
+  ) => {
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
@@ -181,7 +184,7 @@ export function useApplicantFilters(initialFilters?: ApplicantFilterValues) {
     
     // Increased debounce to prevent infinite loops
     filterChangeTimeoutRef.current = setTimeout(() => {
-      onFilterChange(combinedFilters);
+      onFilterChange?.(combinedFilters);
     }, 150); // Increased from 50ms to 150ms to prevent infinite loops
   }, []); // Removed filters from dependency array to prevent infinite loop
 

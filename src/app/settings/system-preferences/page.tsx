@@ -800,11 +800,11 @@ export default function SystemPreferencesPage() {
 
     try {
       applyHeaderBrandingSettings({
-        headerBackgroundType,
-        headerBackgroundColor,
-        headerBackgroundGradient,
-        headerBackgroundImageUrl: headerImagePreviewUrl || undefined,
-        headerTextColor,
+        headerBackgroundType: headerBackgroundType ?? undefined,
+        headerBackgroundColor: headerBackgroundColor ?? undefined,
+        headerBackgroundGradient: headerBackgroundGradient ?? undefined,
+        headerBackgroundImageUrl: headerImagePreviewUrl ?? undefined,
+        headerTextColor: headerTextColor ?? undefined,
       });
     } catch (e) {
       console.warn('Failed to apply header branding settings', e);

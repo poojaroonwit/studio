@@ -95,7 +95,7 @@ function DayCell({
   applicants: EvaluationApplicant[];
   reminders?: CalendarReminder[];
   onClick: () => void;
-  onApplicantClick?: (applicantId: string) => void;
+  onApplicantClick?: (applicantId: string, isReminder?: boolean) => void;
   compact?: boolean;
 }) {
   const hasEvents = applicants.length > 0 || (reminders?.length || 0) > 0;

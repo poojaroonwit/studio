@@ -1,15 +1,3 @@
-// This declares the shape of the user object returned by the session callback
-// and available in useSession() or auth()
-// It needs to be augmented if you add custom properties to the session token
-// In NextAuth v5, DefaultUser is not exported, so we define the base user type
-type DefaultUser = {
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
-
-import { auth } from '@/auth';
-
 // Define platform module IDs with categories
 export const PLATFORM_MODULE_CATEGORIES = {
   APPLICANT_MANAGEMENT: "Applicant Management",
@@ -948,46 +936,6 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 ];
 
 export type PlatformModuleId = PlatformModule['id'];
-
-
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      role?: UserProfile['role'];
-      modulePermissions?: PlatformModuleId[];
-      avatarUrl?: string | null;
-      personalColor?: string | null;
-      twoFactorEnabled?: boolean;
-      twoFactorMethod?: 'totp' | 'email';
-    } & DefaultUser; // DefaultUser includes name, email, image
-  }
-
-  interface User extends DefaultUser { // NextAuth User object
-    id: string;
-    role?: UserProfile['role'];
-    modulePermissions?: PlatformModuleId[];
-    avatarUrl?: string | null;
-    personalColor?: string | null;
-    twoFactorEnabled?: boolean;
-    twoFactorMethod?: 'totp' | 'email';
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-    role?: string;
-    modulePermissions?: PlatformModuleId[];
-    avatarUrl?: string | null;
-    personalColor?: string | null;
-    twoFactorEnabled?: boolean;
-    twoFactorMethod?: 'totp' | 'email';
-  }
-}
-
-// In NextAuth v5, JWT types are handled differently
-// The JWT interface is extended in the auth.ts file via the jwt callback
 
 // Core system statuses - these might still be useful for specific logic,
 // but the full list of available stages will come from the RecruitmentStage table.

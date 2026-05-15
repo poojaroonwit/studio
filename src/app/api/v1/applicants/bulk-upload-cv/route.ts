@@ -11,6 +11,120 @@ import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+function getFormStringValue(formData: FormData, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = formData.get(key);
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function getFileFromField(formData: FormData, key: string | null): File | null {
+  if (!key) {
+    return null;
+  }
+
+  const value = formData.get(key);
+  if (value instanceof File && value.name) {
+    return value;
+  }
+
+  return null;
+}
+
+function parseAttachmentKeyList(rawValue: string | null): string[] {
+  if (!rawValue) {
+    return [];
+  }
+
+  return rawValue
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function extractPrimaryFile(formData: FormData): { file: File | null; fieldName: string | null } {
+  const directCandidates = ['file', 'files', 'primaryFile', 'primary_file'];
+  for (const candidate of directCandidates) {
+    const file = getFileFromField(formData, candidate);
+    if (file) {
+      return { file, fieldName: candidate };
+    }
+  }
+
+  const primaryFileKey = getFormStringValue(formData, 'primaryFileKey', 'primary_file_key');
+  const keyedPrimaryFile = getFileFromField(formData, primaryFileKey);
+  if (keyedPrimaryFile) {
+    return { file: keyedPrimaryFile, fieldName: primaryFileKey };
+  }
+
+  for (const [key, value] of formData.entries()) {
+    if (!(value instanceof File) || !value.name) {
+      continue;
+    }
+
+    if (key === 'additionalAttachments' || key === 'additional_attachments') {
+      continue;
+    }
+
+    if (key.startsWith('attachments[') || key.startsWith('attachment_')) {
+      return { file: value, fieldName: key };
+    }
+  }
+
+  for (const [key, value] of formData.entries()) {
+    if (value instanceof File && value.name) {
+      return { file: value, fieldName: key };
+    }
+  }
+
+  return { file: null, fieldName: null };
+}
+
+function extractAdditionalAttachments(formData: FormData, primaryFieldName: string | null): File[] {
+  const collected = new Map<string, File>();
+
+  const addFile = (key: string, value: FormDataEntryValue | null) => {
+    if (!(value instanceof File) || !value.name) {
+      return;
+    }
+
+    if (key === primaryFieldName) {
+      return;
+    }
+
+    collected.set(key, value);
+  };
+
+  for (const value of formData.getAll('additionalAttachments')) {
+    addFile('additionalAttachments', value);
+  }
+
+  for (const value of formData.getAll('additional_attachments')) {
+    addFile('additional_attachments', value);
+  }
+
+  const additionalKeys = [
+    ...parseAttachmentKeyList(getFormStringValue(formData, 'additionalKeys', 'additional_keys')),
+    ...parseAttachmentKeyList(getFormStringValue(formData, 'attachments', 'attachmentKeys', 'attachment_keys')),
+  ];
+
+  for (const key of additionalKeys) {
+    addFile(key, formData.get(key));
+  }
+
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('attachments[') || key.startsWith('additionalAttachment_')) {
+      addFile(key, value);
+    }
+  }
+
+  return Array.from(collected.values());
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -33,20 +147,17 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') || formData.get('files');
+    const { file, fieldName: primaryFileFieldName } = extractPrimaryFile(formData);
     const positionId = formData.get('positionId') || formData.get('position_id');
     const sourceIdRaw = formData.get('sourceId') || formData.get('source_id');
     const subSourceRaw = formData.get('subSource') || formData.get('sub_source');
-    const additionalAttachments = [
-      ...formData.getAll('additionalAttachments'),
-      ...formData.getAll('additional_attachments'),
-    ];
+    const additionalAttachments = extractAdditionalAttachments(formData, primaryFileFieldName);
     
     // Handle sourceId properly - convert string "null" to actual null
     const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw as string : null;
     const subSource = subSourceRaw && subSourceRaw !== 'null' ? String(subSourceRaw) : null;
 
-    if (!file || typeof file === 'string') {
+    if (!file) {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
     }
     if (!positionId || typeof positionId !== 'string') {

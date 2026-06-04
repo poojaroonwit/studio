@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
+import { requireApiSession } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const { response } = await requireApiSession();
+  if (response) return response;
+
   const { searchParams } = new URL(request.url);
   const applicantId = searchParams.get('applicantId');
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { requireApiSession } from '@/lib/api-route-guards';
 
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,9 @@ let majorsCache: { data: string[], timestamp: number } | null = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export async function GET(req: NextRequest) {
+  const { response } = await requireApiSession();
+  if (response) return response;
+
   try {
     // Check cache first to reduce database load
     const now = Date.now();

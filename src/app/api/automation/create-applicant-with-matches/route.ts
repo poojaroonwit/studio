@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createDateInTimezone } from '@/lib/dateUtils';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { requireAutomationApiKey } from '@/lib/api-route-guards';
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,9 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const authError = requireAutomationApiKey(request);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();

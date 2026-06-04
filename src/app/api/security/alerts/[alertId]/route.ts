@@ -31,7 +31,7 @@ async function handler(
     }
 
     // Get user session for logging
-    const sessionResult = await requireSessionAndPermission('SYSTEM_SETTINGS', req);
+    const sessionResult = await requireSessionAndPermission('SYSTEM_SETTINGS_EDIT', req);
     if (sessionResult.error) {
       return sessionResult.error;
     }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, context: any) {
   }
   const secured = withApiSecurity(handler, {
     requireAuth: true,
-    requirePermission: 'SYSTEM_SETTINGS',
+    requirePermission: 'SYSTEM_SETTINGS_EDIT',
     logAccess: true,
   });
   return secured(req, context);

@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 const client = new Client({
-  connectionString: "postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+  connectionString: "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 });
 
 async function testConnection() {

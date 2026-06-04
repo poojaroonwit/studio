@@ -6,7 +6,7 @@ async function main() {
   console.log('--- User Fix Script Start ---');
   
   const adminPassword = 'nccadmin';
-  const demoPassword = 'Demo@Seed#2024!';
+  const demoPassword = 'CHANGE_ME_DEMO_SEED_PASSWORD';
   
   const adminHash = await bcrypt.hash(adminPassword, 10);
   const demoHash = await bcrypt.hash(demoPassword, 10);

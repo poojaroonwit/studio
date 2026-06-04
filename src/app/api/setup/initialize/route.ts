@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { initializeApplication } from '@/lib/startup';
 import { logAudit } from '@/lib/auditLog';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 /**
  * @openapi
@@ -57,13 +58,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
+    const { response, session } = await requireApiPermission('SYSTEM_SETTINGS_EDIT');
+    if (response) return response;
+
     
-    await logAudit('INFO', 'Application initialization started via API', 'API:Setup:Initialize:Post', null);
+    await logAudit('INFO', 'Application initialization started via API', 'API:Setup:Initialize:Post', session.user.id);
     
     const result = await initializeApplication();
     
     
-    await logAudit('AUDIT', `Application initialization completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Post', null, { 
+    await logAudit('AUDIT', `Application initialization completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Post', session.user.id, { 
       status: result.overall,
       minioStatus: result.minio?.status,
       databaseStatus: result.database?.status 
@@ -87,15 +91,18 @@ export async function POST() {
 
 export async function GET() {
   try {
+    const { response, session } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
+    if (response) return response;
+
     // console.log('🔍 Checking application status...');
     
-    await logAudit('INFO', 'Application status check started via API', 'API:Setup:Initialize:Get', null);
+    await logAudit('INFO', 'Application status check started via API', 'API:Setup:Initialize:Get', session.user.id);
     
     const result = await initializeApplication();
     
     // console.log('✅ Application status check completed');
     
-    await logAudit('AUDIT', `Application status check completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Get', null, { 
+    await logAudit('AUDIT', `Application status check completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Get', session.user.id, { 
       status: result.overall,
       minioStatus: result.minio?.status,
       databaseStatus: result.database?.status 

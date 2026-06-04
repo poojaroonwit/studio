@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnectionCount } from '@/lib/realtime';
 import { getAllowedOrigin } from '@/lib/cors';
+import { requireApiSession } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Public, zero-auth, zero-DB status for reliability behind proxies
+    const { response } = await requireApiSession();
+    if (response) return response;
+
     const totalConnections = getConnectionCount();
     const sseStatus = {
       status: totalConnections > 0 ? 'connected' : 'disconnected',

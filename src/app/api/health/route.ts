@@ -4,6 +4,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 
+// Public endpoint: coarse liveness probe only. Detailed checks are permission-gated.
 export async function GET() {
   try {
     // Test database connection
@@ -12,8 +13,6 @@ export async function GET() {
     await client.query('SELECT 1');
     client.release();
     
-    // Additional health checks can be added here
-    const memoryUsage = process.memoryUsage();
     const uptime = process.uptime();
     
     return NextResponse.json({
@@ -21,13 +20,7 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       database: 'connected',
       uptime: uptime,
-      memory: {
-        rss: Math.round(memoryUsage.rss / 1024 / 1024), // MB
-        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
-        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
-      },
       version: process.env.npm_package_version || 'unknown',
-      nodeEnv: process.env.NODE_ENV || 'unknown',
     });
   } catch (error) {
     console.error('Health check failed:', error);

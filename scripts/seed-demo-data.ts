@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // SECURITY: Demo seed passwords from environment variable with secure fallback
-const DEMO_SEED_PASSWORD = process.env.DEMO_SEED_PASSWORD || 'Demo@Seed#2024!';
+const DEMO_SEED_PASSWORD = process.env.DEMO_SEED_PASSWORD || 'CHANGE_ME_DEMO_SEED_PASSWORD';
 
 async function ensureRecruiterUser() {
   // Use existing admin as recruiter/evaluator fallback

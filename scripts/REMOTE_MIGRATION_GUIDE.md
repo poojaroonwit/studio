@@ -9,28 +9,28 @@ This guide explains how to run database migrations and seed data on a remote ser
 **On Linux/Mac (Bash):**
 ```bash
 # Set DATABASE_URL and run
-export DATABASE_URL="postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 bash scripts/run-migrations-and-seed.sh
 
 # Or pass DATABASE_URL as argument
-bash scripts/run-migrations-and-seed.sh "postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+bash scripts/run-migrations-and-seed.sh "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 ```
 
 **On Windows (PowerShell):**
 ```powershell
 # Set DATABASE_URL and run
-$env:DATABASE_URL = "postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+$env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 .\scripts\run-migrations-and-seed.ps1
 
 # Or pass DATABASE_URL as argument
-.\scripts\run-migrations-and-seed.ps1 "postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+.\scripts\run-migrations-and-seed.ps1 "postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 ```
 
 ### Option 2: Using npm Script
 
 ```bash
 # Set DATABASE_URL first
-export DATABASE_URL="postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 
 # Run migrations and seed
 npm run db:migrate:seed
@@ -40,7 +40,7 @@ npm run db:migrate:seed
 
 ```bash
 # Set DATABASE_URL
-export DATABASE_URL="postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 
 # Run migrations
 npm run db:deploy
@@ -59,7 +59,7 @@ npx tsx prisma/seed.ts
 
 ```bash
 # SSH into remote server and run the script
-ssh user@remote-server "cd /path/to/project && export DATABASE_URL='postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev' && bash scripts/run-migrations-and-seed.sh"
+ssh user@remote-server "cd /path/to/project && export DATABASE_URL='postgresql://USER:PASSWORD@HOST:PORT/DATABASE' && bash scripts/run-migrations-and-seed.sh"
 ```
 
 ### Method 2: SSH and Run npm Commands
@@ -70,14 +70,14 @@ ssh user@remote-server
 
 # On remote server:
 cd /path/to/project
-export DATABASE_URL="postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev"
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 npm run db:migrate:seed
 ```
 
 ### Method 3: One-liner with npm
 
 ```bash
-ssh user@remote-server "cd /path/to/project && DATABASE_URL='postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev' npm run db:migrate:seed"
+ssh user@remote-server "cd /path/to/project && DATABASE_URL='postgresql://USER:PASSWORD@HOST:PORT/DATABASE' npm run db:migrate:seed"
 ```
 
 ## What the Script Does
@@ -116,6 +116,6 @@ postgresql://[username]:[password]@[host]:[port]/[database]
 
 Example:
 ```
-postgresql://studio_user:local_dev_password@10.0.10.57:8521/studio_dev
+postgresql://USER:PASSWORD@HOST:PORT/DATABASE
 ```
 

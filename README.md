@@ -96,7 +96,7 @@ docker-compose up -d
 | Service | URL | Default Credentials |
 |---------|-----|---------------------|
 | **Main App** | http://localhost:8021 | admin@ncc.com / nccadmin |
-| **MinIO Console** | http://localhost:9848 | minioadmin / minioadmin |
+| **MinIO Console** | http://localhost:9848 | CHANGE_ME_MINIO_ACCESS_KEY / CHANGE_ME_MINIO_SECRET_KEY |
 | **N8N Automation** | http://localhost:8921 | admin / admin |
 
 ⚠️ **Security**: Change all default passwords immediately after first login.

@@ -58,6 +58,7 @@ import { PositionsMobileListView } from './PositionsMobileListView';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicator';
 import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
+import { getNextPositionSortState, sortPositions, type PositionSortDirection } from './position-page-utils';
 
 
 export default function PositionsPageClient() {
@@ -1191,51 +1192,17 @@ export default function PositionsPageClient() {
 
   // Add sort state and handler at the top of the component
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>('asc');
+  const [sortDirection, setSortDirection] = useState<PositionSortDirection>('asc');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
-    if (!column) {
-      setSortColumn(null);
-      setSortDirection('asc');
-      return;
-    }
-    if (sortColumn === column && (direction === null || direction === undefined)) {
-      // 3-state toggle: unsorted -> asc -> desc -> unsorted
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        // Clear sort - go back to unsorted
-        setSortDirection(null);
-      } else {
-        // From unsorted (null) to asc
-        setSortDirection('asc');
-      }
-    } else {
-      setSortColumn(column);
-      setSortDirection(direction || 'desc');
-    }
-  };
-
-  const getSortableValue = (position: Position, column: string) => {
-    switch (column) {
-      case 'title': return position.title?.toLowerCase() || '';
-      case 'department': return position.department?.toLowerCase() || '';
-      case 'status': return position.isOpen ? 'open' : 'closed';
-      case 'recruiter': return position.recruiterName?.toLowerCase() || '';
-      default: return '';
-    }
+  const handleSort = (column: string | null, direction?: PositionSortDirection) => {
+    const nextSort = getNextPositionSortState(sortColumn, sortDirection, column, direction);
+    setSortColumn(nextSort.sortColumn);
+    setSortDirection(nextSort.sortDirection);
   };
 
   const sortedPositions = useMemo(() => {
-    if (!sortColumn) return filteredPositions;
-    return [...filteredPositions].sort((a, b) => {
-      const aValue = getSortableValue(a, sortColumn);
-      const bValue = getSortableValue(b, sortColumn);
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
+    return sortPositions(filteredPositions, sortColumn, sortDirection);
   }, [filteredPositions, sortColumn, sortDirection]);
 
   // Handle add position

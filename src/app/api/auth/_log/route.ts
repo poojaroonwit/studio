@@ -5,12 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * NextAuth internal logging endpoint
- * This endpoint handles NextAuth's internal logging requests to prevent 500 errors
+ * Public endpoint that handles NextAuth's internal logging requests to prevent 500 errors.
  */
 export async function POST(request: NextRequest) {
   try {
-    // Log the request to console for debugging purposes
-    const body = await request.json().catch(() => ({}));
+    await request.json().catch(() => ({}));
     
     // Return a simple success response
     return NextResponse.json({ success: true });
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  // Handle GET requests as well
+export async function GET() {
+  // Public endpoint for build/proxy probes only; no diagnostic data is exposed.
   return NextResponse.json({ success: true });
 } 

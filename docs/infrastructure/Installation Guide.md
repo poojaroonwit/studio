@@ -82,8 +82,8 @@ DATABASE_URL=postgresql://user:password@postgres:8521/dbname
 
 # MinIO Storage
 MINIO_ENDPOINT=minio
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_ACCESS_KEY=CHANGE_ME_MINIO_ACCESS_KEY
+MINIO_SECRET_KEY=CHANGE_ME_MINIO_SECRET_KEY
 MINIO_BUCKET_NAME=studio-files
 ```
 
@@ -314,8 +314,8 @@ DATABASE_URL=postgresql://user:password@postgres:8521/dbname
 
 # MinIO Storage
 MINIO_ENDPOINT=minio
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_ACCESS_KEY=CHANGE_ME_MINIO_ACCESS_KEY
+MINIO_SECRET_KEY=CHANGE_ME_MINIO_SECRET_KEY
 MINIO_BUCKET_NAME=studio-files
 ```
 

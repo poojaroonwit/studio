@@ -3,6 +3,7 @@ import { getPool } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// Public endpoint: PWA manifest must be readable before authentication.
 export async function GET() {
   try {
     const pool = getPool();

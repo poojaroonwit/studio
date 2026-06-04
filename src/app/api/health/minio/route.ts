@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { response } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
+    if (response) return response;
+
     // console.log('[MINIO HEALTH] Starting MinIO health check...');
     
     // Test basic connectivity

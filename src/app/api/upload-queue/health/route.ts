@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSafeDbClient } from '@/lib/db';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,9 @@ export const dynamic = 'force-dynamic';
  *                     type: string
  */
 export async function GET(request: NextRequest) {
+  const { response } = await requireApiPermission('UPLOAD_QUEUE_VIEW');
+  if (response) return response;
+
   const client = await getSafeDbClient();
   
   try {

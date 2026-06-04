@@ -1,12 +1,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireAnyApiPermission } from '@/lib/api-route-guards';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { response } = await requireAnyApiPermission(['USERS_VIEW', 'HEADCOUNT_VIEW', 'applicantS_VIEW']);
+        if (response) return response;
+
         const { id } = await params;
 
         // 1. Fetch the User to get their details

@@ -11,8 +11,8 @@ Examples:
     # Using command line arguments
     python migrate_minio.py \
         --source-endpoint 10.0.10.57:8621 \
-        --source-access-key minioadmin \
-        --source-secret-key minioadmin \
+        --source-access-key CHANGE_ME_SOURCE_ACCESS_KEY \
+        --source-secret-key CHANGE_ME_SOURCE_SECRET_KEY \
         --source-bucket studio-dev \
         --dest-endpoint new-server:9000 \
         --dest-access-key newadmin \

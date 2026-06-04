@@ -1,5 +1,6 @@
 // src/app/api/automation/webhook-proxy/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAutomationApiKey } from '@/lib/api-route-guards';
 
 /**
  * @openapi
@@ -20,7 +21,10 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAutomationApiKey(request);
+  if (authError) return authError;
+
   return NextResponse.json({ ok: true });
 }
 

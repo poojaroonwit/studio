@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Public endpoint: lightweight SSE proxy keepalive that does not expose user data.
 export async function GET(request: NextRequest) {
   try {
     const encoder = new TextEncoder();
@@ -37,8 +38,7 @@ export async function GET(request: NextRequest) {
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
-      'Transfer-Encoding': 'identity',
-      'Content-Length': '0'
+      'Transfer-Encoding': 'identity'
     };
     
     if (allowedOrigin) {

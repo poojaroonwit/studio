@@ -3,9 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { LogEntry, LogLevel } from '@/lib/types';
 import { z } from 'zod';
 import { getPool } from '../../../lib/db';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 
-import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -192,10 +192,8 @@ export async function POST(request: NextRequest) {
  *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    const { response } = await requireApiPermission('LOGS_VIEW');
+    if (response) return response;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);

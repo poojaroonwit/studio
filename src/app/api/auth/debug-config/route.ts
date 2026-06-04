@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 /**
  * Debug endpoint to check NextAuth configuration
  * This helps diagnose configuration issues
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
+    const { response } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
+    if (response) return response;
+
     const hasSecret = !!process.env.NEXTAUTH_SECRET;
     const hasUrl = !!process.env.NEXTAUTH_URL;
     const secretLength = process.env.NEXTAUTH_SECRET?.length || 0;

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// auth and LOGS_VIEW permission are enforced by the delegated ../../logs/route GET handler.
 export { GET } from '../../logs/route';
 
 /**

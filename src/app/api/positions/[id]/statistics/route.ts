@@ -4,12 +4,16 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { response } = await requireApiPermission('POSITIONS_VIEW');
+    if (response) return response;
+
     const resolvedParams = await params;
     const positionId = resolvedParams.id;
     

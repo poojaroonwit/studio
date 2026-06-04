@@ -1,15 +1,28 @@
 
-import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
 import { generateEmailOtp, sendEmailOtp } from '@/lib/twoFactorAuth';
-import { NextResponse } from 'next/server';
+import { applyRateLimit, authRateLimiter } from '@/lib/rateLimiter';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * POST /api/auth/2fa/resend
  * Resends the email OTP verification code
+ * Public endpoint for the login-time 2FA flow; protected by IP rate limiting.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const rateLimitResult = applyRateLimit(req, authRateLimiter);
+        if (!rateLimitResult.allowed) {
+            const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+            return NextResponse.json(
+                { error: 'Too many verification requests. Please try again later.', retryAfter },
+                {
+                    status: 429,
+                    headers: { 'Retry-After': retryAfter.toString() },
+                }
+            );
+        }
+
         // For resend during login, we need email from the request body
         // (user may not be fully authenticated yet)
         const body = await req.json().catch(() => ({}));

@@ -74,7 +74,7 @@ If modal shows "Loading applicant details...":
 
 2. **Create admin user if needed**:
    ```bash
-   $env:DATABASE_URL="postgresql://studio_user:local_dev_password@localhost:8521/studio_dev"
+   $env:DATABASE_URL="postgresql://USER:PASSWORD@localhost:PORT/DATABASE"
    npm run db:create-admin
    ```
 

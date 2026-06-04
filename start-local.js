@@ -26,7 +26,7 @@ if (!fs.existsSync(envLocalPath)) {
     console.log('');
     console.log('NODE_ENV=development');
     console.log('APP_PORT=8021');
-    console.log('DATABASE_URL=postgresql://studio_user:local_dev_password@localhost:5432/studio_dev');
+    console.log('DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/DATABASE');
     console.log('NEXTAUTH_SECRET=your-local-development-secret-key-change-this');
     console.log('NEXTAUTH_URL=http://localhost:8021');
     console.log('PROCESSOR_URL=http://localhost:8021');

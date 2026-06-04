@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
+import { requireApiPermission } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,9 @@ export const dynamic = 'force-dynamic';
  *         description: Internal server error
  */
 export async function GET(request: NextRequest) {
+  const { response } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
+  if (response) return response;
+
   let client: any = null;
   
   try {

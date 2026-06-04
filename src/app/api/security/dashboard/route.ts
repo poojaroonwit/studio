@@ -59,7 +59,7 @@ export async function GET(req: NextRequest, context: any) {
   }
   const secured = withApiSecurity(handler, {
     requireAuth: true,
-    requirePermission: 'SYSTEM_SETTINGS',
+    requirePermission: 'SYSTEM_SETTINGS_VIEW',
     logAccess: true,
   });
   return secured(req, context);

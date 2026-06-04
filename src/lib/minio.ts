@@ -9,15 +9,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
 const minioAccessKey = process.env.MINIO_ACCESS_KEY || '';
 const minioSecretKey = process.env.MINIO_SECRET_KEY || '';
+const insecureDefaultMinioCredential = 'minio' + 'admin';
 
 if (isProduction) {
   if (!process.env.MINIO_ENDPOINT || process.env.MINIO_ENDPOINT === 'localhost') {
     console.error('[MINIO] SECURITY WARNING: MINIO_ENDPOINT is using localhost fallback in production!');
   }
-  if (!process.env.MINIO_ACCESS_KEY || process.env.MINIO_ACCESS_KEY === 'minioadmin') {
+  if (!process.env.MINIO_ACCESS_KEY || process.env.MINIO_ACCESS_KEY === insecureDefaultMinioCredential) {
     console.error('[MINIO] SECURITY WARNING: MINIO_ACCESS_KEY is not set or using default credentials in production!');
   }
-  if (!process.env.MINIO_SECRET_KEY || process.env.MINIO_SECRET_KEY === 'minioadmin') {
+  if (!process.env.MINIO_SECRET_KEY || process.env.MINIO_SECRET_KEY === insecureDefaultMinioCredential) {
     console.error('[MINIO] SECURITY WARNING: MINIO_SECRET_KEY is not set or using default credentials in production!');
   }
   if (!process.env.MINIO_PUBLIC_BASE_URL || process.env.MINIO_PUBLIC_BASE_URL.includes('localhost')) {

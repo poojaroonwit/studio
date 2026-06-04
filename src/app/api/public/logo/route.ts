@@ -27,8 +27,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Security: Only allow access to settings and logo images
-  const allowedPaths = ['settings/', 'Applicant-source-logo/'];
-  const isAllowed = allowedPaths.some(path => filePath.toLowerCase().startsWith(path));
+  const normalizedPath = filePath.toLowerCase();
+  const allowedPaths = ['settings/', 'applicant-source-logo/'];
+  const isAllowed = allowedPaths.some(path => normalizedPath.startsWith(path));
   
   if (!isAllowed) {
     return NextResponse.json({ error: 'Forbidden: Only logo images are allowed' }, { status: 403 });

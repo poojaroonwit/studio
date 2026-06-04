@@ -95,7 +95,7 @@ export async function POST(
     //   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
     //   port: process.env.MINIO_PORT || '9000',
     //   useSSL: process.env.MINIO_USE_SSL === 'true',
-    //   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
+    //   accessKey: process.env.MINIO_ACCESS_KEY || '<insecure-default>'
     // });
 
     // Ensure MinIO bucket exists before upload

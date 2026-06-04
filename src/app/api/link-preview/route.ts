@@ -2,8 +2,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireApiSession } from '@/lib/api-route-guards';
 
 export async function POST(request: NextRequest) {
+  const { response } = await requireApiSession();
+  if (response) return response;
+
   try {
     const { url } = await request.json();
     

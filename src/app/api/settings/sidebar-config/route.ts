@@ -2,8 +2,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
+import { requireApiSession } from '@/lib/api-route-guards';
 
 export async function GET() {
+  const { response } = await requireApiSession();
+  if (response) return response;
+
   return NextResponse.json([
     {
       label: "Overview",

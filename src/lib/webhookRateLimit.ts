@@ -1,5 +1,3 @@
-// Remove: import getRedisClient from './redis';
-
 export interface RateLimitConfig {
   maxRequests: number;
   windowMs: number;
@@ -15,54 +13,46 @@ export interface RateLimitResult {
 
 export class WebhookRateLimiter {
   private config: RateLimitConfig;
+  private static buckets = new Map<string, number[]>();
 
   constructor(config: RateLimitConfig) {
     this.config = config;
   }
 
-  // Remove: private async getRedis(): Promise<any> {
-  // Remove:   try {
-  // Remove:     const client = await getRedisClient();
-  // Remove:     return client as any;
-  // Remove:   } catch (error) {
-  // Remove:     console.error('Failed to get Redis client:', error);
-  // Remove:     return null;
-  // Remove:   }
-  // Remove: }
+  private getKey(identifier: string): string {
+    return `${this.config.keyPrefix}:${identifier}`;
+  }
+
+  private pruneRequests(key: string, now = Date.now()): number[] {
+    const windowStart = now - this.config.windowMs;
+    const requests = WebhookRateLimiter.buckets.get(key) || [];
+    const activeRequests = requests.filter((timestamp) => timestamp > windowStart);
+
+    if (activeRequests.length > 0) {
+      WebhookRateLimiter.buckets.set(key, activeRequests);
+    } else {
+      WebhookRateLimiter.buckets.delete(key);
+    }
+
+    return activeRequests;
+  }
 
   async checkLimit(identifier: string): Promise<RateLimitResult> {
-    // Remove: const redis = await this.getRedis();
-    // Remove: if (!redis) {
-    // Remove:   // If Redis is unavailable, allow the request
-    // Remove:   return {
-    // Remove:     allowed: true,
-    // Remove:     remaining: this.config.maxRequests - 1,
-    // Remove:     resetTime: Date.now() + this.config.windowMs
-    // Remove:   };
-    // Remove: }
-
-    const key = `${this.config.keyPrefix}:${identifier}`;
+    const key = this.getKey(identifier);
     const now = Date.now();
-    const windowStart = now - this.config.windowMs;
 
     try {
-      // Get current requests in the window
-      // Remove: const requests = await redis.zRangeByScore(key, windowStart, '+inf');
-      
-      // Remove: // Remove expired entries
-      // Remove: await redis.zRemRangeByScore(key, '-inf', windowStart - 1);
-      
-      const currentCount = 0; // Placeholder, as Redis is removed
-      const remaining = Math.max(0, this.config.maxRequests - currentCount);
+      const requests = this.pruneRequests(key, now);
+      const currentCount = requests.length;
       const allowed = currentCount < this.config.maxRequests;
       
       if (allowed) {
-        // Add current request
-        // Remove: await redis.zAdd(key, [{ score: now, value: now.toString() }]);
-        // Remove: await redis.expire(key, Math.ceil(this.config.windowMs / 1000));
+        requests.push(now);
+        WebhookRateLimiter.buckets.set(key, requests);
       }
 
-      const resetTime = now + this.config.windowMs;
+      const resetTime = (requests[0] || now) + this.config.windowMs;
+      const remaining = Math.max(0, this.config.maxRequests - requests.length);
       const retryAfter = allowed ? undefined : Math.ceil((resetTime - now) / 1000);
 
       return {
@@ -83,25 +73,15 @@ export class WebhookRateLimiter {
   }
 
   async getLimitInfo(identifier: string): Promise<RateLimitResult> {
-    // Remove: const redis = await this.getRedis();
-    // Remove: if (!redis) {
-    // Remove:   return {
-    // Remove:     allowed: true,
-    // Remove:     remaining: this.config.maxRequests,
-    // Remove:     resetTime: Date.now() + this.config.windowMs
-    // Remove:   };
-    // Remove: }
-
-    const key = `${this.config.keyPrefix}:${identifier}`;
+    const key = this.getKey(identifier);
     const now = Date.now();
-    const windowStart = now - this.config.windowMs;
 
     try {
-      // Remove: const requests = await redis.zRangeByScore(key, windowStart, '+inf');
-      const currentCount = 0; // Placeholder, as Redis is removed
+      const requests = this.pruneRequests(key, now);
+      const currentCount = requests.length;
       const remaining = Math.max(0, this.config.maxRequests - currentCount);
       const allowed = currentCount < this.config.maxRequests;
-      const resetTime = now + this.config.windowMs;
+      const resetTime = (requests[0] || now) + this.config.windowMs;
 
       return {
         allowed,
@@ -119,12 +99,9 @@ export class WebhookRateLimiter {
   }
 
   async resetLimit(identifier: string): Promise<void> {
-    // Remove: const redis = await this.getRedis();
-    // Remove: if (!redis) return;
-
-    const key = `${this.config.keyPrefix}:${identifier}`;
+    const key = this.getKey(identifier);
     try {
-      // Remove: await redis.del(key);
+      WebhookRateLimiter.buckets.delete(key);
     } catch (error) {
       console.error('Rate limit reset failed:', error);
     }

@@ -194,7 +194,7 @@ export function CandidatesPageClient() {
                         { label: 'Closed Positions', value: false },
                         { label: 'All Statuses', value: 'any' }
                       ].map((opt) => (
-                        <button
+                        <button type="button"
                           key={String(opt.value)}
                           onClick={() => setIsOpenFilter(opt.value as any)}
                           className={cn(
@@ -220,7 +220,7 @@ export function CandidatesPageClient() {
                         { label: 'My Assigned Positions', value: true },
                         { label: 'All Shared Scope', value: false }
                       ].map((opt) => (
-                        <button
+                        <button type="button"
                           key={String(opt.value)}
                           onClick={() => setMineOnlyFilter(opt.value)}
                           className={cn(
@@ -381,7 +381,7 @@ export function CandidatesPageClient() {
                 Search <span className="text-primary NOT-italic">Candidates</span>
               </DrawerTitle>
               <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" aria-label="Close candidate search" className="rounded-full">
                   <X className="h-5 w-5" />
                 </Button>
               </DrawerClose>

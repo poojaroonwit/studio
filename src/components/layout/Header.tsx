@@ -721,7 +721,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                   {isMobile ? (
                     <Drawer>
                       <DrawerTrigger asChild>
-                        <button className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
+                        <button
+                          type="button"
+                          className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                          aria-label="Open user menu"
+                        >
                           <UserAvatarCompact
                             user={user}
                             size="sm"
@@ -758,7 +762,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                           <div className="space-y-6 mt-4">
                             {/* Profile Actions */}
                             <div className="grid grid-cols-2 gap-3">
-                              <button 
+                              <button type="button" 
                                 onClick={() => { handleOpenProfileModal(); }}
                                 className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 transition-colors gap-2"
                               >
@@ -767,7 +771,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                                 </div>
                                 <span className="text-sm font-bold">Profile</span>
                               </button>
-                              <button 
+                              <button type="button" 
                                 onClick={() => { setIsChangePasswordModalOpen(true); }}
                                 className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-100 transition-colors gap-2"
                               >
@@ -780,7 +784,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
 
                             {/* Core Navigation */}
                             <div className="space-y-1">
-                              <button 
+                              <button type="button" 
                                 onClick={() => { router.push('/settings'); }}
                                 className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all group gap-4"
                               >
@@ -800,14 +804,14 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 px-4">Admin Preview Tools</h4>
                                 <div className="flex flex-col gap-2">
                                   <div className="grid grid-cols-2 gap-2 px-1">
-                                    <button 
+                                    <button type="button" 
                                       onClick={() => handleStartImpersonation(null, 'Recruiter')}
                                       className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 text-amber-700 dark:text-amber-400 gap-1.5"
                                     >
                                       <Eye className="w-4 h-4" />
                                       <span className="text-[10px] font-black uppercase">Recruiter View</span>
                                     </button>
-                                    <button 
+                                    <button type="button" 
                                       onClick={() => handleStartImpersonation(null, 'Hiring Manager')}
                                       className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 text-amber-700 dark:text-amber-400 gap-1.5"
                                     >
@@ -838,7 +842,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                                           ) : previewUsers.length > 0 ? (
                                             <div className="space-y-0.5">
                                               {previewUsers.map((u) => (
-                                                <button 
+                                                <button type="button" 
                                                   key={u.id} 
                                                   onClick={() => handleStartImpersonation(u.id, null)} 
                                                   className="flex items-center w-full px-3 py-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors gap-3 group text-left"
@@ -877,7 +881,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                                   { id: 'dark', label: 'Dark', icon: Moon },
                                   { id: 'system', label: 'System', icon: Monitor },
                                 ].map((t) => (
-                                  <button
+                                  <button type="button"
                                     key={t.id}
                                     onClick={() => import('@/lib/themeUtils').then(m => m.setThemeAndColors({ themePreference: t.id as any }))}
                                     className={cn(
@@ -896,7 +900,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                             
                             {/* System Actions */}
                             <div className="space-y-1">
-                              <button 
+                              <button type="button" 
                                 onClick={handleClearCache}
                                 className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group gap-4 text-amber-600 dark:text-amber-400"
                               >
@@ -909,7 +913,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                                 </div>
                               </button>
                               
-                              <button 
+                              <button type="button" 
                                 onClick={handleSignOut}
                                 className="flex items-center w-full px-4 py-3.5 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group gap-4 text-red-600 dark:text-red-400"
                               >
@@ -935,7 +939,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false, appL
                   ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none">
+                        <button
+                          type="button"
+                          className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none"
+                          aria-label="Open user menu"
+                        >
                           <div className="relative">
                             <UserAvatarCompact
                               user={user}

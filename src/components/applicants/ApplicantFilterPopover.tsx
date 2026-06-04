@@ -112,6 +112,7 @@ export function ApplicantFilterPopover({
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Pin filters as sidebar"
                     className="h-8 w-8"
                     onClick={handlePin}
                   >
@@ -126,6 +127,7 @@ export function ApplicantFilterPopover({
             <Button 
               variant="ghost" 
               size="icon" 
+              aria-label="Close filters"
               className="h-8 w-8" 
               onClick={() => setOpen(false)}
             >

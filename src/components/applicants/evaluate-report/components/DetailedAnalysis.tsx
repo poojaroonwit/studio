@@ -19,7 +19,7 @@ export function DetailedAnalysis({
 }: DetailedAnalysisProps) {
   return (
     <div className="space-y-8">
-      <button
+      <button type="button"
         onClick={() => {
           toggleGroup('detailed-analysis');
         }}
@@ -55,7 +55,7 @@ export function DetailedAnalysis({
                   return (
                     <Card key={group.groupId} className="shadow-sm border border-gray-200">
                       {/* Group Header */}
-                      <button
+                      <button type="button"
                         onClick={() => toggleGroup(group.groupId)}
                         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
                       >

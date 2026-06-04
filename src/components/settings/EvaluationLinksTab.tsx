@@ -285,6 +285,7 @@ export default function EvaluationLinksTab() {
             const countdown = formatCountdown(it.expiresAt, it.revokedAt)
             const isExpired = countdown === 'expired'
             const isRevoked = countdown === 'revoked'
+            const safeUrl = sanitizeUrl(it.url)
             const statusBadge = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
             const badgeVariant: any = isRevoked ? 'secondary' : isExpired ? 'outline' : undefined
             const badgeClassName = !isRevoked && !isExpired ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' : undefined
@@ -297,12 +298,17 @@ export default function EvaluationLinksTab() {
                 <div className="col-span-3 truncate flex items-center gap-2">
                   <div className="truncate flex-1">
                     {/* Link is sanitized via sanitizeUrl */}
-                    <a className="text-primary underline block truncate" href={sanitizeUrl(it.url) || '#'} onClick={(e) => !sanitizeUrl(it.url) && e.preventDefault()} target="_blank" rel="noreferrer">{it.url}</a>
+                    {safeUrl ? (
+                      <a className="text-primary underline block truncate" href={safeUrl} target="_blank" rel="noreferrer">{it.url}</a>
+                    ) : (
+                      <span className="text-muted-foreground block truncate">{it.url}</span>
+                    )}
                     <div className="text-xs text-muted-foreground break-all">{it.token}</div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Copy evaluation link"
                     className="h-6 w-6 shrink-0"
                     onClick={() => navigator.clipboard.writeText(it.url).then(() => toast.success('Copied'))}
                   >

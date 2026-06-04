@@ -234,6 +234,7 @@ export function ApplicantRecruiterCell({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Clear recruiter search"
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-accent"
                   onClick={handleClearSearch}
                   type="button"
@@ -246,7 +247,7 @@ export function ApplicantRecruiterCell({
             {/* Scrollable content area */}
             <div className="max-h-[300px] overflow-y-auto">
               {/* Unassign option - always show */}
-              <button
+              <button type="button"
                 onClick={() => handleSelect(null)}
                 className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
               >
@@ -270,7 +271,7 @@ export function ApplicantRecruiterCell({
               {/* Available recruiters */}
               {filteredRecruiter.length > 0 ? (
                 filteredRecruiter.map((recruiter) => (
-                  <button
+                  <button type="button"
                     key={recruiter.id}
                     onClick={() => handleSelect(recruiter.id)}
                     className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"

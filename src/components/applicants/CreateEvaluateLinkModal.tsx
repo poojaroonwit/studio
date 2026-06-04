@@ -1061,7 +1061,7 @@ export function CreateEvaluateLinkModal({
             }}>
               <ExternalLink className="h-4 w-4 mr-2" /> Open Link
             </Button>
-            <Button variant="outline" size="icon" onClick={copyLink}>
+            <Button variant="outline" size="icon" aria-label="Copy evaluation link" onClick={copyLink}>
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>

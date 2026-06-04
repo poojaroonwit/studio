@@ -91,7 +91,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
               </div>
               {filteredRecruiter.length > 0 ? (
                 filteredRecruiter.map(recruiter => (
-                  <button
+                  <button type="button"
                     key={recruiter.id}
                     onClick={() => onAssignRecruiter(recruiter.id)}
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"

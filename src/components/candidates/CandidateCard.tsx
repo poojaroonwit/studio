@@ -121,7 +121,12 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
                     <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none text-[10px] h-5">New</Badge>
                   )}
                </div>
-               <button 
+               <button
+                 type="button"
+                 onClick={(event) => {
+                   event.stopPropagation();
+                   onClick?.();
+                 }}
                  className="text-xs text-zinc-400 hover:text-primary flex items-center gap-1 transition-colors"
                >
                  View Profile <ExternalLink className="h-3 w-3" />

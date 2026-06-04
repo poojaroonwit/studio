@@ -22,7 +22,7 @@ export const NavigationButton: React.FC<NavigationButtonProps> = ({
   if (!visible) return null;
   
   return (
-    <button
+    <button type="button"
       className={cn(
         `absolute ${position} top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg rounded-full transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:shadow-xl`,
         'hover:bg-white dark:hover:bg-gray-800',

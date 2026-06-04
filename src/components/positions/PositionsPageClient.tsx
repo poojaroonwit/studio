@@ -1632,7 +1632,7 @@ export default function PositionsPageClient() {
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon">
+                          <Button variant="outline" size="icon" aria-label="Position actions">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -1927,7 +1927,7 @@ export default function PositionsPageClient() {
                                   </TableCell>
                                   <TableCell className="font-medium min-w-[150px]">
                                     <div className="flex flex-col">
-                                      <button
+                                      <button type="button"
                                         onClick={() => {
                                           setSelectedPositionId(position.id);
                                           setIsNewDrawerOpen(true);

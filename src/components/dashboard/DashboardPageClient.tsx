@@ -225,8 +225,6 @@ export default function DashboardPageClient({
     fetchStageNames();
   }, [filteredApplicants]);
 
-  // Placeholder for removed performance monitoring hooks
-
   // Check permissions for dashboard access - based on actual permissions, not hardcoded roles
   // Allow access if user has any permissions or is authenticated (more permissive)
   const modulePermissions = session?.user?.modulePermissions || [];
@@ -1083,7 +1081,7 @@ export default function DashboardPageClient({
                       )}
                     </div>
                     {stat.button && (
-                      <button
+                      <button type="button"
                         className="text-[10px] sm:text-xs text-muted-foreground transition-colors px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-0.5 sm:space-x-1 group"
                         onClick={stat.button.onClick}
                       >
@@ -1197,7 +1195,7 @@ export default function DashboardPageClient({
                       )}
                     </div>
                     {stat.button && (
-                      <button
+                      <button type="button"
                         className="text-xs text-muted-foreground transition-colors px-2 py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-1 group"
                         onClick={stat.button.onClick}
                       >
@@ -1585,7 +1583,7 @@ export default function DashboardPageClient({
                       <div key={headcount.id} className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2 sm:gap-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <button
+                            <button type="button"
                               onClick={() => {
                                 setSelectedPositionId(headcount.position.id);
                                 setIsPositionDrawerOpen(true);
@@ -1648,9 +1646,11 @@ export default function DashboardPageClient({
                   </CardTitle>
                   <CardDescription>Active Applicants assigned to you requiring attention.</CardDescription>
                   {/* View button for my assigned Applicants */}
-                  <Link href={`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`} passHref>
-                    <Button variant="outline" size="sm" className="mt-2">View My Applicants</Button>
-                  </Link>
+                  <Button asChild variant="outline" size="sm" className="mt-2">
+                    <Link href={`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`}>
+                      View My Applicants
+                    </Link>
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {myActionItemsList.length > 0 ? (

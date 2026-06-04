@@ -60,7 +60,7 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <button type="button"
               onClick={() => setIsModalOpen(true)}
               className="relative transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
               aria-label={`View ${user.userName} details`}
@@ -145,7 +145,7 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <button type="button"
                     onClick={() => setIsModalOpen(true)}
                     className="w-8 h-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center transition-all duration-200 ease-in-out hover:scale-105 hover:bg-primary/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 shadow-sm hover:shadow-md"
                     aria-label={`View ${remainingCount} more online users`}

@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
-import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw, ChevronDown } from 'lucide-react';
+import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw, ChevronDown, Briefcase, CircleSlash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionSelectDropdown } from '@/components/applicants/PositionSelectDropdown';
 
@@ -41,15 +41,22 @@ export function MyTasksFilterModal({
   useEffect(() => {
     if (open) {
       setLocalFilters(filters);
+      const recruiterIds = typeof filters.recruiterId === 'string' && filters.recruiterId
+        ? filters.recruiterId.split(',').filter(Boolean)
+        : [];
+      setSelectedRecruiters(new Set(recruiterIds));
     }
   }, [open, filters]);
 
   const handleSelectAllRecruiters = () => {
-    setSelectedRecruiters(new Set(recruiters.map(r => r.id)));
+    const nextRecruiters = new Set(recruiters.map(r => r.id));
+    setSelectedRecruiters(nextRecruiters);
+    setLocalFilters({ ...localFilters, recruiterId: Array.from(nextRecruiters).join(',') || undefined });
   };
 
   const handleClearAllRecruiters = () => {
     setSelectedRecruiters(new Set());
+    setLocalFilters({ ...localFilters, recruiterId: undefined });
   };
 
   const handleToggleRecruiter = (recruiterId: string) => {
@@ -60,13 +67,14 @@ export function MyTasksFilterModal({
       newSelected.add(recruiterId);
     }
     setSelectedRecruiters(newSelected);
+    setLocalFilters({ ...localFilters, recruiterId: Array.from(newSelected).join(',') || undefined });
   };
 
   const handleApply = () => {
-    // Convert selectedRecruiters to the format expected by the parent component
+    const recruiterIds = Array.from(selectedRecruiters);
     const updatedFilters = {
       ...localFilters,
-      selectedRecruiters: Array.from(selectedRecruiters)
+      recruiterId: recruiterIds.length > 0 ? recruiterIds.join(',') : undefined,
     };
     onFiltersChange(updatedFilters);
     onOpenChange(false);
@@ -75,20 +83,21 @@ export function MyTasksFilterModal({
   const handleReset = () => {
     const resetFilters = {};
     setLocalFilters(resetFilters);
+    setSelectedRecruiters(new Set());
     onFiltersChange(resetFilters);
   };
 
   const handleClear = () => {
     setLocalFilters({});
+    setSelectedRecruiters(new Set());
   };
 
-  const hasActiveFilters = Object.keys(localFilters).some(key => 
-    localFilters[key] !== undefined && localFilters[key] !== '' && localFilters[key] !== null
-  );
+  const isActiveValue = (value: any) => value !== undefined && value !== '' && value !== null && !(Array.isArray(value) && value.length === 0);
 
-  const activeFilterCount = Object.keys(localFilters).filter(key => 
-    localFilters[key] !== undefined && localFilters[key] !== '' && localFilters[key] !== null
-  ).length;
+  const hasActiveFilters = Object.keys(localFilters).some(key => isActiveValue(localFilters[key])) || selectedRecruiters.size > 0;
+
+  const activeFilterCount = Object.keys(localFilters).filter(key => isActiveValue(localFilters[key])).length +
+    (selectedRecruiters.size > 0 && !isActiveValue(localFilters.recruiterId) ? 1 : 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -233,7 +242,7 @@ export function MyTasksFilterModal({
                       <div className="p-2 max-h-64 overflow-y-auto">
                         {/* Available recruiters */}
                         {recruiters.map((rec: any) => (
-                          <button
+                          <button type="button"
                             key={rec.id}
                             onClick={() => handleToggleRecruiter(rec.id)}
                             className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
@@ -305,7 +314,7 @@ export function MyTasksFilterModal({
 
                 <Separator />
 
-                {/* Date Range (Future Enhancement) */}
+                {/* Date Range */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
@@ -341,11 +350,78 @@ export function MyTasksFilterModal({
 
                 <Separator />
 
-                {/* Additional Filters (Future Enhancement) */}
+                {/* Additional Filters */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Additional Filters</Label>
-                  <div className="text-sm text-muted-foreground">
-                    More filter options coming soon...
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="h-3.5 w-3.5" />
+                        Assignment
+                      </Label>
+                      <Select
+                        value={localFilters.assignmentStatus || 'all'}
+                        onValueChange={(value) => setLocalFilters({
+                          ...localFilters,
+                          assignmentStatus: value === 'all' ? undefined : value,
+                        })}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Any assignment" />
+                        </SelectTrigger>
+                        <SelectContent selectId="my-tasks-assignment-filter">
+                          <SelectItem value="all">Any assignment</SelectItem>
+                          <SelectItem value="assigned">Assigned</SelectItem>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        Position
+                      </Label>
+                      <Select
+                        value={localFilters.positionStatus || 'all'}
+                        onValueChange={(value) => setLocalFilters({
+                          ...localFilters,
+                          positionStatus: value === 'all' ? undefined : value,
+                        })}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Any position" />
+                        </SelectTrigger>
+                        <SelectContent selectId="my-tasks-position-status-filter">
+                          <SelectItem value="all">Any position</SelectItem>
+                          <SelectItem value="with-position">Has position</SelectItem>
+                          <SelectItem value="without-position">No position</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CircleSlash className="h-3.5 w-3.5" />
+                        Score
+                      </Label>
+                      <Select
+                        value={localFilters.scoreStatus || 'all'}
+                        onValueChange={(value) => setLocalFilters({
+                          ...localFilters,
+                          scoreStatus: value === 'all' ? undefined : value,
+                        })}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Any score" />
+                        </SelectTrigger>
+                        <SelectContent selectId="my-tasks-score-status-filter">
+                          <SelectItem value="all">Any score</SelectItem>
+                          <SelectItem value="scored">Has fit score</SelectItem>
+                          <SelectItem value="unscored">No fit score</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -375,8 +451,11 @@ export function MyTasksFilterModal({
                   displayValue = position?.title || value;
                   label = 'Position';
                 } else if (key === 'recruiterId') {
-                  const recruiter = recruiters.find(r => r.id === value);
-                  displayValue = recruiter?.name || value;
+                  const recruiterIds = String(value).split(',').filter(Boolean);
+                  displayValue = recruiterIds.map((id) => {
+                    if (id === 'unassigned') return 'Unassigned';
+                    return recruiters.find(r => r.id === id)?.name || id;
+                  }).join(', ');
                   label = 'Recruiter';
                 } else if (key === 'stage') {
                   label = 'Stage';
@@ -392,6 +471,15 @@ export function MyTasksFilterModal({
                 } else if (key === 'applicationDateEnd') {
                   label = 'To Date';
                   displayValue = typeof value === 'string' && value ? new Date(value).toLocaleDateString() : String(value);
+                } else if (key === 'assignmentStatus') {
+                  label = 'Assignment';
+                  displayValue = value === 'assigned' ? 'Assigned' : 'Unassigned';
+                } else if (key === 'positionStatus') {
+                  label = 'Position';
+                  displayValue = value === 'with-position' ? 'Has position' : 'No position';
+                } else if (key === 'scoreStatus') {
+                  label = 'Score';
+                  displayValue = value === 'scored' ? 'Has fit score' : 'No fit score';
                 }
 
                 return (

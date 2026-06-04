@@ -26,205 +26,18 @@ import { getErrorMessage } from '@/lib/networkUtils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { SkeletonKanbanCard } from '@/components/ui/loading-overlay';
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  StatusBadge,
+  getEducation,
+  getExperience,
+  getFieldLabel,
+  getParsedDataProperty,
+  getSkills
+} from './applicant-kanban-utils';
+
+export { StatusBadge } from './applicant-kanban-utils';
 
 
-
-// Helper function to extract parsed data properties (similar to FullApplicantDetail)
-const getParsedDataProperty = (applicant: Applicant, propertyName: string) => {
-  const parsedData = applicant.parsedData;
-  if (!parsedData || typeof parsedData !== 'object') return undefined;
-
-  // Check for new applicant_info structure
-  if ('applicant_info' in parsedData && parsedData.applicant_info && typeof parsedData.applicant_info === 'object') {
-    return (parsedData.applicant_info as any)[propertyName];
-  }
-
-  // Check for direct property
-  if (propertyName in parsedData) {
-    return (parsedData as any)[propertyName];
-  }
-
-  return undefined;
-};
-
-// Renders a status badge showing the human-readable stage name for a given stage ID
-export function StatusBadge({
-  status,
-  statusId,
-  className = '',
-  stageNames = {},
-  stageColors = {}
-}: {
-  status?: string | null;
-  statusId?: string | null;
-  className?: string;
-  stageNames?: Record<string, string>;
-  stageColors?: Record<string, string>;
-}) {
-  const [stageName, setStageName] = React.useState<string | null>(null);
-  const [colorClass, setColorClass] = React.useState<string>('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
-  const [localStageColors, setLocalStageColors] = React.useState<Record<string, string>>(stageColors);
-
-  // Fetch stage colors if not provided
-  React.useEffect(() => {
-    const statusToUse = statusId || status;
-    if (Object.keys(stageColors).length === 0 && statusToUse) {
-      const fetchStageColor = async () => {
-        try {
-          const response = await fetch(`/api/settings/recruitment-stages?ids=${statusToUse}`);
-          if (response.ok) {
-            const stages = await response.json();
-            const stage = stages.find((s: any) => s.id === statusToUse);
-            if (stage?.color_badge) {
-              setLocalStageColors({ [statusToUse]: stage.color_badge });
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching stage color:', error);
-        }
-      };
-      fetchStageColor();
-    } else {
-      setLocalStageColors(stageColors);
-    }
-  }, [status, statusId, stageColors]);
-
-  useEffect(() => {
-    const statusToUse = statusId || status;
-    if (!statusToUse) {
-      setStageName(null);
-      return;
-    }
-
-    // Use stage names from props
-    if (stageNames && stageNames[statusToUse]) {
-      setStageName(stageNames[statusToUse]);
-    } else {
-      setStageName(null);
-    }
-  }, [status, statusId, stageNames]);
-
-  useEffect(() => {
-    const statusToUse = statusId || status;
-    if (statusToUse && localStageColors[statusToUse]) {
-      // Use the color from the database
-      const stageColor = localStageColors[statusToUse];
-      // Convert hex color to appropriate Tailwind classes
-      const colorClass = `bg-[${stageColor}]/10 text-[${stageColor}] border-[${stageColor}]/20 dark:bg-[${stageColor}]/20 dark:text-[${stageColor}] dark:border-[${stageColor}]/40`;
-      setColorClass(colorClass);
-    } else if (stageName) {
-      // Fallback to hardcoded colors if no database color is found
-      const lowerStageName = stageName.toLowerCase();
-      if (lowerStageName.includes('hired') || lowerStageName.includes('offer accepted')) {
-        setColorClass('bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800');
-      } else if (lowerStageName.includes('rejected') || lowerStageName.includes('withdrawn')) {
-        setColorClass('bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800');
-      } else if (lowerStageName.includes('interview')) {
-        setColorClass('bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800');
-      } else if (lowerStageName.includes('offer extended')) {
-        setColorClass('bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800');
-      } else if (lowerStageName.includes('shortlisted')) {
-        setColorClass('bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800');
-      } else if (lowerStageName.includes('screening')) {
-        setColorClass('bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800');
-      } else if (lowerStageName.includes('on hold')) {
-        setColorClass('bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800');
-      } else {
-        setColorClass('bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800');
-      }
-    } else {
-      setColorClass('bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800');
-    }
-  }, [status, statusId, stageName, localStageColors]);
-
-  return (
-    <Badge className={cn("text-xs px-2 py-1 flex-shrink-0", className, colorClass)}>
-      {stageName || status || statusId || 'Unknown'}
-    </Badge>
-  );
-}
-
-// Helper function to get education data
-const getEducation = (applicant: Applicant) => {
-  if (!applicant) return [];
-
-  let educationArray: any[] = [];
-
-  if (Array.isArray(applicant.educationData) && applicant.educationData.length > 0) {
-    educationArray = applicant.educationData;
-  } else {
-    const parsedData = applicant.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      // Check for new applicant_info structure
-      if ('applicant_info' in parsedData && parsedData.applicant_info && typeof parsedData.applicant_info === 'object') {
-        const education = (parsedData.applicant_info as any).education;
-        if (Array.isArray(education) && education.length > 0) {
-          educationArray = education;
-        }
-      }
-      // Check for direct education property
-      if ('education' in parsedData) {
-        const education = (parsedData as any).education;
-        if (Array.isArray(education) && education.length > 0) {
-          educationArray = education;
-        }
-      }
-    }
-  }
-
-  return educationArray;
-};
-
-// Helper function to get experience data
-const getExperience = (applicant: Applicant) => {
-  if (!applicant) return [];
-
-  let experienceArray: any[] = [];
-
-  if (Array.isArray(applicant.experienceData) && applicant.experienceData.length > 0) {
-    experienceArray = applicant.experienceData;
-  } else {
-    const parsedData = applicant.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      // Check for new applicant_info structure
-      if ('applicant_info' in parsedData && parsedData.applicant_info && typeof parsedData.applicant_info === 'object') {
-        const experience = (parsedData.applicant_info as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          experienceArray = experience;
-        }
-      }
-      // Check for direct experience property
-      if ('experience' in parsedData) {
-        const experience = (parsedData as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          experienceArray = experience;
-        }
-      }
-    }
-  }
-
-  return experienceArray;
-};
-
-// Helper function to get skills data
-const getSkills = (applicant: Applicant) => {
-  return getParsedDataProperty(applicant, 'skills') || [];
-};
-
-// Field label mapping (should match CustomizeBoardModal)
-const fieldLabelMap: Record<string, string> = {
-  status: 'Status',
-  recruiterId: 'Recruiter',
-  positionId: 'Position',
-  fitScore: 'Fit Score',
-  applicationDate: 'Application Date',
-  name: 'Name',
-  email: 'Email',
-  phone: 'Phone',
-};
-function getFieldLabel(key: string) {
-  return fieldLabelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
-}
 
 // Enhanced Applicant card component
 const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'], columnField = 'status', recruiters }: {
@@ -1899,6 +1712,7 @@ export function SingleRowKanbanView({
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Previous applicant"
                 onClick={handlePrevious}
                 disabled={filteredApplicants.length <= 1}
                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
@@ -1908,6 +1722,7 @@ export function SingleRowKanbanView({
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Next applicant"
                 onClick={handleNext}
                 disabled={filteredApplicants.length <= 1}
                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
@@ -2029,7 +1844,7 @@ export function SingleRowKanbanView({
             <div className="flex items-center justify-center mt-6">
               <div className="flex gap-2">
                 {filteredApplicants.map((_, index) => (
-                  <button
+                  <button type="button"
                     key={index}
                     onClick={() => setCurrentIndex(index)}
                     className={cn(
@@ -2513,6 +2328,7 @@ export function HorizontalStageKanbanView({
           <Button
             variant="outline"
             size="icon"
+            aria-label="Scroll columns left"
             onClick={handleScrollLeft}
             className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
             disabled={scrollPosition <= 0}
@@ -2532,6 +2348,7 @@ export function HorizontalStageKanbanView({
           <Button
             variant="outline"
             size="icon"
+            aria-label="Scroll columns right"
             onClick={handleScrollRight}
             className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           >
@@ -2547,6 +2364,7 @@ export function HorizontalStageKanbanView({
           <Button
             variant="outline"
             size="icon"
+            aria-label="Scroll columns left"
             className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
             onClick={handleScrollLeft}
           >
@@ -2559,6 +2377,7 @@ export function HorizontalStageKanbanView({
           <Button
             variant="outline"
             size="icon"
+            aria-label="Scroll columns right"
             className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
             onClick={handleScrollRight}
           >

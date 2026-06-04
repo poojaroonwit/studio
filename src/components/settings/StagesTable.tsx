@@ -51,7 +51,7 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, on
                 />
               </td>
               <td className="px-4 py-2">
-                <button className="text-blue-600 hover:underline" onClick={() => handleEdit(stage)}>Edit</button>
+                <button type="button" className="text-blue-600 hover:underline" onClick={() => handleEdit(stage)}>Edit</button>
               </td>
             </tr>
           ))}

@@ -1060,7 +1060,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                           {selectedSkills.map((skill) => (
                             <Badge key={skill.id} variant="secondary" className="flex items-center gap-1">
                               {skill.name}
-                              <button onClick={() => handleRemoveSelectedSkill(skill.id)} className="ml-1 hover:text-destructive">
+                              <button type="button" onClick={() => handleRemoveSelectedSkill(skill.id)} className="ml-1 hover:text-destructive">
                                 <X className="h-3 w-3" />
                               </button>
                             </Badge>
@@ -1402,7 +1402,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                           {selectedTraits.map((trait) => (
                             <Badge key={trait.id} variant="secondary" className="flex items-center gap-1">
                               {trait.name}
-                              <button onClick={() => handleRemoveSelectedTrait(trait.id)} className="ml-1 hover:text-destructive">
+                              <button type="button" onClick={() => handleRemoveSelectedTrait(trait.id)} className="ml-1 hover:text-destructive">
                                 <X className="h-3 w-3" />
                               </button>
                             </Badge>

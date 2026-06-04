@@ -219,7 +219,7 @@ export default function ApiDocsUIPage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">API Categories</h3>
               <div className="space-y-2">
-                <button
+                <button type="button"
                   onClick={() => setSelectedTag('all')}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     selectedTag === 'all'
@@ -230,7 +230,7 @@ export default function ApiDocsUIPage() {
                   All Endpoints
                 </button>
                 {tags.map((tag) => (
-                  <button
+                  <button type="button"
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -265,7 +265,7 @@ export default function ApiDocsUIPage() {
                   
                   return (
                     <div key={key} className="p-6">
-                      <button
+                      <button type="button"
                         onClick={() => toggleEndpoint(endpoint.path, endpoint.method)}
                         className="w-full text-left flex items-center justify-between hover:bg-gray-50 p-2 rounded-md transition-colors"
                       >

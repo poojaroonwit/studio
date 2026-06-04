@@ -95,7 +95,7 @@ class UnifiedRoleDrawerErrorBoundary extends React.Component<
             <p className="text-muted-foreground mb-4">
               There was an error loading the role drawer. Please try refreshing the page.
             </p>
-            <button
+            <button type="button"
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >

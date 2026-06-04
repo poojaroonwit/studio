@@ -14,8 +14,8 @@ const UserGroupsModal: React.FC<UserGroupsModalProps> = ({ open, group, onClose,
     <div className="modal" role="dialog" aria-modal="true">
       <h2>Delete User Group</h2>
       <p>Are you sure you want to delete the group "{group.name}"?</p>
-      <button onClick={onDelete} style={{ color: 'red' }}>Delete</button>
-      <button onClick={onClose}>Cancel</button>
+      <button type="button" onClick={onDelete} style={{ color: 'red' }}>Delete</button>
+      <button type="button" onClick={onClose}>Cancel</button>
     </div>
   );
 };

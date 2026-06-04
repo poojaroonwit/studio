@@ -1,8 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
 
 export default function UnauthorizedPage() {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-zinc-50 dark:bg-zinc-950 p-6 text-center">
       <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mb-8 animate-pulse shadow-lg ring-4 ring-red-50 dark:ring-red-900/10">
@@ -18,11 +23,13 @@ export default function UnauthorizedPage() {
       </p>
       
       <div className="flex flex-col sm:flex-row gap-4">
-        <Button asChild variant="outline" className="h-12 px-6 gap-2 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all">
-          <Link href="javascript:history.back()">
-            <ArrowLeft className="h-4 w-4" />
-            Go Back
-          </Link>
+        <Button
+          variant="outline"
+          className="h-12 px-6 gap-2 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Go Back
         </Button>
         <Button asChild className="h-12 px-8 gap-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 shadow-xl transition-all font-bold">
           <Link href="/">

@@ -34,7 +34,7 @@ export default function Error({
         <p className="text-gray-600 mb-6">
           {error.message || 'An unexpected error occurred'}
         </p>
-        <button
+        <button type="button"
           onClick={() => {
             if (isChunkLoadError(error)) {
               recoverFromChunkLoadError(error).catch(() => window.location.reload())

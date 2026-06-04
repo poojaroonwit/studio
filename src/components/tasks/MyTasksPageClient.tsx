@@ -91,6 +91,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const router = useRouter();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   const [totalApplicants, setTotalApplicants] = useState(0);
+
+  const buildTaskboardApplicantParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (filters.name) params.append('name', filters.name);
+    if (filters.positionId) params.append('positionId', filters.positionId);
+    if (filters.stage) params.append('status', filters.stage);
+    if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
+    if (filters.minFitScore !== undefined) params.append('minFitScore', String(filters.minFitScore));
+    if (filters.maxFitScore !== undefined) params.append('maxFitScore', String(filters.maxFitScore));
+    if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart);
+    if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd);
+    if (filters.assignmentStatus) params.append('assignmentStatus', filters.assignmentStatus);
+    if (filters.positionStatus) params.append('positionStatus', filters.positionStatus);
+    if (filters.scoreStatus) params.append('scoreStatus', filters.scoreStatus);
+    params.append('limit', '50000');
+    params.append('page', '1');
+    return params;
+  }, [filters]);
   
   // Admin users can access my-tasks page - no automatic redirect
   
@@ -228,11 +246,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const fetchApplicants = async () => {
         setLoading(true);
         try {
-          const params = new URLSearchParams();
-          if (filters.name) params.append('name', filters.name);
-          if (filters.positionId) params.append('positionId', filters.positionId);
-          if (filters.stage) params.append('status', filters.stage);
-          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+          const params = buildTaskboardApplicantParams();
           
           const result = await safeFetch(`/api/taskboard/applicants?${params.toString()}`, { timeoutMs: 6000 });
           if (result.ok && result.data) {
@@ -249,7 +263,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       };
       fetchApplicants();
     }
-  }, [refreshTrigger, filters.name, filters.positionId, filters.stage, filters.recruiterId]);
+  }, [refreshTrigger, buildTaskboardApplicantParams]);
 
 
   // Add periodic refresh as fallback (reduced from 30 to 10 seconds for better responsiveness)
@@ -262,11 +276,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         const refreshApplicants = async () => {
           try {
-            const params = new URLSearchParams();
-            if (filters.name) params.append('name', filters.name);
-            if (filters.positionId) params.append('positionId', filters.positionId);
-            if (filters.stage) params.append('status', filters.stage);
-            if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+            const params = buildTaskboardApplicantParams();
             
             const result = await safeFetch(`/api/taskboard/applicants?${params.toString()}`, { timeoutMs: 6000 });
             if (result.ok && result.data) {
@@ -292,7 +302,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }, 10000); // Reduced from 30 seconds to 10 seconds for better responsiveness
     
     return () => clearInterval(interval);
-  }, [session?.user?.id, loading, applicants, filters, realtimeConnected]);
+  }, [session?.user?.id, loading, applicants, buildTaskboardApplicantParams, realtimeConnected]);
 
 
 
@@ -537,20 +547,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const fetchApplicants = async () => {
         setLoading(true);
         try {
-          const params = new URLSearchParams();
-          if (filters.name) params.append('name', filters.name);
-          if (filters.positionId) params.append('positionId', filters.positionId);
-          if (filters.stage) params.append('status', filters.stage);
-          if (filters.recruiterId && filters.recruiterId !== '') params.append('recruiterId', filters.recruiterId);
+          const params = buildTaskboardApplicantParams();
           
           // If no filters are applied, use the same endpoint as initial load to get all applicants
           // Recruiter filter should apply even when no stages are selected
-          const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
+          const hasFilters = Object.entries(filters).some(([, value]) =>
+            value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)
+          );
           const shouldShowAll = !hasFilters;
-          // Request all applicants - pagination is handled by "See More" button in UI
-          if (!params.has('limit')) {
-            params.append('limit', '50000'); // Request all applicants (no practical limit)
-          }
           const endpoint = shouldShowAll
             ? '/api/taskboard/applicants?limit=50000&page=1' // Get all applicants when showing all
             : `/api/taskboard/applicants?${params.toString()}`;
@@ -623,8 +627,21 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       
       return filteredApplicants.filter((c) => {
         try {
-          if (filters.minFitScore !== undefined && c.fitScore < filters.minFitScore) return false;
-          if (filters.maxFitScore !== undefined && c.fitScore > filters.maxFitScore) return false;
+          const fitScore = Number(c.fitScore || 0);
+          if (filters.minFitScore !== undefined && fitScore < filters.minFitScore) return false;
+          if (filters.maxFitScore !== undefined && fitScore > filters.maxFitScore) return false;
+          if (filters.applicationDateStart && c.applicationDate && new Date(c.applicationDate) < new Date(filters.applicationDateStart)) return false;
+          if (filters.applicationDateEnd && c.applicationDate) {
+            const endDate = new Date(filters.applicationDateEnd);
+            endDate.setHours(23, 59, 59, 999);
+            if (new Date(c.applicationDate) > endDate) return false;
+          }
+          if (filters.assignmentStatus === 'assigned' && !c.recruiterId) return false;
+          if (filters.assignmentStatus === 'unassigned' && c.recruiterId) return false;
+          if (filters.positionStatus === 'with-position' && !c.positionId) return false;
+          if (filters.positionStatus === 'without-position' && c.positionId) return false;
+          if (filters.scoreStatus === 'scored' && fitScore <= 0) return false;
+          if (filters.scoreStatus === 'unscored' && fitScore > 0) return false;
           return true;
         } catch (error) {
           console.warn('MyTasksPageClient: Error filtering Applicant by fitScore:', error, c);
@@ -882,8 +899,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                        <Users className="w-3 h-3" />
                        {(() => {
                          // Check if any manual filters are applied
-                         const hasManualFilters = filters.name || filters.positionId || filters.stage || filters.recruiterId || 
-                                                  filters.minFitScore !== undefined || filters.maxFitScore !== undefined;
+                         const hasManualFilters = Object.entries(filters).some(([, value]) =>
+                           value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)
+                         );
                          
                          // If no manual filters and user can view all Applicants, show simple count
                          if (!hasManualFilters && !isRecruiter) {
@@ -989,7 +1007,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                      <div className="p-2 max-h-64 overflow-y-auto">
                        {/* All recruiters option - Only show if user can see all recruiters */}
                        {canSeeAllRecruiter && (
-                         <button
+                         <button type="button"
                            onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
                            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                          >
@@ -1008,7 +1026,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
                        {/* Available recruiters */}
                        {recruiters.map((r: any) => (
-                         <button
+                         <button type="button"
                            key={r.id}
                            onClick={() => setFilters((f: any) => ({ ...f, recruiterId: r.id }))}
                            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"

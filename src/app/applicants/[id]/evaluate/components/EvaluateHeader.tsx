@@ -28,6 +28,7 @@ export function EvaluateHeader({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Go back"
             onClick={onBack}
             className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border-none shadow-none hover:bg-transparent focus:ring-0"
             style={{ color: `hsl(${evaluateHeaderTextColor})` }}

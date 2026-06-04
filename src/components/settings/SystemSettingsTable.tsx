@@ -40,6 +40,8 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageContent',
   'loginPageFooter',
   'maxConcurrentProcessors',
+  'aiPowerSearchSystemPrompt',
+  'applicantEvaluationCriteriaPrompt',
     // Feature toggles
     'jobMatchFeatureEnabled',
     'pwaEnabled',

@@ -760,7 +760,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
       {/* Sub Tabs */}
       <div className="flex items-center border-b mb-4 overflow-x-auto no-scrollbar gap-6">
          {canViewAllComments && (
-           <button
+           <button type="button"
               onClick={() => {
                setActiveSubTab('all');
                 setSelectedChannel('comment');
@@ -777,7 +777,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
            </button>
          )}
          {canViewAllComments && (
-           <button
+           <button type="button"
               onClick={() => {
                setActiveSubTab('comment');
                 setSelectedChannel('comment');
@@ -794,7 +794,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
            </button>
          )}
          {(canViewAllComments || canViewRemarksOnly) && (
-           <button
+           <button type="button"
               onClick={() => {
                setActiveSubTab('remark');
                 setSelectedChannel('remark');
@@ -811,7 +811,7 @@ const ApplicantCommentsSection: React.FC<ApplicantCommentsSectionProps> = ({ app
            </button>
          )}
          {canViewActivities && (
-           <button
+           <button type="button"
               onClick={() => {
                setActiveSubTab('activity');
                 setSelectedChannel('activity');

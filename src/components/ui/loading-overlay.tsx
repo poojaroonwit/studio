@@ -217,6 +217,7 @@ export function LoadingButton({
   return (
     <button
       {...props}
+      type={props.type || 'button'}
       disabled={isLoading || props.disabled}
       className={cn(
         'inline-flex items-center justify-center',

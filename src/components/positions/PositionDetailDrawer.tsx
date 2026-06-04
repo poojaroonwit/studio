@@ -143,6 +143,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Filter state
   const [applicantFilters, setApplicantFilters] = useState<ApplicantFilterValues>({});
+  const [isAiSearchingApplicants, setIsAiSearchingApplicants] = useState(false);
   
   // Available data for filters
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
@@ -612,6 +613,53 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const handleClearApplicantFilters = useCallback(() => {
     setApplicantFilters(getDefaultApplicantFilters(recruitmentStages));
   }, [getDefaultApplicantFilters, recruitmentStages]);
+
+  const handlePositionApplicantAiSearch = useCallback(async (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      toast.error('Enter an AI search query first.');
+      return;
+    }
+
+    setIsAiSearchingApplicants(true);
+    try {
+      const response = await fetch('/api/ai/search-applicants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: trimmedQuery }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || result.error || 'AI search failed.');
+      }
+
+      const matchedIds = new Set<string>(Array.isArray(result.matchedApplicantIds) ? result.matchedApplicantIds : []);
+      const filterByMatchedIds = (applicants: Applicant[]) => applicants.filter((applicant) => matchedIds.has(applicant.id));
+
+      setAppliedApplicants((applicants) => {
+        const filtered = filterByMatchedIds(applicants);
+        setAppliedApplicantsTotal(filtered.length);
+        return filtered;
+      });
+      setPotentialApplicants((applicants) => {
+        const filtered = filterByMatchedIds(applicants);
+        setPotentialApplicantsTotal(filtered.length);
+        return filtered;
+      });
+      setFilteredApplicants((applicants) => {
+        const filtered = filterByMatchedIds(applicants);
+        setFilteredApplicantsTotal(filtered.length);
+        return filtered;
+      });
+      setApplicantFilters((currentFilters) => ({ ...currentFilters, aiSearchQuery: trimmedQuery }));
+      toast.success(`Found ${matchedIds.size} AI match(es).`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsAiSearchingApplicants(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isOpen || recruitmentStages.length === 0 || hasInitializedDefaultApplicantFiltersRef.current) {
@@ -1424,6 +1472,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   // Filter Props
                   applicantFilters={applicantFilters}
                   onFilterChange={setApplicantFilters}
+                  onAiSearch={handlePositionApplicantAiSearch}
+                  isAiSearching={isAiSearchingApplicants}
                   onClearFilters={handleClearApplicantFilters}
                   availableRecruiters={availableRecruiters}
                   availableStages={recruitmentStages}
@@ -1584,6 +1634,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Close position details"
                   onClick={handleManualClose}
                   className="h-9 w-9 -ml-2 text-muted-foreground hover:text-foreground"
                 >

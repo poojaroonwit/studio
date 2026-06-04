@@ -843,7 +843,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
       {/* Mobile Header with Back Button */}
       {isMobile && !isModal && (
         <div className="flex items-center gap-2 p-2 border-b bg-background sticky top-0 z-[100]">
-          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-muted">
+          <Button variant="ghost" size="icon" aria-label="Back to applicants" onClick={onClose} className="hover:bg-muted">
             <ChevronLeft className="h-6 w-6" />
           </Button>
           <span className="font-semibold text-lg">Back</span>

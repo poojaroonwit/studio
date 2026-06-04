@@ -171,14 +171,14 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       <div className="fixed inset-0 z-[100] bg-background flex flex-col w-full h-full overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="-ml-2 border-none shadow-none hover:bg-transparent focus:ring-0">
+            <Button variant="ghost" size="icon" aria-label="Close file viewer" onClick={() => onOpenChange(false)} className="-ml-2 border-none shadow-none hover:bg-transparent focus:ring-0">
               <ChevronLeft className="w-6 h-6" />
             </Button>
             <div className="min-w-0">
               <h3 className="font-semibold truncate text-sm">{file.fileName}</h3>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleViewInNewTab}>
+          <Button variant="ghost" size="icon" aria-label="Open file in new tab" onClick={handleViewInNewTab}>
             <ExternalLink className="w-5 h-5" />
           </Button>
         </div>

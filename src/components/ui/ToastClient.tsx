@@ -128,7 +128,7 @@ export default function ToastClient() {
                 {group.icon}
                 <div className="flex-1 whitespace-pre-line">{message}</div>
                 {t.type !== 'loading' && (
-                  <button
+                  <button type="button"
                     className="ml-2 p-1 rounded-full hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                     onClick={() => toast.dismiss(t.id)}
                     aria-label="Dismiss"

@@ -83,7 +83,7 @@ export function InterviewerSelectionSection({
                 const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
                 const isSelected = selectedInterviewerId === p.userId;
                 return (
-                  <button
+                  <button type="button"
                     key={p.id || idx}
                     onClick={() => handleInterviewerClick(p)}
                     className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all flex-shrink-0 shadow-sm hover:scale-105 active:scale-95"
@@ -136,7 +136,7 @@ export function InterviewerSelectionSection({
               const isSelected = selectedInterviewerId === p.userId;
               return (
                 <div key={p.id || idx} className="mb-3">
-                  <button
+                  <button type="button"
                     onClick={() => handleInterviewerClick(p)}
                     className="w-full p-3 text-left transition-all duration-200 rounded-md hover:scale-105 hover:shadow-lg active:scale-95"
                     style={isSelected ? {

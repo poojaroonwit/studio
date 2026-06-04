@@ -180,7 +180,7 @@ export function MobileEvaluateForm({
                     {scoreOptions.map((opt) => {
                       const isSelected = currentQuestion.score === opt.value;
                       return (
-                        <button
+                        <button type="button"
                           key={opt.value}
                           onClick={() => {
                             onScoreChange(currentQuestion.id, opt.value);

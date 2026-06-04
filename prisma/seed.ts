@@ -314,7 +314,11 @@ async function main() {
         key: 'defaultMatchCriteria',
         value: '<h2>Required Skills & Experience</h2><ul><li>Relevant educational background (Bachelor\'s degree or equivalent)</li><li>Minimum 2-3 years of professional experience in the field</li><li>Strong technical skills and proficiency in relevant tools</li><li>Excellent communication and teamwork abilities</li></ul><h2>Preferred Qualifications</h2><ul><li>Advanced degree or certifications</li><li>Experience with modern technologies and methodologies</li><li>Leadership or project management experience</li><li>Industry-specific knowledge and expertise</li></ul><h2>Personal Qualities</h2><ul><li>Problem-solving mindset and analytical thinking</li><li>Adaptability and willingness to learn</li><li>Strong work ethic and attention to detail</li><li>Cultural fit with company values</li></ul>'
       },
-      { key: 'hiringManagerRestrictToAssignedPositions', value: 'true' }
+      { key: 'hiringManagerRestrictToAssignedPositions', value: 'true' },
+      {
+        key: 'applicantEvaluationCriteriaPrompt',
+        value: 'Evaluate the Applicant against the position requirements using configured expertise skills, personality traits, interviewer scores, and written feedback. Consider resume evidence, position criteria alignment, score consistency, strengths, risks, follow-up questions, and a concise hiring recommendation. Use fair, specific, evidence-based recruiting language.'
+      }
     ];
 
     // Preserve existing logo: only set default if missing

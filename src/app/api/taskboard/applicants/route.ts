@@ -48,6 +48,13 @@ export async function GET(request: NextRequest) {
       positionId: searchParams.get('positionId'),
       status: searchParams.get('status'),
       recruiterId: searchParams.get('recruiterId'),
+      minFitScore: searchParams.get('minFitScore'),
+      maxFitScore: searchParams.get('maxFitScore'),
+      applicationDateStart: searchParams.get('applicationDateStart'),
+      applicationDateEnd: searchParams.get('applicationDateEnd'),
+      assignmentStatus: searchParams.get('assignmentStatus'),
+      positionStatus: searchParams.get('positionStatus'),
+      scoreStatus: searchParams.get('scoreStatus'),
     };
 
     // Build WHERE clauses and parameters
@@ -140,6 +147,46 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    }
+
+    if (filters.minFitScore) {
+      whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+      queryParams.push(Number(filters.minFitScore));
+    }
+
+    if (filters.maxFitScore) {
+      whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+      queryParams.push(Number(filters.maxFitScore));
+    }
+
+    if (filters.applicationDateStart) {
+      whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
+      queryParams.push(new Date(filters.applicationDateStart));
+    }
+
+    if (filters.applicationDateEnd) {
+      const endDate = new Date(filters.applicationDateEnd);
+      endDate.setHours(23, 59, 59, 999);
+      whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
+      queryParams.push(endDate);
+    }
+
+    if (filters.assignmentStatus === 'assigned') {
+      whereClauses.push(`c."recruiterId" IS NOT NULL`);
+    } else if (filters.assignmentStatus === 'unassigned') {
+      whereClauses.push(`c."recruiterId" IS NULL`);
+    }
+
+    if (filters.positionStatus === 'with-position') {
+      whereClauses.push(`c."positionId" IS NOT NULL`);
+    } else if (filters.positionStatus === 'without-position') {
+      whereClauses.push(`c."positionId" IS NULL`);
+    }
+
+    if (filters.scoreStatus === 'scored') {
+      whereClauses.push(`COALESCE(c."fitScore", 0) > 0`);
+    } else if (filters.scoreStatus === 'unscored') {
+      whereClauses.push(`COALESCE(c."fitScore", 0) = 0`);
     }
 
     // Auto-filter for recruiters

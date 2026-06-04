@@ -112,7 +112,7 @@ export function SourceSingleSelectDropdown({
                 {filteredSources.map((source) => {
                   const isSelected = value === source.id;
                   return (
-                    <button
+                    <button type="button"
                       key={source.id}
                       onClick={() => handleSelect(source.id)}
                       className={cn(

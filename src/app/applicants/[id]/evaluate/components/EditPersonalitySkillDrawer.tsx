@@ -56,6 +56,7 @@ export function EditPersonalitySkillDrawer({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Close personality skill editor"
                 onClick={onClose}
                 className="h-8 w-8"
               >
@@ -81,7 +82,7 @@ export function EditPersonalitySkillDrawer({
                 {scoreOptions.map((opt) => {
                   const isSelected = question.score === opt.value;
                   return (
-                    <button
+                    <button type="button"
                       key={opt.value}
                       onClick={() => {
                         onScoreChange(question.id, opt.value);
@@ -153,7 +154,7 @@ export function EditPersonalitySkillDrawer({
               {scoreOptions.map((opt) => {
                 const isSelected = question.score === opt.value;
                 return (
-                  <button
+                  <button type="button"
                     key={opt.value}
                     onClick={() => {
                       onScoreChange(question.id, opt.value);

@@ -360,7 +360,12 @@ export function DesktopEvaluatePage({
                       {showMenu && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <button className="p-1 rounded-full hover:bg-black/10 transition-colors" title="More options">
+                            <button
+                              type="button"
+                              className="p-1 rounded-full hover:bg-black/10 transition-colors"
+                              title="More options"
+                              aria-label="More interviewer options"
+                            >
                               <MoreVertical className="h-4 w-4" />
                             </button>
                           </DropdownMenuTrigger>

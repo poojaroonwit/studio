@@ -99,7 +99,7 @@ class RolePermissionsErrorBoundary extends React.Component<
               There was an issue loading the Roles & Permissions page. This is typically caused by a component initialization order issue.
             </p>
             <div className="space-y-2">
-              <button
+              <button type="button"
                 onClick={() => {
                   this.setState({ hasError: false, error: undefined });
                 }}
@@ -107,7 +107,7 @@ class RolePermissionsErrorBoundary extends React.Component<
               >
                 Try Again
               </button>
-              <button
+              <button type="button"
                 onClick={() => window.location.reload()}
                 className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
               >

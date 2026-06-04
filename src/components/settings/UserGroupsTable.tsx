@@ -41,9 +41,9 @@ const UserGroupsTable: React.FC<UserGroupsTableProps> = ({ groups, isLoading, on
                 {group.isSystemRole ? 'System' : group.isDefault ? 'Default' : 'Custom'}
               </td>
               <td>
-                <button onClick={() => onEdit(group)}>Edit</button>
+                <button type="button" onClick={() => onEdit(group)}>Edit</button>
                 {!group.isSystemRole && (
-                  <button onClick={() => onDelete(group)} style={{ marginLeft: 8, color: 'red' }}>Delete</button>
+                  <button type="button" onClick={() => onDelete(group)} style={{ marginLeft: 8, color: 'red' }}>Delete</button>
                 )}
               </td>
             </tr>

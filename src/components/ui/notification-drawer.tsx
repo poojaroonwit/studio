@@ -119,6 +119,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Close notifications"
             onClick={onClose}
             className="ml-2"
           >

@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+export { GET } from '../../logs/route';
+
 /**
  * @openapi
  * /api/settings/logs:
@@ -58,11 +60,3 @@ export const runtime = 'nodejs';
  *       403:
  *         description: "Forbidden: Insufficient permissions"
  */
-// ... existing code ... 
-
-export async function GET() {
-  return new Response(JSON.stringify({ message: 'Not implemented' }), {
-    status: 501,
-    headers: { 'Content-Type': 'application/json' },
-  });
-} 

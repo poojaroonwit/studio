@@ -121,7 +121,6 @@ export function SourceMultiSelectDropdown({
             aria-expanded={open}
             className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
             disabled={disabled}
-            onClick={() => { }}
           >
             <div className="flex flex-wrap gap-1 flex-1">
               {selectedSources.length === 0 && !isUnassignedSelected && !isSelectAllSelected ? (
@@ -238,6 +237,7 @@ export function SourceMultiSelectDropdown({
               <div className="space-y-0.5">
                 {/* Select All option - always show at top */}
                 <button
+                  type="button"
                   onClick={() => {
                     handleSelect('select-all');
                   }}
@@ -262,6 +262,7 @@ export function SourceMultiSelectDropdown({
 
                 {/* Unassigned option */}
                 <button
+                  type="button"
                   onClick={() => {
                     handleSelect('unassigned');
                   }}
@@ -289,6 +290,7 @@ export function SourceMultiSelectDropdown({
                   const isSelected = safeSelectedSourceIds.has(source.id);
                   return (
                     <button
+                      type="button"
                       key={source.id}
                       onClick={() => {
                         handleSelect(source.id);

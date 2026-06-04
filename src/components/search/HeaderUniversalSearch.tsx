@@ -284,7 +284,7 @@ export function HeaderUniversalSearch({ placeholder }: HeaderUniversalSearchProp
         }}
       />
       {query && (
-        <button
+        <button type="button"
           onClick={() => {
             setQuery("");
             setResults({ applicants: [], positions: [], users: [] });

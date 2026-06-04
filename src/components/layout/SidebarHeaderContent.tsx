@@ -189,7 +189,11 @@ export function SidebarHeaderContent({
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-primary/20 hover:ring-indigo-500/50 hover:scale-105 transition-all shadow-lg shadow-primary/10 active:scale-95 group">
+              <button
+                type="button"
+                className="h-10 w-10 rounded-xl overflow-hidden ring-2 ring-primary/20 hover:ring-indigo-500/50 hover:scale-105 transition-all shadow-lg shadow-primary/10 active:scale-95 group"
+                aria-label="Open user menu"
+              >
                 <UserAvatarCompact user={user} size="sm" />
                 <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/10 transition-colors" />
               </button>

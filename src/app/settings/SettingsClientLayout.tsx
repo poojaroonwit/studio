@@ -34,7 +34,7 @@ class SettingsLayoutErrorBoundary extends React.Component<
             <p className="mb-4 text-muted-foreground">
               There was an error loading the settings layout. Please try refreshing the page.
             </p>
-            <button
+            <button type="button"
               onClick={() => window.location.reload()}
               className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
             >

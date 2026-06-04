@@ -1232,6 +1232,7 @@ function EvaluatePageContent() {
           onClick={handleOpenCreateModal}
           className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0"
           size="icon"
+          aria-label="Create evaluation link"
         >
           <Plus className="h-6 w-6" />
         </Button>

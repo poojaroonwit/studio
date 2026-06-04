@@ -665,6 +665,7 @@ export function NewApplicationsTimeSeriesChart({ applicants, initialData, isLoad
               <Popover>
                 <PopoverTrigger asChild>
                   <button
+                    type="button"
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-accent hover:bg-accent/80 transition-colors text-xs font-medium shadow-sm",
                       !dateRange && "text-muted-foreground"

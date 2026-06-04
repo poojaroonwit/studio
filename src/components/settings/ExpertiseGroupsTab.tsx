@@ -360,7 +360,7 @@ export default function ExpertiseGroupsTab() {
                         {groupSkills.map((skill) => (
                           <Badge key={skill.id} variant="outline" className="flex items-center gap-1">
                             {skill.name}
-                            <button
+                            <button type="button"
                               onClick={() => handleRemoveSkillFromGroup(skill.id)}
                               className="ml-1 hover:text-destructive"
                             >

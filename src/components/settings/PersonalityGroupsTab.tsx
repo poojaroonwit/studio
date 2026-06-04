@@ -354,7 +354,7 @@ export default function PersonalityGroupsTab() {
                         {groupTraits.map((trait) => (
                           <Badge key={trait.id} variant="outline" className="flex items-center gap-1">
                             {trait.name}
-                            <button
+                            <button type="button"
                               onClick={() => handleRemoveTraitFromGroup(trait.id)}
                               className="ml-1 hover:text-destructive"
                             >

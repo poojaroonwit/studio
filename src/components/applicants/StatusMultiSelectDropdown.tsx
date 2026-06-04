@@ -187,7 +187,7 @@ export function StatusMultiSelectDropdown({
             ) : (
               <div className="space-y-0.5">
                 {/* Select All Option */}
-                <button
+                <button type="button"
                   key="select-all"
                   onClick={() => handleToggleStage('select-all')}
                   className={cn(
@@ -218,7 +218,7 @@ export function StatusMultiSelectDropdown({
                 </button>
 
                 {filteredStages.map((stage) => (
-                  <button
+                  <button type="button"
                     key={stage.id}
                     onClick={() => handleToggleStage(stage.id)}
                     className={cn(

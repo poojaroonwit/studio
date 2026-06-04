@@ -65,6 +65,9 @@ interface ApplicantsTabProps {
   // Filters
   applicantFilters: ApplicantFilterValues;
   onFilterChange: (filters: ApplicantFilterValues) => void;
+  onAiSearch: (query: string) => void;
+  onClearFilters?: () => void;
+  isAiSearching?: boolean;
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
   availableStages: RecruitmentStage[];
   availableSources: ApplicantSource[];
@@ -112,6 +115,9 @@ export function ApplicantsTab({
   onApplicantClick,
   applicantFilters,
   onFilterChange,
+  onAiSearch,
+  onClearFilters,
+  isAiSearching = false,
   availableRecruiters,
   availableStages,
   availableSources,
@@ -203,13 +209,14 @@ export function ApplicantsTab({
                            <ApplicantFiltersComponent
                               initialFilters={applicantFilters}
                               onFilterChange={onFilterChange}
-                              onAiSearch={() => {}} // Not implemented here
-                              onClearAllFilters={() => onFilterChange({})}
+                              onAiSearch={onAiSearch}
+                              onClearAllFilters={onClearFilters || (() => onFilterChange({}))}
                               availablePositions={availablePositions}
                               availableStages={availableStages}
                               availableRecruiter={availableRecruiters}
                               availableSources={availableSources}
                               isLoading={false}
+                              isAiSearching={isAiSearching}
                            />
                         </div>
                      </ScrollArea>
@@ -327,13 +334,14 @@ export function ApplicantsTab({
                            <ApplicantFiltersComponent
                               initialFilters={applicantFilters}
                               onFilterChange={onFilterChange}
-                              onAiSearch={() => {}} 
-                              onClearAllFilters={() => onFilterChange({})}
+                              onAiSearch={onAiSearch}
+                              onClearAllFilters={onClearFilters || (() => onFilterChange({}))}
                               availablePositions={availablePositions}
                               availableStages={availableStages}
                               availableRecruiter={availableRecruiters}
                               availableSources={availableSources}
                               isLoading={false}
+                              isAiSearching={isAiSearching}
                            />
                         </div>
                      </ScrollArea>

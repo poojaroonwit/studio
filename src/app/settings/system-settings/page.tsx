@@ -186,6 +186,7 @@ export default function SystemSettingsPage() {
   
   // AI Prompts State
   const [jobDescriptionSystemPrompt, setJobDescriptionSystemPrompt] = useState('');
+  const [applicantEvaluationCriteriaPrompt, setApplicantEvaluationCriteriaPrompt] = useState('');
 
   // Organization Information State (Moved from system-preferences)
   const [organizationName, setOrganizationName] = useState('');
@@ -271,6 +272,7 @@ export default function SystemSettingsPage() {
       
       // Load AI Prompts
       setJobDescriptionSystemPrompt(settings.jobDescriptionSystemPrompt || '');
+      setApplicantEvaluationCriteriaPrompt(settings.applicantEvaluationCriteriaPrompt || '');
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -415,6 +417,7 @@ export default function SystemSettingsPage() {
       
       // AI Prompts
       { key: 'jobDescriptionSystemPrompt', value: jobDescriptionSystemPrompt || '' },
+      { key: 'applicantEvaluationCriteriaPrompt', value: applicantEvaluationCriteriaPrompt || '' },
     ];
     try {
       const controller = new AbortController();
@@ -591,7 +594,7 @@ export default function SystemSettingsPage() {
                       </h4>
                       <div className="space-y-1">
                         {visibleItems.map((item) => (
-                          <button
+                          <button type="button"
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={cn(
@@ -781,6 +784,8 @@ export default function SystemSettingsPage() {
                 <AiPromptsTab 
                   jobDescriptionSystemPrompt={jobDescriptionSystemPrompt}
                   setJobDescriptionSystemPrompt={setJobDescriptionSystemPrompt}
+                  applicantEvaluationCriteriaPrompt={applicantEvaluationCriteriaPrompt}
+                  setApplicantEvaluationCriteriaPrompt={setApplicantEvaluationCriteriaPrompt}
                   isSaving={isSaving}
                 />
               )}

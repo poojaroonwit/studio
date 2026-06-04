@@ -511,6 +511,7 @@ export default function MobileApplicantDetail({
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Back to applicants"
               onClick={onClose}
               className="h-9 w-9 flex-shrink-0 touch-manipulation border-none shadow-none hover:bg-transparent"
             >

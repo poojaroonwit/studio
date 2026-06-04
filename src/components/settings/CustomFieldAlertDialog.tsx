@@ -14,8 +14,8 @@ const CustomFieldAlertDialog: React.FC<CustomFieldAlertDialogProps> = ({ open, o
     <div>
       <h2>Delete Custom Field</h2>
       <p>Are you sure you want to delete {definition.label}?</p>
-      <button onClick={onCancel}>Cancel</button>
-      <button onClick={onConfirm}>Delete</button>
+      <button type="button" onClick={onCancel}>Cancel</button>
+      <button type="button" onClick={onConfirm}>Delete</button>
     </div>
   );
 };

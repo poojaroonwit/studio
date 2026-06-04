@@ -2205,7 +2205,7 @@ export function ApplicantsPageClient({
             <div className="flex items-center justify-between gap-4">
               <DrawerTitle className="text-xl font-black">Search Applicants</DrawerTitle>
               <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" aria-label="Close applicant search" className="rounded-full">
                   <X className="h-5 w-5" />
                 </Button>
               </DrawerClose>

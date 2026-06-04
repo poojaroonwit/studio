@@ -96,7 +96,7 @@ export function ReportHeader({
           </Avatar>
           {canEditApplicantBasic() && (
             <>
-              <button
+              <button type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors no-print"
                 title="Change avatar"

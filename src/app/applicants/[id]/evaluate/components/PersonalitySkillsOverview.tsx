@@ -95,7 +95,7 @@ export function PersonalitySkillsOverview({
                     formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
                     (urlTraitId === item.question.traitId);
                   return (
-                    <button
+                    <button type="button"
                       key={item.question.id || idx}
                       onClick={() => {
                         if (item.question.traitId) {

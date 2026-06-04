@@ -50,7 +50,7 @@ export function MobileSkillsList({
             return (
               <React.Fragment key={q.id}>
                 <div className="flex flex-col items-center flex-shrink-0 relative z-10">
-                  <button
+                  <button type="button"
                     data-question-index={idx}
                     onClick={() => onQuestionClick(idx)}
                     className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
@@ -102,7 +102,7 @@ export function MobileSkillsList({
                 const commentsIndex = formData.questions.length;
                 const isSelected = formData.currentQuestionIndex === commentsIndex;
                 return (
-                  <button
+                  <button type="button"
                     data-question-index={commentsIndex}
                     onClick={onCommentsClick}
                     className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"

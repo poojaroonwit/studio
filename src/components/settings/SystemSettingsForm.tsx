@@ -95,6 +95,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageFooter',
   'maxConcurrentProcessors',
   'aiPowerSearchSystemPrompt',
+  'applicantEvaluationCriteriaPrompt',
   // Organization branding
   'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
   // Security & Protection
@@ -241,6 +242,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                       type="button"
                       variant="destructive"
                       size="icon"
+                      aria-label="Remove image"
                       className="absolute top-1 right-1 h-6 w-6"
                       onClick={handleRemoveImage}
                     >

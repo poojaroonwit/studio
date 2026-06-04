@@ -116,6 +116,7 @@ export function UserActivityLogsDrawer({ isOpen, onClose, user }: UserActivityLo
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Refresh activity logs"
                 onClick={handleRefresh}
                 disabled={isRefreshing || isLoading}
               >

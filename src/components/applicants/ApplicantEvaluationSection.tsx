@@ -422,7 +422,7 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
                 return (
                   <div key={group.groupId} className="border rounded-md">
                     {/* Group Header */}
-                    <button
+                    <button type="button"
                       onClick={() => toggleGroup(group.groupId)}
                       className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
                     >
@@ -488,7 +488,7 @@ const ApplicantEvaluationSection: React.FC<ApplicantEvaluationSectionProps> = ({
                 return (
                   <div key={group.groupId} className="border rounded-md">
                     {/* Group Header */}
-                    <button
+                    <button type="button"
                       onClick={() => toggleGroup(group.groupId)}
                       className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
                     >

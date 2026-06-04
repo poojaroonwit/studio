@@ -227,7 +227,7 @@ export const SidebarRail = React.memo(({
             <TooltipProvider key={group.label} delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <button type="button"
                     onClick={() => onHubClick(group.label)}
                     onMouseEnter={() => onHubHover(group.label)}
                     className={cn(
@@ -267,7 +267,7 @@ export const SidebarRail = React.memo(({
               return (
                 <TooltipTrigger asChild>
                   <OptimizedLink href="/settings">
-                    <button
+                    <button type="button"
                       onClick={() => onHubClick('Settings')}
                       onMouseEnter={() => onHubHover('Settings')}
                       className={cn(
@@ -359,7 +359,7 @@ export const SidebarMenuPanel = React.memo(({
                 const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                 return (
                   <OptimizedLink key={item.href} href={item.href} className="block">
-                    <button
+                    <span
                       className={cn(
                         "w-full flex items-center px-3 py-2 text-[13px] font-medium transition-all duration-150 rounded-lg group",
                         isActive
@@ -384,7 +384,7 @@ export const SidebarMenuPanel = React.memo(({
                           {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
                       )}
-                    </button>
+                    </span>
                   </OptimizedLink>
                 );
               })}

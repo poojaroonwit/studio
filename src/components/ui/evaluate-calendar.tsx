@@ -101,7 +101,7 @@ function DayCell({
   const hasEvents = applicants.length > 0 || (reminders?.length || 0) > 0;
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         "flex flex-col items-center justify-start transition-all",
@@ -490,13 +490,13 @@ export function MobileEvaluateCalendar({
 
         {/* Month Navigation */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
+          <Button variant="ghost" size="icon" aria-label="Previous month" className="h-8 w-8" onClick={goToPrevMonth}>
             <ChevronLeftIcon className="h-4 w-4" />
           </Button>
           <span className="text-sm font-semibold min-w-[120px] text-center">
             {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
+          <Button variant="ghost" size="icon" aria-label="Next month" className="h-8 w-8" onClick={goToNextMonth}>
             <ChevronRightIcon className="h-4 w-4" />
           </Button>
         </div>
@@ -649,10 +649,10 @@ export function DesktopEvaluateCalendar({
             </Button>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
+            <Button variant="ghost" size="icon" aria-label="Previous month" onClick={goToPrevMonth}>
               <ChevronLeftIcon className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={goToNextMonth}>
+            <Button variant="ghost" size="icon" aria-label="Next month" onClick={goToNextMonth}>
               <ChevronRightIcon className="h-5 w-5" />
             </Button>
           </div>

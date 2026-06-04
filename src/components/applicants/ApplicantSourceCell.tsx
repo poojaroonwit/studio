@@ -239,6 +239,7 @@ export function ApplicantSourceCell({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Clear source search"
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-accent"
                   onClick={handleClearSearch}
                   type="button"
@@ -251,7 +252,7 @@ export function ApplicantSourceCell({
             {/* Scrollable content area */}
             <div className="max-h-[300px] overflow-y-auto">
               {/* Unassign option - always show */}
-              <button
+              <button type="button"
                 onClick={() => handleSelect(null)}
                 className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
               >
@@ -275,7 +276,7 @@ export function ApplicantSourceCell({
               {/* Available sources */}
               {filteredSources.length > 0 ? (
                 filteredSources.map((source) => (
-                  <button
+                  <button type="button"
                     key={source.id}
                     onClick={() => handleSelect(source.id)}
                     className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"

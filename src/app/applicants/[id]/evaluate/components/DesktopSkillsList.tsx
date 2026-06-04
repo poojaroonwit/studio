@@ -83,7 +83,7 @@ export function DesktopSkillsList({
                           }}
                         ></div>
                       )}
-                      <button
+                      <button type="button"
                         onClick={() => onQuestionClick(idx)}
                         className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                       >
@@ -119,7 +119,7 @@ export function DesktopSkillsList({
                 const commentsIndex = formData.questions.length;
                 const isSelected = formData.currentQuestionIndex === commentsIndex;
                 return (
-                  <button
+                  <button type="button"
                     onClick={() => onQuestionClick(commentsIndex)}
                     className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
                   >

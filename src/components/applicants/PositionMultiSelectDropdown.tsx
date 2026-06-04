@@ -373,7 +373,7 @@ export function PositionMultiSelectDropdown({
 
             {error ? (
               <div className="text-sm text-destructive py-2 px-2">
-                Failed to load positions. <button className="underline" onClick={() => refreshPositions()}>Retry</button>
+                Failed to load positions. <button type="button" className="underline" onClick={() => refreshPositions()}>Retry</button>
               </div>
             ) : filteredPositions.length === 0 && !showUnassignedOption ? (
               <div className="text-sm text-muted-foreground py-2">No positions available</div>
@@ -381,7 +381,7 @@ export function PositionMultiSelectDropdown({
               <div className="space-y-0.5">
                 {/* Select All Option - Only show in multi-select mode */}
                 {filteredPositions.length > 0 && !singleSelect && (
-                  <button
+                  <button type="button"
                     key="select-all"
                     onClick={() => {
                       if (disabled) {
@@ -446,7 +446,7 @@ export function PositionMultiSelectDropdown({
 
                 {/* Not Applied Option */}
                 {showUnassignedOption && (
-                  <button
+                  <button type="button"
                     key="not-applied"
                     onClick={() => {
                       if (disabled) {
@@ -478,7 +478,7 @@ export function PositionMultiSelectDropdown({
                 )}
 
                 {filteredPositions.map((position) => (
-                  <button
+                  <button type="button"
                     key={position.id}
                     onClick={() => {
                       if (disabled) {

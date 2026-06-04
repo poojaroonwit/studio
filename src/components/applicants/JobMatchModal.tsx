@@ -186,7 +186,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                 View job match details and compatibility information
               </DialogDescription>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" aria-label="Close job match details" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>

@@ -301,7 +301,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
                 </span>
                 <div className="flex items-center gap-2">
                   {!isMobile && applicant.id && (
-                    <button
+                    <button type="button"
                       onClick={handleCopyId}
                       className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors duration-200 group"
                       title={`Copy ID: ${applicant.id}`}

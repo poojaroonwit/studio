@@ -612,7 +612,11 @@ export default function ManageUsersPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" aria-label={`Actions for ${user.name || user.email}`}>
+                                  <MoreHorizontal />
+                                </Button>
+                              </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => openUserModal('edit', user)}><Edit3 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}><ShieldAlert className="mr-2 h-4 w-4" /> Toggle Status</DropdownMenuItem>

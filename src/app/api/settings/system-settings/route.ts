@@ -150,6 +150,7 @@ const systemSettingKeyEnum = z.enum([
   // AI Configuration
   'aiPowerSearchSystemPrompt',
   'jobDescriptionSystemPrompt',
+  'applicantEvaluationCriteriaPrompt',
   'aiProviderSelection',
   'geminiModelSelection',
   'openaiModelSelection',

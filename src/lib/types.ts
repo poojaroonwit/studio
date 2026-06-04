@@ -1527,6 +1527,7 @@ export type SystemSettingKey =
   | 'loginPageFooter'
   | 'maxConcurrentProcessors'
   | 'aiPowerSearchSystemPrompt'
+  | 'applicantEvaluationCriteriaPrompt'
   | 'aiProviderSelection'
   | 'geminiModelSelection'
   | 'openaiModelSelection'

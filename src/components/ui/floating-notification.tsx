@@ -65,6 +65,7 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Dismiss notification"
             onClick={handleClose}
             className="h-6 w-6 text-muted-foreground hover:text-foreground"
           >

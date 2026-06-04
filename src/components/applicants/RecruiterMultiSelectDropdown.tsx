@@ -204,7 +204,7 @@ export function RecruiterMultiSelectDropdown({
             ) : (
               <div className="space-y-0.5">
                 {/* Select All Option */}
-                <button
+                <button type="button"
                   key="select-all"
                   onClick={() => handleToggleRecruiter('select-all')}
                   className={cn(
@@ -230,7 +230,7 @@ export function RecruiterMultiSelectDropdown({
                 </button>
 
                 {/* Unassigned Option */}
-                <button
+                <button type="button"
                   key="unassigned"
                   onClick={() => handleToggleRecruiter('unassigned')}
                   className={cn(
@@ -256,7 +256,7 @@ export function RecruiterMultiSelectDropdown({
                 </button>
 
                 {filteredRecruiter.map((recruiter) => (
-                  <button
+                  <button type="button"
                     key={recruiter.id}
                     onClick={() => handleToggleRecruiter(recruiter.id)}
                     className={cn(

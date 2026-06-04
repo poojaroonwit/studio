@@ -639,7 +639,7 @@ export function UnifiedRoleDrawer({
                                ? "text-primary border-b-2 border-primary"
                                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                            )}
-                         >
+                          role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                            <Settings2 className="h-4 w-4" />
                            Details
                          </div>
@@ -651,7 +651,7 @@ export function UnifiedRoleDrawer({
                                ? "text-primary border-b-2 border-primary"
                                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                            )}
-                         >
+                          role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                            <ShieldCheck className="h-4 w-4" />
                            Permissions
                          </div>
@@ -663,7 +663,7 @@ export function UnifiedRoleDrawer({
                                ? "text-primary border-b-2 border-primary"
                                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                            )}
-                         >
+                          role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                            <Users className="h-4 w-4" />
                            Members ({members.length})
                          </div>

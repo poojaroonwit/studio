@@ -553,7 +553,7 @@ export function EnhancedColorPicker({
               e.preventDefault();
               if (!disabled) setOpen(true);
             }}
-          />
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }} />
           <Input
             type="text"
             value={displayText}

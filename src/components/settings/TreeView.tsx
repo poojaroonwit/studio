@@ -458,7 +458,7 @@ function TreeNode({
               handleEdit();
             }
           }}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           {/* Expand/Collapse Button */}
           {isFolder && hasChildren && (
             <div className="w-4 h-4 flex items-center justify-center">

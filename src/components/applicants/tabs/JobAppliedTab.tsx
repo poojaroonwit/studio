@@ -217,7 +217,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                   setSelectedAttachment(att);
                   setIsPreviewModalOpen(true);
                 }}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
                   <FileText className="h-5 w-5" />
                 </div>
@@ -277,7 +277,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 e.stopPropagation();
                 onOpenPositionDrawer(appliedJobId);
               }}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <div className="mb-1">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-foreground text-lg flex items-center gap-2">
@@ -312,7 +312,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               <div 
                 className="flex items-center gap-2 text-sm text-muted-foreground mb-2"
                 onClick={(e) => e.stopPropagation()}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <Banknote className="h-3.5 w-3.5" />
                 {isEditing && register ? (
                   <div className="flex items-center gap-2 flex-1 max-w-[200px]">

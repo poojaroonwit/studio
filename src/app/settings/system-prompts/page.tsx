@@ -379,7 +379,7 @@ export default function SystemPromptsPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <FileText className="h-4 w-4" />
               System Prompts
             </div>
@@ -391,7 +391,7 @@ export default function SystemPromptsPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Tag className="h-4 w-4" />
               Categories
             </div>

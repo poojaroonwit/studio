@@ -122,7 +122,7 @@ function SortableCategory({
       <div 
         className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-muted/30 cursor-pointer group bg-white/50 border border-transparent hover:border-muted/30 transition-all duration-200"
         onClick={onToggleExpanded}
-      >
+       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
         {/* Expand/Collapse Button */}
         {hasItems && (
           <div className="w-4 h-4 flex items-center justify-center">

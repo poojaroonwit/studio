@@ -966,7 +966,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                 <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('jobs')}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Briefcase className="w-4 h-4" />
                   {isJobMatchEnabled ? 'Job Applied & Matched' : 'Job Applied'}
                   {(() => {
@@ -979,14 +979,14 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                 <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'applicant-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('applicant-info')}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <User className="w-4 h-4" />
                   Applicant Info
                 </div>
                 <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('education')}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <GraduationCap className="w-4 h-4" />
                   Education
                   {(() => {
@@ -998,7 +998,7 @@ const FullApplicantDetail: React.FC<FullApplicantDetailProps> = ({
                 <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('experience')}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Clock className="w-4 h-4" />
                   Experience
                   {(() => {

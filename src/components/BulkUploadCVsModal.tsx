@@ -522,7 +522,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                         });
                         setFileViewerOpen(true);
                       }}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="flex-1 min-w-0">
                         <span className="truncate block text-sm font-medium">{file.name}</span>
                         <span className="text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>

@@ -365,7 +365,7 @@ export function RealtimeCollaboration({
                         "hover:bg-muted"
                       )}
                       onClick={() => !notification.read && markNotificationAsRead(notification.id)}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="mt-1">
                         <Bell className="w-4 h-4" />
                       </div>

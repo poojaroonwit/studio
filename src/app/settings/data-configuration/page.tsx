@@ -1197,7 +1197,7 @@ export default function DataConfigurationPage() {
                               ? "bg-background text-primary shadow-sm border border-border"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                           )}
-                        >
+                         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                           <Icon className="h-4 w-4" />
                           <span>{item.label}</span>
                         </div>

@@ -72,7 +72,7 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
             : "bg-transparent hover:bg-zinc-50 dark:bg-transparent dark:hover:bg-zinc-900/40"
         )}
         onClick={() => setIsExpanded(!isExpanded)}
-      >
+       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
         <div className="flex items-center gap-2">
           
           <div className="flex flex-col">
@@ -158,7 +158,7 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                         key={candidate.id}
                         className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl hover:border-primary/30 transition-all cursor-pointer group"
                         onClick={() => onCandidateClick(candidate)}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase">
                             {candidate.name.charAt(0)}
@@ -207,7 +207,7 @@ export function PositionGroup({ position, viewMode, onCandidateClick }: Position
                               key={candidate.id}
                               className="group hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors border-b border-zinc-50 dark:border-zinc-800 last:border-0"
                               onClick={() => onCandidateClick(candidate)}
-                            >
+                             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase" style={{ background: (candidate as any).statusColor ? `${(candidate as any).statusColor}20` : undefined, color: (candidate as any).statusColor || undefined }}>

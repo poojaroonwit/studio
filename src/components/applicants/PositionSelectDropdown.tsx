@@ -174,7 +174,7 @@ export function PositionSelectDropdown({
                       onValueChange("");
                       setOpen(false);
                     }}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
@@ -197,7 +197,7 @@ export function PositionSelectDropdown({
                       onValueChange(position.id);
                       setOpen(false);
                     }}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",

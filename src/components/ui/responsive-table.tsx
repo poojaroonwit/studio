@@ -133,7 +133,7 @@ export function TableRow({
         className
       )}
       onClick={onClick}
-    >
+     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
       {children}
     </tr>
   );
@@ -244,7 +244,7 @@ export function CardTable({
             onRowClick && 'cursor-pointer hover:bg-muted/50 transition-colors'
           )}
           onClick={() => onRowClick?.(row)}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           {columns.map((column) => (
             <MobileTableRow
               key={column.key}

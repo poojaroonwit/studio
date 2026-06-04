@@ -29,7 +29,7 @@ export default function ProcessQueuePage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <ListTodo className="h-4 w-4" />
               Queue Management
             </div>
@@ -41,7 +41,7 @@ export default function ProcessQueuePage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <BarChart3 className="h-4 w-4" />
               Analytics
             </div>

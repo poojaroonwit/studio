@@ -549,7 +549,7 @@ export default function MobileApplicantDetail({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Briefcase className="h-4 w-4" />
               Job Applied
             </div>
@@ -561,7 +561,7 @@ export default function MobileApplicantDetail({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <User className="h-4 w-4" />
               Applicant Info
             </div>
@@ -573,7 +573,7 @@ export default function MobileApplicantDetail({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <FileText className="h-4 w-4" />
               Attachments ({attachments.length})
             </div>
@@ -585,7 +585,7 @@ export default function MobileApplicantDetail({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <MessageSquare className="h-4 w-4" />
               Comments ({comments.length})
             </div>
@@ -688,7 +688,7 @@ export default function MobileApplicantDetail({
                               });
                               setIsFileViewerOpen(true);
                             }}
-                          >
+                           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                             <FileIconComponent className="h-8 w-8 text-muted-foreground" />
                             <p className="text-xs text-center truncate w-full" title={attachment.fileName || attachment.name}>
                               {attachment.fileName || attachment.name || 'Unknown'}

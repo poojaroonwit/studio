@@ -154,7 +154,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleClick}
-    >
+     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
       <div className="flex items-start gap-3 mb-1">
         {/* Avatar */}
         {(!cardPreferences || cardPreferences.showAvatar) && (

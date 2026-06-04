@@ -205,7 +205,7 @@ export default function UserPreferencesPage() {
                 ? "text-primary border-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Palette className="w-4 h-4" />
             Appearance
           </div>
@@ -217,7 +217,7 @@ export default function UserPreferencesPage() {
                 ? "text-primary border-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Layout className="w-4 h-4" />
             Task Board
           </div>
@@ -229,7 +229,7 @@ export default function UserPreferencesPage() {
                 ? "text-primary border-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Filter className="w-4 h-4" />
             Positions
           </div>
@@ -241,7 +241,7 @@ export default function UserPreferencesPage() {
                 ? "text-primary border-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Layout className="w-4 h-4" />
             Sidebar
           </div>
@@ -253,7 +253,7 @@ export default function UserPreferencesPage() {
                 ? "text-primary border-primary"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <ShieldCheck className="w-4 h-4" />
             Security
           </div>

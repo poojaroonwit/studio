@@ -285,7 +285,7 @@ export function RecruitmentPipelineCard({
                           }
                         }}
                         title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                         {/* Show info popover for all stages on hover of cycle */}
                         <Popover open={openPopoverIdx === index}>
                           <PopoverTrigger asChild>

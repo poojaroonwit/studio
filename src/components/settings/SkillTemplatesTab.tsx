@@ -441,7 +441,7 @@ export default function SkillTemplatesTab() {
                           <span className="text-xs text-muted-foreground">({groupSkills.length} skills)</span>
                         </div>
                         <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
-                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGroupToggle(group.id); }}>Select All</span>
+                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGroupToggle(group.id); }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>Select All</span>
                         </Button>
                       </div>
                     </button>
@@ -472,7 +472,7 @@ export default function SkillTemplatesTab() {
                   Select All Individual Skills
                 </span>
                 <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
-                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllExpertiseSkills(); }}>Select All</span>
+                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllExpertiseSkills(); }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>Select All</span>
                 </Button>
               </button>
               {skills
@@ -556,7 +556,7 @@ export default function SkillTemplatesTab() {
                           <span className="text-xs text-muted-foreground">({groupTraits.length} traits)</span>
                         </div>
                         <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
-                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePersonalityGroupToggle(group.id); }}>Select All</span>
+                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePersonalityGroupToggle(group.id); }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>Select All</span>
                         </Button>
                       </div>
                     </button>
@@ -587,7 +587,7 @@ export default function SkillTemplatesTab() {
                   Select All Individual Traits
                 </span>
                 <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
-                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllPersonalityTraits(); }}>Select All</span>
+                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllPersonalityTraits(); }} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>Select All</span>
                 </Button>
               </button>
               {personalityTraits

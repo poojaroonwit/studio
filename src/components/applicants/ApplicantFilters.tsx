@@ -1215,7 +1215,7 @@ export function ApplicantFilters({
                     ? "text-primary border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <ListFilter className="h-4 w-4" />
                 Filters
               </div>
@@ -1227,7 +1227,7 @@ export function ApplicantFilters({
                     ? "text-primary border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <Code className="h-4 w-4" />
                 Advanced
               </div>
@@ -1631,7 +1631,7 @@ export function ApplicantFilters({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <ListFilter className="h-4 w-4" />
               Filters
             </div>
@@ -1643,7 +1643,7 @@ export function ApplicantFilters({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Code className="h-4 w-4" />
               Advanced
             </div>
@@ -1926,7 +1926,7 @@ export function ApplicantFilters({
                             (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
                           }
                         }}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                         {Array.from(skills).map((skill) => (
                           <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
                             {skill}
@@ -1952,7 +1952,7 @@ export function ApplicantFilters({
                               }}
                               aria-label={`Remove ${skill}`}
                               tabIndex={-1}
-                            >
+                             onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                               <X className="w-3 h-3" />
                             </span>
                           </Badge>
@@ -2571,7 +2571,7 @@ export function ApplicantFilters({
                                 handleApplyAdvancedQuery();
                               }, 100);
                             }}
-                          >
+                           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                             <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                             <code className="flex-1 truncate text-blue-600">{query}</code>
                             <Button

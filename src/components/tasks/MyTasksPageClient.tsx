@@ -1088,7 +1088,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                                isSelected && "bg-accent"
                              )}
                              onClick={() => toggleStageSelection(stage.id)}
-                           >
+                            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                              <div className={cn(
                                "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
                                isSelected 

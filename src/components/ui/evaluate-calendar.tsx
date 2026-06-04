@@ -151,7 +151,7 @@ function DayCell({
                   e.stopPropagation();
                   onApplicantClick?.(applicant.id);
                 }}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <ApplicantAvatarCompact
                   user={{
                     id: applicant.id,
@@ -176,7 +176,7 @@ function DayCell({
                 e.stopPropagation();
                 onApplicantClick?.(reminder.applicant.id, true);
               }}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <BellIcon className="w-3 h-3 flex-shrink-0" />
               <span className="truncate">{reminder.title}</span>
             </div>
@@ -221,7 +221,7 @@ function ReminderListItem({
     <div
       className="rounded-lg p-3 cursor-pointer transition-colors bg-amber-50 hover:bg-amber-100 border border-amber-200"
       onClick={onClick}
-    >
+     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
       <div className="flex gap-3">
         <div className="flex-shrink-0 w-14 text-center">
           <div className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-700">
@@ -286,7 +286,7 @@ function ApplicantListItem({
           : "bg-secondary hover:bg-secondary/80"
       )}
       onClick={onClick}
-    >
+     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
       <div className="flex gap-3">
         {/* Left: Time */}
         <div className="flex-shrink-0 w-14 text-center">

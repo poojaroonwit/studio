@@ -80,7 +80,7 @@ export function ApplicantAssetsSection({
                   fileSize: att.fileSize
                 });
               }}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <div className={`h-10 w-10 ${fileInfo.bgColor} rounded-lg flex items-center justify-center ${fileInfo.textColor} flex-shrink-0`}>
                 {fileInfo.icon}
               </div>

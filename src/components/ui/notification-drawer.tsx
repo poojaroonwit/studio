@@ -155,7 +155,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
                         ? "text-primary border-b-2 border-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                     )}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <Bell className="h-4 w-4" />
                     Unread
                     {unreadNotifications.length > 0 && (
@@ -172,7 +172,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
                         ? "text-primary border-b-2 border-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                     )}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <Check className="h-4 w-4" />
                     Read
                     {readNotifications.length > 0 && (

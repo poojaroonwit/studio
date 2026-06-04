@@ -2008,7 +2008,7 @@ function ApplicantEvaluationPageContent() {
         className="min-h-screen w-full h-screen px-0 flex flex-col"
         style={getEvaluateHeaderBackgroundStyle()}
       >
-        <div onClick={() => setShowQRCodeModal(true)} className="cursor-pointer">
+        <div onClick={() => setShowQRCodeModal(true)} className="cursor-pointer" role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <EvaluateHeader
             applicantName={formData.applicant.name}
             appLogoUrl={appLogoUrl}

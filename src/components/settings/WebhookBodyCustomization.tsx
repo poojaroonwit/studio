@@ -336,7 +336,7 @@ export default function WebhookBodyCustomization({
                               : "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
                           )}
                           onClick={() => setSelectedEvent(eventType)}
-                        >
+                         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{eventType}</p>

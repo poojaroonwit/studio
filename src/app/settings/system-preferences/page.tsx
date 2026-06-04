@@ -1001,7 +1001,7 @@ export default function SystemPreferencesPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Settings2 className="h-4 w-4" />
               General
             </div>
@@ -1013,7 +1013,7 @@ export default function SystemPreferencesPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Palette className="h-4 w-4" />
               Appearance
             </div>
@@ -1025,7 +1025,7 @@ export default function SystemPreferencesPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <ImageUp className="h-4 w-4" />
               Branding & Theme
             </div>
@@ -1037,7 +1037,7 @@ export default function SystemPreferencesPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <SidebarIcon className="h-4 w-4" />
               Sidebar
             </div>
@@ -1049,7 +1049,7 @@ export default function SystemPreferencesPage() {
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Target className="h-4 w-4" />
               Evaluate
             </div>

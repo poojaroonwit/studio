@@ -194,7 +194,7 @@ function MultiSelect({
         <div 
           className="fixed inset-0" 
           onClick={() => setOpen(false)}
-        />
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }} />
       )}
     </div>
   );

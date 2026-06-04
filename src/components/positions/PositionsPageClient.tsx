@@ -2326,7 +2326,7 @@ export default function PositionsPageClient() {
                       onClick={() => setStatusFilter(status as 'all' | 'open' | 'closed')}
                       role="radio"
                       aria-checked={isSelected}
-                    >
+                     tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <span className="text-sm capitalize">{status === 'all' ? 'All' : status}</span>
                       <div className={cn(
                         "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",
@@ -2363,7 +2363,7 @@ export default function PositionsPageClient() {
                     onClick={() => handleDepartmentSelect('all')}
                     role="radio"
                     aria-checked={(departmentFilter || 'all') === 'all'}
-                  >
+                   tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <span className="text-sm">All Departments</span>
                     <div className={cn(
                       "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",
@@ -2387,7 +2387,7 @@ export default function PositionsPageClient() {
                         onClick={() => handleDepartmentSelect(dept)}
                         role="radio"
                         aria-checked={isSelected}
-                      >
+                       tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                         <span className="text-sm">{dept}</span>
                         <div className={cn(
                           "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",

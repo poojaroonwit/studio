@@ -191,7 +191,7 @@ export function ImageUpload({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onClick={() => !disabled && fileInputRef.current?.click()}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <input
               ref={fileInputRef}
               type="file"

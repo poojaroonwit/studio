@@ -89,7 +89,7 @@ export const ApplicantAttachmentUploadModal: React.FC<ApplicantAttachmentUploadM
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           style={{ minHeight: 180 }}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <UploadCloud className="h-10 w-10 mb-2 text-primary" />
           <span className="text-base font-medium mb-1">Drag & drop files here</span>
           <span className="text-sm text-muted-foreground">or click to select files</span>

@@ -770,7 +770,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                 ? "text-primary border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Settings className="h-4 w-4" />
             Template
           </div>
@@ -782,7 +782,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                 ? "text-primary border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <BrainCircuit className="h-4 w-4" />
             Expertise Skills
           </div>
@@ -794,7 +794,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                 ? "text-primary border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Target className="h-4 w-4" />
             Personality Traits
           </div>
@@ -1100,7 +1100,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                           isSelected && "bg-primary/10 border-primary/20"
                                         )}
                                         onClick={() => handleSkillSelect(skill.id)}
-                                      >
+                                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-start gap-3">
                                             {isSelected ? (
@@ -1153,7 +1153,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                           isSelected && "bg-primary/10 border-primary/20"
                                         )}
                                         onClick={() => handleSkillSelect(skill.id)}
-                                      >
+                                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-start gap-3">
                                             {isSelected ? (
@@ -1442,7 +1442,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                           isSelected && "bg-primary/10 border-primary/20"
                                         )}
                                         onClick={() => handleTraitSelect(trait.id)}
-                                      >
+                                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-start gap-3">
                                             {isSelected ? (
@@ -1494,7 +1494,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                           isSelected && "bg-primary/10 border-primary/20"
                                         )}
                                         onClick={() => handleTraitSelect(trait.id)}
-                                      >
+                                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-start gap-3">
                                             {isSelected ? (

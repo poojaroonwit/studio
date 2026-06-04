@@ -500,7 +500,7 @@ export default function ManageUsersPage() {
                 ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <UsersRound className="h-4 w-4" /> Users
           </div>
           <div
@@ -511,7 +511,7 @@ export default function ManageUsersPage() {
                 ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Users className="h-4 w-4" /> User Teams
           </div>
           <div
@@ -522,7 +522,7 @@ export default function ManageUsersPage() {
                 ? "text-foreground border-foreground z-10"
                 : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <ShieldCheck className="h-4 w-4" /> Roles & Permissions
           </div>
         </div>

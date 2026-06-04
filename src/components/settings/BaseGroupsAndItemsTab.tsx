@@ -123,7 +123,7 @@ function SortableGroup({
         isDragging && "opacity-50"
       )}
       onClick={onSelect}
-    >
+     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
       <div className="flex items-center justify-between min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -948,7 +948,7 @@ export default function BaseGroupsAndItemsTab({
               selectedGroupId === 'all' ? "bg-primary/10" : "hover:bg-muted/50"
             )}
             onClick={() => setSelectedGroupId('all')}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">

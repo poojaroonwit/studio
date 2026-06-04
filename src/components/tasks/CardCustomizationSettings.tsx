@@ -223,7 +223,7 @@ export function CardCustomizationSettings({
               ? "text-primary border-b-2 border-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
           )}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <Monitor className="h-4 w-4" />
           Card Width
         </div>
@@ -235,7 +235,7 @@ export function CardCustomizationSettings({
               ? "text-primary border-b-2 border-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
           )}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <Eye className="h-4 w-4" />
           Visible Fields
         </div>

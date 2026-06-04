@@ -124,7 +124,7 @@ export function PotentialApplicantsTable({
                       isUnread ? "font-bold text-blue-600 dark:text-blue-400" : "font-medium text-foreground"
                     )}
                     onClick={() => onApplicantClick(applicant.id)}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     {applicant.name}
                     {applicant.isPinned && <PinIcon className="inline-block h-3.5 w-3.5 text-amber-500 fill-current rotate-45" />}
                     {applicant.isBlacklisted && <Ban className="h-3 w-3 text-destructive" />}

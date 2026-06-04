@@ -608,7 +608,7 @@ function EvaluatePageContent() {
                   setIsCreateModalOpen(false);
                   setShowCreateLinkModal(true);
                 }}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <ApplicantAvatarCompact
                   user={{
                     id: applicant.id,

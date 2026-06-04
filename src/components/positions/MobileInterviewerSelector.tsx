@@ -112,7 +112,7 @@ export function MobileInterviewerSelector({
                           ? "bg-primary/10 border-primary"
                           : "bg-card border-border hover:bg-muted/50"
                       )}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => handleToggleUser(user.id)}

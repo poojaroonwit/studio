@@ -364,7 +364,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                   className="flex flex-col max-h-[450px]"
                   onClick={(e) => e.stopPropagation()}
                   onMouseDown={(e) => e.stopPropagation()}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <div className="p-2 flex-shrink-0">
                     <div className="text-sm font-medium mb-2">Select Interviewers</div>
 

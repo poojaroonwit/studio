@@ -286,7 +286,7 @@ export default function CustomFieldDrawer({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <FileText className="h-4 w-4" />
               Basic Info
             </div>
@@ -298,7 +298,7 @@ export default function CustomFieldDrawer({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Shield className="h-4 w-4" />
               Permissions
             </div>
@@ -310,7 +310,7 @@ export default function CustomFieldDrawer({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Eye className="h-4 w-4" />
               Visibility
             </div>
@@ -323,7 +323,7 @@ export default function CustomFieldDrawer({
                     ? "text-primary border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <List className="h-4 w-4" />
                 Options
               </div>
@@ -336,7 +336,7 @@ export default function CustomFieldDrawer({
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <Zap className="h-4 w-4" />
               Advanced
             </div>

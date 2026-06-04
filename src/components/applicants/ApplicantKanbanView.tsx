@@ -1990,7 +1990,7 @@ export function MultiRecruiterKanbanView({ applicants, stages, recruiters, onMov
                                 onDragStart={() => handleDragStart(applicant)}
                                 onDragEnd={handleDragEnd}
                                 onClick={() => handleCardClick(applicant)}
-                              >
+                               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                 <div className="flex items-start gap-2">
                                   <ApplicantAvatar
                                     user={applicant}

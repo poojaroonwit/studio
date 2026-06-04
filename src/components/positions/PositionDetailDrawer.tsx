@@ -1283,7 +1283,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <FileText className="h-4 w-4" />
                   Details
                 </div>
@@ -1295,7 +1295,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <FileText className="h-4 w-4" />
                   Job Description
                 </div>
@@ -1307,7 +1307,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <ListChecks className="h-4 w-4" />
                   AI Match Criteria
                 </div>
@@ -1319,7 +1319,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Users className="h-4 w-4" />
                   Applicants ({isJobMatchEnabled ? allApplicantsTotal : appliedApplicantsTotal})
                 </div>
@@ -1331,7 +1331,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Hash className="h-4 w-4" />
                   Headcount ({headcountsTotal})
                 </div>
@@ -1343,7 +1343,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <UserCog className="h-4 w-4" />
                   Hiring Manager
                 </div>
@@ -1355,7 +1355,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Target className="h-4 w-4" />
                   Evaluate
                 </div>
@@ -1367,7 +1367,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       ? "text-primary border-primary"
                       : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Cloud className="h-4 w-4" />
                   Current Employee (AD)
                 </div>

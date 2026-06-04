@@ -537,7 +537,7 @@ export function UserTeamsTab() {
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Settings2 className="h-4 w-4" />
                   Details
                 </div>
@@ -549,7 +549,7 @@ export function UserTeamsTab() {
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Users className="h-4 w-4" />
                   Members ({members.length})
                 </div>
@@ -821,7 +821,7 @@ export function UserTeamsTab() {
                       key={user.id}
                       className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
                       onClick={() => setSelectedUserId(user.id)}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8 rounded-full">
                           <AvatarFallback className="rounded-full">{user.name.charAt(0)}</AvatarFallback>

@@ -225,7 +225,7 @@ export function DesktopEvaluatePage({
                       setSelectedAttachment(att);
                       setIsPreviewModalOpen(true);
                     }}
-                  >
+                   role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                     <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
                       <FileText className="h-5 w-5" />
                     </div>
@@ -341,7 +341,7 @@ export function DesktopEvaluatePage({
                       <div
                         className="flex items-center gap-2 flex-1"
                         onClick={() => handleTabChange(interviewer.userId)}
-                      >
+                       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                         <Avatar className="rounded-full h-8 w-8 border border-background">
                           <AvatarImage src={interviewer.avatarUrl ?? undefined} />
                           <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>

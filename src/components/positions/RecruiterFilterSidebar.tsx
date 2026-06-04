@@ -93,7 +93,7 @@ export function RecruiterFilterSidebar({
                   : "text-muted-foreground"
               )}
               onClick={() => onRecruiterSelect(null)}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={cn(
                   "p-2 rounded-lg transition-colors shrink-0",
@@ -132,7 +132,7 @@ export function RecruiterFilterSidebar({
                     : "text-muted-foreground"
                 )}
                 onClick={() => onRecruiterSelect('unassigned')}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={cn(
                     "p-2 rounded-lg transition-colors shrink-0",
@@ -198,7 +198,7 @@ export function RecruiterFilterSidebar({
                           : "text-muted-foreground"
                       )}
                       onClick={() => onRecruiterSelect(recruiterId)}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {recruiterAvatar ? (
                           <RecruiterAvatarCompact

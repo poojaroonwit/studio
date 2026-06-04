@@ -661,7 +661,7 @@ export default function UserTeamsPage() {
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Edit3 className="h-4 w-4" />
                   Details
                 </div>
@@ -673,7 +673,7 @@ export default function UserTeamsPage() {
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <Users className="h-4 w-4" />
                   Members
                 </div>
@@ -856,7 +856,7 @@ export default function UserTeamsPage() {
                         selectedUserId === user.id && "bg-primary/10"
                       )}
                       onClick={() => setSelectedUserId(user.id)}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <Avatar className="h-6 w-6">
                         <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>

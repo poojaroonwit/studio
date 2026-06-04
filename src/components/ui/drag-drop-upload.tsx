@@ -245,7 +245,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
-      >
+       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
         <UploadCloud className={`mx-auto h-12 w-12 mb-4 transition-all duration-200 ${isDragOver ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
         <div className="space-y-2">
           <p className="text-lg font-medium">

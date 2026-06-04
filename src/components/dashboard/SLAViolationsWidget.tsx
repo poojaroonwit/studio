@@ -270,7 +270,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                       className={`text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${filterSeverity === 'on_track' ? 'ring-2 ring-green-500 shadow-lg' : ''
                         }`}
                       onClick={() => setFilterSeverity('on_track')}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.onTrack}</div>
                       <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
                     </div>
@@ -278,7 +278,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                       className={`text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${filterSeverity === 'warning' ? 'ring-2 ring-yellow-500 shadow-lg' : ''
                         }`}
                       onClick={() => setFilterSeverity('warning')}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.warning}</div>
                       <div className="text-xs text-yellow-600 dark:text-yellow-400">Warning</div>
                     </div>
@@ -286,7 +286,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                       className={`text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${filterSeverity === 'critical' ? 'ring-2 ring-orange-500 shadow-lg' : ''
                         }`}
                       onClick={() => setFilterSeverity('critical')}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.critical}</div>
                       <div className="text-xs text-orange-600 dark:text-orange-400">Critical</div>
                     </div>
@@ -294,7 +294,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                       className={`text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${filterSeverity === 'urgent' ? 'ring-2 ring-red-500 shadow-lg' : ''
                         }`}
                       onClick={() => setFilterSeverity('urgent')}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.urgent}</div>
                       <div className="text-xs text-red-600 dark:text-red-400">Urgent</div>
                     </div>
@@ -302,7 +302,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                       className={`text-center p-3 bg-gray-50 dark:bg-gray-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${filterSeverity === 'no_sla' ? 'ring-2 ring-gray-500 shadow-lg' : ''
                         }`}
                       onClick={() => setFilterSeverity('no_sla')}
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{positionsWithoutSLA.length}</div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">No SLA</div>
                     </div>

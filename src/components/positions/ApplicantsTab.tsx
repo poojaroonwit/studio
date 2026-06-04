@@ -149,7 +149,7 @@ export function ApplicantsTab({
                     ? "text-primary border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 Applied Applicants ({appliedApplicantsCount})
               </div>
               <div
@@ -161,7 +161,7 @@ export function ApplicantsTab({
                     ? "text-primary border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                 )}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 Job Matches ({potentialApplicantsTotal})
               </div>
             </div>

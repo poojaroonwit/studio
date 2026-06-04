@@ -190,7 +190,7 @@ export function FitScoreFilterTabs({
               ? "text-white border-b-2 bg-blue-800"
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All (0-100)"} 
           {renderCountBadge(getTotalCount())}
         </div>
@@ -215,7 +215,7 @@ export function FitScoreFilterTabs({
                 ? cn("text-white border-b-2", getGradeBorderColor(grade.letter))
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             {grade.letter} ({grade.min}-{grade.max}) 
             {renderCountBadge(getCount(grade.letter))}
           </div>
@@ -239,7 +239,7 @@ export function FitScoreFilterTabs({
               ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
           )}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           No Score 
           {renderCountBadge(getCount('no-score'))}
         </div>

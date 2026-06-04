@@ -220,7 +220,7 @@ export const ApplicantHeader: React.FC<ApplicantHeaderProps> = ({
                   className="relative"
                   onClick={handleAvatarClick}
                   style={{ cursor: isMobile ? 'pointer' : 'default' }}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <ApplicantAvatar
                     user={applicant}
                     size="xl"

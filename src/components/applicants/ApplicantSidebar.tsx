@@ -104,7 +104,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
           <div
             className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
             onClick={() => setActiveTab('comments')}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <MessageSquare className="w-4 h-4" />
             Comments & Activity
             {(() => {
@@ -115,7 +115,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
           <div
             className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'attachments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
             onClick={() => setActiveTab('attachments')}
-          >
+           role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <UploadCloud className="w-4 h-4" />
             Attachments
             {(() => {
@@ -127,7 +127,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
             <div
               className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'evaluate' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
               onClick={() => setActiveTab('evaluate')}
-            >
+             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <FileCheck className="w-4 h-4" />
               Evaluate
             </div>

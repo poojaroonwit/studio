@@ -99,7 +99,7 @@ export function AppearanceTab({
                                 className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer ${
                                     activeTab === 'desktop' ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
                                 }`}
-                            >
+                             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                 Desktop
                             </div>
                             <div
@@ -107,7 +107,7 @@ export function AppearanceTab({
                                 className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer ${
                                     activeTab === 'mobile' ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
                                 }`}
-                            >
+                             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                                 Mobile
                             </div>
                         </div>

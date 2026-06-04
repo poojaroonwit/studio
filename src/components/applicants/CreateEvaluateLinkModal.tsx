@@ -800,7 +800,7 @@ export function CreateEvaluateLinkModal({
                         setIsCustomLocation(false);
                       }}
                       onMouseDown={(e) => e.preventDefault()} // Prevent blur on mousedown
-                    >
+                     role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                       <span className="font-medium">{room.displayName}</span>
                       <div className="flex gap-2 text-xs text-muted-foreground">
                         {room.capacity && <span>Capacity: {room.capacity}</span>}

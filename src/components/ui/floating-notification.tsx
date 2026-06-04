@@ -77,7 +77,7 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
         <div 
           className="cursor-pointer group"
           onClick={handleClick}
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <h4 className="text-sm font-medium text-foreground mb-1 group-hover:text-primary transition-colors">
             {latestNotification.title}
           </h4>

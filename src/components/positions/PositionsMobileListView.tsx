@@ -41,7 +41,7 @@ export function PositionsMobileListView({
         key={position.id}
         className="flex items-center gap-3 px-3 py-4 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50"
         onClick={() => onPositionClick(position.id)}
-      >
+       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
         {/* Icon on the left */}
         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
           <Briefcase className="h-3.5 w-3.5 text-primary" />

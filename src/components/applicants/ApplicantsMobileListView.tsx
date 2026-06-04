@@ -55,12 +55,12 @@ export function ApplicantsMobileListView({
                 : "bg-background active:bg-muted/70"
         )}
         onClick={(e) => onApplicantClick(applicant, e)}
-      >
+       role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
         {/* Checkbox - Hidden on mobile */}
         <div
           onClick={(e) => e.stopPropagation()}
           className="p-1 -m-1 touch-manipulation hidden"
-        >
+         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
           <Checkbox
             checked={selectedApplicantIds.has(applicant.id)}
             onCheckedChange={() => onToggleSelectApplicant(applicant.id)}

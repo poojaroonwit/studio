@@ -373,7 +373,7 @@ export function UploadQueueStatus() {
                   className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors content-fade-in"
                   style={{ animationDelay: `${index * 20}ms` }}
                   onClick={() => handleItemClick(item)}
-                >
+                 role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       {getStatusIcon(item.status)}

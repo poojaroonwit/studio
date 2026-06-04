@@ -144,7 +144,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                     onJobMatchClick(appliedJobData);
                   }
                 }}
-              >
+               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
                 <div className="rounded-lg p-4 h-full border shadow-lg bg-card">
                   <div className="mb-1">
                     <h4 className="font-semibold text-foreground text-lg">

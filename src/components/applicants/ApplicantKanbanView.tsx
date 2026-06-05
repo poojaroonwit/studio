@@ -11,7 +11,6 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
-import ApplicantDetailModal from './ApplicantDetailModal';
 import FullApplicantDetail from './FullApplicantDetail';
 import { BlacklistBadge } from './BlacklistBadge';
 import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronRight, ChevronRightIcon as ChevronLeft, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
@@ -34,10 +33,6 @@ import {
   getParsedDataProperty,
   getSkills
 } from './applicant-kanban-utils';
-
-export { StatusBadge } from './applicant-kanban-utils';
-
-
 
 // Enhanced Applicant card component
 const EnhancedApplicantCard = ({ applicant, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'], columnField = 'status', recruiters }: {
@@ -379,172 +374,6 @@ export function ApplicantKanbanView({
       visibleColumnValues={visibleColumnValues}
       isLoading={isLoading}
     />
-  );
-}
-
-// Enhanced Row-based Kanban (stages as rows, Applicants as draggable cards)
-export function ApplicantRowKanbanView({
-  applicants,
-  statuses,
-  recruiters,
-  onMoveApplicant,
-  onCardClick,
-  rowField = 'status',
-  columnField = 'recruiterId',
-  visibleFields = ['name', 'email', 'status', 'fitScore'],
-  visibleRowValues = [],
-  visibleColumnValues = [],
-  isLoading = false
-}: ApplicantKanbanViewProps) {
-  const [draggedApplicant, setDraggedApplicant] = useState<Applicant | null>(null);
-  const [dragOverRowValue, setDragOverRowValue] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedApplicantSummary, setSelectedApplicantSummary] = useState<Partial<Applicant> & { id: string; name: string } | null>(null);
-
-  // Group applicants by row field value - MUST be called before any early returns
-  const applicantsByRowValue = useMemo(() => {
-    const grouped: Record<string, Applicant[]> = {};
-
-    // Initialize all visible row values with empty arrays
-    visibleRowValues.forEach(rowValue => {
-      grouped[rowValue] = [];
-    });
-
-    // Group applicants by their row field value
-    applicants.forEach(applicant => {
-      const rowValue = applicant[rowField as keyof Applicant] as string;
-      if (rowValue && visibleRowValues.includes(rowValue)) {
-        if (!grouped[rowValue]) {
-          grouped[rowValue] = [];
-        }
-        grouped[rowValue].push(applicant);
-      }
-    });
-
-    return grouped;
-  }, [applicants, rowField, visibleRowValues]);
-
-  // Only show rows in visibleRowValues (if provided)
-  const filteredRowValues = visibleRowValues && visibleRowValues.length > 0
-    ? visibleRowValues
-    : statuses; // Fallback to statuses for backward compatibility
-
-  // Drag and drop handlers
-  const handleDragStart = (applicant: Applicant) => {
-    setDraggedApplicant(applicant);
-  };
-  const handleDragEnd = () => {
-    setDraggedApplicant(null);
-    setDragOverRowValue(null);
-  };
-  const handleDragOver = (rowValue: string, e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverRowValue(rowValue);
-  };
-  const persistApplicantFieldUpdate = async (applicant: Applicant, field: string, value: any) => {
-    try {
-      if (field === 'status') {
-        toast.loading('Updating Applicant status...', { id: applicant.id });
-        const res = await fetch('/api/applicants/bulk-action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'change_status',
-            applicantIds: [applicant.id],
-            newStatus: value
-          })
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (res.status === 403) {
-            throw new Error('Permission denied: You do not have permission to update Applicant status. Please contact your administrator.');
-          }
-          throw new Error(data.message || `Failed to update Applicant status: HTTP ${res.status}`);
-        }
-
-        const result = await res.json();
-
-        // Check for rejected applicants due to headcount constraints
-        if (result.rejectedApplicants && result.rejectedApplicants.length > 0) {
-          const rejectedApplicant = result.rejectedApplicants.find((c: any) => c.applicantId === applicant.id);
-          if (rejectedApplicant) {
-            throw new Error(`Headcount constraint: ${rejectedApplicant.message}`);
-          }
-        }
-
-        toast.success(`Status updated to ${value}`, { id: applicant.id });
-      } else if (field === 'recruiterId' || field === 'positionId') {
-        toast.loading('Updating Applicant...', { id: applicant.id });
-        const res = await fetch(`/api/applicants/${applicant.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [field]: value })
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Failed to update Applicant');
-        }
-        toast.success('Applicant updated', { id: applicant.id });
-      }
-    } catch (error: any) {
-      // Check if it's a headcount constraint error
-      if (error.message && error.message.includes('Headcount constraint:')) {
-        // For headcount constraint errors, we need to show a more detailed error
-        // since we don't have access to the HeadcountWarningModal here
-        toast.error(error.message, { duration: 8000 });
-      } else {
-        toast.error(getErrorMessage(error), { id: applicant.id });
-      }
-    }
-  };
-
-  const handleDrop = async (rowValue: string) => {
-    if (draggedApplicant && draggedApplicant[rowField as keyof Applicant] !== rowValue) {
-      // Create update object with the new row field value
-      const updateData: any = {};
-      updateData[rowField] = rowValue;
-      if (onMoveApplicant) {
-        onMoveApplicant(draggedApplicant, rowValue);
-      } else {
-        await persistApplicantFieldUpdate(draggedApplicant, rowField, rowValue);
-      }
-    }
-    setDraggedApplicant(null);
-    setDragOverRowValue(null);
-  };
-
-  const handleCardClick = (applicant: Applicant) => {
-    if (onCardClick) {
-      onCardClick(applicant);
-    } else {
-      // Validate parsedData to ensure it has the expected structure
-      const validatedParsedData = applicant.parsedData && typeof applicant.parsedData === 'object' ? {
-        ...applicant.parsedData,
-        // Ensure array fields are actually arrays
-        job_matches: 'job_matches' in applicant.parsedData && Array.isArray((applicant.parsedData as any).job_matches) ? (applicant.parsedData as any).job_matches : [],
-        education: 'education' in applicant.parsedData && Array.isArray((applicant.parsedData as any).education) ? (applicant.parsedData as any).education : [],
-        experience: 'experience' in applicant.parsedData && Array.isArray((applicant.parsedData as any).experience) ? (applicant.parsedData as any).experience : [],
-        skills: 'skills' in applicant.parsedData && Array.isArray((applicant.parsedData as any).skills) ? (applicant.parsedData as any).skills : [],
-        job_suitable: 'job_suitable' in applicant.parsedData && Array.isArray((applicant.parsedData as any).job_suitable) ? (applicant.parsedData as any).job_suitable : [],
-      } : {};
-
-      setSelectedApplicantSummary({
-        id: applicant.id,
-        name: formatApplicantName(applicant),
-        email: applicant.email,
-        phone: applicant.phone,
-        status: applicant.statusId,
-        position: applicant.position,
-        fitScore: applicant.fitScore,
-        parsedData: validatedParsedData
-      });
-      setIsModalOpen(true);
-    }
-  };
-
-  return (
-    <div>Test</div>
   );
 }
 

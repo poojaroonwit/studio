@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
-import { StatusBadge } from "./ApplicantKanbanView";
+import { StatusBadge } from "./applicant-kanban-utils";
 import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
 import { ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, EllipsisVerticalIcon as MoreVertical, EllipsisHorizontalIcon as MoreHorizontal, EyeIcon as Eye, TrashIcon as Trash2, NoSymbolIcon as Ban, ArrowPathIcon as RefreshCw, BriefcaseIcon as Briefcase, EnvelopeIcon } from '@heroicons/react/24/outline';
 import { Pin as PinIcon } from 'lucide-react';

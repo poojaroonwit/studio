@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from "@/components/applicants/ApplicantKanbanView";
+import { StatusBadge } from "@/components/applicants/applicant-kanban-utils";
 import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

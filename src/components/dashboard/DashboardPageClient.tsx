@@ -25,7 +25,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/applicants/ApplicantKanbanView";
+import { StatusBadge } from "@/components/applicants/applicant-kanban-utils";
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';

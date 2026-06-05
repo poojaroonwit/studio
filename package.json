@@ -10,6 +10,7 @@
     "lint": "eslint src --quiet",
     "lint:strict": "eslint src --max-warnings=0",
     "type-check": "tsc --noEmit",
+    "typecheck": "npm run type-check",
     "test": "vitest",
     "test:run": "vitest run",
     "check": "npm run type-check && npm run lint && npm run test:run",
@@ -146,5 +147,5 @@
     "unzipper": "^0.12.3",
     "archiver": "^7.0.1"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "npm@11.6.2"
 }

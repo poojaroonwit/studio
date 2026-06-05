@@ -26,7 +26,7 @@
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd studio-2
+   cd studio-1
    ```
 
 2. **Configure environment variables:**
@@ -258,7 +258,7 @@ After installation, verify the setup:
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd studio-2
+   cd studio-1
    ```
 
 2. **Configure environment variables:**

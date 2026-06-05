@@ -41,17 +41,14 @@ const nextConfig = {
 
 
   typescript: {
-    // Always check TypeScript in production builds (Docker/CI),
-    // but allow skipping during special build phases to avoid CI/Portainer timeouts
-    ignoreBuildErrors:
-      process.env.SKIP_TYPESCRIPT_CHECK === 'true' ||
-      process.env.NEXT_PHASE === 'phase-production-build',
+    // Keep production builds honest by default. Use the explicit escape hatch only
+    // for emergency deployments where CI already captured the type failures.
+    ignoreBuildErrors: process.env.SKIP_TYPESCRIPT_CHECK === 'true',
   },
 
   eslint: {
-    // Enable ESLint validation during normal builds,
-    // but allow ignoring errors during production builds to avoid blocking deployment on warnings
-    ignoreDuringBuilds: true,
+    // Keep lint validation enabled during builds unless explicitly bypassed.
+    ignoreDuringBuilds: process.env.SKIP_ESLINT_CHECK === 'true',
   },
 
 

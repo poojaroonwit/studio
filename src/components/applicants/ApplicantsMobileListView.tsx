@@ -10,7 +10,7 @@ import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
 import { BlacklistBadge } from './BlacklistBadge';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
-import { StatusBadge } from './ApplicantKanbanView';
+import { StatusBadge } from './applicant-kanban-utils';
 import type { Applicant } from '@/lib/types';
 
 interface ApplicantsMobileListViewProps {

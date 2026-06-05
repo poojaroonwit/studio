@@ -48,7 +48,7 @@ graph TD
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| **Framework** | Next.js 15.5.2 (App Router) | Full-stack React framework with SSR/SSG |
+| **Framework** | Next.js 15.5.9 (App Router) | Full-stack React framework with SSR/SSG |
 | **UI Library** | React 18 | Component-based user interface |
 | **Language** | TypeScript 5.0 | Type-safe development |
 | **Styling** | Tailwind CSS | Utility-first CSS framework |
@@ -168,7 +168,7 @@ The database is organized into the following logical domains:
 ## 5. Project Structure
 
 ```
-studio-2/
+studio-1/
 ├── src/
 │   ├── app/                    # Next.js App Router pages and API routes
 │   │   ├── api/               # API endpoints

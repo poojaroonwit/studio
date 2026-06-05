@@ -5,6 +5,7 @@ import { getPool } from '@/lib/db';
 import ExcelJS from 'exceljs';
 import { hasPermission } from '@/lib/permissions';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { parseAdvancedQueryEntries } from '@/lib/applicantAdvancedQuery';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -194,16 +195,7 @@ export async function GET(request: NextRequest) {
     let advancedFilters: { [key: string]: string | null } = {};
 
     if (advancedQuery) {
-      const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
-
-      parts.forEach(part => {
-        const colonIndex = part.indexOf(':');
-        if (colonIndex === -1) return;
-
-        const key = part.substring(0, colonIndex);
-        const value = part.substring(colonIndex + 1);
-        if (!key || !value) return;
-
+      parseAdvancedQueryEntries(advancedQuery).forEach(({ key, value }) => {
         switch (key.toLowerCase()) {
           case 'name':
             advancedFilters.name = value;

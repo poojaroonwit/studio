@@ -4,7 +4,7 @@
 
 Welcome to the FitScan Enterprise documentation hub. Select your role or area of interest below.
 
-![FitScan Landing Page](file:///c:/Users/MD3770/Desktop/repo/studio-2/docs/manuals/assets/landing_page.png)
+![FitScan Landing Page](assets/landing_page.png)
 
 ## 🧭 Navigation & Menu Layout
 The side-bar is your primary tool for navigating the platform.

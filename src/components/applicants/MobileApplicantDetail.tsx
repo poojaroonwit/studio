@@ -11,7 +11,7 @@ import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, U
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { Pin } from 'lucide-react';
-import { StatusBadge } from './ApplicantKanbanView';
+import { StatusBadge } from './applicant-kanban-utils';
 import { formatApplicantNameWithLang } from '@/lib/applicantUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';
 import { ApplicantInfoTab } from './tabs/ApplicantInfoTab';

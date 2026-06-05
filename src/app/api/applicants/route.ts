@@ -13,6 +13,7 @@ import { syncRecruiterForApplicant } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 
 import { getSystemSetting } from '@/lib/systemSettings';
+import { parseAdvancedQueryEntries } from '@/lib/applicantAdvancedQuery';
 import type { ApplicantFilterValues } from '@/lib/types';
 
 import { auth } from '@/auth';
@@ -20,7 +21,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // Performance optimization constants
-const MAX_PAGE_SIZE = Number.MAX_SAFE_INTEGER; // No limit - allow all Applicants
+const MAX_PAGE_SIZE = 500;
 const DEFAULT_PAGE_SIZE = 100; // Optimized for taskboard performance
 
 const QUERY_TIMEOUT = 10000; // Reduced from 25 to 10 seconds for faster response
@@ -296,8 +297,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const isForCounts = searchParams.get('forCounts') === 'true';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    // When fetching for counts, remove the limit to get all Applicants
-    const limit = isForCounts ? Number.MAX_SAFE_INTEGER : Math.max(1, Math.min(MAX_PAGE_SIZE, parseInt(searchParams.get('limit') || DEFAULT_PAGE_SIZE.toString(), 10)));
+    const requestedLimit = parseInt(searchParams.get('limit') || DEFAULT_PAGE_SIZE.toString(), 10);
+    const limit = Math.max(1, Math.min(MAX_PAGE_SIZE, Number.isNaN(requestedLimit) ? DEFAULT_PAGE_SIZE : requestedLimit));
     const offset = (page - 1) * limit;
 
     // Performance optimization: Set query timeout
@@ -361,16 +362,7 @@ export async function GET(request: NextRequest) {
     let advancedFilters: { [key: string]: string | undefined } = {};
 
     if (advancedQuery) {
-      const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
-
-      parts.forEach(part => {
-        const colonIndex = part.indexOf(':');
-        if (colonIndex === -1) return;
-
-        const key = part.substring(0, colonIndex);
-        const value = part.substring(colonIndex + 1);
-        if (!key || !value) return;
-
+      parseAdvancedQueryEntries(advancedQuery).forEach(({ key, value }) => {
         switch (key.toLowerCase()) {
           case 'name':
             advancedFilters.searchTerm = value;

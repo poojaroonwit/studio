@@ -22,7 +22,7 @@
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd studio-2
+cd studio-1
 
 # Install dependencies
 npm install

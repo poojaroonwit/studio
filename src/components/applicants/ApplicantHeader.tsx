@@ -13,7 +13,7 @@ import type { Applicant, UserProfile, RecruitmentStage, ApplicantSource } from '
 import { ApplicantRecruiterCell } from './ApplicantRecruiterCell';
 import { ApplicantSourceCell } from './ApplicantSourceCell';
 import { BlacklistBadge } from './BlacklistBadge';
-import { StatusBadge } from './ApplicantKanbanView';
+import { StatusBadge } from './applicant-kanban-utils';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 import { getCachedAvatarUrl, convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';

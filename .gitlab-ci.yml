@@ -92,12 +92,11 @@ test:lint:
   stage: test
   script:
     - echo "Running ESLint..."
-    - npm run lint || echo "Linting completed with warnings"
+    - npm run lint
   artifacts:
     reports:
       junit: reports/eslint.xml
     expire_in: 1 week
-  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -107,8 +106,7 @@ test:typecheck:
   stage: test
   script:
     - echo "Running TypeScript type checking..."
-    - npm run typecheck || echo "Type checking completed"
-  allow_failure: true
+    - npm run type-check
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

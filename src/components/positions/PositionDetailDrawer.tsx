@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn, sanitizeHtml } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
+import { StatusBadge } from '@/components/applicants/applicant-kanban-utils';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';

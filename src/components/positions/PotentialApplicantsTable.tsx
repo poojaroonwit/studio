@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban, FileText } from 'lucide-react';
-import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
+import { StatusBadge } from '@/components/applicants/applicant-kanban-utils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { BlacklistBadge } from '@/components/applicants/BlacklistBadge';

@@ -2,7 +2,7 @@
 
 A comprehensive, enterprise-grade Applicant Tracking System built with modern web technologies, featuring advanced applicant management, AI-powered matching, automated workflows, and seamless integrations.
 
-![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?style=for-the-badge&logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-15.5.9-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
@@ -64,7 +64,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 15.5.2, React 18, TypeScript, Tailwind CSS, ShadCN UI |
+| **Frontend** | Next.js 15.5.9, React 18, TypeScript, Tailwind CSS, ShadCN UI |
 | **Backend** | Next.js API Routes, Prisma 6.11.0, NextAuth.js |
 | **Database** | PostgreSQL 15 |
 | **Storage** | MinIO (S3 Compatible) |
@@ -82,7 +82,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd studio-2
+cd studio-1
 
 # Configure environment
 cp env.local.template .env.local
@@ -295,7 +295,7 @@ See [Security Documentation](docs/architecture/Security.md) for configuration de
 ## 🏗️ Project Structure
 
 ```
-studio-2/
+studio-1/
 ├── src/
 │   ├── app/           # Next.js App Router (pages + API)
 │   ├── components/    # React components

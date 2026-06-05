@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban } from 'lucide-react';
-import { StatusBadge } from '@/components/applicants/ApplicantKanbanView';
+import { StatusBadge } from '@/components/applicants/applicant-kanban-utils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { BlacklistBadge } from '@/components/applicants/BlacklistBadge';

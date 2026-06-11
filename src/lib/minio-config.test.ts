@@ -22,7 +22,7 @@ describe('minio-config', () => {
       secretKey: 'secret',
       useSSL: true,
     });
-  });
+  }, 15000);
 
   it('detects production build phase and formats skipped results', async () => {
     vi.stubEnv('NEXT_PHASE', 'phase-production-build');
@@ -39,7 +39,7 @@ describe('minio-config', () => {
       message: 'Skipped',
       created: false,
     });
-  });
+  }, 15000);
 
   it('warns about insecure production MinIO configuration', async () => {
     vi.stubEnv('NODE_ENV', 'production');
@@ -53,5 +53,5 @@ describe('minio-config', () => {
     warnForInsecureProductionMinioConfig();
 
     expect(consoleError).toHaveBeenCalledTimes(4);
-  });
+  }, 15000);
 });

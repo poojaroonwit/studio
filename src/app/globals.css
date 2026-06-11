@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --motion-duration-fast: 160ms;
+  --motion-duration-base: 240ms;
+  --motion-duration-slow: 360ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-standard: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 /* Mobile UX Improvements */
 @layer base {
   /* Better touch targets and interactions on mobile */
@@ -126,14 +134,14 @@ html.dark {
 
 /* Content fade-in utility classes */
 .content-fade-in {
-  animation: fadeInUpSmooth 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeInUpSmooth var(--motion-duration-slow) var(--motion-ease-standard) forwards;
   opacity: 0;
 }
 
 /* Stagger fade-in container */
 .stagger-fade-in > * {
   opacity: 0;
-  animation: fadeInUpSmooth 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeInUpSmooth var(--motion-duration-slow) var(--motion-ease-standard) forwards;
 }
 
 /* Stagger delay classes for list items (up to 20 items) */
@@ -220,7 +228,7 @@ html.dark {
 /* Image loading transition */
 .image-fade-in {
   opacity: 0;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .image-fade-in.loaded {
@@ -235,6 +243,15 @@ html.dark {
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .content-fade-in,
   .stagger-fade-in > *,
   .image-fade-in {
@@ -299,16 +316,16 @@ html.dark {
 
 /* Notification drawer smooth transitions */
 .notification-drawer-enter {
-  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromRight var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .notification-drawer-exit {
-  animation: slideOutToRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideOutToRight var(--motion-duration-fast) var(--motion-ease-out);
 }
 
 /* Notification item animations */
 .notification-item {
-  animation: fadeInUp 0.3s ease-out;
+  animation: fadeInUp var(--motion-duration-base) var(--motion-ease-out);
 }
 
 .notification-item:nth-child(1) {
@@ -476,11 +493,11 @@ body {
 }
 
 .floating-notification-enter {
-  animation: slideInFromBottomRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromBottomRight var(--motion-duration-slow) var(--motion-ease-out);
 }
 
 .floating-notification-exit {
-  animation: slideOutToBottomRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideOutToBottomRight var(--motion-duration-base) var(--motion-ease-out);
 }
 
 body {

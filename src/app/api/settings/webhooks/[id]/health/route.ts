@@ -3,7 +3,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+import { readRequestJsonObject } from '@/lib/request-json';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toJsonInput(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+}
 
 export async function POST(
   request: NextRequest,
@@ -16,8 +26,10 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { testPayload = { test: true, timestamp: new Date().toISOString() } } = body;
+    const body = await readRequestJsonObject(request);
+    const testPayload = 'testPayload' in body
+      ? body.testPayload
+      : { test: true, timestamp: new Date().toISOString() };
 
     // Get webhook details
     const webhook = await prisma.webhook.findUnique({
@@ -46,9 +58,11 @@ export async function POST(
       };
 
       // Add custom headers
-      if (webhook.headers) {
+      if (isRecord(webhook.headers)) {
         Object.entries(webhook.headers).forEach(([key, value]) => {
-          headers[key] = value as string;
+          if (typeof value === 'string') {
+            headers[key] = value;
+          }
         });
       }
 
@@ -111,7 +125,7 @@ export async function POST(
       data: {
         webhook_id: webhook.id,
         event_type: 'health_check',
-        payload: testPayload,
+        payload: toJsonInput(testPayload),
         response_status: status,
         response_body: responseBody,
         success,
@@ -133,10 +147,10 @@ export async function POST(
     });
 
     const totalAttempts = recentLogs.length;
-    const successfulAttempts = recentLogs.filter((log: any) => log.success).length;
+    const successfulAttempts = recentLogs.filter((log) => log.success).length;
     const successRate = totalAttempts > 0 ? (successfulAttempts / totalAttempts) * 100 : 0;
     const avgResponseTime = recentLogs.length > 0
-      ? recentLogs.reduce((sum: number, log: any) => sum + log.duration_ms, 0) / recentLogs.length
+      ? recentLogs.reduce((sum, log) => sum + (log.duration_ms ?? 0), 0) / recentLogs.length
       : 0;
 
     return NextResponse.json({

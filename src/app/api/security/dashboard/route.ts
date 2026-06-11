@@ -2,11 +2,37 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-// Defer heavy imports to runtime to avoid build-time execution
-let withApiSecurity: any;
-let getSecurityEvents: any;
-let getSecurityAlerts: any;
-let getSecurityStats: any;
+import type { ApiSecurityContext, ApiSecurityOptions } from '@/lib/apiSecurity';
+import type { SecurityAlert, SecurityEvent } from '@/lib/securityMonitorUtils';
+
+type SecurityStats = {
+  totalEvents: number;
+  totalAlerts: number;
+  unacknowledgedAlerts: number;
+  unresolvedAlerts: number;
+  eventsByType: Record<string, number>;
+  eventsBySeverity: Record<string, number>;
+};
+
+type SecurityDashboardRouteContext = {
+  params: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type SecurityDashboardHandler = (req: NextRequest, context: ApiSecurityContext) => Promise<NextResponse>;
+type WithSecurityDashboardApiSecurity = (
+  handler: SecurityDashboardHandler,
+  options: ApiSecurityOptions
+) => SecurityDashboardHandler;
+
+let withApiSecurity: WithSecurityDashboardApiSecurity | undefined;
+let getSecurityEvents: ((type?: string, severity?: string, limit?: number) => SecurityEvent[]) | undefined;
+let getSecurityAlerts: ((acknowledged?: boolean, resolved?: boolean, limit?: number) => SecurityAlert[]) | undefined;
+let getSecurityStats: (() => SecurityStats) | undefined;
+
+function getLimitParam(value: string | null) {
+  const limit = Number.parseInt(value ?? '50', 10);
+  return Number.isNaN(limit) ? 50 : limit;
+}
 
 async function handler(req: NextRequest) {
   try {
@@ -21,7 +47,7 @@ async function handler(req: NextRequest) {
     const severity = searchParams.get('severity');
     const acknowledged = searchParams.get('acknowledged');
     const resolved = searchParams.get('resolved');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = getLimitParam(searchParams.get('limit'));
 
     const stats = getSecurityStats();
     const events = getSecurityEvents(type || undefined, severity || undefined, limit);
@@ -49,7 +75,7 @@ async function handler(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest, context: any) {
+export async function GET(req: NextRequest, context: SecurityDashboardRouteContext) {
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
   }
@@ -62,5 +88,5 @@ export async function GET(req: NextRequest, context: any) {
     requirePermission: 'SYSTEM_SETTINGS_VIEW',
     logAccess: true,
   });
-  return secured(req, context);
+  return secured(req, context as unknown as ApiSecurityContext);
 }

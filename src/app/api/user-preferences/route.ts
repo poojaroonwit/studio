@@ -1,474 +1,122 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { getJsonObject, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
+import prisma from '@/lib/prisma';
+import {
+  buildUserPreferenceUpserts,
+  isValidUserPreferenceModelType,
+  normalizeUserPreferenceModelType,
+  transformUserPreferenceRows,
+} from './user-preferences-route-utils';
+
 export const dynamic = 'force-dynamic';
 
+async function requireCurrentUserId() {
+  const session = await auth();
+  return session?.user?.id || null;
+}
 
-// GET /api/user-preferences - Get user preferences
-export async function GET(request: NextRequest) {
+async function fetchUserPreferencesWithTimeout(userId: string) {
+  return Promise.race([
+    prisma.userUIDisplayPreference.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        modelType: true,
+        attributeKey: true,
+        uiPreference: true,
+      },
+    }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Database query timeout')), 8000)),
+  ]);
+}
+
+export async function GET() {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
+    const userId = await requireCurrentUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-
-    // Get all user preferences from database with timeout
-    const dbStartTime = Date.now();
-    const preferences = await Promise.race([
-      prisma.userUIDisplayPreference.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'asc' },
-        // Add select to only get the fields we need
-        select: {
-          modelType: true,
-          attributeKey: true,
-          uiPreference: true,
-          createdAt: true
-        }
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timeout')), 8000)
-      )
-    ]) as any[];
-    const dbDuration = Date.now() - dbStartTime;
-    // console.log(`User preferences DB query took ${dbDuration}ms for user ${userId}, found ${preferences.length} preferences`);
-
-    // Transform the flat structure to nested preferences
-    const transformedPreferences: {
-      taskBoard: {
-        searchTerm: string;
-        filterPriority: string;
-        filterAssignee: string;
-        selectedStages: any[];
-        viewMode: 'kanban' | 'table';
-        cardWidth: 'narrow' | 'medium' | 'wide' | 'custom';
-        customCardWidth: number;
-        visibleCardFields: string[];
-        showAvatar: boolean;
-        showName: boolean;
-        showEmail: boolean;
-        showDescription: boolean;
-        showFitScore: boolean;
-        showAssignee: boolean;
-        showPriority: boolean;
-        showDueDate: boolean;
-        showTags: boolean;
-        showSkills: boolean;
-        showJobApplied: boolean;
-      };
-      positions: {
-        searchTerm: string;
-        departmentFilter: string;
-        statusFilter: string;
-        selectedRecruiterId: string | null;
-        pageSize: number;
-        sortBy: string;
-        sortOrder: 'asc' | 'desc';
-      };
-      appearance: {
-        personalColor: string;
-        themePreference: 'light' | 'dark' | 'system';
-      };
-      sidebar: {
-        showAssignedPositions: boolean;
-      };
-      applicants: {
-        showApplicantColumn: boolean;
-        showAppliedJobColumn: boolean;
-        showJobMatchesColumn: boolean;
-        showFitScoreColumn: boolean;
-        showRecruiterColumn: boolean;
-        showSourceColumn: boolean;
-        showStatusColumn: boolean;
-        showAppliedDateColumn: boolean;
-        showLastUpdateColumn: boolean;
-        showCreatedDateColumn: boolean;
-        columnOrder: string[];
-        showFilters: boolean;
-        showHorizontalFitScoreFilters: boolean;
-        fitScoreType: 'applied' | 'matching';
-        fitScoreFilterMode: 'single' | 'multi';
-        rowHeight: 'compact' | 'normal' | 'comfortable';
-        showPinSection: boolean;
-        pageSize: number;
-        sortColumn: string;
-        sortDirection: 'asc' | 'desc' | null;
-      };
-    } = {
-      taskBoard: {
-        searchTerm: '',
-        filterPriority: 'all',
-        filterAssignee: 'all',
-        selectedStages: [],
-        viewMode: 'kanban',
-        // Card customization defaults
-        cardWidth: 'medium',
-        customCardWidth: 256,
-        visibleCardFields: ['name', 'email', 'fitScore'],
-        showAvatar: true,
-        showName: true,
-        showEmail: true,
-        showDescription: true,
-        showFitScore: true,
-        showAssignee: false,
-        showPriority: false,
-        showDueDate: false,
-        showTags: false,
-        showSkills: false,
-        showJobApplied: false,
-      },
-      positions: {
-        searchTerm: '',
-        departmentFilter: 'all',
-        statusFilter: 'all',
-        selectedRecruiterId: null,
-        pageSize: 20,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      },
-      appearance: {
-        personalColor: '#3B82F6',
-        themePreference: 'system',
-      },
-      sidebar: {
-        showAssignedPositions: true,
-      },
-      applicants: {
-        showApplicantColumn: true,
-        showAppliedJobColumn: true,
-        showJobMatchesColumn: true,
-        showFitScoreColumn: true,
-        showRecruiterColumn: true,
-        showSourceColumn: true,
-        showStatusColumn: true,
-        showAppliedDateColumn: true,
-        showLastUpdateColumn: true,
-        showCreatedDateColumn: false,
-        columnOrder: [
-          'applicant',
-          'appliedJob',
-          'jobMatches',
-          'fitScore',
-          'recruiter',
-          'source',
-          'status',
-          'appliedDate',
-          'lastUpdate',
-          'createdAt'
-        ],
-        showFilters: true,
-        showHorizontalFitScoreFilters: true,
-        fitScoreType: 'applied',
-        fitScoreFilterMode: 'single',
-        rowHeight: 'normal',
-        showPinSection: true,
-        pageSize: 20,
-        sortColumn: 'applicationDate',
-        sortDirection: 'desc',
-      }
-    };
-
-    // Map database records to preferences structure
-    preferences.forEach((pref: any) => {
-      const value = pref.uiPreference;
-      
-      if (pref.modelType === 'taskBoard') {
-        switch (pref.attributeKey) {
-          case 'searchTerm':
-            transformedPreferences.taskBoard.searchTerm = value;
-            break;
-          case 'filterPriority':
-            transformedPreferences.taskBoard.filterPriority = value;
-            break;
-          case 'filterAssignee':
-            transformedPreferences.taskBoard.filterAssignee = value;
-            break;
-          case 'selectedStages':
-            transformedPreferences.taskBoard.selectedStages = value ? JSON.parse(value) : [];
-            break;
-          case 'viewMode':
-            transformedPreferences.taskBoard.viewMode = value as 'kanban' | 'table';
-            break;
-          // Card customization fields
-          case 'cardWidth':
-            transformedPreferences.taskBoard.cardWidth = value as 'narrow' | 'medium' | 'wide' | 'custom';
-            break;
-          case 'customCardWidth':
-            transformedPreferences.taskBoard.customCardWidth = parseInt(value) || 256;
-            break;
-          case 'visibleCardFields':
-            transformedPreferences.taskBoard.visibleCardFields = value ? JSON.parse(value) : ['name', 'email', 'fitScore'];
-            break;
-          case 'showAvatar':
-            transformedPreferences.taskBoard.showAvatar = value === 'true';
-            break;
-          case 'showName':
-            transformedPreferences.taskBoard.showName = value === 'true';
-            break;
-          case 'showEmail':
-            transformedPreferences.taskBoard.showEmail = value === 'true';
-            break;
-          case 'showDescription':
-            transformedPreferences.taskBoard.showDescription = value === 'true';
-            break;
-          case 'showFitScore':
-            transformedPreferences.taskBoard.showFitScore = value === 'true';
-            break;
-          case 'showAssignee':
-            transformedPreferences.taskBoard.showAssignee = value === 'true';
-            break;
-          case 'showPriority':
-            transformedPreferences.taskBoard.showPriority = value === 'true';
-            break;
-          case 'showDueDate':
-            transformedPreferences.taskBoard.showDueDate = value === 'true';
-            break;
-          case 'showTags':
-            transformedPreferences.taskBoard.showTags = value === 'true';
-            break;
-          case 'showSkills':
-            transformedPreferences.taskBoard.showSkills = value === 'true';
-            break;
-          case 'showJobApplied':
-            transformedPreferences.taskBoard.showJobApplied = value === 'true';
-            break;
-        }
-      } else if (pref.modelType === 'positions') {
-        switch (pref.attributeKey) {
-          case 'searchTerm':
-            transformedPreferences.positions.searchTerm = value;
-            break;
-          case 'departmentFilter':
-            transformedPreferences.positions.departmentFilter = value;
-            break;
-          case 'statusFilter':
-            transformedPreferences.positions.statusFilter = value;
-            break;
-          case 'selectedRecruiterId':
-            transformedPreferences.positions.selectedRecruiterId = value === 'null' ? null : value;
-            break;
-          case 'pageSize':
-            transformedPreferences.positions.pageSize = parseInt(value) || 20;
-            break;
-          case 'sortBy':
-            transformedPreferences.positions.sortBy = value;
-            break;
-          case 'sortOrder':
-            transformedPreferences.positions.sortOrder = value as 'asc' | 'desc';
-            break;
-        }
-              } else if (pref.modelType === 'appearance') {
-          switch (pref.attributeKey) {
-            case 'personalColor':
-              transformedPreferences.appearance.personalColor = value;
-              break;
-            case 'themePreference':
-              transformedPreferences.appearance.themePreference = value as 'light' | 'dark' | 'system';
-              break;
-          }
-        } else if (pref.modelType === 'Applicants') {
-          switch (pref.attributeKey) {
-            case 'showApplicantColumn':
-              transformedPreferences.applicants.showApplicantColumn = value === 'true';
-              break;
-            case 'showAppliedJobColumn':
-              transformedPreferences.applicants.showAppliedJobColumn = value === 'true';
-              break;
-            case 'showJobMatchesColumn':
-              transformedPreferences.applicants.showJobMatchesColumn = value === 'true';
-              break;
-            case 'showFitScoreColumn':
-              transformedPreferences.applicants.showFitScoreColumn = value === 'true';
-              break;
-            case 'showRecruiterColumn':
-              transformedPreferences.applicants.showRecruiterColumn = value === 'true';
-              break;
-            case 'showSourceColumn':
-              transformedPreferences.applicants.showSourceColumn = value === 'true';
-              break;
-            case 'showStatusColumn':
-              transformedPreferences.applicants.showStatusColumn = value === 'true';
-              break;
-            case 'showAppliedDateColumn':
-              transformedPreferences.applicants.showAppliedDateColumn = value === 'true';
-              break;
-            case 'showLastUpdateColumn':
-              transformedPreferences.applicants.showLastUpdateColumn = value === 'true';
-              break;
-            case 'showCreatedDateColumn':
-              transformedPreferences.applicants.showCreatedDateColumn = value === 'true';
-              break;
-            case 'showFilters':
-              transformedPreferences.applicants.showFilters = value === 'true';
-              break;
-            case 'showHorizontalFitScoreFilters':
-              transformedPreferences.applicants.showHorizontalFitScoreFilters = value === 'true';
-              break;
-            case 'fitScoreType':
-              transformedPreferences.applicants.fitScoreType = value as 'applied' | 'matching';
-              break;
-            case 'fitScoreFilterMode':
-              transformedPreferences.applicants.fitScoreFilterMode = value as 'single' | 'multi';
-              break;
-            case 'rowHeight':
-              transformedPreferences.applicants.rowHeight = value as 'compact' | 'normal' | 'comfortable';
-              break;
-            case 'columnOrder':
-              transformedPreferences.applicants.columnOrder = value ? JSON.parse(value) : [
-                'applicant',
-                'appliedJob',
-                'jobMatches',
-                'fitScore',
-                'recruiter',
-                'source',
-                'status',
-                'appliedDate',
-                'lastUpdate'
-              ];
-              break;
-            case 'showPinSection':
-              transformedPreferences.applicants.showPinSection = value === 'true';
-              break;
-            case 'pageSize':
-              transformedPreferences.applicants.pageSize = parseInt(value) || 20;
-              break;
-            case 'sortColumn':
-              transformedPreferences.applicants.sortColumn = value || 'applicationDate';
-              break;
-            case 'sortDirection':
-              transformedPreferences.applicants.sortDirection = value === 'null' ? null : value as 'asc' | 'desc' | null;
-              break;
-          }
-        } else if (pref.modelType === 'sidebar') {
-          switch (pref.attributeKey) {
-            case 'showAssignedPositions':
-              transformedPreferences.sidebar.showAssignedPositions = value === 'true';
-              break;
-          }
-        }
-    });
-
-    return NextResponse.json(transformedPreferences);
+    const preferences = await fetchUserPreferencesWithTimeout(userId);
+    return NextResponse.json(transformUserPreferenceRows(preferences));
   } catch (error) {
     console.error('Error fetching user preferences:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user preferences' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch user preferences' }, { status: 500 });
   }
 }
 
-// POST /api/user-preferences - Update user preferences
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
+    const userId = await requireCurrentUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const body = await request.json();
-    const { modelType, updates } = body;
+    const body = await readRequestJsonObject(request);
+    const modelType = getJsonString(body, 'modelType');
+    const updates = getJsonObject(body, 'updates');
 
-    if (!modelType || !updates) {
-      return NextResponse.json(
-        { error: 'Missing required fields: modelType and updates' },
-        { status: 400 }
-      );
+    if (!isValidUserPreferenceModelType(modelType) || !updates || typeof updates !== 'object') {
+      return NextResponse.json({
+        error: 'Missing or invalid fields. modelType must be "taskBoard", "positions", "appearance", "Applicants", "applicants", or "sidebar", and updates is required.',
+      }, { status: 400 });
     }
 
-    // Validate modelType - allow both "Applicants" and "applicants"
-    const validModelTypes = ['taskBoard', 'positions', 'appearance', 'Applicants', 'applicants', 'sidebar'];
-    if (!validModelTypes.includes(modelType)) {
-      return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
-        { status: 400 }
-      );
-    }
-
-    // Normalize modelType for database consistency
-    const dbModelType = modelType === 'applicants' ? 'Applicants' : modelType;
-
-    // Process updates
-    const updatePromises = Object.entries(updates).map(async ([key, value]) => {
-      const stringValue = value === null ? 'null' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
-      
-      // Use upsert to create or update the preference
-      return prisma.userUIDisplayPreference.upsert({
+    const upserts = buildUserPreferenceUpserts(userId, modelType, updates as Record<string, unknown>);
+    await Promise.all(upserts.map((preference) => (
+      prisma.userUIDisplayPreference.upsert({
         where: {
           userId_modelType_attributeKey: {
             userId,
-            modelType: dbModelType,
-            attributeKey: key,
-          }
+            modelType: preference.modelType,
+            attributeKey: preference.attributeKey,
+          },
         },
         update: {
-          uiPreference: stringValue,
-          updatedAt: new Date(),
+          uiPreference: preference.uiPreference,
+          updatedAt: preference.updatedAt,
         },
         create: {
           userId,
-          modelType,
-          attributeKey: key,
-          uiPreference: stringValue,
-        }
-      });
-    });
-
-    await Promise.all(updatePromises);
+          modelType: preference.modelType,
+          attributeKey: preference.attributeKey,
+          uiPreference: preference.uiPreference,
+        },
+      })
+    )));
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating user preferences:', error);
-    return NextResponse.json(
-      { error: 'Failed to update user preferences' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update user preferences' }, { status: 500 });
   }
 }
 
-// DELETE /api/user-preferences - Reset user preferences
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
+    const userId = await requireCurrentUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const { searchParams } = new URL(request.url);
-    const modelType = searchParams.get('modelType');
-    // Normalize modelType for database consistency
-    const dbModelType = modelType === 'applicants' ? 'Applicants' : modelType;
-
-    if (modelType && !['taskBoard', 'positions', 'appearance', 'Applicants', 'applicants', 'sidebar'].includes(modelType)) {
-      return NextResponse.json(
-        { error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", or "sidebar"' },
-        { status: 400 }
-      );
+    const modelType = new URL(request.url).searchParams.get('modelType');
+    if (modelType && !isValidUserPreferenceModelType(modelType)) {
+      return NextResponse.json({
+        error: 'Invalid modelType. Must be "taskBoard", "positions", "appearance", "Applicants", "applicants", or "sidebar"',
+      }, { status: 400 });
     }
 
-    // Delete preferences
-    const whereClause = dbModelType
-      ? { userId, modelType: dbModelType }
-      : { userId };
-
     await prisma.userUIDisplayPreference.deleteMany({
-      where: whereClause
+      where: modelType
+        ? { userId, modelType: normalizeUserPreferenceModelType(modelType) }
+        : { userId },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error resetting user preferences:', error);
-    return NextResponse.json(
-      { error: 'Failed to reset user preferences' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to reset user preferences' }, { status: 500 });
   }
 }

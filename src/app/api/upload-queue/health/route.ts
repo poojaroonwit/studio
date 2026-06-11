@@ -4,6 +4,22 @@ import { requireApiPermission } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
 
+type QueueStatus = 'queued' | 'inprocess' | 'success' | 'failed';
+
+type QueueStatsRow = {
+  status: QueueStatus;
+  count: string;
+};
+
+type StuckJobRow = {
+  id: string;
+  file_name: string;
+  status: QueueStatus;
+  process_date: Date | string | null;
+  minutes_stuck: string | number;
+  error: string | null;
+};
+
 /**
  * @openapi
  * /api/upload-queue/health:
@@ -49,7 +65,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Get overall queue statistics
-    const statsQuery = await client.query(`
+    const statsQuery = await client.query<QueueStatsRow>(`
       SELECT 
         status,
         COUNT(*) as count
@@ -65,12 +81,12 @@ export async function GET(request: NextRequest) {
       failed: 0
     };
     
-    statsQuery.rows.forEach((row: any) => {
+    statsQuery.rows.forEach((row) => {
       stats[row.status as keyof typeof stats] = parseInt(row.count, 10);
     });
     
     // Check for stuck jobs (inprocess for more than 30 minutes)
-    const stuckJobsQuery = await client.query(`
+    const stuckJobsQuery = await client.query<StuckJobRow>(`
       SELECT 
         id,
         file_name,
@@ -84,10 +100,10 @@ export async function GET(request: NextRequest) {
       ORDER BY process_date ASC
     `);
     
-    const stuckJobs = stuckJobsQuery.rows.map((row: any) => ({
+    const stuckJobs = stuckJobsQuery.rows.map((row) => ({
       id: row.id,
       file_name: row.file_name,
-      minutes_stuck: Math.round(row.minutes_stuck),
+      minutes_stuck: Math.round(Number(row.minutes_stuck)),
       error: row.error
     }));
     

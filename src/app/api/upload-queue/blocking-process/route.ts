@@ -5,6 +5,8 @@ import { validateUserSession } from '@/lib/auth';
 import { auth } from '@/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
+import { getJsonNumber, getJsonObject, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 
 
@@ -26,8 +28,17 @@ export async function POST(request: NextRequest) {
 
   const actingUserId = validation.userId!;
   const actingUserName = validation.userName!;
-  const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path, webhook_payload, position_id, applied_position_id, request_type } = data;
+  const data = await readRequestJsonObject(request);
+  const file_name = getJsonString(data, 'file_name');
+  const file_size = getJsonNumber(data, 'file_size') ?? getJsonString(data, 'file_size') ?? 0;
+  const status = getJsonString(data, 'status');
+  const source = getJsonString(data, 'source');
+  const upload_id = getJsonString(data, 'upload_id');
+  const file_path = getJsonString(data, 'file_path');
+  const webhook_payload = getJsonObject(data, 'webhook_payload');
+  const position_id = getJsonString(data, 'position_id');
+  const applied_position_id = getJsonString(data, 'applied_position_id');
+  const request_type = getJsonString(data, 'request_type');
   const finalPositionId = position_id || applied_position_id || null;
   if (!file_path) {
     console.warn(`Blocking upload queue entry attempted without file_path by ${actingUserName}`, { data });

@@ -1,10 +1,12 @@
 import React from 'react';
 
+import type { ApiDocRecord } from './ApiDocsTable';
+
 interface ApiDocsFormProps {
   open: boolean;
-  doc: any;
+  doc: ApiDocRecord | null;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: ApiDocRecord) => void;
 }
 
 const ApiDocsForm: React.FC<ApiDocsFormProps> = ({ open, doc, onClose, onSubmit }) => {
@@ -12,7 +14,12 @@ const ApiDocsForm: React.FC<ApiDocsFormProps> = ({ open, doc, onClose, onSubmit 
   return (
     <div>
       <h2>API Docs Form</h2>
-      {/* API docs form UI here */}
+      <button type="button" onClick={() => onSubmit(doc ?? {})}>
+        Save
+      </button>
+      <button type="button" onClick={onClose}>
+        Cancel
+      </button>
     </div>
   );
 };

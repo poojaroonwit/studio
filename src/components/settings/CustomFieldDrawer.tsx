@@ -1,68 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { CUSTOM_FIELD_TYPES } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
-import { Plus, Trash2, GripVertical, Eye, Edit, Settings, Palette, Filter, User, Building, FileText, Calendar, Shield, List, Info, Zap, Database } from 'lucide-react';
-import { ColorPicker } from '@/components/ui/color-picker';
-import { toast } from 'react-hot-toast';
-import type { CustomFieldDefinition, CustomFieldType, CustomFieldOption, UserGroup } from '@/lib/types';
-import { RoleSelector } from '@/components/settings/RoleSelector';
-import { cn } from '@/lib/utils';
-
-const customFieldOptionSchema = z.object({
-  id: z.string().optional(),
-  value: z.string().min(1, "Option value is required"),
-  label: z.string().min(1, "Option label is required"),
-  color: z.string().optional(),
-  sortOrder: z.number().default(0),
-  isActive: z.boolean().default(true),
-});
-
-const customFieldFormSchema = z.object({
-  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
-  field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),
-  label: z.string().min(1, "Label is required"),
-  field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
-  
-  // Role permissions - using role IDs
-  viewRoles: z.array(z.string().uuid()).default([]),
-  editRoles: z.array(z.string().uuid()).default([]),
-  
-  // Visibility settings
-  showInFilter: z.boolean().default(false),
-  showInApplicantDetail: z.boolean().default(false),
-  showInFullApplicantDetail: z.boolean().default(false),
-  showInTaskBoardFilter: z.boolean().default(false),
-  showInPositionSettings: z.boolean().default(false),
-  showInHeadcountDetail: z.boolean().default(false),
-  
-  // Section selection for display settings
-  applicantDetailSection: z.enum(['jobs', 'applicant-info', 'education', 'experience', 'job-suitability']).optional().nullable(),
-  positionDetailSection: z.enum(['details', 'criteria', 'applicants', 'headcount']).optional().nullable(),
-  
-  // Field properties
-  is_required: z.boolean().default(false),
-  allowCustomOptions: z.boolean().default(false),
-  sort_order: z.number().default(0),
-  
-  // Options for select/multiselect
-  options: z.array(customFieldOptionSchema).optional().default([]),
-});
-
-type CustomFieldFormValues = z.infer<typeof customFieldFormSchema>;
+import { Settings } from 'lucide-react';
+import type { CustomFieldDefinition, UserGroup } from '@/lib/types';
+import { CustomFieldDrawerTabs } from './CustomFieldDrawerTabs';
+import {
+  type CustomFieldFormValues,
+} from './CustomFieldDrawerParts';
+import {
+  CustomFieldAdvancedTab,
+  CustomFieldBasicTab,
+  CustomFieldPermissionsTab,
+  CustomFieldVisibilityTab,
+} from './CustomFieldDrawerFormTabs';
+import { CustomFieldOptionsTab } from './CustomFieldOptionsTab';
+import { useCustomFieldDrawerController } from './use-custom-field-drawer-controller';
 
 interface CustomFieldDrawerProps {
   open: boolean;
@@ -72,23 +27,6 @@ interface CustomFieldDrawerProps {
   availableRoles?: UserGroup[];
 }
 
-const FIELD_TYPE_ICONS = {
-  text: FileText,
-  textarea: FileText,
-  number: FileText,
-  boolean: FileText,
-  date: Calendar,
-  select_single: FileText,
-  select_multiple: FileText,
-};
-
-const MODEL_ICONS = {
-  Applicant: User,
-  Position: Building,
-  User: User,
-  Headcount: Building,
-};
-
 export default function CustomFieldDrawer({ 
   open, 
   definition, 
@@ -97,167 +35,32 @@ export default function CustomFieldDrawer({
   availableRoles = [] 
 }: CustomFieldDrawerProps) {
   const isEdit = Boolean(definition);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableGroups, setAvailableGroups] = useState<UserGroup[]>(availableRoles);
-  const [activeTab, setActiveTab] = useState('basic');
-
-  // Fetch available roles if not provided
-  useEffect(() => {
-    if (availableRoles.length === 0) {
-      fetchAvailableRoles();
-    } else {
-      setAvailableGroups(availableRoles);
-    }
-  }, [availableRoles]);
-
-  const fetchAvailableRoles = async () => {
-    try {
-      const response = await fetch('/api/settings/user-groups');
-      if (response.ok) {
-        const roles = await response.json();
-        setAvailableGroups(roles);
-      }
-    } catch (error) {
-      console.error('Failed to fetch available roles:', error);
-      toast.error('Failed to load available roles');
-    }
-  };
-
-  const form = useForm<CustomFieldFormValues>({
-    resolver: zodResolver(customFieldFormSchema),
-    defaultValues: {
-      model_name: 'Applicant',
-      field_code: '',
-      label: '',
-      field_type: 'text',
-      viewRoles: [],
-      editRoles: [],
-      showInFilter: false,
-      showInApplicantDetail: false,
-      showInFullApplicantDetail: false,
-      showInTaskBoardFilter: false,
-      showInPositionSettings: false,
-      showInHeadcountDetail: false,
-      applicantDetailSection: undefined,
-      positionDetailSection: undefined,
-      is_required: false,
-      allowCustomOptions: false,
-      sort_order: 0,
-      options: [],
-    },
+  const {
+    activeTab,
+    addOption,
+    availableGroups,
+    form,
+    handleFormSubmit,
+    handleSubmit,
+    isSelectType,
+    isSubmitting,
+    optionsFields,
+    removeOptionField,
+    setActiveTab,
+    updateOptionField,
+    watchFieldType,
+    watchModelName,
+    watchShowInApplicantDetail,
+    watchShowInFullApplicantDetail,
+    watchShowInPositionSettings,
+  } = useCustomFieldDrawerController({
+    availableRoles,
+    definition,
+    isEdit,
+    onClose,
+    onSubmit,
+    open,
   });
-
-  const { fields: optionsFields, append: appendOption, remove: removeOption, update: updateOption } = useFieldArray({
-    control: form.control,
-    name: "options"
-  });
-
-  const watchFieldType = form.watch("field_type");
-  const watchModelName = form.watch("model_name");
-  const watchShowInFullApplicantDetail = form.watch("showInFullApplicantDetail");
-  const watchShowInApplicantDetail = form.watch("showInApplicantDetail");
-  const watchShowInPositionSettings = form.watch("showInPositionSettings");
-  const isSelectType = watchFieldType === 'select_single' || watchFieldType === 'select_multiple';
-
-  useEffect(() => {
-    if (definition && open) {
-      form.reset({
-        model_name: definition.model_name,
-        field_code: definition.field_code,
-        label: definition.label,
-        field_type: definition.field_type,
-        viewRoles: Array.isArray(definition.viewRoles) ? definition.viewRoles : [],
-        editRoles: Array.isArray(definition.editRoles) ? definition.editRoles : [],
-        showInFilter: definition.showInFilter || false,
-        showInApplicantDetail: definition.showInApplicantDetail || false,
-        showInFullApplicantDetail: definition.showInFullApplicantDetail || false,
-        showInTaskBoardFilter: definition.showInTaskBoardFilter || false,
-        showInPositionSettings: definition.showInPositionSettings || false,
-        applicantDetailSection: definition.applicantDetailSection || undefined,
-        positionDetailSection: definition.positionDetailSection || undefined,
-        showInHeadcountDetail: definition.showInHeadcountDetail || false,
-        is_required: definition.is_required || false,
-        allowCustomOptions: definition.allowCustomOptions || false,
-        sort_order: definition.sort_order || 0,
-        options: Array.isArray(definition.options) ? definition.options : [],
-      });
-    } else if (!definition && open) {
-      form.reset({
-        model_name: 'Applicant',
-        field_code: '',
-        label: '',
-        field_type: 'text',
-        viewRoles: [],
-        editRoles: [],
-        showInFilter: false,
-        showInApplicantDetail: false,
-        showInFullApplicantDetail: false,
-        showInTaskBoardFilter: false,
-        showInPositionSettings: false,
-        showInHeadcountDetail: false,
-        applicantDetailSection: undefined,
-        positionDetailSection: undefined,
-        is_required: false,
-        allowCustomOptions: false,
-        sort_order: 0,
-        options: [],
-      });
-    }
-  }, [definition, open, form]);
-
-  const handleSubmit = async (data: CustomFieldFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await onSubmit(data);
-      toast.success(isEdit ? 'Custom field updated successfully' : 'Custom field created successfully');
-      onClose();
-    } catch (error) {
-      console.error('Error submitting custom field:', error);
-      toast.error('Failed to save custom field');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submit button clicked');
-    console.log('Form values:', form.getValues());
-    console.log('Form errors:', form.formState.errors);
-    console.log('Definition data:', definition);
-    
-    form.handleSubmit(handleSubmit, (errors) => {
-      console.error('Form validation errors:', errors);
-      // Show validation errors to user
-      const errorMessages = Object.values(errors).map(error => error?.message).filter(Boolean);
-      if (errorMessages.length > 0) {
-        toast.error(`Validation errors: ${errorMessages.join(', ')}`);
-      } else {
-        toast.error('Please check the form for errors');
-      }
-    })();
-  };
-
-  const addOption = () => {
-    appendOption({
-      value: '',
-      label: '',
-      color: '#3B82F6',
-      sortOrder: optionsFields.length,
-      isActive: true,
-    });
-  };
-
-  const removeOptionField = (index: number) => {
-    removeOption(index);
-  };
-
-  const updateOptionField = (index: number, field: keyof CustomFieldOption, value: any) => {
-    updateOption(index, { ...optionsFields[index], [field]: value });
-  };
-
-  const ModelIcon = MODEL_ICONS[watchModelName as keyof typeof MODEL_ICONS] || User;
-  const FieldTypeIcon = FIELD_TYPE_ICONS[watchFieldType as keyof typeof FIELD_TYPE_ICONS] || FileText;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -276,71 +79,11 @@ export default function CustomFieldDrawer({
         </SheetHeader>
 
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Tab Navigation - Following system settings pattern */}
-          <div className="flex w-full border-b border-border/50 mb-6 flex-shrink-0">
-            <div
-              onClick={() => setActiveTab('basic')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'basic'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
-              <FileText className="h-4 w-4" />
-              Basic Info
-            </div>
-            <div
-              onClick={() => setActiveTab('permissions')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'permissions'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
-              <Shield className="h-4 w-4" />
-              Permissions
-            </div>
-            <div
-              onClick={() => setActiveTab('visibility')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'visibility'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
-              <Eye className="h-4 w-4" />
-              Visibility
-            </div>
-            {isSelectType && (
-              <div
-                onClick={() => setActiveTab('options')}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                  activeTab === 'options'
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                )}
-               role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
-                <List className="h-4 w-4" />
-                Options
-              </div>
-            )}
-            <div
-              onClick={() => setActiveTab('advanced')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'advanced'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-             role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
-              <Zap className="h-4 w-4" />
-              Advanced
-            </div>
-          </div>
+          <CustomFieldDrawerTabs
+            activeTab={activeTab}
+            isSelectType={isSelectType}
+            onTabChange={setActiveTab}
+          />
 
           <ScrollArea className="flex-1 min-h-0">
             <Form {...form}>
@@ -348,650 +91,49 @@ export default function CustomFieldDrawer({
                 
                 {/* Basic Information Tab */}
                 {activeTab === 'basic' && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <FileText className="h-5 w-5 text-primary" />
-                          Field Configuration
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Define the basic properties and type of your custom field
-                        </p>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="model_name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <ModelIcon className="h-4 w-4" />
-                                  Model Type
-                                </FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select model type" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="Applicant">Applicant</SelectItem>
-                                    <SelectItem value="Position">Position</SelectItem>
-                                    <SelectItem value="User">User</SelectItem>
-                                    <SelectItem value="Headcount">Headcount</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="field_type"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  <FieldTypeIcon className="h-4 w-4" />
-                                  Field Type
-                                </FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select field type" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {CUSTOM_FIELD_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type}>
-                                        {type.replace('_', ' ').toUpperCase()}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="field_code"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Field Code</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g., CUSTOM_STATUS" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  Unique identifier (uppercase, alphanumeric, underscores only)
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="label"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Display Label</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g., Custom Status" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <Info className="h-5 w-5 text-primary" />
-                          Field Properties
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Configure additional field properties and requirements
-                        </p>
-                      </div>
-                      <div>
-                        <FormField
-                          control={form.control}
-                          name="is_required"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Required Field</FormLabel>
-                                <FormDescription>
-                                  This field must be filled when creating/editing {watchModelName.toLowerCase()}s
-                                </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <CustomFieldBasicTab
+                    form={form}
+                    modelName={watchModelName}
+                    fieldType={watchFieldType}
+                  />
                 )}
 
                 {/* Permissions Tab */}
                 {activeTab === 'permissions' && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <Shield className="h-5 w-5 text-primary" />
-                          Role Permissions
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Control which user roles can view and edit this custom field
-                        </p>
-                      </div>
-                      <div className="space-y-4">
-                        {/* Permissions Table Header */}
-                        <div className="grid grid-cols-3 gap-4 p-3 bg-muted/30 rounded-lg border">
-                          <div className="font-medium text-sm">Role Name</div>
-                          <div className="font-medium text-sm flex items-center gap-2">
-                            <Eye className="h-4 w-4" />
-                            View
-                          </div>
-                          <div className="font-medium text-sm flex items-center gap-2">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </div>
-                        </div>
-
-                        {/* Roles List */}
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          {availableGroups.map((role) => (
-                            <div key={role.id} className="grid grid-cols-3 gap-4 p-3 border rounded-lg hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center">
-                                <span className="font-medium text-sm">{role.name}</span>
-                                {role.description && (
-                                  <span className="text-xs text-muted-foreground ml-2">({role.description})</span>
-                                )}
-                              </div>
-                              
-                              {/* View Permission Checkbox */}
-                              <div className="flex items-center">
-                                <FormField
-                                  control={form.control}
-                                  name="viewRoles"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(role.id) || false}
-                                          onCheckedChange={(checked) => {
-                                            const currentRoles = field.value || [];
-                                            if (checked) {
-                                              field.onChange([...currentRoles, role.id]);
-                                            } else {
-                                              field.onChange(currentRoles.filter(id => id !== role.id));
-                                            }
-                                          }}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-
-                              {/* Edit Permission Checkbox */}
-                              <div className="flex items-center">
-                                <FormField
-                                  control={form.control}
-                                  name="editRoles"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(role.id) || false}
-                                          onCheckedChange={(checked) => {
-                                            const currentRoles = field.value || [];
-                                            if (checked) {
-                                              field.onChange([...currentRoles, role.id]);
-                                            } else {
-                                              field.onChange(currentRoles.filter(id => id !== role.id));
-                                            }
-                                          }}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Summary */}
-                        <div className="p-3 bg-muted/20 rounded-lg border">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">View Permissions:</span>
-                              <span className="text-muted-foreground ml-2">
-                                {form.watch("viewRoles")?.length || 0} roles selected
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium">Edit Permissions:</span>
-                              <span className="text-muted-foreground ml-2">
-                                {form.watch("editRoles")?.length || 0} roles selected
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <CustomFieldPermissionsTab form={form} availableGroups={availableGroups} />
                 )}
 
                 {/* Visibility Tab */}
                 {activeTab === 'visibility' && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <Filter className="h-5 w-5 text-primary" />
-                          Display Settings
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Configure where this field appears throughout the application
-                        </p>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="showInFilter"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Filter</FormLabel>
-                                  <FormDescription>
-                                    Display this field in list filters
-                                  </FormDescription>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="showInApplicantDetail"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Applicant Detail</FormLabel>
-                                  <FormDescription>
-                                    Display in Applicant detail view
-                                  </FormDescription>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="showInFullApplicantDetail"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Full Applicant Detail</FormLabel>
-                                  <FormDescription>
-                                    Display in full Applicant detail page
-                                  </FormDescription>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="showInTaskBoardFilter"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Show in Task Board Filter</FormLabel>
-                                  <FormDescription>
-                                    Display in task board filters
-                                  </FormDescription>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          {watchModelName === 'Position' && (
-                            <FormField
-                              control={form.control}
-                              name="showInPositionSettings"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Show in Position Settings</FormLabel>
-                                    <FormDescription>
-                                      Display in position settings page
-                                    </FormDescription>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          )}
-
-                          {watchModelName === 'Headcount' && (
-                            <FormField
-                              control={form.control}
-                              name="showInHeadcountDetail"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Show in Headcount Detail</FormLabel>
-                                    <FormDescription>
-                                      Display in headcount detail view
-                                    </FormDescription>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          )}
-
-                          {/* Section Selection for Applicant Detail */}
-                          {watchModelName === 'Applicant' && (watchShowInFullApplicantDetail || watchShowInApplicantDetail) && (
-                            <div className="space-y-3">
-                              <Separator />
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Display Section</Label>
-                                <FormField
-                                  control={form.control}
-                                  name="applicantDetailSection"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <Select value={field.value || ''} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select section to display in" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="jobs">Jobs Tab</SelectItem>
-                                          <SelectItem value="applicant-info">Applicant Info Tab</SelectItem>
-                                          <SelectItem value="education">Education Tab</SelectItem>
-                                          <SelectItem value="experience">Experience Tab</SelectItem>
-                                          <SelectItem value="job-suitability">Job Suitability Tab</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormDescription>
-                                        Choose which tab section to display this field in
-                                      </FormDescription>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Section Selection for Position Detail */}
-                          {watchModelName === 'Position' && watchShowInPositionSettings && (
-                            <div className="space-y-3">
-                              <Separator />
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Display Section</Label>
-                                <FormField
-                                  control={form.control}
-                                  name="positionDetailSection"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <Select value={field.value || ''} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select section to display in" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="details">Details Tab</SelectItem>
-                                          <SelectItem value="criteria">Match Criteria Tab</SelectItem>
-                                          <SelectItem value="applicants">Applicants Tab</SelectItem>
-                                          <SelectItem value="headcount">Headcount Tab</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormDescription>
-                                        Choose which tab section to display this field in
-                                      </FormDescription>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <CustomFieldVisibilityTab
+                    form={form}
+                    modelName={watchModelName}
+                    showInFullApplicantDetail={watchShowInFullApplicantDetail}
+                    showInApplicantDetail={watchShowInApplicantDetail}
+                    showInPositionSettings={watchShowInPositionSettings}
+                  />
                 )}
 
                 {/* Options Tab - Only for Select/Multiselect types */}
                 {activeTab === 'options' && isSelectType && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <List className="h-5 w-5 text-primary" />
-                          Field Options
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Define the available options for this select field
-                        </p>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <FormField
-                              control={form.control}
-                              name="allowCustomOptions"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel>Allow Custom Options</FormLabel>
-                                    <FormDescription>
-                                      Users can add new options when using this field
-                                    </FormDescription>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={addOption}
-                            className="flex items-center gap-2"
-                          >
-                            <Plus className="h-4 w-4" />
-                            Add Option
-                          </Button>
-                        </div>
-
-                        {optionsFields.length > 0 && (
-                          <div className="space-y-3">
-                            <Label>Options</Label>
-                            {optionsFields.map((option, index) => (
-                              <div key={option.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                
-                                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                  <Input
-                                    placeholder="Value"
-                                    value={option.value}
-                                    onChange={(e) => updateOptionField(index, 'value', e.target.value)}
-                                  />
-                                  <Input
-                                    placeholder="Label"
-                                    value={option.label}
-                                    onChange={(e) => updateOptionField(index, 'label', e.target.value)}
-                                  />
-                                  <div className="flex items-center gap-2">
-                                    <ColorPicker
-                                      value={option.color || '#3B82F6'}
-                                      onChange={(color) => updateOptionField(index, 'color', color)}
-                                    />
-                                    <Input
-                                      value={option.color || '#3B82F6'}
-                                      onChange={(e) => updateOptionField(index, 'color', e.target.value)}
-                                      className="w-20"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <Checkbox
-                                    checked={option.isActive}
-                                    onCheckedChange={(checked) => updateOptionField(index, 'isActive', checked)}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeOptionField(index)}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <CustomFieldOptionsTab
+                    control={form.control}
+                    optionsFields={optionsFields}
+                    onAddOption={addOption}
+                    onRemoveOption={removeOptionField}
+                    onUpdateOption={updateOptionField}
+                  />
                 )}
 
                 {/* Advanced Tab */}
                 {activeTab === 'advanced' && (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <Settings className="h-5 w-5 text-primary" />
-                          Display Settings
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Configure advanced display and ordering settings
-                        </p>
-                      </div>
-                      <div>
-                        <FormField
-                          control={form.control}
-                          name="sort_order"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Sort Order</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Lower numbers appear first in lists and forms
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-4">
-                        <h3 className="flex items-center gap-2 text-lg font-semibold">
-                          <Database className="h-5 w-5 text-primary" />
-                          Field Information
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Technical details about this custom field
-                        </p>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">Model</Label>
-                            <p className="font-medium">{watchModelName}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">Type</Label>
-                            <p className="font-medium">{watchFieldType.replace('_', ' ').toUpperCase()}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">Required</Label>
-                            <p className="font-medium">{form.watch("is_required") ? "Yes" : "No"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium text-muted-foreground">Options Count</Label>
-                            <p className="font-medium">{isSelectType ? optionsFields.length : "N/A"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <CustomFieldAdvancedTab
+                    form={form}
+                    modelName={watchModelName}
+                    fieldType={watchFieldType}
+                    isSelectType={isSelectType}
+                    optionsCount={optionsFields.length}
+                  />
                 )}
               </form>
             </Form>

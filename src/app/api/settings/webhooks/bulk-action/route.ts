@@ -5,6 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
+import { getJsonArray, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
+
+function getWebhookIds(body: Awaited<ReturnType<typeof readRequestJsonObject>>) {
+  const webhookIds = getJsonArray(body, 'webhook_ids');
+  return webhookIds?.filter((id): id is string => typeof id === 'string');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -12,7 +20,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { webhook_ids, action } = await request.json();
+    const body = await readRequestJsonObject(request);
+    const webhook_ids = getWebhookIds(body);
+    const action = getJsonString(body, 'action');
 
     if (!webhook_ids || !Array.isArray(webhook_ids) || webhook_ids.length === 0) {
       return NextResponse.json({ error: 'Invalid webhook IDs' }, { status: 400 });
@@ -77,7 +87,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { webhook_ids } = await request.json();
+    const body = await readRequestJsonObject(request);
+    const webhook_ids = getWebhookIds(body);
 
     if (!webhook_ids || !Array.isArray(webhook_ids) || webhook_ids.length === 0) {
       return NextResponse.json({ error: 'Invalid webhook IDs' }, { status: 400 });

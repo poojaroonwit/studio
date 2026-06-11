@@ -2,6 +2,7 @@
 import { getPool } from '@/lib/db';
 import { generateEmailOtp, sendEmailOtp } from '@/lib/twoFactorAuth';
 import { applyRateLimit, authRateLimiter } from '@/lib/rateLimiter';
+import { readRequestJsonObject } from '@/lib/request-json';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
         // For resend during login, we need email from the request body
         // (user may not be fully authenticated yet)
-        const body = await req.json().catch(() => ({}));
+        const body = await readRequestJsonObject(req);
         const { email } = body;
 
         if (!email) {

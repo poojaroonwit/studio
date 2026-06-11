@@ -4,6 +4,8 @@ import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
+import { isJsonObject } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -57,8 +59,8 @@ export async function POST(
 
     const resolvedParams = await params;
     const userId = resolvedParams.id;
-    const body = await request.json();
-    const { isActive } = body;
+    const body = await readRequestJsonObject(request);
+    const isActive = isJsonObject(body) ? body.isActive : undefined;
 
     if (typeof isActive !== 'boolean') {
       return NextResponse.json({ message: 'isActive must be a boolean' }, { status: 400 });

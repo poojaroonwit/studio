@@ -1,14 +1,16 @@
 import type { Applicant } from '@/lib/types';
 import { containsThaiText, getFontClass } from './fontUtils';
 
+type ApplicantNameSource = Partial<Applicant> & { id?: string; name: string };
+
 /**
  * Formats Applicant name as "Title FirstName LastName" or "FirstName LastName"
  * Falls back to applicant.name if personal info is not available
  * @param includeTitle - Whether to include the title in the formatted name (default: true)
  */
-export const formatApplicantName = (applicant: Partial<Applicant> & { id: string; name: string }, includeTitle: boolean = true): string => {
+export const formatApplicantName = (applicant: ApplicantNameSource | null | undefined, includeTitle: boolean = true): string => {
   // If Applicant is null/undefined or doesn't have required properties, return loading state
-  if (!applicant || !applicant.id) {
+  if (!applicant) {
     return 'Loading...';
   }
   
@@ -32,7 +34,7 @@ export const formatApplicantName = (applicant: Partial<Applicant> & { id: string
  * Gets the raw Applicant name without title (FirstName LastName)
  * Falls back to applicant.name if personal info is not available
  */
-export const getRawApplicantName = (applicant: Partial<Applicant> & { id: string; name: string }): string => {
+export const getRawApplicantName = (applicant: ApplicantNameSource): string => {
   return formatApplicantName(applicant, false);
 };
 
@@ -41,7 +43,7 @@ export const getRawApplicantName = (applicant: Partial<Applicant> & { id: string
  * @param Applicant - The Applicant object
  * @returns CSS class for the appropriate font
  */
-export const getApplicantNameFontClass = (applicant: Partial<Applicant> & { id: string; name: string }): string => {
+export const getApplicantNameFontClass = (applicant: ApplicantNameSource): string => {
   const name = formatApplicantName(applicant);
   return getFontClass(name);
 };
@@ -51,7 +53,7 @@ export const getApplicantNameFontClass = (applicant: Partial<Applicant> & { id: 
  * @param Applicant - The Applicant object
  * @returns boolean indicating if name contains Thai characters
  */
-export const hasThaiName = (applicant: Partial<Applicant> & { id: string; name: string }): boolean => {
+export const hasThaiName = (applicant: ApplicantNameSource): boolean => {
   const name = formatApplicantName(applicant);
   return containsThaiText(name);
 };
@@ -61,7 +63,7 @@ export const hasThaiName = (applicant: Partial<Applicant> & { id: string; name: 
  * @param Applicant - The Applicant object
  * @returns Object with formatted name and language attributes
  */
-export const formatApplicantNameWithLang = (applicant: Partial<Applicant> & { id: string; name: string }) => {
+export const formatApplicantNameWithLang = (applicant: ApplicantNameSource) => {
   const name = formatApplicantName(applicant);
   const hasThai = containsThaiText(name);
   

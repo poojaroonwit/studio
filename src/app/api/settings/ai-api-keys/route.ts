@@ -1,10 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
-import { getApiKeys, saveApiKeys, getApiKeyStats } from '@/lib/aiApiKeyManager';
+import { saveApiKeys, getApiKeyStats } from '@/lib/aiApiKeyManager';
 import { getSelectedAiProvider, type AiProvider } from '@/lib/aiProvider';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
+import {
+  deduplicateApiKeyUpdates,
+  getErrorMessage,
+  hasDuplicateApiKeyPriorities,
+  hasDuplicateApiKeyValues,
+  isRecord,
+  parseApiKeyUpdates,
+  resolveAiApiKeysGetProvider,
+  resolveAiApiKeysProvider,
+} from './ai-api-keys-route-utils';
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -45,11 +57,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const selectedProvider = await getSelectedAiProvider();
-    const provider = (request.nextUrl.searchParams.get('provider') === 'openai'
-      ? 'openai'
-      : request.nextUrl.searchParams.get('provider') === 'gemini'
-        ? 'gemini'
-        : selectedProvider) as AiProvider;
+    const provider = resolveAiApiKeysGetProvider(
+      request.nextUrl.searchParams.get('provider'),
+      selectedProvider,
+    );
     const stats = await getApiKeyStats(provider);
     
     return NextResponse.json({
@@ -77,9 +88,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { apiKeys, provider } = body;
-    const resolvedProvider: AiProvider = provider === 'openai' ? 'openai' : 'gemini';
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const body = bodyResult.value;
+    const apiKeys = isRecord(body) ? body.apiKeys : undefined;
+    const provider = isRecord(body) ? body.provider : undefined;
+    const resolvedProvider: AiProvider = resolveAiApiKeysProvider(provider);
 
     if (!Array.isArray(apiKeys)) {
       return NextResponse.json(
@@ -88,53 +105,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate API keys
-    const validApiKeys = apiKeys
-      .filter((key: any) => key.key && key.key.trim() && key.priority && key.priority > 0)
-      .map((key: any) => ({
-        key: key.key.trim(),
-        priority: parseInt(key.priority),
-        selectedModel: key.selectedModel
-      }))
-      .sort((a: any, b: any) => a.priority - b.priority);
+    const validApiKeys = parseApiKeyUpdates(apiKeys);
 
-    // Check for duplicate priorities (only among database keys)
-    const priorities = validApiKeys.map(key => key.priority);
-    const uniquePriorities = new Set(priorities);
-    if (priorities.length !== uniquePriorities.size) {
+    if (hasDuplicateApiKeyPriorities(validApiKeys)) {
       return NextResponse.json(
         { error: 'Invalid request: Duplicate priorities found' },
         { status: 400 }
       );
     }
 
-    // Check for duplicate API key values (same key with different priorities)
-    const keyValues = validApiKeys.map(key => key.key);
-    const uniqueKeyValues = new Set(keyValues);
-    if (keyValues.length !== uniqueKeyValues.size) {
-      // Remove duplicates, keeping the one with lowest priority
-      const seenKeys = new Map<string, typeof validApiKeys[0]>();
-      for (const key of validApiKeys) {
-        const trimmedKey = key.key.trim();
-        if (!seenKeys.has(trimmedKey)) {
-          seenKeys.set(trimmedKey, key);
-        } else {
-          // If duplicate found, keep the one with lower priority
-          const existing = seenKeys.get(trimmedKey)!;
-          if (key.priority < existing.priority) {
-            seenKeys.set(trimmedKey, key);
-          }
-        }
-      }
-      const deduplicatedKeys = Array.from(seenKeys.values());
-      
-      // Reassign priorities sequentially
-      const reorderedKeys = deduplicatedKeys.map((key, index) => ({
-        ...key,
-        priority: index + 1
-      }));
-      
-      // Save the deduplicated keys
+    if (hasDuplicateApiKeyValues(validApiKeys)) {
+      const reorderedKeys = deduplicateApiKeyUpdates(validApiKeys);
       await saveApiKeys(reorderedKeys, resolvedProvider);
       
       return NextResponse.json({
@@ -146,7 +127,6 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Save the API keys (saveApiKeys will handle deduplication internally)
     await saveApiKeys(validApiKeys, resolvedProvider);
 
     // Log the update
@@ -169,8 +149,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const errorMessage = getErrorMessage(error);
     console.error('[AI API KEYS] Error updating API keys:', error);
-    await logAudit('ERROR', `Failed to update AI API keys by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${(error as Error).message}`, 'API:AiApiKeys:Update', session?.user?.id);
+    await logAudit('ERROR', `Failed to update AI API keys by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${errorMessage}`, 'API:AiApiKeys:Update', session?.user?.id);
     return NextResponse.json(
       { error: 'Failed to update AI API keys' },
       { status: 500 }

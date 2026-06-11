@@ -40,7 +40,7 @@ export type UserActivityAction =
 export interface UserActivityLogParams {
   userId: string;
   action: UserActivityAction;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   performedBy?: string; // Who performed the action (for admin actions)

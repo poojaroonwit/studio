@@ -3,13 +3,16 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireApiSession } from '@/lib/api-route-guards';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 export async function POST(request: NextRequest) {
   const { response } = await requireApiSession();
   if (response) return response;
 
   try {
-    const { url } = await request.json();
+    const body = await readRequestJsonObject(request);
+    const url = getJsonString(body, 'url');
     
     if (!url) {
       return NextResponse.json(
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: 1,
       file: {
-        url: url
+        url
       }
     });
 

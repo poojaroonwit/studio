@@ -1,15 +1,8 @@
-import { NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
-import { verifyApiToken } from '@/lib/auth';
-import { handleCors } from '@/lib/cors';
+import { type NextRequest } from 'next/server';
+import { handleGetV1Settings, handleV1SettingsOptions } from './settings-v1-handlers';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-import { SimpleErrorHandler,
-  createUnauthorizedError,
-  createForbiddenError,
-  createInternalServerError
-} from '@/lib/errors';;
 
 /**
  * @openapi
@@ -124,110 +117,10 @@ import { SimpleErrorHandler,
  *       500:
  *         description: Internal server error
  */
-export async function GET(req: NextRequest) {
-  try {
-    // Verify authentication
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split(' ')[1];
-    const user = token ? await verifyApiToken(token) : null;
-    
-    if (!user) {
-      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
-    }
-
-    // Check permissions - only Admin can access settings
-    if (user.role !== 'Admin') {
-      return SimpleErrorHandler.handleApiError(req, createForbiddenError('Admin role required to access settings'));
-    }
-
-    const client = await getPool().connect();
-    try {
-      // Get system settings
-      const systemSettingsResult = await client.query(`
-        SELECT 
-          key,
-          value,
-          category
-        FROM "SystemSetting"
-        ORDER BY category, key
-      `);
-
-      // Get custom field definitions
-      const customFieldsResult = await client.query(`
-        SELECT 
-          id,
-          name,
-          type,
-          is_required as "isRequired",
-          options,
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM "CustomFieldDefinition"
-        ORDER BY name
-      `);
-
-      // Get user preferences (for the current user)
-      const userPreferencesResult = await client.query(`
-        SELECT 
-          key,
-          value
-        FROM "UserPreference"
-        WHERE user_id = $1
-        ORDER BY key
-      `, [user.id]);
-
-      // Organize system settings by category
-      const systemSettings: any = {};
-      systemSettingsResult.rows.forEach((row: any) => {
-        if (!systemSettings[row.category]) {
-          systemSettings[row.category] = {};
-        }
-        try {
-          systemSettings[row.category][row.key] = JSON.parse(row.value);
-        } catch {
-          systemSettings[row.category][row.key] = row.value;
-        }
-      });
-
-      // Organize user preferences
-      const userPreferences: any = {};
-      userPreferencesResult.rows.forEach((row: any) => {
-        try {
-          userPreferences[row.key] = JSON.parse(row.value);
-        } catch {
-          userPreferences[row.key] = row.value;
-        }
-      });
-
-      // Process custom fields
-      const customFields = customFieldsResult.rows.map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        type: row.type,
-        isRequired: row.isRequired,
-        options: row.options ? JSON.parse(row.options) : [],
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt
-      }));
-
-      const settingsData = {
-        systemSettings,
-        userPreferences,
-        customFields
-      };
-
-      return SimpleErrorHandler.createSuccessResponse(req, settingsData, 200);
-    } finally {
-      client.release();
-    }
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to fetch settings: ${errorMessage}`));
-  }
+export function GET(request: NextRequest) {
+  return handleGetV1Settings(request);
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const headers = handleCors(request);
-  return new Response(null, { status: 200, headers });
+  return handleV1SettingsOptions(request);
 }

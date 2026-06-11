@@ -7,45 +7,19 @@
  * POST - Create a new API key (returns full key only once)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { NextRequest } from 'next/server';
 import { 
   listApiKeys, 
   createApiKey
 } from '@/lib/systemApiKeyManager';
 import { 
   SimpleErrorHandler,
-  createValidationError, 
-  createUnauthorizedError,
-  createForbiddenError,
   createInternalServerError 
 } from '@/lib/errors';
+import { requireSystemApiKeyAdmin } from './system-api-keys-route-auth';
+import { parseCreateSystemApiKeyRequest } from './system-api-keys-route-request';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Check if user has permission to manage API keys
- */
-async function checkPermission(req: NextRequest): Promise<{ authorized: boolean; userId?: string; error?: Response }> {
-  const session = await auth();
-  
-  if (!session?.user) {
-    return { 
-      authorized: false, 
-      error: SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required')) 
-    };
-  }
-  
-  // Only admins can manage API keys
-  if (session.user.role !== 'Admin') {
-    return { 
-      authorized: false, 
-      error: SimpleErrorHandler.handleApiError(req, createForbiddenError('Admin access required to manage API keys')) 
-    };
-  }
-  
-  return { authorized: true, userId: session.user.id };
-}
 
 /**
  * GET /api/settings/system-api-keys
@@ -53,9 +27,9 @@ async function checkPermission(req: NextRequest): Promise<{ authorized: boolean;
  * List all API keys with their metadata (keys are masked)
  */
 export async function GET(req: NextRequest) {
-  const permCheck = await checkPermission(req);
-  if (!permCheck.authorized) {
-    return permCheck.error;
+  const permission = await requireSystemApiKeyAdmin(req);
+  if (!permission.ok) {
+    return permission.response;
   }
   
   try {
@@ -92,41 +66,21 @@ export async function GET(req: NextRequest) {
  * }
  */
 export async function POST(req: NextRequest) {
-  const permCheck = await checkPermission(req);
-  if (!permCheck.authorized) {
-    return permCheck.error;
+  const permission = await requireSystemApiKeyAdmin(req);
+  if (!permission.ok) {
+    return permission.response;
   }
   
   try {
-    const body = await req.json();
-    
-    // Validate required fields
-    if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
-      return SimpleErrorHandler.handleApiError(req, createValidationError('Name is required'));
-    }
-    
-    if (body.name.length > 100) {
-      return SimpleErrorHandler.handleApiError(req, createValidationError('Name must be 100 characters or less'));
-    }
-    
-    // Parse expiration date
-    let expiresAt: Date | null = null;
-    if (body.expiresAt !== undefined && body.expiresAt !== null) {
-      expiresAt = new Date(body.expiresAt);
-      if (isNaN(expiresAt.getTime())) {
-        return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid expiration date format'));
-      }
-      if (expiresAt <= new Date()) {
-        return SimpleErrorHandler.handleApiError(req, createValidationError('Expiration date must be in the future'));
-      }
+    const parsedRequest = await parseCreateSystemApiKeyRequest(req);
+    if (!parsedRequest.ok) {
+      return parsedRequest.response;
     }
     
     // Create the API key
     const result = await createApiKey({
-      name: body.name.trim(),
-      description: body.description?.trim() || null,
-      expiresAt,
-      createdById: permCheck.userId
+      ...parsedRequest.input,
+      createdById: permission.userId
     });
     
     if (!result.success) {

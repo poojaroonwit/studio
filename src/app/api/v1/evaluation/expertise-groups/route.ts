@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -17,6 +18,28 @@ const updateExpertiseGroupSchema = z.object({
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional()
 });
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('code' in error)) {
+    return undefined;
+  }
+
+  const code = error.code;
+  return typeof code === 'string' ? code : undefined;
+}
+
+function getErrorStatus(error: unknown): number {
+  if (!error || typeof error !== 'object' || !('status' in error)) {
+    return 500;
+  }
+
+  const status = error.status;
+  return typeof status === 'number' ? status : 500;
+}
 
 export async function GET() {
   try {
@@ -59,8 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const validatedData = createExpertiseGroupSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    const validatedData = createExpertiseGroupSchema.parse(bodyResult.ok ? bodyResult.value : undefined);
 
     // Check if group with same name already exists
     const existingGroup = await prisma.expertiseGroup.findUnique({
@@ -100,7 +123,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(newGroup, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error creating expertise group:', error.errors);
       return NextResponse.json(
@@ -114,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle Prisma errors
-    if (error.code === 'P2002') {
+    if (getErrorCode(error) === 'P2002') {
       return NextResponse.json(
         { error: 'An expertise group with this name already exists' },
         { status: 400 }
@@ -125,10 +148,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to create expertise group',
-        message: error.message || 'Unknown error',
+        message: getErrorMessage(error),
         details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
       },
-      { status: error.status || 500 }
+      { status: getErrorStatus(error) }
     );
   }
 }

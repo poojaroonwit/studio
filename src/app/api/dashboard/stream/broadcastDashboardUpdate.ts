@@ -1,7 +1,11 @@
 // In-memory list of connected clients (for demo; use a better store in production)
-const clients: any[] = [];
+type DashboardStreamClient = {
+  write: (chunk: Uint8Array) => void;
+};
 
-export function broadcastDashboardUpdate(data: any) {
+const clients: DashboardStreamClient[] = [];
+
+export function broadcastDashboardUpdate(data: unknown) {
   const payload = `data: ${JSON.stringify(data)}\n\n`;
   for (const client of clients) {
     client.write(new TextEncoder().encode(payload));

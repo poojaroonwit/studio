@@ -3,19 +3,18 @@ export const runtime = 'nodejs';
 
 // src/app/api/settings/user-teams/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
-import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
-const userTeamSchema = z.object({
-  name: z.string().min(1, 'Team name cannot be empty.'),
-  description: z.string().optional().nullable(),
-  color: z.string().optional().nullable(),
-  isActive: z.boolean().optional().default(true),
-});
+import { readRequestJsonResult } from '@/lib/request-json';
+import { userTeamSchema } from './user-teams-schema';
+import { createUserTeam, fetchUserTeams } from './user-teams-store';
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * @openapi
@@ -85,33 +84,16 @@ const userTeamSchema = z.object({
  *         description: "Forbidden: Insufficient permissions"
  */
 export async function GET(request: NextRequest) {
+    void request;
+
     const session = await auth();
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
-    const client = await getPool().connect();
     try {
-        // Get user count for each team using direct foreign key
-        const result = await client.query(`
-          SELECT 
-            ut.id,
-            ut.name,
-            ut.description,
-            ut.color,
-            ut."is_active" as "isActive",
-            ut."createdAt",
-            ut."updatedAt",
-            COUNT(u.id) as member_count
-          FROM "UserTeam" ut
-          LEFT JOIN "User" u ON ut.id = u."userTeamId"
-          GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
-          ORDER BY ut.name
-        `);
-        return NextResponse.json(result.rows);
-    } catch (error: any) {
+        return NextResponse.json(await fetchUserTeams());
+    } catch (error: unknown) {
         console.error("Failed to fetch user teams:", error);
-        return NextResponse.json({ message: "Error fetching user teams", error: error.message }, { status: 500 });
-    } finally {
-        client.release();
+        return NextResponse.json({ message: "Error fetching user teams", error: getErrorMessage(error) }, { status: 500 });
     }
 }
 
@@ -125,38 +107,28 @@ export async function POST(request: NextRequest) {
         return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
     }
 
-    let body;
-    try {
-        body = await request.json();
-    } catch (e) {
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
         return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
     }
     
+    const body = bodyResult.value;
     const validation = userTeamSchema.safeParse(body);
     if (!validation.success) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const validatedData = validation.data;
-    const name = validatedData.name;
-    const description = validatedData.description;
-    const color = validatedData.color;
-    const isActive = validatedData.isActive;
+    const { name } = validation.data;
     const newId = uuidv4();
     
-    const client = await getPool().connect();
     try {
-        const result = await client.query(
-            'INSERT INTO "UserTeam" (id, name, description, color, "is_active") VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [newId, name, description, color, isActive]
-        );
+        const newTeam = await createUserTeam(newId, validation.data);
         await logAudit('AUDIT', `User team '${name}' created.`, 'API:UserTeams:Create', actingUserId, { teamId: newId });
-        return NextResponse.json(result.rows[0], { status: 201 });
-    } catch (error: any) {
+        return NextResponse.json(newTeam, { status: 201 });
+    } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         console.error("Failed to create user team:", error);
-        await logAudit('ERROR', `Failed to create team '${name}'. Error: ${error.message}`, 'API:UserTeams:Create', actingUserId, { input: body });
-        return NextResponse.json({ message: "Error creating user team", error: error.message }, { status: 500 });
-    } finally {
-        client.release();
+        await logAudit('ERROR', `Failed to create team '${name}'. Error: ${errorMessage}`, 'API:UserTeams:Create', actingUserId, { input: body });
+        return NextResponse.json({ message: "Error creating user team", error: errorMessage }, { status: 500 });
     }
 }

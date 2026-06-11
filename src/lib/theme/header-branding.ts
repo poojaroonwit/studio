@@ -4,6 +4,7 @@
  */
 
 import { addCacheBuster } from '../imageUtils';
+import { updateThemeSystemSettingsCache } from './system-settings-cache';
 
 /**
  * Apply header branding settings
@@ -25,9 +26,7 @@ export function applyHeaderBrandingSettings(settings: {
   if (settings.headerTextColor) localStorage.setItem('headerTextColor', settings.headerTextColor);
   
   // Update system settings if they exist
-  if ((window as any).__systemSettings) {
-    Object.assign((window as any).__systemSettings, settings);
-  }
+  updateThemeSystemSettingsCache(settings);
 
   // Apply to CSS
   applyHeaderBrandingToCSS();

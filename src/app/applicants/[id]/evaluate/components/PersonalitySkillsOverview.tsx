@@ -3,14 +3,22 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import type { EvaluationQuestion, EvaluationFormData } from '../types';
+import type {
+  EvaluationFormData,
+  EvaluationPersonalityGroupConfig,
+  EvaluationSummary,
+} from '../types';
 import { getScoreColor } from '../utils';
+import {
+  buildPersonalitySkillOverviewGroups,
+  isPersonalitySkillSelected,
+} from './personality-skills-overview-utils';
 
 interface PersonalitySkillsOverviewProps {
-  existingEvaluation: any | null;
+  existingEvaluation: EvaluationSummary | null;
   formData: EvaluationFormData | null;
-  personalityGroupsConfig: any[];
-  searchParams: URLSearchParams;
+  personalityGroupsConfig: EvaluationPersonalityGroupConfig[];
+  searchParams: Pick<URLSearchParams, "get">;
   onTraitClick: (traitId: string) => void;
 }
 
@@ -25,58 +33,12 @@ export function PersonalitySkillsOverview({
     return null;
   }
 
-  // Create a map of scores from existing evaluation
-  const scoresMap = new Map<string, { score: number; notes: string; trait: any }>();
-  if (existingEvaluation && existingEvaluation.personalityScores) {
-    existingEvaluation.personalityScores.forEach((ps: any) => {
-      if (ps.traitId) {
-        scoresMap.set(ps.traitId, {
-          score: ps.score,
-          notes: ps.notes || '',
-          trait: ps.trait
-        });
-      }
-    });
-  }
-
-  // Group all questions by group name
-  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; score?: number; notes?: string; trait?: any }>>();
-
-  formData.questions.forEach((question) => {
-    const groupName = question.groupName || 'Other';
-    if (!groupedQuestions.has(groupName)) {
-      groupedQuestions.set(groupName, []);
-    }
-    const scoreData = scoresMap.get(question.traitId);
-    groupedQuestions.get(groupName)!.push({
-      question,
-      score: scoreData?.score,
-      notes: scoreData?.notes,
-      trait: scoreData?.trait
-    });
+  const sortedGroups = buildPersonalitySkillOverviewGroups({
+    existingEvaluation,
+    formData,
+    personalityGroupsConfig,
   });
-
-  // Sort groups by their sortOrder from config, then alphabetically
-  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
-    // Find groups in config by name
-    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
-    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-
-    // If both groups are in config, sort by sortOrder
-    if (aGroup && bGroup) {
-      if (aGroup.sortOrder !== bGroup.sortOrder) {
-        return aGroup.sortOrder - bGroup.sortOrder;
-      }
-      return a[0].localeCompare(b[0]);
-    }
-
-    // If only one is in config, prioritize it
-    if (aGroup) return -1;
-    if (bGroup) return 1;
-
-    // If neither is in config, sort alphabetically
-    return a[0].localeCompare(b[0]);
-  });
+  const urlTraitId = searchParams.get('traitId');
 
   return (
     <>
@@ -89,11 +51,12 @@ export function PersonalitySkillsOverview({
                 {items.map((item, idx) => {
                   const scoreColor = getScoreColor(item.score || 0);
                   const hasScore = item.score !== undefined && item.score > 0;
-                  // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
-                  const urlTraitId = searchParams.get('traitId');
-                  const isSelected = (formData && formData.currentQuestionIndex !== undefined &&
-                    formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
-                    (urlTraitId === item.question.traitId);
+                  const isSelected = isPersonalitySkillSelected({
+                    currentQuestionIndex: formData.currentQuestionIndex,
+                    questions: formData.questions,
+                    traitId: item.question.traitId,
+                    urlTraitId,
+                  });
                   return (
                     <button type="button"
                       key={item.question.id || idx}

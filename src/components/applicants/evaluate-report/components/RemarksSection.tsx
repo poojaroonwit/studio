@@ -4,9 +4,10 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DocumentTextIcon as FileTextIcon } from '@heroicons/react/24/outline';
+import type { EvaluationRecord } from '../types';
 
 interface RemarksSectionProps {
-  allEvaluations: any[];
+  allEvaluations: EvaluationRecord[];
 }
 
 export function RemarksSection({ allEvaluations }: RemarksSectionProps) {

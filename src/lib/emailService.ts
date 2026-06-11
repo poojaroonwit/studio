@@ -18,6 +18,10 @@ export interface EmailAttachment {
   contentType?: string;
 }
 
+function getEmailServiceErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 /**
  * Get email service configuration from system settings
  */
@@ -145,11 +149,11 @@ export async function sendEmail(
       success: true,
       messageId: info.messageId,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[EmailService] Error sending email:', error);
     return {
       success: false,
-      error: error.message || 'Unknown error sending email',
+      error: getEmailServiceErrorMessage(error, 'Unknown error sending email'),
     };
   }
 }
@@ -173,11 +177,11 @@ export async function testEmailConnection(): Promise<{
 
     await transporter.verify();
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[EmailService] Connection test failed:', error);
     return {
       success: false,
-      error: error.message || 'Connection test failed',
+      error: getEmailServiceErrorMessage(error, 'Connection test failed'),
     };
   }
 }

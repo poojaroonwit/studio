@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const personalColorSchema = z.object({
   personalColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Personal color must be a valid hex color code'),
 });
@@ -94,13 +95,15 @@ export async function POST(request: NextRequest) {
   }
   const userId = session.user.id;
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
-    return NextResponse.json({ message: "Error parsing request body", error: (error as Error).message }, { status: 400 });
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
+    return NextResponse.json({
+      message: "Error parsing request body",
+      error: bodyResult.error instanceof Error ? bodyResult.error.message : String(bodyResult.error),
+    }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = personalColorSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json(

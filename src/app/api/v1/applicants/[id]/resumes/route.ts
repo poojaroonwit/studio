@@ -7,6 +7,8 @@ import prisma from '@/lib/prisma';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 // GET: List attachments for a Applicant
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -83,7 +85,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
-  const { attachmentId } = await req.json();
+  const body = await readRequestJsonObject(req);
+  const attachmentId = getJsonString(body, 'attachmentId');
+  if (!attachmentId) {
+    return NextResponse.json({ message: 'Attachment ID is required' }, { status: 400 });
+  }
   try {
     // Unset all
     await prisma.attachment.updateMany({ where: { applicantId: id }, data: { isPrimary: false } });
@@ -102,7 +108,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
-  const { attachmentId } = await req.json();
+  const body = await readRequestJsonObject(req);
+  const attachmentId = getJsonString(body, 'attachmentId');
+  if (!attachmentId) {
+    return NextResponse.json({ message: 'Attachment ID is required' }, { status: 400 });
+  }
   try {
     const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, applicantId: id } });
     if (!attachment) return NextResponse.json({ message: 'Attachment not found' }, { status: 404 });

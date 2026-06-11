@@ -2,14 +2,13 @@
 
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
 import { FileText } from 'lucide-react';
-import type { EvaluationFormData } from '../types';
+import type { EvaluationFormData, EvaluationPersonalityGroupConfig, EvaluationQuestion } from '../types';
 import { getScoreColor } from '../utils';
 
 interface DesktopSkillsListProps {
   formData: EvaluationFormData;
-  personalityGroupsConfig: any[];
+  personalityGroupsConfig: EvaluationPersonalityGroupConfig[];
   onQuestionClick: (index: number) => void;
   onCommentsChange: (comments: string) => void;
 }
@@ -21,7 +20,7 @@ export function DesktopSkillsList({
   onCommentsChange,
 }: DesktopSkillsListProps) {
   // Group questions by groupName
-  const groupedQuestions = new Map<string, Array<{ question: any; index: number }>>();
+  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; index: number }>>();
 
   formData.questions.forEach((question, idx) => {
     const groupName = question.groupName || 'Other';
@@ -42,8 +41,10 @@ export function DesktopSkillsList({
 
     // If both groups are in config, sort by sortOrder
     if (aGroup && bGroup) {
-      if (aGroup.sortOrder !== bGroup.sortOrder) {
-        return aGroup.sortOrder - bGroup.sortOrder;
+      const aSortOrder = aGroup.sortOrder ?? 0;
+      const bSortOrder = bGroup.sortOrder ?? 0;
+      if (aSortOrder !== bSortOrder) {
+        return aSortOrder - bSortOrder;
       }
       return a[0].localeCompare(b[0]);
     }

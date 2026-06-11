@@ -4,6 +4,8 @@ import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
 import { generateTextWithProvider, getProviderLabel } from '@/lib/aiProvider';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,8 +25,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { title, department, positionLevel, existingDescription } = body;
+    const body = await readRequestJsonObject(request);
+    const title = getJsonString(body, 'title');
+    const department = getJsonString(body, 'department');
+    const positionLevel = getJsonString(body, 'positionLevel');
+    const existingDescription = getJsonString(body, 'existingDescription');
 
     if (!title || !department) {
       return NextResponse.json(

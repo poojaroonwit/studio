@@ -1,8 +1,21 @@
 // Chart.js setup function - only call this from client components
+import type { ChartComponentLike } from 'chart.js';
+
 let isSetup = false;
 let setupPromise: Promise<void> | null = null;
 let setupStartTime: number | null = null;
 let dataLabelsAvailable = false;
+
+type ChartJsModuleWithOptionalRadar = typeof import('chart.js') & {
+  RadarController?: ChartComponentLike;
+  controllers?: {
+    radar?: ChartComponentLike;
+  };
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export function isChartJSSetup(): boolean {
   return isSetup;
@@ -31,11 +44,11 @@ export function setupChartJS(): Promise<void> {
   setupPromise = Promise.all([
     import('chart.js').catch(error => {
       console.error('setupChartJS: Failed to import chart.js:', error);
-      throw new Error(`Failed to load Chart.js: ${error.message}`);
+      throw new Error(`Failed to load Chart.js: ${getErrorMessage(error)}`);
     }),
-    import('chartjs-adapter-date-fns' as any).catch(error => {
+    import('chartjs-adapter-date-fns').catch(error => {
       console.error('setupChartJS: Failed to import chartjs-adapter-date-fns:', error);
-      throw new Error(`Failed to load date adapter: ${error.message}`);
+      throw new Error(`Failed to load date adapter: ${getErrorMessage(error)}`);
     }),
     // Make data labels plugin optional - if it fails, we'll continue without it
     import('chartjs-plugin-datalabels').catch(error => {
@@ -51,7 +64,8 @@ export function setupChartJS(): Promise<void> {
     const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title, Filler, RadialLinearScale } = chartJS;
     
     // Try to get RadarController if available (may not be directly exported in all Chart.js versions)
-    const RadarController = (chartJS as any).RadarController || (chartJS as any).controllers?.radar;
+    const chartModule = chartJS as ChartJsModuleWithOptionalRadar;
+    const RadarController = chartModule.RadarController || chartModule.controllers?.radar;
     
     try {
       // Register scales first

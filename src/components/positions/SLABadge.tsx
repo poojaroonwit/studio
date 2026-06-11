@@ -4,28 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { getSLABadgeVariant } from '@/lib/slaUtils.client';
+import type { SLACheckResult } from '@/lib/slaUtils.client';
 import type { Position } from '@/lib/types';
+import { getJsonNumber, getJsonString, readJsonObject } from '../../lib/response-json';
 
 interface SLABadgeProps {
   position: Position;
   className?: string;
 }
 
-interface SLAResponse {
-  violation: any;
-  remainingDays: number | null;
-  position: {
-    id: string;
-    title: string;
-    isOpen: boolean;
-    hasGrade: boolean;
-    slaDays: number | null;
-  };
-  error?: string;
-}
-
 export function SLABadge({ position, className }: SLABadgeProps) {
-  const [slaResult, setSlaResult] = useState<any>(null);
+  const [slaResult, setSlaResult] = useState<SLACheckResult | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,16 +31,19 @@ export function SLABadge({ position, className }: SLABadgeProps) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data: SLAResponse = await response.json();
+        const data = await readJsonObject(response);
+        const errorMessage = getJsonString(data, 'error');
 
         // Handle cases where SLA calculation is not possible
-        if (data && 'error' in data && data.error) {
-          console.warn('SLA calculation not possible:', data.error);
+        if (errorMessage) {
+          console.warn('SLA calculation not possible:', errorMessage);
           setSlaResult(null);
           setRemaining(null);
         } else {
-          setSlaResult(data.violation);
-          setRemaining(data.remainingDays);
+          setSlaResult(data.violation && typeof data.violation === 'object'
+            ? data.violation as unknown as SLACheckResult
+            : null);
+          setRemaining(getJsonNumber(data, 'remainingDays') ?? null);
         }
       } catch (error) {
         console.error('Error calculating SLA:', error);

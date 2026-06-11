@@ -1,15 +1,12 @@
 "use client";
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { PlusCircleIcon as PlusCircle, ArrowDownTrayIcon as FileDown, TableCellsIcon as FileSpreadsheet, Cog6ToothIcon as Settings, EllipsisVerticalIcon as MoreVertical, CpuChipIcon as Brain } from '@heroicons/react/24/outline';
-import { FitScoreFilterTabs } from './FitScoreFilterTabs';
-import { ApplicantFilterPopover } from './ApplicantFilterPopover';
-
-import type { ApplicantSettings } from './ApplicantSettingsDrawer';
-import type { Applicant, ApplicantFilterValues, Position, RecruitmentStage, UserProfile, ApplicantSource } from '@/lib/types';
+import type { ApplicantSettings } from './applicant-settings-types';
+import type { ApplicantFilterValues, Position, RecruitmentStage, UserProfile, ApplicantSource } from '@/lib/types';
+import {
+  AiSearchResultBanner,
+  ApplicantsFitScoreTabs,
+  ApplicantsHeaderActions,
+} from './ApplicantsPageHeaderParts';
 
 interface ApplicantsPageHeaderProps {
   applicantSettings: ApplicantSettings | null;
@@ -46,7 +43,6 @@ interface ApplicantsPageHeaderProps {
   availableSources: ApplicantSource[];
   isFilterDataLoading?: boolean;
   advancedQuery?: string;
-  applicantCounts?: { [stageName: string]: number };
   activeFilterCount: number;
   isFilterPinned?: boolean;
   onToggleFilterPin?: (pinned: boolean) => void;
@@ -84,7 +80,6 @@ export function ApplicantsPageHeader({
   availableSources,
   isFilterDataLoading,
   advancedQuery,
-  applicantCounts,
   activeFilterCount,
   isFilterPinned,
   onToggleFilterPin
@@ -99,133 +94,47 @@ export function ApplicantsPageHeader({
     <div className="p-2 pb-0 pr-2 border-b">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          {applicantSettings?.fitScoreType === 'applied' && (
-            <FitScoreFilterTabs
-              selectedGrades={horizontalSelectedFitScoreGrades}
-              onGradeToggle={onGradeToggle}
-              onClearAll={onClearAllHorizontalFitScoreFilters}
-              applicantCounts={applicantScoreCounts?.applied || []}
-              className=""
-              filterMode={applicantSettings.fitScoreFilterMode}
-              aiMatchedCount={aiRecordCount}
-              isAiSearchActive={isAiSearchActive}
-            />
-          )}
-          {applicantSettings?.fitScoreType === 'matching' && (
-            <FitScoreFilterTabs
-              selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-              onGradeToggle={onMatchingGradeToggle}
-              onClearAll={onClearAllHorizontalFitScoreFilters}
-              applicantCounts={applicantScoreCounts?.matching || []}
-              className=""
-              filterMode={applicantSettings.fitScoreFilterMode}
-              aiMatchedCount={aiRecordCount}
-              isAiSearchActive={isAiSearchActive}
-            />
-          )}
-        </div>
-
-        <div className="flex items-center space-x-3 ml-3">
-
-
-          <ApplicantFilterPopover
-            filters={filters}
-            onFilterChange={onFilterChange}
-            onAiSearch={onAiSearch}
-            onCancelAiSearch={onCancelAiSearch}
-            onClearAllFilters={onClearAllFilters}
-            availablePositions={availablePositions}
-            availableStages={availableStages}
-            availableRecruiter={availableRecruiter}
-            availableSources={availableSources}
-            isLoading={isLoading || isFilterDataLoading}
-            isAiSearching={isAiSearchActive}
-            advancedQuery={advancedQuery}
-            applicantScoreCounts={applicantScoreCounts || undefined}
-            applicantCounts={applicantCounts}
-            activeFilterCount={activeFilterCount}
-            isFilterPinned={isFilterPinned}
-            onTogglePin={onToggleFilterPin}
+          <ApplicantsFitScoreTabs
+            applicantSettings={applicantSettings}
+            applicantScoreCounts={applicantScoreCounts}
+            aiRecordCount={aiRecordCount}
+            horizontalSelectedFitScoreGrades={horizontalSelectedFitScoreGrades}
+            horizontalSelectedMatchingFitScoreGrades={horizontalSelectedMatchingFitScoreGrades}
+            isAiSearchActive={isAiSearchActive}
+            onClearAllHorizontalFitScoreFilters={onClearAllHorizontalFitScoreFilters}
+            onGradeToggle={onGradeToggle}
+            onMatchingGradeToggle={onMatchingGradeToggle}
           />
-
-          <Button
-            onClick={onBulkUpload}
-            disabled={isLoading || tableLoading}
-            className="mb-2 h-8 px-3"
-          >
-            Upload CVs
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                disabled={isLoading || tableLoading}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 ml-2 mb-2 hover:bg-muted/50 transition-colors duration-200"
-              >
-                <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={onAddApplicant}
-                className="text-sm py-2"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Applicant
-              </DropdownMenuItem>
-              {exportImportFeatureEnabled && (
-                <>
-                  <DropdownMenuItem
-                    onClick={onExport}
-                    className="text-sm py-2"
-                  >
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Export to Excel
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={onImport}
-                    className="text-sm py-2"
-                  >
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    Import Data
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuItem
-                onClick={onSettings}
-                className="text-sm py-2"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                Settings Page
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
+
+        <ApplicantsHeaderActions
+          activeFilterCount={activeFilterCount}
+          advancedQuery={advancedQuery}
+          availablePositions={availablePositions}
+          availableRecruiter={availableRecruiter}
+          availableSources={availableSources}
+          availableStages={availableStages}
+          exportImportFeatureEnabled={exportImportFeatureEnabled}
+          filters={filters}
+          isAiSearchActive={isAiSearchActive}
+          isFilterDataLoading={isFilterDataLoading}
+          isFilterPinned={isFilterPinned}
+          isLoading={isLoading}
+          onAddApplicant={onAddApplicant}
+          onAiSearch={onAiSearch}
+          onBulkUpload={onBulkUpload}
+          onCancelAiSearch={onCancelAiSearch}
+          onClearAllFilters={onClearAllFilters}
+          onExport={onExport}
+          onFilterChange={onFilterChange}
+          onImport={onImport}
+          onSettings={onSettings}
+          onToggleFilterPin={onToggleFilterPin}
+          tableLoading={tableLoading}
+        />
       </div>
 
-      {/* AI Search Results Display */}
-      {aiSearchReasoning && (
-        <div className="mt-4 p-3 bg-primary/5 dark:bg-primary/10">
-          <div className="flex items-start gap-2">
-            <Brain className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-primary">
-                  AI Search Results
-                </span>
-                <Badge className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-foreground">
-                  {aiRecordCount} matched
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {aiSearchReasoning}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <AiSearchResultBanner aiRecordCount={aiRecordCount} aiSearchReasoning={aiSearchReasoning} />
     </div>
   );
 }

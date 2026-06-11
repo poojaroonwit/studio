@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -74,8 +75,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const validatedData = createPersonalityTraitSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    const validatedData = createPersonalityTraitSchema.parse(bodyResult.ok ? bodyResult.value : undefined);
 
     // Check if trait with same name already exists
     const existingTrait = await prisma.personalityTrait.findUnique({

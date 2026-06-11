@@ -7,6 +7,7 @@ import { ColorPicker } from '@/components/ui/color-picker';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import type { RecruitmentStageRow } from './recruitment-stage-ui-types';
 
 const stageFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -19,7 +20,7 @@ type StageFormValues = z.infer<typeof stageFormSchema>;
 
 interface StagesFormProps {
   open: boolean;
-  stage: any;
+  stage: RecruitmentStageRow | null;
   onClose: () => void;
   onSubmit: (data: StageFormValues) => void;
 }
@@ -31,7 +32,7 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
   });
 
   // Check if the stage is a protected stage that cannot have its name changed
-  const isProtectedStage = stage && ['Applied', 'Hired', 'Rejected'].includes(stage.name);
+  const isProtectedStage = Boolean(stage && ['Applied', 'Hired', 'Rejected'].includes(stage.name));
 
   useEffect(() => {
     if (stage) {

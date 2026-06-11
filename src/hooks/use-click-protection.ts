@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-
-interface ClickProtectionConfig {
-  debounceMs?: number;
-  timeoutMs?: number;
-  actionName?: string;
-  onBlocked?: () => void;
-  onExcessiveClicks?: () => void;
-}
-
-interface ClickProtectionReturn {
-  isActioning: boolean;
-  handleProtectedClick: (action: () => void | Promise<void>) => void;
-  handleProtectedAsyncClick: (action: () => Promise<void>) => Promise<void>;
-  reset: () => void;
-}
+import { isNextRedirectError } from '@/lib/next-redirect-error';
+import {
+  canStartProtectedClick,
+  clearClickProtectionTimeout,
+  resetActioningWhenMounted,
+  resetClickProtectionState,
+  scheduleClickProtectionReset,
+  type ClickProtectionConfig,
+  type ClickProtectionReturn,
+} from './click-protection-utils';
 
 export function useClickProtection(config: ClickProtectionConfig = {}): ClickProtectionReturn {
   const {
@@ -35,109 +30,77 @@ export function useClickProtection(config: ClickProtectionConfig = {}): ClickPro
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (actionTimeoutRef.current) {
-        clearTimeout(actionTimeoutRef.current);
-      }
+      clearClickProtectionTimeout(actionTimeoutRef);
     };
   }, []);
 
   const reset = useCallback(() => {
-    setIsActioning(false);
-    lastClickTimeRef.current = 0;
-    if (actionTimeoutRef.current) {
-      clearTimeout(actionTimeoutRef.current);
-      actionTimeoutRef.current = null;
-    }
+    resetClickProtectionState({
+      lastClickTimeRef,
+      setIsActioning,
+      timeoutRef: actionTimeoutRef,
+    });
   }, []);
 
   const handleProtectedClick = useCallback((action: () => void | Promise<void>) => {
-    // Check if component is still mounted
-    if (!isMountedRef.current) {
-      return;
-    }
-    
     const now = Date.now();
-    const timeSinceLastClick = now - lastClickTimeRef.current;
-    
-    // Prevent rapid clicks
-    if (timeSinceLastClick < debounceMs) {
-      onExcessiveClicks?.();
+    if (!canStartProtectedClick({
+      debounceMs,
+      isActioning,
+      isMounted: isMountedRef.current,
+      lastClickTime: lastClickTimeRef.current,
+      now,
+      onBlocked,
+      onExcessiveClicks,
+    })) {
       return;
     }
-    
-    // Prevent action if already actioning
-    if (isActioning) {
-      onBlocked?.();
-      return;
-    }
-    
+
     lastClickTimeRef.current = now;
     setIsActioning(true);
-    
-    // Clear any existing timeout
-    if (actionTimeoutRef.current) {
-      clearTimeout(actionTimeoutRef.current);
-    }
-    
-    // Set timeout to reset action state
-    actionTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        setIsActioning(false);
-      }
-    }, timeoutMs);
+    scheduleClickProtectionReset({
+      isMountedRef,
+      setIsActioning,
+      timeoutMs,
+      timeoutRef: actionTimeoutRef,
+    });
     
     try {
       const result = action();
       if (result instanceof Promise) {
         result.catch((error) => {
           console.error(`${actionName} error:`, error);
-          if (isMountedRef.current) {
-            setIsActioning(false);
-          }
+          resetActioningWhenMounted(isMountedRef, setIsActioning);
         });
       }
     } catch (error) {
       console.error(`${actionName} error:`, error);
-      if (isMountedRef.current) {
-        setIsActioning(false);
-      }
+      resetActioningWhenMounted(isMountedRef, setIsActioning);
     }
   }, [actionName, debounceMs, timeoutMs, isActioning, onBlocked, onExcessiveClicks]);
 
   const handleProtectedAsyncClick = useCallback(async (action: () => Promise<void>) => {
-    // Check if component is still mounted
-    if (!isMountedRef.current) {
-      return;
-    }
-    
     const now = Date.now();
-    const timeSinceLastClick = now - lastClickTimeRef.current;
-    
-    // Prevent rapid clicks
-    if (timeSinceLastClick < debounceMs) {
-      onExcessiveClicks?.();
+    if (!canStartProtectedClick({
+      debounceMs,
+      isActioning,
+      isMounted: isMountedRef.current,
+      lastClickTime: lastClickTimeRef.current,
+      now,
+      onBlocked,
+      onExcessiveClicks,
+    })) {
       return;
     }
-    
-    // Prevent action if already actioning
-    if (isActioning) {
-      onBlocked?.();
-      return;
-    }
-    
+
     lastClickTimeRef.current = now;
     setIsActioning(true);
-    
-    // Clear any existing timeout
-    if (actionTimeoutRef.current) {
-      clearTimeout(actionTimeoutRef.current);
-    }
     
     try {
       await action();
     } catch (error) {
       // IMPORTANT: If it's a redirect error (success), we MUST re-throw it!
-      if ((error as any).digest?.startsWith('NEXT_REDIRECT')) {
+      if (isNextRedirectError(error)) {
         throw error;
       }
       console.error(`${actionName} error:`, error);
@@ -145,11 +108,12 @@ export function useClickProtection(config: ClickProtectionConfig = {}): ClickPro
       // Set timeout to reset action state
       // We still reset state even on redirect because the redirect might arguably take a moment
       // or if it fails/cancels (though usually component unmounts)
-      actionTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          setIsActioning(false);
-        }
-      }, timeoutMs);
+      scheduleClickProtectionReset({
+        isMountedRef,
+        setIsActioning,
+        timeoutMs,
+        timeoutRef: actionTimeoutRef,
+      });
     }
   }, [actionName, debounceMs, timeoutMs, isActioning, onBlocked, onExcessiveClicks]);
 

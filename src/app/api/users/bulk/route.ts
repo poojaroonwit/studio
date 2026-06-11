@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 const bulkActionSchema = z.object({
   userIds: z.array(z.string()),
@@ -26,8 +27,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const validatedData = bulkActionSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(req);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const validatedData = bulkActionSchema.parse(bodyResult.value);
     const { userIds, action, data } = validatedData;
 
     if (userIds.length === 0) {

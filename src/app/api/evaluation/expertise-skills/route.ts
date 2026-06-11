@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
-import { getPool } from '@/lib/db';
+import { getPool, type DbClient } from '@/lib/db';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -10,28 +9,62 @@ export const runtime = 'nodejs';
 type ExpertiseSkill = {
   id: string;
   name: string;
-  description: any;
+  description: string | null;
   maxScore: number;
   skillType: string;
   isActive: boolean;
   sortOrder: number;
   groupId: string | null;
-  createdAt: any;
-  updatedAt: any;
-  group: { id: string; name: string; color: any } | null;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  group: { id: string; name: string; color: string | null } | null;
 };
 
 type ExpertiseGroup = {
   id: string;
   name: string;
-  description: any;
-  color: any;
+  description: string | null;
+  color: string | null;
   isActive: boolean;
   sortOrder: number;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
   skills: ExpertiseSkill[];
 };
+
+type ExpertiseGroupRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  is_active: boolean;
+  sort_order: number;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+};
+
+type ExpertiseSkillRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  max_score: number;
+  skill_type: string;
+  is_active: boolean;
+  sort_order: number;
+  groupId: string | null;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  group_name: string | null;
+  group_color: string | null;
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function getErrorStack(error: unknown) {
+  return error instanceof Error ? error.stack : undefined;
+}
 
 /**
  * @openapi
@@ -73,14 +106,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view evaluation configuration' }, { status: 403 });
   }
 
-  let client;
+  let client: DbClient | null = null;
   try {
     client = await getPool().connect();
-  } catch (connectionError: any) {
+  } catch (connectionError) {
     console.error(`[Expertise Skills API] Failed to connect to database:`, connectionError);
     return NextResponse.json({ 
       message: 'Database connection error', 
-      error: connectionError.message
+      error: getErrorMessage(connectionError)
     }, { status: 500 });
   }
 
@@ -92,7 +125,7 @@ export async function GET(request: NextRequest) {
       WHERE is_active = true
       ORDER BY sort_order ASC, name ASC
     `;
-    const groupsResult = await client.query(groupsQuery);
+    const groupsResult = await client.query<ExpertiseGroupRow>(groupsQuery);
     
     // Get all expertise skills
     const skillsQuery = `
@@ -105,10 +138,10 @@ export async function GET(request: NextRequest) {
       WHERE s.is_active = true
       ORDER BY s.sort_order ASC, s.name ASC
     `;
-    const skillsResult = await client.query(skillsQuery);
+    const skillsResult = await client.query<ExpertiseSkillRow>(skillsQuery);
     
     // Transform the data
-    const groups: ExpertiseGroup[] = groupsResult.rows.map((row: any) => ({
+    const groups: ExpertiseGroup[] = groupsResult.rows.map(row => ({
       id: row.id,
       name: row.name,
       description: row.description,
@@ -120,7 +153,7 @@ export async function GET(request: NextRequest) {
       skills: [] as ExpertiseSkill[] // Will be populated below
     }));
     
-    const skills: ExpertiseSkill[] = skillsResult.rows.map((row: any) => ({
+    const skills: ExpertiseSkill[] = skillsResult.rows.map(row => ({
       id: row.id,
       name: row.name,
       description: row.description,
@@ -133,7 +166,7 @@ export async function GET(request: NextRequest) {
       updatedAt: row.updatedAt,
       group: row.groupId ? {
         id: row.groupId,
-        name: row.group_name,
+        name: row.group_name || '',
         color: row.group_color
       } : null
     }));
@@ -147,16 +180,16 @@ export async function GET(request: NextRequest) {
       skills,
       groups
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error(`[Expertise Skills API] Database error:`, error);
     return NextResponse.json({ 
       message: 'Error fetching expertise skills', 
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: getErrorMessage(error),
+      details: process.env.NODE_ENV === 'development' ? getErrorStack(error) : undefined
     }, { status: 500 });
   } finally {
     if (client) {
-    client.release();
+      client.release();
     }
   }
 }

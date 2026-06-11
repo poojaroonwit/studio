@@ -5,6 +5,8 @@ import {
   verifyTotpCode,
   generateBackupCodes
 } from '@/lib/twoFactorAuth';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -15,7 +17,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { code } = await req.json();
+    const body = await readRequestJsonObject(req);
+    const code = getJsonString(body, 'code');
 
     if (!code) {
       return NextResponse.json({ error: 'Code required' }, { status: 400 });

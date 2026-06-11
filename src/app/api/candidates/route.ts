@@ -9,14 +9,40 @@ export const runtime = 'nodejs';
 
 type CandidatePositionRow = {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type CandidateApplicantRow = {
   positionId: string;
   fitScore?: number | string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
+
+type CandidateApplicantWithNormalizedFitScore = CandidateApplicantRow & {
+  fitScore: number | null;
+};
+
+function getCsvValues(value: string | null): string[] {
+  return value?.split(',').filter((id) => id.length > 0) ?? [];
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown candidates API error';
+}
+
+function groupApplicantsByPosition(applicants: CandidateApplicantRow[]) {
+  return applicants.reduce<Map<string, CandidateApplicantWithNormalizedFitScore[]>>((groups, applicant) => {
+    const positionApplicants = groups.get(applicant.positionId) ?? [];
+    positionApplicants.push({
+      ...applicant,
+      fitScore: applicant.fitScore === null || applicant.fitScore === undefined
+        ? null
+        : normalizeFitScore(Number(applicant.fitScore)),
+    });
+    groups.set(applicant.positionId, positionApplicants);
+    return groups;
+  }, new Map());
+}
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -46,8 +72,8 @@ export async function GET(request: NextRequest) {
     client = await getPool().connect();
     
     let positionQuery: string;
-    let queryParams: any[] = [];
-    let whereClauses: string[] = [];
+    const queryParams: unknown[] = [];
+    const whereClauses: string[] = [];
     
     // Status filter (isOpen)
     if (isOpenParam !== 'any') {
@@ -72,8 +98,8 @@ export async function GET(request: NextRequest) {
       ORDER BY p."createdAt" DESC
     `;
     
-    const positionResult = await client.query(positionQuery, queryParams);
-    const positions = positionResult.rows as CandidatePositionRow[];
+    const positionResult = await client.query<CandidatePositionRow>(positionQuery, queryParams);
+    const positions = positionResult.rows;
 
     if (positions.length === 0) {
       return NextResponse.json({ positions: [] });
@@ -84,10 +110,10 @@ export async function GET(request: NextRequest) {
     // 2. Fetch recruitment stages to filter by status if pipelineOnly is requested
     const hasPipelineFocus = pipelineOnlyParam && pipelineOnlyParam !== 'false';
     let pipelineFilterClause = '';
-    let applicantQueryParams: any[] = [positionIds];
+    const applicantQueryParams: unknown[] = [positionIds];
 
     if (hasPipelineFocus) {
-      const statusIds = pipelineOnlyParam.split(',').filter(id => id.length > 0);
+      const statusIds = getCsvValues(pipelineOnlyParam);
       if (statusIds.length > 0) {
         pipelineFilterClause = `AND c."statusId" = ANY($2::uuid[])`;
         applicantQueryParams.push(statusIds);
@@ -104,19 +130,12 @@ export async function GET(request: NextRequest) {
       ORDER BY c."applicationDate" DESC
     `;
 
-    const applicantResult = await client.query(applicantQuery, applicantQueryParams);
-    const applicants = applicantResult.rows as CandidateApplicantRow[];
+    const applicantResult = await client.query<CandidateApplicantRow>(applicantQuery, applicantQueryParams);
+    const applicantsByPosition = groupApplicantsByPosition(applicantResult.rows);
 
     // 4. Group applicants by position
     const groupedData = positions.map(pos => {
-      const posApplicants = applicants
-        .filter(app => app.positionId === pos.id)
-        .map(app => ({
-          ...app,
-          fitScore: app.fitScore === null || app.fitScore === undefined
-            ? null
-            : normalizeFitScore(Number(app.fitScore)),
-        }));
+      const posApplicants = applicantsByPosition.get(pos.id) ?? [];
       return {
         ...pos,
         applicants: posApplicants
@@ -125,9 +144,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ positions: groupedData });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
     console.error('[Candidates API] Error:', error);
-    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Internal Server Error', error: errorMessage }, { status: 500 });
   } finally {
     if (client) client.release();
   }

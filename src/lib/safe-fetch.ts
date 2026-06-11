@@ -16,6 +16,24 @@ export interface SafeFetchResult<T = unknown> {
 	error: string | null;
 }
 
+function getSafeFetchErrorMessage(error: unknown) {
+	if (error instanceof Error) {
+		return error.name === 'AbortError' ? 'Request timeout' : error.message || 'Network error';
+	}
+
+	if (error && typeof error === 'object') {
+		const errorRecord = error as Record<string, unknown>;
+		if (errorRecord.name === 'AbortError') {
+			return 'Request timeout';
+		}
+		if (typeof errorRecord.message === 'string' && errorRecord.message) {
+			return errorRecord.message;
+		}
+	}
+
+	return 'Network error';
+}
+
 export async function safeFetch<T = unknown>(input: RequestInfo | URL, options: SafeFetchOptions = {}): Promise<SafeFetchResult<T>> {
 	const { timeoutMs = 15000, signal, ...rest } = options;
 
@@ -30,13 +48,13 @@ export async function safeFetch<T = unknown>(input: RequestInfo | URL, options: 
 
 		clearTimeout(timeoutId);
 
-		let data: any = null;
+		let data: unknown = null;
 		const contentType = response.headers.get('content-type') || '';
 		try {
 			if (contentType.includes('application/json')) {
 				data = await response.json();
 			} else if (contentType.startsWith('text/')) {
-				data = (await response.text()) as any;
+				data = await response.text();
 			}
 		} catch {
 			// Ignore body parse errors; treat as null
@@ -48,14 +66,13 @@ export async function safeFetch<T = unknown>(input: RequestInfo | URL, options: 
 			data: (response.ok ? (data as T) : null),
 			error: response.ok ? null : `HTTP ${response.status}`,
 		};
-	} catch (error: any) {
+	} catch (error: unknown) {
 		clearTimeout(timeoutId);
-		const message = error?.name === 'AbortError' ? 'Request timeout' : (error?.message || 'Network error');
 		return {
 			ok: false,
 			status: null,
 			data: null,
-			error: message,
+			error: getSafeFetchErrorMessage(error),
 		};
 	}
 }

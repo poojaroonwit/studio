@@ -18,7 +18,7 @@ export function withDynamicZIndex<P extends object>(
   defaultLayerType: LayerType = 'modal'
 ) {
   const WrappedComponent = React.forwardRef<
-    any,
+    unknown,
     P & WithDynamicZIndexProps
   >((props, ref) => {
     const { layerId, layerType = defaultLayerType, parentLayerId, ...restProps } = props;

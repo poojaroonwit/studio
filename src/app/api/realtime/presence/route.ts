@@ -1,15 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { auth } from '@/auth';
+import { readRequestJsonObject } from '@/lib/request-json';
 import { 
   setUserPresence, 
   getAllUserPresence, 
   markUserOffline, 
   cleanupOfflineUsers,
-  type UserPresence 
 } from '@/lib/presence-store';
+import {
+  createPresenceFromBody,
+  getErrorMessage,
+  getStringField,
+  isRecord,
+  serializePresenceUsers,
+} from './presence-route-utils';
 
 export const dynamic = 'force-dynamic';
+
+async function requirePresenceAccess(action: string) {
+  const session = await auth();
+  
+  if (!session?.user) {
+    return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+
+  if (!hasPermission(session.user, 'applicantS_VIEW')) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: `Forbidden: Insufficient permissions to ${action}` }, { status: 403 }),
+    };
+  }
+
+  return { ok: true as const, session };
+}
 
 /**
  * @openapi
@@ -86,116 +110,74 @@ export const dynamic = 'force-dynamic';
  */
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user has permission to update presence
-  // Users should be able to update their own presence if they can view Applicants (basic access)
-  if (!hasPermission(session.user, 'applicantS_VIEW')) {
-    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to update presence' }, { status: 403 });
+  const access = await requirePresenceAccess('update presence');
+  if (!access.ok) {
+    return access.response;
   }
 
   try {
-    const body = await request.json();
-    const { userId, userName, userRole, avatarUrl, personalColor, currentPage } = body;
-
-    if (!userId || !userName) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const body = await readRequestJsonObject(request);
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    // Update user presence
-    const presence: UserPresence = {
-      userId,
-      userName,
-      userRole: userRole || session.user.role || 'User',
-      avatarUrl: avatarUrl || session.user.avatarUrl || null,
-      personalColor: personalColor || session.user.personalColor || null,
-      currentPage: currentPage || '/',
-      lastSeen: new Date(),
-      isOnline: true
-    };
+    const presenceResult = createPresenceFromBody(body, access.session.user);
+    if (!presenceResult.ok) {
+      return NextResponse.json({ error: presenceResult.error }, { status: 400 });
+    }
 
-    setUserPresence(userId, presence);
+    setUserPresence(presenceResult.presence.userId, presenceResult.presence);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ 
       error: 'Failed to update presence',
-      details: (error as Error).message 
+      details: getErrorMessage(error),
     }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user has permission to remove presence
-  // Users should be able to remove their own presence if they can view Applicants (basic access)
-  if (!hasPermission(session.user, 'applicantS_VIEW')) {
-    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to remove presence' }, { status: 403 });
+  const access = await requirePresenceAccess('remove presence');
+  if (!access.ok) {
+    return access.response;
   }
 
   try {
-    const body = await request.json();
-    const { userId } = body;
+    const body = await readRequestJsonObject(request);
+    const userId = getStringField(body, 'userId');
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Mark user as offline but keep their presence for 6 hours
     markUserOffline(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ 
       error: 'Failed to remove presence',
-      details: (error as Error).message 
+      details: getErrorMessage(error),
     }, { status: 500 });
   }
 }
 
 export async function GET() {
-  const session = await auth();
-  
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user has permission to view presence data
-  // Users should be able to view presence if they can view Applicants (basic access)
-  if (!hasPermission(session.user, 'applicantS_VIEW')) {
-    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view presence data' }, { status: 403 });
+  const access = await requirePresenceAccess('view presence data');
+  if (!access.ok) {
+    return access.response;
   }
 
   try {
-    // Clean up offline users before returning data
     cleanupOfflineUsers();
 
-    // Return all users (both online and recently offline)
-    const users = getAllUserPresence().map(presence => ({
-      userId: presence.userId,
-      userName: presence.userName,
-      userRole: presence.userRole,
-      avatarUrl: presence.avatarUrl,
-      personalColor: presence.personalColor,
-      currentPage: presence.currentPage,
-      lastSeen: presence.lastSeen.toISOString(),
-      isOnline: presence.isOnline
-    }));
+    const users = serializePresenceUsers(getAllUserPresence());
 
     return NextResponse.json({ users });
   } catch (error) {
     return NextResponse.json({ 
       error: 'Failed to get online users',
-      details: (error as Error).message 
+      details: getErrorMessage(error),
     }, { status: 500 });
   }
 } 

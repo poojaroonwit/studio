@@ -1,16 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
-interface ZIndexItem {
-  id: string;
-  type: 'modal' | 'drawer' | 'overlay' | 'dropdown';
-  zIndex: number;
-  timestamp: number;
-}
+import {
+  INITIAL_Z_INDEX,
+  getLayerOverlayZIndex,
+  getLayerZIndex,
+  registerZIndexItem,
+  type ZIndexItem,
+  type ZIndexLayerType,
+} from './z-index-context-utils';
 
 interface ZIndexContextType {
-  registerComponent: (id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') => number;
+  registerComponent: (id: string, type: ZIndexLayerType) => number;
   unregisterComponent: (id: string) => void;
   getZIndex: (id: string) => number;
   getOverlayZIndex: (id: string) => number;
@@ -20,56 +22,11 @@ interface ZIndexContextType {
 
 const ZIndexContext = createContext<ZIndexContextType | undefined>(undefined);
 
-// Advanced dynamic z-index system for complex stacking scenarios
-// 1. Toasts (overlay) have absolute priority - they ALWAYS appear on top
-// 2. All other components follow "most recent on top" approach
-// 3. Handles complex scenarios: overlay -> drawer -> overlay -> modal -> toast
-// 4. All z-index calculations are relative to existing components
-const Z_INDEX_INCREMENT = 100;
-const INITIAL_Z_INDEX = 1000; // Starting point for the first component
-
-// Utility function to calculate z-index with proper spacing
-const calculateZIndex = (baseZIndex: number, multiplier: number = 1): number => {
-  return baseZIndex + (Z_INDEX_INCREMENT * multiplier);
-};
-
 export function ZIndexProvider({ children }: { children: React.ReactNode }) {
   const [components, setComponents] = useState<ZIndexItem[]>([]);
-  const nextZIndexRef = useRef(INITIAL_Z_INDEX);
 
-  const registerComponent = useCallback((id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') => {
-    setComponents(prev => {
-      // Check if component already exists with same properties to avoid unnecessary updates
-      const existing = prev.find(comp => comp.id === id);
-      if (existing && existing.type === type) {
-        return prev;
-      }
-      
-      const timestamp = Date.now();
-      const filtered = prev.filter(comp => comp.id !== id);
-      
-      let zIndex: number;
-      if (type === 'overlay') {
-        if (filtered.length > 0) {
-          const highestExisting = Math.max(...filtered.map(comp => comp.zIndex));
-          zIndex = calculateZIndex(highestExisting, 3);
-        } else {
-          zIndex = calculateZIndex(INITIAL_Z_INDEX, 5);
-        }
-      } else {
-        if (filtered.length > 0) {
-          const highestExisting = Math.max(...filtered.map(comp => comp.zIndex));
-          zIndex = calculateZIndex(highestExisting, 1);
-        } else {
-          zIndex = INITIAL_Z_INDEX;
-        }
-      }
-      
-      zIndex = Math.max(zIndex, INITIAL_Z_INDEX);
-      
-      const newComponent = { id, type, zIndex, timestamp };
-      return [...filtered, newComponent];
-    });
+  const registerComponent = useCallback((id: string, type: ZIndexLayerType) => {
+    setComponents(prev => registerZIndexItem(prev, id, type, Date.now()));
     
     // We can't return the exact z-index synchronously here because it's calculated in the next state update.
     // However, getDynamicZIndex hook will update the component value via useMemo when the state changes.
@@ -82,16 +39,11 @@ export function ZIndexProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getZIndex = useCallback((id: string) => {
-    const component = components.find(comp => comp.id === id);
-    return component?.zIndex || INITIAL_Z_INDEX;
+    return getLayerZIndex(components, id);
   }, [components]);
 
   const getOverlayZIndex = useCallback((id: string) => {
-    const component = components.find(comp => comp.id === id);
-    if (!component) return INITIAL_Z_INDEX;
-    
-    // Overlay should be 1 less than content
-    return component.zIndex - 1;
+    return getLayerOverlayZIndex(components, id);
   }, [components]);
 
   const getContentZIndex = useCallback((id: string) => {
@@ -123,7 +75,7 @@ export function useZIndex() {
 }
 
 // Hook for components that need dynamic z-index
-export function useDynamicZIndex(id: string, type: 'modal' | 'drawer' | 'overlay' | 'dropdown') {
+export function useDynamicZIndex(id: string, type: ZIndexLayerType) {
   const { registerComponent, unregisterComponent, getOverlayZIndex, getContentZIndex } = useZIndex();
   
   React.useEffect(() => {

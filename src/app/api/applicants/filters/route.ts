@@ -6,6 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { requireSessionAndPermission } from "@/lib/auth";
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
@@ -107,7 +111,7 @@ export async function GET(request: NextRequest) {
     } finally {
       client.release();
     }
-  } catch (error: any) {
+  } catch (error) {
     const responseTime = Date.now() - startTime;
 
     console.error("Error fetching filter data:", error);
@@ -115,7 +119,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         message: "Error fetching filter data",
-        error: error.message,
+        error: getErrorMessage(error),
         responseTime: `${responseTime}ms`,
       },
       { status: 500 }

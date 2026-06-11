@@ -1,4 +1,23 @@
 import prisma from './prisma';
+import { readJsonOrFallback } from './response-json';
+
+interface RecruitmentStageNameId {
+  id: string;
+  name: string;
+}
+
+function isRecruitmentStageNameId(value: unknown): value is RecruitmentStageNameId {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { id?: unknown }).id === 'string' &&
+    typeof (value as { name?: unknown }).name === 'string'
+  );
+}
+
+function findStageIdByName(stages: RecruitmentStageNameId[], name: string) {
+  return stages.find(stage => stage.name.toLowerCase() === name)?.id;
+}
 
 /**
  * Get recruitment stage ID by name (case-insensitive)
@@ -52,9 +71,11 @@ export async function getRecruitmentStageNamesByIds(ids: string[]): Promise<Reco
       throw new Error(`Failed to fetch stage names: ${response.statusText}`);
     }
 
-    const stages = await response.json();
+    const stages = await readJsonOrFallback<unknown>(response, []);
     const nameMap: Record<string, string> = {};
-    stages.forEach((stage: any) => {
+    const validStages = Array.isArray(stages) ? stages.filter(isRecruitmentStageNameId) : [];
+
+    validStages.forEach(stage => {
       nameMap[stage.id] = stage.name;
     });
 
@@ -118,15 +139,15 @@ export async function getCommonStageIds() {
   const stages = await getAllRecruitmentStages();
 
   return {
-    applied: stages.find((s: any) => s.name.toLowerCase() === 'applied')?.id,
-    screening: stages.find((s: any) => s.name.toLowerCase() === 'screening')?.id,
-    shortlisted: stages.find((s: any) => s.name.toLowerCase() === 'shortlisted')?.id,
-    interviewScheduled: stages.find((s: any) => s.name.toLowerCase() === 'interview scheduled')?.id,
-    interviewing: stages.find((s: any) => s.name.toLowerCase() === 'interviewing')?.id,
-    offerExtended: stages.find((s: any) => s.name.toLowerCase() === 'offer extended')?.id,
-    hired: stages.find((s: any) => s.name.toLowerCase() === 'hired')?.id,
-    onHold: stages.find((s: any) => s.name.toLowerCase() === 'on hold')?.id,
-    rejected: stages.find((s: any) => s.name.toLowerCase() === 'rejected')?.id,
+    applied: findStageIdByName(stages, 'applied'),
+    screening: findStageIdByName(stages, 'screening'),
+    shortlisted: findStageIdByName(stages, 'shortlisted'),
+    interviewScheduled: findStageIdByName(stages, 'interview scheduled'),
+    interviewing: findStageIdByName(stages, 'interviewing'),
+    offerExtended: findStageIdByName(stages, 'offer extended'),
+    hired: findStageIdByName(stages, 'hired'),
+    onHold: findStageIdByName(stages, 'on hold'),
+    rejected: findStageIdByName(stages, 'rejected'),
   };
 }
 

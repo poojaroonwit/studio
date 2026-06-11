@@ -15,30 +15,51 @@ const userPresenceStore = new Map<string, UserPresence>();
 
 // Clean up offline users (older than 6 hours)
 const OFFLINE_THRESHOLD = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+const CLEANUP_INTERVAL = 60000;
+
+function normalizeLastSeen(lastSeen: UserPresence['lastSeen']) {
+  const lastSeenDate = lastSeen instanceof Date ? lastSeen : new Date(lastSeen);
+  return Number.isNaN(lastSeenDate.getTime()) ? null : lastSeenDate;
+}
+
+function isExpiredPresence(presence: UserPresence, now: Date) {
+  const lastSeenDate = normalizeLastSeen(presence.lastSeen);
+  if (!lastSeenDate) {
+    return true;
+  }
+
+  return now.getTime() - lastSeenDate.getTime() > OFFLINE_THRESHOLD;
+}
+
+function isValidPresence(presence: UserPresence | undefined) {
+  return Boolean(presence?.userId && presence.userName);
+}
+
+function isSettablePresence(userId: string, presence: UserPresence | undefined) {
+  return Boolean(userId && presence?.userName && presence.userRole);
+}
+
+function updatePresence(userId: string, update: (presence: UserPresence) => UserPresence) {
+  if (!userId) {
+    return;
+  }
+
+  const existingPresence = userPresenceStore.get(userId);
+  if (existingPresence) {
+    userPresenceStore.set(userId, update(existingPresence));
+  }
+}
+
+function getPresenceValues() {
+  return Array.from(userPresenceStore.values()).filter(isValidPresence);
+}
 
 export function cleanupOfflineUsers() {
-  try {
-    const now = new Date();
-    for (const [userId, presence] of userPresenceStore.entries()) {
-      try {
-        // Ensure lastSeen is a valid Date object
-        const lastSeenDate = presence.lastSeen instanceof Date ? presence.lastSeen : new Date(presence.lastSeen);
-        if (isNaN(lastSeenDate.getTime())) {
-          // Remove entries with invalid dates
-          userPresenceStore.delete(userId);
-          return;
-        }
-        
-        const timeSinceLastSeen = now.getTime() - lastSeenDate.getTime();
-        if (timeSinceLastSeen > OFFLINE_THRESHOLD) {
-          userPresenceStore.delete(userId);
-        }
-      } catch (error) {
-        // Remove corrupted entries
-        userPresenceStore.delete(userId);
-      }
+  const now = new Date();
+  for (const [userId, presence] of userPresenceStore.entries()) {
+    if (!isValidPresence(presence) || isExpiredPresence(presence, now)) {
+      userPresenceStore.delete(userId);
     }
-  } catch (error) {
   }
 }
 
@@ -46,141 +67,68 @@ export function cleanupOfflineUsers() {
 const __presenceGlobal = globalThis as unknown as { __presenceCleanupInterval?: NodeJS.Timeout };
 if (!__presenceGlobal.__presenceCleanupInterval) {
   // Start periodic cleanup of offline users - reduced frequency for lower CPU usage
-  __presenceGlobal.__presenceCleanupInterval = setInterval(cleanupOfflineUsers, 60000); // Optimized: 60s (was 10s)
+  __presenceGlobal.__presenceCleanupInterval = setInterval(cleanupOfflineUsers, CLEANUP_INTERVAL); // Optimized: 60s (was 10s)
+  __presenceGlobal.__presenceCleanupInterval.unref?.();
 }
 
 // Presence store functions
 export function setUserPresence(userId: string, presence: UserPresence) {
-  try {
-    if (!userId || !presence) {
-      return;
-    }
-    
-    // Validate presence data
-    if (!presence.userName || !presence.userRole) {
-      return;
-    }
-    
-    userPresenceStore.set(userId, presence);
-  } catch (error) {
+  if (!isSettablePresence(userId, presence)) {
+    return;
   }
+
+  userPresenceStore.set(userId, presence);
 }
 
 export function getUserPresence(userId: string): UserPresence | undefined {
-  try {
-    if (!userId) {
-      return undefined;
-    }
-    
-    return userPresenceStore.get(userId);
-  } catch (error) {
+  if (!userId) {
     return undefined;
   }
+
+  return userPresenceStore.get(userId);
 }
 
 export function getAllUserPresence(): UserPresence[] {
-  try {
-    const values = Array.from(userPresenceStore.values());
-    // Defensive check to prevent filter errors
-    if (!Array.isArray(values)) {
-      console.warn('PresenceStore: values is not an array:', values);
-      return [];
-    }
-    
-    return values.filter(presence => {
-      try {
-        // Filter out any corrupted entries
-        return presence && presence.userId && presence.userName;
-      } catch (error) {
-        return false;
-      }
-    });
-  } catch (error) {
-    return [];
-  }
+  return getPresenceValues();
 }
 
 export function removeUserPresence(userId: string) {
-  try {
-    if (!userId) {
-      return;
-    }
-    
-    userPresenceStore.delete(userId);
-  } catch (error) {
+  if (!userId) {
+    return;
   }
+
+  userPresenceStore.delete(userId);
 }
 
 export function markUserOffline(userId: string) {
-  try {
-    if (!userId) {
-      return;
-    }
-    
-    const existingPresence = userPresenceStore.get(userId);
-    if (existingPresence) {
-      existingPresence.isOnline = false;
-      existingPresence.lastSeen = new Date();
-      userPresenceStore.set(userId, existingPresence);
-    }
-  } catch (error) {
-  }
+  updatePresence(userId, presence => ({
+    ...presence,
+    isOnline: false,
+    lastSeen: new Date(),
+  }));
 }
 
 export function updateUserPage(userId: string, currentPage: string) {
-  try {
-    if (!userId || !currentPage) {
-      return;
-    }
-    
-    const existingPresence = userPresenceStore.get(userId);
-    if (existingPresence) {
-      existingPresence.currentPage = currentPage;
-      existingPresence.lastSeen = new Date();
-      userPresenceStore.set(userId, existingPresence);
-    }
-  } catch (error) {
+  if (!currentPage) {
+    return;
   }
+
+  updatePresence(userId, presence => ({
+    ...presence,
+    currentPage,
+    lastSeen: new Date(),
+  }));
 }
 
 // Get store statistics for debugging
 export function getPresenceStoreStats() {
-  try {
-    const totalUsers = userPresenceStore.size;
-    const onlineUsers = (() => {
-      try {
-        const values = Array.from(userPresenceStore.values());
-        // Defensive check to prevent filter errors
-        if (!Array.isArray(values)) {
-          return 0;
-        }
-        
-        return values.filter(p => {
-          try {
-            return p && p.isOnline;
-          } catch (error) {
-            return false;
-          }
-        }).length;
-      } catch (error) {
-        return 0;
-      }
-    })();
-    const offlineUsers = totalUsers - onlineUsers;
-    
-    return {
-      totalUsers,
-      onlineUsers,
-      offlineUsers,
-      storeSize: userPresenceStore.size
-    };
-  } catch (error) {
-    return {
-      totalUsers: 0,
-      onlineUsers: 0,
-      offlineUsers: 0,
-      storeSize: 0,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
+  const totalUsers = userPresenceStore.size;
+  const onlineUsers = getPresenceValues().filter(presence => presence.isOnline).length;
+
+  return {
+    totalUsers,
+    onlineUsers,
+    offlineUsers: totalUsers - onlineUsers,
+    storeSize: userPresenceStore.size,
+  };
 }

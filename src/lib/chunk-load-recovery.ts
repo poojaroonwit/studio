@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  clearCacheStorage,
+  unregisterServiceWorkers,
+} from './browser-storage-cleanup';
+
 const RECOVERY_KEY = 'chunk_load_recovery_attempted';
 const RECOVERY_PARAM = 'recoveredChunkLoad';
 
@@ -39,13 +44,11 @@ export async function recoverFromChunkLoadError(error?: unknown): Promise<boolea
 
   try {
     if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
+      await unregisterServiceWorkers(navigator.serviceWorker);
     }
 
     if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+      await clearCacheStorage(caches);
     }
   } catch (recoveryError) {
     console.warn('Chunk load recovery cleanup failed:', recoveryError);

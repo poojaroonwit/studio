@@ -9,71 +9,100 @@ import { isFullGradientString } from './colors';
 // Store current sidebar colors for re-application
 let currentSidebarColors: Record<string, string> = {};
 
-/**
- * Apply all sidebar styles with explicit theme information
- */
+type SidebarThemeContext = {
+  themeSuffix: 'L' | 'D';
+  bgStartKey: string;
+  activeBgStartKey: string;
+  isFullGradient: boolean;
+  isActiveFullGradient: boolean;
+};
+
 export function applySidebarStylesWithTheme(sidebarColors: Record<string, string>, isDark: boolean) {
   if (typeof window === 'undefined') return;
   const root = document.documentElement;
-  
-  // Store the colors for later use
+
   currentSidebarColors = { ...sidebarColors };
-  
+  const themeContext = buildSidebarThemeContext(sidebarColors, isDark);
+
+  applyFullGradientStyles(root, sidebarColors, themeContext);
+  applySidebarCssVariables(root, sidebarColors, themeContext);
+  applyButtonTextColors(root, sidebarColors);
+}
+
+function buildSidebarThemeContext(sidebarColors: Record<string, string>, isDark: boolean): SidebarThemeContext {
   const themeSuffix = isDark ? 'D' : 'L';
   const bgStartKey = `sidebarBgStart${themeSuffix}`;
   const activeBgStartKey = `sidebarActiveBgStart${themeSuffix}`;
-  
-  // Check if we have a full gradient string for background
-  const bgStartValue = sidebarColors[bgStartKey];
-  const isFullGradient = isFullGradientString(bgStartValue);
-  
-  // Check if we have a full gradient string for active background
-  const activeBgStartValue = sidebarColors[activeBgStartKey];
-  const isActiveFullGradient = isFullGradientString(activeBgStartValue);
-  
-  // Apply full gradient directly if provided
-  if (isFullGradient && bgStartValue) {
+
+  return {
+    themeSuffix,
+    bgStartKey,
+    activeBgStartKey,
+    isFullGradient: isFullGradientString(sidebarColors[bgStartKey]),
+    isActiveFullGradient: isFullGradientString(sidebarColors[activeBgStartKey]),
+  };
+}
+
+function applyFullGradientStyles(
+  root: HTMLElement,
+  sidebarColors: Record<string, string>,
+  themeContext: SidebarThemeContext
+) {
+  const bgStartValue = sidebarColors[themeContext.bgStartKey];
+  const activeBgStartValue = sidebarColors[themeContext.activeBgStartKey];
+
+  if (themeContext.isFullGradient && bgStartValue) {
     root.style.setProperty('--sidebar-background-full-gradient', bgStartValue);
-    // Find sidebar element and apply directly
-    requestAnimationFrame(() => {
-      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
-      if (sidebarElement) {
-        sidebarElement.style.background = bgStartValue;
-        sidebarElement.classList.add('custom-background');
-      }
-    });
+    applySidebarElementBackground(bgStartValue);
   }
-  
-  // Apply full gradient directly for active background if provided
-  if (isActiveFullGradient && activeBgStartValue) {
+
+  if (themeContext.isActiveFullGradient && activeBgStartValue) {
     root.style.setProperty('--sidebar-active-bg-full-gradient', activeBgStartValue);
   }
-  
-  // Apply each sidebar color to CSS variables
-  Object.entries(sidebarColors).forEach(([key, value]) => {
-    if (key.endsWith(themeSuffix) && value) {
-      // Skip bgStartKey and activeBgStartKey if they contain full gradient strings
-      if ((key === bgStartKey && isFullGradient) || (key === activeBgStartKey && isActiveFullGradient)) {
-        return;
-      }
-      
-      const cssVarName = cssVarMapping[key];
-      if (cssVarName) {
-        // Special handling for active text color
-        if (key === `sidebarActiveText${themeSuffix}`) {
-          root.style.setProperty(cssVarName, value);
-        } else if (key === 'buttonTextColorL' || key === 'buttonTextColorD') {
-          root.style.setProperty(cssVarName, `hsl(${value})`);
-        } else if (key === `sidebarActiveBgStart${themeSuffix}` || key === `sidebarActiveBgEnd${themeSuffix}`) {
-          root.style.setProperty(cssVarName, value);
-        } else {
-          root.style.setProperty(cssVarName, value);
-        }
-      }
+}
+
+function applySidebarElementBackground(background: string) {
+  requestAnimationFrame(() => {
+    const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+    if (sidebarElement) {
+      sidebarElement.style.background = background;
+      sidebarElement.classList.add('custom-background');
     }
   });
-  
-  // Handle button text colors without theme suffix
+}
+
+function applySidebarCssVariables(
+  root: HTMLElement,
+  sidebarColors: Record<string, string>,
+  themeContext: SidebarThemeContext
+) {
+  Object.entries(sidebarColors).forEach(([key, value]) => {
+    if (!shouldApplySidebarColorKey(key, value, themeContext)) {
+      return;
+    }
+
+    const cssVarName = cssVarMapping[key];
+    if (cssVarName) {
+      root.style.setProperty(cssVarName, getSidebarCssVariableValue(key, value));
+    }
+  });
+}
+
+function shouldApplySidebarColorKey(key: string, value: string, themeContext: SidebarThemeContext) {
+  if (!key.endsWith(themeContext.themeSuffix) || !value) return false;
+  return !(
+    (key === themeContext.bgStartKey && themeContext.isFullGradient) ||
+    (key === themeContext.activeBgStartKey && themeContext.isActiveFullGradient)
+  );
+}
+
+function getSidebarCssVariableValue(key: string, value: string) {
+  return key === 'buttonTextColorL' || key === 'buttonTextColorD'
+    ? `hsl(${value})`
+    : value;
+}
+
+function applyButtonTextColors(root: HTMLElement, sidebarColors: Record<string, string>) {
   if (sidebarColors.buttonTextColorL) {
     root.style.setProperty('--button-text-color-l', `hsl(${sidebarColors.buttonTextColorL})`);
   }
@@ -82,16 +111,10 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
   }
 }
 
-/**
- * Get current sidebar colors
- */
 export function getCurrentSidebarColors(): Record<string, string> {
   return { ...currentSidebarColors };
 }
 
-/**
- * Wrapper function for backward compatibility
- */
 export function applySidebarStyles(sidebarColors: Record<string, string>) {
   if (typeof window === 'undefined') return;
   const root = document.documentElement;
@@ -99,9 +122,6 @@ export function applySidebarStyles(sidebarColors: Record<string, string>) {
   applySidebarStylesWithTheme(sidebarColors, isDark);
 }
 
-/**
- * Wait for sidebar DOM to be ready
- */
 export function waitForSidebar(maxAttempts = 20, interval = 100): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
     let attempts = 0;
@@ -120,15 +140,12 @@ export function waitForSidebar(maxAttempts = 20, interval = 100): Promise<HTMLEl
   });
 }
 
-/**
- * Re-apply current sidebar colors for the current theme
- */
 export function reapplyCurrentSidebarColors() {
   if (typeof window === 'undefined') return;
-  
+
   const root = document.documentElement;
   const isDark = root.classList.contains('dark');
-  
+
   waitForSidebar().then(() => {
     requestAnimationFrame(() => {
       applySidebarStylesWithTheme(currentSidebarColors, isDark);

@@ -18,7 +18,7 @@ export async function validateApplicantHiringStatus(
   positionId: string
 ): Promise<ValidationResult> {
   try {
-    // Check if position has any headcounts
+    // Check if position has defined headcounts
     const headcounts = await prisma.headcount.findMany({
       where: { positionId },
       select: {
@@ -43,8 +43,8 @@ export async function validateApplicantHiringStatus(
     }
 
     // A headcount is only considered filled if it has status 'filled' AND has a Applicant assigned
-    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.applicantId === null);
-    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.applicantId !== null);
+    const vacantHeadcounts = headcounts.filter(headcount => headcount.status === 'vacant' || headcount.applicantId === null);
+    const filledHeadcounts = headcounts.filter(headcount => headcount.status === 'filled' && headcount.applicantId !== null);
 
     if (vacantHeadcounts.length === 0) {
       return {
@@ -61,7 +61,7 @@ export async function validateApplicantHiringStatus(
     }
 
     // Check if Applicant is already assigned to a headcount
-    const existingAssignment = headcounts.find((h: any) => h.applicantId === applicantId);
+    const existingAssignment = headcounts.find(headcount => headcount.applicantId === applicantId);
     if (existingAssignment) {
       return {
         canHire: true,
@@ -130,8 +130,8 @@ export async function checkHeadcountUnassignWarning(headcountId: string): Promis
 
     // Check if Applicant status is "Hired" and this is their only headcount assignment
     const hiredStageId = await getRecruitmentStageByName('Hired');
-    if (hiredStageId && (headcount as any).applicant.statusId === hiredStageId) {
-      const applicantId = (headcount as any).applicant.id;
+    if (hiredStageId && headcount.applicant.statusId === hiredStageId) {
+      const applicantId = headcount.applicant.id;
       const applicantHeadcounts = await prisma.headcount.findMany({
         where: {
           applicantId: applicantId,

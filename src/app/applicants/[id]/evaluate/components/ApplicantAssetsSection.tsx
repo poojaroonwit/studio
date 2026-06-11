@@ -1,20 +1,14 @@
 "use client";
 
 import React from 'react';
-import { Folder, GripVertical, FileX, FileText, ImageIcon, FileIcon } from 'lucide-react';
+import { Folder, FileX, FileText, ImageIcon, FileIcon } from 'lucide-react';
 import { isImageFile, isPdfFile } from '../utils';
+import type { EvaluationAttachment, EvaluationAttachmentPreview } from '../types';
 
 interface ApplicantAssetsSectionProps {
-  attachments: any[];
+  attachments: EvaluationAttachment[];
   applicantId: string;
-  canEditAttachments: boolean;
-  onFileSelect: (file: any) => void;
-  onDeleteAttachment: (attachmentId: string) => void;
-}
-
-// Helper function to get attachment display name
-function getAttachmentName(att: any): string {
-  return att.label || att.fileName || 'Attachment';
+  onFileSelect: (file: EvaluationAttachmentPreview) => void;
 }
 
 // Helper function to get file type badge
@@ -51,9 +45,7 @@ function getFileIcon(fileName: string): { icon: React.ReactNode; bgColor: string
 export function ApplicantAssetsSection({
   attachments,
   applicantId,
-  canEditAttachments,
   onFileSelect,
-  onDeleteAttachment,
 }: ApplicantAssetsSectionProps) {
   return (
     <div>
@@ -62,8 +54,9 @@ export function ApplicantAssetsSection({
         Applicant Assets
       </h3>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-        {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
-          const fileInfo = getFileIcon(att.fileName);
+        {(attachments && attachments.length > 0 ? attachments : []).map((att) => {
+          const fileName = att.fileName || att.filename || att.name || att.originalName || 'Attachment';
+          const fileInfo = getFileIcon(fileName);
 
           return (
             <div
@@ -71,8 +64,8 @@ export function ApplicantAssetsSection({
               className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow min-w-[220px] sm:min-w-[280px] flex-shrink-0"
               onClick={() => {
                 onFileSelect({
-                  fileName: att.fileName,
-                  url: att.url,
+                  fileName,
+                  url: att.url || '',
                   filePath: att.filePath,
                   applicantId: applicantId,
                   label: att.label,
@@ -86,10 +79,10 @@ export function ApplicantAssetsSection({
               </div>
               <div className="flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">{att.fileName || 'Attachment'}</span>
+                  <span className="text-xs font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">{fileName}</span>
                 </div>
                 <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit mt-1">
-                  {att.label || getFileTypeBadge(att.fileName)}
+                  {att.label || getFileTypeBadge(fileName)}
                 </span>
               </div>
             </div>

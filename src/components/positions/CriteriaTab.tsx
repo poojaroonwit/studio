@@ -9,8 +9,8 @@ import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
 import { cn, sanitizeHtml, sanitizeRichHtml } from '@/lib/utils';
 import { Edit, Loader2, Save, XCircle, Target } from 'lucide-react';
-import type { Position } from '@/lib/types';
-import type { EditPositionFormValues } from './PositionDetailDrawer';
+import type { CustomFieldValue, Position } from '@/lib/types';
+import type { EditPositionFormValues } from './position-edit-form';
 
 interface CriteriaTabProps {
   position: Position;
@@ -24,7 +24,7 @@ interface CriteriaTabProps {
   onCancel: () => void;
   onSave: (data: EditPositionFormValues) => Promise<void>;
   onUseDefaultCriteria: () => void;
-  onCustomFieldChange: (fieldCode: string, value: any) => void;
+  onCustomFieldChange: (fieldCode: string, value: CustomFieldValue) => void;
 }
 
 export function CriteriaTab({

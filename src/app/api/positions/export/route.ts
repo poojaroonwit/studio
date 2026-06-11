@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 // src/app/api/positions/export/route.ts
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
-import { getPool } from '@/lib/db';
+import { getPool, type DbClient } from '@/lib/db';
 import ExcelJS from 'exceljs';
 import { logAudit } from '@/lib/auditLog';
 
@@ -32,8 +32,43 @@ import { auth } from '@/auth';
  *                   ok: true
  */
 
+type PositionExportRow = Record<string, unknown>;
+type CleanExcelRow = Record<string, string | number>;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function formatExcelValue(value: unknown): string | number {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (value instanceof Date) {
+    return value.toLocaleDateString();
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return value.includes('<') ? value.replace(/<[^>]*>/g, '').trim() : value;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 // Helper function to convert data to Excel format
-async function convertToExcel(data: any[]): Promise<Buffer> {
+async function convertToExcel(data: PositionExportRow[]): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Positions');
 
@@ -45,32 +80,9 @@ async function convertToExcel(data: any[]): Promise<Buffer> {
 
   // Clean and format the data for Excel
   const cleanedData = data.map(row => {
-    const cleanedRow: any = {};
+    const cleanedRow: CleanExcelRow = {};
     Object.keys(row).forEach(key => {
-      let value = row[key];
-
-      // Handle null/undefined values
-      if (value === null || value === undefined) {
-        value = '';
-      }
-
-      // Convert dates to readable format
-      if (value instanceof Date) {
-        value = value.toLocaleDateString();
-      }
-
-      // Handle boolean values
-      if (typeof value === 'boolean') {
-        value = value ? 'Yes' : 'No';
-      }
-
-      // Clean up HTML content if present
-      if (typeof value === 'string' && value.includes('<')) {
-        // Remove HTML tags for cleaner Excel output
-        value = value.replace(/<[^>]*>/g, '').trim();
-      }
-
-      cleanedRow[key] = value;
+      cleanedRow[key] = formatExcelValue(row[key]);
     });
     return cleanedRow;
   });
@@ -110,7 +122,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export positions' }, { status: 403 });
   }
 
-  let client: any = null;
+  let client: DbClient | null = null;
   try {
     client = await getPool().connect();
     const result = await client.query('SELECT * FROM "Position" ORDER BY "createdAt" DESC');
@@ -133,8 +145,9 @@ export async function GET() {
       },
     });
   } catch (error) {
-    await logAudit('ERROR', `Failed to export positions by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Positions:Export', actingUserId, {
-      error: (error as Error).message
+    const errorMessage = getErrorMessage(error);
+    await logAudit('ERROR', `Failed to export positions by ${actingUserName}. Error: ${errorMessage}`, 'API:Positions:Export', actingUserId, {
+      error: errorMessage
     });
     return NextResponse.json({ error: 'Failed to export positions' }, { status: 500 });
   } finally {

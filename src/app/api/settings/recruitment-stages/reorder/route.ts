@@ -10,9 +10,14 @@ import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const reorderSchema = z.object({
   stageIds: z.array(z.string().uuid()),
 });
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * @openapi
@@ -71,13 +76,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions' }, { status: 403 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (e) {
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validation = reorderSchema.safeParse(body);
   if (!validation.success) {
     return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
@@ -109,17 +113,18 @@ export async function POST(request: NextRequest) {
     broadcastApplicantUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
     
     return NextResponse.json({ message: 'Recruitment stages reordered successfully' }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
     await client.query('ROLLBACK');
     console.error('Failed to reorder recruitment stages:', error);
     await logAudit(
       'ERROR',
-      `Failed to reorder recruitment stages. Error: ${error.message}`,
+      `Failed to reorder recruitment stages. Error: ${errorMessage}`,
       'API:RecruitmentStages:Reorder',
       actingUserId,
       { input: body }
     );
-    return NextResponse.json({ message: 'Error reordering recruitment stages', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error reordering recruitment stages', error: errorMessage }, { status: 500 });
   } finally {
     client.release();
   }

@@ -5,8 +5,17 @@ import bcrypt from 'bcryptjs';
 import { getPool } from '../../../../lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
+import type { QueryResultRow } from 'pg';
 export const dynamic = 'force-dynamic';
 
+type PasswordRow = QueryResultRow & {
+    password: string;
+};
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -78,14 +87,12 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    let body;
-    try {
-        body = await request.json();
-    } catch (e) {
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
         return NextResponse.json({ message: "Invalid JSON body" }, { status: 400 });
     }
     
-    const validation = changePasswordSchema.safeParse(body);
+    const validation = changePasswordSchema.safeParse(bodyResult.value);
     if (!validation.success) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
@@ -105,7 +112,7 @@ export async function POST(request: NextRequest) {
     
     const client = await getPool().connect();
     try {
-        const userResult = await client.query('SELECT password FROM "User" WHERE id = $1', [userId]);
+        const userResult = await client.query<PasswordRow>('SELECT password FROM "User" WHERE id = $1', [userId]);
         if (userResult.rowCount === 0) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
@@ -122,10 +129,11 @@ export async function POST(request: NextRequest) {
         
         await logAudit('AUDIT', `User successfully changed their password.`, 'API:Auth:ChangePassword', userId);
         return NextResponse.json({ message: "Password changed successfully" });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Failed to change password:", error);
-        await logAudit('ERROR', `Error during password change. Error: ${error.message}`, 'API:Auth:ChangePassword', userId);
-        return NextResponse.json({ message: "Error changing password", error: error.message }, { status: 500 });
+        const errorMessage = getErrorMessage(error);
+        await logAudit('ERROR', `Error during password change. Error: ${errorMessage}`, 'API:Auth:ChangePassword', userId);
+        return NextResponse.json({ message: "Error changing password", error: errorMessage }, { status: 500 });
     } finally {
         client.release();
     }

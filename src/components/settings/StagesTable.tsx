@@ -1,19 +1,20 @@
 import React, { useCallback } from 'react';
 import { ColorPicker } from '@/components/ui/color-picker';
+import type { RecruitmentStageColorField, RecruitmentStageRow } from './recruitment-stage-ui-types';
 
 interface StagesTableProps {
-  stages: any[];
+  stages: RecruitmentStageRow[];
   isLoading: boolean;
-  onEdit: (stage: any) => void;
-  onColorChange: (stage: any, colorType: string, newColor: string) => void;
+  onEdit: (stage: RecruitmentStageRow) => void;
+  onColorChange: (stage: RecruitmentStageRow, colorType: RecruitmentStageColorField, newColor: string) => void;
 }
 
 const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, onColorChange }) => {
-  const handleEdit = useCallback((stage: any) => {
+  const handleEdit = useCallback((stage: RecruitmentStageRow) => {
     onEdit(stage);
   }, [onEdit]);
 
-  const handleColorChange = useCallback((stage: any, colorType: string, newColor: string) => {
+  const handleColorChange = useCallback((stage: RecruitmentStageRow, colorType: RecruitmentStageColorField, newColor: string) => {
     onColorChange(stage, colorType, newColor);
   }, [onColorChange]);
   return (

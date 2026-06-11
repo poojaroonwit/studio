@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAnyApiPermission } from '@/lib/api-route-guards';
 
+type UserContactInfo = {
+    otherEmails?: unknown;
+    mobilePhone?: unknown;
+    businessPhone?: unknown;
+};
+
+function isUserContactInfo(value: unknown): value is UserContactInfo {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -30,15 +40,15 @@ export async function GET(
         };
 
         // Extract additional emails and phones from contactInfo if available
-        if (user.contactInfo && typeof user.contactInfo === 'object') {
-            const contactInfo = user.contactInfo as any;
+        if (isUserContactInfo(user.contactInfo)) {
+            const contactInfo = user.contactInfo;
 
             if (Array.isArray(contactInfo.otherEmails)) {
-                searchCriteria.emails.push(...contactInfo.otherEmails);
+                searchCriteria.emails.push(...contactInfo.otherEmails.filter((email): email is string => typeof email === 'string'));
             }
 
-            if (contactInfo.mobilePhone) searchCriteria.phones.push(contactInfo.mobilePhone);
-            if (contactInfo.businessPhone) searchCriteria.phones.push(contactInfo.businessPhone);
+            if (typeof contactInfo.mobilePhone === 'string') searchCriteria.phones.push(contactInfo.mobilePhone);
+            if (typeof contactInfo.businessPhone === 'string') searchCriteria.phones.push(contactInfo.businessPhone);
         }
 
         if (user.phoneNumber) {

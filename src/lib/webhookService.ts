@@ -1,315 +1,71 @@
 import prisma from './prisma';
-import { WebhookBodyProcessor } from './webhookBodyProcessor';
+import type { Webhook } from '@prisma/client';
+import type { WebhookData } from './webhook/webhook-dispatcher-types';
+import {
+  sendServiceWebhook,
+  type WebhookDeliveryResult,
+} from './webhook/webhook-service-delivery';
+import {
+  createServiceApplicantPayload,
+  createServiceCommentPayload,
+  createServicePositionPayload,
+  createServiceUploadQueuePayload,
+  createServiceUserPayload,
+} from './webhook/webhook-service-payloads';
 
-export interface WebhookPayload {
-  event: string;
-  timestamp: string;
-  data: any;
-  webhook_id?: string;
-}
-
-export interface WebhookDeliveryResult {
-  success: boolean;
-  status?: number;
-  response?: string;
-  error?: string;
-  duration_ms: number;
-}
+export type { WebhookDeliveryResult };
 
 export class WebhookService {
-  /**
-   * Send webhooks for a specific event
-   */
-  static async sendWebhooks(event: string, data: any): Promise<void> {
+  static async sendWebhooks(event: string, data: WebhookData): Promise<void> {
     try {
-      // Find all active webhooks that listen to this event
       const webhooks = await prisma.webhook.findMany({
         where: {
           is_active: true,
           events: {
-            has: event
-          }
-        }
+            has: event,
+          },
+        },
       });
 
-      if (webhooks.length === 0) {
-        return;
-      }
-
-      // Send webhooks in parallel
-      const deliveryPromises = webhooks.map((webhook: any) =>
-        this.sendWebhook(webhook, event, data)
-      );
-
-      await Promise.allSettled(deliveryPromises);
+      await sendServiceWebhooks(webhooks, event, data);
     } catch (error) {
       console.error('Error sending webhooks:', error);
     }
   }
 
-  /**
-   * Send a single webhook
-   */
-  static async sendWebhook(webhook: any, event: string, data: any): Promise<WebhookDeliveryResult> {
-    const startTime = Date.now();
-    let result: WebhookDeliveryResult;
-    let processedPayload: any;
-
-    try {
-      // Process webhook payload using body processor
-      processedPayload = await WebhookBodyProcessor.processWebhookPayload(
-        webhook.id,
-        event,
-        data
-      );
-
-      // Prepare headers
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Recruitment-System-Webhook/1.0',
-        'X-Webhook-ID': webhook.id,
-        'X-Event-Type': event,
-        'X-Timestamp': processedPayload.timestamp
-      };
-
-      // Add custom headers
-      if (webhook.headers) {
-        Object.entries(webhook.headers).forEach(([key, value]) => {
-          headers[key] = value as string;
-        });
-      }
-
-      // Add authentication headers
-      if (webhook.auth_type === 'basic' && webhook.auth_username && webhook.auth_password) {
-        const credentials = Buffer.from(`${webhook.auth_username}:${webhook.auth_password}`).toString('base64');
-        headers['Authorization'] = `Basic ${credentials}`;
-      } else if (webhook.auth_type === 'bearer' && webhook.auth_token) {
-        headers['Authorization'] = `Bearer ${webhook.auth_token}`;
-      } else if (webhook.auth_type === 'header' && webhook.auth_header_name && webhook.auth_header_value) {
-        headers[webhook.auth_header_name] = webhook.auth_header_value;
-      }
-
-      // SECURITY: Validate webhook URL before sending to prevent SSRF
-      const { validateWebhookUrl } = await import('@/lib/webhookSecurity');
-      const urlValidation = validateWebhookUrl(webhook.url);
-      if (!urlValidation.valid) {
-        throw new Error(`Invalid webhook URL: ${urlValidation.error}`);
-      }
-
-      // Send webhook with timeout protection
-      const timeout = webhook.timeout ? webhook.timeout * 1000 : 30000; // Default 30 seconds
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      try {
-        const response = await fetch(webhook.url, {
-          method: webhook.method,
-          headers,
-          body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-
-        const responseBody = await response.text().catch(() => 'Unable to read response body');
-        const duration = Date.now() - startTime;
-
-        result = {
-          success: response.ok,
-          status: response.status,
-          response: responseBody,
-          duration_ms: duration
-        };
-
-        if (!response.ok) {
-          result.error = `HTTP ${response.status}`;
-        }
-
-      } catch (error) {
-        clearTimeout(timeoutId);
-        const duration = Date.now() - startTime;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        
-        // Handle timeout errors
-        if (error instanceof Error && (error.name === 'AbortError' || errorMessage.includes('timeout'))) {
-          result = {
-            success: false,
-            error: `Request timeout after ${timeout}ms`,
-            duration_ms: duration
-          };
-          return result;
-        }
-
-        result = {
-          success: false,
-          error: errorMessage,
-          duration_ms: duration
-        };
-      }
-    } catch (error) {
-      // Handle any errors in payload processing or other setup
-      const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      result = {
-        success: false,
-        error: errorMessage,
-        duration_ms: duration
-      };
-    }
-
-    // Log the webhook delivery
-    await this.logWebhookDelivery(webhook.id, processedPayload, result);
-
-    // Retry logic for failed deliveries
-    if (!result.success && webhook.retry_count > 0) {
-      await this.retryWebhook(webhook, event, data, webhook.retry_count);
-    }
-
-    return result;
+  static async sendWebhook(webhook: Webhook, event: string, data: WebhookData): Promise<WebhookDeliveryResult> {
+    return sendServiceWebhook(webhook, event, data);
   }
 
-  /**
-   * Retry failed webhook delivery
-   */
-  private static async retryWebhook(webhook: any, event: string, data: any, retryCount: number): Promise<void> {
-    const retryDelays = [1000, 5000, 5000, 5000, 5000]; // All 5 seconds
-    
-    for (let attempt = 0; attempt < Math.min(retryCount, retryDelays.length); attempt++) {
-      await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
-      
-      const result = await this.sendWebhook(webhook, event, data);
-      if (result.success) {
-        break;
-      }
-    }
+  static async sendApplicantWebhook(event: string, applicant: WebhookData): Promise<void> {
+    await this.sendWebhooks(event, createServiceApplicantPayload(applicant));
   }
 
-  /**
-   * Log webhook delivery attempt
-   */
-  private static async logWebhookDelivery(
-    webhookId: string, 
-    payload: any, 
-    result: WebhookDeliveryResult
-  ): Promise<void> {
-    try {
-      await prisma.webhookLog.create({
-        data: {
-          webhook_id: webhookId,
-          event_type: payload.event,
-          payload: payload as any, // Cast to any to satisfy Prisma's Json type
-          response_status: result.status || null,
-          response_body: result.response || null,
-          success: result.success,
-          error_message: result.error || null,
-          duration_ms: result.duration_ms
-        }
-      });
-    } catch (error) {
-      console.error('Error logging webhook delivery:', error);
-    }
+  static async sendPositionWebhook(event: string, position: WebhookData): Promise<void> {
+    await this.sendWebhooks(event, createServicePositionPayload(position));
   }
 
-  /**
-   * Send webhook for Applicant events
-   */
-  static async sendApplicantWebhook(event: string, applicant: any): Promise<void> {
-    await this.sendWebhooks(event, {
-      applicant: {
-        id: applicant.id,
-        name: applicant.name,
-        email: applicant.email,
-        status: applicant.statusId || applicant.status || applicant.statusName || 'Unknown',
-        position_id: applicant.positionId,
-        application_date: applicant.applicationDate,
-        createdAt: applicant.createdAt,
-        updatedAt: applicant.updatedAt
-      }
-    });
+  static async sendUserWebhook(event: string, user: WebhookData): Promise<void> {
+    await this.sendWebhooks(event, createServiceUserPayload(user));
   }
 
-  /**
-   * Send webhook for position events
-   */
-  static async sendPositionWebhook(event: string, position: any): Promise<void> {
-    await this.sendWebhooks(event, {
-      position: {
-        id: position.id,
-        title: position.title,
-        department: position.department,
-        description: position.description,
-        is_open: position.isOpen,
-        createdAt: position.createdAt,
-        updatedAt: position.updatedAt
-      }
-    });
+  static async sendUploadQueueWebhook(event: string, uploadQueue: WebhookData): Promise<void> {
+    await this.sendWebhooks(event, createServiceUploadQueuePayload(uploadQueue));
   }
 
-  /**
-   * Send webhook for user events
-   */
-  static async sendUserWebhook(event: string, user: any): Promise<void> {
-    await this.sendWebhooks(event, {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      }
-    });
+  static async sendCommentWebhook(event: string, comment: WebhookData): Promise<void> {
+    await this.sendWebhooks(event, createServiceCommentPayload(comment));
   }
 
-  /**
-   * Send webhook for upload queue events
-   */
-  static async sendUploadQueueWebhook(event: string, uploadQueue: any): Promise<void> {
-    // Extract source information from webhook payload if available
-    let sourceInfo = null;
-    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
-      sourceInfo = {
-        sourceId: uploadQueue.webhook_payload.sourceId || null,
-        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
-      };
-    }
-
-    await this.sendWebhooks(event, {
-      upload_queue: {
-        id: uploadQueue.id,
-        file_name: uploadQueue.fileName,
-        file_size: uploadQueue.fileSize,
-        status: uploadQueue.status,
-        error: uploadQueue.error,
-        upload_date: uploadQueue.uploadDate,
-        completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt,
-        source: sourceInfo // Include source information in webhook payload
-      }
-    });
-  }
-
-  /**
-   * Send webhook for comment events
-   */
-  static async sendCommentWebhook(event: string, comment: any): Promise<void> {
-    await this.sendWebhooks(event, {
-      comment: {
-        id: comment.id,
-        content: comment.content,
-        author_id: comment.authorId,
-        applicant_id: comment.applicantId,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt
-      }
-    });
-  }
-
-  /**
-   * Send custom webhook event
-   */
-  static async sendCustomWebhook(event: string, data: any): Promise<void> {
+  static async sendCustomWebhook(event: string, data: WebhookData): Promise<void> {
     await this.sendWebhooks(event, data);
   }
-} 
+}
+
+async function sendServiceWebhooks(webhooks: Webhook[], event: string, data: WebhookData) {
+  if (webhooks.length === 0) return;
+
+  await Promise.allSettled(
+    webhooks.map(webhook => WebhookService.sendWebhook(webhook, event, data))
+  );
+}

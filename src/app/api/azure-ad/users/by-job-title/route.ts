@@ -4,6 +4,10 @@ import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -44,11 +48,12 @@ export async function GET(req: NextRequest) {
         users: response.value || [] 
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('[API] Error fetching AD users:', error);
+      const errorMessage = getErrorMessage(error);
       
       // Check for specific error like "Azure AD not configured"
-      if (error.message && (error.message.includes('Azure AD is not configured') || error.message.includes('credential'))) {
+      if (errorMessage.includes('Azure AD is not configured') || errorMessage.includes('credential')) {
          return NextResponse.json({ 
            users: [], 
            error: 'Azure AD is not configured', 

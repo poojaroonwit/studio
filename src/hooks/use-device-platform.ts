@@ -2,6 +2,56 @@ import * as React from "react"
 
 export type DevicePlatform = 'android' | 'ios' | 'desktop' | 'unknown'
 
+interface StandaloneNavigator extends Navigator {
+  standalone?: boolean
+}
+
+export interface DevicePlatformInput {
+  userAgent: string
+  referrer?: string
+  standalone?: boolean
+}
+
+function isNavigatorStandalone(nav: Navigator | undefined = typeof navigator !== 'undefined' ? navigator : undefined) {
+  return (nav as StandaloneNavigator | undefined)?.standalone === true
+}
+
+export function detectDevicePlatform({
+  userAgent,
+  referrer = '',
+  standalone = false,
+}: DevicePlatformInput): DevicePlatform {
+  const normalizedUserAgent = userAgent.toLowerCase()
+
+  const isIOS = /iphone|ipad|ipod/.test(normalizedUserAgent) || standalone
+  const isAndroidDevice = /android/.test(normalizedUserAgent) || referrer.includes('android-app://')
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(normalizedUserAgent)
+
+  if (isIOS) {
+    return 'ios'
+  }
+  if (isAndroidDevice) {
+    return 'android'
+  }
+  if (!isMobile) {
+    return 'desktop'
+  }
+
+  return 'unknown'
+}
+
+export function isStandaloneMode(): boolean {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return false
+  }
+
+  return (
+    (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) ||
+    isNavigatorStandalone() ||
+    document.referrer.includes('android-app://')
+  )
+}
+
 export function useDevicePlatform() {
   const [platform, setPlatform] = React.useState<DevicePlatform>('unknown')
 
@@ -11,31 +61,11 @@ export function useDevicePlatform() {
       return
     }
 
-    const userAgent = navigator.userAgent.toLowerCase()
-    
-    // Detect iOS (iPhone, iPad, iPod)
-    const isIOS = /iphone|ipad|ipod/.test(userAgent) || 
-      // Also check for iOS in standalone mode
-      ((window.navigator as any).standalone === true)
-    
-    // Detect Android (including tablets)
-    // Android tablets typically have "android" in user agent but not "mobile"
-    const isAndroid = /android/.test(userAgent) ||
-      // Also check for Android app referrer
-      document.referrer.includes('android-app://')
-    
-    // Detect if it's a mobile device
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
-    
-    if (isIOS) {
-      setPlatform('ios')
-    } else if (isAndroid) {
-      setPlatform('android')
-    } else if (!isMobile) {
-      setPlatform('desktop')
-    } else {
-      setPlatform('unknown')
-    }
+    setPlatform(detectDevicePlatform({
+      userAgent: navigator.userAgent,
+      referrer: document.referrer,
+      standalone: isNavigatorStandalone(),
+    }))
   }, [])
 
   return platform
@@ -49,8 +79,11 @@ export function isAndroid(): boolean {
     return false
   }
   
-  const userAgent = navigator.userAgent.toLowerCase()
-  return /android/.test(userAgent) || document.referrer.includes('android-app://')
+  return detectDevicePlatform({
+    userAgent: navigator.userAgent,
+    referrer: document.referrer,
+    standalone: isNavigatorStandalone(),
+  }) === 'android'
 }
 
 /**
@@ -61,9 +94,11 @@ export function isIOS(): boolean {
     return false
   }
   
-  const userAgent = navigator.userAgent.toLowerCase()
-  return /iphone|ipad|ipod/.test(userAgent) || 
-    ((window.navigator as any).standalone === true)
+  return detectDevicePlatform({
+    userAgent: navigator.userAgent,
+    referrer: document.referrer,
+    standalone: isNavigatorStandalone(),
+  }) === 'ios'
 }
 
 /**

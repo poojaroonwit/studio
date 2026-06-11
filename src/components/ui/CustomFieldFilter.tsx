@@ -11,13 +11,23 @@ import { Button } from '@/components/ui/button';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import type { CustomFieldDefinition } from '@/lib/types';
+import type { ApplicantCustomFieldFilterValue, CustomFieldDefinition } from '@/lib/types';
 
 interface CustomFieldFilterProps {
   definition: CustomFieldDefinition;
-  value: any;
-  onChange: (value: any) => void;
+  value: ApplicantCustomFieldFilterValue;
+  onChange: (value: ApplicantCustomFieldFilterValue) => void;
   className?: string;
+}
+
+function getTextFilterValue(value: ApplicantCustomFieldFilterValue): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+}
+
+function getDateFilterValue(value: ApplicantCustomFieldFilterValue): Date | undefined {
+  return value instanceof Date || typeof value === 'string' || typeof value === 'number'
+    ? new Date(value)
+    : undefined;
 }
 
 export function CustomFieldFilter({ 
@@ -32,7 +42,7 @@ export function CustomFieldFilter({
       case 'textarea':
         return (
           <Input
-            value={value || ''}
+            value={getTextFilterValue(value)}
             onChange={(e) => onChange(e.target.value || null)}
             placeholder={`Filter by ${definition.label.toLowerCase()}...`}
             className="w-full"
@@ -43,7 +53,7 @@ export function CustomFieldFilter({
         return (
           <Input
             type="number"
-            value={value || ''}
+            value={getTextFilterValue(value)}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
             placeholder={`Filter by ${definition.label.toLowerCase()}...`}
             className="w-full"
@@ -80,13 +90,13 @@ export function CustomFieldFilter({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {value ? format(new Date(value), "PPP") : "Select date"}
+                {getDateFilterValue(value) ? format(getDateFilterValue(value) as Date, "PPP") : "Select date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={value ? new Date(value) : undefined}
+                selected={getDateFilterValue(value)}
                 onSelect={(date) => onChange(date ? date.toISOString() : null)}
                 initialFocus
               />
@@ -96,7 +106,7 @@ export function CustomFieldFilter({
 
       case 'select_single':
         return (
-          <Select value={value || ''} onValueChange={(val) => onChange(val || null)}>
+          <Select value={getTextFilterValue(value)} onValueChange={(val) => onChange(val || null)}>
             <SelectTrigger>
               <SelectValue placeholder={`Select ${definition.label.toLowerCase()}...`} />
             </SelectTrigger>
@@ -114,17 +124,19 @@ export function CustomFieldFilter({
       case 'select_multiple':
         return (
           <div className="space-y-2">
-            {definition.options?.map((option) => (
+            {definition.options?.map((option) => {
+              const currentValues = Array.isArray(value) ? value.map(String) : [];
+
+              return (
               <div key={option.value} className="flex items-center space-x-2">
                 <Checkbox
                   id={`${definition.field_code}-${option.value}`}
-                  checked={Array.isArray(value) && value.includes(option.value)}
+                  checked={currentValues.includes(option.value)}
                   onCheckedChange={(checked) => {
-                    const currentValues = Array.isArray(value) ? value : [];
                     if (checked) {
                       onChange([...currentValues, option.value]);
                     } else {
-                      onChange(currentValues.filter(v => v !== option.value));
+                      onChange(currentValues.filter((v) => v !== option.value));
                     }
                   }}
                 />
@@ -132,14 +144,15 @@ export function CustomFieldFilter({
                   {option.label}
                 </Label>
               </div>
-            ))}
+            );
+            })}
           </div>
         );
 
       default:
         return (
           <Input
-            value={value || ''}
+            value={getTextFilterValue(value)}
             onChange={(e) => onChange(e.target.value)}
             placeholder={`Filter by ${definition.label.toLowerCase()}...`}
             className="w-full"

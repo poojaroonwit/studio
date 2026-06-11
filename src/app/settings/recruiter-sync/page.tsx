@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RecruiterSyncCard } from '@/components/settings/RecruiterSyncCard';
+import { readJsonObject } from '@/lib/response-json';
 
 export default function RecruiterSyncPage() {
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
@@ -12,7 +13,7 @@ export default function RecruiterSyncPage() {
       try {
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
-          const data = await response.json();
+          const data = await readJsonObject(response);
           setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
         }
       } catch (error) {

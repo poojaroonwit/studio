@@ -3,10 +3,8 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -20,17 +18,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { KeyRound, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-const changePasswordFormSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
-  confirmNewPassword: z.string().min(8, "Please confirm your new password"),
-}).refine(data => data.newPassword === data.confirmNewPassword, {
-  message: "New passwords do not match",
-  path: ["confirmNewPassword"],
-});
-
-type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
+import {
+  CHANGE_PASSWORD_DEFAULT_VALUES,
+  CHANGE_PASSWORD_FIELDS,
+  CHANGE_PASSWORD_SUCCESS_MESSAGE,
+  buildChangePasswordRequestBody,
+  changePasswordFormSchema,
+  getChangePasswordErrorMessage,
+  getChangePasswordFormClassName,
+  getChangePasswordSubmitButtonClassName,
+  getChangePasswordSubmitLabel,
+  shouldResetChangePasswordForm,
+  type ChangePasswordFormValues,
+} from './change-password-modal-utils';
+import { postAuthJson } from './auth-client-api';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -47,7 +48,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { cn } from '@/lib/utils';
 
 export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModalProps) {
   const [apiError, setApiError] = useState<string | null>(null);
@@ -56,34 +56,23 @@ export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModa
 
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordFormSchema),
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmNewPassword: '',
-    },
+    defaultValues: CHANGE_PASSWORD_DEFAULT_VALUES,
   });
 
   const onSubmit = async (data: ChangePasswordFormValues) => {
     setIsSubmitting(true);
     setApiError(null);
     try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to change password.");
-      }
-      toast.success('Your password has been successfully updated.');
-      onOpenChange(false); // Close modal on success
+      await postAuthJson(
+        '/api/auth/change-password',
+        buildChangePasswordRequestBody(data),
+        'Failed to change password'
+      );
+      toast.success(CHANGE_PASSWORD_SUCCESS_MESSAGE);
+      onOpenChange(false);
       form.reset();
     } catch (error) {
-      setApiError((error as Error).message);
+      setApiError(getChangePasswordErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +80,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModa
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
-    if (!open) {
+    if (shouldResetChangePasswordForm(open)) {
       form.reset();
       setApiError(null);
     }
@@ -99,7 +88,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModa
 
   const content = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn("space-y-4 py-2", isMobile && "px-4")}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={getChangePasswordFormClassName(isMobile)}>
         {apiError && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -107,50 +96,27 @@ export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModa
             <AlertDescription>{apiError}</AlertDescription>
           </Alert>
         )}
-        <FormField
-          control={form.control}
-          name="currentPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
-              <FormControl>
-                <Input id="currentPassword" type="password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="newPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="newPassword">New Password</FormLabel>
-              <FormControl>
-                <Input id="newPassword" type="password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="confirmNewPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="confirmNewPassword">Confirm New Password</FormLabel>
-              <FormControl>
-                <Input id="confirmNewPassword" type="password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {CHANGE_PASSWORD_FIELDS.map(({ name, label }) => (
+          <FormField
+            key={name}
+            control={form.control}
+            name={name}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor={name}>{label}</FormLabel>
+                <FormControl>
+                  <Input id={name} type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
         {isMobile ? (
           <DrawerFooter className="pt-4 px-0">
-            <Button type="submit" disabled={isSubmitting} className="btn-primary-gradient w-full">
+            <Button type="submit" disabled={isSubmitting} className={getChangePasswordSubmitButtonClassName(true)}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-              {isSubmitting ? 'Updating...' : 'Update Password'}
+              {getChangePasswordSubmitLabel(isSubmitting)}
             </Button>
             <DrawerClose asChild>
               <Button type="button" variant="outline" className="w-full">
@@ -165,9 +131,9 @@ export function ChangePasswordModal({ isOpen, onOpenChange }: ChangePasswordModa
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting} className="btn-primary-gradient">
+            <Button type="submit" disabled={isSubmitting} className={getChangePasswordSubmitButtonClassName(false)}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-              {isSubmitting ? 'Updating...' : 'Update Password'}
+              {getChangePasswordSubmitLabel(isSubmitting)}
             </Button>
           </DialogFooter>
         )}

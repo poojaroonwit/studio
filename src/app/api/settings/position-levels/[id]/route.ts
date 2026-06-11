@@ -3,10 +3,62 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, type DbClient } from '@/lib/db';
+import { readRequestJsonResult } from '@/lib/request-json';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  let client: any = null;
+type RouteContext = { params: Promise<{ id: string }> };
+
+type PositionLevelRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  isActive: boolean;
+  sortOrder: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type PositionLevelNameRow = {
+  name: string;
+};
+
+type CountRow = {
+  count: string | number;
+};
+
+type UpdatePositionLevelBody = {
+  name?: unknown;
+  description?: unknown;
+  color?: unknown;
+  isActive?: unknown;
+  sortOrder?: unknown;
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function parseUpdateBody(body: unknown): UpdatePositionLevelBody {
+  return body && typeof body === 'object' && !Array.isArray(body)
+    ? body as UpdatePositionLevelBody
+    : {};
+}
+
+function getOptionalString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function getOptionalNumber(value: unknown): number | null {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+  return null;
+}
+
+export async function GET(_request: NextRequest, { params }: RouteContext) {
+  let client: DbClient | null = null;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -21,16 +73,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       FROM "PositionLevel"
       WHERE id = $1
     `;
-    const result = await client.query(query, [id]);
+    const result = await client.query<PositionLevelRow>(query, [id]);
 
     if (result.rows.length === 0) {
       return NextResponse.json({ message: 'Position level not found' }, { status: 404 });
     }
 
     return NextResponse.json(result.rows[0]);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching position level:', error);
-    return NextResponse.json({ message: 'Error fetching position level', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error fetching position level', error: getErrorMessage(error) }, { status: 500 });
   } finally {
     if (client) {
       client.release();
@@ -38,8 +90,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  let client: any = null;
+export async function PUT(request: NextRequest, { params }: RouteContext) {
+  let client: DbClient | null = null;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -49,14 +101,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     client = await getPool().connect();
     
-    const body = await request.json();
-    const { name, description, color, isActive, sortOrder } = body;
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const body = parseUpdateBody(bodyResult.value);
+    const name = getOptionalString(body.name);
+    const description = getOptionalString(body.description);
+    const color = getOptionalString(body.color);
+    const isActive = typeof body.isActive === 'boolean' ? body.isActive : true;
+    const sortOrder = getOptionalNumber(body.sortOrder);
 
     if (!name) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    const existing = await client.query('SELECT id FROM "PositionLevel" WHERE name = $1 AND id != $2', [name, id]);
+    const existing = await client.query<{ id: string }>('SELECT id FROM "PositionLevel" WHERE name = $1 AND id != $2', [name, id]);
     if (existing.rows.length > 0) {
       return NextResponse.json({ message: 'Position level name already exists' }, { status: 409 });
     }
@@ -68,7 +129,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       RETURNING id, name, description, color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
     `;
 
-    const result = await client.query(query, [
+    const result = await client.query<PositionLevelRow>(query, [
       name, description, color || '#6B7280', isActive ?? true, sortOrder, id
     ]);
 
@@ -77,9 +138,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json(result.rows[0]);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating position level:', error);
-    return NextResponse.json({ message: 'Error updating position level', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error updating position level', error: getErrorMessage(error) }, { status: 500 });
   } finally {
     if (client) {
       client.release();
@@ -87,8 +148,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  let client: any = null;
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
+  let client: DbClient | null = null;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -99,26 +160,26 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     client = await getPool().connect();
     
     // Prevent deletion if the level is in use by any position (matching by name field)
-    const levelResult = await client.query('SELECT name FROM "PositionLevel" WHERE id = $1', [id]);
+    const levelResult = await client.query<PositionLevelNameRow>('SELECT name FROM "PositionLevel" WHERE id = $1', [id]);
     if (levelResult.rows.length === 0) {
       return NextResponse.json({ message: 'Position level not found' }, { status: 404 });
     }
-    const levelName = levelResult.rows[0].name as string;
+    const levelName = levelResult.rows[0].name;
 
-    const usage = await client.query('SELECT COUNT(*) FROM "Position" WHERE "positionLevel" = $1', [levelName]);
-    if (parseInt(usage.rows[0].count) > 0) {
+    const usage = await client.query<CountRow>('SELECT COUNT(*) FROM "Position" WHERE "positionLevel" = $1', [levelName]);
+    if (parseInt(String(usage.rows[0].count), 10) > 0) {
       return NextResponse.json({ message: 'Cannot delete position level. It is currently assigned to one or more positions.' }, { status: 400 });
     }
 
-    const result = await client.query('DELETE FROM "PositionLevel" WHERE id = $1 RETURNING id', [id]);
+    const result = await client.query<{ id: string }>('DELETE FROM "PositionLevel" WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
       return NextResponse.json({ message: 'Position level not found' }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Position level deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting position level:', error);
-    return NextResponse.json({ message: 'Error deleting position level', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error deleting position level', error: getErrorMessage(error) }, { status: 500 });
   } finally {
     if (client) {
       client.release();

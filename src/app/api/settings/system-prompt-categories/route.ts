@@ -7,6 +7,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const categorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
@@ -79,13 +80,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = categorySchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ 

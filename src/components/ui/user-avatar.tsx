@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import type { CSSProperties } from 'react';
 import { UserCircle } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { getCachedAvatarUrl } from '@/lib/imageUtils';
+import {
+  getAvatarFallbackIconClass,
+  getAvatarInitials,
+  getAvatarTooltip,
+  useCachedAvatarImage,
+  type AvatarSize,
+  type CachedAvatarUser,
+} from './use-cached-avatar-image';
 
 interface UserAvatarProps {
-  user: {
-    id: string;
-    name: string;
-    avatarUrl?: string | null;
-    image?: string | null;
-    email?: string;
-    personalColor?: string | null;
-  };
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  user: CachedAvatarUser;
+  size?: AvatarSize;
   className?: string;
   showTooltip?: boolean;
   forceRefresh?: boolean;
@@ -24,7 +24,7 @@ const sizeClasses = {
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',
-  xl: 'h-16 w-16'
+  xl: 'h-16 w-16',
 };
 
 const fontSizeClasses = {
@@ -32,7 +32,7 @@ const fontSizeClasses = {
   sm: 'text-xs',
   md: 'text-sm',
   lg: 'text-base',
-  xl: 'text-lg'
+  xl: 'text-lg',
 };
 
 export function UserAvatar({
@@ -40,147 +40,40 @@ export function UserAvatar({
   size = 'md',
   className,
   showTooltip = false,
-  forceRefresh = false
+  forceRefresh = false,
 }: UserAvatarProps) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  // Only initialize loading to true if there IS an avatar to load
-  const [isLoading, setIsLoading] = useState(!!(user?.avatarUrl || user?.image));
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
-  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
-  const lastImageRef = useRef<string | null | undefined>(null);
-  const lastUserIdRef = useRef<string | null>(null);
-
-  // Memoize user properties to prevent unnecessary reloads
-  const userId = user?.id;
-  const avatarUrl = user?.avatarUrl;
-  const image = user?.image;
-
-  // Handle avatar loading with caching and timeout protection
-  const loadAvatar = useCallback(async () => {
-    // Skip if nothing changed
-    if (lastUserIdRef.current === userId &&
-      lastAvatarUrlRef.current === avatarUrl &&
-      lastImageRef.current === image &&
-      !forceRefresh) {
-      return;
-    }
-
-    // Update refs
-    lastUserIdRef.current = userId;
-    lastAvatarUrlRef.current = avatarUrl;
-    lastImageRef.current = image;
-
-    if (!avatarUrl && !image) {
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-      return;
-    }
-
-    try {
-      if (isMountedRef.current) {
-        setIsLoading(true);
-        setImageLoaded(false);
-      }
-
-      // Set timeout to prevent infinite loading
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutRef.current = setTimeout(() => {
-          reject(new Error('Avatar loading timeout'));
-        }, 10000); // 10 second timeout
-      });
-
-      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
-
-      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-
-      if (isMountedRef.current) {
-        setImageUrl(cachedUrl);
-        // Don't set isLoading to false here - wait for onLoad event
-      }
-    } catch (error) {
-      console.warn('[USER_AVATAR] Failed to load avatar:', error);
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    }
-  }, [userId, avatarUrl, image, forceRefresh]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    loadAvatar();
-
-    return () => {
-      isMountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [loadAvatar]);
-
-  // Generate initials from name
-  const getInitials = (name: string) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length === 1) {
-      return parts[0].charAt(0).toUpperCase();
-    }
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  };
-
-  const initials = getInitials(user?.name);
-  const tooltipText = showTooltip ? `${user?.name}${user?.email ? ` (${user.email})` : ''}` : undefined;
-
-  // Use personal color for styling if available
-  const personalColor = user.personalColor || '#3b82f6'; // Default blue
+  const personalColor = user.personalColor || '#3b82f6';
+  const initials = getAvatarInitials(user.name, 'U');
+  const { imageUrl, isLoading, imageLoaded, handleImageLoad, handleImageError } = useCachedAvatarImage(user, {
+    forceRefresh,
+    size,
+    warningLabel: 'USER_AVATAR',
+  });
 
   return (
     <div className="relative group">
-      {/* Gradient background blur effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-
-      {/* Main avatar with enhanced styling */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300" />
       <Avatar
         className={cn(
           sizeClasses[size],
           'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
           'group-hover:shadow-2xl transition-all duration-300 rounded-full',
-          isLoading && (!!user.avatarUrl || !!user.image) && 'animate-pulse',
+          isLoading && (user.avatarUrl || user.image) && 'animate-pulse',
           className
         )}
         style={{
-          '--tw-ring-color': personalColor + '80',
-          '--tw-ring-opacity': '0.8'
-        } as React.CSSProperties}
-        title={tooltipText}
+          '--tw-ring-color': `${personalColor}80`,
+          '--tw-ring-opacity': '0.8',
+        } as CSSProperties}
+        title={getAvatarTooltip(user, showTooltip)}
       >
         {imageUrl ? (
           <AvatarImage
             src={imageUrl}
-            alt={user.name}
+            alt={user.name || 'User'}
             className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
-            onLoad={() => {
-              setImageLoaded(true);
-              setIsLoading(false);
-            }}
-            onError={() => {
-              console.warn('[USER_AVATAR] Image failed to load:', imageUrl);
-              setImageUrl(null);
-              setIsLoading(false);
-              setImageLoaded(false);
-            }}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
           />
         ) : null}
         <AvatarFallback
@@ -189,18 +82,17 @@ export function UserAvatar({
             fontSizeClasses[size]
           )}
           style={{
-            backgroundColor: personalColor + '20',
-            color: personalColor
+            backgroundColor: `${personalColor}20`,
+            color: personalColor,
           }}
         >
-          {initials || <UserCircle className={cn(size === 'xs' ? 'h-2.5 w-2.5' : size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : size === 'lg' ? 'h-5 w-5' : 'h-6 w-6')} />}
+          {initials || <UserCircle className={getAvatarFallbackIconClass(size)} />}
         </AvatarFallback>
       </Avatar>
     </div>
   );
 }
 
-// Compact version for lists and tables
 export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }: UserAvatarProps) {
   return (
     <UserAvatar
@@ -212,156 +104,6 @@ export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }
   );
 }
 
-// Large version for profile pages
 export function UserAvatarLarge({ user, className }: UserAvatarProps) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  // Only initialize loading to true if there IS an avatar to load
-  const [isLoading, setIsLoading] = useState(!!(user?.avatarUrl || user?.image));
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
-  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
-  const lastImageRef = useRef<string | null | undefined>(null);
-  const lastUserIdRef = useRef<string | null>(null);
-
-  // Memoize user properties to prevent unnecessary reloads
-  const userId = user?.id;
-  const avatarUrl = user?.avatarUrl;
-  const image = user?.image;
-
-  // Handle avatar loading with caching and timeout protection
-  const loadAvatar = useCallback(async () => {
-    // Skip if nothing changed
-    if (lastUserIdRef.current === userId &&
-      lastAvatarUrlRef.current === avatarUrl &&
-      lastImageRef.current === image) {
-      return;
-    }
-
-    // Update refs
-    lastUserIdRef.current = userId;
-    lastAvatarUrlRef.current = avatarUrl;
-    lastImageRef.current = image;
-
-    if (!avatarUrl && !image) {
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-      return;
-    }
-
-    try {
-      if (isMountedRef.current) {
-        setIsLoading(true);
-        setImageLoaded(false);
-      }
-
-      // Set timeout to prevent infinite loading
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutRef.current = setTimeout(() => {
-          reject(new Error('Avatar loading timeout'));
-        }, 10000); // 10 second timeout
-      });
-
-      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
-
-      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-
-      if (isMountedRef.current) {
-        setImageUrl(cachedUrl);
-        // Don't set isLoading to false here - wait for onLoad event
-      }
-    } catch (error) {
-      console.warn('[USER_AVATAR_LARGE] Failed to load avatar:', error);
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    }
-  }, [userId, avatarUrl, image]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    loadAvatar();
-
-    return () => {
-      isMountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [loadAvatar]);
-
-  // Generate initials from name
-  const getInitials = (name: string) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length === 1) {
-      return parts[0].charAt(0).toUpperCase();
-    }
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  };
-
-  const initials = getInitials(user?.name);
-  const tooltipText = `${user?.name}${user?.email ? ` (${user.email})` : ''}`;
-  const personalColor = user?.personalColor || '#3b82f6'; // Default blue
-
-  return (
-    <div className="relative group">
-      {/* Gradient background blur effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-
-      {/* Main avatar with enhanced styling */}
-      <Avatar
-        className={cn(
-          'h-16 w-16',
-          'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
-          'group-hover:shadow-2xl transition-all duration-300 rounded-full',
-          isLoading && (!!user.avatarUrl || !!user.image) && 'animate-pulse',
-          className
-        )}
-        style={{
-          '--tw-ring-color': personalColor + '80',
-          '--tw-ring-opacity': '0.8'
-        } as React.CSSProperties}
-        title={tooltipText}
-      >
-        {imageUrl ? (
-          <AvatarImage
-            src={imageUrl}
-            alt={user.name}
-            className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
-            onLoad={() => {
-              setImageLoaded(true);
-              setIsLoading(false);
-            }}
-            onError={() => {
-              console.warn('[USER_AVATAR_LARGE] Image failed to load:', imageUrl);
-              setImageUrl(null);
-              setIsLoading(false);
-              setImageLoaded(false);
-            }}
-          />
-        ) : null}
-        <AvatarFallback
-          className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-full"
-          style={{
-            backgroundColor: personalColor + '20',
-            color: personalColor
-          }}
-        >
-          {initials || <UserCircle className="h-6 w-6" />}
-        </AvatarFallback>
-      </Avatar>
-    </div>
-  );
+  return <UserAvatar user={user} size="xl" className={className} showTooltip />;
 }

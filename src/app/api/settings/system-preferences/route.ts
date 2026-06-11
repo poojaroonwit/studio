@@ -1,75 +1,27 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { getPool } from '@/lib/db';
+import { getPool, type DbClient } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
+import { preferenceSchema } from './system-preferences-schema';
+import { fetchSystemPreferences, saveSystemPreferences } from './system-preferences-store';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const preferenceSchema = z.object({
-  themePreference: z.enum(["light", "dark", "system"]).optional(),
-  appName: z.string().optional(),
-  appLogoDataUrl: z.string().nullable().optional(),
-  appFaviconDataUrl: z.string().nullable().optional(),
-  // New contextual logo settings
-  loginPageLogoLightMode: z.string().nullable().optional(),
-  loginPageLogoDarkMode: z.string().nullable().optional(),
-  sidebarLogoCollapsedLightMode: z.string().nullable().optional(),
-  sidebarLogoExpandedLightMode: z.string().nullable().optional(),
-  sidebarLogoCollapsedDarkMode: z.string().nullable().optional(),
-  sidebarLogoExpandedDarkMode: z.string().nullable().optional(),
-  // Branding display settings
-  showLogoOnly: z.boolean().optional(),
-  loginBackgroundType: z.enum(["image", "gradient", "solid"]).optional(),
-  loginBackgroundGradientStart: z.string().optional(),
-  loginBackgroundGradientEnd: z.string().optional(),
-  loginBackgroundColor: z.string().optional(),
-  loginPageBackgroundImageUrl: z.string().nullable().optional(),
-  // Sidebar colors and other UI preferences
-  sidebarBgStartL: z.string().optional(),
-  sidebarBgEndL: z.string().optional(),
-  sidebarTextL: z.string().optional(),
-  sidebarActiveBgStartL: z.string().optional(),
-  sidebarActiveBgEndL: z.string().optional(),
-  sidebarActiveTextL: z.string().optional(),
-  sidebarHoverBgL: z.string().optional(),
-  sidebarHoverTextL: z.string().optional(),
-  sidebarBorderL: z.string().optional(),
-  // Button text colors - separate from sidebar active text
-  buttonTextColorL: z.string().optional(),
-  buttonTextColorD: z.string().optional(),
-  // Primary button shadow settings
-  primaryButtonShadowL: z.string().nullable().optional(),
-  primaryButtonShadowHoverL: z.string().nullable().optional(),
-  primaryButtonShadowD: z.string().nullable().optional(),
-  primaryButtonShadowHoverD: z.string().nullable().optional(),
-  sidebarBgStartD: z.string().optional(),
-  sidebarBgEndD: z.string().optional(),
-  sidebarTextD: z.string().optional(),
-  sidebarActiveBgStartD: z.string().optional(),
-  sidebarActiveBgEndD: z.string().optional(),
-  sidebarActiveTextD: z.string().optional(),
-  sidebarHoverBgD: z.string().optional(),
-  sidebarHoverTextD: z.string().optional(),
-  sidebarBorderD: z.string().optional(),
-}).and(z.record(z.string(), z.any().optional())); // Allow any additional string keys
-
-// System-wide preferences use a special system user ID
-const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function GET(request: NextRequest) {
+  void request;
+
   try {
-    const result = await getPool().query(
-      'SELECT key, value FROM "SystemPreference" WHERE "userId" = $1',
-      [SYSTEM_USER_ID]
-    );
-    const prefs = Object.fromEntries(result.rows.map((row: any) => [row.key, row.value]));
-    return NextResponse.json(prefs, { status: 200 });
+    return NextResponse.json(await fetchSystemPreferences(), { status: 200 });
   } catch (error) {
     console.error("Failed to fetch system preferences:", error);
-    return NextResponse.json({ message: "Error fetching system preferences", error: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching system preferences", error: getErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -80,13 +32,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
-    return NextResponse.json({ message: "Error parsing request body", error: (error as Error).message }, { status: 400 });
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
+    return NextResponse.json({ message: "Error parsing request body", error: getErrorMessage(bodyResult.error) }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = preferenceSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json(
@@ -96,37 +47,19 @@ export async function POST(request: NextRequest) {
   }
 
   const prefsToSave = validationResult.data;
-  const client = await getPool().connect();
+  const client: DbClient = await getPool().connect();
   try {
     await client.query('BEGIN');
-    
-    // Delete existing system preferences for the keys we're updating
-    const keysToUpdate = Object.keys(prefsToSave);
-    if (keysToUpdate.length > 0) {
-      const placeholders = keysToUpdate.map((_, i) => `$${i + 2}`).join(',');
-      await client.query(
-        `DELETE FROM "SystemPreference" WHERE "userId" = $1 AND key IN (${placeholders})`,
-        [SYSTEM_USER_ID, ...keysToUpdate]
-      );
-    }
-    
-    // Insert new preferences
-    for (const [key, value] of Object.entries(prefsToSave)) {
-      await client.query(
-        `INSERT INTO "SystemPreference" ("userId", key, value, "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, NOW(), NOW())`,
-        [SYSTEM_USER_ID, key, value]
-      );
-    }
-    
+    await saveSystemPreferences(client, prefsToSave);
     await client.query('COMMIT');
     await logAudit('AUDIT', `System preferences updated by ${session.user.name}. Keys: ${Object.keys(prefsToSave).join(', ')}`, 'API:SystemPreferences:Update', session.user.id, { updatedKeys: Object.keys(prefsToSave) });
     return NextResponse.json({ message: "System preferences updated" }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
     await client.query('ROLLBACK');
     console.error("Failed to save system preferences:", error);
-    await logAudit('ERROR', `Failed to save system preferences by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${error.message}`, 'API:SystemPreferences:Update', session?.user?.id);
-    return NextResponse.json({ message: "Error saving system preferences", error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to save system preferences by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${errorMessage}`, 'API:SystemPreferences:Update', session?.user?.id);
+    return NextResponse.json({ message: "Error saving system preferences", error: errorMessage }, { status: 500 });
   } finally {
     client.release();
   }

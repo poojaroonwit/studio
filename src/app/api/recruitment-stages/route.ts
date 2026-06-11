@@ -6,6 +6,9 @@ import { hasPermission } from '@/lib/permissions';
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * @openapi
@@ -60,11 +63,11 @@ export async function GET(request: NextRequest) {
             'SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC'
         );
         return NextResponse.json(result.rows);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Failed to fetch recruitment stages:", error);
         return NextResponse.json({ 
             message: "Error fetching recruitment stages", 
-            error: error.message 
+            error: getErrorMessage(error)
         }, { status: 500 });
     } finally {
         client.release();

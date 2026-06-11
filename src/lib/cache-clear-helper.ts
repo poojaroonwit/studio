@@ -1,7 +1,9 @@
-/**
- * Cache clearing helper for initialization errors
- * Provides utilities to clear browser cache and reload the page
- */
+import {
+  clearCacheStorage,
+  clearIndexedDatabases,
+  clearWebStorage,
+  unregisterServiceWorkers,
+} from './browser-storage-cleanup';
 
 export interface CacheClearOptions {
   clearLocalStorage?: boolean;
@@ -12,108 +14,66 @@ export interface CacheClearOptions {
 }
 
 export class CacheClearHelper {
-  /**
-   * Clear all browser caches and storage
-   */
   static async clearAll(options: CacheClearOptions = {}): Promise<void> {
     const {
       clearLocalStorage = true,
       clearSessionStorage = true,
       clearIndexedDB = true,
       clearServiceWorkers = true,
-      clearCacheStorage = true
+      clearCacheStorage: shouldClearCacheStorage = true,
     } = options;
 
     try {
-      // Clear localStorage
       if (clearLocalStorage && typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.clear();
-        // console.log('✅ localStorage cleared');
+        await clearWebStorage(window.localStorage);
       }
 
-      // Clear sessionStorage
       if (clearSessionStorage && typeof window !== 'undefined' && window.sessionStorage) {
-        window.sessionStorage.clear();
-        // console.log('✅ sessionStorage cleared');
+        await clearWebStorage(window.sessionStorage);
       }
 
-      // Clear IndexedDB
       if (clearIndexedDB && typeof window !== 'undefined' && 'indexedDB' in window) {
         try {
-          const databases = await indexedDB.databases();
-          await Promise.all(
-            databases.map(db => {
-              const dbName = db.name || '';
-              if (dbName) {
-                return new Promise<void>((resolve, reject) => {
-                  const deleteReq = indexedDB.deleteDatabase(dbName);
-                  deleteReq.onsuccess = () => resolve();
-                  deleteReq.onerror = () => reject(deleteReq.error);
-                });
-              }
-              return Promise.resolve();
-            })
-          );
-          // console.log('✅ IndexedDB cleared');
+          await clearIndexedDatabases(indexedDB);
         } catch (error) {
-          console.warn('⚠️ Could not clear IndexedDB:', error);
+          console.warn('Could not clear IndexedDB:', error);
         }
       }
 
-      // Clear Cache Storage
-      if (clearCacheStorage && 'caches' in window) {
+      if (shouldClearCacheStorage && typeof window !== 'undefined' && 'caches' in window) {
         try {
-          const cacheNames = await caches.keys();
-          await Promise.all(
-            cacheNames.map(cacheName => caches.delete(cacheName))
-          );
-          // console.log('✅ Cache Storage cleared');
+          await clearCacheStorage(caches);
         } catch (error) {
-          console.warn('⚠️ Could not clear Cache Storage:', error);
+          console.warn('Could not clear Cache Storage:', error);
         }
       }
 
-      // Clear Service Workers
-      if (clearServiceWorkers && 'serviceWorker' in navigator) {
+      if (clearServiceWorkers && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         try {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(
-            registrations.map(registration => registration.unregister())
-          );
-          // console.log('✅ Service Workers cleared');
+          await unregisterServiceWorkers(navigator.serviceWorker);
         } catch (error) {
-          console.warn('⚠️ Could not clear Service Workers:', error);
+          console.warn('Could not clear Service Workers:', error);
         }
       }
-
     } catch (error) {
-      console.error('❌ Error clearing caches:', error);
+      console.error('Error clearing caches:', error);
       throw error;
     }
   }
 
-  /**
-   * Clear caches and reload the page
-   */
   static async clearAndReload(options: CacheClearOptions = {}): Promise<void> {
     try {
       await this.clearAll(options);
-      // console.log('🔄 Reloading page...');
-      
-      // Small delay to ensure clearing is complete
+
       setTimeout(() => {
         window.location.reload();
       }, 100);
     } catch (error) {
-      console.error('❌ Error during cache clear and reload:', error);
-      // Still try to reload even if clearing failed
+      console.error('Error during cache clear and reload:', error);
       window.location.reload();
     }
   }
 
-  /**
-   * Check if the current error is likely a cache-related initialization error
-   */
   static isInitializationError(error: Error): boolean {
     const message = error.message.toLowerCase();
     return (
@@ -126,9 +86,6 @@ export class CacheClearHelper {
     );
   }
 
-  /**
-   * Get user-friendly error message for initialization errors
-   */
   static getErrorMessage(error: Error): string {
     if (this.isInitializationError(error)) {
       return 'A JavaScript initialization error occurred. This is usually caused by cached files that are out of sync.';
@@ -136,16 +93,13 @@ export class CacheClearHelper {
     return 'An unexpected error occurred.';
   }
 
-  /**
-   * Get recommended actions for initialization errors
-   */
   static getRecommendedActions(): string[] {
     return [
       'Try refreshing the page to reload the JavaScript bundle',
       'Clear your browser cache and reload',
       'Check your internet connection',
       'Try using a different browser or incognito mode',
-      'Disable browser extensions temporarily'
+      'Disable browser extensions temporarily',
     ];
   }
 }

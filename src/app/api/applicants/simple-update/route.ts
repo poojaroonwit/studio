@@ -6,6 +6,8 @@ import { broadcastApplicantUpdate, broadcastNotification } from '@/lib/simple-br
 import { getPool } from '@/lib/db';
 
 import { auth } from '@/auth';
+import { getJsonObject, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -15,9 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json(); // Accept 'applicantId' from request for backward compatibility, but use 'targetApplicantId' internally
-    const { updates } = body;
-    const targetApplicantId = body.applicantId;
+    const body = await readRequestJsonObject(request); // Accept 'applicantId' from request for backward compatibility, but use 'targetApplicantId' internally
+    const updates = getJsonObject(body, 'updates');
+    const targetApplicantId = getJsonString(body, 'applicantId');
 
     if (!targetApplicantId || !updates) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });

@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import type { CustomFieldDefinition } from '@/lib/types';
+import type { CustomFieldDefinition, CustomFieldValue, CustomFieldValues } from '@/lib/types';
+import { readJsonOrFallback } from '../../lib/response-json';
+import { getCustomFieldDate, getCustomFieldStringArray, getCustomFieldTextInputValue } from '@/lib/customFieldUtils';
 
 interface HeadcountCustomFieldDisplayProps {
-  customFields: Record<string, any>;
+  customFields: CustomFieldValues;
   positionId: string;
 }
 
@@ -26,8 +28,8 @@ export function HeadcountCustomFieldDisplay({
       setLoading(true);
       const response = await fetch('/api/settings/custom-field-definitions?model=Headcount');
       if (response.ok) {
-        const definitions = await response.json();
-        setFieldDefinitions(definitions.filter((def: CustomFieldDefinition) => def.showInHeadcountDetail));
+        const definitions = await readJsonOrFallback<CustomFieldDefinition[]>(response, []);
+        setFieldDefinitions(definitions.filter((def) => def.showInHeadcountDetail));
       }
     } catch (error) {
       console.error('Error fetching custom field definitions:', error);
@@ -36,7 +38,7 @@ export function HeadcountCustomFieldDisplay({
     }
   };
 
-  const renderFieldValue = (definition: CustomFieldDefinition, value: any) => {
+  const renderFieldValue = (definition: CustomFieldDefinition, value: CustomFieldValue) => {
     if (!value) return null;
 
     switch (definition.field_type) {
@@ -50,7 +52,7 @@ export function HeadcountCustomFieldDisplay({
       case 'date':
         return (
           <span className="text-sm text-muted-foreground">
-            {format(new Date(value), 'MMM dd, yyyy')}
+            {getCustomFieldDate(value) ? format(getCustomFieldDate(value) as Date, 'MMM dd, yyyy') : getCustomFieldTextInputValue(value)}
           </span>
         );
 
@@ -64,9 +66,10 @@ export function HeadcountCustomFieldDisplay({
 
       case 'select_multiple':
         if (Array.isArray(value)) {
+          const selectedValues = getCustomFieldStringArray(value);
           return (
             <div className="flex flex-wrap gap-1">
-              {value.map((v, index) => {
+              {selectedValues.map((v, index) => {
                 const option = definition.options?.find(opt => opt.value === v);
                 return (
                   <Badge key={index} variant="outline" className="text-xs">
@@ -82,21 +85,21 @@ export function HeadcountCustomFieldDisplay({
       case 'number':
         return (
           <span className="text-sm font-medium">
-            {value}
+            {getCustomFieldTextInputValue(value)}
           </span>
         );
 
       case 'textarea':
         return (
           <span className="text-sm text-muted-foreground truncate max-w-xs">
-            {value}
+            {getCustomFieldTextInputValue(value)}
           </span>
         );
 
       default:
         return (
           <span className="text-sm text-muted-foreground truncate max-w-xs">
-            {value}
+            {getCustomFieldTextInputValue(value)}
           </span>
         );
     }

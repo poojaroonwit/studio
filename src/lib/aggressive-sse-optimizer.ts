@@ -1,159 +1,41 @@
 // Aggressive SSE Optimizer - Dramatically reduce event frequency
 // This implements strict rate limiting and event batching
 
+import {
+  addToBatch,
+  cleanupEventBatches,
+  clearEventBatch,
+  flushEventBatches,
+  getBatchStats,
+  getTotalBatchedEvents
+} from './aggressive-sse-batch';
+import { BATCH_FLUSH_INTERVAL, CLEANUP_INTERVAL } from './aggressive-sse-config';
+import {
+  canSendEvent,
+  cleanupEventThrottles,
+  clearEventThrottles,
+  getThrottleStats
+} from './aggressive-sse-throttle';
+import type { AggressiveBroadcastOptions, BatchedEvent } from './aggressive-sse-types';
 import { broadcast } from './realtime';
-type UnifiedEventType = string;
+import type { EventPayload, UnifiedEventType } from './realtime-event-types';
 
-// Global event throttling
-interface EventThrottle {
-  lastSent: number;
-  count: number;
-  windowStart: number;
-}
-
-const eventThrottles = new Map<string, EventThrottle>();
-const GLOBAL_EVENT_LIMIT = 20; // Max 20 events per second globally (increased for better real-time updates)
-const GLOBAL_WINDOW_MS = 1000; // 1 second window
-
-// Event batching
-interface BatchedEvent {
-  type: UnifiedEventType;
-  data: any;
-  targetUserId?: string;
-  priority: 'high' | 'medium' | 'low';
-  timestamp: number;
-}
-
-const eventBatch = new Map<string, BatchedEvent[]>();
-const BATCH_FLUSH_INTERVAL = 5000; // Optimized: Flush every 5 seconds (was 2s) for lower CPU
-const MAX_BATCH_SIZE = 30; // Optimized: Max 30 events per batch (was 50) for lower memory
-
-// Priority-based event handling
-const PRIORITY_DELAYS = {
-  high: 0,      // Immediate
-  medium: 200,  // 200ms delay (reduced for better real-time updates)
-  low: 1000     // 1 second delay (reduced for better real-time updates)
-};
-
-// Check if we can send an event (global throttling)
-function canSendEvent(eventType: string): boolean {
-  const now = Date.now();
-  const throttle = eventThrottles.get(eventType) || {
-    lastSent: 0,
-    count: 0,
-    windowStart: now
-  };
-
-  // Reset window if needed
-  if (now - throttle.windowStart >= GLOBAL_WINDOW_MS) {
-    throttle.count = 0;
-    throttle.windowStart = now;
-  }
-
-  // Check global limit
-  if (throttle.count >= GLOBAL_EVENT_LIMIT) {
-    return false;
-  }
-
-  // Update throttle
-  throttle.count++;
-  throttle.lastSent = now;
-  eventThrottles.set(eventType, throttle);
-  return true;
-}
-
-// Add event to batch
-function addToBatch(event: BatchedEvent): void {
-  const batchKey = `${event.type}_${event.targetUserId || 'global'}`;
-  const batch = eventBatch.get(batchKey) || [];
-  
-  // Remove duplicate events (same type and data)
-  const existingIndex = batch.findIndex(e => 
-    e.type === event.type && 
-    JSON.stringify(e.data) === JSON.stringify(event.data)
-  );
-  
-  if (existingIndex >= 0) {
-    // Update existing event with higher priority
-    const existingPriority = batch[existingIndex].priority;
-    const newPriority = event.priority;
-    
-    // Determine higher priority (high > medium > low)
-    let higherPriority: 'high' | 'medium' | 'low';
-    if (newPriority === 'high' || existingPriority === 'high') {
-      higherPriority = 'high';
-    } else if (newPriority === 'medium' || existingPriority === 'medium') {
-      higherPriority = 'medium';
-    } else {
-      higherPriority = 'low';
-    }
-    
-    batch[existingIndex] = {
-      ...event,
-      priority: higherPriority
-    };
-  } else {
-    batch.push(event);
-  }
-  
-  // Limit batch size
-  if (batch.length > MAX_BATCH_SIZE) {
-    batch.splice(0, batch.length - MAX_BATCH_SIZE);
-  }
-  
-  eventBatch.set(batchKey, batch);
-}
-
-// Flush event batches
-function flushEventBatches(): void {
-  const now = Date.now();
-  
-  for (const [batchKey, events] of eventBatch.entries()) {
-    if (events.length === 0) continue;
-    
-    // Sort by priority and timestamp
-    events.sort((a, b) => {
-      if (a.priority !== b.priority) {
-        return PRIORITY_DELAYS[a.priority] - PRIORITY_DELAYS[b.priority];
-      }
-      return a.timestamp - b.timestamp;
-    });
-    
-    // Process events based on priority and timing
-    const eventsToSend = events.filter(event => {
-      const delay = PRIORITY_DELAYS[event.priority];
-      return now - event.timestamp >= delay;
-    });
-    
-    if (eventsToSend.length > 0) {
-      // Send events
-      for (const event of eventsToSend) {
-        if (canSendEvent(event.type)) {
-          if (!event.targetUserId) {
-            broadcast({ type: event.type, ...event.data }, event.type);
-          }
-        }
-      }
-      
-      // Remove sent events from batch
-      const remainingEvents = events.filter(event => !eventsToSend.includes(event));
-      eventBatch.set(batchKey, remainingEvents);
-    }
+function sendBroadcastEvent(event: BatchedEvent): void {
+  if (!event.targetUserId) {
+    broadcast({ type: event.type, ...event.data }, event.type);
   }
 }
 
 // Start batch flushing
-setInterval(flushEventBatches, BATCH_FLUSH_INTERVAL);
+setInterval(() => {
+  flushEventBatches(canSendEvent, sendBroadcastEvent);
+}, BATCH_FLUSH_INTERVAL);
 
 // Aggressive broadcast functions
 export function aggressiveBroadcast(
-  eventType: UnifiedEventType, 
-  data: any, 
-  options: {
-    targetUserId?: string;
-    priority?: 'high' | 'medium' | 'low';
-    throttle?: boolean;
-  } = {}
+  eventType: UnifiedEventType,
+  data: EventPayload,
+  options: AggressiveBroadcastOptions = {}
 ): void {
   const {
     targetUserId,
@@ -161,13 +43,10 @@ export function aggressiveBroadcast(
     throttle = true
   } = options;
 
-  // Check throttling
   if (throttle && !canSendEvent(eventType)) {
-    // console.log(`[AggressiveSSE] Event ${eventType} throttled - rate limit exceeded`);
     return;
   }
 
-  // Add to batch for processing
   addToBatch({
     type: eventType,
     data,
@@ -177,49 +56,45 @@ export function aggressiveBroadcast(
   });
 }
 
-// High-priority events (immediate)
 export function broadcastHighPriority(
-  eventType: UnifiedEventType, 
-  data: any, 
+  eventType: UnifiedEventType,
+  data: EventPayload,
   targetUserId?: string
 ): void {
-  aggressiveBroadcast(eventType, data, { 
-    targetUserId, 
+  aggressiveBroadcast(eventType, data, {
+    targetUserId,
     priority: 'high',
-    throttle: false // Bypass throttling for high-priority events
+    throttle: false
   });
 }
 
-// Medium-priority events (1 second delay)
 export function broadcastMediumPriority(
-  eventType: UnifiedEventType, 
-  data: any, 
+  eventType: UnifiedEventType,
+  data: EventPayload,
   targetUserId?: string
 ): void {
-  aggressiveBroadcast(eventType, data, { 
-    targetUserId, 
+  aggressiveBroadcast(eventType, data, {
+    targetUserId,
     priority: 'medium',
     throttle: true
   });
 }
 
-// Low-priority events (3 second delay, heavily throttled)
 export function broadcastLowPriority(
-  eventType: UnifiedEventType, 
-  data: any, 
+  eventType: UnifiedEventType,
+  data: EventPayload,
   targetUserId?: string
 ): void {
-  aggressiveBroadcast(eventType, data, { 
-    targetUserId, 
+  aggressiveBroadcast(eventType, data, {
+    targetUserId,
     priority: 'low',
     throttle: true
   });
 }
 
-// Force immediate broadcast (bypasses all optimizations)
 export function forceBroadcast(
-  eventType: UnifiedEventType, 
-  data: any, 
+  eventType: UnifiedEventType,
+  data: EventPayload,
   targetUserId?: string
 ): void {
   if (!targetUserId) {
@@ -227,76 +102,27 @@ export function forceBroadcast(
   }
 }
 
-// Get optimization statistics
 export function getOptimizationStats() {
   const now = Date.now();
-  const stats = {
-    globalThrottles: Array.from(eventThrottles.entries()).map(([type, throttle]) => ({
-      type,
-      count: throttle.count,
-      lastSent: throttle.lastSent,
-      lastSentAgo: now - throttle.lastSent,
-      windowAge: now - throttle.windowStart
-    })),
-    eventBatches: Array.from(eventBatch.entries()).map(([key, events]) => ({
-      key,
-      count: events.length,
-      priorities: events.reduce((acc, event) => {
-        acc[event.priority] = (acc[event.priority] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
-    })),
-    totalBatchedEvents: Array.from(eventBatch.values()).reduce((sum, batch) => sum + batch.length, 0)
+
+  return {
+    globalThrottles: getThrottleStats(now),
+    eventBatches: getBatchStats(),
+    totalBatchedEvents: getTotalBatchedEvents()
   };
-  
-  return stats;
 }
 
-// Emergency reset (use when events are still too frequent)
 export function emergencyReset(): void {
   console.warn('[AggressiveSSE] EMERGENCY: Resetting all throttles and batches');
-  
-  // Clear all throttles
-  eventThrottles.clear();
-  
-  // Clear all batches
-  eventBatch.clear();
-  
-  // console.log('[AggressiveSSE] Emergency reset completed');
+
+  clearEventThrottles();
+  clearEventBatch();
 }
 
 // Auto-reset throttles and cleanup stale data every 2 minutes
 setInterval(() => {
   const now = Date.now();
-  const STALE_THRESHOLD = 10 * 60 * 1000; // 10 minutes
 
-  // Cleanup throttles
-  for (const [type, throttle] of eventThrottles.entries()) {
-    // If not used for a long time, remove it to prevent memory leak
-    if (now - throttle.lastSent > STALE_THRESHOLD) {
-      eventThrottles.delete(type);
-      continue;
-    }
-
-    // Reset window if needed
-    if (now - throttle.windowStart >= GLOBAL_WINDOW_MS) {
-      throttle.count = 0;
-      throttle.windowStart = now;
-    }
-  }
-
-  // Cleanup empty or stale batches
-  for (const [key, events] of eventBatch.entries()) {
-    if (events.length === 0) {
-      eventBatch.delete(key);
-      continue;
-    }
-
-    // Clean up batches that haven't been flushed for some reason
-    // (Shouldn't happen with working flush loop, but safety net)
-    const oldestEvent = events[0];
-    if (oldestEvent && (now - oldestEvent.timestamp > STALE_THRESHOLD)) {
-      eventBatch.delete(key);
-    }
-  }
-}, 120000); // Optimized: 2 minutes
+  cleanupEventThrottles(now);
+  cleanupEventBatches(now);
+}, CLEANUP_INTERVAL);

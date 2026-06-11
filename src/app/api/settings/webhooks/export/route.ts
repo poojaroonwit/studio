@@ -1,8 +1,32 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
+
+type ExportWebhookRow = Prisma.WebhookGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    url: true;
+    method: true;
+    events: true;
+    headers: true;
+    auth_type: true;
+    auth_username: true;
+    auth_password: true;
+    auth_token: true;
+    auth_header_name: true;
+    auth_header_value: true;
+    timeout: true;
+    retry_count: true;
+    is_active: true;
+    createdAt: true;
+    updatedAt: true;
+  };
+}>;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -38,7 +62,7 @@ export async function GET(request: NextRequest) {
     const exportData = {
       export_date: new Date().toISOString(),
       version: '1.0',
-      webhooks: webhooks.map((webhook: any) => ({
+      webhooks: webhooks.map((webhook: ExportWebhookRow) => ({
         ...webhook,
         // Remove sensitive data for export
         auth_password: undefined,

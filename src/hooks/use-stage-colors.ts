@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import type { RecruitmentStage } from '@/lib/types';
+import { readJsonOrFallback } from '@/lib/response-json';
+
+type StageColorRow = Pick<RecruitmentStage, 'id' | 'color_badge'>;
 
 // Custom hook to fetch and cache stage colors
 export function useStageColors(stageIds: string[]) {
@@ -13,9 +17,10 @@ export function useStageColors(stageIds: string[]) {
       try {
         const response = await fetch(`/api/settings/recruitment-stages?ids=${stageIds.join(',')}`);
         if (response.ok) {
-          const stages = await response.json();
+          const stages = await readJsonOrFallback<StageColorRow[]>(response, []);
           const colorMap: Record<string, string> = {};
-          stages.forEach((stage: any) => {
+          const safeStages = Array.isArray(stages) ? stages : [];
+          safeStages.forEach((stage) => {
             if (stage.color_badge) {
               colorMap[stage.id] = stage.color_badge;
             }

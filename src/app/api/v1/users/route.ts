@@ -1,87 +1,57 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
-import { z } from 'zod';
-import { verifyApiToken } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
+import { isJsonObject } from '@/lib/json-types';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 import { SimpleErrorHandler,
-  createUnauthorizedError,
-  createForbiddenError,
   createValidationError,
   createConflictError,
   createInternalServerError
 } from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
-
-const createUserSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  role: z.enum(['Admin', 'Recruiter', 'User']),
-
-  password: z.string().min(8).optional(),
-});
+import {
+  authorizeV1UsersRequest,
+  buildV1UsersListQueries,
+  createUserSchema,
+  createV1UserId,
+  formatCreateUserValidationError,
+  getV1ActingUserName,
+  parseV1UsersListParams,
+  type V1UserRow,
+} from './v1-users-route-helpers';
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  
-  if (!user) {
-    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
+  const access = await authorizeV1UsersRequest(
+    req,
+    'USERS_VIEW',
+    'Insufficient permissions to view users',
+  );
+  if (!access.ok) {
+    return access.response;
   }
 
-  if (!hasPermission(user, 'USERS_VIEW')) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
-  }
-
-  const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const offset = (page - 1) * limit;
-  const roleFilter = searchParams.get('role');
-  const searchTerm = searchParams.get('searchTerm');
+  const listParams = parseV1UsersListParams(req);
+  const { countParams, countQuery, query, queryParams } = buildV1UsersListQueries(listParams);
 
   const client = await getPool().connect();
   try {
-    let whereClauses = [];
-    let queryParams = [];
-    let paramIndex = 1;
-
-    if (roleFilter) {
-      whereClauses.push(`role = $${paramIndex++}`);
-      queryParams.push(roleFilter);
-    }
-
-    if (searchTerm) {
-      whereClauses.push(`(name ILIKE $${paramIndex} OR email ILIKE $${paramIndex})`);
-      queryParams.push(`%${searchTerm}%`);
-      paramIndex++;
-    }
-
-    let query = 'SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User"';
-    let countQuery = 'SELECT COUNT(*) FROM "User"';
-
-    if (whereClauses.length > 0) {
-      query += ' WHERE ' + whereClauses.join(' AND ');
-      countQuery += ' WHERE ' + whereClauses.join(' AND ');
-    }
-
-    query += ' ORDER BY "createdAt" DESC';
-    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    queryParams.push(limit, offset);
-
     const result = await client.query(query, queryParams);
-    const countResult = await client.query(countQuery, queryParams.slice(0, paramIndex - 1));
+    const countResult = await client.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].count, 10);
 
-    const users = result.rows.map((row: any) => ({
+    const users = (result.rows as V1UserRow[]).map(row => ({
       ...row,
     }));
 
-    return SimpleErrorHandler.createSuccessResponse(req, { users, total, page, limit }, 200);
+    return SimpleErrorHandler.createSuccessResponse(req, {
+      users,
+      total,
+      page: listParams.page,
+      limit: listParams.limit,
+    }, 200);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -92,29 +62,25 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  
-  if (!user) {
-    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
+  const access = await authorizeV1UsersRequest(
+    req,
+    'USERS_CREATE',
+    'Insufficient permissions to create users',
+  );
+  if (!access.ok) {
+    return access.response;
   }
+  const { user } = access;
 
-  if (!hasPermission(user, 'USERS_CREATE')) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
-  }
-
-  let body;
-  try {
-    body = await req.json();
-  } catch {
+  const bodyResult = await readRequestJsonResult(req);
+  if (!bodyResult.ok) {
     return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
+  const body = bodyResult.value;
   const validationResult = createUserSchema.safeParse(body);
   if (!validationResult.success) {
-    const fieldErrors = validationResult.error.flatten().fieldErrors;
-    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+    const errorMsg = formatCreateUserValidationError(validationResult.error);
     return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
@@ -139,7 +105,7 @@ export async function POST(req: NextRequest) {
       RETURNING id, name, email, role, "createdAt", "updatedAt";
     `;
 
-    const newUserId = require('uuid').v4();
+    const newUserId = createV1UserId();
     const result = await client.query(insertQuery, [
       newUserId,
       name,
@@ -149,7 +115,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     const newUser = result.rows[0];
-    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    const actingUserName = getV1ActingUserName(user);
     await logAudit('AUDIT', `User '${name}' created by ${actingUserName}.`, 'API:V1:Users:Create', user.id, { userId: newUserId, name, email, role });
     return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'User created successfully',
@@ -160,8 +126,11 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
-    await logAudit('ERROR', `Failed to create user by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Create', user?.id, { error: errorMessage, ...body });
+    const actingUserName = getV1ActingUserName(user);
+    await logAudit('ERROR', `Failed to create user by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Create', user?.id, {
+      error: errorMessage,
+      ...(isJsonObject(body) ? body : { requestBody: body }),
+    });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating user: ${errorMessage}`));
   } finally {
     client.release();

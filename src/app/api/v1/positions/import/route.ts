@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { readRequestJsonResult } from '@/lib/request-json';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
 const positionImportSchema = z.object({
@@ -17,7 +18,7 @@ const positionImportSchema = z.object({
     matchCriteria: z.string().optional().nullable(),
     isOpen: z.boolean(),
     positionLevel: z.string().optional().nullable(),
-    custom_attributes: z.record(z.any()).optional().nullable(),
+    custom_attributes: z.record(z.unknown()).optional().nullable(),
   }))
 });
 
@@ -37,12 +38,11 @@ export async function POST(req: NextRequest) {
   // Get default match criteria from system settings
   const defaultMatchCriteria = await getDefaultMatchCriteria();
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
+  const bodyResult = await readRequestJsonResult(req);
+  if (!bodyResult.ok) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
   }
+  const body = bodyResult.value;
 
   const validationResult = positionImportSchema.safeParse(body);
   if (!validationResult.success) {

@@ -2,6 +2,18 @@
 import { getSafeDbClient } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
+export type AuditLogDetails = Record<string, unknown>;
+
+function enrichAuditDetails(
+  details: AuditLogDetails | null,
+  impersonatorId: string | null,
+): AuditLogDetails | null {
+  if (!impersonatorId) {
+    return details;
+  }
+
+  return { ...(details ?? {}), impersonatorId };
+}
 
 /**
  * Writes an audit log entry to the database.
@@ -11,7 +23,7 @@ export async function logAudit(
   message: string,
   source: string,
   actingUserId: string | null = null,
-  details: Record<string, any> | null = null,
+  details: AuditLogDetails | null = null,
   impersonatorId: string | null = null
 ) {
   const client = await getSafeDbClient();
@@ -30,25 +42,12 @@ export async function logAudit(
         if (check.rowCount === 0) {
           sanitizedActingUserId = null;
         }
-      } catch (_) {
+      } catch {
         sanitizedActingUserId = null;
       }
     }
-    const enrichedDetails = impersonatorId ? { ...details, impersonatorId } : details;
+    const enrichedDetails = enrichAuditDetails(details, impersonatorId);
     await client.query(query, [logId, level, message, source, sanitizedActingUserId, enrichedDetails]);
-    
-    const logEntry = {
-      id: logId,
-      timestamp: new Date(),
-      level,
-      message,
-      source,
-      actingUserId: sanitizedActingUserId,
-      details: enrichedDetails,
-    };
-    
-
-    
 
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
@@ -65,7 +64,7 @@ export async function logAuditEvent(
   action: string,
   entity: string,
   entityId: string,
-  details: Record<string, any> | null = null,
+  details: AuditLogDetails | null = null,
   impersonatorId: string | null = null
 ) {
   const client = await getSafeDbClient();
@@ -77,7 +76,7 @@ export async function logAuditEvent(
       if (check.rowCount === 0) {
         sanitizedUserId = null;
       }
-    } catch (_) {
+    } catch {
       sanitizedUserId = null;
     }
     const logId = uuidv4();
@@ -88,19 +87,8 @@ export async function logAuditEvent(
     // Map action/entity/entityId to message/source
     const message = `${action} on ${entity} (${entityId})`;
     const source = `logAuditEvent:${entity}`;
-    const enrichedDetails = impersonatorId ? { ...details, impersonatorId } : details;
+    const enrichedDetails = enrichAuditDetails(details, impersonatorId);
     await client.query(query, [logId, 'AUDIT', message, source, sanitizedUserId, enrichedDetails]);
-    
-    const logEntry = {
-      id: logId,
-      timestamp: new Date(),
-      level: 'AUDIT',
-      message,
-      source,
-      actingUserId: sanitizedUserId,
-      details: enrichedDetails,
-    };
-    
 
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.

@@ -1,23 +1,40 @@
 import React from 'react';
 import { cn, containsThaiText } from '@/lib/utils';
 
-interface AutoFontProps {
+type AutoFontElement = React.ElementType;
+
+interface AutoFontProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
-  [key: string]: any;
+  as?: AutoFontElement;
+  asChild?: boolean;
 }
+
+type AutoFontChildProps = {
+  className?: string;
+  lang?: string;
+};
 
 export function AutoFont({ 
   children, 
   className, 
   as: Component = 'span',
+  asChild = false,
   ...props 
 }: AutoFontProps) {
   const text = typeof children === 'string' ? children : '';
   const isThai = containsThaiText(text);
   
   const fontClass = isThai ? 'font-ibm-plex-sans-thai' : 'font-sans';
+
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<AutoFontChildProps>;
+    return React.cloneElement(child, {
+      ...child.props,
+      className: cn(fontClass, child.props.className, className),
+      lang: isThai ? 'th' : 'en',
+    });
+  }
   
   return (
     <Component 
@@ -34,23 +51,31 @@ export function AutoFont({
 export function withAutoFont<P extends object>(
   Component: React.ComponentType<P>
 ) {
-  const AutoFontComponent = React.forwardRef<any, P>((props, ref) => {
-    const { children, className, ...restProps } = props as any;
+  type AutoFontWrappedProps = P & {
+    children?: React.ReactNode;
+    className?: string;
+  };
+
+  const AutoFontComponent = React.forwardRef<unknown, AutoFontWrappedProps>((props, ref) => {
+    const { children, className, ...restProps } = props;
     const text = typeof children === 'string' ? children : '';
     const isThai = containsThaiText(text);
     
     const fontClass = isThai ? 'font-ibm-plex-sans-thai' : 'font-sans';
+    const componentProps = {
+      ...restProps,
+      ref,
+      className: cn(fontClass, className),
+      lang: isThai ? 'th' : 'en',
+      children,
+    } as P & {
+      ref: React.Ref<unknown>;
+      className?: string;
+      lang?: string;
+      children?: React.ReactNode;
+    };
     
-    return (
-      <Component
-        ref={ref}
-        className={cn(fontClass, className)}
-        lang={isThai ? 'th' : 'en'}
-        {...restProps}
-      >
-        {children}
-      </Component>
-    );
+    return <Component {...componentProps} />;
   });
   
   AutoFontComponent.displayName = `withAutoFont(${Component.displayName || Component.name || 'Component'})`;

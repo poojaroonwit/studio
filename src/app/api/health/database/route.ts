@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
+import { getPool, type DbClient } from '@/lib/db';
 import { requireApiPermission } from '@/lib/api-route-guards';
 
 export const dynamic = 'force-dynamic';
+
+type DatabaseHealthInfoRow = QueryResultRow & {
+  current_time: Date;
+  db_version: string;
+};
+
+type UploadQueueHealthStatsRow = QueryResultRow & {
+  total_jobs: string;
+  queued_jobs: string;
+  processing_jobs: string;
+  completed_jobs: string;
+  failed_jobs: string;
+};
 
 /**
  * @openapi
@@ -32,7 +46,7 @@ export async function GET(request: NextRequest) {
   const { response } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
   if (response) return response;
 
-  let client: any = null;
+  let client: DbClient | null = null;
   
   try {
     // console.log('[DB HEALTH] Starting database health check...');
@@ -46,14 +60,14 @@ export async function GET(request: NextRequest) {
     
     // Test basic query
     const queryStartTime = Date.now();
-    const result = await client.query('SELECT NOW() as current_time, version() as db_version');
+    const result = await client.query<DatabaseHealthInfoRow>('SELECT NOW() as current_time, version() as db_version');
     const queryTime = Date.now() - queryStartTime;
     
     // console.log(`[DB HEALTH] Basic query completed in ${queryTime}ms`);
     
     // Test upload_queue table access
     const tableStartTime = Date.now();
-    const tableResult = await client.query(`
+    const tableResult = await client.query<UploadQueueHealthStatsRow>(`
       SELECT 
         COUNT(*) as total_jobs,
         COUNT(CASE WHEN status = 'queued' THEN 1 END) as queued_jobs,

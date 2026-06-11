@@ -8,10 +8,19 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 const searchRequestSchema = z.object({
   query: z.string(),
 });
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Unknown error occurred';
+}
+
+function getErrorStack(error: unknown) {
+  return error instanceof Error ? error.stack : undefined;
+}
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -27,7 +36,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const bodyResult = await readRequestJsonResult(request);
+    const body = bodyResult.ok ? bodyResult.value : undefined;
     const validation = searchRequestSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ 
@@ -46,15 +56,16 @@ export async function POST(request: NextRequest) {
       .catch(err => console.error('Failed to log audit for AI search:', err));
 
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error("AI search failed:", error);
-    const errorMessage = error?.message || 'Unknown error occurred';
-    const errorDetails = error?.stack || errorMessage;
+    const errorMessage = getErrorMessage(error);
+    const errorStack = getErrorStack(error);
+    const errorDetails = errorStack || errorMessage;
     
     // Log audit asynchronously to avoid blocking the error response
     logAudit('ERROR', 'An error occurred during AI search.', 'AI Search', session.user.id, { 
       error: errorMessage,
-      stack: error?.stack 
+      stack: errorStack
     }).catch(err => console.error('Failed to log audit for AI search error:', err));
     
     return NextResponse.json({ 

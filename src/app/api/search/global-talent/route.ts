@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { QueryResultRow } from "pg";
 import { auth } from "@/auth";
 import { getPool } from "@/lib/db";
 
@@ -7,6 +8,29 @@ export const dynamic = "force-dynamic";
 function formatMeta(parts: Array<string | null | undefined>) {
   return parts.filter(Boolean).join(" - ");
 }
+
+type ApplicantSearchRow = QueryResultRow & {
+  id: string;
+  name: string | null;
+  email: string | null;
+  status: string | null;
+  positionTitle: string | null;
+};
+
+type PositionSearchRow = QueryResultRow & {
+  id: string;
+  title: string;
+  department: string | null;
+  isOpen: boolean;
+  recruiterName: string | null;
+};
+
+type UserSearchRow = QueryResultRow & {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+};
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -34,7 +58,7 @@ export async function GET(request: NextRequest) {
     const applicantSearch = `%${query}%`;
 
     const [applicantsResult, positionsResult, usersResult] = await Promise.all([
-      client.query(
+      client.query<ApplicantSearchRow>(
         `
           SELECT
             a.id,
@@ -55,7 +79,7 @@ export async function GET(request: NextRequest) {
         `,
         [applicantSearch],
       ),
-      client.query(
+      client.query<PositionSearchRow>(
         `
           SELECT
             p.id,
@@ -74,7 +98,7 @@ export async function GET(request: NextRequest) {
         `,
         [applicantSearch],
       ),
-      client.query(
+      client.query<UserSearchRow>(
         `
           SELECT
             u.id,
@@ -96,21 +120,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       query,
       results: {
-        applicants: applicantsResult.rows.map((row: any) => ({
+        applicants: applicantsResult.rows.map((row) => ({
           id: row.id,
           type: "applicant",
           title: row.name || row.email || "Unnamed Applicant",
           subtitle: row.email || row.positionTitle || "Applicant",
           meta: formatMeta([row.positionTitle, row.status]),
         })),
-        positions: positionsResult.rows.map((row: any) => ({
+        positions: positionsResult.rows.map((row) => ({
           id: row.id,
           type: "position",
           title: row.title,
           subtitle: row.department || (row.isOpen ? "Open position" : "Closed position"),
           meta: formatMeta([row.recruiterName, row.isOpen ? "Open" : "Closed"]),
         })),
-        users: usersResult.rows.map((row: any) => ({
+        users: usersResult.rows.map((row) => ({
           id: row.id,
           type: "user",
           title: row.name || row.email || "Unnamed User",

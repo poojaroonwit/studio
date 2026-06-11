@@ -3,11 +3,58 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
-import { getPool } from '@/lib/db';
+import { getPool, type DbClient } from '@/lib/db';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
+
+type PositionLevelRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};
+
+type PositionLevelNameRow = {
+  id: string;
+};
+
+type NextSortOrderRow = {
+  next_sort: number | string;
+};
+
+type CreatePositionLevelBody = {
+  name?: unknown;
+  description?: unknown;
+  color?: unknown;
+  isActive?: unknown;
+  sortOrder?: unknown;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown position level error';
+}
+
+function getErrorStack(error: unknown): string | undefined {
+  return error instanceof Error ? error.stack : undefined;
+}
+
+function parseCreateBody(body: CreatePositionLevelBody) {
+  return {
+    name: typeof body.name === 'string' ? body.name.trim() : '',
+    description: typeof body.description === 'string' ? body.description : null,
+    color: typeof body.color === 'string' && body.color ? body.color : '#6B7280',
+    isActive: typeof body.isActive === 'boolean' ? body.isActive : true,
+    sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : undefined,
+  };
+}
+
 export async function GET(request: NextRequest) {
-  let client: any = null;
+  let client: DbClient | null = null;
   try {
     const session = await auth();
     
@@ -29,14 +76,14 @@ export async function GET(request: NextRequest) {
       FROM "PositionLevel"
       ORDER BY "sort_order" ASC, name ASC
     `;
-    const result = await client.query(query);
+    const result = await client.query<PositionLevelRow>(query);
     return NextResponse.json(result.rows);
-  } catch (error: any) {
+  } catch (error) {
     console.error('[PositionLevels API] Error:', error);
     return NextResponse.json({ 
       message: 'Error fetching position levels', 
-      error: error.message,
-      details: error.stack 
+      error: getErrorMessage(error),
+      details: getErrorStack(error),
     }, { status: 500 });
   } finally {
     if (client) {
@@ -46,7 +93,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let client: any = null;
+  let client: DbClient | null = null;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -60,22 +107,27 @@ export async function POST(request: NextRequest) {
     }
 
     client = await getPool().connect();
-    const body = await request.json();
-    const { name, description, color, isActive, sortOrder } = body;
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const body = bodyResult.value as CreatePositionLevelBody;
+    const { name, description, color, isActive, sortOrder } = parseCreateBody(body);
 
     if (!name) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    const existing = await client.query('SELECT id FROM "PositionLevel" WHERE name = $1', [name]);
+    const existing = await client.query<PositionLevelNameRow>('SELECT id FROM "PositionLevel" WHERE name = $1', [name]);
     if (existing.rows.length > 0) {
       return NextResponse.json({ message: 'Position level name already exists' }, { status: 409 });
     }
 
     let finalSortOrder = sortOrder;
     if (finalSortOrder === undefined) {
-      const maxSortResult = await client.query('SELECT COALESCE(MAX("sort_order"), 0) + 1 as next_sort FROM "PositionLevel"');
-      finalSortOrder = maxSortResult.rows[0].next_sort;
+      const maxSortResult = await client.query<NextSortOrderRow>('SELECT COALESCE(MAX("sort_order"), 0) + 1 as next_sort FROM "PositionLevel"');
+      finalSortOrder = Number(maxSortResult.rows[0].next_sort);
     }
 
     const query = `
@@ -84,14 +136,14 @@ export async function POST(request: NextRequest) {
       RETURNING id, name, description, color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
     `;
 
-    const result = await client.query(query, [
-      name, description, color || '#6B7280', isActive ?? true, finalSortOrder
+    const result = await client.query<PositionLevelRow>(query, [
+      name, description, color, isActive, finalSortOrder
     ]);
 
     return NextResponse.json(result.rows[0], { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating position level:', error);
-    return NextResponse.json({ message: 'Error creating position level', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error creating position level', error: getErrorMessage(error) }, { status: 500 });
   } finally {
     if (client) {
       client.release();

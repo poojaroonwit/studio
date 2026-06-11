@@ -3,52 +3,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const updateExpertiseSkillSchema = z.object({
-  name: z.preprocess(
-    (val) => {
-      if (val === null || val === undefined || val === '') return undefined;
-      const trimmed = typeof val === 'string' ? val.trim() : String(val).trim();
-      return trimmed === '' ? undefined : trimmed;
-    },
-    z.string().min(1, 'Name is required').optional()
-  ),
-  description: z.preprocess(
-    (val) => {
-      if (val === null || val === undefined || val === '') return null;
-      return typeof val === 'string' ? val : String(val);
-    },
-    z.string().nullable().optional()
-  ),
-  maxScore: z.preprocess(
-    (val) => {
-      if (val === null || val === undefined || val === '') return undefined;
-      const num = typeof val === 'string' ? parseInt(val, 10) : Number(val);
-      return Number.isNaN(num) ? undefined : num;
-    },
-    z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional()
-  ),
-  skillType: z.preprocess(
-    (val) => {
-      if (val === null || val === undefined || val === '') return undefined;
-      return val;
-    },
-    z.enum(['hard_skill', 'test_score']).optional()
-  ),
-  groupId: z.preprocess(
-    (val) => {
-      if (val === '' || val === null || val === undefined) return null;
-      const s = String(val);
-      return UUID_REGEX.test(s) ? s : null;
-    },
-    z.string().uuid().nullable().optional()
-  ),
-  isActive: z.boolean().optional()
-});
+import {
+  deleteExpertiseSkill,
+  expertiseGroupExists,
+  findExpertiseSkill,
+  findExpertiseSkillById,
+  findExpertiseSkillByName,
+  parseUpdateExpertiseSkillRequest,
+  updateExpertiseSkill
+} from '../expertise-skills-route-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -61,18 +26,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const skill = await prisma.expertiseSkill.findUnique({
-      where: { id },
-      include: {
-        group: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        }
-      }
-    });
+    const skill = await findExpertiseSkill(id);
 
     if (!skill) {
       return NextResponse.json(
@@ -102,13 +56,9 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const validatedData = updateExpertiseSkillSchema.parse(body);
+    const validatedData = await parseUpdateExpertiseSkillRequest(request);
 
-    // Check if skill exists
-    const existingSkill = await prisma.expertiseSkill.findUnique({
-      where: { id }
-    });
+    const existingSkill = await findExpertiseSkillById(id);
 
     if (!existingSkill) {
       return NextResponse.json(
@@ -117,17 +67,8 @@ export async function PUT(
       );
     }
 
-    // Prepare update data with trimmed name if provided
-    const updateData: any = { ...validatedData };
-    if (validatedData.name !== undefined) {
-      updateData.name = validatedData.name.trim();
-    }
-
-    // If name is being updated, check for duplicates
-    if (updateData.name && updateData.name !== existingSkill.name) {
-      const duplicateSkill = await prisma.expertiseSkill.findUnique({
-        where: { name: updateData.name }
-      });
+    if (validatedData.name && validatedData.name !== existingSkill.name) {
+      const duplicateSkill = await findExpertiseSkillByName(validatedData.name);
 
       if (duplicateSkill) {
         return NextResponse.json(
@@ -137,33 +78,14 @@ export async function PUT(
       }
     }
 
-    // If groupId is provided, verify the group exists
-    if (validatedData.groupId) {
-      const group = await prisma.expertiseGroup.findUnique({
-        where: { id: validatedData.groupId }
-      });
-
-      if (!group) {
-        return NextResponse.json(
-          { error: 'Expertise group not found' },
-          { status: 400 }
-        );
-      }
+    if (validatedData.groupId && !(await expertiseGroupExists(validatedData.groupId))) {
+      return NextResponse.json(
+        { error: 'Expertise group not found' },
+        { status: 400 }
+      );
     }
 
-    const updatedSkill = await prisma.expertiseSkill.update({
-      where: { id },
-      data: updateData,
-      include: {
-        group: {
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        }
-      }
-    });
+    const updatedSkill = await updateExpertiseSkill(id, validatedData);
 
     return NextResponse.json(updatedSkill);
   } catch (error) {
@@ -193,10 +115,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    // Check if skill exists
-    const existingSkill = await prisma.expertiseSkill.findUnique({
-      where: { id }
-    });
+    const existingSkill = await findExpertiseSkillById(id);
 
     if (!existingSkill) {
       return NextResponse.json(
@@ -205,10 +124,7 @@ export async function DELETE(
       );
     }
 
-    // Delete the skill
-    await prisma.expertiseSkill.delete({
-      where: { id }
-    });
+    await deleteExpertiseSkill(id);
 
     return NextResponse.json({ message: 'Expertise skill deleted successfully' });
   } catch (error) {

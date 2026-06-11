@@ -1,62 +1,85 @@
-import type { Position } from '@/lib/types';
-
-export type PositionSortDirection = 'asc' | 'desc' | null;
-
-export function getNextPositionSortState(
-  currentColumn: string | null,
-  currentDirection: PositionSortDirection,
-  nextColumn: string | null,
-  requestedDirection?: PositionSortDirection
-) {
-  if (!nextColumn) {
-    return { sortColumn: null, sortDirection: 'asc' as PositionSortDirection };
-  }
-
-  if (currentColumn === nextColumn && (requestedDirection === null || requestedDirection === undefined)) {
-    if (currentDirection === 'asc') {
-      return { sortColumn: nextColumn, sortDirection: 'desc' as PositionSortDirection };
-    }
-
-    if (currentDirection === 'desc') {
-      return { sortColumn: nextColumn, sortDirection: null };
-    }
-
-    return { sortColumn: nextColumn, sortDirection: 'asc' as PositionSortDirection };
-  }
-
-  return { sortColumn: nextColumn, sortDirection: requestedDirection || 'desc' };
-}
-
-function getSortablePositionValue(position: Position, column: string) {
-  switch (column) {
-    case 'title':
-      return position.title?.toLowerCase() || '';
-    case 'department':
-      return position.department?.toLowerCase() || '';
-    case 'status':
-      return position.isOpen ? 'open' : 'closed';
-    case 'recruiter':
-      return position.recruiterName?.toLowerCase() || '';
-    default:
-      return '';
-  }
-}
-
-export function sortPositions(
-  positions: Position[],
-  sortColumn: string | null,
-  sortDirection: PositionSortDirection
-) {
-  if (!sortColumn || !sortDirection) {
-    return positions;
-  }
-
-  return [...positions].sort((a, b) => {
-    const aValue = getSortablePositionValue(a, sortColumn);
-    const bValue = getSortablePositionValue(b, sortColumn);
-
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-}
+export type {
+  ClearedPositionVisibleFilters,
+  PositionDepartmentFetcher,
+  PositionDepartmentFetchResult,
+  PositionDrawerOpenChangeAction,
+  PositionFetchLoadingMode,
+  PositionFilterCountInput,
+  PositionFilterSnapshot,
+  PositionLoadingStateSnapshot,
+  PositionPagePermissions,
+  PositionPreferencesInitialization,
+  PositionPreferencesLike,
+  PositionPreferencesSnapshot,
+  PositionSearchKeyAction,
+  PositionSortDirection,
+  PositionStatusFilter,
+  VisiblePositionFiltersInput,
+} from './position-page-types';
+export {
+  buildPositionListQuery,
+  buildPositionPaginationSearch,
+  getPositionPaginationUpdateFromSearch,
+  getPositionQueryFromSearch,
+  getPositionSearchSyncUpdate,
+  hasPositionStatusOrQueryInSearch,
+  parsePositionPageFromSearch,
+  parsePositionRecruiterFromSearch,
+  parsePositionStatusFromSearch,
+} from './position-page-query-utils';
+export {
+  buildPositionPagePermissions,
+  buildPositionTotalPages,
+  getPositionDrawerOpenChangeAction,
+  getPositionFetchLoadingMode,
+  getPositionSearchKeyAction,
+  hasActivePositionLoadingState,
+  shouldClearPositionPageLoading,
+  shouldStartInitialPositionLoad,
+  shouldStopPositionSearchAfterInputChange,
+} from './position-page-state-utils';
+export {
+  getChangedPositionPreferences,
+  getPositionPreferencesInitialization,
+  normalizePositionPreferences,
+  shouldInitializePositionPreferences,
+} from './position-page-preferences-utils';
+export {
+  buildPositionFilterSnapshot,
+  countActivePositionFilters,
+  getClearedPositionVisibleFilters,
+  getPositionEmptyStateMessage,
+  hasVisiblePositionFilters,
+  shouldShowAddFirstPositionButton,
+} from './position-page-filter-utils';
+export {
+  extractPositionApiList,
+  extractUniqueDepartmentsFromPositions,
+  fetchPositionDepartments,
+  normalizeHiringManagers,
+} from './position-page-reference-utils';
+export {
+  applyMatchCriteriaToPositions,
+  getPositionIds,
+  getPositionSelectionState,
+  removePositionsByIds,
+  togglePositionIdSelection,
+} from './position-page-selection-utils';
+export {
+  applyAssignedPositionResponse,
+  applyOptimisticRecruiterAssignment,
+  getAssignedPositionFromResponse,
+  getRecruiterAssignmentSuccessMessage,
+  getRecruiterNameById,
+  getRecruiterSyncApplicantCount,
+  normalizePositionRecruiterStats,
+  type AssignedPositionResponse,
+  type PositionRecruiterOption,
+} from './position-recruiter-utils';
+export {
+  buildPositionHeadcountMap,
+  calculateVacantOpenPositionStats,
+  getNextPositionSortState,
+  normalizePositionListResponse,
+  sortPositions,
+} from './position-list-utils';

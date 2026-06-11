@@ -2,20 +2,21 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
-export interface UserPresence {
-  userId: string;
-  userName: string;
-  userRole: string;
-  avatarUrl?: string | null;
-  personalColor?: string | null;
-  currentPage: string;
-  lastSeen: string;
-  isOnline: boolean;
-}
+import {
+  canSyncUserPresence,
+  fetchOnlineUserPresence,
+  removeCurrentUserPresence,
+  updateCurrentUserPresence,
+  type UserPresence,
+} from './user-presence-api';
+import { clearPresenceIntervalRefs } from './user-presence-timer-utils';
+
+export type { UserPresence } from './user-presence-api';
 
 export function useUserPresence() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const sessionUser = session?.user;
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,40 +25,22 @@ export function useUserPresence() {
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isUpdatingRef = useRef(false);
 
-  // Update current user's presence
   const updatePresence = useCallback(async () => {
-    if (!session?.user?.id || isUpdatingRef.current) {
+    if (!canSyncUserPresence(sessionUser) || isUpdatingRef.current) {
       return;
     }
 
     isUpdatingRef.current = true;
     try {
-      const response = await fetch('/api/realtime/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: session.user.id,
-          userName: session.user.name || session.user.email || 'User',
-          userRole: session.user.role || 'User',
-          avatarUrl: (session.user as any).avatarUrl,
-          personalColor: (session.user as any).personalColor,
-          currentPage: pathname,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-      } else {
-      }
+      await updateCurrentUserPresence(sessionUser, pathname);
     } catch (error) {
     } finally {
       isUpdatingRef.current = false;
     }
-  }, [session?.user, pathname]);
+  }, [sessionUser, pathname]);
 
-  // Fetch all users' presence
   const fetchPresence = useCallback(async () => {
-    if (!session?.user?.id) {
+    if (!sessionUser?.id) {
       return;
     }
 
@@ -65,76 +48,43 @@ export function useUserPresence() {
     setError(null);
     
     try {
-      const response = await fetch('/api/realtime/presence');
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch presence data: ${response.status} ${errorText}`);
-      }
-      
-      const data = await response.json();
-      setOnlineUsers(data.users || []);
+      setOnlineUsers(await fetchOnlineUserPresence(sessionUser.id));
     } catch (error) {
       setError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [sessionUser?.id]);
 
-  // Remove current user's presence (on logout/unmount)
   const removePresence = useCallback(async () => {
-    if (!session?.user?.id) return;
-
     try {
-      await fetch('/api/realtime/presence', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: session.user.id }),
-      });
+      await removeCurrentUserPresence(sessionUser?.id);
     } catch (error) {
     }
-  }, [session?.user?.id]);
+  }, [sessionUser?.id]);
 
-  // Update presence when pathname changes
   useEffect(() => {
-    if (session?.user?.id) {
+    if (sessionUser?.id) {
       updatePresence();
     }
-  }, [pathname, session?.user?.id, updatePresence]);
+  }, [pathname, sessionUser?.id, updatePresence]);
 
-  // Set up periodic presence updates and fetching
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!sessionUser?.id) return;
 
-    // Initial presence update
     updatePresence();
-    
-    // Fetch initial presence data
     fetchPresence();
 
-    // Update presence every 30 seconds - reduced frequency for lower CPU usage
-    presenceIntervalRef.current = setInterval(updatePresence, 30000); // Optimized: 30s (was 10s)
-    
-    // Fetch presence data every 30 seconds
-    updateIntervalRef.current = setInterval(fetchPresence, 30000); // Optimized: 30s (was 10s)
+    presenceIntervalRef.current = setInterval(updatePresence, 30000);
+    updateIntervalRef.current = setInterval(fetchPresence, 30000);
 
-    // Cleanup on unmount
     return () => {
-      if (presenceIntervalRef.current) {
-        clearInterval(presenceIntervalRef.current);
-        presenceIntervalRef.current = null;
-      }
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current);
-        updateIntervalRef.current = null;
-      }
+      clearPresenceIntervalRefs(presenceIntervalRef, updateIntervalRef);
       removePresence();
     };
-  }, [session?.user?.id, updatePresence, fetchPresence, removePresence]);
+  }, [sessionUser?.id, updatePresence, fetchPresence, removePresence]);
 
-  // Handle page visibility changes
   useEffect(() => {
-    // Ensure we're in a browser environment
     if (typeof document === 'undefined') {
       return;
     }
@@ -151,9 +101,7 @@ export function useUserPresence() {
     };
   }, [updatePresence]);
 
-  // Handle beforeunload (user closing tab/window)
   useEffect(() => {
-    // Ensure we're in a browser environment
     if (typeof window === 'undefined') {
       return;
     }
@@ -168,7 +116,6 @@ export function useUserPresence() {
     };
   }, [removePresence]);
 
-  // Memoize the return object to prevent unnecessary re-renders
   return useMemo(() => ({
     onlineUsers,
     isLoading,

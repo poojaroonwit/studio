@@ -6,10 +6,11 @@ import { WebhookBodyProcessor } from '@/lib/webhookBodyProcessor';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const validateTemplateSchema = z.object({
   template: z.string(),
   event_type: z.string().optional(),
-  sample_data: z.any().optional()
+  sample_data: z.record(z.unknown()).optional()
 });
 
 export async function POST(req: NextRequest) {
@@ -19,14 +20,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let body;
-    try {
-      body = await req.json();
-    } catch {
+    const bodyResult = await readRequestJsonResult(req);
+    if (!bodyResult.ok) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const validation = validateTemplateSchema.safeParse(body);
+    const validation = validateTemplateSchema.safeParse(bodyResult.value);
     if (!validation.success) {
       return NextResponse.json({ 
         error: 'Invalid input', 

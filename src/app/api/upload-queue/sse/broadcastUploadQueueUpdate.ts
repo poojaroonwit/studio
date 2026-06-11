@@ -1,11 +1,26 @@
+import type { QueryResultRow } from 'pg';
 import { getPool } from '@/lib/db';
+import type { DbClient } from '@/lib/db';
+
+type UploadQueueBroadcastJobRow = QueryResultRow & {
+  id: string;
+  file_path: string | null;
+};
+
+type UploadQueueSummaryRow = QueryResultRow & {
+  total: string;
+  queued: string;
+  inprocess: string;
+  success: string;
+  error: string;
+};
 
 export async function broadcastUploadQueueUpdate() {
-  let client;
+  let client: DbClient | undefined;
   try {
     // Fetch current queue data and counts from database
     client = await getPool().connect();
-  } catch (connectionError: any) {
+  } catch (connectionError: unknown) {
     console.error('[Broadcast] Failed to connect to database:', connectionError);
     // Fallback to empty data if database connection fails
     const fallbackSummary = { queued: 0, inprocess: 0, total: 0, success: 0, error: 0 };
@@ -30,7 +45,7 @@ export async function broadcastUploadQueueUpdate() {
 
   try {
     // Get the latest queue items (first page, 20 items)
-    const dataRes = await client.query(`
+    const dataRes = await client.query<UploadQueueBroadcastJobRow>(`
       SELECT uq.*, p.title as position_title 
       FROM upload_queue uq 
       LEFT JOIN "Position" p ON uq.position_id = p.id 
@@ -38,7 +53,7 @@ export async function broadcastUploadQueueUpdate() {
     `);
     
     // Get summary counts by status
-    const summaryRes = await client.query(`
+    const summaryRes = await client.query<UploadQueueSummaryRow>(`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE status = 'queued') as queued,
@@ -58,7 +73,7 @@ export async function broadcastUploadQueueUpdate() {
     };
     
     // Add url field to each job (same as in the API endpoint)
-    const jobsWithUrl = dataRes.rows.map((job: any) => ({
+    const jobsWithUrl = dataRes.rows.map((job) => ({
       ...job,
       url: job.file_path ? `/api/upload-queue/download/${job.id}` : null
     }));

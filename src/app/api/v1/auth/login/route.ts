@@ -14,16 +14,14 @@ import {
 } from '@/lib/errors';
 import { logAudit } from '@/lib/auditLog';
 import { getSystemSetting } from '@/lib/systemSettings';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 export async function POST(req: NextRequest) {
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
-  }
-  const { email, password } = body;
+  const body = await readRequestJsonObject(req);
+  const email = getJsonString(body, 'email');
+  const password = getJsonString(body, 'password');
   if (!email || !password) {
     return SimpleErrorHandler.handleApiError(req, createValidationError('Email and password are required'));
   }

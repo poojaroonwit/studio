@@ -41,6 +41,18 @@ export const STATUS_COLORS: Record<CommonStatusName, string> = {
   [COMMON_STATUS_NAMES.WITHDRAWN]: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
 };
 
+const BACKLOG_STATUSES = new Set<string>([
+  COMMON_STATUS_NAMES.HIRED,
+  COMMON_STATUS_NAMES.REJECTED,
+  COMMON_STATUS_NAMES.OFFER_ACCEPTED,
+  COMMON_STATUS_NAMES.WITHDRAWN,
+]);
+
+const INTERVIEW_STATUSES = new Set<string>([
+  COMMON_STATUS_NAMES.INTERVIEW_SCHEDULED,
+  COMMON_STATUS_NAMES.INTERVIEWING,
+]);
+
 /**
  * Get status color by status name
  */
@@ -77,24 +89,14 @@ export function getStatusBadgeVariant(statusName: string): "default" | "secondar
  * Check if a status is considered "active" (not in backlog)
  */
 export function isActiveStatus(statusName: string): boolean {
-  const backlogStatuses = [
-    COMMON_STATUS_NAMES.HIRED,
-    COMMON_STATUS_NAMES.REJECTED,
-    COMMON_STATUS_NAMES.OFFER_ACCEPTED,
-    COMMON_STATUS_NAMES.WITHDRAWN
-  ];
-  return !backlogStatuses.includes(statusName as any);
+  return !BACKLOG_STATUSES.has(statusName);
 }
 
 /**
  * Check if a status is considered "interview stage"
  */
 export function isInterviewStatus(statusName: string): boolean {
-  const interviewStatuses = [
-    COMMON_STATUS_NAMES.INTERVIEW_SCHEDULED,
-    COMMON_STATUS_NAMES.INTERVIEWING
-  ];
-  return interviewStatuses.includes(statusName as any);
+  return INTERVIEW_STATUSES.has(statusName);
 }
 
 /**

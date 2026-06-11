@@ -4,6 +4,7 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 
 const headcountTypeOptionSchema = z.object({
@@ -84,7 +85,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Insufficient permissions' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const body = bodyResult.value;
     const validationResult = updateHeadcountTypesSchema.safeParse(body);
 
     if (!validationResult.success) {

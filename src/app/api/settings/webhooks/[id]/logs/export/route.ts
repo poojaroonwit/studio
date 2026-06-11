@@ -3,7 +3,24 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+
+type WebhookLogExportRow = {
+  event_type: string;
+  success: boolean;
+  response_status: number | null;
+  error_message: string | null;
+  duration_ms: number | null;
+  createdAt: Date;
+  payload: Prisma.JsonValue | null;
+  response_body: string | null;
+};
+
+function formatCsvCell(cell: unknown): string {
+  const value = typeof cell === 'object' && cell !== null ? JSON.stringify(cell) : String(cell ?? '');
+  return `"${value.replace(/"/g, '""')}"`;
+}
 
 export async function GET(
   request: NextRequest,
@@ -55,20 +72,20 @@ export async function GET(
       'Response Body'
     ];
 
-    const csvRows = logs.map((log: any) => [
+    const csvRows = logs.map((log: WebhookLogExportRow) => [
       log.createdAt.toISOString(),
       log.event_type,
       log.success ? 'Success' : 'Failed',
+      log.response_status,
       log.duration_ms,
-      log.status_code,
       log.error_message || '',
-      log.request_body || '',
+      log.payload || '',
       log.response_body || ''
     ]);
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map((row: any[]) => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ...csvRows.map((row) => row.map(formatCsvCell).join(','))
     ].join('\n');
 
     // Create response with CSV headers

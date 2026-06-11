@@ -3,37 +3,38 @@ export const runtime = 'nodejs';
 
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
-import { z } from 'zod';
-import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { SimpleErrorHandler,
+import { readRequestJsonResult } from '@/lib/request-json';
+import {
+  SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,
   createValidationError,
   createNotFoundError,
   createConflictError,
   createInternalServerError
-} from '@/lib/errors';;
+} from '@/lib/errors';
 import { logAudit } from '@/lib/auditLog';
-
-const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  role: z.enum(['Admin', 'Recruiter', 'User']).optional(),
-
-  password: z.string().min(6).optional(),
-});
+import {
+  buildUserUpdateQuery,
+  formatZodFieldErrors,
+  getActingUserName,
+  hasUserDeletePermission,
+  hasUserEditPermission,
+  hasUserViewPermission,
+  toAuditPayload,
+  updateUserSchema,
+  verifyBearerApiUser,
+} from './route-utils';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
+  const user = await verifyBearerApiUser(req);
   
   if (!user) {
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
+  if (!hasUserViewPermission(user)) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
@@ -62,51 +63,45 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
+  const user = await verifyBearerApiUser(req);
   
   if (!user) {
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_EDIT')) {
+  if (!hasUserEditPermission(user)) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update users'));
   }
 
   const { id } = await params;
-  let body;
-  try {
-    body = await req.json();
-  } catch {
+  const bodyResult = await readRequestJsonResult(req);
+  if (!bodyResult.ok) {
     return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
+  const body = bodyResult.value;
   const validationResult = updateUserSchema.safeParse(body);
   if (!validationResult.success) {
-    const fieldErrors = validationResult.error.flatten().fieldErrors;
-    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
-    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${formatZodFieldErrors(validationResult.error)}`));
   }
 
   const validatedData = validationResult.data;
-  const name = validatedData.name;
   const email = validatedData.email;
-  const role = validatedData.role;
-  const password = validatedData.password;
+  const updateQuery = buildUserUpdateQuery(validatedData, id);
+  if (!updateQuery) {
+    return SimpleErrorHandler.handleApiError(req, createValidationError('No fields to update'));
+  }
 
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
 
-    // Check if user exists
     const existingResult = await client.query('SELECT * FROM "User" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('User not found'));
     }
 
-    // Check if email is being changed and if it's already taken
     if (email && email !== existingResult.rows[0].email) {
       const emailCheckResult = await client.query('SELECT id FROM "User" WHERE email = $1 AND id != $2', [email, id]);
       if (emailCheckResult.rows.length > 0) {
@@ -115,60 +110,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Build update query dynamically
-    const updateFields = [];
-    const updateValues = [];
-    let paramIndex = 1;
-
-    if (name !== undefined) {
-      updateFields.push(`name = $${paramIndex++}`);
-      updateValues.push(name);
-    }
-
-    if (email !== undefined) {
-      updateFields.push(`email = $${paramIndex++}`);
-      updateValues.push(email);
-    }
-
-    if (role !== undefined) {
-      updateFields.push(`role = $${paramIndex++}`);
-      updateValues.push(role);
-    }
-
-
-
-    if (password !== undefined) {
-      updateFields.push(`password = $${paramIndex++}`);
-      updateValues.push(password);
-    }
-
-    updateValues.push(id);
-
-    const updateQuery = `
-      UPDATE "User" 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING id, name, email, role, "createdAt", "updatedAt";
-    `;
-
-    const updateResult = await client.query(updateQuery, updateValues);
+    const updateResult = await client.query(updateQuery.text, updateQuery.values);
     await client.query('COMMIT');
 
     const updatedUser = updateResult.rows[0];
-    const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${actingUserName}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role } });
+    const actingUserName = getActingUserName(user);
+    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${actingUserName}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: validatedData });
     return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'User updated successfully',
-              user: {
-          ...updatedUser,
-        }
+      user: {
+        ...updatedUser,
+      }
     }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
-    await logAudit('ERROR', `Failed to update user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Update', user?.id, { userId: id, error: errorMessage, ...body });
+    const actingUserName = getActingUserName(user);
+    await logAudit('ERROR', `Failed to update user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Update', user.id, { userId: id, error: errorMessage, ...toAuditPayload(body) });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating user: ${errorMessage}`));
   } finally {
     client.release();
@@ -176,15 +135,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
+  const user = await verifyBearerApiUser(req);
   
   if (!user) {
     return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_DELETE')) {
+  if (!hasUserDeletePermission(user)) {
     return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete users'));
   }
 
@@ -194,14 +151,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await client.query('BEGIN');
 
-    // Check if user exists
     const existingResult = await client.query('SELECT * FROM "User" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return SimpleErrorHandler.handleApiError(req, createNotFoundError('User not found'));
     }
 
-    // Check if user has assigned applicants
     const applicantsResult = await client.query('SELECT COUNT(*) FROM "Applicant" WHERE "recruiterId" = $1', [id]);
     const applicantCount = parseInt(applicantsResult.rows[0].count, 10);
     
@@ -212,15 +167,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await client.query('DELETE FROM "User" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    const actingUserName = getActingUserName(user);
     await logAudit('AUDIT', `User (ID: ${id}) deleted by ${actingUserName}.`, 'API:V1:Users:Delete', user.id, { userId: id });
     return SimpleErrorHandler.createSuccessResponse(req, { message: 'User deleted successfully' }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
-    await logAudit('ERROR', `Failed to delete user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Delete', user?.id, { userId: id, error: errorMessage });
+    const actingUserName = getActingUserName(user);
+    await logAudit('ERROR', `Failed to delete user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Delete', user.id, { userId: id, error: errorMessage });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting user: ${errorMessage}`));
   } finally {
     client.release();

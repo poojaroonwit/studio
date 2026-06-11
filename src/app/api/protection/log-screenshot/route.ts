@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/emailService';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,8 +13,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const data = await req.json();
-        const { url, userAgent } = data;
+        const data = await readRequestJsonObject(req);
+        const url = getJsonString(data, 'url') || 'unknown';
+        const userAgent = getJsonString(data, 'userAgent') || req.headers.get('user-agent') || 'unknown';
 
         // 1. Log to Database
         await prisma.userActivityLog.create({
@@ -25,7 +28,7 @@ export async function POST(req: NextRequest) {
                     timestamp: new Date().toISOString()
                 },
                 ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
-                userAgent: userAgent || req.headers.get('user-agent') || 'unknown',
+                userAgent,
             }
         });
 

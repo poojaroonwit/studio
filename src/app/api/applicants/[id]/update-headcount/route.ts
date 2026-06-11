@@ -3,6 +3,9 @@ import prisma from '@/lib/prisma';
 import { autoClosePositionIfHeadcountFilled, reopenPositionIfHeadcountAvailable } from '@/lib/headcountUtils';
 
 import { auth } from '@/auth';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
+import { broadcastHeadcountPositionUpdates } from './update-headcount-broadcast';
 export const dynamic = 'force-dynamic';
 
 
@@ -18,8 +21,8 @@ export async function POST(
 
     const resolvedParams = await params;
     const applicantId = resolvedParams.id;
-    const body = await request.json();
-    const { newStatus } = body;
+    const body = await readRequestJsonObject(request);
+    const newStatus = getJsonString(body, 'newStatus');
 
     // Check if Applicant exists
     const applicant = await prisma.applicant.findUnique({
@@ -93,34 +96,7 @@ export async function POST(
           // Don't fail the headcount update if auto-close fails
         }
 
-        // Broadcast real-time updates for headcount changes
-        try {
-          const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-          
-          // Broadcast position list update (includes headcount changes)
-          broadcastPositionListUpdated();
-          
-          // Broadcast updated statistics
-          const statsQuery = `
-            SELECT 
-              COUNT(*) as total,
-              COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-              COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-            FROM "Position"
-          `;
-          const { getPool } = await import('@/lib/db');
-          const statsResult = await getPool().query(statsQuery);
-          const stats = statsResult.rows[0];
-          const statistics = { 
-            total: parseInt(stats.total, 10), 
-            open: parseInt(stats.open, 10), 
-            closed: parseInt(stats.closed, 10) 
-          };
-          broadcastPositionStatisticsUpdated(statistics);
-        } catch (broadcastError) {
-          console.error('Failed to broadcast real-time updates:', broadcastError);
-          // Don't fail the request if broadcasting fails
-        }
+        await broadcastHeadcountPositionUpdates();
 
         return NextResponse.json({ 
           message: 'Headcount updated successfully',
@@ -163,34 +139,7 @@ export async function POST(
           },
         });
 
-        // Broadcast real-time updates for headcount changes
-        try {
-          const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-          
-          // Broadcast position list update (includes headcount changes)
-          broadcastPositionListUpdated();
-          
-          // Broadcast updated statistics
-          const statsQuery = `
-            SELECT 
-              COUNT(*) as total,
-              COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-              COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-            FROM "Position"
-          `;
-          const { getPool } = await import('@/lib/db');
-          const statsResult = await getPool().query(statsQuery);
-          const stats = statsResult.rows[0];
-          const statistics = { 
-            total: parseInt(stats.total, 10), 
-            open: parseInt(stats.open, 10), 
-            closed: parseInt(stats.closed, 10) 
-          };
-          broadcastPositionStatisticsUpdated(statistics);
-        } catch (broadcastError) {
-          console.error('Failed to broadcast real-time updates:', broadcastError);
-          // Don't fail the request if broadcasting fails
-        }
+        await broadcastHeadcountPositionUpdates();
 
         return NextResponse.json({ 
           message: 'Headcount freed up successfully',

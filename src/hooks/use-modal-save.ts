@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useToastManager } from './use-toast-manager';
 import { useToast } from './use-toast';
@@ -15,7 +15,7 @@ interface ModalSaveOptions {
 
 interface ModalSaveState {
   isSaving: boolean;
-  save: (saveFunction: () => Promise<any>) => Promise<void>;
+  save: <T>(saveFunction: () => Promise<T>) => Promise<T | undefined>;
   reset: () => void;
 }
 
@@ -39,12 +39,16 @@ export function useModalSave(
   const { loadingWithId } = useToast();
 
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const save = useCallback(async (saveFunction: () => Promise<any>) => {
-    if (isSavingRef.current) return;
+  const save = useCallback(async <T>(saveFunction: () => Promise<T>) => {
+    if (isSavingRef.current) {
+      return undefined;
+    }
 
     isSavingRef.current = true;
+    setIsSaving(true);
     
     // Show loading toast
     const loadingToastId = loadingWithId(loadingMessage);
@@ -97,6 +101,7 @@ export function useModalSave(
       throw errorObj;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
       abortControllerRef.current = null;
     }
   }, [
@@ -115,6 +120,7 @@ export function useModalSave(
 
   const reset = useCallback(() => {
     isSavingRef.current = false;
+    setIsSaving(false);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -122,7 +128,7 @@ export function useModalSave(
   }, []);
 
   return {
-    isSaving: isSavingRef.current,
+    isSaving,
     save,
     reset
   };

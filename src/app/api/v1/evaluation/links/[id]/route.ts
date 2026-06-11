@@ -5,6 +5,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { canManageEvaluationLink } from '@/lib/permissions'
+import { readRequestJsonOrFallback } from '@/lib/request-json'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
     }
 
-    const body = await request.json().catch(() => ({})) as { requireLogin?: boolean }
+    const body = await readRequestJsonOrFallback<{ requireLogin?: boolean }>(request, {})
     
     const updated = await prisma.applicantEvaluationLink.update({
       where: { id },

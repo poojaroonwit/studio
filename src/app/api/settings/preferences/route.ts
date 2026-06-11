@@ -2,10 +2,13 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { getPool } from '@/lib/db';
 import { auth } from '@/auth';
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -17,9 +20,10 @@ export async function GET(request: NextRequest) {
     // Return empty preferences object since data model functionality has been removed
     return NextResponse.json({}, { status: 200 });
   } catch (error) {
+    const errorMessage = getErrorMessage(error);
     console.error("Failed to fetch user preferences:", error);
-    await logAudit('ERROR', `Failed to fetch preferences for user ${userId}. Error: ${(error as Error).message}`, 'API:Preferences:Get', userId);
-    return NextResponse.json({ message: "Error fetching user preferences", error: (error as Error).message }, { status: 500 });
+    await logAudit('ERROR', `Failed to fetch preferences for user ${userId}. Error: ${errorMessage}`, 'API:Preferences:Get', userId);
+    return NextResponse.json({ message: "Error fetching user preferences", error: errorMessage }, { status: 500 });
   }
 }
 
@@ -34,9 +38,10 @@ export async function POST(request: NextRequest) {
     // Data model functionality has been removed, so just return success
     await logAudit('AUDIT', `User preferences update attempted by ${session.user.name} (data model functionality removed)`, 'API:Preferences:Update', userId);
     return NextResponse.json({ message: "Preferences updated" }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
     console.error("Failed to save user preferences:", error);
-    await logAudit('ERROR', `Failed to save preferences for user ${userId} by ${session.user.name}. Error: ${error.message}`, 'API:Preferences:Update', userId);
-    return NextResponse.json({ message: "Error saving user preferences", error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to save preferences for user ${userId} by ${session.user.name}. Error: ${errorMessage}`, 'API:Preferences:Update', userId);
+    return NextResponse.json({ message: "Error saving user preferences", error: errorMessage }, { status: 500 });
   }
 } 

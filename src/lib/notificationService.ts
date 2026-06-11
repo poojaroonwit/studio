@@ -1,14 +1,20 @@
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastNotification } from '@/lib/simple-broadcaster';
-import { validate as validateUuid } from 'uuid';
 
-export interface NotificationData {
-  type: string;
-  title: string;
-  message: string;
-  data?: Record<string, any>;
-}
+import {
+  buildApplicantAddedNotification,
+  buildApplicantStatusChangeNotification,
+  buildRecruiterAssignedNotification,
+} from './notification-service-builders';
+import { createNotificationWithAudit } from './notification-service-create';
+import type { NotificationData } from './notification-service-types';
+import {
+  assertValidNotificationUserId,
+} from './notification-service-validation';
+
+export type { NotificationData } from './notification-service-types';
 
 export class NotificationService {
   /**
@@ -20,49 +26,23 @@ export class NotificationService {
     actingUserId?: string
   ) {
     try {
-      // Validate UUIDs before proceeding
-      if (!validateUuid(userId)) {
-        console.error('Invalid userId UUID in createNotification:', userId);
-        throw new Error('Invalid user ID format');
-      }
-
-      if (actingUserId && !validateUuid(actingUserId)) {
-        console.error('Invalid actingUserId UUID in createNotification:', actingUserId);
-        throw new Error('Invalid acting user ID format');
-      }
-
-      // Prevent self-notifications: don't notify users about their own actions
-      if (actingUserId && userId === actingUserId) {
-        await logAudit('AUDIT', `Self-notification prevented for user ${userId}`, 'NotificationService:Create', actingUserId, {
-          targetUserId: userId,
-          notificationType: notification.type,
-          title: notification.title
-        });
-        return null; // Return null to indicate no notification was created
-      }
-
-      const newNotification = await prisma.notification.create({
-        data: {
-          userId,
-          type: notification.type,
-          title: notification.title,
-          message: notification.message,
-          data: notification.data || {},
-        }
+      return await createNotificationWithAudit({
+        actingUserId,
+        broadcastNotification,
+        createNotificationRecord: ({ userId: targetUserId, notification: notificationData }) =>
+          prisma.notification.create({
+            data: {
+              userId: targetUserId,
+              type: notificationData.type,
+              title: notificationData.title,
+              message: notificationData.message,
+              data: notificationData.data || {},
+            },
+          }),
+        logAudit,
+        notification,
+        userId,
       });
-
-      // Broadcast real-time notification
-      broadcastNotification(newNotification.message, newNotification.type, userId);
-
-      if (actingUserId) {
-        await logAudit('AUDIT', `Notification '${notification.title}' created for user ${userId}`, 'NotificationService:Create', actingUserId, {
-          targetUserId: userId,
-          notificationType: notification.type,
-          title: notification.title
-        });
-      }
-
-      return newNotification;
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
@@ -78,18 +58,11 @@ export class NotificationService {
     recruiterId: string,
     assignedByUserId: string
   ) {
-    const notification: NotificationData = {
-      type: 'recruiter_assigned',
-      title: 'Position Assignment',
-      message: `You have been assigned as the recruiter for the position "${positionTitle}"`,
-      data: {
-        positionId,
-        positionTitle,
-        assignedBy: assignedByUserId
-      }
-    };
-
-    return this.createNotification(recruiterId, notification, assignedByUserId);
+    return this.createNotification(
+      recruiterId,
+      buildRecruiterAssignedNotification({ positionId, positionTitle, assignedByUserId }),
+      assignedByUserId
+    );
   }
 
   /**
@@ -103,20 +76,17 @@ export class NotificationService {
     recruiterId: string,
     addedByUserId: string
   ) {
-    const notification: NotificationData = {
-      type: 'Applicant_added',
-      title: 'New Applicant Added',
-      message: `A new applicant "${applicantName}" has been added to position "${positionTitle}"`,
-      data: {
-        applicantId: applicantId,
+    return this.createNotification(
+      recruiterId,
+      buildApplicantAddedNotification({
+        applicantId,
         applicantName,
         positionId,
         positionTitle,
-        addedBy: addedByUserId
-      }
-    };
-
-    return this.createNotification(recruiterId, notification, addedByUserId);
+        addedByUserId,
+      }),
+      addedByUserId
+    );
   }
 
   /**
@@ -132,22 +102,19 @@ export class NotificationService {
     recruiterId: string,
     changedByUserId: string
   ) {
-    const notification: NotificationData = {
-      type: 'Applicant_status_change',
-      title: 'Applicant Status Updated',
-      message: `Applicant "${applicantName}" status changed from "${oldStatus}" to "${newStatus}" for position "${positionTitle}"`,
-      data: {
+    return this.createNotification(
+      recruiterId,
+      buildApplicantStatusChangeNotification({
         applicantId,
         applicantName,
         oldStatus,
         newStatus,
         positionId,
         positionTitle,
-        changedBy: changedByUserId
-      }
-    };
-
-    return this.createNotification(recruiterId, notification, changedByUserId);
+        changedByUserId,
+      }),
+      changedByUserId
+    );
   }
 
   /**
@@ -160,13 +127,9 @@ export class NotificationService {
     isRead?: boolean
   ) {
     try {
-      // Validate UUID before proceeding
-      if (!validateUuid(userId)) {
-        console.error('Invalid userId UUID in getNotifications:', userId);
-        throw new Error('Invalid user ID format');
-      }
+      assertValidNotificationUserId(userId);
 
-      const whereClause: any = { userId };
+      const whereClause: Prisma.NotificationWhereInput = { userId };
       if (isRead !== undefined) {
         whereClause.isRead = isRead;
       }
@@ -200,9 +163,9 @@ export class NotificationService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      // Validate UUID before proceeding
-      if (!validateUuid(userId)) {
-        console.error('Invalid userId UUID in getUnreadCount:', userId);
+      try {
+        assertValidNotificationUserId(userId);
+      } catch {
         return 0;
       }
 
@@ -225,11 +188,7 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string) {
     try {
-      // Validate UUID before proceeding
-      if (!validateUuid(userId)) {
-        console.error('Invalid userId UUID in markAllAsRead:', userId);
-        throw new Error('Invalid user ID format');
-      }
+      assertValidNotificationUserId(userId);
 
       await prisma.notification.updateMany({
         where: {

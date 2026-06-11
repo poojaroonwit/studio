@@ -7,10 +7,15 @@ import { syncAllRecruiter, syncRecruiterForPosition } from '@/lib/recruiterSync'
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const syncRequestSchema = z.object({
   positionId: z.string().uuid().optional(),
   syncAll: z.boolean().optional().default(false)
 });
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * @openapi
@@ -56,13 +61,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Insufficient permissions. Admin access required.' }, { status: 403 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = syncRequestSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ 
@@ -106,11 +110,12 @@ export async function POST(request: NextRequest) {
         message: 'Either positionId or syncAll must be provided' 
       }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
     console.error('Recruiter sync error:', error);
     return NextResponse.json({ 
       message: 'Failed to sync recruiters', 
-      error: error.message 
+      error: errorMessage 
     }, { status: 500 });
   }
 }

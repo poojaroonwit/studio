@@ -6,6 +6,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 const systemPromptUpdateSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -65,13 +66,12 @@ export async function PUT(
 
   const { id } = await params;
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = systemPromptUpdateSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ 

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { applyRateLimit, authRateLimiter, apiRateLimiter, uploadRateLimiter, searchRateLimiter } from '@/lib/rateLimiter';
-
-const protectedRoutes = [
-  "/api/protected", // Add your protected endpoints here
-];
+import { applyRateLimit } from '@/lib/rateLimiter';
+import {
+  buildRateLimitExceededBody,
+  buildRateLimitHeaders,
+  canUsePathnameAsCallback,
+  hasNextAuthSessionToken,
+  isApiPath,
+  isSignInPath,
+  isTokenizedEvaluationPath,
+  SECURITY_HEADERS,
+  selectRateLimiter,
+  shouldSkipMiddlewarePath,
+} from './middleware-utils';
 
 export async function middleware(req: NextRequest) {
   try {
@@ -17,65 +25,37 @@ export async function middleware(req: NextRequest) {
     // Security headers for all responses
     const response = NextResponse.next();
     
-    // Add security headers
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
 
     // Skip middleware for static files and API routes that don't need session validation
-    if (
-      pathname.startsWith('/_next') ||
-      pathname.startsWith('/api/auth') ||
-      pathname.startsWith('/api/public') ||
-      pathname.startsWith('/api-docs') ||
-      pathname.startsWith('/api/manifest.json') ||
-      pathname.startsWith('/sw.js') ||
-      pathname.startsWith('/favicon.ico') ||
-      pathname.includes('.')
-    ) {
+    if (shouldSkipMiddlewarePath(pathname)) {
       return response;
     }
 
     // Apply rate limiting based on endpoint type
-    if (pathname.startsWith('/api/')) {
-      // Skip rate limiting for PWA endpoints
-      if (pathname === '/api/manifest.json') {
-        return response;
-      }
-      
-      let rateLimitResult;
-      
-      if (pathname.includes('/auth/') || pathname.includes('/signin')) {
-        rateLimitResult = applyRateLimit(req, authRateLimiter);
-      } else if (pathname.includes('/upload') || pathname.includes('/file')) {
-        rateLimitResult = applyRateLimit(req, uploadRateLimiter);
-      } else if (pathname.includes('/search') || pathname.includes('/applicants')) {
-        rateLimitResult = applyRateLimit(req, searchRateLimiter);
-      } else {
-        rateLimitResult = applyRateLimit(req, apiRateLimiter);
-      }
+    if (isApiPath(pathname)) {
+      const rateLimitResult = applyRateLimit(req, selectRateLimiter(pathname));
       
       // Add rate limit headers
-      response.headers.set('X-RateLimit-Limit', '100');
-      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+      Object.entries(buildRateLimitHeaders(rateLimitResult)).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
       
       if (!rateLimitResult.allowed) {
+        const body = buildRateLimitExceededBody(rateLimitResult.resetTime);
         return NextResponse.json(
-          { 
-            error: 'Too many requests', 
-            message: 'Rate limit exceeded. Please try again later.',
-            retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
-          }, 
+          body, 
           { 
             status: 429,
             headers: {
-              'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
-              'X-RateLimit-Limit': '100',
+              'Retry-After': body.retryAfter.toString(),
+              ...buildRateLimitHeaders({
+                remaining: 0,
+                resetTime: rateLimitResult.resetTime,
+              }),
               'X-RateLimit-Remaining': '0',
-              'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
             }
           }
         );
@@ -85,32 +65,17 @@ export async function middleware(req: NextRequest) {
     }
 
     // Allow access to evaluate page with token parameter (for external evaluators)
-    if (pathname.includes('/applicants/') && pathname.includes('/evaluate')) {
-      const token = req.nextUrl.searchParams.get('token');
-      if (token) {
-        // Allow access with evaluation token
-        return response;
-      }
+    if (isTokenizedEvaluationPath(req)) {
+      return response;
     }
 
     // Always allow access to sign-in page to prevent redirect loops
-    if (pathname.startsWith('/auth/signin')) {
+    if (isSignInPath(pathname)) {
       return response;
     }
 
     // Detect NextAuth session token (handle split cookies in production and NextAuth v5)
-    const allCookies = req.cookies.getAll();
-    const hasSessionToken = allCookies.some(c => {
-      const n = c.name;
-      return n === 'next-auth.session-token' ||
-             n.startsWith('next-auth.session-token.') ||
-             n === '__Secure-next-auth.session-token' ||
-             n.startsWith('__Secure-next-auth.session-token.') ||
-             n === 'authjs.session-token' ||
-             n.startsWith('authjs.session-token.') ||
-             n === '__Secure-authjs.session-token' ||
-             n.startsWith('__Secure-authjs.session-token.');
-    });
+    const hasSessionToken = hasNextAuthSessionToken(req);
 
     // If no token and trying to access protected routes, redirect to sign in
     if (!hasSessionToken) {
@@ -118,7 +83,7 @@ export async function middleware(req: NextRequest) {
       // SECURITY: Validate pathname before using as callback URL to prevent open redirect
       // Only allow relative paths (already validated by pathname starting with /)
       // Prevent redirect loops by not setting callbackUrl if it's already /auth/signin
-      if (pathname.startsWith('/') && !pathname.startsWith('//') && pathname !== '/auth/signin') {
+      if (canUsePathnameAsCallback(pathname)) {
         signInUrl.searchParams.set('callbackUrl', pathname);
       }
       return NextResponse.redirect(signInUrl);

@@ -10,6 +10,22 @@ export type SidebarActiveStyle = "gradient" | "solid" | "outline" | "subtle" | "
 
 const SIDEBAR_ACTIVE_STYLE_KEY = 'sidebarActiveStylePreference';
 
+type SidebarConfigChangeDetail = {
+  sidebarActiveStyle?: SidebarActiveStyle;
+};
+
+function isSidebarActiveStyle(value: unknown): value is SidebarActiveStyle {
+  return (
+    value === 'gradient' ||
+    value === 'solid' ||
+    value === 'outline' ||
+    value === 'subtle' ||
+    value === 'border' ||
+    value === 'glow' ||
+    value === 'glass'
+  );
+}
+
 /**
  * Get current sidebar active style
  */
@@ -66,9 +82,13 @@ export function initializeSidebarStyle() {
 export function setupSidebarStyleListener() {
   if (typeof window === 'undefined') return;
 
-  window.addEventListener('appConfigChanged', (event: any) => {
-    if (event.detail?.sidebarActiveStyle) {
-      applySidebarActiveStyle(event.detail.sidebarActiveStyle);
+  window.addEventListener('appConfigChanged', (event: Event) => {
+    const detail = event instanceof CustomEvent
+      ? event.detail as SidebarConfigChangeDetail
+      : undefined;
+
+    if (isSidebarActiveStyle(detail?.sidebarActiveStyle)) {
+      applySidebarActiveStyle(detail.sidebarActiveStyle);
     }
     // Also reapply colors when config changes
     reapplyCurrentSidebarColors();

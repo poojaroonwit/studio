@@ -1,81 +1,46 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSession } from 'next-auth/react';
-import { setThemeAndColors } from '@/lib/themeUtils';
+import {
+  applyThemeClass,
+  canApplyThemeChange,
+  getSystemThemeFromWindow,
+  isWindowThemeLocked,
+  scheduleSidebarColorReapply,
+} from './use-theme-dom';
+import { useThemeUserIdRef } from './use-theme-session';
+import {
+  getBrowserThemeState,
+  resolveThemeFromPreference,
+  type ThemeMode,
+  type ThemePreference,
+  type ThemePreloadedWindow,
+} from './use-theme-utils';
 
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type { ThemePreference } from './use-theme-utils';
 
 export function useTheme() {
-  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>('light');
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
   const lastThemeChange = useRef<number>(0);
   const hasInitializedRef = useRef<boolean>(false);
-  const userIdRef = useRef<string | undefined>(undefined);
+  const userIdRef = useThemeUserIdRef();
   const isUpdatingRef = useRef<boolean>(false);
   const lastUpdateTimeRef = useRef(0);
-  const lastSessionIdRef = useRef<string | undefined>(undefined);
-
-  // Memoize session ID to prevent unnecessary re-renders
-  const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
-
-  // Update userId ref when session changes - with debouncing
-  useEffect(() => {
-    if (sessionId !== lastSessionIdRef.current) {
-      lastSessionIdRef.current = sessionId;
-      userIdRef.current = sessionId;
-    }
-  }, [sessionId]);
 
   // Memoize the apply theme function to prevent recreation
-  const applyTheme = useCallback((theme: 'light' | 'dark') => {
-    // Prevent excessive theme changes - increased threshold
-    const now = Date.now();
-    if (now - lastThemeChange.current < 500) { // Increased from 300ms to 500ms
-      return;
-    }
-    lastThemeChange.current = now;
-
-    // Ensure we're in a browser environment
-    if (typeof document === 'undefined') {
+  const applyTheme = useCallback((theme: ThemeMode) => {
+    if (!canApplyThemeChange(lastThemeChange)) {
       return;
     }
 
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    
-    // Re-apply sidebar colors for the new theme with enhanced debouncing
-    if (!isUpdatingRef.current) {
-      isUpdatingRef.current = true;
-      requestAnimationFrame(() => {
-        import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-          reapplyCurrentSidebarColors();
-          setTimeout(() => {
-            isUpdatingRef.current = false;
-          }, 200); // Increased from 100ms to 200ms
-        }).catch(() => {
-          setTimeout(() => {
-            isUpdatingRef.current = false;
-          }, 200);
-        });
-      });
-    }
+    applyThemeClass(theme);
+    scheduleSidebarColorReapply(isUpdatingRef);
   }, []);
 
   // Memoize the set theme function with enhanced debouncing
   const setTheme = useCallback(async (preference: ThemePreference) => {
-    // Check if mobile device
-    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-    const isSmallScreen = window.innerWidth < 768;
-    const isMobile = isMobileDevice || isSmallScreen;
-    
-    // On mobile, always use system theme and prevent changes
-    if (isMobile) {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (isWindowThemeLocked()) {
+      const systemTheme = getSystemThemeFromWindow();
       setThemePreference('system');
       setCurrentTheme(systemTheme);
       applyTheme(systemTheme);
@@ -94,14 +59,10 @@ export function useTheme() {
     setThemePreference(preference);
     localStorage.setItem('theme', preference);
     
-    let newTheme: 'light' | 'dark' = 'light';
-    if (preference === 'dark') {
-      newTheme = 'dark';
-    } else if (preference === 'light') {
-      newTheme = 'light';
-    } else {
-      newTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
+    const newTheme = resolveThemeFromPreference(
+      preference,
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
     
     setCurrentTheme(newTheme);
     applyTheme(newTheme);
@@ -133,13 +94,7 @@ export function useTheme() {
 
   // Memoize the toggle theme function
   const toggleTheme = useCallback(() => {
-    // Check if mobile device
-    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-    const isSmallScreen = window.innerWidth < 768;
-    const isMobile = isMobileDevice || isSmallScreen;
-    
-    // On mobile, prevent theme toggle - always use system theme
-    if (isMobile) {
+    if (isWindowThemeLocked()) {
       return;
     }
     
@@ -159,14 +114,8 @@ export function useTheme() {
     if (initDependencies.hasInitialized) return;
     hasInitializedRef.current = true;
 
-    // Check if mobile device
-    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-    const isSmallScreen = window.innerWidth < 768;
-    const isMobile = isMobileDevice || isSmallScreen;
-
-    // On mobile, always use system theme
-    if (isMobile) {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (isWindowThemeLocked()) {
+      const systemTheme = getSystemThemeFromWindow();
       setThemePreference('system');
       setCurrentTheme(systemTheme);
       initDependencies.applyTheme(systemTheme);
@@ -174,37 +123,18 @@ export function useTheme() {
       return;
     }
 
-    // Check if theme was already initialized by the inline script
-    const wasPreInitialized = (window as any).__THEME_INITIALIZED__;
-    const preInitializedPreference = (window as any).__THEME_PREFERENCE__;
-    const preInitializedIsDark = (window as any).__THEME_IS_DARK__;
+    const browserThemeState = getBrowserThemeState({
+      localStorage,
+      matchMedia: window.matchMedia.bind(window),
+      themeWindow: window as ThemePreloadedWindow,
+    });
 
-    let preference: ThemePreference;
-    let theme: 'light' | 'dark';
-
-    if (wasPreInitialized && preInitializedPreference && typeof preInitializedIsDark === 'boolean') {
-      // Use the pre-initialized values
-      preference = preInitializedPreference;
-      theme = preInitializedIsDark ? 'dark' : 'light';
-    } else {
-      // Fallback to localStorage or system preference
-      const savedTheme = localStorage.getItem('theme') as ThemePreference;
-      preference = savedTheme || 'system';
-      
-      if (preference === 'dark') {
-        theme = 'dark';
-      } else if (preference === 'light') {
-        theme = 'light';
-      } else {
-        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      
-      // Apply theme if it wasn't pre-initialized
-      initDependencies.applyTheme(theme);
+    if (!browserThemeState.wasPreloaded) {
+      initDependencies.applyTheme(browserThemeState.theme);
     }
     
-    setThemePreference(preference);
-    setCurrentTheme(theme);
+    setThemePreference(browserThemeState.preference);
+    setCurrentTheme(browserThemeState.theme);
     setMounted(true);
   }, [initDependencies]);
 

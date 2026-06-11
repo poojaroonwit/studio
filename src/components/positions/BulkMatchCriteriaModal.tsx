@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, RotateCcw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { TiptapEditorWithExpand } from "@/components/ui/wysiwyg-editors";
+import { fetchDefaultPositionMatchCriteria } from "./position-system-settings-api";
 
 interface BulkMatchCriteriaModalProps {
   isOpen: boolean;
@@ -39,12 +40,7 @@ export function BulkMatchCriteriaModal({
       const fetchDefaultMatchCriteria = async () => {
         setIsLoadingDefault(true);
         try {
-          const response = await fetch('/api/settings/system-settings');
-          if (response.ok) {
-            const data = await response.json();
-            const defaultCriteria = data.defaultMatchCriteria || '';
-            setDefaultMatchCriteria(defaultCriteria);
-          }
+          setDefaultMatchCriteria(await fetchDefaultPositionMatchCriteria());
         } catch (error) {
           console.error('Error fetching default match criteria:', error);
           toast.error('Failed to load default match criteria');

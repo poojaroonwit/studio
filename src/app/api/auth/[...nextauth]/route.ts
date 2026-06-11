@@ -10,6 +10,12 @@
 import { handlers } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
+function getErrorCause(error: unknown): unknown {
+  return error instanceof Error && 'cause' in error
+    ? (error as Error & { cause?: unknown }).cause
+    : undefined;
+}
+
 // Wrap handlers with error logging for OAuth callback errors
 async function handleRequest(
   handler: (req: NextRequest) => Promise<Response>,
@@ -84,7 +90,7 @@ async function handleRequest(
     console.error('[NEXTAUTH HANDLER] Unhandled error:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    const errorCause = error instanceof Error && 'cause' in error ? (error as any).cause : undefined;
+    const errorCause = getErrorCause(error);
     
     console.error('[NEXTAUTH HANDLER] Error details:', {
       message: errorMessage,

@@ -2,15 +2,46 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-// Defer heavy imports to runtime to avoid build-time execution in Docker
-let withApiSecurity: any;
-let acknowledgeSecurityAlert: any;
-let resolveSecurityAlert: any;
-let requireSessionAndPermission: any;
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
+import type { ApiSecurityContext, ApiSecurityOptions } from '@/lib/apiSecurity';
+
+type SecurityAlertRouteContext = {
+  params: Promise<{ alertId: string }>;
+};
+
+type SecurityAlertAction = 'acknowledge' | 'resolve';
+type SecurityAlertActionHandler = (alertId: string, userId: string) => Promise<boolean>;
+type SecurityAlertHandler = (req: NextRequest, context: SecurityAlertRouteContext) => Promise<NextResponse>;
+type WithSecurityAlertApiSecurity = (
+  handler: SecurityAlertHandler,
+  options: ApiSecurityOptions
+) => SecurityAlertHandler;
+type PermissionSessionResult = {
+  session?: {
+    user?: {
+      id?: string;
+    };
+  };
+  error?: NextResponse;
+};
+type RequireSessionAndPermission = (
+  requiredPermission: string,
+  request: NextRequest
+) => Promise<PermissionSessionResult>;
+
+let withApiSecurity: WithSecurityAlertApiSecurity | undefined;
+let acknowledgeSecurityAlert: SecurityAlertActionHandler | undefined;
+let resolveSecurityAlert: SecurityAlertActionHandler | undefined;
+let requireSessionAndPermission: RequireSessionAndPermission | undefined;
+
+function isSecurityAlertAction(action: unknown): action is SecurityAlertAction {
+  return action === 'acknowledge' || action === 'resolve';
+}
 
 async function handler(
   req: NextRequest,
-  { params }: { params: Promise<{ alertId: string }> }
+  { params }: SecurityAlertRouteContext
 ) {
   try {
     if (!acknowledgeSecurityAlert || !resolveSecurityAlert || !requireSessionAndPermission) {
@@ -21,7 +52,8 @@ async function handler(
       requireSessionAndPermission = authMod.requireSessionAndPermission;
     }
     const { alertId } = await params;
-    const { action } = await req.json();
+    const body = await readRequestJsonObject(req);
+    const action = getJsonString(body, 'action');
 
     if (!alertId) {
       return NextResponse.json(
@@ -37,6 +69,16 @@ async function handler(
     }
 
     const userId = sessionResult.session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!isSecurityAlertAction(action)) {
+      return NextResponse.json(
+        { error: 'Invalid action. Use "acknowledge" or "resolve"' },
+        { status: 400 }
+      );
+    }
 
     let success = false;
     let message = '';
@@ -50,11 +92,6 @@ async function handler(
         success = await resolveSecurityAlert(alertId, userId);
         message = success ? 'Alert resolved' : 'Failed to resolve alert';
         break;
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action. Use "acknowledge" or "resolve"' },
-          { status: 400 }
-        );
     }
 
     if (!success) {
@@ -79,13 +116,19 @@ async function handler(
   }
 }
 
-export async function POST(req: NextRequest, context: any) {
+export async function POST(req: NextRequest, context: SecurityAlertRouteContext) {
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
   }
   if (!withApiSecurity) {
     const apiSec = await import('@/lib/apiSecurity');
-    withApiSecurity = apiSec.withApiSecurity;
+    withApiSecurity = (routeHandler, options) => {
+      const securedHandler = apiSec.withApiSecurity(
+        (request, apiContext) => routeHandler(request, apiContext as SecurityAlertRouteContext),
+        options
+      );
+      return (request, routeContext) => securedHandler(request, routeContext as unknown as ApiSecurityContext);
+    };
   }
   const secured = withApiSecurity(handler, {
     requireAuth: true,

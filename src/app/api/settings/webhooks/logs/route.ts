@@ -4,8 +4,77 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 import { auth } from '@/auth';
+
+type WebhookLogsFilter = 'all' | 'success' | 'failed';
+
+type WebhookLogWithWebhook = Prisma.WebhookLogGetPayload<{
+  include: {
+    webhook: {
+      select: {
+        id: true;
+        name: true;
+        url: true;
+      };
+    };
+  };
+}>;
+
+function getPositiveIntegerParam(value: string | null, fallback: number) {
+  const parsed = Number.parseInt(value ?? String(fallback), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getWebhookLogsFilter(value: string | null): WebhookLogsFilter {
+  return value === 'success' || value === 'failed' ? value : 'all';
+}
+
+function buildWebhookLogsWhere(input: {
+  filter: WebhookLogsFilter;
+  search: string;
+  webhookId: string;
+}): Prisma.WebhookLogWhereInput {
+  const where: Prisma.WebhookLogWhereInput = {};
+
+  if (input.filter === 'success') {
+    where.success = true;
+  } else if (input.filter === 'failed') {
+    where.success = false;
+  }
+
+  if (input.search) {
+    where.OR = [
+      { event_type: { contains: input.search, mode: 'insensitive' } },
+      { response_body: { contains: input.search, mode: 'insensitive' } },
+      { error_message: { contains: input.search, mode: 'insensitive' } },
+      { webhook: { name: { contains: input.search, mode: 'insensitive' } } },
+    ];
+  }
+
+  if (input.webhookId) {
+    where.webhook_id = input.webhookId;
+  }
+
+  return where;
+}
+
+function formatWebhookLog(log: WebhookLogWithWebhook) {
+  return {
+    id: log.id,
+    webhook_id: log.webhook_id,
+    webhook_name: log.webhook?.name || 'Unknown',
+    webhook_url: log.webhook?.url || '',
+    event_type: log.event_type,
+    success: log.success,
+    response_status: log.response_status,
+    response_message: log.response_body || log.error_message || null,
+    duration_ms: log.duration_ms,
+    created_at: log.createdAt,
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -19,35 +88,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const filter = searchParams.get('filter') || 'all';
+    const page = getPositiveIntegerParam(searchParams.get('page'), 1);
+    const limit = getPositiveIntegerParam(searchParams.get('limit'), 50);
+    const filter = getWebhookLogsFilter(searchParams.get('filter'));
     const search = searchParams.get('search') || '';
     const webhookId = searchParams.get('webhook_id') || '';
 
     const offset = (page - 1) * limit;
-
-    // Build where clause
-    const where: any = {};
-
-    if (filter === 'success') {
-      where.success = true;
-    } else if (filter === 'failed') {
-      where.success = false;
-    }
-
-    if (search) {
-      where.OR = [
-        { event_type: { contains: search, mode: 'insensitive' } },
-        { response_body: { contains: search, mode: 'insensitive' } },
-        { error_message: { contains: search, mode: 'insensitive' } },
-        { webhook: { name: { contains: search, mode: 'insensitive' } } }
-      ];
-    }
-
-    if (webhookId) {
-      where.webhook_id = webhookId;
-    }
+    const where = buildWebhookLogsWhere({ filter, search, webhookId });
 
     // Get total count
     const total = await prisma.webhookLog.count({ where });
@@ -70,20 +118,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Format logs for response
-    const formattedLogs = logs.map((log: any) => ({
-      id: log.id,
-      webhook_id: log.webhook_id,
-      webhook_name: log.webhook?.name || 'Unknown',
-      webhook_url: log.webhook?.url || '',
-      event_type: log.event_type,
-      success: log.success,
-      response_status: log.response_status,
-      response_message: log.response_body || log.error_message || null,
-      duration_ms: log.duration_ms,
-      retry_count: (log as any).retry_count ?? 0,
-      created_at: log.createdAt,
-      updated_at: (log as any).updatedAt ?? log.createdAt
-    }));
+    const formattedLogs = logs.map(formatWebhookLog);
 
     return NextResponse.json({
       logs: formattedLogs,

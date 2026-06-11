@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnectionCount } from '@/lib/realtime';
 import { getPool } from '@/lib/db';
+import type { DbClient } from '@/lib/db';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+function createTimeoutPromise(ms: number, message: string): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(message)), ms);
+  });
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,21 +37,17 @@ export async function GET(request: NextRequest) {
     // Test database connection with timeout
     let dbHealthy = false;
     let dbError: string | null = null;
-    let client: any = null;
+    let client: DbClient | null = null;
     
     try {
       const dbPromise = getPool().connect();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout')), 5000)
-      );
+      const timeoutPromise = createTimeoutPromise(5000, 'Database connection timeout');
       
       client = await Promise.race([dbPromise, timeoutPromise]);
       
       // Test query with timeout
       const queryPromise = client.query('SELECT 1 as test');
-      const queryTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timeout')), 3000)
-      );
+      const queryTimeoutPromise = createTimeoutPromise(3000, 'Database query timeout');
       
       await Promise.race([queryPromise, queryTimeoutPromise]);
       dbHealthy = true;

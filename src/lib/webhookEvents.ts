@@ -1,4 +1,11 @@
 import { WebhookService } from './webhookService';
+import type { WebhookData } from './webhookDispatcher';
+import {
+  buildApplicantStageChangedPayload,
+  buildResumePayload,
+  buildUploadQueuePayload,
+  buildUploadQueueRetryPayload,
+} from './webhook/webhook-event-emitter-payloads';
 
 /**
  * Webhook Event Emitter
@@ -8,94 +15,67 @@ export class WebhookEvents {
   /**
    * Applicant Events
    */
-  static async ApplicantCreated(applicant: any): Promise<void> {
+  static async ApplicantCreated(applicant: WebhookData): Promise<void> {
     await WebhookService.sendApplicantWebhook('Applicant.created', applicant);
   }
 
-  static async ApplicantUpdated(applicant: any): Promise<void> {
+  static async ApplicantUpdated(applicant: WebhookData): Promise<void> {
     await WebhookService.sendApplicantWebhook('Applicant.updated', applicant);
   }
 
-  static async ApplicantDeleted(applicant: any): Promise<void> {
+  static async ApplicantDeleted(applicant: WebhookData): Promise<void> {
     await WebhookService.sendApplicantWebhook('Applicant.deleted', applicant);
   }
 
-  static async ApplicantstageChanged(applicant: any, oldStage: string, newStage: string): Promise<void> {
-    await WebhookService.sendWebhooks('Applicant.stage_changed', {
-      applicant: {
-        id: applicant.id,
-        name: applicant.name,
-        email: applicant.email,
-        status: applicant.statusId || applicant.status || applicant.statusName || 'Unknown',
-        position_id: applicant.positionId,
-        application_date: applicant.applicationDate,
-        createdAt: applicant.createdAt,
-        updatedAt: applicant.updatedAt
-      },
-      stage_change: {
-        old_stage: oldStage,
-        new_stage: newStage,
-        changed_at: new Date().toISOString()
-      }
-    });
+  static async ApplicantstageChanged(applicant: WebhookData, oldStage: string, newStage: string): Promise<void> {
+    await WebhookService.sendWebhooks(
+      'Applicant.stage_changed',
+      buildApplicantStageChangedPayload(applicant, oldStage, newStage),
+    );
   }
 
   /**
    * Position Events
    */
-  static async positionCreated(position: any): Promise<void> {
+  static async positionCreated(position: WebhookData): Promise<void> {
     await WebhookService.sendPositionWebhook('position.created', position);
   }
 
-  static async positionUpdated(position: any): Promise<void> {
+  static async positionUpdated(position: WebhookData): Promise<void> {
     await WebhookService.sendPositionWebhook('position.updated', position);
   }
 
-  static async positionDeleted(position: any): Promise<void> {
+  static async positionDeleted(position: WebhookData): Promise<void> {
     await WebhookService.sendPositionWebhook('position.deleted', position);
   }
 
   /**
    * User Events
    */
-  static async userCreated(user: any): Promise<void> {
+  static async userCreated(user: WebhookData): Promise<void> {
     await WebhookService.sendUserWebhook('user.created', user);
   }
 
-  static async userUpdated(user: any): Promise<void> {
+  static async userUpdated(user: WebhookData): Promise<void> {
     await WebhookService.sendUserWebhook('user.updated', user);
   }
 
-  static async userDeleted(user: any): Promise<void> {
+  static async userDeleted(user: WebhookData): Promise<void> {
     await WebhookService.sendUserWebhook('user.deleted', user);
   }
 
   /**
    * Resume Events
    */
-  static async resumeUploaded(resume: any): Promise<void> {
+  static async resumeUploaded(resume: WebhookData): Promise<void> {
     await WebhookService.sendWebhooks('resume.uploaded', {
-      resume: {
-        id: resume.id,
-        applicant_id: resume.applicantId,
-        file_name: resume.fileName,
-        file_path: resume.filePath,
-        uploaded_at: resume.uploadedAt,
-        file_size: resume.fileSize
-      }
+      resume: buildResumePayload(resume),
     });
   }
 
-  static async resumeProcessed(resume: any, processingResult: any): Promise<void> {
+  static async resumeProcessed(resume: WebhookData, processingResult: unknown): Promise<void> {
     await WebhookService.sendWebhooks('resume.processed', {
-      resume: {
-        id: resume.id,
-        applicant_id: resume.applicantId,
-        file_name: resume.fileName,
-        file_path: resume.filePath,
-        uploaded_at: resume.uploadedAt,
-        file_size: resume.fileSize
-      },
+      resume: buildResumePayload(resume),
       processing_result: processingResult
     });
   }
@@ -103,92 +83,51 @@ export class WebhookEvents {
   /**
    * Comment Events
    */
-  static async commentCreated(comment: any): Promise<void> {
+  static async commentCreated(comment: WebhookData): Promise<void> {
     await WebhookService.sendCommentWebhook('comment.created', comment);
   }
 
-  static async commentUpdated(comment: any): Promise<void> {
+  static async commentUpdated(comment: WebhookData): Promise<void> {
     await WebhookService.sendCommentWebhook('comment.updated', comment);
   }
 
-  static async commentDeleted(comment: any): Promise<void> {
+  static async commentDeleted(comment: WebhookData): Promise<void> {
     await WebhookService.sendCommentWebhook('comment.deleted', comment);
   }
 
   /**
    * Upload Queue Events
    */
-  static async uploadQueueCreated(uploadQueue: any): Promise<void> {
+  static async uploadQueueCreated(uploadQueue: WebhookData): Promise<void> {
     await WebhookService.sendUploadQueueWebhook('upload_queue.created', uploadQueue);
   }
 
-  static async uploadQueueProcessing(uploadQueue: any): Promise<void> {
+  static async uploadQueueProcessing(uploadQueue: WebhookData): Promise<void> {
     await WebhookService.sendUploadQueueWebhook('upload_queue.processing', uploadQueue);
   }
 
-  static async uploadQueueCompleted(uploadQueue: any): Promise<void> {
+  static async uploadQueueCompleted(uploadQueue: WebhookData): Promise<void> {
     await WebhookService.sendUploadQueueWebhook('upload_queue.completed', uploadQueue);
   }
 
-  static async uploadQueueFailed(uploadQueue: any, error: string): Promise<void> {
-    // Extract source information from webhook payload if available
-    let sourceInfo = null;
-    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
-      sourceInfo = {
-        sourceId: uploadQueue.webhook_payload.sourceId || null,
-        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
-      };
-    }
-
+  static async uploadQueueFailed(uploadQueue: WebhookData, error: string): Promise<void> {
     await WebhookService.sendWebhooks('upload_queue.failed', {
-      upload_queue: {
-        id: uploadQueue.id,
-        file_name: uploadQueue.fileName,
-        file_size: uploadQueue.fileSize,
-        status: uploadQueue.status,
-        error: uploadQueue.error,
-        upload_date: uploadQueue.uploadDate,
-        completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt,
-        source: sourceInfo // Include source information in webhook payload
-      },
+      upload_queue: buildUploadQueuePayload(uploadQueue),
       error: error
     });
   }
 
-  static async uploadQueueRetry(uploadQueue: any, attempt: number): Promise<void> {
-    // Extract source information from webhook payload if available
-    let sourceInfo = null;
-    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
-      sourceInfo = {
-        sourceId: uploadQueue.webhook_payload.sourceId || null,
-        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
-      };
-    }
-
-    await WebhookService.sendWebhooks('upload_queue.retry', {
-      upload_queue: {
-        id: uploadQueue.id,
-        file_name: uploadQueue.fileName,
-        file_size: uploadQueue.fileSize,
-        status: uploadQueue.status,
-        error: uploadQueue.error,
-        upload_date: uploadQueue.uploadDate,
-        completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt,
-        source: sourceInfo // Include source information in webhook payload
-      },
-      retry: {
-        attempt: attempt,
-        retry_at: new Date().toISOString()
-      }
-    });
+  static async uploadQueueRetry(uploadQueue: WebhookData, attempt: number): Promise<void> {
+    await WebhookService.sendWebhooks(
+      'upload_queue.retry',
+      buildUploadQueueRetryPayload(uploadQueue, attempt),
+    );
   }
 
   /**
    * Custom Event
    */
-  static async sendCustomEvent(event: string, data: any): Promise<void> {
+  static async sendCustomEvent(event: string, data: WebhookData): Promise<void> {
     await WebhookService.sendWebhooks(event, data);
   }
 }
@@ -198,16 +137,23 @@ export class WebhookEvents {
  * Can be used to automatically trigger webhooks after database operations
  */
 export function withWebhookEvent(eventType: string) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (
+    _target: object,
+    _propertyName: string | symbol,
+    descriptor: TypedPropertyDescriptor<(...args: unknown[]) => unknown | Promise<unknown>>
+  ) {
     const method = descriptor.value;
+    if (!method) {
+      return;
+    }
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (this: unknown, ...args: unknown[]) {
       const result = await method.apply(this, args);
       
       // Trigger webhook after successful operation
       try {
         if (result && typeof result === 'object') {
-          await WebhookEvents.sendCustomEvent(eventType, result);
+          await WebhookEvents.sendCustomEvent(eventType, result as WebhookData);
         }
       } catch (error) {
         console.error(`Error sending webhook for event ${eventType}:`, error);

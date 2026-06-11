@@ -13,6 +13,12 @@ export interface SLACheckResult {
     gradeColor: string;
 }
 
+interface HeadcountSLAStartDateSource {
+    status?: string | null;
+    onboardingDate?: string | Date | null;
+    requestDate?: string | Date | null;
+}
+
 /**
  * Get the appropriate badge variant based on days overdue
  * @param daysOverdue - Number of days the SLA is overdue
@@ -45,7 +51,7 @@ export function formatSLAMessage(slaResult: SLACheckResult): string {
  * @param headcount - The headcount object
  * @returns The effective SLA start date or null
  */
-export function getEffectiveSLAStartDateForHeadcount(headcount: any): Date | null {
+export function getEffectiveSLAStartDateForHeadcount(headcount: HeadcountSLAStartDateSource): Date | null {
     // If headcount is filled and has onboarding date, use that
     if (headcount.status === 'filled' && headcount.onboardingDate) {
         return new Date(headcount.onboardingDate);

@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { clearUserValidationCache } from '@/lib/auth';
 
 import { auth } from '@/auth';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -16,7 +19,8 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const { userId } = await request.json();
+    const body = await readRequestJsonObject(request);
+    const userId = getJsonString(body, 'userId');
     
     // Only allow clearing cache for the current user
     if (userId !== session.user.id) {

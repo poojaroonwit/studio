@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
+import {
+  getSystemSettingEnum,
+  isSystemSettingEnabled,
+} from '@/lib/system-settings-response';
+
+type InterviewInvitationEditorMode = 'wysiwyg' | 'html';
+
+const INTERVIEW_INVITATION_FEATURE_KEY = 'interviewInvitationFeatureEnabled';
+const INTERVIEW_INVITATION_EDITOR_MODE_KEY = 'emailTemplateInterviewInvitationEditorMode';
+const EDITOR_MODE_OPTIONS: readonly InterviewInvitationEditorMode[] = ['wysiwyg', 'html'];
 
 export const useInterviewInvitationFeature = () => {
   const [isInterviewInvitationEnabled, setIsInterviewInvitationEnabled] = useState<boolean>(true);
-  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
+  const [editorMode, setEditorMode] = useState<InterviewInvitationEditorMode>('wysiwyg');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -10,25 +20,14 @@ export const useInterviewInvitationFeature = () => {
       try {
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
-          const data = await response.json();
-          let settings: any = {};
-          
-          if (data.settings && Array.isArray(data.settings)) {
-            settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
-          } else {
-            settings = data;
-          }
-          
-          // Default to true if not set, but allow explicit false
-          const interviewInvitationEnabled = settings.interviewInvitationFeatureEnabled !== 'false';
-          setIsInterviewInvitationEnabled(interviewInvitationEnabled);
-
-          // Get editor mode
-          if (settings.emailTemplateInterviewInvitationEditorMode === 'html') {
-            setEditorMode('html');
-          } else {
-            setEditorMode('wysiwyg');
-          }
+          const data: unknown = await response.json();
+          setIsInterviewInvitationEnabled(isSystemSettingEnabled(data, INTERVIEW_INVITATION_FEATURE_KEY, true));
+          setEditorMode(getSystemSettingEnum(
+            data,
+            INTERVIEW_INVITATION_EDITOR_MODE_KEY,
+            EDITOR_MODE_OPTIONS,
+            'wysiwyg'
+          ));
         }
       } catch (error) {
         console.error('Error checking interview invitation feature status:', error);

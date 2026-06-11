@@ -1,160 +1,23 @@
 "use client";
 
 import React from 'react';
-import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
-interface ValidationError {
-  field: string;
-  message: string;
-  type?: 'error' | 'warning' | 'info';
-}
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+
+import type { ValidationError, ValidationType } from './form-validation-types';
+import { groupValidationErrors, validationTypes, validationUtils } from './form-validation-utils';
+import { useFormValidation } from './use-form-validation';
+
+export type { ValidationError, ValidationType } from './form-validation-types';
+export { useFormValidation, validationUtils };
 
 interface FormValidationProps {
   errors: ValidationError[];
   className?: string;
   showSuccess?: boolean;
   successMessage?: string;
-}
-
-export function FormValidation({
-  errors,
-  className,
-  showSuccess = false,
-  successMessage = 'Form submitted successfully!'
-}: FormValidationProps) {
-  if (errors.length === 0 && !showSuccess) {
-    return null;
-  }
-
-  const errorErrors = (() => {
-    try {
-      // Defensive check to prevent filter errors
-      if (!Array.isArray(errors)) {
-        console.warn('FormValidation: errors is not an array:', errors);
-        return [];
-      }
-      
-      return errors.filter(e => {
-        try {
-          return e && e.type !== 'warning' && e.type !== 'info';
-        } catch (error) {
-          console.warn('FormValidation: Error filtering error:', error, e);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('FormValidation: Error filtering errors:', error);
-      return [];
-    }
-  })();
-
-  const warnings = (() => {
-    try {
-      // Defensive check to prevent filter errors
-      if (!Array.isArray(errors)) {
-        console.warn('FormValidation: errors is not an array:', errors);
-        return [];
-      }
-      
-      return errors.filter(e => {
-        try {
-          return e && e.type === 'warning';
-        } catch (error) {
-          console.warn('FormValidation: Error filtering warning:', error, e);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('FormValidation: Error filtering warnings:', error);
-      return [];
-    }
-  })();
-
-  const infos = (() => {
-    try {
-      // Defensive check to prevent filter errors
-      if (!Array.isArray(errors)) {
-        console.warn('FormValidation: errors is not an array:', errors);
-        return [];
-      }
-      
-      return errors.filter(e => {
-        try {
-          return e && e.type === 'info';
-        } catch (error) {
-          console.warn('FormValidation: Error filtering info:', error, e);
-          return false;
-        }
-      });
-    } catch (error) {
-      console.error('FormValidation: Error filtering infos:', error);
-      return [];
-    }
-  })();
-
-  return (
-    <div className={cn('space-y-3', className)}>
-      {/* Success Message */}
-      {showSuccess && (
-        <Alert className="border-green-200 bg-green-50 text-green-800">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            {successMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Error Messages */}
-      {errorErrors.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-1">
-              {errorErrors.map((error, index) => (
-                <div key={index} className="text-sm">
-                  <strong>{error.field}:</strong> {error.message}
-                </div>
-              ))}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Warning Messages */}
-      {warnings.length > 0 && (
-        <Alert className="border-yellow-200 bg-yellow-50 text-yellow-800">
-          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            <div className="space-y-1">
-              {warnings.map((warning, index) => (
-                <div key={index} className="text-sm">
-                  <strong>{warning.field}:</strong> {warning.message}
-                </div>
-              ))}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Info Messages */}
-      {infos.length > 0 && (
-        <Alert className="border-blue-200 bg-blue-50 text-blue-800">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <div className="space-y-1">
-              {infos.map((info, index) => (
-                <div key={index} className="text-sm">
-                  <strong>{info.field}:</strong> {info.message}
-                </div>
-              ))}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-    </div>
-  );
 }
 
 interface FieldValidationProps {
@@ -164,11 +27,63 @@ interface FieldValidationProps {
   className?: string;
 }
 
+type ValidationAlertConfig = Record<
+  ValidationType,
+  {
+    icon: React.ElementType<{ className?: string }>;
+    variant?: 'destructive';
+    alertClassName?: string;
+    iconClassName?: string;
+    descriptionClassName?: string;
+  }
+>;
+
+const validationAlertConfig: ValidationAlertConfig = {
+  error: {
+    icon: AlertTriangle,
+    variant: 'destructive' as const,
+  },
+  warning: {
+    icon: AlertTriangle,
+    alertClassName: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+    iconClassName: 'text-yellow-600',
+    descriptionClassName: 'text-yellow-800',
+  },
+  info: {
+    icon: Info,
+    alertClassName: 'border-blue-200 bg-blue-50 text-blue-800',
+    iconClassName: 'text-blue-600',
+    descriptionClassName: 'text-blue-800',
+  },
+};
+
+export function FormValidation({
+  errors,
+  className,
+  showSuccess = false,
+  successMessage = 'Form submitted successfully!',
+}: FormValidationProps) {
+  if (errors.length === 0 && !showSuccess) {
+    return null;
+  }
+
+  const groupedErrors = groupValidationErrors(errors);
+
+  return (
+    <div className={cn('space-y-3', className)}>
+      {showSuccess && <SuccessValidationMessage message={successMessage} />}
+      {validationTypes.map((type) => (
+        <ValidationMessages key={type} type={type} errors={groupedErrors[type]} />
+      ))}
+    </div>
+  );
+}
+
 export function FieldValidation({
   error,
   warning,
   info,
-  className
+  className,
 }: FieldValidationProps) {
   if (!error && !warning && !info) {
     return null;
@@ -176,212 +91,67 @@ export function FieldValidation({
 
   return (
     <div className={cn('mt-1 text-sm', className)}>
-      {error && (
-        <p className="text-destructive flex items-center gap-1">
-          <AlertTriangle className="h-3 w-3" />
-          {error}
-        </p>
-      )}
-      {warning && (
-        <p className="text-yellow-600 flex items-center gap-1">
-          <AlertTriangle className="h-3 w-3" />
-          {warning}
-        </p>
-      )}
-      {info && (
-        <p className="text-blue-600 flex items-center gap-1">
-          <Info className="h-3 w-3" />
-          {info}
-        </p>
-      )}
+      {error && <InlineValidationMessage icon={AlertTriangle} className="text-destructive" message={error} />}
+      {warning && <InlineValidationMessage icon={AlertTriangle} className="text-yellow-600" message={warning} />}
+      {info && <InlineValidationMessage icon={Info} className="text-blue-600" message={info} />}
     </div>
   );
 }
 
-// Validation utilities
-export const validationUtils = {
-  // Email validation
-  isValidEmail: (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  },
-
-  // Phone validation (basic)
-  isValidPhone: (phone: string): boolean => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
-  },
-
-  // Password strength validation
-  getPasswordStrength: (password: string): {
-    score: number;
-    feedback: string[];
-  } => {
-    const feedback: string[] = [];
-    let score = 0;
-
-    if (password.length >= 8) {
-      score += 1;
-    } else {
-      feedback.push('Password must be at least 8 characters long');
-    }
-
-    if (/[a-z]/.test(password)) {
-      score += 1;
-    } else {
-      feedback.push('Password must contain at least one lowercase letter');
-    }
-
-    if (/[A-Z]/.test(password)) {
-      score += 1;
-    } else {
-      feedback.push('Password must contain at least one uppercase letter');
-    }
-
-    if (/[0-9]/.test(password)) {
-      score += 1;
-    } else {
-      feedback.push('Password must contain at least one number');
-    }
-
-    if (/[^A-Za-z0-9]/.test(password)) {
-      score += 1;
-    } else {
-      feedback.push('Password must contain at least one special character');
-    }
-
-    return { score, feedback };
-  },
-
-  // URL validation
-  isValidUrl: (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  },
-
-  // File size validation
-  isValidFileSize: (file: File, maxSizeMB: number): boolean => {
-    return file.size <= maxSizeMB * 1024 * 1024;
-  },
-
-  // File type validation
-  isValidFileType: (file: File, allowedTypes: string[]): boolean => {
-    return allowedTypes.includes(file.type);
-  },
-
-  // Required field validation
-  isRequired: (value: any): boolean => {
-    if (typeof value === 'string') {
-      return value.trim().length > 0;
-    }
-    if (Array.isArray(value)) {
-      return value.length > 0;
-    }
-    return value !== null && value !== undefined;
-  },
-
-  // Min length validation
-  hasMinLength: (value: string, minLength: number): boolean => {
-    return value.length >= minLength;
-  },
-
-  // Max length validation
-  hasMaxLength: (value: string, maxLength: number): boolean => {
-    return value.length <= maxLength;
-  },
-
-  // Number range validation
-  isInRange: (value: number, min: number, max: number): boolean => {
-    return value >= min && value <= max;
-  },
-
-  // Date validation
-  isValidDate: (date: string): boolean => {
-    const dateObj = new Date(date);
-    return !isNaN(dateObj.getTime());
-  },
-
-  // Future date validation
-  isFutureDate: (date: string): boolean => {
-    const dateObj = new Date(date);
-    const now = new Date();
-    return dateObj > now;
-  },
-
-  // Past date validation
-  isPastDate: (date: string): boolean => {
-    const dateObj = new Date(date);
-    const now = new Date();
-    return dateObj < now;
+function ValidationMessages({
+  type,
+  errors,
+}: {
+  type: ValidationType;
+  errors: ValidationError[];
+}) {
+  if (errors.length === 0) {
+    return null;
   }
-};
 
-// Custom validation hooks
-export function useFormValidation<T extends Record<string, any>>(
-  initialData: T,
-  validationSchema: Record<keyof T, (value: any) => string | undefined>
-) {
-  const [errors, setErrors] = React.useState<Partial<Record<keyof T, string>>>({});
-  const [touched, setTouched] = React.useState<Partial<Record<keyof T, boolean>>>({});
+  const config = validationAlertConfig[type];
+  const Icon = config.icon;
 
-  const validateField = React.useCallback((field: keyof T, value: any) => {
-    const validator = validationSchema[field];
-    if (validator) {
-      const error = validator(value);
-      setErrors(prev => ({
-        ...prev,
-        [field]: error
-      }));
-      return error;
-    }
-    return undefined;
-  }, [validationSchema]);
+  return (
+    <Alert variant={config.variant} className={config.alertClassName}>
+      <Icon className={cn('h-4 w-4', config.iconClassName)} />
+      <AlertDescription className={config.descriptionClassName}>
+        <div className="space-y-1">
+          {errors.map((error, index) => (
+            <div key={`${error.field}-${index}`} className="text-sm">
+              <strong>{error.field}:</strong> {error.message}
+            </div>
+          ))}
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+}
 
-  const validateForm = React.useCallback((data: T) => {
-    const newErrors: Partial<Record<keyof T, string>> = {};
-    let isValid = true;
+function SuccessValidationMessage({ message }: { message: string }) {
+  return (
+    <Alert className="border-green-200 bg-green-50 text-green-800">
+      <CheckCircle className="h-4 w-4 text-green-600" />
+      <AlertDescription className="text-green-800">
+        {message}
+      </AlertDescription>
+    </Alert>
+  );
+}
 
-    Object.keys(validationSchema).forEach((field) => {
-      const error = validateField(field as keyof T, data[field as keyof T]);
-      if (error) {
-        newErrors[field as keyof T] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [validationSchema, validateField]);
-
-  const handleFieldChange = React.useCallback((field: keyof T, value: any) => {
-    if (touched[field]) {
-      validateField(field, value);
-    }
-  }, [touched, validateField]);
-
-  const handleFieldBlur = React.useCallback((field: keyof T) => {
-    setTouched(prev => ({
-      ...prev,
-      [field]: true
-    }));
-  }, []);
-
-  const resetValidation = React.useCallback(() => {
-    setErrors({});
-    setTouched({});
-  }, []);
-
-  return {
-    errors,
-    touched,
-    validateField,
-    validateForm,
-    handleFieldChange,
-    handleFieldBlur,
-    resetValidation
-  };
-} 
+function InlineValidationMessage({
+  className,
+  icon: Icon,
+  message,
+}: {
+  className: string;
+  icon: React.ElementType<{ className?: string }>;
+  message: string;
+}) {
+  return (
+    <p className={cn('flex items-center gap-1', className)}>
+      <Icon className="h-3 w-3" />
+      {message}
+    </p>
+  );
+}

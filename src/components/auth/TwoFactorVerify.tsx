@@ -3,17 +3,31 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { CardTitle, CardDescription } from '@/components/ui/card';
 
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Loader2, ShieldCheck } from 'lucide-react';
+import {
+  TWO_FACTOR_OTP_SLOT_CLASS_NAME,
+  TWO_FACTOR_RESEND_SUCCESS_TIMEOUT_MS,
+  TWO_FACTOR_VERIFY_CODE_LENGTH,
+  canSubmitTwoFactorVerifyCode,
+  getTwoFactorOtpSlotIndexes,
+  getTwoFactorVerifyCancelLabel,
+  getTwoFactorVerifyPrompt,
+  getTwoFactorVerifyResendButtonLabel,
+  isTwoFactorVerifyEmailMethod,
+  isTwoFactorVerifySubmitDisabled,
+  shouldRunTwoFactorVerifyResend,
+  type TwoFactorVerifyMethod,
+} from './two-factor-verify-utils';
 
 
 interface TwoFactorVerifyProps {
   email: string; // Used for context/resending email if needed
-  method?: 'totp' | 'email'; // Method determines UI messaging
+  method?: TwoFactorVerifyMethod; // Method determines UI messaging
   onVerify: (code: string) => Promise<void>;
   onCancel?: () => void;
   onResend?: () => Promise<void>; // Optional callback to resend email OTP
@@ -28,19 +42,19 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length >= 6) {
+    if (canSubmitTwoFactorVerifyCode(code)) {
       await onVerify(code);
     }
   };
 
   const handleResend = async () => {
-    if (!onResend || isResending) return;
+    if (!shouldRunTwoFactorVerifyResend(onResend, isResending)) return;
     setIsResending(true);
     setResendSuccess(false);
     try {
       await onResend();
       setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 3000); // Hide success message after 3s
+      setTimeout(() => setResendSuccess(false), TWO_FACTOR_RESEND_SUCCESS_TIMEOUT_MS);
     } catch (e) {
       console.error('Failed to resend code:', e);
     } finally {
@@ -48,8 +62,8 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
     }
   };
 
-  // Determine message based on method
-  const isEmailMethod = method === 'email' || !method; // Default to email if not specified
+  const isEmailMethod = isTwoFactorVerifyEmailMethod(method);
+  const prompt = getTwoFactorVerifyPrompt({ email, method });
 
   return (
     <div className="space-y-6">
@@ -59,11 +73,9 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
         </div>
         <CardTitle className="text-xl font-bold">Verify identity</CardTitle>
         <CardDescription className="text-sm">
-          {isEmailMethod ? (
-            <>We've sent a code to <span className="font-medium text-foreground">{email}</span>. Enter it below to continue.</>
-          ) : (
-            <>Enter the 6-digit code from your <span className="font-medium text-foreground">authenticator app</span> to continue.</>
-          )}
+          {prompt.lead}
+          <span className="font-medium text-foreground">{prompt.emphasis}</span>
+          {prompt.tail}
         </CardDescription>
       </div>
 
@@ -73,7 +85,7 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
             <Label htmlFor="2fa-code" className="sr-only">Verification Code</Label>
             <div className="flex justify-center my-6">
               <InputOTP
-                maxLength={6}
+                maxLength={TWO_FACTOR_VERIFY_CODE_LENGTH}
                 value={code}
                 onChange={(value) => setCode(value)}
                 disabled={isLoading}
@@ -81,12 +93,13 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
                 containerClassName="gap-3"
               >
                 <InputOTPGroup className="gap-3">
-                  <InputOTPSlot index={0} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
-                  <InputOTPSlot index={1} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
-                  <InputOTPSlot index={2} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
-                  <InputOTPSlot index={3} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
-                  <InputOTPSlot index={4} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
-                  <InputOTPSlot index={5} className="w-14 h-16 text-2xl font-bold shadow-sm bg-zinc-100/80 dark:bg-zinc-800/80" />
+                  {getTwoFactorOtpSlotIndexes().map(index => (
+                    <InputOTPSlot
+                      key={index}
+                      index={index}
+                      className={TWO_FACTOR_OTP_SLOT_CLASS_NAME}
+                    />
+                  ))}
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -107,7 +120,7 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
           <Button
             type="submit"
             className="w-full h-10 text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
-            disabled={isLoading || code.length < 6}
+            disabled={isTwoFactorVerifySubmitDisabled(isLoading, code)}
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -131,7 +144,7 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
                       onClick={handleResend}
                       disabled={isResending || !onResend}
                     >
-                      {isResending ? 'Sending...' : 'Resend code'}
+                      {getTwoFactorVerifyResendButtonLabel(isResending)}
                     </button>
                   </>
                 )}
@@ -139,7 +152,7 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
             )}
             {onCancel && (
               <Button type="button" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={onCancel}>
-                {isEmailMethod ? 'Use a different email' : 'Cancel'}
+                {getTwoFactorVerifyCancelLabel(isEmailMethod)}
               </Button>
             )}
           </div>

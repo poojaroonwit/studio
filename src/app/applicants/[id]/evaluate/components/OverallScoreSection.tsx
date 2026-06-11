@@ -4,12 +4,12 @@ import React from 'react';
 import { Star, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPersonalityScore } from '../utils';
-import type { Interviewer } from '../types';
+import type { EvaluationSummary, Interviewer } from '../types';
 
 interface OverallScoreSectionProps {
   selectedInterviewerId: string | null;
   interviewers: Interviewer[];
-  existingEvaluation: any | null;
+  existingEvaluation: EvaluationSummary | null;
   interviewerNameColor: string;
   onStartEvaluation: () => void;
 }

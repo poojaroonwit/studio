@@ -7,6 +7,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * @openapi
  * /api/settings/user-teams/{id}/available-users:
@@ -101,9 +105,9 @@ export async function GET(
     const result = await client.query(query, queryParams);
 
     return NextResponse.json({ users: result.rows });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to fetch available users:", error);
-    return NextResponse.json({ message: "Error fetching available users", error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching available users", error: getErrorMessage(error) }, { status: 500 });
   } finally {
     client.release();
   }

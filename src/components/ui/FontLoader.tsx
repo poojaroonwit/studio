@@ -38,7 +38,7 @@ export function FontLoader({
         const fontChecks = fonts.map(async (fontFamily) => {
           try {
             const fontFace = Array.from(document.fonts).find(
-              (font: any) => font.family === fontFamily
+              (font: FontFace) => font.family === fontFamily
             );
             return fontFace ? fontFace.loaded : Promise.resolve();
           } catch {

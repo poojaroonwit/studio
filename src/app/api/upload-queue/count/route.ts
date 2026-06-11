@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
+import { formatResponseTime } from '@/lib/api-response-time';
 
 import { auth } from '@/auth';
+import type { QueryResultRow } from 'pg';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+type UploadQueueCountRow = QueryResultRow & {
+  total: string | number;
+  queued: string | number;
+  inprocess: string | number;
+  success: string | number;
+  error: string | number;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -30,7 +46,7 @@ export async function GET(request: NextRequest) {
         FROM upload_queue
       `;
 
-      const result = await client.query(countQuery);
+      const result = await client.query<UploadQueueCountRow>(countQuery);
       const counts = result.rows[0];
 
       const response = {
@@ -54,7 +70,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(response, {
         headers: {
           'Cache-Control': 'public, max-age=10, stale-while-revalidate=30',
-          'X-Response-Time': `${Date.now() - Date.now()}ms`
+          'X-Response-Time': formatResponseTime(startTime)
         }
       });
 
@@ -62,11 +78,11 @@ export async function GET(request: NextRequest) {
       client.release();
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching upload queue count:', error);
     return NextResponse.json({ 
       message: 'Error fetching upload queue count', 
-      error: error.message 
+      error: getErrorMessage(error)
     }, { status: 500 });
   }
 }

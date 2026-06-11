@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -57,8 +58,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const validation = reminderSchema.safeParse(body);
+    const bodyResult = await readRequestJsonResult(req);
+    const validation = reminderSchema.safeParse(bodyResult.ok ? bodyResult.value : undefined);
     
     if (!validation.success) {
       return NextResponse.json({ message: 'Invalid request data', errors: validation.error.errors }, { status: 400 });

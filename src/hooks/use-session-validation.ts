@@ -1,20 +1,26 @@
-import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo, type MutableRefObject } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-// Removed complex dynamic performance - using simple constants instead
+import { readJsonObject } from '@/lib/response-json';
+import {
+  DEFAULT_SESSION_REQUEST_TIMEOUT_MS,
+  isSessionValidationTimeout,
+  resolveSessionValidationOptions,
+  sessionResponseHasUser,
+  shouldAttemptSessionValidation,
+  shouldInitializeSessionValidation,
+  shouldResetSessionValidationInterval,
+  type SessionValidationOptions,
+} from './session-validation-utils';
 
 /**
  * Custom hook to validate user sessions and handle invalid sessions
  * @param options - Configuration options
- * @param options.validateInterval - How often to validate the session (in milliseconds, default: 15 minutes)
+ * @param options.validateInterval - How often to validate the session (in milliseconds, default: 30 minutes)
  * @param options.autoSignOut - Whether to automatically sign out on invalid session (default: true)
  * @param options.redirectTo - Where to redirect after sign out (default: '/auth/signin')
  */
-export function useSessionValidation(options: {
-  validateInterval?: number;
-  autoSignOut?: boolean;
-  redirectTo?: string;
-} = {}) {
+export function useSessionValidation(options: SessionValidationOptions = {}) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isValidating, setIsValidating] = useState(false);
@@ -23,42 +29,26 @@ export function useSessionValidation(options: {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
   const lastSessionIdRef = useRef<string | undefined>(undefined);
-  
-  // Simple constants instead of complex dynamic performance - optimized for better performance
-  const DEFAULT_VALIDATE_INTERVAL = 30 * 60 * 1000; // Increased from 15 to 30 minutes
-  const DEFAULT_REQUEST_TIMEOUT = 15000; // Increased from 10 to 15 seconds
-  
-  // Memoize options to prevent unnecessary re-renders
-  const memoizedOptions = useMemo(() => ({
-    validateInterval: options.validateInterval || DEFAULT_VALIDATE_INTERVAL,
-    autoSignOut: options.autoSignOut !== false, // default true
-    redirectTo: options.redirectTo || '/auth/signin'
-  }), [options.validateInterval, options.autoSignOut, options.redirectTo]);
 
-  // Memoize session ID to prevent unnecessary re-renders
+  const memoizedOptions = useMemo(
+    () => resolveSessionValidationOptions(options),
+    [options.validateInterval, options.autoSignOut, options.redirectTo],
+  );
+
   const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
 
   const validateSession = useCallback(async () => {
-    if (validationInProgress.current) return;
-    
-    // Skip validation if we're on the signin page or during logout
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      const searchParams = new URLSearchParams(window.location.search);
-      const isSignoutInProgress = searchParams.get('signout') === 'true';
-      
-      if (pathname === '/auth/signin' || isSignoutInProgress) {
-        return;
-      }
-    }
-    
-    // Check current session status before validating
-    if (status !== 'authenticated') {
-      return;
-    }
-    
     const now = Date.now();
-    if (now - lastValidationTime.current < memoizedOptions.validateInterval) {
+    const location = typeof window !== 'undefined' ? window.location : undefined;
+
+    if (!shouldAttemptSessionValidation({
+      location,
+      now,
+      lastValidationTime: lastValidationTime.current,
+      status,
+      validateInterval: memoizedOptions.validateInterval,
+      validationInProgress: validationInProgress.current,
+    })) {
       return;
     }
 
@@ -72,63 +62,54 @@ export function useSessionValidation(options: {
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT),
+        signal: AbortSignal.timeout(DEFAULT_SESSION_REQUEST_TIMEOUT_MS),
       });
 
-      // Handle 500 errors gracefully - might be during logout
       if (response.status === 500) {
-        // Check if we're still authenticated, if not, skip validation
         if (status !== 'authenticated') {
           return;
         }
-        // If still authenticated but got 500, log but don't sign out
         console.warn('Session validation returned 500, but user is still authenticated. Skipping validation.');
         return;
       }
 
       if (!response.ok) {
-        // Only throw for non-500 errors
         if (response.status !== 401 && response.status !== 403) {
           throw new Error('Session validation failed');
         }
-        // For 401/403, check if session is still valid
-        const sessionData = await response.json().catch(() => ({}));
-        if (!sessionData.user && memoizedOptions.autoSignOut) {
+        const sessionData = await readJsonObject(response);
+        if (!sessionResponseHasUser(sessionData) && memoizedOptions.autoSignOut) {
           await signOut({ redirect: false });
           router.push(memoizedOptions.redirectTo);
         }
         return;
       }
 
-      const sessionData = await response.json();
+      const sessionData = await readJsonObject(response);
       
-      if (!sessionData.user) {
+      if (!sessionResponseHasUser(sessionData)) {
         if (memoizedOptions.autoSignOut) {
           await signOut({ redirect: false });
           router.push(memoizedOptions.redirectTo);
         }
       }
     } catch (error) {
-      // Check if error is due to abort (timeout) or network issue
       if (error instanceof Error) {
-        if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-          // Network timeout - don't sign out, just log
+        if (isSessionValidationTimeout(error)) {
           console.warn('Session validation timeout, skipping');
           return;
         }
-        // Check if we're still authenticated before logging error
+
         if (status === 'authenticated') {
           console.error('Session validation error:', error);
         }
       }
-      // Don't auto-signout on network errors to prevent false positives
     } finally {
       setIsValidating(false);
       validationInProgress.current = false;
     }
   }, [memoizedOptions, router, status]);
 
-  // Memoize the effect dependencies to prevent unnecessary re-renders
   const effectDependencies = useMemo(() => ({
     status,
     sessionId,
@@ -136,54 +117,33 @@ export function useSessionValidation(options: {
   }), [status, sessionId, memoizedOptions.validateInterval]);
 
   useEffect(() => {
-    // Skip validation if we're on the signin page or during logout
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      const searchParams = new URLSearchParams(window.location.search);
-      const isSignoutInProgress = searchParams.get('signout') === 'true';
-      
-      if (pathname === '/auth/signin' || isSignoutInProgress) {
-        // Clear any existing interval
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        return;
-      }
-    }
-    
-    if (effectDependencies.status !== 'authenticated') {
-      // Clear any existing interval when not authenticated
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    const location = typeof window !== 'undefined' ? window.location : undefined;
+
+    if (shouldResetSessionValidationInterval({ location, status: effectDependencies.status })) {
+      clearValidationInterval(intervalRef);
       return;
     }
 
-    // Only initialize once per session
-    if (hasInitializedRef.current && lastSessionIdRef.current === effectDependencies.sessionId) {
+    if (!shouldInitializeSessionValidation({
+      hasInitialized: hasInitializedRef.current,
+      lastSessionId: lastSessionIdRef.current,
+      sessionId: effectDependencies.sessionId,
+    })) {
       return;
     }
     
     hasInitializedRef.current = true;
     lastSessionIdRef.current = effectDependencies.sessionId;
 
-    // Validate immediately
     validateSession();
 
-    // Set up periodic validation - use dynamic interval
     intervalRef.current = setInterval(validateSession, effectDependencies.validateInterval);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      clearValidationInterval(intervalRef);
     };
   }, [effectDependencies, validateSession]);
 
-  // Memoize the return value to prevent unnecessary re-renders
   const memoizedValue = useMemo(() => ({
     isValidating,
     isAuthenticated: status === 'authenticated',
@@ -193,3 +153,10 @@ export function useSessionValidation(options: {
 
   return memoizedValue;
 } 
+
+function clearValidationInterval(intervalRef: MutableRefObject<NodeJS.Timeout | null>) {
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+}

@@ -1,7 +1,8 @@
 "use server"
 
 import { signIn } from "@/auth";
-import { AuthError, CredentialsSignin } from "next-auth";
+import { getCredentialsSignInError } from "./auth-error-utils";
+import { isNextRedirectError } from "@/lib/next-redirect-error";
 
 /**
  * Server Action to handle credentials sign-in.
@@ -29,62 +30,11 @@ export async function signInWithCredentials(formData: FormData) {
         // If successful, execution will stop here and a redirect will be thrown
     } catch (error) {
         // IMPORTANT: If it's a redirect error (success), we MUST re-throw it!
-        if ((error as any).digest?.startsWith('NEXT_REDIRECT')) {
+        if (isNextRedirectError(error)) {
             throw error;
         }
 
         console.log('[AUTH ACTION] Sign in error:', error);
-
-        // helper to check string for 2FA pattern
-        const isTwoFactorError = (str: string | undefined | null) => {
-            return str && typeof str === 'string' && str.includes('TWO_FACTOR_REQUIRED');
-        };
-
-        // 1. Loosely check for the code property (fixes bundle/instanceof issues)
-        // This catches cases where error is an object with a code but not instanceof AuthError
-        const code = (error as any).code;
-        if (code === 'TWO_FACTOR_REQUIRED:totp' || code === 'TWO_FACTOR_REQUIRED:email') {
-             return { error: code };
-        }
-        if (isTwoFactorError(code)) {
-            const match = code.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
-            return { error: match ? match[0] : "TWO_FACTOR_REQUIRED:totp" };
-        }
-
-        // 2. Check if error is instance of AuthError (Standard NextAuth errors)
-        if (error instanceof AuthError) {
-            const cause = (error as any).cause;
-            const message = error.message; 
-            
-             // Check all possible locations for the 2FA signal
-            if (isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
-                 const stringsToCheck = [message, cause?.message, cause?.err?.message].filter(s => typeof s === 'string');
-                 for (const str of stringsToCheck) {
-                    const match = str.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
-                    if (match) {
-                        return { error: match[0] };
-                    }
-                }
-                 return { error: "TWO_FACTOR_REQUIRED:totp" };
-            }
-
-            // Handle other specific errors
-            if (error instanceof CredentialsSignin) {
-                return { error: error.code || "CredentialsSignin" };
-            }
-
-            return { error: error.type || "CredentialsSignin" };
-        }
-
-        // 3. Generic error handling (String matching)
-        const errString = String(error);
-        if (isTwoFactorError(errString)) {
-            const match = errString.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
-            return { error: match ? match[0] : "TWO_FACTOR_REQUIRED:totp" };
-        }
-
-        // For any other unexpected errors, log and return generic message
-        console.error("[AUTH ACTION] Unexpected error:", error);
-        return { error: "An unexpected error occurred. Please try again." };
+        return getCredentialsSignInError(error);
     }
 }

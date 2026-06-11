@@ -2,29 +2,26 @@ import React from 'react';
 import type { EducationEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { AcademicCapIcon as GraduationCap } from '@heroicons/react/24/outline';
-import { differenceInMonths } from 'date-fns';
-import { sanitizeHtml } from '@/lib/utils';
+import {
+  formatEducationTimelineDuration,
+  getEducationFieldLabel,
+  getEducationInstitutionLabel,
+  getEducationTimelineLabels,
+  sortEducationByTimeline,
+  type EducationTimelineLabels,
+} from './applicant-education-utils';
 
-function formatTimelinePeriod(
-  startMonth: number | null,
-  startYear: number | null,
-  endMonth: number | null,
-  endYear: number | null,
-  isCurrent: boolean
-) {
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
+interface ApplicantEducationProps {
+  education: EducationEntry[];
+}
 
-  const renderPart = (month: number | null, year: number | null) => {
-    if (month && year) return <><span className="font-bold">{months[month - 1] || month} {year}</span></>;
-    if (year) return <><span className="font-bold">{year}</span></>;
-    return null;
-  };
+function renderTimelineLabel(label: string | null) {
+  return label ? <span className="font-bold">{label}</span> : null;
+}
 
-  const left = renderPart(startMonth, startYear);
-  const right = isCurrent ? <><span className="font-bold">Present</span></> : renderPart(endMonth, endYear);
+function renderTimelinePeriod({ startLabel, endLabel }: EducationTimelineLabels) {
+  const left = renderTimelineLabel(startLabel);
+  const right = renderTimelineLabel(endLabel);
 
   if (!left && !right) return null;
   if (!left) return right;
@@ -33,51 +30,8 @@ function formatTimelinePeriod(
   return <>{left} - {right}</>;
 }
 
-function formatTimelineDuration(
-  startMonth: number | null,
-  startYear: number | null,
-  endMonth: number | null,
-  endYear: number | null,
-  isCurrent: boolean
-) {
-  if (!startYear) return '';
-  const start = startMonth ? new Date(startYear, startMonth - 1) : new Date(startYear, 0);
-  let end;
-  if (isCurrent) {
-    end = new Date();
-  } else if (endYear) {
-    end = endMonth ? new Date(endYear, endMonth - 1) : new Date(endYear, 0);
-  } else {
-    end = new Date();
-  }
-  const months = differenceInMonths(end, start);
-  const years = Math.floor(months / 12);
-  const remMonths = months % 12;
-  let parts = [];
-  if (years > 0) parts.push(`${years} Year${years > 1 ? 's' : ''}`);
-  if (remMonths > 0) parts.push(`${remMonths} Month${remMonths > 1 ? 's' : ''}`);
-  return parts.length ? `(${parts.join(', ')})` : '';
-}
-
-interface ApplicantEducationProps {
-  education: EducationEntry[];
-  // Add any handlers or state needed for editing, saving, etc.
-}
-
 const ApplicantEducation: React.FC<ApplicantEducationProps> = ({ education }) => {
-  // Sort education by period (most recent first)
-  const sortedEducation = [...education].sort((a, b) => {
-    // Extract years from period strings (assuming format like "2018-2022" or "2020-2024")
-    const getYear = (period: string) => {
-      const yearMatch = period.match(/(\d{4})/);
-      return yearMatch ? parseInt(yearMatch[1]) : 0;
-    };
-
-    const yearA = a.period ? getYear(a.period) : 0;
-    const yearB = b.period ? getYear(b.period) : 0;
-
-    return yearB - yearA; // Most recent first
-  });
+  const sortedEducation = sortEducationByTimeline(education);
 
   return (
     <Card>
@@ -91,21 +45,8 @@ const ApplicantEducation: React.FC<ApplicantEducationProps> = ({ education }) =>
             <div className="absolute left-4 top-8 w-0.5 bg-border" style={{ height: `${(sortedEducation.length - 1) * 40 + 24}px` }} />
 
             {sortedEducation.map((entry, idx) => {
-              const isCurrent = !entry.endYear && !entry.endMonth;
-              const periodDisplay = formatTimelinePeriod(
-                entry.startMonth ?? null,
-                entry.startYear ?? null,
-                entry.endMonth ?? null,
-                entry.endYear ?? null,
-                isCurrent
-              );
-              const duration = formatTimelineDuration(
-                entry.startMonth ?? null,
-                entry.startYear ?? null,
-                entry.endMonth ?? null,
-                entry.endYear ?? null,
-                isCurrent
-              );
+              const periodDisplay = renderTimelinePeriod(getEducationTimelineLabels(entry));
+              const duration = formatEducationTimelineDuration(entry);
               return (
                 <div key={idx} className="relative">
                   {/* Timeline item */}
@@ -121,11 +62,10 @@ const ApplicantEducation: React.FC<ApplicantEducationProps> = ({ education }) =>
                     <div className="flex-1 min-w-0 pb-6">
                       <div className="bg-muted/50 rounded-lg p-4">
                         <p className="text-sm text-muted-foreground mb-2">
-                          {entry.major && entry.field ? `${entry.major} - ${entry.field}` : entry.major || entry.field || 'Field of study not specified'}
+                          {getEducationFieldLabel(entry)}
                         </p>
                         <h4 className="font-semibold text-foreground mb-1">
-                          {entry.university || 'University not specified'}
-                          {entry.campus && ` (${entry.campus})`}
+                          {getEducationInstitutionLabel(entry)}
                         </h4>
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                           {periodDisplay && (

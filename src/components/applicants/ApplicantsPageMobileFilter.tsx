@@ -20,15 +20,10 @@ interface ApplicantsPageMobileFilterProps {
   availableStages: RecruitmentStage[];
   availableRecruiter: Array<{ id: string; name: string }>;
   availableSources: ApplicantSource[];
-  applicantCounts: { [stageName: string]: number };
   onClearAllFilters: () => void;
   isLoading: boolean;
   isFilterDataLoading: boolean;
   isAiSearching: boolean;
-  applicantScoreCounts: {
-    applied: Array<{ letter: string; count: number }>;
-    matching: Array<{ letter: string; count: number }>;
-  } | null;
   advancedQuery?: string;
 }
 
@@ -44,12 +39,10 @@ export function ApplicantsPageMobileFilter({
   availableStages,
   availableRecruiter,
   availableSources,
-  applicantCounts,
   onClearAllFilters,
   isLoading,
   isFilterDataLoading,
   isAiSearching,
-  applicantScoreCounts,
   advancedQuery,
 }: ApplicantsPageMobileFilterProps) {
   return (
@@ -101,11 +94,9 @@ export function ApplicantsPageMobileFilter({
               availableStages={availableStages}
               availableRecruiter={availableRecruiter}
               availableSources={availableSources}
-              applicantCounts={applicantCounts}
               onClearAllFilters={onClearAllFilters}
               isLoading={isLoading || isFilterDataLoading}
               isAiSearching={isAiSearching}
-              applicantScoreCounts={applicantScoreCounts || undefined}
               advancedQuery={advancedQuery}
             />
           </div>

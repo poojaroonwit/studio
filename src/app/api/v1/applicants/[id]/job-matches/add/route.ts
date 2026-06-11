@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 const addJobMatchSchema = z.object({
   fitScore: z.number().min(0).max(1),
@@ -33,15 +34,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const applicantId = id;
-  let body;
-  
-  try {
-    body = await req.json();
-  } catch {
+  const bodyResult = await readRequestJsonResult(req);
+  if (!bodyResult.ok) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
   }
 
-  const validationResult = addJobMatchSchema.safeParse(body);
+  const validationResult = addJobMatchSchema.safeParse(bodyResult.value);
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }

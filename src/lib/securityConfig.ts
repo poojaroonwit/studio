@@ -2,6 +2,13 @@
  * Security configuration for the application
  */
 
+import {
+  buildSecurityHeader,
+  getConfiguredRateLimit,
+  isAllowedConfiguredFileType,
+  isBlockedConfiguredPattern,
+} from './securityConfigHelpers';
+
 export const securityConfig = {
   // Password requirements
   password: {
@@ -170,58 +177,17 @@ export const securityConfig = {
 
 // Helper functions for security configuration
 export function getSecurityHeader(name: string): string | undefined {
-  const headers = securityConfig.headers;
-  
-  switch (name) {
-    case 'Content-Security-Policy':
-      const csp = headers.contentSecurityPolicy;
-      return Object.entries(csp)
-        .map(([key, values]) => `${key} ${values.join(' ')}`)
-        .join('; ');
-        
-    case 'Permissions-Policy':
-      const pp = headers.permissionsPolicy;
-      return Object.entries(pp)
-        .map(([key, values]) => `${key}=(${values.join(' ')})`)
-        .join(', ');
-        
-    default:
-      return undefined;
-  }
+  return buildSecurityHeader(securityConfig.headers, name);
 }
 
 export function isAllowedFileType(mimetype: string, filename: string): boolean {
-  const { allowedTypes, allowedExtensions } = securityConfig.fileUpload;
-  
-  // Check MIME type
-  if (!allowedTypes.includes(mimetype)) {
-    return false;
-  }
-  
-  // Check file extension
-  const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
-  if (!allowedExtensions.includes(extension)) {
-    return false;
-  }
-  
-  return true;
+  return isAllowedConfiguredFileType(securityConfig.fileUpload, mimetype, filename);
 }
 
 export function isBlockedPattern(input: string): boolean {
-  const { blockedPatterns } = securityConfig.validation;
-  return blockedPatterns.some(pattern => pattern.test(input));
+  return isBlockedConfiguredPattern(securityConfig.validation.blockedPatterns, input);
 }
 
 export function getRateLimitConfig(endpoint: string) {
-  const { rateLimits } = securityConfig;
-  
-  if (endpoint.includes('/auth/') || endpoint.includes('/signin')) {
-    return rateLimits.auth;
-  } else if (endpoint.includes('/upload') || endpoint.includes('/file')) {
-    return rateLimits.upload;
-  } else if (endpoint.includes('/search') || endpoint.includes('/applicants')) {
-    return rateLimits.search;
-  } else {
-    return rateLimits.api;
-  }
+  return getConfiguredRateLimit(endpoint, securityConfig.rateLimits);
 }

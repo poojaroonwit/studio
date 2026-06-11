@@ -3,32 +3,29 @@
  * Handles fetching and caching available Gemini models from the API
  */
 
-let cachedModels: Array<{ name: string; displayName: string }> | null = null;
+import {
+  DEFAULT_GEMINI_MODEL,
+  extractModelName,
+  formatAvailableGeminiModels,
+  getFallbackModels,
+  getGeminiApiModels,
+  isSafeGeminiModelName,
+  type GeminiModelOption,
+  type GeminiModelsResponse,
+} from "./gemini-model-utils";
+import { readJsonOrFallback } from "./response-json";
+
+export { extractModelName } from "./gemini-model-utils";
+
+let cachedModels: GeminiModelOption[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Extract model identifier from full model name
- * Examples:
- * - "models/gemini-1.0-pro" -> "gemini-1.0-pro"
- * - "gemini-1.0-pro" -> "gemini-1.0-pro"
- */
-export function extractModelName(fullModelName: string): string {
-  if (!fullModelName) return '';
-  
-  // Remove "models/" prefix if present
-  if (fullModelName.startsWith('models/')) {
-    return fullModelName.replace('models/', '');
-  }
-  
-  return fullModelName;
-}
 
 /**
  * Get available models from the API
  * Uses caching to avoid excessive API calls
  */
-export async function getAvailableModels(apiKey: string): Promise<Array<{ name: string; displayName: string }>> {
+export async function getAvailableModels(apiKey: string): Promise<GeminiModelOption[]> {
   const now = Date.now();
   
   // Return cached models if still valid
@@ -52,41 +49,14 @@ export async function getAvailableModels(apiKey: string): Promise<Array<{ name: 
       return getFallbackModels();
     }
 
-    const data = await fetchRes.json();
+    const data = await readJsonOrFallback<GeminiModelsResponse>(fetchRes, {});
     
     if (data.error) {
       console.warn('Error fetching models:', data.error);
       return getFallbackModels();
     }
 
-    const models = data.models || [];
-    
-    // Filter and format models
-    const availableModels = models
-      .filter((model: any) => 
-        model.supportedGenerationMethods?.includes('generateContent') &&
-        model.name?.includes('gemini')
-      )
-      .map((model: any) => ({
-        name: extractModelName(model.name),
-        displayName: model.displayName || extractModelName(model.name),
-        fullName: model.name
-      }))
-      .sort((a: any, b: any) => {
-        // Prioritize newer models
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        
-        // Prioritize gemini-2.0, then gemini-1.5, then gemini-1.0
-        if (aName.includes('gemini-2.0')) return -1;
-        if (bName.includes('gemini-2.0')) return 1;
-        if (aName.includes('gemini-1.5')) return -1;
-        if (bName.includes('gemini-1.5')) return 1;
-        if (aName.includes('gemini-1.0')) return -1;
-        if (bName.includes('gemini-1.0')) return 1;
-        
-        return aName.localeCompare(bName);
-      });
+    const availableModels = formatAvailableGeminiModels(getGeminiApiModels(data));
     
     if (availableModels.length > 0) {
       cachedModels = availableModels;
@@ -99,20 +69,6 @@ export async function getAvailableModels(apiKey: string): Promise<Array<{ name: 
     console.error('Error fetching available models:', error);
     return getFallbackModels();
   }
-}
-
-/**
- * Get fallback models when API fetch fails
- * These are common model names that might work
- */
-function getFallbackModels(): Array<{ name: string; displayName: string }> {
-  return [
-    { name: 'gemini-1.0-pro', displayName: 'Gemini 1.0 Pro' },
-    { name: 'gemini-1.0-pro-latest', displayName: 'Gemini 1.0 Pro Latest' },
-    { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
-    { name: 'gemini-1.5-flash-latest', displayName: 'Gemini 1.5 Flash Latest' },
-    { name: 'gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash Experimental' }
-  ];
 }
 
 /**
@@ -130,7 +86,7 @@ export async function getDefaultModelName(apiKey: string): Promise<string> {
   }
   
   // Ultimate fallback
-  return 'gemini-1.0-pro';
+  return DEFAULT_GEMINI_MODEL;
 }
 
 /**
@@ -140,24 +96,15 @@ export async function getDefaultModelName(apiKey: string): Promise<string> {
  */
 export function normalizeModelName(modelName: string | undefined | null, availableModels?: Array<{ name: string }>): string {
   if (!modelName) {
-    return 'gemini-1.0-pro'; // Default fallback
+    return DEFAULT_GEMINI_MODEL; // Default fallback
   }
   
   // Extract model name
   let normalized = extractModelName(modelName);
   
-  // SECURITY: Validate model name format - only allow alphanumeric, dash, dot, underscore
-  // This prevents URL path manipulation via special characters
-  const safeModelNamePattern = /^[a-zA-Z0-9._-]+$/;
-  if (!safeModelNamePattern.test(normalized)) {
+  if (!isSafeGeminiModelName(normalized)) {
     console.warn(`[SECURITY] Invalid model name format: ${normalized}, using fallback`);
-    return 'gemini-1.0-pro';
-  }
-  
-  // Prevent path traversal
-  if (normalized.includes('..') || normalized.includes('/') || normalized.includes('\\')) {
-    console.warn(`[SECURITY] Path traversal attempt in model name: ${normalized}, using fallback`);
-    return 'gemini-1.0-pro';
+    return DEFAULT_GEMINI_MODEL;
   }
   
   // If we have available models, check if this one exists

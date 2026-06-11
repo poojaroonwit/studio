@@ -9,8 +9,30 @@ import {
   getAllSLAHeadcounts,
   getPositionsWithoutSLA
 } from '@/lib/slaNotificationService';
+import type {
+  PositionWithoutSLA,
+  SLAHeadcountData,
+  SLAPositionData,
+  SLAStatistics,
+  SLAViolationNotification,
+} from '@/lib/sla/types';
 
 export const dynamic = 'force-dynamic';
+
+type SLAViolationsResponse = {
+  violations: SLAViolationNotification[];
+  count: number;
+  allPositions?: SLAPositionData[];
+  totalPositions?: number;
+  statistics?: SLAStatistics;
+  headcounts?: SLAHeadcountData[];
+  positionsWithoutSLA?: PositionWithoutSLA[];
+  positionsWithoutSLACount?: number;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -33,11 +55,11 @@ export async function GET(request: NextRequest) {
     const includeHeadcounts = searchParams.get('includeHeadcounts') === 'true';
     const includeWithoutSLA = searchParams.get('includeWithoutSLA') === 'true';
 
-    let violations;
-    let allPositions;
-    let statistics;
-    let headcounts;
-    let positionsWithoutSLA;
+    let violations: SLAViolationNotification[];
+    let allPositions: SLAPositionData[] | undefined;
+    let statistics: SLAStatistics | undefined;
+    let headcounts: SLAHeadcountData[] | undefined;
+    let positionsWithoutSLA: PositionWithoutSLA[] | undefined;
 
     if (recruiterId) {
       violations = await getSLAViolationsForRecruiter(recruiterId);
@@ -69,7 +91,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const response: any = {
+    const response: SLAViolationsResponse = {
       violations,
       count: violations.length,
     };
@@ -93,11 +115,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error checking SLA violations:', error);
     return NextResponse.json({ 
       message: 'Error checking SLA violations', 
-      error: error.message 
+      error: getErrorMessage(error) 
     }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import type { ApplicantFilterValues } from '@/components/applicants/ApplicantFilters';
 import type { Applicant } from '@/lib/types';
 import { safeFetch } from '@/lib/safe-fetch';
+import { buildApplicantTableQuery } from '../applicant-page-utils';
 
 interface UseApplicantFetchingProps {
   sessionStatus: string;
@@ -70,75 +71,15 @@ export function useApplicantFetching({
     setTableError(null);
     
     try {
-      const query = new URLSearchParams();
-      
-      // Check if we have an advanced query from URL and pass it to the API
-      // When an advanced query is present, we intentionally ignore other sticky filters
-      // so that "View All" from the dashboard yields results consistent with the card.
-      const advancedQueryParam = searchParams.get('query');
-      if (advancedQueryParam) {
-        query.append('query', advancedQueryParam);
-      }
-
-      // Only append individual filters if NOT processing an advanced query
-      // Exception: Allow fit score filters to be combined with advanced queries
-      if (!advancedQueryParam && currentFilters.name) {
-        query.append('name', currentFilters.name);
-        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
-      }
-      if (!advancedQueryParam && currentFilters.email) {
-        query.append('email', currentFilters.email);
-        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
-      }
-      if (!advancedQueryParam && currentFilters.phone) {
-        query.append('phone', currentFilters.phone);
-        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
-      }
-      if (!advancedQueryParam && currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
-      if (!advancedQueryParam && currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
-      if (!advancedQueryParam && currentFilters.education) query.append('education', currentFilters.education);
-      
-      // Fit score filters can be combined with advanced queries
-      if (currentFilters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
-      if (currentFilters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
-      if (currentFilters.minMatchingJobFitScore !== undefined) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
-      if (currentFilters.maxMatchingJobFitScore !== undefined) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (currentFilters.includeNoScoreInApplied) query.append('includeNoScoreInApplied', 'true');
-      if (currentFilters.includeNoScoreInMatching) query.append('includeNoScoreInMatching', 'true');
-      
-      if (!advancedQueryParam && currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
-      if (!advancedQueryParam && currentFilters.maxExperienceYears !== undefined && currentFilters.maxExperienceYears < 50) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
-      if (!advancedQueryParam && currentFilters.applicationDateStart) {
-        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
-      }
-      if (!advancedQueryParam && currentFilters.applicationDateEnd) {
-        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
-      }
-      if (!advancedQueryParam && currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
-      if (!advancedQueryParam && currentFilters.selectedSourceIds && currentFilters.selectedSourceIds.length > 0) query.append('sourceId', currentFilters.selectedSourceIds.join(','));
-      
-      // Handle custom field filters
-      if (!advancedQueryParam && currentFilters.customFieldFilters && Object.keys(currentFilters.customFieldFilters).length > 0) {
-        for (const [fieldCode, value] of Object.entries(currentFilters.customFieldFilters)) {
-          if (value !== undefined && value !== null && value !== '') {
-            query.append(`customField_${fieldCode}`, String(value));
-          }
-        }
-      }
-      
-      query.append('page', String(currentPage));
-      query.append('limit', String(currentPageSize));
-      // Add sorting
-      if (sortColumn) query.append('sortColumn', sortColumn);
-      // Send sortDirection - null/empty means unsorted, 'asc'/'desc' for explicit sorting
-      if (sortDirection) {
-        query.append('sortDirection', sortDirection);
-      } else {
-        // For unsorted state, send empty string to indicate no sorting
-        query.append('sortDirection', '');
-      }
-      // Add pin section setting - always send it to ensure proper sorting
-      query.append('showPinSection', String(getShowPinSection()));
+      const query = buildApplicantTableQuery({
+        filters: currentFilters,
+        page: currentPage,
+        pageSize: currentPageSize,
+        sortColumn,
+        sortDirection,
+        advancedQuery: searchParams.get('query'),
+        showPinSection: getShowPinSection(),
+      });
       
       const apiUrl = `/api/applicants?${query.toString()}`;
       

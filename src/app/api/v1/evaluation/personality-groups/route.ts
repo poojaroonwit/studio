@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const createPersonalityGroupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
@@ -57,8 +58,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const validatedData = createPersonalityGroupSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    const validatedData = createPersonalityGroupSchema.parse(bodyResult.ok ? bodyResult.value : undefined);
 
     // Check if group with same name already exists
     const existingGroup = await prisma.personalityGroup.findUnique({

@@ -5,6 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Users, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import {
+  getJsonArray,
+  getJsonErrorMessage,
+  getJsonNumber,
+  getJsonObject,
+  getJsonString,
+  isJsonObject,
+  readJsonObject,
+} from '../../lib/response-json';
 
 interface RecruiterSyncResult {
   positionId: string;
@@ -22,6 +31,34 @@ interface SyncSummary {
   results: RecruiterSyncResult[];
 }
 
+function normalizeRecruiterSyncSummary(value: unknown): SyncSummary | null {
+  if (!isJsonObject(value)) {
+    return null;
+  }
+
+  return {
+    totalPositions: getJsonNumber(value, 'totalPositions') ?? 0,
+    totalApplicantsUpdated: getJsonNumber(value, 'totalApplicantsUpdated') ?? 0,
+    totalApplicantsSkipped: getJsonNumber(value, 'totalApplicantsSkipped') ?? 0,
+    totalErrors: getJsonNumber(value, 'totalErrors') ?? 0,
+    results: (getJsonArray(value, 'results') ?? []).flatMap((result) => {
+      if (!isJsonObject(result)) return [];
+
+      const positionId = getJsonString(result, 'positionId');
+      const positionTitle = getJsonString(result, 'positionTitle');
+      if (!positionId || !positionTitle) return [];
+
+      return [{
+        positionId,
+        positionTitle,
+        applicantsUpdated: getJsonNumber(result, 'applicantsUpdated') ?? 0,
+        applicantsSkipped: getJsonNumber(result, 'applicantsSkipped') ?? 0,
+        errors: (getJsonArray(result, 'errors') ?? []).filter((error): error is string => typeof error === 'string'),
+      }];
+    }),
+  };
+}
+
 export function RecruiterSyncCard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncSummary | null>(null);
@@ -37,12 +74,11 @@ export function RecruiterSyncCard() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to sync recruiters');
+        throw new Error(getJsonErrorMessage(await readJsonObject(response), 'Failed to sync recruiters'));
       }
 
-      const data = await response.json();
-      setLastSyncResult(data.summary);
+      const data = await readJsonObject(response);
+      setLastSyncResult(normalizeRecruiterSyncSummary(getJsonObject(data, 'summary')));
       toast.success('Recruiter sync completed successfully');
     } catch (error) {
       console.error('Recruiter sync error:', error);
@@ -116,10 +152,10 @@ export function RecruiterSyncCard() {
         <div className="rounded-lg border bg-muted/50 p-4">
           <h4 className="font-medium text-sm mb-2">How it works:</h4>
                      <ul className="text-xs text-muted-foreground space-y-1">
-             <li>• Only Applicants without a recruiter will be assigned one from their position</li>
-             <li>• Existing recruiter assignments are preserved and will not be changed</li>
-             <li>• When a Applicant is assigned to a position, they get the position's recruiter if they don't have one</li>
-             <li>• All assignments are logged in the Applicant's transition history</li>
+             <li>- Only Applicants without a recruiter will be assigned one from their position</li>
+             <li>- Existing recruiter assignments are preserved and will not be changed</li>
+             <li>- When a Applicant is assigned to a position, they get the position's recruiter if they don't have one</li>
+             <li>- All assignments are logged in the Applicant's transition history</li>
            </ul>
         </div>
 

@@ -5,6 +5,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 const updatePersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
@@ -66,8 +67,8 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const validatedData = updatePersonalityTraitSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    const validatedData = updatePersonalityTraitSchema.parse(bodyResult.ok ? bodyResult.value : undefined);
 
     // Check if trait exists
     const existingTrait = await prisma.personalityTrait.findUnique({

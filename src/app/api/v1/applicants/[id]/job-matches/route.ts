@@ -1,494 +1,114 @@
-import { NextRequest } from 'next/server';
-import { getPool, getSafeDbClient, withDbTransaction } from '@/lib/db';
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
-import { verifyApiToken } from '@/lib/auth';
-import { handleCors } from '@/lib/cors';
-import { normalizePayloadTypes } from '@/lib/apiUtils';
-import { normalizeFitScore } from '@/lib/scoreUtils';
+import { type NextRequest } from 'next/server';
+import { requireJobMatchPermission } from './job-matches-auth';
+import {
+  deleteApplicantJobMatches,
+  fetchApplicantJobMatches,
+  replaceApplicantJobMatches,
+  upsertApplicantJobMatches,
+} from './job-matches-db';
+import { parseJobMatchesPayload } from './job-matches-schema';
+import { getDatabaseErrorDetails, getErrorMessage, jsonCors, noContentCors } from './job-matches-response';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const jobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(1).optional(),
-  jobId: z.string().uuid().optional(),
-  matchReasons: z.array(z.string()).optional().default([]),
-  // Note: positionTitle, createdAt, and updatedAt are automatically handled
-  // - positionTitle: Retrieved from Position table based on jobId
-  // - createdAt: Automatically set to current timestamp
-  // - updatedAt: Automatically set to current timestamp
-});
+type RouteContext = { params: Promise<{ id: string }> };
 
-const jobMatchesUpdateSchema = z.object({
-  job_matches: z.array(jobMatchSchema).optional(),
-});
+async function getApplicantId(context: RouteContext) {
+  const { id } = await context.params;
+  return id;
+}
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+async function handleJobMatchesUpsert(request: NextRequest, context: RouteContext, successMessage: string) {
+  const authError = await requireJobMatchPermission(request, 'JOB_MATCH_MANAGE');
+  if (authError) return authError;
+
+  const parsed = await parseJobMatchesPayload(request);
+  if (!parsed.ok) {
+    return jsonCors(request, parsed.body, 400);
   }
 
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_VIEW')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view job matches' }), { status: 403, headers: handleCors(req) });
-  }
-
-  const { id } = await params;
-  const client = await getPool().connect();
-  
   try {
-    // First check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
-    const applicantResult = await client.query(applicantQuery, [id]);
-    
-    if (applicantResult.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
+    const jobMatches = await upsertApplicantJobMatches(await getApplicantId(context), parsed.payload.job_matches);
+    return jsonCors(request, { message: successMessage, job_matches: jobMatches });
+  } catch (error) {
+    console.error('[JOB-MATCHES] Upsert error:', error);
+    if (getErrorMessage(error) === 'Applicant not found') {
+      return jsonCors(request, { error: 'Applicant not found' }, 404);
     }
 
-    // Get job matches for this Applicant
-    const applicantId = id;
-    const jobMatchesQuery = `
-      SELECT jm.*, p.title as "positionTitle"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."applicant_id" = $1
-      ORDER BY jm."fitScore" DESC;
-    `;
-    const jobMatchesResult = await client.query(jobMatchesQuery, [applicantId]);
-    
-    const jobMatches = jobMatchesResult.rows.map((match: any) => ({
-      id: match.id,
-      fitScore: match.fitScore,
-      jobId: match.jobId,
-      matchReasons: match.matchReasons || [],
-      positionTitle: match.positionTitle,
-      createdAt: match.createdAt,
-      updatedAt: match.updatedAt,
-    }));
+    return jsonCors(request, {
+      error: 'Error adding/updating job matches',
+      ...getDatabaseErrorDetails(error),
+    }, 500);
+  }
+}
 
-    return new Response(JSON.stringify({ job_matches: jobMatches }), { status: 200, headers: handleCors(req) });
+export async function GET(request: NextRequest, context: RouteContext) {
+  const authError = await requireJobMatchPermission(request, 'JOB_MATCH_VIEW');
+  if (authError) return authError;
+
+  try {
+    const jobMatches = await fetchApplicantJobMatches(await getApplicantId(context));
+    return jsonCors(request, { job_matches: jobMatches });
   } catch (error) {
     console.error('[JOB-MATCHES] GET Error:', error);
-    return new Response(JSON.stringify({ error: 'Error fetching job matches', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
+    if (getErrorMessage(error) === 'Applicant not found') {
+      return jsonCors(request, { error: 'Applicant not found' }, 404);
+    }
+
+    return jsonCors(request, { error: 'Error fetching job matches', details: getErrorMessage(error) }, 500);
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
+export function POST(request: NextRequest, context: RouteContext) {
+  return handleJobMatchesUpsert(request, context, 'Job matches added/updated successfully');
+}
+
+export function PATCH(request: NextRequest, context: RouteContext) {
+  return handleJobMatchesUpsert(request, context, 'Job matches updated successfully');
+}
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const authError = await requireJobMatchPermission(request, 'JOB_MATCH_MANAGE');
+  if (authError) return authError;
+
+  const parsed = await parseJobMatchesPayload(request, false);
+  if (!parsed.ok) {
+    return jsonCors(request, parsed.body, 400);
   }
 
-  const { id } = await params;
-  const applicantId = id;
-  let body;
-  
   try {
-    body = await req.json();
-    body = normalizePayloadTypes(body);
+    const jobMatches = await replaceApplicantJobMatches(await getApplicantId(context), parsed.payload.job_matches);
+    return jsonCors(request, { message: 'Job matches updated successfully', job_matches: jobMatches });
   } catch (error) {
-    console.error('[JOB-MATCHES] JSON parse error:', error);
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
-  }
-
-  const validationResult = jobMatchesUpdateSchema.safeParse(body);
-  if (!validationResult.success) {
-    console.error('[JOB-MATCHES] Validation error:', validationResult.error.flatten());
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
-  }
-
-    const validatedData = validationResult.data;
-  const job_matches = validatedData.job_matches;
-  
-  try {
-    
-    const result = await withDbTransaction(async (client) => {
-      // Check if Applicant exists
-      const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
-      const applicantResult = await client.query(applicantQuery, [applicantId]);
-      
-      if (applicantResult.rows.length === 0) {
-        throw new Error('Applicant not found');
-      }
-
-
-
-    // Insert or update job matches
-    const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING *
-    `;
-
-    const updateJobMatchQuery = `
-      UPDATE "JobMatch" 
-      SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
-      WHERE "applicant_id" = $3 AND "jobId" = $4
-      RETURNING *
-    `;
-
-    const checkExistingQuery = `
-      SELECT id FROM "JobMatch" WHERE "applicant_id" = $1 AND "jobId" = $2
-    `;
-
-    const insertedMatches = [];
-    
-    for (const match of job_matches || []) { // Use || [] to handle empty array
-      try {
-        // Check if job match already exists
-        const existingResult = await client.query(checkExistingQuery, [applicantId, match.jobId || null]);
-        
-        let result;
-        if (existingResult.rows.length > 0) {
-          // Update existing match
-          result = await client.query(updateJobMatchQuery, [
-            match.fitScore || null, // Already 0-1
-            match.matchReasons || [],
-            applicantId,
-            match.jobId || null,
-          ]);
-        } else {
-          // Insert new match
-          const matchId = uuidv4();
-          result = await client.query(insertJobMatchQuery, [
-            matchId,
-            applicantId,
-            match.jobId || null,
-            match.fitScore || null, // Already 0-1
-            match.matchReasons || [],
-          ]);
-
-        }
-        
-        const processedMatch = result.rows[0];
-        insertedMatches.push({
-          id: processedMatch.id,
-          fitScore: processedMatch.fitScore,
-          jobId: processedMatch.jobId || null,
-          matchReasons: processedMatch.matchReasons || [],
-        });
-      } catch (insertError) {
-        console.error('[JOB-MATCHES] Error for match:', match, 'Error:', insertError);
-        console.error('[JOB-MATCHES] Error details:', {
-          message: (insertError as Error).message,
-          stack: (insertError as Error).stack,
-          code: (insertError as any).code
-        });
-        throw insertError;
-      }
+    if (getErrorMessage(error) === 'Applicant not found') {
+      return jsonCors(request, { error: 'Applicant not found' }, 404);
     }
 
-  
-      return insertedMatches;
-    });
-
-    return new Response(JSON.stringify({ 
-      message: 'Job matches added/updated successfully', 
-      job_matches: result 
-    }), { status: 200, headers: handleCors(req) });
-    
-  } catch (error) {
-    console.error('[JOB-MATCHES] Database error:', error);
-    console.error('[JOB-MATCHES] Error details:', {
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-      code: (error as any).code,
-      detail: (error as any).detail,
-      hint: (error as any).hint
-    });
-    
-    // Handle specific known errors
-    if ((error as Error).message === 'Applicant not found') {
-      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
-    }
-    
-    return new Response(JSON.stringify({ 
-      error: 'Error adding/updating job matches', 
-      details: (error as Error).message,
-      stack: (error as Error).stack,
-      code: (error as any).code,
-      detail: (error as any).detail,
-      hint: (error as any).hint
-    }), { status: 500, headers: handleCors(req) });
+    return jsonCors(request, { error: 'Error updating job matches', details: getErrorMessage(error) }, 500);
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // console.log(`[JOB-MATCHES] PATCH request to: ${req.nextUrl.pathname}`);
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
-  }
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const authError = await requireJobMatchPermission(request, 'JOB_MATCH_MANAGE');
+  if (authError) return authError;
 
-  const { id } = await params;
-  const applicantId = id;
-  let body;
-  
   try {
-    body = await req.json();
-    // console.log('[JOB-MATCHES] PATCH Request body:', JSON.stringify(body, null, 2));
-    body = normalizePayloadTypes(body);
-  } catch (error) {
-    console.error('[JOB-MATCHES] JSON parse error:', error);
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
-  }
-
-  const validationResult = jobMatchesUpdateSchema.safeParse(body);
-  if (!validationResult.success) {
-    console.error('[JOB-MATCHES] Validation error:', validationResult.error.flatten());
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
-  }
-
-    const validatedData = validationResult.data;
-  const job_matches = validatedData.job_matches;
-  
-  const client = await getPool().connect();
-  
-  try {
-    await client.query('BEGIN');
-    
-    // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
-    const applicantResult = await client.query(applicantQuery, [applicantId]);
-    
-    if (applicantResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
-    }
-
-    // Update existing job matches or insert new ones
-    const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING *
-    `;
-
-    const updateJobMatchQuery = `
-      UPDATE "JobMatch" 
-      SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
-      WHERE "applicant_id" = $3 AND "jobId" = $4
-      RETURNING *
-    `;
-
-    const checkExistingQuery = `
-      SELECT id FROM "JobMatch" WHERE "applicant_id" = $1 AND "jobId" = $2
-    `;
-
-    const updatedMatches = [];
-    
-    for (const match of job_matches || []) { // Use || [] to handle empty array
-      try {
-        // Check if job match already exists
-        const existingResult = await client.query(checkExistingQuery, [applicantId, match.jobId || null]);
-        
-        let result;
-        if (existingResult.rows.length > 0) {
-          // Update existing match
-          result = await client.query(updateJobMatchQuery, [
-            match.fitScore || null, // Already 0-1
-            match.matchReasons || [],
-            applicantId,
-            match.jobId || null,
-          ]);
-        } else {
-          // Insert new match
-          const matchId = uuidv4();
-          result = await client.query(insertJobMatchQuery, [
-            matchId,
-            applicantId,
-            match.jobId || null,
-            match.fitScore || null, // Already 0-1
-            match.matchReasons || [],
-          ]);
-        }
-        
-        const processedMatch = result.rows[0];
-        updatedMatches.push({
-          id: processedMatch.id,
-          fitScore: processedMatch.fitScore,
-          jobId: processedMatch.jobId || null,
-          matchReasons: processedMatch.matchReasons || [],
-        });
-      } catch (upsertError) {
-        console.error('[JOB-MATCHES] PATCH Error for match:', match, 'Error:', upsertError);
-        throw upsertError;
-      }
-    }
-
-    await client.query('COMMIT');
-    
-    return new Response(JSON.stringify({ 
-      message: 'Job matches updated successfully', 
-      job_matches: updatedMatches 
-    }), { status: 200, headers: handleCors(req) });
-    
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('[JOB-MATCHES] PATCH Database error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Error updating job matches', 
-      details: (error as Error).message,
-      stack: (error as Error).stack 
-    }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
-  }
-}
-
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
-  }
-
-  const { id } = await params;
-  const applicantId = id;
-  let body;
-  
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
-  }
-
-  const validationResult = jobMatchesUpdateSchema.safeParse(body);
-  if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/applicants/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
-  }
-
-    const validatedData = validationResult.data;
-  const job_matches = validatedData.job_matches;
-  const client = await getPool().connect();
-  
-  try {
-    await client.query('BEGIN');
-    
-    // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
-    const applicantResult = await client.query(applicantQuery, [applicantId]);
-    
-    if (applicantResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
-    }
-
-    // Delete existing job matches for this Applicant
-    await client.query('DELETE FROM "JobMatch" WHERE "applicant_id" = $1', [applicantId]);
-
-    // Insert new job matches
-    const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "applicant_id", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING *
-    `;
-
-    const insertedMatches = [];
-    
-    for (const match of job_matches || []) { // Use || [] to handle empty array
-      const matchId = uuidv4();
-      const result = await client.query(insertJobMatchQuery, [
-        matchId,
-        applicantId,
-        match.jobId || null,
-        match.fitScore || null, // Already 0-1
-        match.matchReasons || [],
-      ]);
-      
-      const processedMatch = result.rows[0];
-      insertedMatches.push({
-        id: processedMatch.id,
-        fitScore: processedMatch.fitScore,
-        jobId: processedMatch.jobId || null,
-        matchReasons: processedMatch.matchReasons || [],
-      });
-    }
-
-    await client.query('COMMIT');
-    
-    return new Response(JSON.stringify({ 
-      message: 'Job matches updated successfully', 
-      job_matches: insertedMatches 
-    }), { status: 200, headers: handleCors(req) });
-    
-  } catch (error) {
-    await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error updating job matches', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
-  }
-}
-
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('JOB_MATCH_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job matches' }), { status: 403, headers: handleCors(req) });
-  }
-
-  const { id } = await params;
-  const applicantId = id;
-  const client = await getPool().connect();
-  
-  try {
-    await client.query('BEGIN');
-    
-    // Check if Applicant exists
-    const applicantQuery = 'SELECT id FROM "Applicant" WHERE id = $1';
-    const applicantResult = await client.query(applicantQuery, [applicantId]);
-    
-    if (applicantResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Applicant not found' }), { status: 404, headers: handleCors(req) });
-    }
-
-    // Delete all job matches for this Applicant
-    const deleteResult = await client.query('DELETE FROM "JobMatch" WHERE "applicant_id" = $1 RETURNING id', [applicantId]);
-    
-    await client.query('COMMIT');
-    
-    return new Response(JSON.stringify({ 
+    const deletedCount = await deleteApplicantJobMatches(await getApplicantId(context));
+    return jsonCors(request, {
       message: 'All job matches deleted successfully',
-      deleted_count: deleteResult.rowCount
-    }), { status: 200, headers: handleCors(req) });
-    
+      deleted_count: deletedCount,
+    });
   } catch (error) {
-    await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error deleting job matches', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
+    if (getErrorMessage(error) === 'Applicant not found') {
+      return jsonCors(request, { error: 'Applicant not found' }, 404);
+    }
+
+    return jsonCors(request, { error: 'Error deleting job matches', details: getErrorMessage(error) }, 500);
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  const headers = handleCors(request);
-  return new Response(null, { status: 200, headers });
-} 
+export function OPTIONS(request: NextRequest) {
+  return noContentCors(request);
+}

@@ -1,7 +1,8 @@
 // SSE Database Connection Wrapper
 // Prevents connection leaks and provides timeout protection for SSE endpoints
 
-import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
+import { getPool, type DbClient } from '@/lib/db';
 
 export interface SSEConnectionResult<T> {
   success: boolean;
@@ -10,21 +11,30 @@ export interface SSEConnectionResult<T> {
   connectionTime?: number;
 }
 
+export type SSEUserData = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+};
+
+type SSEUserRow = QueryResultRow & SSEUserData;
+
 /**
  * Safely executes a database operation with automatic connection management
  * and timeout protection for SSE endpoints
  */
 export async function withSSEDbConnection<T>(
-  operation: (client: any) => Promise<T>,
+  operation: (client: DbClient) => Promise<T>,
   timeoutMs: number = 5000
 ): Promise<SSEConnectionResult<T>> {
   const startTime = Date.now();
-  let client: any = null;
+  let client: DbClient | null = null;
   
   try {
     // Get connection with timeout
     const connectionPromise = getPool().connect();
-    const connectionTimeoutPromise = new Promise((_, reject) => 
+    const connectionTimeoutPromise = new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error('Database connection timeout')), timeoutMs)
     );
     
@@ -32,7 +42,7 @@ export async function withSSEDbConnection<T>(
     
     // Execute operation with timeout
     const operationPromise = operation(client);
-    const operationTimeoutPromise = new Promise((_, reject) => 
+    const operationTimeoutPromise = new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error('Database operation timeout')), timeoutMs)
     );
     
@@ -111,7 +121,7 @@ export async function checkSSEDatabaseHealth(): Promise<{
 export async function validateSSEUserSession(userId: string): Promise<{
   valid: boolean;
   error?: string;
-  userData?: any;
+  userData?: SSEUserData;
 }> {
   if (!userId) {
     return { valid: false, error: 'No user ID provided' };
@@ -119,7 +129,7 @@ export async function validateSSEUserSession(userId: string): Promise<{
   
   const result = await withSSEDbConnection(async (client) => {
     // Quick user validation query
-    const res = await client.query(
+    const res = await client.query<SSEUserRow>(
       'SELECT id, name, email, role FROM "User" WHERE id = $1 LIMIT 1',
       [userId]
     );

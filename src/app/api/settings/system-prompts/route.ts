@@ -4,9 +4,11 @@ export const runtime = 'nodejs';
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const systemPromptSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
@@ -14,6 +16,17 @@ const systemPromptSchema = z.object({
   categoryId: z.string().min(1, 'Category ID is required'),
   isActive: z.boolean().default(true),
 });
+
+type SystemPromptWithCategory = Prisma.SystemPromptGetPayload<{
+  include: {
+    category: {
+      select: {
+        name: true;
+        color: true;
+      };
+    };
+  };
+}>;
 
 // Function to ensure default category exists
 async function ensureDefaultCategory() {
@@ -66,7 +79,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to match the expected format
-    const transformedPrompts = systemPrompts.map((prompt: any) => ({
+    const transformedPrompts = systemPrompts.map((prompt: SystemPromptWithCategory) => ({
       id: prompt.id,
       name: prompt.name,
       description: prompt.description,
@@ -98,13 +111,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch (error) {
+  const bodyResult = await readRequestJsonResult(request);
+  if (!bodyResult.ok) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const body = bodyResult.value;
   const validationResult = systemPromptSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ 

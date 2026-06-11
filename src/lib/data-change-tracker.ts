@@ -2,98 +2,25 @@
 // Only broadcasts when there are actual meaningful changes
 
 import { broadcast as broadcastAll } from './realtime';
-type UnifiedEventType = string;
-import { broadcastLowPriority, broadcastMediumPriority, broadcastHighPriority } from './aggressive-sse-optimizer';
+import { broadcastMediumPriority, broadcastHighPriority } from './aggressive-sse-optimizer';
+import type { EventPayload, TrackedItem, TrackedRecord, UnifiedEventType } from './realtime-event-types';
+import {
+  cleanupOldTrackers,
+  getChangeTrackingStats,
+  hasTrackedDataChanged,
+} from './data-change-tracker-store';
 
-// Change tracking interfaces
-interface DataSnapshot {
-  timestamp: number;
-  data: any;
-  hash: string;
-}
-
-interface ChangeTracker {
-  lastSnapshot: DataSnapshot | null;
-  lastBroadcast: number;
-  minBroadcastInterval: number; // Minimum time between broadcasts (ms)
-}
-
-// Global change trackers for different data types
-const changeTrackers = new Map<string, ChangeTracker>();
-
-// Hash function for data comparison
-function generateHash(data: any): string {
-  return JSON.stringify(data, Object.keys(data).sort());
-}
-
-// Check if data has meaningfully changed
-function hasDataChanged(trackerKey: string, newData: any, options: {
-  minBroadcastInterval?: number;
-  ignoreFields?: string[];
-} = {}): boolean {
-  const {
-    minBroadcastInterval = 1000, // Default 1 second between broadcasts
-    ignoreFields = []
-  } = options;
-
-  const now = Date.now();
-  let tracker = changeTrackers.get(trackerKey);
-  
-  if (!tracker) {
-    tracker = {
-      lastSnapshot: null,
-      lastBroadcast: 0,
-      minBroadcastInterval
-    };
-    changeTrackers.set(trackerKey, tracker);
-  }
-
-  // Check minimum broadcast interval
-  if (now - tracker.lastBroadcast < minBroadcastInterval) {
-    return false;
-  }
-
-  // Create filtered data (remove ignored fields)
-  const filteredData = { ...newData };
-  ignoreFields.forEach(field => {
-    delete filteredData[field];
-  });
-
-  const newHash = generateHash(filteredData);
-
-  // If no previous snapshot, this is the first time
-  if (!tracker.lastSnapshot) {
-    tracker.lastSnapshot = {
-      timestamp: now,
-      data: filteredData,
-      hash: newHash
-    };
-    return true;
-  }
-
-  // Check if hash has changed (meaningful data change)
-  if (tracker.lastSnapshot.hash !== newHash) {
-    tracker.lastSnapshot = {
-      timestamp: now,
-      data: filteredData,
-      hash: newHash
-    };
-    tracker.lastBroadcast = now;
-    return true;
-  }
-
-  return false;
-}
+export { cleanupOldTrackers, getChangeTrackingStats } from './data-change-tracker-store';
 
 // Smart broadcast functions that only send when data changes
 export function broadcastApplicantUpdateIfChanged(
-  applicant: any, 
+  applicant: TrackedRecord & { id?: string | number }, 
   actingUserId?: string,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {
-  const trackerKey = `Applicant_${applicant.id}`;
+  const trackerKey = `Applicant_${String(applicant.id)}`;
   
-  if (hasDataChanged(trackerKey, applicant, {
+  if (hasTrackedDataChanged(trackerKey, applicant, {
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for Applicants
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
@@ -107,13 +34,13 @@ export function broadcastApplicantUpdateIfChanged(
 }
 
 export function broadcastPositionUpdateIfChanged(
-  position: any, 
+  position: TrackedRecord & { id?: string | number }, 
   actingUserId?: string,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {
-  const trackerKey = `position_${position.id}`;
+  const trackerKey = `position_${String(position.id)}`;
   
-  if (hasDataChanged(trackerKey, position, {
+  if (hasTrackedDataChanged(trackerKey, position, {
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for positions
     ignoreFields: ['updated_at', 'last_activity', ...(options.ignoreFields || [])]
   })) {
@@ -127,12 +54,12 @@ export function broadcastPositionUpdateIfChanged(
 }
 
 export function broadcastUploadQueueUpdateIfChanged(
-  summary: any,
+  summary: TrackedRecord,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {
   const trackerKey = 'upload_queue_summary';
   
-  if (hasDataChanged(trackerKey, summary, {
+  if (hasTrackedDataChanged(trackerKey, summary, {
     minBroadcastInterval: options.minBroadcastInterval || 100, // Reduced to 100ms for faster updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
@@ -146,12 +73,12 @@ export function broadcastUploadQueueUpdateIfChanged(
 }
 
 export function broadcastDashboardUpdateIfChanged(
-  data: any,
+  data: EventPayload,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
 ) {
   const trackerKey = 'dashboard_data';
   
-  if (hasDataChanged(trackerKey, data, {
+  if (hasTrackedDataChanged(trackerKey, data, {
     minBroadcastInterval: options.minBroadcastInterval || 200, // 200ms for dashboard (reduced for better real-time updates)
     ignoreFields: ['timestamp', 'last_updated', ...(options.ignoreFields || [])]
   })) {
@@ -164,7 +91,7 @@ export function broadcastDashboardUpdateIfChanged(
 
 // Batch change detection for multiple items
 export function broadcastBatchUpdateIfChanged(
-  items: any[],
+  items: TrackedItem[],
   itemType: 'applicant' | 'position',
   actingUserId?: string,
   options: { minBroadcastInterval?: number; ignoreFields?: string[] } = {}
@@ -176,7 +103,7 @@ export function broadcastBatchUpdateIfChanged(
     timestamp: new Date().toISOString()
   };
   
-  if (hasDataChanged(trackerKey, batchData, {
+  if (hasTrackedDataChanged(trackerKey, batchData, {
     minBroadcastInterval: options.minBroadcastInterval || 500, // 500ms for batch updates
     ignoreFields: ['timestamp', ...(options.ignoreFields || [])]
   })) {
@@ -185,41 +112,10 @@ export function broadcastBatchUpdateIfChanged(
 }
 
 // Force broadcast (bypass change detection)
-export function forceBroadcast(eventType: UnifiedEventType, data: any, targetUserId?: string) {
+export function forceBroadcast(eventType: UnifiedEventType, data: EventPayload, targetUserId?: string) {
   if (!targetUserId) {
     broadcastAll({ type: eventType, ...data }, eventType);
   }
-}
-
-// Get change tracking statistics
-export function getChangeTrackingStats() {
-  const stats = {
-    totalTrackers: changeTrackers.size,
-    trackers: Array.from(changeTrackers.entries()).map(([key, tracker]) => ({
-      key,
-      lastBroadcast: tracker.lastBroadcast,
-      lastBroadcastAgo: Date.now() - tracker.lastBroadcast,
-      hasSnapshot: !!tracker.lastSnapshot
-    }))
-  };
-  
-  return stats;
-}
-
-// Clear old trackers (cleanup)
-export function cleanupOldTrackers(maxAge: number = 30 * 60 * 1000) { // 30 minutes
-  const now = Date.now();
-  let cleaned = 0;
-  
-  for (const [key, tracker] of changeTrackers.entries()) {
-    if (now - tracker.lastBroadcast > maxAge) {
-      changeTrackers.delete(key);
-      cleaned++;
-    }
-  }
-  
-  
-  return cleaned;
 }
 
 // Auto-cleanup every 10 minutes

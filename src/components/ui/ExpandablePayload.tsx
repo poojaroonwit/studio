@@ -8,7 +8,7 @@ import { Expand, Minimize2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ExpandablePayloadProps {
-  data: any;
+  data: unknown;
   title?: string;
   className?: string;
   maxHeight?: string;

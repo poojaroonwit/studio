@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { normalizeSystemSettingsResponse, type SystemSettingsRecord } from '@/lib/system-settings-response';
 
 interface GlobalSettings {
   appName: string;
   appLogoDataUrl: string | null;
   appFaviconDataUrl: string | null;
+  organizationLogoDataUrl: string | null;
   appThemePreference: string;
   showLogoOnly: boolean;
   sidebarLogoSize: number;
@@ -22,7 +24,7 @@ interface GlobalSettings {
   splashLogoDataUrl: string | null;
   splashAnimationType: string;
 
-  [key: string]: any; // For other settings
+  [key: string]: unknown;
 }
 
 interface GlobalSettingsContextType {
@@ -37,6 +39,7 @@ const defaultSettings: GlobalSettings = {
   appName: "FitScan",
   appLogoDataUrl: null,
   appFaviconDataUrl: null,
+  organizationLogoDataUrl: null,
   appThemePreference: 'system',
   showLogoOnly: false,
   sidebarLogoSize: 48,
@@ -81,13 +84,7 @@ export function GlobalSettingsProvider({ children }: { children: React.ReactNode
       
       const data = await response.json();
       
-      // Handle both response formats
-      let settingsData: any = {};
-      if (data.settings && Array.isArray(data.settings)) {
-        settingsData = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
-      } else {
-        settingsData = data;
-      }
+      const settingsData: SystemSettingsRecord = normalizeSystemSettingsResponse(data);
       
       // Merge with defaults
       const mergedSettings = {

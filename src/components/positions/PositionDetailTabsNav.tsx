@@ -1,0 +1,80 @@
+"use client";
+
+import {
+  Cloud,
+  FileText,
+  Hash,
+  ListChecks,
+  Target,
+  UserCog,
+  Users,
+} from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
+
+import { cn } from "@/lib/utils";
+
+export type PositionDetailTabId =
+  | "details"
+  | "job-description"
+  | "criteria"
+  | "Applicants"
+  | "headcount"
+  | "hiring-managers"
+  | "evaluation"
+  | "microsoft-ad";
+
+interface PositionDetailTabsNavProps {
+  activeTab: PositionDetailTabId;
+  applicantsCount: number;
+  headcountsTotal: number;
+  onTabChange: (tab: PositionDetailTabId) => void;
+}
+
+interface PositionDetailTabDefinition {
+  id: PositionDetailTabId;
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+}
+
+function getPositionDetailTabs(applicantsCount: number, headcountsTotal: number): PositionDetailTabDefinition[] {
+  return [
+    { id: "details", label: "Details", icon: FileText },
+    { id: "job-description", label: "Job Description", icon: FileText },
+    { id: "criteria", label: "AI Match Criteria", icon: ListChecks },
+    { id: "Applicants", label: `Applicants (${applicantsCount})`, icon: Users },
+    { id: "headcount", label: `Headcount (${headcountsTotal})`, icon: Hash },
+    { id: "hiring-managers", label: "Hiring Manager", icon: UserCog },
+    { id: "evaluation", label: "Evaluate", icon: Target },
+    { id: "microsoft-ad", label: "Current Employee (AD)", icon: Cloud },
+  ];
+}
+
+export function PositionDetailTabsNav({
+  activeTab,
+  applicantsCount,
+  headcountsTotal,
+  onTabChange,
+}: PositionDetailTabsNavProps) {
+  return (
+    <div className="border-b border-border/50 bg-background w-full flex-shrink-0 sticky top-0 z-10 overflow-x-auto no-scrollbar">
+      <div className="flex flex-row min-w-max px-6 gap-6">
+        {getPositionDetailTabs(applicantsCount, headcountsTotal).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onTabChange(id)}
+            className={cn(
+              "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap h-12 border-b-2 px-1",
+              activeTab === id
+                ? "text-primary border-primary"
+                : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

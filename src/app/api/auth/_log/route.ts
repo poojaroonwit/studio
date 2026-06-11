@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 /**
  * NextAuth internal logging endpoint
@@ -9,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    await request.json().catch(() => ({}));
+    await readRequestJsonObject(request);
     
     // Return a simple success response
     return NextResponse.json({ success: true });

@@ -4,9 +4,10 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { X, ImageIcon, FileTextIcon, FileIcon } from 'lucide-react';
 import { isImageFile, isPdfFile } from '../utils';
+import type { EvaluationAttachment } from '../types';
 
 interface AttachmentThumbnailButtonProps {
-  attachment: any;
+  attachment: EvaluationAttachment;
   thumbnailUrl: string | null;
   isImage: boolean;
   applicantId: string;
@@ -38,14 +39,14 @@ export function AttachmentThumbnailButton({
         type="button"
         onClick={onSelect}
         className="w-full relative transition-all duration-200 hover:scale-105 active:scale-95"
-        title={attachment.fileName}
+        title={attachment.fileName || attachment.name || 'Attachment'}
       >
         <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center group-hover:shadow-lg transition-shadow duration-200" style={{ aspectRatio: '4/5' }}>
           {isImage && thumbnailUrl && !imageError ? (
             <>
               <img
                 src={thumbnailUrl}
-                alt={attachment.fileName}
+                alt={attachment.fileName || attachment.name || 'Attachment'}
                 className="h-full w-full object-cover"
                 onError={() => setImageError(true)}
               />
@@ -69,9 +70,9 @@ export function AttachmentThumbnailButton({
             <>
               {/* File Icon */}
               <div className="flex-1 flex items-center justify-center p-1 sm:p-1.5">
-                {isImageFile(attachment.fileName) ? (
+                {isImageFile(attachment.fileName || attachment.name || '') ? (
                   <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-                ) : isPdfFile(attachment.fileName) ? (
+                ) : isPdfFile(attachment.fileName || attachment.name || '') ? (
                   <FileTextIcon className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
                 ) : (
                   <FileIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
@@ -104,7 +105,9 @@ export function AttachmentThumbnailButton({
             </button>
           )}
         </div>
-        <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
+        <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">
+          {attachment.fileName || attachment.name || 'Attachment'}
+        </div>
       </button>
     </div>
   );

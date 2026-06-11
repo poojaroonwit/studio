@@ -10,7 +10,15 @@ export const dynamic = 'force-dynamic';
 let universitiesCache: { data: string[], timestamp: number } | null = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export async function GET(req: NextRequest) {
+type EducationEntry = {
+  university?: unknown;
+};
+
+function isEducationEntry(value: unknown): value is EducationEntry {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export async function GET(_req: NextRequest) {
   const { response } = await requireApiSession();
   if (response) return response;
 
@@ -38,10 +46,12 @@ export async function GET(req: NextRequest) {
         if (applicants.length === 0) break;
         
         // Extract university names from this batch
-        applicants.forEach((applicant: any) => {
+        applicants.forEach((applicant) => {
           if (Array.isArray(applicant.educationData)) {
-            applicant.educationData.forEach((edu: any) => {
-              const university = edu.university?.trim();
+            applicant.educationData.forEach((edu) => {
+              const university = isEducationEntry(edu) && typeof edu.university === 'string'
+                ? edu.university.trim()
+                : '';
               if (university) {
                 universities.add(university);
               }

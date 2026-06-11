@@ -44,6 +44,14 @@ interface UseApplicantFiltersDataReturn {
   lastUpdated: Date | null;
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function getApplicantFiltersErrorMessage(error: unknown) {
+  return error instanceof Error && error.message ? error.message : 'Failed to fetch filter data';
+}
+
 export function useApplicantFiltersData(): UseApplicantFiltersDataReturn {
   const { data: session, status } = useSession();
   const [filterData, setFilterData] = useState<FilterData | null>(null);
@@ -82,21 +90,21 @@ export function useApplicantFiltersData(): UseApplicantFiltersDataReturn {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as FilterData;
 
       if (isMountedRef.current) {
         setFilterData(data);
         setLastUpdated(new Date());
         setError(null);
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
         // Request was cancelled, don't set error
         return;
       }
 
       if (isMountedRef.current) {
-        setError(err.message || 'Failed to fetch filter data');
+        setError(getApplicantFiltersErrorMessage(err));
         console.error('Error fetching Applicant filter data:', err);
       }
     } finally {

@@ -2,6 +2,31 @@ import { useEventSource } from '@/hooks/useEventSource';
 import { useSSEFallback } from '@/hooks/use-sse-fallback';
 import { useEffect } from 'react';
 
+export interface EnhancedSSEEndpointStatus {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  priority: number;
+  isConnected: boolean;
+  lastError: string | null;
+  lastErrorEventType: string | null;
+  lastErrorLocation: string | null;
+  lastErrorTime: number | null;
+  connectionAttempts: number;
+  retryCount: number;
+  maxRetries: number;
+  isCircuitOpen: boolean;
+}
+
+export interface EnhancedSSEConnectionStatus {
+  totalEndpoints: number;
+  connectedEndpoints: number;
+  failedEndpoints: number;
+  disabledEndpoints: number;
+  endpoints: EnhancedSSEEndpointStatus[];
+}
+
 // Lightweight compatibility hook mapped to the new robust EventSource
 export function useEnhancedSSE() {
   const isSseDisabled = process.env.NEXT_PUBLIC_DISABLE_SSE === 'true';
@@ -37,25 +62,30 @@ export function useEnhancedSSE() {
     }
   }, [isSseDisabled, connected, error, retryCount, isCircuitOpen, startPolling, stopPolling]);
 
-  const connectionStatus = {
+  const connectionStatus: EnhancedSSEConnectionStatus = {
     totalEndpoints: 1,
     connectedEndpoints: connected ? 1 : 0,
-    failedEndpoints: connected ? 0 : 1,
-    disabledEndpoints: 0,
+    failedEndpoints: !isSseDisabled && !connected ? 1 : 0,
+    disabledEndpoints: isSseDisabled ? 1 : 0,
     endpoints: [
       {
         id: 'main-sse',
         name: 'Main SSE',
         url: '/api/sse',
+        enabled: !isSseDisabled,
+        priority: 1,
         isConnected: connected,
         lastError: error,
+        lastErrorTime: error ? Date.now() : null,
         lastErrorEventType: null,
         lastErrorLocation: null,
+        connectionAttempts: retryCount > 0 ? retryCount + 1 : connected ? 1 : 0,
         retryCount,
+        maxRetries: 2,
         isCircuitOpen
       }
     ]
-  } as any;
+  };
 
   return {
     isConnected: connected || (isSseDisabled ? false : isPolling), // Treat disabled as not connected
@@ -70,7 +100,9 @@ export function useEnhancedSSE() {
     disabledEndpoints: connectionStatus.disabledEndpoints,
 
     // No-ops for legacy API
-    getEndpointDetails: (_id: string) => connectionStatus.endpoints[0],
+    getEndpointDetails: (id: string) => (
+      connectionStatus.endpoints.find(endpoint => endpoint.id === id) ?? connectionStatus.endpoints[0]
+    ),
     isEndpointConnected: (_id: string) => connected || isPolling,
     toggleEndpoint: (_id: string, _enabled: boolean) => {},
     reconnectEndpoint: (_id: string) => {},

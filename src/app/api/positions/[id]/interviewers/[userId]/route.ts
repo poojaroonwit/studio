@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
 
 /**
  * @openapi
@@ -29,6 +30,21 @@ import { getPool } from '@/lib/db';
  *       404:
  *         description: Position, interviewer, or assignment not found
  */
+
+type PositionInterviewerPositionRow = QueryResultRow & {
+  id: string;
+  title: string;
+};
+
+type PositionInterviewerUserRow = QueryResultRow & {
+  id: string;
+  name: string | null;
+  email: string | null;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string; userId: string }> }) {
   const session = await auth();
@@ -54,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     
     // Check if position exists
     const positionCheckQuery = 'SELECT id, title FROM "Position" WHERE id = $1';
-    const positionResult = await client.query(positionCheckQuery, [id]);
+    const positionResult = await client.query<PositionInterviewerPositionRow>(positionCheckQuery, [id]);
     
     if (positionResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -65,7 +81,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Check if user exists
     const userCheckQuery = 'SELECT id, name, email FROM "User" WHERE id = $1';
-    const userResult = await client.query(userCheckQuery, [userId]);
+    const userResult = await client.query<PositionInterviewerUserRow>(userCheckQuery, [userId]);
     
     if (userResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -99,11 +115,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ 
       message: 'Interviewer removed successfully'
     });
-  } catch (error: any) {
+  } catch (error) {
     await client.query('ROLLBACK');
+    const errorMessage = getErrorMessage(error);
     
-    await logAudit('ERROR', `Failed to remove interviewer from position. Error: ${error.message}`, 'API:PositionInterviewers:Remove', actingUserId, { positionId: id, userId });
-    return NextResponse.json({ message: 'Error removing interviewer', error: error.message }, { status: 500 });
+    await logAudit('ERROR', `Failed to remove interviewer from position. Error: ${errorMessage}`, 'API:PositionInterviewers:Remove', actingUserId, { positionId: id, userId });
+    return NextResponse.json({ message: 'Error removing interviewer', error: errorMessage }, { status: 500 });
   } finally {
     client.release();
   }

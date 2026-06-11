@@ -54,37 +54,45 @@ import { requireApiPermission } from '@/lib/api-route-guards';
  *                   type: string
  */
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+
+function getSetupErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
 
 export async function POST() {
   try {
     const { response, session } = await requireApiPermission('SYSTEM_SETTINGS_EDIT');
     if (response) return response;
 
-    
     await logAudit('INFO', 'Application initialization started via API', 'API:Setup:Initialize:Post', session.user.id);
-    
+
     const result = await initializeApplication();
-    
-    
-    await logAudit('AUDIT', `Application initialization completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Post', session.user.id, { 
-      status: result.overall,
-      minioStatus: result.minio?.status,
-      databaseStatus: result.database?.status 
-    });
-    
+
+    await logAudit(
+      'AUDIT',
+      `Application initialization completed via API. Status: ${result.overall}`,
+      'API:Setup:Initialize:Post',
+      session.user.id,
+      {
+        status: result.overall,
+        minioStatus: result.minio?.status,
+        databaseStatus: result.database?.status,
+      },
+    );
+
     return NextResponse.json(result);
-    
   } catch (error) {
-    console.error('❌ Application initialization failed via API:', error);
-    
-    await logAudit('ERROR', `Application initialization failed via API. Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'API:Setup:Initialize:Post', null, { 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    const errorMessage = getSetupErrorMessage(error);
+    console.error('Application initialization failed via API:', error);
+
+    await logAudit('ERROR', `Application initialization failed via API. Error: ${errorMessage}`, 'API:Setup:Initialize:Post', null, {
+      error: errorMessage,
     });
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       error: 'Failed to initialize application',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
     }, { status: 500 });
   }
 }
@@ -94,32 +102,34 @@ export async function GET() {
     const { response, session } = await requireApiPermission('SYSTEM_SETTINGS_VIEW');
     if (response) return response;
 
-    // console.log('🔍 Checking application status...');
-    
     await logAudit('INFO', 'Application status check started via API', 'API:Setup:Initialize:Get', session.user.id);
-    
+
     const result = await initializeApplication();
-    
-    // console.log('✅ Application status check completed');
-    
-    await logAudit('AUDIT', `Application status check completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Get', session.user.id, { 
-      status: result.overall,
-      minioStatus: result.minio?.status,
-      databaseStatus: result.database?.status 
-    });
-    
+
+    await logAudit(
+      'AUDIT',
+      `Application status check completed via API. Status: ${result.overall}`,
+      'API:Setup:Initialize:Get',
+      session.user.id,
+      {
+        status: result.overall,
+        minioStatus: result.minio?.status,
+        databaseStatus: result.database?.status,
+      },
+    );
+
     return NextResponse.json(result);
-    
   } catch (error) {
-    console.error('❌ Application status check failed:', error);
-    
-    await logAudit('ERROR', `Application status check failed via API. Error: ${error instanceof Error ? error.message : 'Unknown error'}`, 'API:Setup:Initialize:Get', null, { 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    const errorMessage = getSetupErrorMessage(error);
+    console.error('Application status check failed:', error);
+
+    await logAudit('ERROR', `Application status check failed via API. Error: ${errorMessage}`, 'API:Setup:Initialize:Get', null, {
+      error: errorMessage,
     });
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       error: 'Failed to check application status',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
     }, { status: 500 });
   }
-} 
+}

@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-import type { CustomFieldDefinition } from '@/lib/types';
+import type { CustomFieldDefinition, CustomFieldValues } from '@/lib/types';
 import { fetchCustomFieldsForSection, renderCustomFieldValue } from '@/lib/customFieldUtils';
 
 interface PositionCustomFieldDisplayProps {
   section: string;
   positionId: string;
-  customFields?: Record<string, any>; // The actual field values
+  customFields?: CustomFieldValues;
   title?: string;
   className?: string;
 }

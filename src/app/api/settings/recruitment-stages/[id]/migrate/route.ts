@@ -7,10 +7,19 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../../lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
+import { readRequestJsonResult } from '@/lib/request-json';
 
 function extractIdFromUrl(request: NextRequest): string | null {
   const match = request.nextUrl.pathname.match(/\/recruitment-stages\/([^/]+)\/migrate/);
   return match ? match[1] : null;
+}
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 export async function POST(request: NextRequest) {
@@ -36,14 +45,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
-    let body;
-    try {
-        body = await request.json();
-    } catch (e) {
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
         return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { replacementStageName } = body;
+    const body = bodyResult.value;
+    const replacementStageName = isRecord(body) && typeof body.replacementStageName === 'string'
+        ? body.replacementStageName
+        : '';
     if (!replacementStageName) {
         return NextResponse.json({ message: 'Replacement stage name is required' }, { status: 400 });
     }
@@ -100,16 +110,17 @@ export async function POST(request: NextRequest) {
             migratedTransitions
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         await client.query('ROLLBACK');
         console.error(`Failed to migrate recruitment stage ${id}:`, error);
-        await logAudit('ERROR', `Failed to migrate stage (ID: ${id}). Error: ${error.message}`, 'API:RecruitmentStages:Migrate', actingUserId);
+        await logAudit('ERROR', `Failed to migrate stage (ID: ${id}). Error: ${errorMessage}`, 'API:RecruitmentStages:Migrate', actingUserId);
         
         // SECURITY: Never expose detailed error messages in production
         const isDevelopment = process.env.NODE_ENV === 'development';
         return NextResponse.json({ 
             message: "Error migrating recruitment stage",
-            error: isDevelopment ? error.message : "Internal server error"
+            error: isDevelopment ? errorMessage : "Internal server error"
         }, { status: 500 });
     } finally {
         client.release();

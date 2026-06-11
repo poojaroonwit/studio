@@ -2,13 +2,21 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
+import {
+  createApplicantSourceSchema,
+  fetchApplicantSources,
+  findApplicantSourceByName,
+  getApplicantSourceRouteErrorMessage,
+  insertApplicantSource,
+} from './applicant-sources-route-helpers';
+
 /**
  * @openapi
  * /api/Applicant-sources:
@@ -41,20 +49,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await getPool().query(`
-      SELECT 
-        id, name, description, email, logo, allow_sub_source as "allowSubSource", 
-        sort_order as "sortOrder", is_active as "isActive", 
-        "createdAt", "updatedAt"
-      FROM "ApplicantSource"
-      ORDER BY sort_order ASC, name ASC
-    `);
-    
-    return NextResponse.json(result.rows, { status: 200 });
-  } catch (error: any) {
+    return NextResponse.json(await fetchApplicantSources(), { status: 200 });
+  } catch (error) {
     console.error("Failed to fetch Applicant sources:", error);
-    await logAudit('ERROR', `Failed to fetch Applicant sources. Error: ${error.message}`, 'API:ApplicantSources:GetAll', session.user.id);
-    return NextResponse.json({ message: "Error fetching Applicant sources", error: error.message }, { status: 500 });
+    const errorMessage = getApplicantSourceRouteErrorMessage(error);
+    await logAudit('ERROR', `Failed to fetch Applicant sources. Error: ${errorMessage}`, 'API:ApplicantSources:GetAll', session.user.id);
+    return NextResponse.json({ message: "Error fetching Applicant sources", error: errorMessage }, { status: 500 });
   }
 }
 
@@ -97,16 +97,6 @@ export async function GET(request: NextRequest) {
  *       500:
  *         description: Server error
  */
-const createApplicantSourceSchema = z.object({
-  name: z.string().min(1, "Source name is required"),
-  description: z.string().optional().nullable(),
-  email: z.string().optional().nullable(),
-  logo: z.string().optional().nullable(),
-  allowSubSource: z.boolean().default(false),
-  sortOrder: z.number().int().default(0),
-  isActive: z.boolean().default(true),
-});
-
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -119,51 +109,31 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const validatedData = createApplicantSourceSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ message: "Validation error", errors: { body: ["Invalid JSON body"] } }, { status: 400 });
+    }
 
-    // Check if name already exists
-    const existingResult = await getPool().query(
-      'SELECT id FROM "ApplicantSource" WHERE name = $1',
-      [validatedData.name]
-    );
+    const validatedData = createApplicantSourceSchema.parse(bodyResult.value);
 
-    if (existingResult.rows.length > 0) {
+    if (await findApplicantSourceByName(validatedData.name)) {
       return NextResponse.json({ message: "A Applicant source with this name already exists" }, { status: 409 });
     }
 
     const id = uuidv4();
-    const result = await getPool().query(`
-      INSERT INTO "ApplicantSource" (
-        id, name, description, email, logo, allow_sub_source, sort_order, is_active, 
-        "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-      RETURNING id, name, description, email, logo, allow_sub_source as "allowSubSource", 
-                sort_order as "sortOrder", is_active as "isActive", 
-                "createdAt", "updatedAt"
-    `, [
-      id,
-      validatedData.name,
-      validatedData.description,
-      validatedData.email,
-      validatedData.logo,
-      validatedData.allowSubSource,
-      validatedData.sortOrder,
-      validatedData.isActive
-    ]);
-
-    const newSource = result.rows[0];
+    const newSource = await insertApplicantSource({ id, source: validatedData });
     
     await logAudit('INFO', `Created Applicant source: ${validatedData.name}`, 'API:ApplicantSources:Create', session.user.id);
     
     return NextResponse.json(newSource, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to create Applicant source:", error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ message: "Validation error", errors: error.issues }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to create Applicant source. Error: ${error.message}`, 'API:ApplicantSources:Create', session.user.id);
-    return NextResponse.json({ message: "Error creating Applicant source", error: error.message }, { status: 500 });
+    const errorMessage = getApplicantSourceRouteErrorMessage(error);
+    await logAudit('ERROR', `Failed to create Applicant source. Error: ${errorMessage}`, 'API:ApplicantSources:Create', session.user.id);
+    return NextResponse.json({ message: "Error creating Applicant source", error: errorMessage }, { status: 500 });
   }
 }
 

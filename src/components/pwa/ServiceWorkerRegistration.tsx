@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-
-const SW_VERSION = '2.1.1'; // Increment this when you update the service worker
-const SW_VERSION_KEY = 'sw-version';
+import { fetchPwaSettingsState } from './pwa-settings-api';
+import {
+  clearServiceWorkerCaches,
+  hasServiceWorkerSupport,
+  shouldCleanupServiceWorkers,
+  shouldRegisterServiceWorker,
+  shouldUnregisterServiceWorkers,
+  SW_REGISTRATION_DELAY_MS,
+  SW_UPDATE_INTERVAL_MS,
+  SW_VERSION,
+  SW_VERSION_KEY,
+  unregisterServiceWorkerRegistrations,
+} from './service-worker-registration-utils';
 
 export function ServiceWorkerRegistration() {
   const [pwaEnabled, setPwaEnabled] = useState(false);
 
-  // Check if PWA is enabled
   useEffect(() => {
     const checkPWAEnabled = async () => {
       try {
-        const response = await fetch('/api/settings/system-settings');
-        if (response.ok) {
-          const data = await response.json();
-          const settings = Array.isArray(data.settings)
-            ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
-            : data;
-          setPwaEnabled(settings.pwaEnabled === 'true');
-        }
+        const settings = await fetchPwaSettingsState();
+        setPwaEnabled(settings?.enabled ?? false);
       } catch (error) {
         console.error('Failed to check PWA setting:', error);
         setPwaEnabled(false);
@@ -31,119 +34,75 @@ export function ServiceWorkerRegistration() {
 
   useEffect(() => {
     const cleanupOldServiceWorker = async () => {
-      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-        return;
-      }
+      if (!hasServiceWorkerSupport()) return;
 
       try {
-        // Check stored version
         const storedVersion = localStorage.getItem(SW_VERSION_KEY);
 
-        // If version changed or in development, clean up old service workers
-        if (storedVersion !== SW_VERSION || process.env.NODE_ENV !== 'production') {
+        if (!shouldCleanupServiceWorkers({ storedVersion, nodeEnv: process.env.NODE_ENV })) return;
 
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await unregisterServiceWorkerRegistrations(registrations);
 
-          const registrations = await navigator.serviceWorker.getRegistrations();
-
-          for (const registration of registrations) {
-            await registration.unregister();
-
-          }
-
-          // Clear all caches
-          if ('caches' in window) {
-            const cacheNames = await caches.keys();
-            for (const cacheName of cacheNames) {
-              await caches.delete(cacheName);
-
-            }
-          }
-
-          // Update stored version
-          localStorage.setItem(SW_VERSION_KEY, SW_VERSION);
-
-
+        if ('caches' in window) {
+          await clearServiceWorkerCaches(caches);
         }
+
+        localStorage.setItem(SW_VERSION_KEY, SW_VERSION);
       } catch (error) {
         console.error('Error during service worker cleanup:', error);
       }
     };
 
-    // Run cleanup first
     cleanupOldServiceWorker();
   }, []);
 
   useEffect(() => {
-    // Always unregister service worker in development
-    if (process.env.NODE_ENV !== 'production') {
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    if (shouldUnregisterServiceWorkers({ pwaEnabled, nodeEnv: process.env.NODE_ENV })) {
+      if (hasServiceWorkerSupport()) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
-          registrations.forEach((registration) => {
-            registration.unregister();
-
-          });
+          unregisterServiceWorkerRegistrations(registrations);
         });
       }
       return;
     }
 
-    if (!pwaEnabled) {
-      // Unregister service worker if PWA is disabled
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          registrations.forEach((registration) => {
-            registration.unregister();
+    if (!shouldRegisterServiceWorker({
+      pwaEnabled,
+      nodeEnv: process.env.NODE_ENV,
+      serviceWorkerSupported: hasServiceWorkerSupport(),
+    })) return;
 
+    let updateInterval: NodeJS.Timeout | undefined;
+
+    const registrationTimeout = setTimeout(() => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            }
           });
+
+          updateInterval = setInterval(() => {
+            registration.update();
+          }, SW_UPDATE_INTERVAL_MS);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
         });
-      }
-      return;
-    }
+    }, SW_REGISTRATION_DELAY_MS);
 
-    // Only register in production when PWA is enabled
-    if (
-      typeof window !== 'undefined' &&
-      'serviceWorker' in navigator &&
-      process.env.NODE_ENV === 'production'
-    ) {
-      let updateInterval: NodeJS.Timeout;
-
-      // Wait a bit before registering to ensure cleanup is complete
-      const registrationTimeout = setTimeout(() => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((registration) => {
-
-
-            // Handle updates
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New service worker available, reload the page
-
-                    window.location.reload();
-                  }
-                });
-              }
-            });
-
-            // Check for updates periodically
-            updateInterval = setInterval(() => {
-              registration.update();
-            }, 60000); // Check every minute
-          })
-          .catch((error) => {
-            console.error('Service Worker registration failed:', error);
-          });
-      }, 1000);
-
-      return () => {
-        clearTimeout(registrationTimeout);
-        if (updateInterval) clearInterval(updateInterval);
-      };
-    }
+    return () => {
+      clearTimeout(registrationTimeout);
+      if (updateInterval) clearInterval(updateInterval);
+    };
   }, [pwaEnabled]);
 
   return null;

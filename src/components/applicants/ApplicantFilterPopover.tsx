@@ -25,11 +25,6 @@ interface ApplicantFilterPopoverProps {
   isLoading?: boolean;
   isAiSearching?: boolean;
   advancedQuery?: string;
-  applicantScoreCounts?: {
-    applied: Array<{ letter: string; count: number }>;
-    matching: Array<{ letter: string; count: number }>;
-  };
-  applicantCounts?: { [stageName: string]: number };
   activeFilterCount: number;
   isFilterPinned?: boolean;
   onTogglePin?: (pinned: boolean) => void;
@@ -48,8 +43,6 @@ export function ApplicantFilterPopover({
   isLoading,
   isAiSearching,
   advancedQuery,
-  applicantScoreCounts,
-  applicantCounts,
   activeFilterCount,
   isFilterPinned = false,
   onTogglePin
@@ -150,8 +143,6 @@ export function ApplicantFilterPopover({
             isLoading={isLoading}
             isAiSearching={isAiSearching}
             advancedQuery={advancedQuery}
-            applicantScoreCounts={applicantScoreCounts}
-            applicantCounts={applicantCounts}
             autoApply={false}
             showActionButtons={true}
             className="border-none shadow-none p-0"

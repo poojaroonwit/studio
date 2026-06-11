@@ -5,6 +5,14 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
+type CountRow = {
+  total: string | number;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -49,15 +57,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           FROM "JobMatch" jm
           WHERE jm."applicant_id" = $1::uuid
         `;
-        const jobMatchesCountResult = await client.query(jobMatchesCountQuery, [id]);
+        const jobMatchesCountResult = await client.query<CountRow>(jobMatchesCountQuery, [id]);
+        const jobMatchesTotal = parseInt(String(jobMatchesCountResult.rows[0].total), 10);
         
         return NextResponse.json({
           data: jobMatchesResult.rows,
           pagination: {
             page,
             limit,
-            total: parseInt(jobMatchesCountResult.rows[0].total),
-            hasMore: offset + limit < parseInt(jobMatchesCountResult.rows[0].total)
+            total: jobMatchesTotal,
+            hasMore: offset + limit < jobMatchesTotal
           }
         }, {
           headers: {
@@ -83,15 +92,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           FROM "Attachment" a
           WHERE a."applicantId" = $1::uuid
         `;
-        const attachmentsCountResult = await client.query(attachmentsCountQuery, [id]);
+        const attachmentsCountResult = await client.query<CountRow>(attachmentsCountQuery, [id]);
+        const attachmentsTotal = parseInt(String(attachmentsCountResult.rows[0].total), 10);
         
         return NextResponse.json({
           data: attachmentsResult.rows,
           pagination: {
             page,
             limit,
-            total: parseInt(attachmentsCountResult.rows[0].total),
-            hasMore: offset + limit < parseInt(attachmentsCountResult.rows[0].total)
+            total: attachmentsTotal,
+            hasMore: offset + limit < attachmentsTotal
           }
         }, {
           headers: {
@@ -118,15 +128,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           FROM "TransitionRecord" t
           WHERE t."applicantId" = $1::uuid
         `;
-        const transitionsCountResult = await client.query(transitionsCountQuery, [id]);
+        const transitionsCountResult = await client.query<CountRow>(transitionsCountQuery, [id]);
+        const transitionsTotal = parseInt(String(transitionsCountResult.rows[0].total), 10);
         
         return NextResponse.json({
           data: transitionsResult.rows,
           pagination: {
             page,
             limit,
-            total: parseInt(transitionsCountResult.rows[0].total),
-            hasMore: offset + limit < parseInt(transitionsCountResult.rows[0].total)
+            total: transitionsTotal,
+            hasMore: offset + limit < transitionsTotal
           }
         }, {
           headers: {
@@ -137,9 +148,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       default:
         return NextResponse.json({ message: 'Invalid type parameter' }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching additional Applicant data:', error);
-    return NextResponse.json({ message: 'Error fetching data', error: error?.message || String(error) }, { status: 500 });
+    return NextResponse.json({ message: 'Error fetching data', error: getErrorMessage(error) }, { status: 500 });
   } finally {
     client.release();
   }

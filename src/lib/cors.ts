@@ -1,138 +1,124 @@
 import { NextRequest } from "next/server";
 
-/**
- * Get allowed CORS origins from environment variables
- * Supports comma-separated list of origins
- * Automatically includes Azure AD domains if Azure AD SSO is configured
- */
+const DEVELOPMENT_CORS_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:8021",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:8021",
+] as const;
+
+const AZURE_AD_CORS_ORIGINS = [
+  "https://login.microsoftonline.com",
+  "https://login.microsoft.com",
+  "https://sts.windows.net",
+  "https://graph.microsoft.com",
+] as const;
+
+const ALWAYS_ALLOWED_WILDCARD_PATTERNS = ["*.qsncc.com"] as const;
+const CORS_DEVELOPMENT_FALLBACK_ORIGIN = "http://localhost:8021";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Allow-Credentials": "true",
+} as const;
+
 function getAllowedOrigins(): string[] {
-  const envOrigins = process.env.CORS_ALLOWED_ORIGINS;
-  const origins: string[] = [];
-  
-  if (envOrigins) {
-    origins.push(...envOrigins.split(',').map(origin => origin.trim()).filter(Boolean));
-  }
-  
-  // Default origins based on environment
-  if (origins.length === 0) {
-    if (process.env.NODE_ENV === 'production') {
-      const nextAuthUrl = process.env.NEXTAUTH_URL;
-      if (nextAuthUrl) {
-        origins.push(nextAuthUrl);
-      }
-    } else {
-      // Development defaults
-      origins.push(
-        'http://localhost:3000',
-        'http://localhost:8021',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:8021'
-      );
-    }
-  }
-  
-  // Azure AD SSO: Automatically allow Azure AD domains for SSO authentication
-  // Note: Azure AD SSO typically uses redirects (not CORS), but we allow these domains
-  // in case any client-side Azure AD API calls are needed
-  const isAzureADConfigured = process.env.AZURE_AD_CLIENT_ID && 
-                               process.env.AZURE_AD_CLIENT_SECRET && 
-                               process.env.AZURE_AD_TENANT_ID;
-  
-  if (isAzureADConfigured) {
-    // Allow Microsoft/Azure AD authentication endpoints
-    const azureADOrigins = [
-      'https://login.microsoftonline.com',
-      'https://login.microsoft.com',
-      'https://sts.windows.net',
-      'https://graph.microsoft.com',
-    ];
-    
-    // Add Azure AD origins if not already present
-    for (const azureOrigin of azureADOrigins) {
-      if (!origins.includes(azureOrigin)) {
-        origins.push(azureOrigin);
-      }
-    }
-  }
-  
-  return origins;
+  const configuredOrigins = getConfiguredCorsOrigins();
+  const origins = configuredOrigins.length > 0 ? configuredOrigins : getDefaultCorsOrigins();
+
+  return isAzureAdConfigured()
+    ? appendMissingOrigins(origins, AZURE_AD_CORS_ORIGINS)
+    : origins;
 }
 
-/**
- * Check if origin matches wildcard pattern like *.qsncc.com
- */
+function getConfiguredCorsOrigins() {
+  return (process.env.CORS_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+}
+
+function getDefaultCorsOrigins() {
+  if (process.env.NODE_ENV === "production") {
+    return process.env.NEXTAUTH_URL ? [process.env.NEXTAUTH_URL] : [];
+  }
+
+  return [...DEVELOPMENT_CORS_ORIGINS];
+}
+
+function isAzureAdConfigured() {
+  return Boolean(
+    process.env.AZURE_AD_CLIENT_ID &&
+    process.env.AZURE_AD_CLIENT_SECRET &&
+    process.env.AZURE_AD_TENANT_ID,
+  );
+}
+
+function appendMissingOrigins(origins: string[], additionalOrigins: readonly string[]) {
+  const originSet = new Set(origins);
+  additionalOrigins.forEach((origin) => originSet.add(origin));
+  return Array.from(originSet);
+}
+
 function matchesWildcardPattern(origin: string, pattern: string): boolean {
-  if (pattern.startsWith('*.')) {
-    const domain = pattern.substring(2); // Remove '*.' prefix
-    try {
-      const originUrl = new URL(origin);
-      const originHost = originUrl.hostname;
-      
-      // Check if origin hostname ends with the domain (e.g., subdomain.qsncc.com ends with qsncc.com)
-      return originHost === domain || originHost.endsWith('.' + domain);
-    } catch {
-      return false;
-    }
+  if (!pattern.startsWith("*.")) {
+    return false;
   }
-  return false;
+
+  const originHost = getOriginHostname(origin);
+  if (!originHost) {
+    return false;
+  }
+
+  const domain = pattern.substring(2);
+  return originHost === domain || originHost.endsWith(`.${domain}`);
 }
 
-/**
- * Validate and return allowed origin for CORS
- * Returns null if origin is not allowed (for use with credentials)
- * Supports wildcard patterns like *.qsncc.com
- */
-export function getAllowedOrigin(req: NextRequest): string | null {
-  const origin = req.headers.get('origin');
-  if (!origin) {
-    // Same-origin request, no CORS header needed
+function getOriginHostname(origin: string) {
+  try {
+    return new URL(origin).hostname;
+  } catch {
     return null;
   }
-  
+}
+
+function matchesAnyWildcardPattern(origin: string, patterns: readonly string[]) {
+  return patterns.some((pattern) => matchesWildcardPattern(origin, pattern));
+}
+
+export function getAllowedOrigin(req: NextRequest): string | null {
+  const origin = req.headers.get("origin");
+  if (!origin) {
+    return null;
+  }
+
   const allowedOrigins = getAllowedOrigins();
-  
-  // Check exact matches first
   if (allowedOrigins.includes(origin)) {
     return origin;
   }
-  
-  // Check wildcard patterns (e.g., *.qsncc.com)
-  for (const pattern of allowedOrigins) {
-    if (pattern.startsWith('*.')) {
-      if (matchesWildcardPattern(origin, pattern)) {
-        return origin; // Return the actual origin, not the pattern
-      }
-    }
-  }
-  
-  // Always allow *.qsncc.com subdomains
-  if (matchesWildcardPattern(origin, '*.qsncc.com')) {
+
+  if (matchesAnyWildcardPattern(origin, allowedOrigins) || matchesAnyWildcardPattern(origin, ALWAYS_ALLOWED_WILDCARD_PATTERNS)) {
     return origin;
   }
-  
+
   return null;
 }
 
-/**
- * Get CORS headers for a request
- * Never uses wildcard when credentials are enabled
- */
 export function handleCors(req: NextRequest): Record<string, string> {
   const allowedOrigin = getAllowedOrigin(req);
-  
-  // If credentials are enabled, we cannot use wildcard
-  // Return null origin if not allowed (browser will reject)
-  const corsOrigin = allowedOrigin || (process.env.NODE_ENV === 'development' ? 'http://localhost:8021' : null);
-  
+  const corsOrigin = allowedOrigin || getDevelopmentCorsFallbackOrigin();
+
   if (!corsOrigin) {
-    // No CORS headers if origin not allowed
     return {};
   }
-  
+
   return {
     "Access-Control-Allow-Origin": corsOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-    "Access-Control-Allow-Credentials": "true",
+    ...CORS_HEADERS,
   };
-} 
+}
+
+function getDevelopmentCorsFallbackOrigin() {
+  return process.env.NODE_ENV === "development" ? CORS_DEVELOPMENT_FALLBACK_ORIGIN : null;
+}

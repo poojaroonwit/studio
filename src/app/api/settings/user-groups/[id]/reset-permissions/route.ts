@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import type { QueryResultRow } from 'pg';
 import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
@@ -7,6 +8,17 @@ import { getDefaultPermissionsForRole } from '@/lib/default-role-permissions';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+type UserGroupResetRow = QueryResultRow & {
+  id: string;
+  name: string;
+  permissions: string[];
+  user_count: number;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 function extractIdFromUrl(request: NextRequest): string | null {
   const match = request.nextUrl.pathname.match(/\/user-groups\/([^/]+)\/reset-permissions/);
@@ -45,7 +57,7 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
 
   try {
-    const groupResult = await client.query(
+    const groupResult = await client.query<UserGroupResetRow>(
       `SELECT ug.id, ug.name, ug.permissions, COUNT(u.id)::int AS user_count
        FROM "UserGroup" ug
        LEFT JOIN "User" u ON ug.id = u."userGroupId"
@@ -94,16 +106,17 @@ export async function POST(request: NextRequest) {
       permissions: defaultPermissions,
       message: `Permissions for "${group.name}" were reset to default.`
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
     console.error(`Failed to reset permissions for user group ${id}:`, error);
     await logAudit(
       'ERROR',
-      `Failed to reset permissions for user group (ID: ${id}). Error: ${error.message}`,
+      `Failed to reset permissions for user group (ID: ${id}). Error: ${errorMessage}`,
       'API:UserGroups:ResetPermissions',
       actingUserId,
       { groupId: id }
     );
-    return NextResponse.json({ message: 'Error resetting role permissions', error: error.message }, { status: 500 });
+    return NextResponse.json({ message: 'Error resetting role permissions', error: errorMessage }, { status: 500 });
   } finally {
     client.release();
   }

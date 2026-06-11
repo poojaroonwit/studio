@@ -1,146 +1,36 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-import { NextRequest } from 'next/server';
-import prisma from '@/lib/prisma';
-import { broadcastApplicantUpdate } from '@/lib/simple-broadcaster';
-import { z } from 'zod';
+import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
-// Type imports removed due to linter errors
+import { fetchApplicantActivityLogs } from './applicant-logs-data';
+import { getApplicantActivityLogsPage } from './applicant-logs-format-utils';
+import {
+  getApplicantLogsAuthFailureResponse,
+  getInvalidApplicantLogsIdResponse,
+  isValidApplicantLogsApplicantId,
+  parseApplicantLogsPagination,
+} from './applicant-logs-request-utils';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
-  if (!session || !session.user) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const userPerms = session.user.modulePermissions || [];
-  const isAdmin = session.user.role === 'Admin';
-  if (!isAdmin && !userPerms.includes('APPLICANTS_ACTIVITIES_VIEW')) {
-    return new Response(JSON.stringify({ message: 'Forbidden: No permission to view activities' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const authFailure = getApplicantLogsAuthFailureResponse(session?.user);
+  if (authFailure) return authFailure;
 
   try {
-    const { searchParams } = new URL(req.url);
-
-    // Parse pagination parameters
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = parseInt(searchParams.get('offset') || '0');
-
-    // Validate Applicant ID format
-    const uuidSchema = z.string().uuid();
-    if (!uuidSchema.safeParse(id).success) {
-      return new Response(JSON.stringify({ message: 'Invalid Applicant ID format' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!isValidApplicantLogsApplicantId(id)) {
+      return getInvalidApplicantLogsIdResponse();
     }
 
-    // Check if Applicant exists
-    const applicant = await prisma.applicant.findUnique({ where: { id: id } });
-    if (!applicant) {
-      return new Response(JSON.stringify({ message: 'Applicant not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const logs = await fetchApplicantActivityLogs(id);
+    if (!logs) {
+      return NextResponse.json({ message: 'Applicant not found' }, { status: 404 });
     }
 
-    // Fetch transition records for the Applicant
-    const transitions = await prisma.transitionRecord.findMany({
-      where: { applicantId: id },
-      orderBy: { date: 'desc' },
-      include: { actingUser: true },
-    });
-
-    // Fetch recruitment stages to map stage IDs to names
-    const recruitmentStages = await prisma.recruitmentStage.findMany({
-      select: { id: true, name: true }
-    });
-
-    // Create a map of stage ID to stage name
-    const stageIdToName = new Map(recruitmentStages.map((stage: { id: string; name: string }) => [stage.id, stage.name]));
-
-    // Fetch resume uploads for the Applicant (attachments with label 'resume')
-    const resumes = await prisma.attachment.findMany({
-      where: { applicantId: id, label: 'resume' },
-      orderBy: { uploadedAt: 'desc' },
-      include: { uploadedBy: true },
-    });
-
-    // Map to activity log format
-    // Show simplified stage change messages without redundant details
-    const transitionsWithPrev = transitions.map((tr: any, idx: number, arr: any[]) => {
-      const prevStage = arr[idx + 1]?.stage;
-      const currentStageName = stageIdToName.get(tr.stage) || tr.stage; // Use stage name or fallback to ID
-      const prevStageName = prevStage ? (stageIdToName.get(prevStage) || prevStage) : null;
-
-      let moveNote = '';
-      if (prevStage && prevStage !== tr.stage) {
-        moveNote = `Moved from ${prevStageName} to ${currentStageName} stage.`;
-      } else {
-        moveNote = `Entered ${currentStageName} stage.`;
-      }
-      // Only include custom notes if they exist
-      if (tr.notes && tr.notes.trim().length > 0) {
-        moveNote = `${moveNote} Note: ${tr.notes.trim()}`;
-      }
-      return {
-        id: tr.id,
-        action: 'Stage changed',
-        user: tr.actingUser?.name || 'System',
-        time: tr.date,
-        note: moveNote,
-        stage: tr.stage,
-      };
-    });
-
-    const logs = [
-      ...transitionsWithPrev,
-      ...resumes.map((r: any) => ({
-        id: r.id,
-        action: 'Resume uploaded',
-        user: r.uploadedBy?.name || 'Unknown',
-        time: r.uploadedAt,
-        note: r.fileName,
-      })),
-    ].sort((a, b) => {
-      const dateA = new Date(a.time);
-      const dateB = new Date(b.time);
-      // Check if dates are valid before calling getTime()
-      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-        return 0; // If either date is invalid, treat as equal
-      }
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    // Apply pagination
-    const paginatedLogs = logs.slice(offset, offset + limit);
-    const hasMore = offset + limit < logs.length;
-
-    return new Response(JSON.stringify({
-      data: paginatedLogs,
-      pagination: {
-        limit,
-        offset,
-        hasMore,
-        total: logs.length
-      }
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(getApplicantActivityLogsPage(logs, parseApplicantLogsPagination(req)));
   } catch (err) {
     console.error(`[GET /api/applicants/${id}/logs] Error:`, err);
-    return new Response(JSON.stringify({ message: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
-} 
+}

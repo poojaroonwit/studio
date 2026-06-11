@@ -11,7 +11,7 @@ import { BlacklistBadge } from './BlacklistBadge';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { StatusBadge } from './applicant-kanban-utils';
-import type { Applicant } from '@/lib/types';
+import type { Applicant, Position } from '@/lib/types';
 
 interface ApplicantsMobileListViewProps {
   applicants: Applicant[];
@@ -21,7 +21,7 @@ interface ApplicantsMobileListViewProps {
   stageNames?: Record<string, string>;
   stageColors?: Record<string, string>;
   baseIndex?: number;
-  allDbPositions?: any[];
+  allDbPositions?: Pick<Position, 'id' | 'title'>[];
 }
 
 export function ApplicantsMobileListView({

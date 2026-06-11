@@ -2,6 +2,7 @@
 // Follows best practices without over-engineering
 
 import { auth } from '@/auth';
+import type { EventPayload } from './realtime-event-types';
 
 // Simple connection store
 const connections = new Map<string, ReadableStreamDefaultController>();
@@ -18,7 +19,7 @@ export type SSEEventType =
 // Simple event interface
 export interface SSEEvent {
   type: SSEEventType;
-  data: any;
+  data: EventPayload;
   timestamp: string;
   targetUserId?: string;
 }
@@ -54,7 +55,7 @@ export function broadcastEvent(event: SSEEvent) {
 }
 
 // Convenience functions
-export function broadcastToUser(userId: string, eventType: SSEEventType, data: any) {
+export function broadcastToUser(userId: string, eventType: SSEEventType, data: EventPayload) {
   broadcastEvent({
     type: eventType,
     data,
@@ -63,7 +64,7 @@ export function broadcastToUser(userId: string, eventType: SSEEventType, data: a
   });
 }
 
-export function broadcastToAll(eventType: SSEEventType, data: any) {
+export function broadcastToAll(eventType: SSEEventType, data: EventPayload) {
   broadcastEvent({
     type: eventType,
     data,

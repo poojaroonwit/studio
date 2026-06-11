@@ -1,215 +1,164 @@
-// Shared SSE Hook - Single connection for all components
-// This prevents multiple SSE connections and reduces event frequency
-
 import { useEffect, useRef, useState, useCallback } from 'react';
-// Use native EventSource directly
+import { parseSseJsonData } from '@/lib/sse-event-utils';
+import {
+  createInitialSharedSseState,
+  createSharedSseEvent,
+  getConnectedSharedSseState,
+  getErroredSharedSseState,
+  getPayloadSharedSseState,
+  getSharedSseReconnectDelay,
+  getTimedOutSharedSseState,
+  type SSEEvent,
+  type SharedSSEState,
+} from './shared-sse-state';
 
-interface SSEEvent {
-  type: string;
-  data: any;
-  timestamp: string;
-}
+export type { SSEEvent } from './shared-sse-state';
 
-interface SharedSSEState {
-  isConnected: boolean;
-  eventCount: number;
-  lastUpdate: string;
-  error: string | null;
-}
-
-// Global SSE connection state
 let globalEventSource: EventSource | null = null;
-let globalState: SharedSSEState = {
-  isConnected: false,
-  eventCount: 0,
-  lastUpdate: 'Never',
-  error: null
-};
+let globalState = createInitialSharedSseState();
 
-// Reconnection management
 let reconnectTimer: NodeJS.Timeout | null = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_DELAY = 30000; // 30 seconds max
-const INITIAL_RECONNECT_DELAY = 3000; // 3 seconds initial
 
-// Global event listeners
 const globalEventListeners = new Set<(event: SSEEvent) => void>();
 const globalStateListeners = new Set<(state: SharedSSEState) => void>();
 
-// Notify all listeners of state changes
 function notifyStateListeners() {
   globalStateListeners.forEach(listener => listener(globalState));
 }
 
-// Notify all listeners of events
 function notifyEventListeners(event: SSEEvent) {
   globalEventListeners.forEach(listener => listener(event));
 }
 
-// Schedule automatic reconnection with exponential backoff
-function scheduleReconnect() {
-  // Clear any existing timer
+function setGlobalState(state: SharedSSEState) {
+  globalState = state;
+  notifyStateListeners();
+}
+
+function closeGlobalEventSource() {
+  if (!globalEventSource) {
+    return;
+  }
+
+  try {
+    globalEventSource.close();
+  } finally {
+    globalEventSource = null;
+  }
+}
+
+function clearReconnectTimer() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+}
 
-  // Calculate delay with exponential backoff
-  const delay = Math.min(
-    INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
-    MAX_RECONNECT_DELAY
-  );
+function scheduleReconnect() {
+  clearReconnectTimer();
 
-  // console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
-
+  const delay = getSharedSseReconnectDelay(reconnectAttempts);
   reconnectTimer = setTimeout(() => {
     reconnectAttempts++;
     initializeGlobalSSE();
   }, delay);
 }
 
-// Initialize global SSE connection
-function initializeGlobalSSE() {
-  // Clear any pending reconnection
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-  }
+function getLastUpdateTime() {
+  return new Date().toLocaleTimeString();
+}
 
+function handleParsedSseData(data: unknown, fallbackType: string) {
+  setGlobalState(getPayloadSharedSseState(globalState, data, getLastUpdateTime()));
+  notifyEventListeners(createSharedSseEvent(data, fallbackType, new Date().toISOString()));
+}
+
+function handleConnectionTimeout() {
+  if (globalEventSource && !globalState.isConnected) {
+    closeGlobalEventSource();
+    setGlobalState(getTimedOutSharedSseState(globalState));
+  }
+}
+
+function initializeGlobalSSE() {
+  clearReconnectTimer();
   if (globalEventSource) {
-    return; // Already initialized
+    return;
   }
 
   try {
     globalEventSource = new EventSource('/api/sse');
-
-    // Set a timeout to prevent hanging connections
-    const connectionTimeout = setTimeout(() => {
-      if (globalEventSource && !globalState.isConnected) {
-        try {
-          globalEventSource.close();
-        } catch (e) {
-        }
-        globalEventSource = null;
-        globalState.isConnected = false;
-        globalState.error = 'Connection timeout';
-        notifyStateListeners();
-      }
-    }, 15000); // 15 second timeout
+    const connectionTimeout = setTimeout(handleConnectionTimeout, 15000);
 
     globalEventSource.onopen = () => {
-      clearTimeout(connectionTimeout); // Clear the timeout since we connected
-      reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-      globalState.isConnected = true;
-      globalState.error = null;
-      globalState.lastUpdate = new Date().toLocaleTimeString();
-      // console.log('SSE connection established');
-      notifyStateListeners();
+      clearTimeout(connectionTimeout);
+      reconnectAttempts = 0;
+      setGlobalState(getConnectedSharedSseState(globalState, getLastUpdateTime()));
     };
 
     globalEventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // Only count meaningful events, not keepalive or connected events
-        if (data.type && !['keepalive', 'connected'].includes(data.type)) {
-          globalState.eventCount++;
-        }
-
-        globalState.lastUpdate = new Date().toLocaleTimeString();
-
-        // Notify event listeners
-        notifyEventListeners({
-          type: data.type || 'message',
-          data,
-          timestamp: new Date().toISOString()
-        });
-
-        // Notify state listeners
-        notifyStateListeners();
-      } catch (error) {
+      const parsed = parseSseJsonData(event.data);
+      if (!parsed.ok) {
+        return;
       }
+
+      handleParsedSseData(parsed.data, 'message');
     };
 
-    // Handle named SSE events (e.g., event: upload_queue_update)
     const handleNamedEvent = (eventName: string) => (event: MessageEvent) => {
-      try {
-        const data = JSON.parse((event as MessageEvent).data as string);
-        // Count only meaningful events
-        if (data.type && !['keepalive', 'connected'].includes(data.type)) {
-          globalState.eventCount++;
-        }
-        globalState.lastUpdate = new Date().toLocaleTimeString();
-        notifyEventListeners({
-          type: eventName,
-          data,
-          timestamp: new Date().toISOString()
-        });
-        notifyStateListeners();
-      } catch (e) {
+      const parsed = parseSseJsonData(event.data);
+      if (!parsed.ok) {
+        return;
       }
+
+      handleParsedSseData(parsed.data, eventName);
     };
 
-    // Register listeners for common named events we emit from the server
     globalEventSource.addEventListener('upload_queue_update', handleNamedEvent('upload_queue_update'));
 
     globalEventSource.addEventListener('keepalive', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        globalState.lastUpdate = new Date().toLocaleTimeString();
-        notifyStateListeners();
-      } catch (error) {
+      const parsed = parseSseJsonData(event.data);
+      if (!parsed.ok) {
+        return;
       }
+
+      setGlobalState(getPayloadSharedSseState(globalState, parsed.data, getLastUpdateTime()));
     });
 
     globalEventSource.addEventListener('connected', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        globalState.lastUpdate = new Date().toLocaleTimeString();
-        notifyStateListeners();
-      } catch (error) {
+      const parsed = parseSseJsonData(event.data);
+      if (!parsed.ok) {
+        return;
       }
+
+      setGlobalState(getPayloadSharedSseState(globalState, parsed.data, getLastUpdateTime()));
     });
 
-    globalEventSource.onerror = (error) => {
-      clearTimeout(connectionTimeout); // Clear the timeout
-      globalState.isConnected = false;
-      globalState.error = 'Connection error - reconnecting...';
-      notifyStateListeners();
-
-      // Close the connection to prevent infinite retry loops
-      try {
-        if (globalEventSource) {
-          globalEventSource.close();
-        }
-      } catch (e) {
-      }
-      globalEventSource = null;
-
-      // Schedule automatic reconnection
+    globalEventSource.onerror = () => {
+      clearTimeout(connectionTimeout);
+      setGlobalState(getErroredSharedSseState(globalState));
+      closeGlobalEventSource();
       scheduleReconnect();
     };
-
   } catch (error) {
-    globalState.error = 'Failed to initialize connection';
-    notifyStateListeners();
+    setGlobalState({
+      ...globalState,
+      error: 'Failed to initialize connection',
+    });
   }
 }
 
-// Cleanup global SSE connection
 function cleanupGlobalSSE() {
-  // Clear any pending reconnection
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-  }
+  clearReconnectTimer();
 
   if (globalEventSource) {
-    try { globalEventSource.close(); } catch { }
-    globalEventSource = null;
-    globalState.isConnected = false;
-    globalState.error = null;
-    notifyStateListeners();
+    closeGlobalEventSource();
+    setGlobalState({
+      ...globalState,
+      isConnected: false,
+      error: null,
+    });
   }
 }
 
@@ -218,12 +167,10 @@ export function useSharedSSE() {
   const eventListenerRef = useRef<(event: SSEEvent) => void>();
   const stateListenerRef = useRef<(state: SharedSSEState) => void>();
 
-  // Initialize global connection on first use
   useEffect(() => {
     initializeGlobalSSE();
   }, []);
 
-  // Subscribe to state changes
   useEffect(() => {
     stateListenerRef.current = (newState: SharedSSEState) => {
       setState(newState);
@@ -238,7 +185,6 @@ export function useSharedSSE() {
     };
   }, []);
 
-  // Subscribe to events
   const subscribeToEvents = useCallback((callback: (event: SSEEvent) => void) => {
     eventListenerRef.current = callback;
     globalEventListeners.add(callback);
@@ -248,7 +194,6 @@ export function useSharedSSE() {
     };
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (eventListenerRef.current) {
@@ -265,5 +210,4 @@ export function useSharedSSE() {
   };
 }
 
-// Export cleanup function for global cleanup
 export { cleanupGlobalSSE };

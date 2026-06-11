@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import {
+  applyProtectedContentVisibility,
+  fetchSystemProtectionEnabled,
+  isMacScreenshotShortcut,
+  isOverlayScreenshotShortcut,
+} from './security-protection-utils';
 
 /**
  * ScreenCaptureProtection
@@ -23,33 +29,11 @@ export function ScreenCaptureProtection() {
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
-    // Fetch the system setting
     async function fetchSetting() {
-// console.log('[ScreenCaptureProtection] Fetching system settings...');
       try {
-        const res = await fetch('/api/settings/system-settings');
-        if (res.ok) {
-          const data = await res.json();
-// console.log('[ScreenCaptureProtection] Settings received:', data);
-
-          // Handle both response formats
-          let settingValue = 'false';
-          if (data.settings && Array.isArray(data.settings)) {
-            const setting = data.settings.find((s: any) => s.key === 'screenCaptureProtectionEnabled');
-            settingValue = setting?.value ?? 'false';
-          } else if (data.hasOwnProperty('screenCaptureProtectionEnabled')) {
-            settingValue = String(data.screenCaptureProtectionEnabled);
-          }
-
-          const enabled = settingValue === 'true';
-// console.log(`[ScreenCaptureProtection] Feature status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-          setProtectionEnabled(enabled);
-        } else {
-          console.error('[ScreenCaptureProtection] Failed to fetch settings:', res.statusText);
-        }
+        setProtectionEnabled(await fetchSystemProtectionEnabled('screenCaptureProtectionEnabled'));
       } catch (e) {
         console.error('[ScreenCaptureProtection] Error fetching settings:', e);
-        // Default to disabled on error
         setProtectionEnabled(false);
       }
     }
@@ -60,13 +44,10 @@ export function ScreenCaptureProtection() {
   useEffect(() => {
     if (!protectionEnabled) return;
 
-    // Handle visibility change - blur content when tab is hidden
     const handleVisibilityChange = () => {
-// console.log(`[ScreenCaptureProtection] Visibility changed: ${document.hidden ? 'HIDDEN (Blurring)' : 'VISIBLE (Unblurring)'}`);
       setIsHidden(document.hidden);
     };
 
-    // Log screenshot attempt
     const logScreenshotAttempt = async () => {
       if (!session?.user) return;
 
@@ -84,33 +65,18 @@ export function ScreenCaptureProtection() {
       }
     };
 
-    // Block PrintScreen key
     const handleKeyDown = (e: KeyboardEvent) => {
-      // PrintScreen key
-      if (e.key === 'PrintScreen') {
-// console.log('[ScreenCaptureProtection] PrintScreen key detected');
-        // e.preventDefault(); // PrintScreen often cannot be prevented
-        // Show a brief overlay or message
+      if (isOverlayScreenshotShortcut(e)) {
         showProtectionOverlay();
         logScreenshotAttempt();
         return false;
       }
-      // Windows Snipping Tool (Win+Shift+S) - Try our best
-      if (e.key === 'S' && e.shiftKey && (e.metaKey || e.getModifierState('OS') || e.getModifierState('Win'))) {
-// console.log('[ScreenCaptureProtection] Snipping Tool shortcut (Win+Shift+S) detected');
-        // e.preventDefault();
-        showProtectionOverlay();
-        logScreenshotAttempt();
-        return false;
-      }
-      // Mac Screenshot shortcuts
-      if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
-// console.log(`[ScreenCaptureProtection] Mac Screenshot shortcut (Cmd+Shift+${e.key}) detected`);
+
+      if (isMacScreenshotShortcut(e)) {
         logScreenshotAttempt();
       }
     };
 
-    // Show protection overlay briefly
     const showProtectionOverlay = () => {
       const overlay = document.getElementById('screen-capture-protection-overlay');
       if (overlay) {
@@ -121,40 +87,26 @@ export function ScreenCaptureProtection() {
       }
     };
 
-    // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [protectionEnabled]);
+  }, [protectionEnabled, session?.user]);
 
-  // Apply blur effect when protection is enabled and page is hidden
   useEffect(() => {
     if (!protectionEnabled) return;
 
     const rootElement = document.getElementById('screen-capture-protected-content');
-    if (rootElement) {
-      if (isHidden) {
-        rootElement.style.filter = 'blur(20px)';
-        rootElement.style.pointerEvents = 'none';
-        rootElement.style.userSelect = 'none';
-      } else {
-        rootElement.style.filter = '';
-        rootElement.style.pointerEvents = '';
-        rootElement.style.userSelect = '';
-      }
-    }
+    applyProtectedContentVisibility(rootElement, isHidden);
   }, [protectionEnabled, isHidden]);
 
   if (!protectionEnabled) return null;
 
   return (
     <>
-      {/* Invisible overlay that activates briefly on screenshot attempt */}
       <div
         id="screen-capture-protection-overlay"
         style={{
@@ -172,7 +124,6 @@ export function ScreenCaptureProtection() {
         className="[&.active]:opacity-100"
       />
 
-      {/* Blur overlay when page loses visibility */}
       {isHidden && (
         <div
           style={{
@@ -196,14 +147,12 @@ export function ScreenCaptureProtection() {
         </div>
       )}
 
-      {/* Watermark Overlay */}
       {protectionEnabled && session?.user && (
         <div
           className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden flex flex-wrap content-start items-start justify-center p-10 opacity-[0.03] select-none"
           aria-hidden="true"
           style={{ mixBlendMode: 'difference' }}
         >
-          {/* Watermark grid */}
           {Array.from({ length: 40 }).map((_, i) => (
             <div key={i} className="transform -rotate-45 p-16 text-xl font-bold whitespace-nowrap">
               {session.user?.email || session.user?.name || 'Protected Content'} <br />
@@ -214,9 +163,7 @@ export function ScreenCaptureProtection() {
         </div>
       )}
 
-      {/* CSS to add extra protection */}
       <style jsx global>{`
-        /* Prevent text selection when protection active and hidden */
         ${isHidden ? `
           body {
             user-select: none !important;

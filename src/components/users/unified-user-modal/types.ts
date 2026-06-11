@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import type { CustomFieldValues } from '@/lib/types';
 
 export const unifiedUserFormSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -21,3 +22,14 @@ export const unifiedUserFormSchema = z.object({
 export type UnifiedUserFormValues = z.infer<typeof unifiedUserFormSchema>;
 
 export type ModalMode = 'create' | 'edit' | 'profile';
+
+export type UnifiedUserCustomFields = CustomFieldValues;
+export type UnifiedUserPreferenceUpdates = Record<string, unknown>;
+
+export interface UnifiedUserAzureAdUser {
+    displayName?: unknown;
+    jobTitle?: unknown;
+    department?: unknown;
+    officeLocation?: unknown;
+    mobilePhone?: unknown;
+}

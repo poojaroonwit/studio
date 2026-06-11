@@ -2,45 +2,27 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, Loader2, Search, Sparkles, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Loader2, Sparkles } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import {
   globalTalentSearchService,
   type GlobalTalentSearchResult,
 } from "@/services/globalTalentSearchService";
-
-interface GlobalTalentSearchProps {
-  buttonLabel?: string;
-  buttonClassName?: string;
-  compact?: boolean;
-  onApplicantSelect?: (result: GlobalTalentSearchResult) => void;
-  onPositionSelect?: (result: GlobalTalentSearchResult) => void;
-}
-
-const APPLICANT_EXAMPLES = [
-  "frontend designer in Bangkok",
-  "react developer with 5 years experience",
-];
-
-const POSITION_EXAMPLES = [
-  "product designer",
-  "open engineering roles",
-];
-
-function formatMeta(parts: Array<string | undefined>) {
-  return parts.filter(Boolean).join(" - ");
-}
+import {
+  GlobalTalentSearchButton,
+  GlobalTalentSearchExamples,
+  GlobalTalentSearchFooter,
+  GlobalTalentSearchResultsList,
+} from "./GlobalTalentSearchParts";
+import type {
+  GlobalTalentSearchProps,
+  GlobalTalentSearchResults,
+} from "./GlobalTalentSearchTypes";
 
 export function GlobalTalentSearch({
   buttonLabel = "Search applicants & positions",
@@ -53,10 +35,7 @@ export function GlobalTalentSearch({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [results, setResults] = React.useState<{
-    applicants: GlobalTalentSearchResult[];
-    positions: GlobalTalentSearchResult[];
-  }>({
+  const [results, setResults] = React.useState<GlobalTalentSearchResults>({
     applicants: [],
     positions: [],
   });
@@ -126,26 +105,12 @@ export function GlobalTalentSearch({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className={cn(
-          "group h-9 gap-2 border-border/60 bg-background/80 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground",
-          compact ? "px-3" : "min-w-[240px] justify-between px-3",
-          buttonClassName,
-        )}
-        onClick={() => setOpen(true)}
-      >
-        <span className="flex items-center gap-2">
-          <Search className="h-4 w-4" />
-          <span className="text-sm">{compact ? "Search" : buttonLabel}</span>
-        </span>
-        {!compact && (
-          <span className="rounded-md border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Ctrl K
-          </span>
-        )}
-      </Button>
+      <GlobalTalentSearchButton
+        buttonLabel={buttonLabel}
+        buttonClassName={buttonClassName}
+        compact={compact}
+        onOpen={() => setOpen(true)}
+      />
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <div className="border-b border-border/60 bg-[linear-gradient(135deg,rgba(59,130,246,0.08),rgba(16,185,129,0.06))] px-4 py-4">
@@ -171,116 +136,20 @@ export function GlobalTalentSearch({
 
         <CommandList className="max-h-[420px]">
           {query.trim().length < 2 ? (
-            <div className="grid gap-3 p-4 text-sm text-muted-foreground md:grid-cols-2">
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                  <Users className="h-4 w-4 text-primary" />
-                  Applicants
-                </div>
-                <div className="space-y-2">
-                  {APPLICANT_EXAMPLES.map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      className="block text-left text-sm transition-colors hover:text-foreground"
-                      onClick={() => setQuery(example)}
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                  <Briefcase className="h-4 w-4 text-primary" />
-                  Positions
-                </div>
-                <div className="space-y-2">
-                  {POSITION_EXAMPLES.map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      className="block text-left text-sm transition-colors hover:text-foreground"
-                      onClick={() => setQuery(example)}
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <GlobalTalentSearchExamples onExampleSelect={setQuery} />
           ) : (
             <>
               <CommandEmpty>No matches found.</CommandEmpty>
-
-              {results.applicants.length > 0 && (
-                <CommandGroup heading="Applicants">
-                  {results.applicants.map((result) => (
-                    <CommandItem
-                      key={`applicant-${result.id}`}
-                      value={`${result.title} ${result.subtitle ?? ""} ${result.meta ?? ""}`}
-                      onSelect={() => handleApplicantSelect(result)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-300">
-                        <Users className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-foreground">{result.title}</div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {formatMeta([result.subtitle, result.meta])}
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="rounded-full">
-                        Applicant
-                      </Badge>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-
-              {results.applicants.length > 0 && results.positions.length > 0 && <CommandSeparator />}
-
-              {results.positions.length > 0 && (
-                <CommandGroup heading="Positions">
-                  {results.positions.map((result) => (
-                    <CommandItem
-                      key={`position-${result.id}`}
-                      value={`${result.title} ${result.subtitle ?? ""} ${result.meta ?? ""}`}
-                      onSelect={() => handlePositionSelect(result)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
-                        <Briefcase className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-foreground">{result.title}</div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {formatMeta([result.subtitle, result.meta])}
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="rounded-full">
-                        Position
-                      </Badge>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
+              <GlobalTalentSearchResultsList
+                results={results}
+                onApplicantSelect={handleApplicantSelect}
+                onPositionSelect={handlePositionSelect}
+              />
             </>
           )}
         </CommandList>
 
-        <div className="flex items-center gap-4 border-t border-border/60 px-4 py-2.5 text-[11px] text-muted-foreground">
-          <span>
-            <kbd className="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[10px]">Up/Down</kbd> navigate
-          </span>
-          <span>
-            <kbd className="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[10px]">Enter</kbd> open
-          </span>
-          <span>
-            <kbd className="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[10px]">Esc</kbd> close
-          </span>
-        </div>
+        <GlobalTalentSearchFooter />
       </CommandDialog>
     </>
   );

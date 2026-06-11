@@ -1,166 +1,108 @@
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { getPool } from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
-import { verifyApiToken } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
-import { handleCors } from '@/lib/cors';
+import { NextRequest } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+import { logAudit } from "@/lib/auditLog";
+import { verifyApiToken } from "@/lib/auth";
+import { handleCors } from "@/lib/cors";
+import { getPool } from "@/lib/db";
+import { readRequestJsonResult } from "@/lib/request-json";
 import {
   SimpleErrorHandler,
-  createUnauthorizedError,
   createForbiddenError,
+  createInternalServerError,
+  createUnauthorizedError,
   createValidationError,
-  createInternalServerError
-} from '@/lib/errors';;
-import { logAudit } from '@/lib/auditLog';
-import { getDefaultMatchCriteria } from '@/lib/systemSettings';
+} from "@/lib/errors";
+import { hasPermission } from "@/lib/permissions";
+import { getDefaultMatchCriteria } from "@/lib/systemSettings";
 
+import {
+  getCreatePositionValues,
+  mapCreatedPositionRow,
+  mapV1PositionRow,
+  type V1PositionRow,
+} from "./positions-v1-route-map";
+import { buildV1PositionListQuery } from "./positions-v1-route-query";
+import {
+  createPositionSchema,
+  formatCreatePositionValidationErrors,
+} from "./positions-v1-route-schema";
 
-const createPositionSchema = z.object({
-  title: z.string().min(1, { message: 'Title is required' }),
-  department: z.string().min(1, { message: 'Department is required' }),
-  description: z.string().optional().nullable(),
-  matchCriteria: z.string().optional().nullable(),
-  isOpen: z.boolean({ required_error: 'isOpen status is required' }),
-  positionLevel: z.string().optional().nullable(),
-  custom_attributes: z.record(z.any()).optional().nullable(),
-});
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const INSERT_POSITION_QUERY = `
+  INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+  RETURNING *;
+`;
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function verifyBearerUser(req: NextRequest) {
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.split(" ")[1];
+
+  return token ? verifyApiToken(token) : null;
+}
 
 export async function GET(req: NextRequest) {
-  // Bearer token authentication for API clients
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
+  const user = await verifyBearerUser(req);
   if (!user) {
-    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError("Authentication required"));
   }
 
   try {
-    const { searchParams } = new URL(req.url);
-    const titleFilter = searchParams.get('title');
-    const departmentFilter = searchParams.get('department');
-    const isOpenFilter = searchParams.get('isOpen');
-    const positionLevelFilter = searchParams.get('positionLevel');
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-
-    let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
-    let countQuery = 'SELECT COUNT(*) FROM "Position" p';
-    const conditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (titleFilter) {
-      conditions.push(`p.title ILIKE $${paramIndex++}`);
-      queryParams.push(`%${titleFilter}%`);
-    }
-    if (departmentFilter) {
-      conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
-      queryParams.push(departmentFilter.split(',').map(d => d.trim()));
-    }
-    if (isOpenFilter === 'true') {
-      conditions.push('p."isOpen" = TRUE');
-    } else if (isOpenFilter === 'false') {
-      conditions.push('p."isOpen" = FALSE');
-    }
-    if (positionLevelFilter) {
-      conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
-      queryParams.push(`%${positionLevelFilter}%`);
-    }
-
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-      countQuery += ' WHERE ' + conditions.join(' AND ');
-    }
-    query += ' ORDER BY p."createdAt" DESC';
-    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    queryParams.push(limit, offset);
-
-    const result = await getPool().query(query, queryParams);
-    const countResult = await getPool().query(countQuery, queryParams.slice(0, paramIndex - 1));
+    const listQuery = buildV1PositionListQuery(new URL(req.url).searchParams);
+    const result = await getPool().query<V1PositionRow>(listQuery.query, listQuery.queryParams);
+    const countResult = await getPool().query<{ count: string }>(listQuery.countQuery, listQuery.countParams);
     const total = parseInt(countResult.rows[0].count, 10);
-
-    const positions = result.rows.map((row: any) => ({
-      ...row,
-      custom_attributes: row.customAttributes || {},
-      recruiter: row.recruiterId ? {
-        id: row.recruiterId,
-        name: row.recruiterName,
-        email: row.recruiterEmail
-      } : null
-    }));
+    const positions = result.rows.map(mapV1PositionRow);
 
     return SimpleErrorHandler.createSuccessResponse(req, { data: positions, total }, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching positions: ${errorMessage}`));
   }
 }
 
 export async function POST(req: NextRequest) {
-  // Bearer token authentication for API clients
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user || !hasPermission(user, 'POSITIONS_CREATE')) {
-    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
+  const user = await verifyBearerUser(req);
+  if (!user || !hasPermission(user, "POSITIONS_CREATE")) {
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError("Insufficient permissions to create positions"));
   }
 
-  // Get default match criteria from system settings
-  const defaultMatchCriteria = await getDefaultMatchCriteria();
-
-  let body;
-  try {
-    body = await req.json();
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+  const bodyResult = await readRequestJsonResult(req);
+  if (!bodyResult.ok) {
+    const errorMessage = getErrorMessage(bodyResult.error);
     return SimpleErrorHandler.handleApiError(req, createValidationError(`Error parsing request body: ${errorMessage}`));
   }
+  const body = bodyResult.value;
 
   const validationResult = createPositionSchema.safeParse(body);
   if (!validationResult.success) {
-    const fieldErrors = validationResult.error.flatten().fieldErrors;
-    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+    const errorMsg = formatCreatePositionValidationErrors(validationResult.error);
     return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
   const validatedData = validationResult.data;
 
   try {
+    const defaultMatchCriteria = await getDefaultMatchCriteria();
     const newPositionId = uuidv4();
-    const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-      RETURNING *;
-    `;
-    const values = [
-      newPositionId,
-      validatedData.title,
-      validatedData.department,
-      validatedData.description || null,
-      (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? validatedData.matchCriteria : defaultMatchCriteria,
-      validatedData.isOpen,
-      validatedData.positionLevel || null,
-      validatedData.custom_attributes || {},
-    ];
-    const result = await getPool().query(insertQuery, values);
-    const newPosition = {
-      ...result.rows[0],
-      custom_attributes: result.rows[0].customAttributes || {},
-    };
+    const values = getCreatePositionValues(newPositionId, validatedData, defaultMatchCriteria);
+    const result = await getPool().query(INSERT_POSITION_QUERY, values);
+    const newPosition = mapCreatedPositionRow(result.rows[0]);
 
-
-
-    const actingUserName = (user.name || user.email || user.id || 'System') as string;
-    await logAudit('AUDIT', `Position '${validatedData.title}' created by ${actingUserName}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
+    const actingUserName = user.name || user.email || user.id || "System";
+    await logAudit("AUDIT", `Position '${validatedData.title}' created by ${actingUserName}.`, "API:V1:Positions:Create", user.id, { positionId: newPositionId, ...validatedData });
     return SimpleErrorHandler.createSuccessResponse(req, newPosition, 201);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
-    await logAudit('ERROR', `Failed to create position by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Positions:Create', user?.id, { error: errorMessage, ...body });
+    const errorMessage = getErrorMessage(error);
+    const actingUserName = user ? (user.name || user.email || user.id || "System") : "Unknown";
+    await logAudit("ERROR", `Failed to create position by ${actingUserName}. Error: ${errorMessage}`, "API:V1:Positions:Create", user?.id, { error: errorMessage, body });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating position: ${errorMessage}`));
   }
 }
@@ -168,4 +110,4 @@ export async function POST(req: NextRequest) {
 export async function OPTIONS(request: NextRequest) {
   const headers = handleCors(request);
   return new Response(null, { status: 200, headers });
-} 
+}

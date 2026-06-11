@@ -10,7 +10,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ExclamationTriangleIcon as AlertTriangle, UsersIcon as Users, BuildingOffice2Icon as Building2, InformationCircleIcon as Info, ExclamationCircleIcon as AlertCircle } from '@heroicons/react/24/outline';
+import { ExclamationTriangleIcon as AlertTriangle, InformationCircleIcon as Info } from '@heroicons/react/24/outline';
+import {
+  parseHeadcountWarningStatus,
+  shouldKeepHeadcountWarningOpen,
+} from './headcount-warning-modal-utils';
 
 interface HeadcountWarningModalProps {
   isOpen: boolean;
@@ -18,7 +22,6 @@ interface HeadcountWarningModalProps {
   applicantName: string;
   positionTitle?: string;
   errorMessage: string;
-  applicant?: any; // Add applicant prop for position ID access
 }
 
 export function HeadcountWarningModal({
@@ -28,59 +31,29 @@ export function HeadcountWarningModal({
   positionTitle,
   errorMessage
 }: HeadcountWarningModalProps) {
-  // Add debugging to track modal state changes
-  React.useEffect(() => {
-    // console.log('HeadcountWarningModal - isOpen changed:', isOpen);
-    if (isOpen) {
-      // console.log('HeadcountWarningModal - Modal opened');
-    } else {
-      // console.log('HeadcountWarningModal - Modal closed');
-    }
-  }, [isOpen]);
-
-  // Prevent modal from closing automatically - add a ref to track if modal should stay open
   const shouldStayOpenRef = React.useRef(false);
 
   React.useEffect(() => {
     if (isOpen) {
       shouldStayOpenRef.current = true;
-      // console.log('HeadcountWarningModal - Setting shouldStayOpen to true');
     }
   }, [isOpen]);
 
-  // Parse headcount status from error message
-  const headcountMatch = errorMessage.match(/\(Total: (\d+), Vacant: (\d+), Filled: (\d+)\)/);
-  const headcountStatus = headcountMatch ? {
-    total: parseInt(headcountMatch[1]),
-    vacant: parseInt(headcountMatch[2]),
-    filled: parseInt(headcountMatch[3])
-  } : null;
-
+  const headcountStatus = parseHeadcountWarningStatus(errorMessage);
   const isNoPosition = !positionTitle;
 
-  // Prevent automatic closing by handling onOpenChange properly
   const handleOpenChange = (open: boolean) => {
-    // console.log('HeadcountWarningModal - handleOpenChange called with:', open);
-    // console.log('HeadcountWarningModal - shouldStayOpenRef.current:', shouldStayOpenRef.current);
-
-    // Only allow closing if the user explicitly wants to close
-    // Prevent any automatic closing behavior
-    if (!open && shouldStayOpenRef.current) {
-      // console.log('HeadcountWarningModal - Attempting to close modal, but shouldStayOpen is true - preventing close');
-      // Don't call onClose() - prevent the modal from closing
+    if (shouldKeepHeadcountWarningOpen(open, shouldStayOpenRef.current)) {
       return;
     }
 
     if (!open) {
-      // console.log('HeadcountWarningModal - User requested to close modal');
       shouldStayOpenRef.current = false;
       onClose();
     }
   };
 
-  // Prevent any automatic closing behavior
   const handleClose = () => {
-    // console.log('HeadcountWarningModal - handleClose called');
     shouldStayOpenRef.current = false;
     onClose();
   };
@@ -94,19 +67,15 @@ export function HeadcountWarningModal({
       <DialogContent
         className="sm:max-w-md"
         onEscapeKeyDown={(e) => {
-          // console.log('HeadcountWarningModal - Escape key pressed, preventing default');
           e.preventDefault();
         }}
         onOpenAutoFocus={(e) => {
-          // console.log('HeadcountWarningModal - Auto-focus event, preventing default');
           e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          // console.log('HeadcountWarningModal - Pointer down outside, preventing default');
           e.preventDefault();
         }}
         onInteractOutside={(e) => {
-          // console.log('HeadcountWarningModal - Interact outside, preventing default');
           e.preventDefault();
         }}
       >
@@ -178,9 +147,9 @@ export function HeadcountWarningModal({
               <div>
                 <p className="text-sm font-medium text-amber-800">What You Can Do</p>
                 <ul className="text-sm text-amber-700 mt-2 space-y-1">
-                  <li>• Add more headcounts to this position</li>
-                  <li>• Assign the Applicant to a different position with available headcounts</li>
-                  <li>• Wait for existing headcounts to become available</li>
+                  <li>- Add more headcounts to this position</li>
+                  <li>- Assign the Applicant to a different position with available headcounts</li>
+                  <li>- Wait for existing headcounts to become available</li>
                 </ul>
               </div>
             </div>

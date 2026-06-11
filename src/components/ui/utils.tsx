@@ -1,8 +1,8 @@
 import * as React from "react";
+import { logger } from "@/lib/logger";
 
 export function logIfInvalidSingleChild(child: React.ReactNode, triggerName: string) {
   if (!React.isValidElement(child)) {
-    // eslint-disable-next-line no-console
-    console.error(`[GlobalCheck] Invalid child for ${triggerName}:`, child);
+    logger.error(`[GlobalCheck] Invalid child for ${triggerName}:`, child);
   }
 } 

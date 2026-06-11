@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type KeyboardEvent } from 'react';
 import { X, Bell, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { formatDistanceToNow } from 'date-fns';
+import {
+  formatNotificationBadgeCount,
+  formatNotificationRelativeTime,
+  getLatestUnreadNotification,
+  isNotificationActivationKey,
+  type NotificationDisplayItem,
+} from './notification-utils';
 
 interface FloatingNotificationProps {
   onNavigate?: () => void;
@@ -14,11 +20,11 @@ interface FloatingNotificationProps {
 export function FloatingNotification({ onNavigate }: FloatingNotificationProps) {
   const { notifications, unreadCount } = useNotifications();
   const [isVisible, setIsVisible] = useState(false);
-  const [latestNotification, setLatestNotification] = useState<any>(null);
+  const [latestNotification, setLatestNotification] = useState<NotificationDisplayItem | null>(null);
 
   useEffect(() => {
     if (notifications.length > 0 && unreadCount > 0) {
-      const latest = notifications.find(n => !n.isRead);
+      const latest = getLatestUnreadNotification(notifications);
       if (latest && latest !== latestNotification) {
         setLatestNotification(latest);
         setIsVisible(true);
@@ -46,6 +52,13 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
     setIsVisible(false);
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (isNotificationActivationKey(event.key)) {
+      event.preventDefault();
+      event.currentTarget.click();
+    }
+  };
+
   if (!isVisible || !latestNotification) {
     return null;
   }
@@ -59,7 +72,7 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
             <Bell className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-foreground">New Notification</span>
             <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center unread-notification-pulse">
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {formatNotificationBadgeCount(unreadCount)}
             </Badge>
           </div>
           <Button
@@ -77,7 +90,10 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
         <div 
           className="cursor-pointer group"
           onClick={handleClick}
-         role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
+          role="button"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+        >
           <h4 className="text-sm font-medium text-foreground mb-1 group-hover:text-primary transition-colors">
             {latestNotification.title}
           </h4>
@@ -88,7 +104,7 @@ export function FloatingNotification({ onNavigate }: FloatingNotificationProps) 
           {/* Footer */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(latestNotification.createdAt), { addSuffix: true })}
+              {formatNotificationRelativeTime(latestNotification.createdAt)}
             </span>
             <div className="flex items-center gap-1 text-xs text-primary group-hover:gap-2 transition-all">
               <span>View</span>

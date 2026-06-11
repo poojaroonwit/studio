@@ -1,9 +1,48 @@
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from './networkUtils';
+import { getJsonArray, isJsonObject, readJsonObject } from './response-json';
 
 interface ToastFunctions {
   success?: (message: string) => void;
   error?: (message: string) => void;
+}
+
+interface BulkStatusUpdatePayload {
+  action: 'change_status';
+  applicantIds: string[];
+  newStatus: string;
+  transitionNotes?: string;
+}
+
+interface BulkStatusUpdateRejectedApplicant {
+  message?: string;
+}
+
+interface BulkStatusUpdateResult {
+  message?: string;
+  updatedCount?: number;
+  rejectedCount?: number;
+  rejectedApplicants?: BulkStatusUpdateRejectedApplicant[];
+  [key: string]: unknown;
+}
+
+function normalizeBulkStatusUpdateResult(value: unknown): BulkStatusUpdateResult {
+  if (!isJsonObject(value)) {
+    return {};
+  }
+
+  const rejectedApplicants = getJsonArray(value, 'rejectedApplicants')
+    ?.filter(isJsonObject)
+    .map((applicant) => ({
+      message: typeof applicant.message === 'string' ? applicant.message : undefined,
+    }));
+
+  return {
+    message: typeof value.message === 'string' ? value.message : undefined,
+    updatedCount: typeof value.updatedCount === 'number' ? value.updatedCount : undefined,
+    rejectedCount: typeof value.rejectedCount === 'number' ? value.rejectedCount : undefined,
+    rejectedApplicants,
+  };
 }
 
 export async function updateApplicantStatusWithNotes(applicantId: string, status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
@@ -13,7 +52,7 @@ export async function updateApplicantStatusWithNotes(applicantId: string, status
 
 export async function updateApplicantsStatusBulk(applicantIds: string[], status: string, notes?: string, suppressToast?: boolean, toastFunctions?: ToastFunctions) {
   try {
-    const payload: any = {
+    const payload: BulkStatusUpdatePayload = {
       action: 'change_status',
       applicantIds,
       newStatus: status,
@@ -28,7 +67,7 @@ export async function updateApplicantsStatusBulk(applicantIds: string[], status:
       body: JSON.stringify(payload),
     });
     
-    const result = await response.json();
+    const result = normalizeBulkStatusUpdateResult(await readJsonObject(response));
     console.log('Bulk action response:', result);
     
     if (!response.ok) {
@@ -47,7 +86,9 @@ export async function updateApplicantsStatusBulk(applicantIds: string[], status:
     }
     
     if (!suppressToast) {
-      const message = `${result.updatedCount || applicantIds.length} Applicant(s) updated. ${result.rejectedCount > 0 ? `${result.rejectedCount} failed.` : ''}`;
+      const updatedCount = result.updatedCount ?? applicantIds.length;
+      const rejectedCount = result.rejectedCount ?? 0;
+      const message = `${updatedCount} Applicant(s) updated. ${rejectedCount > 0 ? `${rejectedCount} failed.` : ''}`;
       if (toastFunctions?.success) {
         toastFunctions.success(message);
       } else {
@@ -55,7 +96,7 @@ export async function updateApplicantsStatusBulk(applicantIds: string[], status:
       }
     }
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in updateApplicantsStatusBulk:', error);
     if (!suppressToast) {
       const message = getErrorMessage(error);

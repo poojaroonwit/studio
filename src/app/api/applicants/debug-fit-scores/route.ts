@@ -6,6 +6,14 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+type CountRow = {
+  total: string | number;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -21,12 +29,12 @@ export async function GET(request: NextRequest) {
     try {
       // Check total Applicants
       const totalApplicantsQuery = 'SELECT COUNT(*) as total FROM "Applicant"';
-      const totalResult = await client.query(totalApplicantsQuery);
+      const totalResult = await client.query<CountRow>(totalApplicantsQuery);
       const totalApplicants = totalResult.rows[0].total;
       
       // Check Applicants with fit scores
       const fitScoreQuery = 'SELECT COUNT(*) as total FROM "Applicant" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0';
-      const fitScoreResult = await client.query(fitScoreQuery);
+      const fitScoreResult = await client.query<CountRow>(fitScoreQuery);
       const applicantsWithFitScores = fitScoreResult.rows[0].total;
       
       // Get sample Applicants with fit scores
@@ -35,7 +43,7 @@ export async function GET(request: NextRequest) {
       
       // Check JobMatch table
       const jobMatchQuery = 'SELECT COUNT(*) as total FROM "JobMatch" WHERE "fitScore" IS NOT NULL AND "fitScore" > 0';
-      const jobMatchResult = await client.query(jobMatchQuery);
+      const jobMatchResult = await client.query<CountRow>(jobMatchQuery);
       const jobMatchesWithFitScores = jobMatchResult.rows[0].total;
       
       // Get sample job matches
@@ -54,11 +62,11 @@ export async function GET(request: NextRequest) {
       client.release();
     }
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('Debug fit scores API error:', error);
     return NextResponse.json({ 
       message: 'Error fetching debug data', 
-      error: error.message
+      error: getErrorMessage(error)
     }, { status: 500 });
   }
 }

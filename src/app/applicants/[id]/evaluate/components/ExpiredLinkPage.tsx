@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, Home, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { getJsonErrorMessage, getJsonString, readJsonObject } from '../../../../../lib/response-json';
 
 interface ExpiredLinkPageProps {
   applicantId: string;
@@ -73,17 +74,16 @@ export function ExpiredLinkPage({
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonObject(response);
         toast.success('Evaluation link reactivated successfully');
-        // Reload the page with the new token
-        if (data.token) {
-          window.location.href = `/applicants/${applicantId}/evaluate?token=${data.token}`;
+        const token = getJsonString(data, 'token');
+        if (token) {
+          window.location.href = `/applicants/${applicantId}/evaluate?token=${token}`;
         } else {
           window.location.reload();
         }
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to reactivate link');
+        toast.error(getJsonErrorMessage(await readJsonObject(response), 'Failed to reactivate link'));
       }
     } catch (error) {
       console.error('Error reactivating link:', error);

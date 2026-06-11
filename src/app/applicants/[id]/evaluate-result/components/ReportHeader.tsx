@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Camera, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Applicant, Position } from '@/lib/types';
-import type { AveragedEvaluationData } from '../types';
+import type { AveragedEvaluationData, EvaluationRecord } from '../types';
 
 interface ReportHeaderProps {
   applicant: Applicant;
@@ -16,7 +16,7 @@ interface ReportHeaderProps {
   organizationName: string | null;
   appLogoUrl: string | null;
   averagedEvaluationData: AveragedEvaluationData | null;
-  allEvaluations: any[];
+  allEvaluations: EvaluationRecord[];
   canEditApplicantBasic: () => boolean;
   avatarUploading: boolean;
   avatarInputRef: React.RefObject<HTMLInputElement>;

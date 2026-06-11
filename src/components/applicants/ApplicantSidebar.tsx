@@ -2,22 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { ChatBubbleLeftRightIcon as MessageSquare, ArrowUpTrayIcon as UploadCloud, DocumentCheckIcon as FileCheck } from '@heroicons/react/24/outline';
 import ApplicantCommentsSection from './ApplicantCommentsSection';
 import ApplicantResumesSection from './ApplicantResumesSection';
-import ApplicantEvaluationSection from './ApplicantEvaluationSection';
 import type { Applicant } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { canViewEvaluationLinks } from '@/lib/permissions';
+import { getJsonString, readJsonObject } from '@/lib/response-json';
+import type { ApplicantAttachment } from './applicant-attachment-utils';
+import type { ApplicantCommentItem } from './applicant-comments-utils';
 
 
 import { EvaluateReportSection } from './evaluate-report/EvaluateReportSection';
 
 interface ApplicantSidebarProps {
   applicant: Applicant;
-  comments: any[];
-  resumes: any[];
+  comments: ApplicantCommentItem[];
+  resumes: ApplicantAttachment[];
   isEditing: boolean;
   onRefresh: () => void;
-  calculateTotalExperienceDuration: (experience: any[]) => string;
-  calculateAverageDurationPerCompany: (experience: any[]) => string;
 }
 
 export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
@@ -26,8 +26,6 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   resumes,
   isEditing,
   onRefresh,
-  calculateTotalExperienceDuration,
-  calculateAverageDurationPerCompany
 }) => {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<string>('comments');
@@ -57,40 +55,16 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
         credentials: 'include'
       });
       if (response.ok) {
-        const data = await response.json();
-        // Verify we have a valid link with url and expiresAt
-        setHasEvaluationLink(!!(data && data.url && data.expiresAt));
+        const data = await readJsonObject(response);
+        setHasEvaluationLink(Boolean(getJsonString(data, 'url') && getJsonString(data, 'expiresAt')));
       } else {
         setHasEvaluationLink(false);
       }
-    } catch (error) {
+    } catch {
       setHasEvaluationLink(false);
     } finally {
       setCheckingLink(false);
     }
-  };
-
-  const getExperience = (applicant: Applicant) => {
-    if (!applicant) return [];
-    if (Array.isArray(applicant.experienceData) && applicant.experienceData.length > 0) {
-      return applicant.experienceData;
-    }
-    const parsedData = applicant.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      if ('applicant_info' in parsedData && parsedData.applicant_info && typeof parsedData.applicant_info === 'object') {
-        const experience = (parsedData.applicant_info as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          return experience;
-        }
-      }
-      if ('experience' in parsedData) {
-        const experience = (parsedData as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          return experience;
-        }
-      }
-    }
-    return [];
   };
 
   const tabCount = hasEvaluationLink ? 3 : 2;

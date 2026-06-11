@@ -22,21 +22,25 @@ import {
   CodeBracketIcon as Code2,
   ListBulletIcon as ListOrdered
 } from "@heroicons/react/24/outline";
+import type { ElementType } from "react";
+import type { PlatformModuleId } from "@/lib/types";
+
+export type SidebarNavIcon = ElementType<{ className?: string }>;
 
 export interface SidebarNavItem {
   label: string;
-  icon: any;
+  icon: SidebarNavIcon;
   href: string;
   adminOnly?: boolean;
   badge?: string;
   description?: string;
   section?: string;
-  permissionId?: string;
+  permissionId?: PlatformModuleId;
 }
 
 export interface SidebarNavGroup {
   label: string;
-  icon: any; // Added for primary sidebar
+  icon: SidebarNavIcon;
   items: SidebarNavItem[];
 }
 

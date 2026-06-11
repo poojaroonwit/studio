@@ -55,9 +55,9 @@ export function PositionsMobileListView({
           {/* Position Details */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="truncate">{grade}</span>
-            <span>•</span>
+            <span>/</span>
             <span className="truncate">{position.department}</span>
-            <span>•</span>
+            <span>/</span>
             <span className="truncate">{positionType}</span>
           </div>
         </div>

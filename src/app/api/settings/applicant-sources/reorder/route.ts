@@ -8,9 +8,14 @@ import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 
 import { auth } from '@/auth';
+import { readRequestJsonResult } from '@/lib/request-json';
 const reorderApplicantSourcesSchema = z.object({
   sourceIds: z.array(z.string().uuid()),
 });
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * @openapi
@@ -54,8 +59,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { sourceIds } = reorderApplicantSourcesSchema.parse(body);
+    const bodyResult = await readRequestJsonResult(request);
+    const { sourceIds } = reorderApplicantSourcesSchema.parse(bodyResult.ok ? bodyResult.value : undefined);
 
     if (sourceIds.length === 0) {
       return NextResponse.json({ message: "No source IDs provided" }, { status: 400 });
@@ -72,12 +77,13 @@ export async function POST(request: NextRequest) {
     await logAudit('INFO', `Reordered ${sourceIds.length} Applicant sources`, 'API:ApplicantSources:Reorder', session.user.id);
     
     return NextResponse.json({ message: "Applicant sources reordered successfully" }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to reorder Applicant sources:", error);
-    if (error.name === 'ZodError') {
+    if (error instanceof z.ZodError) {
       return NextResponse.json({ message: "Validation error", errors: error.errors }, { status: 400 });
     }
-    await logAudit('ERROR', `Failed to reorder Applicant sources. Error: ${error.message}`, 'API:ApplicantSources:Reorder', session.user.id);
-    return NextResponse.json({ message: "Error reordering Applicant sources", error: error.message }, { status: 500 });
+    const errorMessage = getErrorMessage(error);
+    await logAudit('ERROR', `Failed to reorder Applicant sources. Error: ${errorMessage}`, 'API:ApplicantSources:Reorder', session.user.id);
+    return NextResponse.json({ message: "Error reordering Applicant sources", error: errorMessage }, { status: 500 });
   }
 }

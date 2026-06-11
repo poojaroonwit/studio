@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
-import { autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
-
-
 import { auth } from '@/auth';
-export const dynamic = 'force-dynamic';
+import { readRequestJsonResult } from '@/lib/request-json';
+import {
+  canCreateHeadcountData,
+  canViewHeadcountData,
+  runHeadcountCreationEffects,
+} from './headcount-route-utils';
+import {
+  buildHeadcountCreateData,
+  getCreateHeadcountValidationError,
+  headcountWithRelationsInclude,
+} from './headcount-route-data';
 
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -19,10 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has permission to view headcount data
-    // Users should be able to view headcount if they can view positions or Applicants
-    if (!hasPermission(session.user, 'POSITIONS_VIEW') &&
-      !hasPermission(session.user, 'applicantS_VIEW')) {
+    if (!canViewHeadcountData(session.user)) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
     }
 
@@ -32,34 +36,9 @@ export async function GET(request: NextRequest) {
 
     const headcounts = await prisma.headcount.findMany({
       where: {
-        positionId: positionId,
+        positionId,
       },
-      include: {
-        position: {
-          select: {
-            id: true,
-            title: true,
-            department: true,
-          },
-        },
-        applicant: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-        attachments: {
-          select: {
-            id: true,
-            fileName: true,
-            label: true,
-            filePath: true,
-            uploadedAt: true,
-          },
-        },
-      },
+      include: headcountWithRelationsInclude,
       orderBy: {
         createdAt: 'desc',
       },
@@ -83,30 +62,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has permission to create headcount data
-    // Users should be able to create headcount if they can manage positions
-    if (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC')) {
+    if (!canCreateHeadcountData(session.user)) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to create headcount data' }, { status: 403 });
     }
 
-    body = await request.json();
+    const bodyResult = await readRequestJsonResult(request);
+    if (!bodyResult.ok) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    body = bodyResult.value as CreateHeadcountRequest;
 
     if (!body) {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
 
-    const { positionId, type, status = 'vacant', applicantId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
-
-    if (!positionId || !type) {
-      return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });
+    const validationError = getCreateHeadcountValidationError(body);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    // Validate that if status is 'filled', a applicantId must be provided
-    if (status === 'filled' && !applicantId) {
-      return NextResponse.json({ error: 'Applicant ID is required when status is "filled"' }, { status: 400 });
-    }
-
-    // Verify position exists
+    const { positionId, applicantId } = body;
     const position = await prisma.position.findUnique({
       where: { id: positionId },
     });
@@ -127,103 +103,11 @@ export async function POST(request: NextRequest) {
     }
 
     const headcount = await prisma.headcount.create({
-      data: {
-        positionId,
-        type,
-        status,
-        applicantId: applicantId || null,
-        onboardingDate: onboardingDate ? new Date(onboardingDate) : null,
-        requestDate: requestDate ? new Date(requestDate) : null,
-        notes: notes || null,
-        memoId: memoId || null,
-        employeeId: employeeId || null,
-        customFields: body.customFields || {},
-      },
-      include: {
-        position: {
-          select: {
-            id: true,
-            title: true,
-            department: true,
-          },
-        },
-        applicant: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-        attachments: {
-          select: {
-            id: true,
-            fileName: true,
-            label: true,
-            filePath: true,
-            uploadedAt: true,
-          },
-        },
-      },
+      data: buildHeadcountCreateData(body),
+      include: headcountWithRelationsInclude,
     });
 
-
-
-    // Check if position should be auto-opened (if it was closed and new headcount was added)
-    let autoOpenResult = null;
-    try {
-      autoOpenResult = await autoOpenPositionIfNewHeadcountAdded(
-        positionId,
-        session.user.id,
-        session.user.name || session.user.email || 'System'
-      );
-    } catch (autoOpenError) {
-      console.error('Error auto-opening position:', autoOpenError);
-      // Don't fail the headcount creation if auto-open fails
-    }
-
-    // Check if all headcounts are now filled and auto-close position if needed
-    let autoCloseResult = null;
-    try {
-      autoCloseResult = await autoClosePositionIfHeadcountFilled(
-        positionId,
-        session.user.id,
-        session.user.name || session.user.email || 'System'
-      );
-    } catch (autoCloseError) {
-      console.error('Error auto-closing position:', autoCloseError);
-      // Don't fail the headcount creation if auto-close fails
-    }
-
-    // Broadcast real-time updates for headcount changes
-    try {
-      const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-
-      // Broadcast position list update (includes headcount changes)
-      // console.log('[HeadcountAPI] Broadcasting position list update after headcount creation');
-      broadcastPositionListUpdated();
-
-      // Broadcast updated statistics
-      const statsQuery = `
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-        FROM "Position"
-      `;
-      const { getPool } = await import('@/lib/db');
-      const statsResult = await getPool().query(statsQuery);
-      const stats = statsResult.rows[0];
-      const statistics = {
-        total: parseInt(stats.total, 10),
-        open: parseInt(stats.open, 10),
-        closed: parseInt(stats.closed, 10)
-      };
-      broadcastPositionStatisticsUpdated(statistics);
-    } catch (broadcastError) {
-      console.error('Failed to broadcast real-time updates:', broadcastError);
-      // Don't fail the request if broadcasting fails
-    }
+    const { autoCloseResult } = await runHeadcountCreationEffects(positionId, session.user);
 
     return NextResponse.json({
       headcount,

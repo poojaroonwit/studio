@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
 
 export const dynamic = 'force-dynamic';
+
+type ManifestSettingRow = QueryResultRow & {
+  key: string;
+  value: string | null;
+};
 
 // Public endpoint: PWA manifest must be readable before authentication.
 export async function GET() {
@@ -11,7 +17,7 @@ export async function GET() {
       `SELECT key, value FROM "SystemSetting" WHERE key IN ('pwaEnabled', 'pwaName', 'pwaShortName', 'pwaDescription', 'pwaThemeColor', 'pwaBackgroundColor', 'pwaAppleMobileWebAppTitle', 'pwaAppleMobileWebAppStatusBarStyle')`
     );
 
-    const settings = Object.fromEntries(result.rows.map((row: any) => [row.key, row.value]));
+    const settings = Object.fromEntries(result.rows.map((row: ManifestSettingRow) => [row.key, row.value]));
 
     // Only return manifest if PWA is enabled
     if (settings.pwaEnabled !== 'true') {

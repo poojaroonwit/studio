@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowUpTrayIcon as UploadCloud, ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import { useToast } from '@/hooks/use-toast';
 import type { Applicant } from '@/lib/types';
+import { getJsonObject, readJsonObject } from '@/lib/response-json';
 
 interface UploadResumeModalProps {
   isOpen: boolean;
@@ -68,11 +69,12 @@ const UploadResumeModal = ({ isOpen, onOpenChange, applicant, onUploadSuccess }:
       if (!response.ok) {
         throw new Error('Upload failed');
       }
-      const result = await response.json();
+      const result = await readJsonObject(response);
       toastSuccess('Resume uploaded successfully');
       setUploadTriggered(true);
-      if (typeof onUploadSuccess === 'function' && result.applicant) {
-        onUploadSuccess(result.applicant);
+      const updatedApplicant = getJsonObject(result, 'applicant');
+      if (typeof onUploadSuccess === 'function' && updatedApplicant) {
+        onUploadSuccess(updatedApplicant as unknown as Applicant);
       }
       onOpenChange(false);
       setFile(null);

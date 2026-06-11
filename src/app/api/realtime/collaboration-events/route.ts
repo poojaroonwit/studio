@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
 
 /**
  * @openapi
@@ -18,6 +19,22 @@ import { getPool } from '@/lib/db';
 
 export const dynamic = "force-dynamic";
 
+type CollaborationEventRow = QueryResultRow & {
+  id: string;
+  level: string;
+  message: string;
+  source: string | null;
+  timestamp: Date | string | null;
+  details: unknown;
+  actingUserId: string | null;
+  actingUserName: string | null;
+  actingUserEmail: string | null;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -29,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   const client = await getPool().connect();
   try {
-    const result = await client.query(
+    const result = await client.query<CollaborationEventRow>(
       `
         SELECT
           l.id,
@@ -50,7 +67,7 @@ export async function GET(request: NextRequest) {
       [limit]
     );
 
-    const events = result.rows.map((row: any) => ({
+    const events = result.rows.map((row) => ({
       id: row.id,
       type: row.source || row.level,
       message: row.message,
@@ -66,7 +83,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error getting collaboration events:', error);
     return NextResponse.json(
-      { error: 'Failed to get collaboration events', details: (error as Error).message },
+      { error: 'Failed to get collaboration events', details: getErrorMessage(error) },
       { status: 500 }
     );
   } finally {

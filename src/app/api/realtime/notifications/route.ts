@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 import { broadcastNotification } from '@/lib/simple-broadcaster';
+import { getJsonObject, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -87,8 +89,12 @@ export async function POST(request: NextRequest) {
   const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;   
 
   try {
-    const body = await request.json();
-    const { type, targetUserId, title, message, data } = body;
+    const body = await readRequestJsonObject(request);
+    const type = getJsonString(body, 'type');
+    const targetUserId = getJsonString(body, 'targetUserId');
+    const title = getJsonString(body, 'title');
+    const message = getJsonString(body, 'message');
+    const data = getJsonObject(body, 'data');
 
     if (!type || !title || !message) {
       await logAudit('WARN', `Notification creation attempted with missing fields by ${actingUserName}`, 'API:Realtime:Notifications:Post', actingUserId, {     

@@ -11,12 +11,34 @@ export interface HeadcountStatus {
   hasHeadcounts: boolean;
 }
 
+export interface PositionAutomationSummary extends Record<string, unknown> {
+  id: string;
+  title: string;
+  isOpen: boolean;
+  department: string | null;
+  customAttributes?: unknown;
+  custom_attributes?: unknown;
+  updatedAt?: Date | string;
+}
+
 export interface PositionActionResult {
   success: boolean;
   message: string;
   action: 'closed' | 'opened' | 'reopened' | 'none' | 'error';
   headcountStatus?: HeadcountStatus;
-  position?: any;
+  position?: PositionAutomationSummary;
+}
+
+export interface HeadcountApplicantSummary {
+  id: string;
+  name: string | null;
+  email: string | null;
+  statusId: string | null;
+}
+
+export interface HeadcountPositionSummary {
+  id: string;
+  title: string;
 }
 
 export interface ValidationResult {
@@ -37,8 +59,8 @@ export interface UnassignWarning {
   hasWarning: boolean;
   warningType?: 'APPLICANT_STATUS_WILL_CHANGE';
   message?: string;
-  applicant?: any;
-  position?: any;
+  applicant?: HeadcountApplicantSummary;
+  position?: HeadcountPositionSummary;
 }
 
 export interface AssignmentResult {

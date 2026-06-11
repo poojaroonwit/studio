@@ -5,14 +5,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ApplicantAvatarCompact } from '@/components/ui/applicant-avatar';
 import { formatDistanceToNow, isValid, parseISO } from 'date-fns';
-import { Mail, Phone, MapPin, Calendar, ExternalLink } from 'lucide-react';
+import { Calendar, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { normalizeFitScore } from '@/lib/scoreUtils';
-import type { Applicant } from '@/lib/types';
+import {
+  type CandidateDisplayApplicant,
+  getCandidateDisplayFitScore,
+  getCandidateFitScoreTone,
+  getCandidateJustification,
+  getCandidateStatusLabel,
+} from './candidate-display-utils';
 
 interface CandidateCardProps {
-  candidate: Applicant;
+  candidate: CandidateDisplayApplicant;
   onClick?: () => void;
 }
 
@@ -27,9 +32,8 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
     ? formatDistanceToNow(applicationDate, { addSuffix: true }) 
     : 'Recently';
 
-  const fitScore = candidate.fitScore !== null && candidate.fitScore !== undefined 
-    ? normalizeFitScore(candidate.fitScore)
-    : null;
+  const fitScore = getCandidateDisplayFitScore(candidate.fitScore);
+  const fitScoreTone = fitScore === null ? null : getCandidateFitScoreTone(fitScore);
 
   return (
     <motion.div
@@ -52,9 +56,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
               <div 
                 className={cn(
                   "absolute h-full transition-all duration-1000",
-                  fitScore >= 80 ? "bg-emerald-500" : 
-                  fitScore >= 60 ? "bg-blue-500" : 
-                  fitScore >= 40 ? "bg-amber-500" : "bg-zinc-400"
+                  fitScoreTone?.barClassName
                 )} 
                 style={{ width: `${fitScore}%` }}
               />
@@ -91,9 +93,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
                 {fitScore !== null && (
                   <div className={cn(
                     "text-lg font-bold",
-                    fitScore >= 80 ? "text-emerald-600" : 
-                    fitScore >= 60 ? "text-blue-600" : 
-                    fitScore >= 40 ? "text-amber-600" : "text-zinc-500"
+                    fitScoreTone?.textClassName
                   )}>
                     {fitScore}%
                   </div>
@@ -102,7 +102,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
                   "mt-1 text-[10px] px-1.5 py-0 font-normal uppercase tracking-wider",
                   candidate.statusId ? "border-primary/20 text-primary bg-primary/5" : "text-zinc-400"
                 )}>
-                  {(candidate as any).statusName || 'No Status'}
+                  {getCandidateStatusLabel(candidate, 'No Status')}
                 </Badge>
               </div>
             </div>
@@ -110,7 +110,7 @@ export function CandidateCard({ candidate, onClick }: CandidateCardProps) {
             {/* Justification */}
             <div className="pt-2 flex-1">
               <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed italic line-clamp-3">
-                {candidate.assignmentJustification || "No justification provided for this candidate."}
+                {getCandidateJustification(candidate, 'No justification provided for this candidate.')}
               </p>
             </div>
 

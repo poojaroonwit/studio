@@ -1,256 +1,186 @@
 #!/usr/bin/env tsx
 
-/**
- * Permission Alignment Fix Script
- * 
- * This script:
- * 1. Identifies and fixes permission alignment issues between database and PLATFORM_MODULES
- * 2. Ensures all user groups have consistent permission structures
- * 3. Migrates old permission formats to the new granular system
- */
+import "dotenv/config";
 
-import 'dotenv/config';
-import { getPool } from '@/lib/db';
-import { PLATFORM_MODULES } from '@/lib/types';
+import { getPool, type DbClient } from "@/lib/db";
+import { PLATFORM_MODULES } from "@/lib/types";
 
-// Colors for console output
-const colors = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-    reset: '\x1b[0m'
+import {
+  getErrorMessage,
+  getPermissionAlignmentPlan,
+  log,
+  logError,
+  logInfo,
+  logSuccess,
+  logWarning,
+  type UserGroupPermissionRow,
+} from "./permission-maintenance-utils";
+
+type PermissionRow = {
+  permission: string;
 };
 
-function log(message: string, color: keyof typeof colors = 'white') {
-    console.log(`${colors[color]}${message}${colors.reset}`);
+const OLD_BROAD_PERMISSIONS = [
+  "applicantS_MANAGE",
+  "POSITIONS_MANAGE",
+  "USERS_MANAGE",
+  "SYSTEM_MANAGE",
+  "ADMIN",
+];
+
+function getValidPermissionIds() {
+  return PLATFORM_MODULES.map(module => module.id);
 }
 
-function logSuccess(message: string) {
-    log(`✅ ${message}`, 'green');
+async function getUserGroups(client: DbClient) {
+  const groupsResult = await client.query<UserGroupPermissionRow>(`
+    SELECT id, name, permissions, "is_system_role", "is_default"
+    FROM "UserGroup"
+    ORDER BY "is_system_role" DESC, "is_default" DESC, name ASC
+  `);
+
+  return groupsResult.rows;
 }
 
-function logWarning(message: string) {
-    log(`⚠️  ${message}`, 'yellow');
+async function getDistinctDatabasePermissions(client: DbClient) {
+  const oldPermissionsResult = await client.query<PermissionRow>(`
+    SELECT DISTINCT unnest(permissions) as permission
+    FROM "UserGroup"
+    WHERE permissions IS NOT NULL AND array_length(permissions, 1) > 0
+  `);
+
+  return oldPermissionsResult.rows.map(row => row.permission);
 }
 
-function logError(message: string) {
-    log(`❌ ${message}`, 'red');
+async function updateGroupPermissions(client: DbClient, groupId: string, permissions: string[]) {
+  await client.query(
+    `
+      UPDATE "UserGroup"
+      SET permissions = $1, "updatedAt" = NOW()
+      WHERE id = $2
+    `,
+    [permissions, groupId],
+  );
 }
 
-function logInfo(message: string) {
-    log(`ℹ️  ${message}`, 'blue');
-}
+export async function fixPermissionAlignment() {
+  let client: DbClient | null = null;
 
-/**
- * Fix permission alignment issues
- */
-async function fixPermissionAlignment() {
-    const client = await getPool().connect();
-    
-    try {
-        logInfo('Starting permission alignment fix...');
-        
-        // Get all valid permission IDs from PLATFORM_MODULES
-        const validPermissionIds = PLATFORM_MODULES.map(module => module.id);
-        logInfo(`Found ${validPermissionIds.length} valid permissions in PLATFORM_MODULES`);
-        
-        // Get all user groups with their current permissions
-        const groupsResult = await client.query(`
-            SELECT id, name, permissions, "is_system_role", "is_default"
-            FROM "UserGroup"
-            ORDER BY "is_system_role" DESC, "is_default" DESC, name ASC
-        `);
-        
-        const groups = groupsResult.rows;
-        logInfo(`Found ${groups.length} user groups to check`);
-        
-        let fixedGroups = 0;
-        let skippedGroups = 0;
-        let issuesFound = 0;
-        
-        for (const group of groups) {
-            logInfo(`Checking group: ${group.name}`);
-            
-            const currentPermissions = group.permissions || [];
-            const issues = [];
-            
-            // Check for invalid permissions
-            const invalidPermissions = currentPermissions.filter((permission: string) => 
-                !validPermissionIds.includes(permission)
-            );
-            
-            if (invalidPermissions.length > 0) {
-                issues.push(`Invalid permissions: ${invalidPermissions.join(', ')}`);
-            }
-            
-            // Check for duplicate permissions
-            const uniquePermissions = [...new Set(currentPermissions)];
-            if (uniquePermissions.length !== currentPermissions.length) {
-                issues.push(`Duplicate permissions found`);
-            }
-            
-            // Check for system roles that should have comprehensive permissions
-            if (group.is_system_role && currentPermissions.length === 0) {
-                issues.push(`System role has no permissions`);
-            }
-            
-            // Check for default groups that should have basic permissions
-            if (group.is_default && currentPermissions.length === 0) {
-                issues.push(`Default group has no permissions`);
-            }
-            
-            if (issues.length > 0) {
-                logWarning(`Group "${group.name}" has ${issues.length} issues: ${issues.join('; ')}`);
-                issuesFound++;
-                
-                // Fix the issues
-                let fixedPermissions = [...new Set(currentPermissions)].filter((permission: unknown) => 
-                    validPermissionIds.includes(permission as string)
-                );
-                
-                // For system roles, ensure they have comprehensive permissions
-                if (group.is_system_role && fixedPermissions.length === 0) {
-                    logInfo(`Adding comprehensive permissions to system role "${group.name}"`);
-                    fixedPermissions = validPermissionIds;
-                }
-                
-                // For default groups, ensure they have basic permissions
-                if (group.is_default && fixedPermissions.length === 0) {
-                    logInfo(`Adding basic permissions to default group "${group.name}"`);
-                    // Add basic view permissions
-                    fixedPermissions = validPermissionIds.filter((permission: string) => 
-                        permission.includes('_VIEW') && !permission.includes('_DETAILED')
-                    );
-                }
-                
-                // Update the group if permissions changed
-                if (JSON.stringify(fixedPermissions.sort()) !== JSON.stringify(currentPermissions.sort())) {
-                    await client.query(`
-                        UPDATE "UserGroup"
-                        SET permissions = $1, "updatedAt" = NOW()
-                        WHERE id = $2
-                    `, [fixedPermissions, group.id]);
-                    
-                    logSuccess(`Fixed group "${group.name}" permissions: ${fixedPermissions.length} valid permissions`);
-                    fixedGroups++;
-                } else {
-                    logInfo(`Group "${group.name}" permissions are already correct`);
-                    skippedGroups++;
-                }
-            } else {
-                logInfo(`Group "${group.name}" has no alignment issues`);
-                skippedGroups++;
-            }
-        }
-        
-        logSuccess(`Permission alignment fix completed: ${fixedGroups} groups fixed, ${skippedGroups} groups skipped, ${issuesFound} issues found`);
-        
-        return true;
-        
-    } catch (error: any) {
-        logError(`Permission alignment fix failed: ${error.message}`);
-        console.error(error);
-        return false;
-    } finally {
-        client.release();
+  try {
+    client = await getPool().connect();
+    logInfo("Starting permission alignment fix...");
+
+    const validPermissionIds = getValidPermissionIds();
+    logInfo(`Found ${validPermissionIds.length} valid permissions in PLATFORM_MODULES`);
+
+    const groups = await getUserGroups(client);
+    logInfo(`Found ${groups.length} user groups to check`);
+
+    let fixedGroups = 0;
+    let skippedGroups = 0;
+    let issuesFound = 0;
+
+    for (const group of groups) {
+      logInfo(`Checking group: ${group.name}`);
+
+      const alignmentPlan = getPermissionAlignmentPlan(group, validPermissionIds);
+      if (alignmentPlan.issues.length === 0) {
+        logInfo(`Group "${group.name}" has no alignment issues`);
+        skippedGroups++;
+        continue;
+      }
+
+      logWarning(`Group "${group.name}" has ${alignmentPlan.issues.length} issues: ${alignmentPlan.issues.join("; ")}`);
+      issuesFound++;
+
+      if (!alignmentPlan.shouldUpdate) {
+        logInfo(`Group "${group.name}" permissions are already correct`);
+        skippedGroups++;
+        continue;
+      }
+
+      if (group.is_system_role && alignmentPlan.currentPermissions.length === 0) {
+        logInfo(`Adding comprehensive permissions to system role "${group.name}"`);
+      } else if (group.is_default && alignmentPlan.currentPermissions.length === 0) {
+        logInfo(`Adding basic permissions to default group "${group.name}"`);
+      }
+
+      await updateGroupPermissions(client, group.id, alignmentPlan.fixedPermissions);
+      logSuccess(`Fixed group "${group.name}" permissions: ${alignmentPlan.fixedPermissions.length} valid permissions`);
+      fixedGroups++;
     }
-}
 
-/**
- * Check for permission migration needs
- */
-async function checkMigrationNeeds() {
-    const client = await getPool().connect();
-    
-    try {
-        logInfo('Checking for permission migration needs...');
-        
-        // Check for old permission formats
-        const oldPermissionsResult = await client.query(`
-            SELECT DISTINCT unnest(permissions) as permission
-            FROM "UserGroup"
-            WHERE permissions IS NOT NULL AND array_length(permissions, 1) > 0
-        `);
-        
-        const allPermissions = oldPermissionsResult.rows.map((row: any) => row.permission);
-        const validPermissionIds = PLATFORM_MODULES.map(module => module.id);
-        
-        // Look for old broad permissions that need migration
-        const oldBroadPermissions = [
-            'applicantS_MANAGE',
-            'POSITIONS_MANAGE', 
-            'USERS_MANAGE',
-            'SYSTEM_MANAGE',
-            'ADMIN'
-        ];
-        
-        const foundOldPermissions = allPermissions.filter((permission: string) => 
-            oldBroadPermissions.includes(permission)
-        );
-        
-        if (foundOldPermissions.length > 0) {
-            logWarning(`Found ${foundOldPermissions.length} old broad permissions that need migration: ${foundOldPermissions.join(', ')}`);
-            logInfo('These permissions should be replaced with granular permissions');
-            return false;
-        }
-        
-        logSuccess('No permission migration needed - all permissions are in current format');
-        return true;
-        
-    } catch (error: any) {
-        logError(`Failed to check migration needs: ${error.message}`);
-        console.error(error);
-        return false;
-    } finally {
-        client.release();
+    logSuccess(`Permission alignment fix completed: ${fixedGroups} groups fixed, ${skippedGroups} groups skipped, ${issuesFound} issues found`);
+
+    return true;
+  } catch (error: unknown) {
+    logError(`Permission alignment fix failed: ${getErrorMessage(error)}`);
+    console.error(error);
+    return false;
+  } finally {
+    if (client) {
+      client.release();
     }
+  }
 }
 
-/**
- * Main execution function
- */
+export async function checkMigrationNeeds() {
+  let client: DbClient | null = null;
+
+  try {
+    client = await getPool().connect();
+    logInfo("Checking for permission migration needs...");
+
+    const allPermissions = await getDistinctDatabasePermissions(client);
+    const foundOldPermissions = allPermissions.filter(permission => OLD_BROAD_PERMISSIONS.includes(permission));
+
+    if (foundOldPermissions.length > 0) {
+      logWarning(
+        `Found ${foundOldPermissions.length} old broad permissions that need migration: ${foundOldPermissions.join(", ")}`,
+      );
+      logInfo("These permissions should be replaced with granular permissions");
+      return false;
+    }
+
+    logSuccess("No permission migration needed - all permissions are in current format");
+    return true;
+  } catch (error: unknown) {
+    logError(`Failed to check migration needs: ${getErrorMessage(error)}`);
+    console.error(error);
+    return false;
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+}
+
 async function main() {
-    log('🔧 Starting permission alignment fix...', 'cyan');
-    
-    try {
-        // Step 1: Check for migration needs
-        logInfo('Step 1: Checking for permission migration needs...');
-        const migrationOk = await checkMigrationNeeds();
-        
-        // Step 2: Fix alignment issues
-        logInfo('Step 2: Fixing permission alignment issues...');
-        const alignmentSuccess = await fixPermissionAlignment();
-        
-        if (alignmentSuccess) {
-            process.exit(0);
-        } else {
-            logWarning('Some alignment fixes failed, but continuing...');
-            process.exit(0); // Don't fail deployment for alignment issues
-        }
-        
-    } catch (error: any) {
-        logError(`Permission alignment fix failed: ${error.message}`);
-        console.error(error);
-        process.exit(1);
+  log("Starting permission alignment fix...", "cyan");
+
+  try {
+    logInfo("Step 1: Checking for permission migration needs...");
+    await checkMigrationNeeds();
+
+    logInfo("Step 2: Fixing permission alignment issues...");
+    const alignmentSuccess = await fixPermissionAlignment();
+
+    if (!alignmentSuccess) {
+      logWarning("Some alignment fixes failed, but continuing...");
     }
+
+    process.exit(0);
+  } catch (error: unknown) {
+    logError(`Permission alignment fix failed: ${getErrorMessage(error)}`);
+    console.error(error);
+    process.exit(1);
+  }
 }
 
-// Export functions for use in other scripts
-export {
-    fixPermissionAlignment,
-    checkMigrationNeeds
-};
-
-// Run if called directly
 if (require.main === module) {
-    main().catch((error: any) => {
-        logError(`Unexpected error: ${error.message}`);
-        console.error(error);
-        process.exit(1);
-    });
+  main().catch((error: unknown) => {
+    logError(`Unexpected error: ${getErrorMessage(error)}`);
+    console.error(error);
+    process.exit(1);
+  });
 }
-

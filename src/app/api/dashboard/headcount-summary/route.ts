@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { auth } from '@/auth';
+import type { QueryResultRow } from 'pg';
 
 export const dynamic = 'force-dynamic';
+
+type HeadcountSummaryRow = QueryResultRow & {
+  id: string;
+  status: string;
+  positionId: string;
+  applicantId: string | null;
+  requestDate: Date | string | null;
+  onboardingDate: Date | string | null;
+  positionTitle: string;
+  positionDepartment: string | null;
+  positionLevel: string | null;
+  gradeName: string | null;
+  slaDays: number | string | null;
+  gradeColor: string | null;
+  hiredDate: Date | string | null;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,11 +55,11 @@ export async function GET(request: NextRequest) {
         ORDER BY h."requestDate" ASC;
       `;
 
-      const result = await client.query(query);
+      const result = await client.query<HeadcountSummaryRow>(query);
       
-      const headcounts = result.rows.map((row: any) => {
+      const headcounts = result.rows.map((row) => {
         const requestDate = row.requestDate ? new Date(row.requestDate) : null;
-        const slaDays = row.slaDays || 0;
+        const slaDays = Number(row.slaDays) || 0;
         const hiredDate = row.hiredDate ? new Date(row.hiredDate) : null;
         const status = row.status;
         

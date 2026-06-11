@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { getJsonArray, isJsonObject, readJsonObject } from '@/lib/response-json';
 
 interface LogEntry {
     id: string;
@@ -20,6 +21,16 @@ interface LogEntry {
     };
 }
 
+function normalizeSecurityLogs(value: unknown): LogEntry[] {
+    if (!isJsonObject(value)) {
+        return [];
+    }
+
+    return (getJsonArray(value, 'logs') ?? [])
+        .filter(isJsonObject)
+        .map((log) => log as unknown as LogEntry);
+}
+
 export default function SecurityLogsPage() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [loading, setLoading] = useState(true);
@@ -29,8 +40,7 @@ export default function SecurityLogsPage() {
             try {
                 const res = await fetch('/api/protection/logs');
                 if (res.ok) {
-                    const data = await res.json();
-                    setLogs(data.logs);
+                    setLogs(normalizeSecurityLogs(await readJsonObject(res)));
                 }
             } catch (error) {
                 console.error('Failed to fetch logs', error);

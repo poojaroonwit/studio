@@ -13,7 +13,6 @@ interface LogsFormProps {
   open: boolean;
   log: LogEntry | null;
   onClose: () => void;
-  onSubmit: (data: any) => void;
 }
 
 const getLogLevelIcon = (level: string) => {
@@ -38,7 +37,7 @@ const getLogLevelBadgeVariant = (level: string): "default" | "secondary" | "dest
   }
 };
 
-const LogsForm: React.FC<LogsFormProps> = ({ open, log, onClose, onSubmit }) => {
+const LogsForm: React.FC<LogsFormProps> = ({ open, log, onClose }) => {
   if (!open || !log) return null;
 
   return (

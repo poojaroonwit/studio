@@ -1,280 +1,50 @@
-// src/app/settings/custom-fields/page.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button, buttonVariants } from '@/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from "@/components/ui/checkbox";
-import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import type { CustomFieldDefinition, CustomFieldType, CustomFieldOption } from '@/lib/types';
-import { CUSTOM_FIELD_TYPES } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, ListChecks, Save, Loader2, ServerCrash, ShieldAlert, Settings2, X } from 'lucide-react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { toast } from 'react-hot-toast';
-import CustomFieldTable from '@/components/settings/CustomFieldTable';
-import CustomFieldDrawer from '@/components/settings/CustomFieldDrawer';
-import CustomFieldModal from '@/components/settings/CustomFieldModal';
-import CustomFieldAlertDialog from '@/components/settings/CustomFieldAlertDialog';
-
-const customFieldOptionSchemaClient = z.object({
-  value: z.string().min(1, "Option value is required"),
-  label: z.string().min(1, "Option label is required"),
-});
-
-const customFieldFormSchema = z.object({
-  model_name: z.enum(['Applicant', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
-  field_key: z.string().min(1, "Field key is required").regex(/^[a-z0-9_]+$/, "Key must be lowercase alphanumeric with underscores."),
-  label: z.string().min(1, "Label is required"),
-  field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
-  options: z.array(customFieldOptionSchemaClient).optional(),
-  is_required: z.boolean().optional().default(false),
-  sort_order: z.coerce.number().int().optional().default(0),
-});
-
-type CustomFieldFormValues = z.infer<typeof customFieldFormSchema>;
+  CustomFieldsErrorState,
+  CustomFieldsLoadingScreen,
+  CustomFieldsPageContent,
+  CustomFieldsPageHeader,
+  CustomFieldsPageModals,
+} from './CustomFieldsPageParts';
+import { useCustomFieldsPage } from './use-custom-fields-page';
 
 export default function CustomFieldsPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/settings/custom-fields';
+  const page = useCustomFieldsPage();
 
-  const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDefinition, setEditingDefinition] = useState<CustomFieldDefinition | null>(null);
-  const [definitionToDelete, setDefinitionToDelete] = useState<CustomFieldDefinition | null>(null);
-
-  const fetchDefinitions = useCallback(async () => {
-    if (sessionStatus !== 'authenticated') return;
-    setIsLoading(true);
-    setFetchError(null);
-    try {
-      const response = await fetch('/api/settings/custom-field-definitions');
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch definitions' }));
-        if (response.status === 401) {
-          signIn(undefined, { callbackUrl: currentPath });
-          return;
-        } else if (response.status === 403) {
-          throw new Error('No permission');
-        }
-        throw new Error(errorData.message);
-      }
-      const data: CustomFieldDefinition[] = await response.json();
-      setDefinitions(data);
-    } catch (error) {
-      console.error('Error in settings/custom-fields:', error);
-      setFetchError((error as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionStatus, currentPath]);
-
-  useEffect(() => {
-    if (sessionStatus === 'unauthenticated') {
-      signIn(undefined, { callbackUrl: currentPath });
-    } else if (sessionStatus === 'authenticated') {
-      // Check if user has Admin role or CUSTOM_FIELDS_EDIT permission
-      if (session.user.role !== 'Admin' &&  !(session.user.modulePermissions || []).includes('CUSTOM_FIELDS_EDIT')) {
-        setFetchError("You do not have permission to manage custom field definitions.");
-        setIsLoading(false);
-      } else {
-        fetchDefinitions();
-      }
-    }
-  }, [sessionStatus, session, fetchDefinitions, currentPath]);
-
-  useEffect(() => {
-    if (fetchError) {
-      toast.error(fetchError);
-    }
-  }, [fetchError]);
-
-  const handleOpenDrawer = (definition: CustomFieldDefinition) => {
-    setEditingDefinition(definition);
-    setIsDrawerOpen(true);
-  };
-
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleFormSubmit = async (data: any) => {
-    const url = editingDefinition ? `/api/settings/custom-field-definitions?id=${editingDefinition.id}` : '/api/settings/custom-field-definitions';
-    const method = editingDefinition ? 'PUT' : 'POST';
-
-    try {
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || `Failed to ${editingDefinition ? 'update' : 'create'} definition`);
-      
-      toast.success(`Definition "${result.label}" was successfully ${editingDefinition ? 'updated' : 'created'}.`);
-      setIsDrawerOpen(false);
-      fetchDefinitions();
-    } catch (error) {
-      console.error('Error in settings/custom-fields:', error);
-      toast.error((error as Error).message);
-    }
-  };
-
-  const confirmDelete = (definition: CustomFieldDefinition) => {
-    setDefinitionToDelete(definition);
-  };
-
-  const handleDelete = async () => {
-    if (!definitionToDelete) return;
-    try {
-      const response = await fetch(`/api/settings/custom-field-definitions/${definitionToDelete.id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to delete definition');
-      }
-      toast.success('Custom field deleted successfully.');
-      fetchDefinitions();
-    } catch (error) {
-      console.error('Error in settings/custom-fields:', error);
-      toast.error((error as Error).message);
-    } finally {
-      setDefinitionToDelete(null);
-    }
-  };
-
-  if (sessionStatus === 'loading' || (isLoading && !fetchError && definitions.length === 0 && sessionStatus === 'authenticated')) {
-    return (
-      <div className="flex w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
+  if (page.showFullPageLoader) {
+    return <CustomFieldsLoadingScreen />;
   }
 
-  if (fetchError) {
-     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
-        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Data</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-         {fetchError === "You do not have permission to manage custom field definitions." ? (
-            <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
-         ) : null}
-      </div>
+  if (page.fetchError) {
+    return (
+      <CustomFieldsErrorState
+        fetchError={page.fetchError}
+        onGoDashboard={page.goDashboard}
+      />
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-6 pb-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div>
-            <h2 className="flex items-center text-2xl"><Settings2 className="mr-3 h-6 w-6 text-primary"/>Custom Field Definitions</h2>
-            <p>
-              Define custom fields that can be associated with Applicants, Positions, Users, or Headcount records.
-              These fields are stored in a flexible JSONB column. The actual rendering of these fields on forms is a future enhancement.
-            </p>
-          </div>
-          <Button onClick={handleOpenModal} className="btn-primary-gradient mt-2 sm:mt-0">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Field Definition
-          </Button>
-        </div>
-      </div>
-
-      {/* Content with ScrollArea */}
-      <ScrollArea className="flex-1 p-6 pt-0 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
-        <div className="space-y-6">
-          {isLoading && definitions.length === 0 ? (
-             <div className="flex justify-center items-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-2 text-muted-foreground">Loading definitions...</p>
-            </div>
-          ) : definitions.length === 0 && !fetchError ? (
-            <p className="text-muted-foreground text-center py-8">No custom field definitions yet.</p>
-          ) : (
-            <div className="rounded-lg overflow-hidden">
-              <CustomFieldTable
-                fields={definitions}
-                isLoading={isLoading}
-                onEdit={handleOpenDrawer}
-                onDelete={setDefinitionToDelete}
-              />
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Modals */}
-      <CustomFieldModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleFormSubmit}
+      <CustomFieldsPageHeader onAddNew={page.openModal} />
+      <CustomFieldsPageContent
+        definitions={page.definitions}
+        fetchError={page.fetchError}
+        isLoading={page.isLoading}
+        onDelete={page.setDefinitionToDelete}
+        onEdit={page.handleOpenDrawer}
       />
-      <CustomFieldDrawer
-        open={isDrawerOpen}
-        definition={editingDefinition}
-        onClose={() => setIsDrawerOpen(false)}
-        onSubmit={handleFormSubmit}
-      />
-      <CustomFieldAlertDialog
-        open={!!definitionToDelete}
-        onConfirm={handleDelete}
-        onCancel={() => setDefinitionToDelete(null)}
-        definition={definitionToDelete}
+      <CustomFieldsPageModals
+        definitionToDelete={page.definitionToDelete}
+        editingDefinition={page.editingDefinition}
+        isDrawerOpen={page.isDrawerOpen}
+        isModalOpen={page.isModalOpen}
+        onCancelDelete={() => page.setDefinitionToDelete(null)}
+        onCloseDrawer={() => page.setIsDrawerOpen(false)}
+        onCloseModal={() => page.setIsModalOpen(false)}
+        onConfirmDelete={page.handleDelete}
+        onSubmit={page.handleFormSubmit}
       />
     </div>
   );

@@ -6,7 +6,7 @@ export interface CreateNotificationParams {
   type: string;
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   targetUserId?: string;
 }
 
@@ -42,7 +42,7 @@ export async function createApplicantNotification(
   applicantId: string,
   applicantName: string,
   action: 'created' | 'updated' | 'deleted' | 'moved' | 'commented',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): Promise<boolean> {
   const messages = {
     created: `New applicant ${applicantName} has been added`,
@@ -72,7 +72,7 @@ export async function createPositionNotification(
   positionId: string,
   positionTitle: string,
   action: 'created' | 'updated' | 'deleted' | 'opened' | 'closed',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): Promise<boolean> {
   const messages = {
     created: `New position "${positionTitle}" has been created`,
@@ -102,7 +102,7 @@ export async function createUserNotification(
   userId: string,
   userName: string,
   action: 'logged_in' | 'logged_out' | 'profile_updated' | 'password_changed',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): Promise<boolean> {
   const messages = {
     logged_in: `${userName} has logged in`,
@@ -131,7 +131,7 @@ export async function createSystemNotification(
   title: string,
   message: string,
   type: 'info' | 'warning' | 'error' | 'success' = 'info',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): Promise<boolean> {
   return createNotification({
     type: `system_${type}`,
@@ -152,7 +152,7 @@ export async function createTaskBoardNotification(
   taskId: string,
   taskTitle: string,
   action: 'created' | 'updated' | 'completed' | 'assigned',
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, unknown>
 ): Promise<boolean> {
   const messages = {
     created: `New task "${taskTitle}" has been created`,

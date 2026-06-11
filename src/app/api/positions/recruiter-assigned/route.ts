@@ -1,9 +1,27 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
+import type { QueryResultRow } from 'pg';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
+
+type RecruiterAssignedPositionRow = QueryResultRow & {
+  id: string;
+  title: string;
+  department: string | null;
+  description: string | null;
+  positionLevel: string | null;
+  isOpen: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  gradeName: string | null;
+  gradeColor: string | null;
+  gradeSlaDays: string | number | null;
+  totalHeadcount: string | number;
+  vacantHeadcount: string | number;
+  filledHeadcount: string | number;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,9 +80,9 @@ export async function GET(request: NextRequest) {
         ORDER BY p."createdAt" DESC
       `;
 
-      const result = await client.query(query, [recruiterId]);
+      const result = await client.query<RecruiterAssignedPositionRow>(query, [recruiterId]);
       
-      const positions = result.rows.map((row: any) => ({
+      const positions = result.rows.map((row) => ({
         id: row.id,
         title: row.title,
         department: row.department,
@@ -77,11 +95,11 @@ export async function GET(request: NextRequest) {
           name: row.gradeName,
           color: row.gradeColor
         } : null,
-        gradeSlaDays: row.gradeSlaDays ? parseInt(row.gradeSlaDays) : null,
+        gradeSlaDays: row.gradeSlaDays ? parseInt(String(row.gradeSlaDays), 10) : null,
         headcount: {
-          total: parseInt(row.totalHeadcount) || 0,
-          vacant: parseInt(row.vacantHeadcount) || 0,
-          filled: parseInt(row.filledHeadcount) || 0
+          total: parseInt(String(row.totalHeadcount), 10) || 0,
+          vacant: parseInt(String(row.vacantHeadcount), 10) || 0,
+          filled: parseInt(String(row.filledHeadcount), 10) || 0
         }
       }));
 

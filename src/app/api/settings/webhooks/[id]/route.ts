@@ -6,12 +6,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { validateWebhookUrl } from '@/lib/webhookSecurity';
+import { readRequestJsonResult } from '@/lib/request-json';
+import type { Prisma } from '@prisma/client';
+
+const jsonValueSchema = z.custom<Prisma.InputJsonValue>();
 
 const fieldMappingSchema = z.object({
   source_field: z.string(),
   target_field: z.string(),
   transform: z.enum(['uppercase', 'lowercase', 'trim', 'date', 'number', 'boolean']).optional(),
-  default_value: z.any().optional(),
+  default_value: jsonValueSchema.optional(),
 });
 
 const webhookSchema = z.object({
@@ -83,7 +87,7 @@ export async function GET(
       field_mappings: webhook.field_mappings,
       include_metadata: webhook.include_metadata,
       custom_payload: webhook.custom_payload,
-      body_configs: webhook.body_configs.map((config: any) => ({
+      body_configs: webhook.body_configs.map((config) => ({
         id: config.id,
         event_type: config.event_type,
         body_template: config.body_template,
@@ -127,13 +131,11 @@ export async function PUT(
       }
     }
     
-    let body;
-    try {
-      body = await req.json();
-    } catch {
+    const bodyResult = await readRequestJsonResult(req);
+    if (!bodyResult.ok) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
-    const validation = webhookSchema.partial().safeParse(body);
+    const validation = webhookSchema.partial().safeParse(bodyResult.value);
     if (!validation.success) {
       return NextResponse.json({
         error: 'Invalid input',

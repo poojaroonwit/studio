@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { isSystemSettingEnabled } from '@/lib/system-settings-response';
+
+const JOB_MATCH_FEATURE_KEY = 'jobMatchFeatureEnabled';
 
 export const useJobMatchFeature = () => {
   const [isJobMatchEnabled, setIsJobMatchEnabled] = useState<boolean>(true);
@@ -9,18 +12,8 @@ export const useJobMatchFeature = () => {
       try {
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
-          const data = await response.json();
-          let settings: any = {};
-          
-          if (data.settings && Array.isArray(data.settings)) {
-            settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
-          } else {
-            settings = data;
-          }
-          
-          // Default to true if not set, but allow explicit false
-          const jobMatchEnabled = settings.jobMatchFeatureEnabled !== 'false';
-          setIsJobMatchEnabled(jobMatchEnabled);
+          const data: unknown = await response.json();
+          setIsJobMatchEnabled(isSystemSettingEnabled(data, JOB_MATCH_FEATURE_KEY, true));
         }
       } catch (error) {
         console.error('Error checking job match feature status:', error);

@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     // Get webhook names for top failing webhooks
     const failingWebhookDetails = await Promise.all(
-      topFailingWebhooks.map(async (item: any) => {
+      topFailingWebhooks.map(async (item) => {
         const webhook = await prisma.webhook.findUnique({
           where: { id: item.webhook_id },
           select: { name: true }

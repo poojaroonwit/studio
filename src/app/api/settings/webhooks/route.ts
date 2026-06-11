@@ -3,41 +3,15 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { validateWebhookUrl } from '@/lib/webhookSecurity';
 
 import { auth } from '@/auth';
-const fieldMappingSchema = z.object({
-  source_field: z.string(),
-  target_field: z.string(),
-  transform: z.enum(['uppercase', 'lowercase', 'trim', 'date', 'number', 'boolean']).optional(),
-  default_value: z.any().optional(),
-});
+import { readRequestJsonResult } from '@/lib/request-json';
+import { serializeWebhookWithBodyConfigs } from './webhooks-route-serialization';
+import { webhookSchema } from './webhooks-route-schemas';
 
-const webhookSchema = z.object({
-  name: z.string().min(1),
-  url: z.string().url(),
-  events: z.array(z.string()).min(1),
-  method: z.enum(['GET', 'POST', 'PUT', 'PATCH']),
-  is_active: z.boolean().optional(),
-  auth_type: z.enum(['none', 'basic', 'bearer', 'header']).optional(),
-  auth_username: z.string().optional(),
-  auth_password: z.string().optional(),
-  auth_token: z.string().optional(),
-  auth_header_name: z.string().optional(),
-  auth_header_value: z.string().optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-  retry_count: z.number().min(0).max(10).optional(),
-  timeout: z.number().min(5).max(300).optional(),
-  // New body customization fields
-  body_template: z.string().optional(),
-  field_mappings: z.array(fieldMappingSchema).optional(),
-  include_metadata: z.boolean().optional(),
-  custom_payload: z.boolean().optional(),
-});
-
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -54,42 +28,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Sanitize webhooks to ensure no undefined values
-    const sanitizedWebhooks = webhooks.map((webhook: any) => ({
-      id: webhook.id || '',
-      name: webhook.name || '',
-      url: webhook.url || '',
-      events: Array.isArray(webhook.events) ? webhook.events : [],
-      method: webhook.method || 'POST',
-      is_active: Boolean(webhook.is_active),
-      auth_type: webhook.auth_type || 'none',
-      auth_username: webhook.auth_username || null,
-      auth_password: webhook.auth_password || null,
-      auth_token: webhook.auth_token || null,
-      auth_header_name: webhook.auth_header_name || null,
-      auth_header_value: webhook.auth_header_value || null,
-      headers: webhook.headers || {},
-      retry_count: webhook.retry_count || 3,
-      timeout: webhook.timeout || 30,
-      // New body customization fields
-      body_template: webhook.body_template || null,
-      field_mappings: webhook.field_mappings || null,
-      include_metadata: Boolean(webhook.include_metadata),
-      custom_payload: Boolean(webhook.custom_payload),
-      body_configs: webhook.body_configs.map((config: any) => ({
-        id: config.id,
-        event_type: config.event_type,
-        body_template: config.body_template,
-        field_mappings: config.field_mappings,
-        is_active: config.is_active,
-        created_at: config.created_at,
-        updated_at: config.updated_at
-      })),
-      createdAt: webhook.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: webhook.updatedAt?.toISOString() || new Date().toISOString()
-    }));
-
-    return NextResponse.json(sanitizedWebhooks);
+    return NextResponse.json(webhooks.map(serializeWebhookWithBodyConfigs));
   } catch (error) {
     console.error('Error fetching webhooks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -116,14 +55,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let body;
-    try {
-      body = await req.json();
-    } catch {
+    const bodyResult = await readRequestJsonResult(req);
+    if (!bodyResult.ok) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const validation = webhookSchema.safeParse(body);
+    const validation = webhookSchema.safeParse(bodyResult.value);
     if (!validation.success) {
       return NextResponse.json({ 
         error: 'Invalid input', 

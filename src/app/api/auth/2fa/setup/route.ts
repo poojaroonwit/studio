@@ -7,6 +7,8 @@ import {
   generateEmailOtp,
   sendEmailOtp
 } from '@/lib/twoFactorAuth';
+import { getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -16,9 +18,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { method } = await req.json(); // 'totp' or 'email'
+    const body = await readRequestJsonObject(req);
+    const method = getJsonString(body, 'method'); // 'totp' or 'email'
 
-    if (!['totp', 'email'].includes(method)) {
+    if (method !== 'totp' && method !== 'email') {
       return NextResponse.json({ error: 'Invalid 2FA method' }, { status: 400 });
     }
 

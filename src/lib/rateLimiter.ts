@@ -12,6 +12,12 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
+type LegacyConnectionRequest = NextRequest & {
+  connection?: {
+    remoteAddress?: string;
+  };
+};
+
 // In-memory store for rate limiting (in production, use Redis)
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
@@ -95,7 +101,7 @@ function getClientIdentifier(req: NextRequest): string {
     ip = forwarded.split(',')[0].trim();
   } else {
     // Fallback to connection remote address if available
-    const connection = (req as any).connection;
+    const connection = (req as LegacyConnectionRequest).connection;
     if (connection && connection.remoteAddress) {
       ip = connection.remoteAddress;
     }

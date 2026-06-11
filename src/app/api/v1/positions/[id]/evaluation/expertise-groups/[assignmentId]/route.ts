@@ -4,6 +4,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { readRequestJsonResult } from '@/lib/request-json';
 import { z } from 'zod';
 
 const updateExpertiseGroupAssignmentSchema = z.object({
@@ -22,8 +23,11 @@ export async function PUT(
     }
 
     const { assignmentId } = await params;
-    const body = await request.json();
-    const validatedData = updateExpertiseGroupAssignmentSchema.parse(body);
+    const body = await readRequestJsonResult(request);
+    if (!body.ok) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const validatedData = updateExpertiseGroupAssignmentSchema.parse(body.value);
 
     // Check if assignment exists
     const existingAssignment = await prisma.positionExpertiseGroup.findUnique({

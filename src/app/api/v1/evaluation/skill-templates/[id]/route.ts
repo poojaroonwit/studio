@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
+import { getJsonArray, getJsonString } from '@/lib/json-types';
+import { readRequestJsonObject } from '@/lib/request-json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -70,15 +72,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { 
-      name, 
-      description, 
-      groupIds = [], 
-      skillIds = [],
-      personalityGroupIds = [],
-      personalityTraitIds = []
-    } = body;
+    const body = await readRequestJsonObject(request);
+    const name = getJsonString(body, 'name');
+    const description = getJsonString(body, 'description');
+    const groupIds = getJsonArray(body, 'groupIds')?.filter((id): id is string => typeof id === 'string') ?? [];
+    const skillIds = getJsonArray(body, 'skillIds')?.filter((id): id is string => typeof id === 'string') ?? [];
+    const personalityGroupIds = getJsonArray(body, 'personalityGroupIds')?.filter((id): id is string => typeof id === 'string') ?? [];
+    const personalityTraitIds = getJsonArray(body, 'personalityTraitIds')?.filter((id): id is string => typeof id === 'string') ?? [];
 
     if (!name) {
       return NextResponse.json(

@@ -3,7 +3,7 @@
 
 interface ProcessHandler {
   signal: string;
-  handler: (...args: any[]) => void;
+  handler: (...args: unknown[]) => void;
   id: string;
 }
 
@@ -29,7 +29,7 @@ class ProcessManager {
   /**
    * Safely add a process event listener, preventing duplicates
    */
-  addHandler(signal: string, handler: (...args: any[]) => void, id: string): void {
+  addHandler(signal: string, handler: (...args: unknown[]) => void, id: string): void {
     // Only work in Node.js environment
     if (typeof process === 'undefined' || !process.on) {
       return;
@@ -120,7 +120,7 @@ class ProcessManager {
 export const processManager = ProcessManager.getInstance();
 
 // Convenience functions
-export const addProcessHandler = (signal: string, handler: (...args: any[]) => void, id: string) => {
+export const addProcessHandler = (signal: string, handler: (...args: unknown[]) => void, id: string) => {
   processManager.addHandler(signal, handler, id);
 };
 

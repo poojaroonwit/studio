@@ -1,8 +1,18 @@
 import { getPool } from '@/lib/db';
 import { unstable_cache } from 'next/cache';
+import type { QueryResultRow } from 'pg';
 
 // Cache tag for system settings
 export const SYSTEM_SETTINGS_CACHE_TAG = 'system-settings';
+
+type SystemSettingRow = QueryResultRow & {
+  key: string;
+  value: string;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /**
  * Check if we're in a build context (Next.js build time)
@@ -35,7 +45,7 @@ async function fetchAllSystemSettings(): Promise<Record<string, string>> {
 
   try {
     const pool = getPool();
-    const result = await pool.query('SELECT key, value FROM "SystemSetting"');
+    const result = await pool.query<SystemSettingRow>('SELECT key, value FROM "SystemSetting"');
     const settings: Record<string, string> = {};
     for (const row of result.rows) {
       settings[row.key] = row.value;
@@ -80,9 +90,9 @@ export async function getSystemSetting(key: string): Promise<string | null> {
   try {
     const settings = await getAllSystemSettingsCached();
     return settings[key] ?? null;
-  } catch (error: any) {
+  } catch (error) {
     // Check if we're missing the Next.js cache context (e.g. running in a script or instrumentation)
-    if (error.message && error.message.includes('incrementalCache missing')) {
+    if (getErrorMessage(error).includes('incrementalCache missing')) {
       try {
         // Fallback to direct database fetch
         const settings = await fetchAllSystemSettings();

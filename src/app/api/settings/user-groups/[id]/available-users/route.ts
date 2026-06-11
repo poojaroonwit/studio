@@ -13,6 +13,10 @@ function extractGroupIdFromUrl(request: NextRequest): string | null {
   return match ? match[1] : null;
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * @openapi
  * /api/settings/user-groups/{id}/available-users:
@@ -111,10 +115,11 @@ export async function GET(request: NextRequest) {
       }
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Failed to fetch available users for group ${groupId}:`, error);
-    await logAudit('ERROR', `Failed to fetch available users (Group ID: ${groupId}) by ${session.user.name}. Error: ${error.message}`, 'API:UserGroups:GetAvailableUsers', session.user.id, { targetGroupId: groupId });
-    return NextResponse.json({ message: "Error fetching available users", error: error.message }, { status: 500 });
+    const errorMessage = getErrorMessage(error);
+    await logAudit('ERROR', `Failed to fetch available users (Group ID: ${groupId}) by ${session.user.name}. Error: ${errorMessage}`, 'API:UserGroups:GetAvailableUsers', session.user.id, { targetGroupId: groupId });
+    return NextResponse.json({ message: "Error fetching available users", error: errorMessage }, { status: 500 });
   } finally {
     client.release();
   }

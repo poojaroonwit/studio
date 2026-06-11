@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { parseSseJsonData } from '@/lib/sse-event-utils';
 
-type EventData = any;
+type EventData = unknown;
 
 interface EventSourceOptions {
   withCredentials?: boolean;
@@ -131,12 +132,8 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
       };
 
       es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          setLastEvent(data);
-        } catch {
-          setLastEvent(e.data);
-        }
+        const parsed = parseSseJsonData(e.data);
+        setLastEvent(parsed.ok ? parsed.data : parsed.rawData);
       };
 
     } catch (error) {

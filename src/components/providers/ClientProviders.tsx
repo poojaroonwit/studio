@@ -3,6 +3,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import { SessionProvider } from 'next-auth/react';
+import type { Session } from 'next-auth';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
@@ -14,7 +15,7 @@ import { SplashScreen } from '@/components/ui/SplashScreen';
 
 interface ClientProvidersProps {
   children: React.ReactNode;
-  session: any;
+  session: Session | null;
 }
 
 export function ClientProviders({ children, session }: ClientProvidersProps) {

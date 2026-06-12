@@ -5,23 +5,35 @@ const MODEL_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 export async function getSelectedAiProvider(): Promise<AiProvider> {
   const selectedProvider = await getSystemSetting('aiProviderSelection');
-  return selectedProvider === 'openai' ? 'openai' : 'gemini';
+  if (selectedProvider === 'openai' || selectedProvider === 'deepseek') {
+    return selectedProvider;
+  }
+
+  return 'gemini';
 }
 
 export function getProviderKeyPrefix(provider: AiProvider): string {
-  return provider === 'openai' ? 'openaiApiKey' : 'geminiApiKey';
+  if (provider === 'openai') return 'openaiApiKey';
+  if (provider === 'deepseek') return 'deepseekApiKey';
+  return 'geminiApiKey';
 }
 
 export function getProviderLabel(provider: AiProvider): string {
-  return provider === 'openai' ? 'OpenAI' : 'Google Gemini';
+  if (provider === 'openai') return 'OpenAI';
+  if (provider === 'deepseek') return 'DeepSeek';
+  return 'Google Gemini';
 }
 
 export function getProviderModelSettingKey(provider: AiProvider): string {
-  return provider === 'openai' ? 'openaiModelSelection' : 'geminiModelSelection';
+  if (provider === 'openai') return 'openaiModelSelection';
+  if (provider === 'deepseek') return 'deepseekModelSelection';
+  return 'geminiModelSelection';
 }
 
 export function getDefaultModelFallback(provider: AiProvider): string {
-  return provider === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash';
+  if (provider === 'openai') return 'gpt-4o-mini';
+  if (provider === 'deepseek') return 'deepseek-chat';
+  return 'gemini-1.5-flash';
 }
 
 export function normalizeModelName(
@@ -69,6 +81,13 @@ export function getFallbackModels(provider: AiProvider): AiModelInfo[] {
       { name: 'gpt-4o', displayName: 'gpt-4o', description: 'General-purpose OpenAI model', supportedGenerationMethods: ['chat.completions'] },
       { name: 'gpt-4.1-mini', displayName: 'gpt-4.1-mini', description: 'Compact GPT-4.1 model', supportedGenerationMethods: ['chat.completions'] },
       { name: 'gpt-4.1', displayName: 'gpt-4.1', description: 'Advanced GPT-4.1 model', supportedGenerationMethods: ['chat.completions'] },
+    ];
+  }
+
+  if (provider === 'deepseek') {
+    return [
+      { name: 'deepseek-chat', displayName: 'deepseek-chat', description: 'DeepSeek chat model', supportedGenerationMethods: ['chat.completions'] },
+      { name: 'deepseek-reasoner', displayName: 'deepseek-reasoner', description: 'DeepSeek reasoning model', supportedGenerationMethods: ['chat.completions'] },
     ];
   }
 

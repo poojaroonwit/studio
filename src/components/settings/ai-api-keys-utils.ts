@@ -1,4 +1,4 @@
-export type AiProvider = 'gemini' | 'openai';
+export type AiProvider = 'gemini' | 'openai' | 'deepseek';
 
 export interface ApiKey {
   key: string;
@@ -33,11 +33,15 @@ export interface ApiKeySavePayload {
 }
 
 export function getProviderLabel(provider: AiProvider) {
-  return provider === 'openai' ? 'OpenAI' : 'Gemini';
+  if (provider === 'openai') return 'OpenAI';
+  if (provider === 'deepseek') return 'DeepSeek';
+  return 'Gemini';
 }
 
 export function getProviderDefaultModel(provider: AiProvider) {
-  return provider === 'openai' ? 'gpt-4o-mini' : 'gemini-1.5-flash';
+  if (provider === 'openai') return 'gpt-4o-mini';
+  if (provider === 'deepseek') return 'deepseek-chat';
+  return 'gemini-1.5-flash';
 }
 
 export function getNextPriority(apiKeys: ApiKey[]) {

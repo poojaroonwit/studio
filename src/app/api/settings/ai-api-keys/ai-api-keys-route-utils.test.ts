@@ -58,8 +58,10 @@ describe('ai api keys route utilities', () => {
 
   it('resolves providers and error messages', () => {
     expect(resolveAiApiKeysProvider('openai')).toBe('openai');
+    expect(resolveAiApiKeysProvider('deepseek')).toBe('deepseek');
     expect(resolveAiApiKeysProvider('unknown')).toBe('gemini');
     expect(resolveAiApiKeysGetProvider('gemini', 'openai')).toBe('gemini');
+    expect(resolveAiApiKeysGetProvider('deepseek', 'openai')).toBe('deepseek');
     expect(resolveAiApiKeysGetProvider('other', 'openai')).toBe('openai');
     expect(getErrorMessage(new Error('Boom'))).toBe('Boom');
     expect(getErrorMessage('plain')).toBe('plain');

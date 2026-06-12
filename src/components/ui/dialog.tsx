@@ -4,6 +4,7 @@ import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XMarkIcon } from "@heroicons/react/24/outline"
 import { useDynamicZIndex } from "@/contexts/ZIndexContext"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 import { cn } from "@/lib/utils"
 
@@ -43,11 +44,40 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof Dialo
   dialogId?: string;
 }
 
+function hasDialogA11yChild(
+  children: React.ReactNode,
+  displayName?: string
+): boolean {
+  if (!displayName) {
+    return false;
+  }
+
+  return React.Children.toArray(children).some((child) => {
+    if (!React.isValidElement(child)) {
+      return false;
+    }
+
+    const childType = child.type as React.ComponentType & { displayName?: string };
+    if (childType.displayName === displayName) {
+      return true;
+    }
+
+    return hasDialogA11yChild(
+      (child.props as { children?: React.ReactNode }).children,
+      displayName
+    );
+  });
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
 >(({ className, children, dialogId, style, ...props }, ref) => {
   const { contentZIndex } = useDynamicZIndex(dialogId || 'default-dialog', 'modal');
+  const hasVisibleTitle = hasDialogA11yChild(children, DialogPrimitive.Title.displayName);
+  const hasVisibleDescription = hasDialogA11yChild(children, DialogPrimitive.Description.displayName);
+  const needsFallbackTitle = !hasVisibleTitle && !props['aria-label'] && !props['aria-labelledby'];
+  const needsFallbackDescription = !hasVisibleDescription && props['aria-describedby'] === undefined;
 
   // Check if this is a mobile modal (bottom-0 positioning)
   const isMobileModal = className?.includes('bottom-0') || className?.includes('top-auto');
@@ -67,6 +97,16 @@ const DialogContent = React.forwardRef<
         style={{ zIndex: contentZIndex, ...style }}
         {...props}
       >
+        {needsFallbackTitle && (
+          <VisuallyHidden>
+            <DialogTitle>Dialog</DialogTitle>
+          </VisuallyHidden>
+        )}
+        {needsFallbackDescription && (
+          <VisuallyHidden>
+            <DialogDescription>Dialog content</DialogDescription>
+          </VisuallyHidden>
+        )}
         {children}
         {/* <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <XMarkIcon className="h-4 w-4" />

@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic';
  * @openapi
  * /api/ai/available-models:
  *   get:
- *     summary: Get available Gemini models
- *     description: Fetches the list of available Gemini models from Google AI API
+ *     summary: Get available AI models
+ *     description: Fetches the list of available models for the selected AI provider
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -66,9 +66,11 @@ export async function GET(request: NextRequest) {
     const requestedProvider = request.nextUrl.searchParams.get('provider');
     const provider: AiProvider = requestedProvider === 'openai'
       ? 'openai'
-      : requestedProvider === 'gemini'
-        ? 'gemini'
-        : await getSelectedAiProvider();
+      : requestedProvider === 'deepseek'
+        ? 'deepseek'
+        : requestedProvider === 'gemini'
+          ? 'gemini'
+          : await getSelectedAiProvider();
 
     const result = await executeWithApiKeyFallback(
       async (apiKey, _model, activeProvider) => getAvailableModels(activeProvider, apiKey),

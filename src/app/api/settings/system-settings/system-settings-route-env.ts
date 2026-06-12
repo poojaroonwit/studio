@@ -14,6 +14,7 @@ export type SystemSettingsMap = Record<string, string | boolean | null | undefin
 export const GET_ENV_MAPPINGS: EnvMapping[] = [
   { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
   { key: 'openaiApiKey', envVar: 'OPENAI_API_KEY' },
+  { key: 'deepseekApiKey', envVar: 'DEEPSEEK_API_KEY' },
   { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
   { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
   { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
@@ -27,6 +28,7 @@ export const GET_ENV_MAPPINGS: EnvMapping[] = [
 export const SAVE_ENV_MAPPINGS: EnvMapping[] = [
   { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
   { key: 'openaiApiKey', envVar: 'OPENAI_API_KEY' },
+  { key: 'deepseekApiKey', envVar: 'DEEPSEEK_API_KEY' },
   { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
   { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
   { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
@@ -37,7 +39,7 @@ export const SAVE_ENV_MAPPINGS: EnvMapping[] = [
 
 export function applyRuntimeEnvironmentFallbacks(settingsObj: SystemSettingsMap, mappings: EnvMapping[]) {
   for (const mapping of mappings) {
-    if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey') {
+    if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey' || mapping.key === 'deepseekApiKey') {
       continue;
     }
 
@@ -62,7 +64,7 @@ export function getMissingEnvironmentSettings(
   const settingsToInsert: Array<{ key: string; value: string }> = [];
 
   for (const mapping of mappings) {
-    if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey' || existingKeys.has(mapping.key)) {
+    if (mapping.key === 'geminiApiKey' || mapping.key === 'openaiApiKey' || mapping.key === 'deepseekApiKey' || existingKeys.has(mapping.key)) {
       continue;
     }
 

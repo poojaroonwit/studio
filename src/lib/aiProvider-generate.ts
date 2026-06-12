@@ -1,4 +1,5 @@
 import type { AiGenerationOptions, AiProvider } from './aiProvider-types';
+import { generateDeepSeekText } from './aiProvider-deepseek';
 import { generateGeminiText } from './aiProvider-gemini';
 import { generateOpenAiText } from './aiProvider-openai';
 
@@ -9,7 +10,13 @@ export async function generateTextWithProvider(
   prompt: string,
   options?: AiGenerationOptions
 ): Promise<string> {
-  return provider === 'openai'
-    ? generateOpenAiText(apiKey, model, prompt, options)
-    : generateGeminiText(apiKey, model, prompt, options);
+  if (provider === 'openai') {
+    return generateOpenAiText(apiKey, model, prompt, options);
+  }
+
+  if (provider === 'deepseek') {
+    return generateDeepSeekText(apiKey, model, prompt, options);
+  }
+
+  return generateGeminiText(apiKey, model, prompt, options);
 }

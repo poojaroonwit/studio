@@ -46,7 +46,9 @@ function getJsonBoolean(data: JsonObject, key: string) {
 
 function getJsonProvider(data: JsonObject, key: string) {
   const provider = getJsonString(data, key);
-  return provider === 'gemini' || provider === 'openai' ? provider : undefined;
+  return provider === 'gemini' || provider === 'openai' || provider === 'deepseek'
+    ? provider
+    : undefined;
 }
 
 function normalizeApiKey(value: unknown): ApiKey | null {

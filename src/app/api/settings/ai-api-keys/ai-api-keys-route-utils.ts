@@ -65,14 +65,18 @@ export function hasDuplicateApiKeyValues(apiKeys: ApiKeyUpdate[]) {
 }
 
 export function resolveAiApiKeysProvider(value: unknown): AiProvider {
-  return value === 'openai' ? 'openai' : 'gemini';
+  if (value === 'openai' || value === 'deepseek') {
+    return value;
+  }
+
+  return 'gemini';
 }
 
 export function resolveAiApiKeysGetProvider(
   requestedProvider: string | null,
   selectedProvider: AiProvider,
 ): AiProvider {
-  if (requestedProvider === 'openai' || requestedProvider === 'gemini') {
+  if (requestedProvider === 'openai' || requestedProvider === 'deepseek' || requestedProvider === 'gemini') {
     return requestedProvider;
   }
 

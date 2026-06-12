@@ -4,6 +4,14 @@ import { getPool } from '@/lib/db';
 import { expandPermissionSet } from '@/lib/permission-aliases';
 import { hasAnyPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
+import {
+  buildUsersWhereConditionsForAccess,
+  getUsersPagination,
+  type UsersPagination,
+} from './users-route-list-query-utils';
+
+export { getUsersPagination };
+export type { UsersPagination };
 
 const userListSelect = {
   id: true,
@@ -26,12 +34,6 @@ const userListSelect = {
 
 export type UserListItem = Prisma.UserGetPayload<{ select: typeof userListSelect }>;
 
-export type UsersPagination = {
-  page: number;
-  pageSize: number;
-  skip: number;
-};
-
 type LastLoginRow = {
   timestamp: Date | string | null;
 };
@@ -39,42 +41,8 @@ type LastLoginRow = {
 export class UsersTableMissingError extends Error {}
 
 export function buildUsersWhereConditions(searchParams: URLSearchParams, session: Session): Prisma.UserWhereInput {
-  const whereConditions: Prisma.UserWhereInput = {};
-  const filterRoleInput = searchParams.get('role');
   const canManageUsers = hasAnyPermission(session.user, ['USERS_VIEW']);
-
-  if (filterRoleInput && filterRoleInput !== 'ALL_ROLES') {
-    whereConditions.role = filterRoleInput;
-  } else if (!canManageUsers) {
-    whereConditions.role = 'Recruiter';
-  }
-
-  const filterNameInput = searchParams.get('name');
-  const filterEmailInput = searchParams.get('email');
-  const filterTeamIdInput = searchParams.get('teamId');
-
-  if (filterNameInput) {
-    whereConditions.name = { contains: filterNameInput, mode: 'insensitive' };
-  }
-  if (filterEmailInput) {
-    whereConditions.email = { contains: filterEmailInput, mode: 'insensitive' };
-  }
-  if (filterTeamIdInput) {
-    whereConditions.userTeamId = filterTeamIdInput;
-  }
-
-  return whereConditions;
-}
-
-export function getUsersPagination(searchParams: URLSearchParams): UsersPagination {
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
-
-  return {
-    page,
-    pageSize,
-    skip: (page - 1) * pageSize,
-  };
+  return buildUsersWhereConditionsForAccess(searchParams, canManageUsers);
 }
 
 export async function getUsersTotalCount(whereConditions: Prisma.UserWhereInput) {

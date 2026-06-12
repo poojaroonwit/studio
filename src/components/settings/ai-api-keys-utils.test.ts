@@ -3,6 +3,8 @@ import {
   buildApiKeyAddPlan,
   deduplicateApiKeysForSave,
   formatApiKey,
+  getProviderDefaultModel,
+  getProviderLabel,
   getNextPriority,
   removeApiKeyByPriority,
   reassignApiKeyPriorities,
@@ -22,6 +24,11 @@ const makeKey = (key: string, priority: number, selectedModel?: string): ApiKey 
 });
 
 describe('ai-api-keys-utils', () => {
+  it('labels DeepSeek and gives it a default model', () => {
+    expect(getProviderLabel('deepseek')).toBe('DeepSeek');
+    expect(getProviderDefaultModel('deepseek')).toBe('deepseek-chat');
+  });
+
   it('calculates the next priority from valid positive priorities', () => {
     expect(getNextPriority([makeKey('a', 2), makeKey('b', 5), makeKey('c', 0)])).toBe(6);
     expect(getNextPriority([])).toBe(1);

@@ -36,6 +36,21 @@ describe('ai-api-keys API helpers', () => {
     });
   });
 
+  it('loads DeepSeek as a selected provider', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({
+      apiKeys: [{ key: 'key-1', priority: 1, provider: 'deepseek' }],
+      selectedProvider: 'deepseek',
+      provider: 'deepseek',
+      totalKeys: 1,
+    })));
+
+    await expect(fetchAiApiKeys('deepseek')).resolves.toMatchObject({
+      apiKeys: [{ key: 'key-1', priority: 1, provider: 'deepseek' }],
+      selectedProvider: 'deepseek',
+      stats: { provider: 'deepseek', selectedProvider: 'deepseek' },
+    });
+  });
+
   it('rejects invalid API key list responses', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ apiKeys: null })));
 

@@ -1,8 +1,7 @@
-// Service Worker for FitScan PWA
-// v2.1.1: Force stale service worker/cache cleanup after chunk loading failures
-const CACHE_NAME = 'fitscan-v2.1.1';
+// Service Worker for application PWA
+// v2.1.2: Avoid caching app HTML so deploys cannot keep stale Next.js chunk references.
+const CACHE_NAME = 'app-v2.1.2';
 const urlsToCache = [
-  '/',
   '/api/manifest.json',
 ];
 
@@ -110,44 +109,18 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   
-  // For navigation requests (page loads), use network-first strategy
-  // This ensures the app always works when online, and falls back to cache when offline
+  // Always fetch navigations from the network. Cached HTML can point at old
+  // Next.js assets after a deploy and trigger MIME/chunk loading errors.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then((networkResponse) => {
-          // If network request succeeds, cache it and return it
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache).catch((error) => {
-                console.warn('Service Worker: Failed to cache navigation response:', error);
-              });
-            });
-          }
-          return networkResponse;
-        })
         .catch((error) => {
-          console.log('Service Worker: Network failed for navigation, trying cache:', error);
-          // Network failed, try cache
-          return caches.match(request)
-            .then((cachedResponse) => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              // If no cached version of this specific route, try index page
-              return caches.match('/').then((indexResponse) => {
-                if (indexResponse) {
-                  return indexResponse;
-                }
-                // Last resort: return a basic offline page
-                return new Response('Offline - Please check your connection', {
-                  status: 503,
-                  statusText: 'Service Unavailable',
-                  headers: { 'Content-Type': 'text/html; charset=utf-8' }
-                });
-              });
-            });
+          console.log('Service Worker: Network failed for navigation:', error);
+          return new Response('Offline - Please check your connection', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+          });
         })
     );
     return;

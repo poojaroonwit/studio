@@ -1,4 +1,4 @@
-export type AiProvider = 'gemini' | 'openai';
+export type AiProvider = 'gemini' | 'openai' | 'deepseek';
 
 export interface AiModelInfo {
   name: string;

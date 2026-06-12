@@ -86,6 +86,32 @@ describe('aiProvider', () => {
     )).resolves.toBe('First\nSecond');
   });
 
+  it('generates DeepSeek text through the OpenAI-compatible API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response({
+      choices: [{ message: { content: 'DeepSeek done' } }],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(generateTextWithProvider(
+      'deepseek',
+      'api-key',
+      'deepseek-chat',
+      'Hello',
+      { maxOutputTokens: 20 }
+    )).resolves.toBe('DeepSeek done');
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.deepseek.com/chat/completions', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer api-key',
+      }),
+    }));
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      model: 'deepseek-chat',
+      max_tokens: 20,
+    });
+  });
+
   it('filters and normalizes provider model lists', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(response({
@@ -107,6 +133,12 @@ describe('aiProvider', () => {
           { id: 'gpt-4o-mini' },
           { id: 'gpt-4o-audio' },
           { id: 'o3' },
+        ],
+      }))
+      .mockResolvedValueOnce(response({
+        data: [
+          { id: 'deepseek-chat' },
+          { id: 'gpt-4o-mini' },
         ],
       })));
 
@@ -130,6 +162,15 @@ describe('aiProvider', () => {
         name: 'o3',
         displayName: 'o3',
         description: 'OpenAI text generation model',
+        supportedGenerationMethods: ['chat.completions'],
+      },
+    ]);
+
+    await expect(getAvailableModels('deepseek', 'deepseek-key-for-list')).resolves.toEqual([
+      {
+        name: 'deepseek-chat',
+        displayName: 'deepseek-chat',
+        description: 'DeepSeek text generation model',
         supportedGenerationMethods: ['chat.completions'],
       },
     ]);

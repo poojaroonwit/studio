@@ -1,4 +1,5 @@
 import type { AiModelInfo, AiProvider } from './aiProvider-types';
+import { fetchDeepSeekModels } from './aiProvider-deepseek';
 import { fetchGeminiModels } from './aiProvider-gemini';
 import { fetchOpenAiModels } from './aiProvider-openai';
 import { getDefaultModelFallback, normalizeModelName } from './aiProvider-settings';
@@ -15,7 +16,9 @@ export async function getAvailableModels(provider: AiProvider, apiKey: string): 
 
   const models = provider === 'openai'
     ? await fetchOpenAiModels(apiKey)
-    : await fetchGeminiModels(apiKey);
+    : provider === 'deepseek'
+      ? await fetchDeepSeekModels(apiKey)
+      : await fetchGeminiModels(apiKey);
 
   modelCache.set(cacheKey, {
     timestamp: Date.now(),

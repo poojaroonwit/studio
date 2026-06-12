@@ -12,7 +12,7 @@ export const reorderApiKeysSchema = z.object({
     priority: z.number().positive(),
     selectedModel: z.string().optional(),
   })),
-  provider: z.enum(["gemini", "openai"]).optional(),
+  provider: z.enum(["gemini", "openai", "deepseek"]).optional(),
 });
 
 export type ReorderApiKeysInput = z.infer<typeof reorderApiKeysSchema>;
@@ -26,7 +26,11 @@ export function toReorderApiKeysError(error: unknown): ReorderApiKeysError {
 }
 
 function getReorderProvider(input: ReorderApiKeysInput): AiProvider {
-  return input.provider === "openai" ? "openai" : "gemini";
+  if (input.provider === "openai" || input.provider === "deepseek") {
+    return input.provider;
+  }
+
+  return "gemini";
 }
 
 function getDuplicatePriorityResponse(input: ReorderApiKeysInput) {

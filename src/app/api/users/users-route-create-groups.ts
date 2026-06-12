@@ -14,7 +14,7 @@ export const ROLE_TO_GROUP_ID: Record<UserRole, string> = {
 };
 
 export async function resolveCreateUserRoleAndGroups(input: CreateUserInput, session: Session) {
-  let finalRole: UserRole = input.role || 'Recruiter';
+  let finalRole: UserRole = normalizeCreateUserRole(input.role);
   let finalUserGroupIds = input.userGroupIds;
 
   if (input.role) {
@@ -37,6 +37,14 @@ export async function resolveCreateUserRoleAndGroups(input: CreateUserInput, ses
   );
 
   return { finalRole, finalUserGroupIds };
+}
+
+function normalizeCreateUserRole(role?: string): UserRole {
+  if (role === 'Admin' || role === 'Recruiter' || role === 'Hiring Manager') {
+    return role;
+  }
+
+  return 'Recruiter';
 }
 
 export async function resolveTargetUserGroupId(

@@ -41,6 +41,7 @@ export function AiApiKeysAddSection({
             <SelectContent>
               <SelectItem value="gemini">Google Gemini</SelectItem>
               <SelectItem value="openai">OpenAI</SelectItem>
+              <SelectItem value="deepseek">DeepSeek</SelectItem>
             </SelectContent>
           </Select>
         </div>

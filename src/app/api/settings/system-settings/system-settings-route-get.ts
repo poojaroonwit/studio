@@ -15,9 +15,10 @@ type SystemSettingQueryRow = SystemSettingRow & {
 
 type SystemSettingsPool = ReturnType<typeof getPool>;
 
-export async function handleGetSystemSettings() {
+export async function handleGetSystemSettings(searchParams?: URLSearchParams) {
   try {
     const pool = getPool();
+    const requestedKeys = parseRequestedKeys(searchParams);
     let settings = await fetchSystemSettingsRows(pool);
     const settingsToInsert = getMissingEnvironmentSettings(
       Array.isArray(settings) ? settings : [],
@@ -36,7 +37,7 @@ export async function handleGetSystemSettings() {
     applyRuntimeEnvironmentFallbacks(settingsObj, GET_ENV_MAPPINGS);
     addAzureAdConfigurationStatus(settingsObj);
 
-    return NextResponse.json(settingsObj);
+    return NextResponse.json(filterSystemSettingsByKeys(settingsObj, requestedKeys));
   } catch (error) {
     console.error('[SYSTEM SETTINGS] Error fetching system settings:', error);
     return NextResponse.json(
@@ -44,6 +45,33 @@ export async function handleGetSystemSettings() {
       { status: 500 }
     );
   }
+}
+
+function parseRequestedKeys(searchParams?: URLSearchParams): string[] {
+  const keysParam = searchParams?.get('keys');
+  if (!keysParam) {
+    return [];
+  }
+
+  return keysParam
+    .split(',')
+    .map((key) => key.trim())
+    .filter(Boolean);
+}
+
+function filterSystemSettingsByKeys(
+  settings: SystemSettingsMap,
+  requestedKeys: string[]
+): SystemSettingsMap {
+  if (requestedKeys.length === 0) {
+    return settings;
+  }
+
+  return Object.fromEntries(
+    requestedKeys
+      .filter((key) => Object.prototype.hasOwnProperty.call(settings, key))
+      .map((key) => [key, settings[key]])
+  );
 }
 
 async function fetchSystemSettingsRows(pool: SystemSettingsPool): Promise<SystemSettingRow[]> {

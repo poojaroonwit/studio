@@ -10,7 +10,7 @@ import { handleUploadSystemSettingsImage } from './system-settings-route-upload'
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  return handleGetSystemSettings();
+  return handleGetSystemSettings(request.nextUrl.searchParams);
 }
 
 export async function POST(request: NextRequest) {
@@ -43,4 +43,3 @@ export async function PUT(request: NextRequest) {
 
   return handleUploadSystemSettingsImage(request);
 }
-

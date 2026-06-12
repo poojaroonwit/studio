@@ -39,7 +39,7 @@ export function SystemStatusPageView({ page }: { page: SystemStatusPageModel }) 
           {page.statuses.map((item) => (
             <SystemStatusCard
               key={item.id}
-              canCheckMinioBucket={page.canCheckMinioBucket}
+              canCheckStorageBucket={page.canCheckStorageBucket}
               item={item}
             />
           ))}
@@ -50,14 +50,14 @@ export function SystemStatusPageView({ page }: { page: SystemStatusPageModel }) 
 }
 
 function SystemStatusCard({
-  canCheckMinioBucket,
+  canCheckStorageBucket,
   item,
 }: {
-  canCheckMinioBucket: boolean;
+  canCheckStorageBucket: boolean;
   item: StatusItem;
 }) {
   const Icon = item.icon;
-  const minioActionDisabled = item.id === 'minio_bucket_check' && !canCheckMinioBucket;
+  const storageActionDisabled = item.id === 'storage_bucket_check' && !canCheckStorageBucket;
 
   return (
     <Card className="p-4 shadow-sm bg-card hover:shadow-md transition-shadow">
@@ -86,7 +86,7 @@ function SystemStatusCard({
         <div className="mt-3 ml-7 sm:ml-0">
           <Button
             onClick={item.action}
-            disabled={item.isLoading || minioActionDisabled}
+            disabled={item.isLoading || storageActionDisabled}
             variant="outline"
             size="sm"
             className={cn(
@@ -98,7 +98,7 @@ function SystemStatusCard({
             {getSystemStatusActionIcon(item)}
             {item.isLoading ? "Processing..." : item.actionLabel}
           </Button>
-          {minioActionDisabled && (
+          {storageActionDisabled && (
             <p className="text-xs text-destructive mt-1">Admin role or SYSTEM_SETTINGS_VIEW permission required to perform this check.</p>
           )}
         </div>
@@ -116,7 +116,7 @@ function getSystemStatusActionIcon(item: StatusItem) {
     return getSystemStatusToggleIcon(item.status);
   }
 
-  if (item.id === 'minio_bucket_check') {
+  if (item.id === 'storage_bucket_check') {
     return <HardDrive className="mr-2 h-4 w-4" />;
   }
 

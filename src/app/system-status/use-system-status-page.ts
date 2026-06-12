@@ -8,7 +8,7 @@ import {
   canCheckSystemStatus,
   updateSystemStatusItem,
 } from './system-status-utils';
-import { checkMinioBucketStatus } from './system-status-api';
+import { checkStorageBucketStatus } from './system-status-api';
 
 export function useSystemStatusPage() {
   const [isClient, setIsClient] = useState(false);
@@ -20,39 +20,39 @@ export function useSystemStatusPage() {
     setStatuses((prev) => updateSystemStatusItem(prev, id, updates));
   }, []);
 
-  const handleCheckMinioBucket = useCallback(async () => {
+  const handleCheckStorageBucket = useCallback(async () => {
     if (sessionStatus !== 'authenticated' || !canCheckSystemStatus(session?.user)) {
       toast.error('You must be an Admin or have SYSTEM_SETTINGS_VIEW permission to perform this check.');
       return;
     }
 
-    updateStatusItem('minio_bucket_check', { isLoading: true, status: 'checking' });
+    updateStatusItem('storage_bucket_check', { isLoading: true, status: 'checking' });
 
     try {
-      const result = await checkMinioBucketStatus();
+      const result = await checkStorageBucketStatus();
 
       if (!result.ok) {
         if (result.isUnauthorized) {
           signIn(undefined, { callbackUrl: window.location.pathname });
-          updateStatusItem('minio_bucket_check', { isLoading: false, status: 'error', message: 'Unauthorized to check bucket.' });
+          updateStatusItem('storage_bucket_check', { isLoading: false, status: 'error', message: 'Unauthorized to check bucket.' });
           return;
         }
 
-        updateStatusItem('minio_bucket_check', { status: 'error', message: result.message, isLoading: false });
+        updateStatusItem('storage_bucket_check', { status: 'error', message: result.message, isLoading: false });
         toast.error(result.message || 'Could not verify bucket status.');
         return;
       }
 
-      updateStatusItem('minio_bucket_check', {
+      updateStatusItem('storage_bucket_check', {
         status: result.status,
         message: result.message,
         isLoading: false,
       });
       toast.success(result.message);
     } catch (error) {
-      console.error('Error during MinIO bucket check:', error);
+      console.error('Error during storage bucket check:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      updateStatusItem('minio_bucket_check', { status: 'error', message: `API Error: ${errorMessage}`, isLoading: false });
+      updateStatusItem('storage_bucket_check', { status: 'error', message: `API Error: ${errorMessage}`, isLoading: false });
       toast.error(`Could not connect to API: ${errorMessage}`);
     }
   }, [session, sessionStatus, updateStatusItem]);
@@ -84,8 +84,8 @@ export function useSystemStatusPage() {
 
   useEffect(() => {
     setStatuses((prev) => prev.map((item) => {
-      if (item.id === 'minio_bucket_check') {
-        return { ...item, action: handleCheckMinioBucket };
+      if (item.id === 'storage_bucket_check') {
+        return { ...item, action: handleCheckStorageBucket };
       }
 
       if (item.id === 'azure_ad_sso_conceptual') {
@@ -94,14 +94,14 @@ export function useSystemStatusPage() {
 
       return item;
     }));
-  }, [handleCheckMinioBucket, handleToggleAzureAdSsoConceptual]);
+  }, [handleCheckStorageBucket, handleToggleAzureAdSsoConceptual]);
 
   const isLoading = sessionStatus === 'loading'
     || (sessionStatus === 'unauthenticated' && currentPath !== '/auth/signin' && !currentPath.startsWith('/_next/'))
     || !isClient;
 
   return {
-    canCheckMinioBucket: canCheckSystemStatus(session?.user),
+    canCheckStorageBucket: canCheckSystemStatus(session?.user),
     isLoading,
     statuses,
   };

@@ -27,15 +27,15 @@ export const SYSTEM_STATUS_INITIAL_ITEMS: StatusItem[] = [
     icon: ListChecks,
   },
   {
-    id: "minio_connection",
+    id: "storage_connection",
     name: "Object Storage Connection",
     status: 'info',
     message: "Expected: Connected. Status verified by application server logs at startup.",
-    details: "The Next.js application connects through the S3-compatible storage client in `src/lib/minio.ts`. Check server logs for storage connection errors. Prefer STORAGE_ENDPOINT, STORAGE_ACCESS_KEY_ID, STORAGE_SECRET_ACCESS_KEY, and STORAGE_BUCKET; legacy MINIO_* names still work.",
+    details: "The Next.js application connects through the S3-compatible storage client. Check server logs for storage connection errors. Configure STORAGE_ENDPOINT, STORAGE_ACCESS_KEY_ID, STORAGE_SECRET_ACCESS_KEY, and STORAGE_BUCKET.",
     icon: HardDrive,
   },
   {
-    id: "minio_bucket_check",
+    id: "storage_bucket_check",
     name: "Object Storage Bucket",
     status: 'info',
     message: "Expected: Created. Application attempts auto-creation. Click to verify.",

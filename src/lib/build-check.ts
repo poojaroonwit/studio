@@ -2,6 +2,8 @@
  * Utility functions to handle build-time vs runtime environment differences
  */
 
+import { buildStorageConfig, DEFAULT_STORAGE_BUCKET, DEFAULT_STORAGE_ENDPOINT } from './storage-config';
+
 export const isBuildTime = () => {
   // Check if we're in a build context
   // During Docker build, DATABASE_URL is set to a dummy value
@@ -29,13 +31,10 @@ export const isRuntime = () => {
 export const getBuildSafeConfig = () => {
   if (isBuildTime()) {
     return {
-      minio: {
-        endPoint: 'localhost',
-        port: '9000',
-        bucket: 'uploads',
-        useSSL: false,
-        accessKey: process.env.MINIO_ACCESS_KEY || 'minio_build_dummy_access',
-        secretKey: process.env.MINIO_SECRET_KEY || 'minio_build_dummy_secret'
+      storage: {
+        endpoint: DEFAULT_STORAGE_ENDPOINT,
+        bucket: DEFAULT_STORAGE_BUCKET,
+        accessKeyConfigured: Boolean(process.env.STORAGE_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ACCESS_KEY),
       },
       redis: {
         url: 'redis://redis:6379'
@@ -46,14 +45,14 @@ export const getBuildSafeConfig = () => {
     };
   }
 
+  const storage = buildStorageConfig();
+
   return {
-    minio: {
-      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-      port: process.env.MINIO_PORT || '9000',
-      bucket: process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'uploads',
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY || '',
-      secretKey: process.env.MINIO_SECRET_KEY || ''
+    storage: {
+      endpoint: `${storage.useSSL ? 'https' : 'http'}://${storage.endPoint}:${storage.port}`,
+      bucket: storage.bucket,
+      provider: storage.provider,
+      accessKeyConfigured: Boolean(storage.accessKey),
     },
     redis: {
       url: process.env.REDIS_URL || 'redis://redis:6379'

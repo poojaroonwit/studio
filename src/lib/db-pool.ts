@@ -9,8 +9,10 @@ process.env.PG_NATIVE = 'false';
 const OLD_CONNECTION_IDLE_MS = 5 * 60 * 1000;
 const EMERGENCY_IDLE_MS = 2 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 60_000;
-const DEFAULT_MAX_CONNECTIONS_FOR_STATS = 90;
 const DEFAULT_POOL_MAX_CONNECTIONS = 50;
+const DEFAULT_IDLE_TIMEOUT_MS = 10_000;
+const DEFAULT_CONNECTION_TIMEOUT_MS = 300_000;
+const DEFAULT_STATEMENT_TIMEOUT_MS = 120_000;
 
 let pool: Pool | null = null;
 let poolMonitorInterval: NodeJS.Timeout | null = null;
@@ -137,45 +139,26 @@ async function releaseIdleClients(activePool: Pool, idleCount: number) {
 
 function buildConnectionUsageStats(activePool: Pool): ConnectionUsageStats {
   const { totalCount, idleCount, waitingCount } = activePool;
-  const maxConnections = readNumberEnv(
-    'DATABASE_MAX_CONNECTIONS',
-    DEFAULT_MAX_CONNECTIONS_FOR_STATS,
-  );
 
   return {
     totalCount,
     activeCount: totalCount - idleCount,
     idleCount,
     waitingCount,
-    usagePercent: Math.round((totalCount / maxConnections) * 100),
-    maxConnections,
+    usagePercent: Math.round((totalCount / DEFAULT_POOL_MAX_CONNECTIONS) * 100),
+    maxConnections: DEFAULT_POOL_MAX_CONNECTIONS,
   };
 }
 
 function buildPoolConfig(databaseUrl: string): PoolConfig {
   return {
     connectionString: databaseUrl,
-    ssl:
-      process.env.DATABASE_SSL === 'true'
-        ? {
-            rejectUnauthorized:
-              process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
-          }
-        : false,
-    max: readNumberEnv('DATABASE_MAX_CONNECTIONS', DEFAULT_POOL_MAX_CONNECTIONS),
-    idleTimeoutMillis: readNumberEnv('DATABASE_IDLE_TIMEOUT', 10_000),
-    connectionTimeoutMillis: readNumberEnv(
-      'DATABASE_CONNECTION_TIMEOUT',
-      300_000,
-    ),
-    statement_timeout: readNumberEnv('DATABASE_STATEMENT_TIMEOUT', 120_000),
+    max: DEFAULT_POOL_MAX_CONNECTIONS,
+    idleTimeoutMillis: DEFAULT_IDLE_TIMEOUT_MS,
+    connectionTimeoutMillis: DEFAULT_CONNECTION_TIMEOUT_MS,
+    statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS,
     allowExitOnIdle: true,
   };
-}
-
-function readNumberEnv(name: string, fallback: number) {
-  const parsed = Number.parseInt(process.env[name] ?? '', 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
 }
 
 function startPoolMonitoring() {

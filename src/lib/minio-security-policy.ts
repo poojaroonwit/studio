@@ -1,5 +1,7 @@
 import type { Client as Minio } from 'minio';
 
+import { buildStorageConfig } from './storage-config';
+
 export function buildPrivateBucketPolicy(bucket: string) {
   return {
     Version: '2012-10-17',
@@ -11,7 +13,7 @@ export function buildPrivateBucketPolicy(bucket: string) {
         Resource: [`arn:aws:s3:::${bucket}/*`],
         Condition: {
           StringNotEquals: {
-            'aws:userid': process.env.MINIO_ACCESS_KEY,
+            'aws:userid': buildStorageConfig().accessKey,
           },
         },
       },

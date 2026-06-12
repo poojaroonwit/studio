@@ -24,6 +24,28 @@ describe('minio-config', () => {
     });
   }, 15000);
 
+  it('builds S3-compatible storage config from generic bucket settings', async () => {
+    vi.stubEnv('STORAGE_ENDPOINT', 'https://s3.railway.app');
+    vi.stubEnv('STORAGE_BUCKET', 'candidate-files');
+    vi.stubEnv('STORAGE_ACCESS_KEY_ID', 'storage-access');
+    vi.stubEnv('STORAGE_SECRET_ACCESS_KEY', 'storage-secret');
+    vi.stubEnv('STORAGE_PUBLIC_BASE_URL', 'https://files.example.com');
+    vi.stubEnv('STORAGE_PROVIDER', 'railway-s3');
+    const { buildStorageConfig } = await import('./storage-config');
+
+    expect(buildStorageConfig()).toEqual({
+      accessKey: 'storage-access',
+      bucket: 'candidate-files',
+      endPoint: 's3.railway.app',
+      port: 443,
+      provider: 'railway-s3',
+      publicBaseUrl: 'https://files.example.com',
+      secretKey: 'storage-secret',
+      signedUrlsInWebhooks: false,
+      useSSL: true,
+    });
+  }, 15000);
+
   it('detects production build phase and formats skipped results', async () => {
     vi.stubEnv('NEXT_PHASE', 'phase-production-build');
     vi.stubEnv('MINIO_BUCKET_NAME', 'candidate-files');

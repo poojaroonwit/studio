@@ -1,18 +1,21 @@
 import { Client as Minio } from 'minio';
 
+import { buildStorageConfig } from './storage-config';
+
 export function buildSecureFileStreamUrl(objectName: string, expiresIn: number) {
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021';
   return `${baseUrl}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}&expiresIn=${expiresIn}`;
 }
 
-function createPublicMinioClient(publicBaseUrl: string) {
+function createPublicStorageClient(publicBaseUrl: string) {
+  const storageConfig = buildStorageConfig();
   const publicUrl = new URL(publicBaseUrl);
   return new Minio({
     endPoint: publicUrl.hostname,
     port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
     useSSL: publicUrl.protocol === 'https:',
-    accessKey: process.env.MINIO_ACCESS_KEY || '',
-    secretKey: process.env.MINIO_SECRET_KEY || '',
+    accessKey: storageConfig.accessKey,
+    secretKey: storageConfig.secretKey,
   });
 }
 
@@ -27,13 +30,14 @@ export async function getMinioObjectUrl({
   expiresIn: number;
   objectName: string;
 }) {
-  if (process.env.USE_SIGNED_URLS_IN_WEBHOOKS !== 'true') {
+  const storageConfig = buildStorageConfig();
+
+  if (!storageConfig.signedUrlsInWebhooks) {
     return buildSecureFileStreamUrl(objectName, expiresIn);
   }
 
-  const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
-  if (publicBase) {
-    return createPublicMinioClient(publicBase).presignedGetObject(bucket, objectName, expiresIn);
+  if (storageConfig.publicBaseUrl) {
+    return createPublicStorageClient(storageConfig.publicBaseUrl).presignedGetObject(bucket, objectName, expiresIn);
   }
 
   return defaultClient.presignedGetObject(bucket, objectName, expiresIn);

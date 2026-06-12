@@ -10,7 +10,6 @@ afterEach(() => {
 
 describe('single connection config', () => {
   it('builds a single-client pool config with default timeouts', () => {
-    delete process.env.DATABASE_SSL;
     const config = buildSingleConnectionPoolConfig('postgres://example');
 
     expect(config).toMatchObject({
@@ -20,12 +19,11 @@ describe('single connection config', () => {
       idleTimeoutMillis: 5000,
       max: 1,
       native: false,
-      ssl: false,
       statement_timeout: 180000,
     });
   });
 
-  it('honors SSL and timeout environment overrides', () => {
+  it('keeps database tuning in code instead of separate environment variables', () => {
     process.env.DATABASE_SSL = 'true';
     process.env.DATABASE_SSL_REJECT_UNAUTHORIZED = 'false';
     process.env.DATABASE_IDLE_TIMEOUT = '100';
@@ -33,10 +31,11 @@ describe('single connection config', () => {
     process.env.DATABASE_STATEMENT_TIMEOUT = '300';
 
     expect(buildSingleConnectionPoolConfig('postgres://example')).toMatchObject({
-      connectionTimeoutMillis: 200,
-      idleTimeoutMillis: 100,
-      ssl: { rejectUnauthorized: false },
-      statement_timeout: 300,
+      connectionString: 'postgres://example',
+      connectionTimeoutMillis: 600000,
+      idleTimeoutMillis: 5000,
+      max: 1,
+      statement_timeout: 180000,
     });
   });
 });

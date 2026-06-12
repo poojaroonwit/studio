@@ -19,6 +19,29 @@ import { ScreenCaptureProtection } from '@/components/security/ScreenCaptureProt
 import { PageTransition } from '@/components/ui/PageTransition';
 import { themeInitializerScript } from './theme-initializer-script';
 
+function getMetadataBaseUrl() {
+  const configuredUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL;
+
+  if (configuredUrl) {
+    try {
+      return new URL(configuredUrl);
+    } catch (error) {
+      console.error('[ROOT LAYOUT] Invalid NEXTAUTH_URL/AUTH_URL:', error);
+    }
+  }
+
+  return new URL('http://localhost:3000');
+}
+
+async function getRootLayoutSession() {
+  try {
+    return await auth();
+  } catch (error) {
+    console.error('[ROOT LAYOUT] Failed to resolve auth session:', error);
+    return null;
+  }
+}
+
 const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -51,7 +74,7 @@ export const metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
+  metadataBase: getMetadataBaseUrl(),
   openGraph: {
     title: 'FitScan - AI-Powered Recruitment Platform',
     description: 'Advanced AI-powered recruitment and Applicant management platform',
@@ -97,7 +120,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const fastDev = process.env.NEXT_PUBLIC_FAST_DEV === 'true';
-  const session = fastDev ? null : await auth();
+  const session = fastDev ? null : await getRootLayoutSession();
 
   return (
     <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${ibmPlexSansThai.variable}`}>

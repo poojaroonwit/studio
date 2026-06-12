@@ -50,31 +50,43 @@ export function applyHeaderBrandingToCSS() {
     // Set text color variable
     root.style.setProperty('--header-foreground', `hsl(${textColor})`);
 
-    // Set background variable
+    root.style.removeProperty('--header-background-image');
+
+    // Set background variables
     let background = 'white';
+    let surface = 'hsl(0 0% 100% / 0.78)';
+    let backgroundImage = 'none';
     
     switch (type) {
       case 'solid':
         background = `hsl(${color})`;
+        surface = `hsl(${color} / 0.78)`;
         break;
       case 'gradient':
         if (gradient) {
           background = gradient;
+          backgroundImage = gradient;
         } else {
           background = 'linear-gradient(135deg, hsl(179 67% 66%) 0%, hsl(238 74% 61%) 100%)';
+          backgroundImage = background;
         }
+        surface = 'hsl(0 0% 100% / 0.70)';
         break;
       case 'image':
         if (imageUrl) {
           const cacheBustedUrl = addCacheBuster(imageUrl, true);
           background = `url(${cacheBustedUrl})`;
+          backgroundImage = background;
         } else {
           background = `hsl(${color})`;
+          surface = `hsl(${color} / 0.78)`;
         }
         break;
     }
 
     root.style.setProperty('--header-background', background);
+    root.style.setProperty('--header-surface', surface);
+    root.style.setProperty('--header-background-image', backgroundImage);
     
     // Notify components that branding has changed
     window.dispatchEvent(new CustomEvent('headerBrandingChanged'));

@@ -97,11 +97,12 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky z-50 h-16 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-black/40 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between transition-all duration-300",
+          "sticky z-50 h-16 shrink-0 border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-zinc-950/70 bg-clip-padding bg-cover bg-center px-4 lg:px-8 flex items-center justify-between shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl backdrop-saturate-150 transition-[background-color,box-shadow,border-color] duration-300 supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-zinc-950/55",
           (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) ? "top-8" : "top-0"
         )}
         style={{
-          background: "var(--header-background)",
+          backgroundColor: "var(--header-surface)",
+          backgroundImage: "var(--header-background-image, none)",
           color: "var(--header-foreground)",
         }}
       >

@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { isValidProcessorApiKey } from '@/lib/processor-auth';
 
 export function requireProcessAllApiKey(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
 
-  if (apiKey === process.env.PROCESSOR_API_KEY) {
+  if (isValidProcessorApiKey(apiKey)) {
     return { ok: true as const };
   }
 

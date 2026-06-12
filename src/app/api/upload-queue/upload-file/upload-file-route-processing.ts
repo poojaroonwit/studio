@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 
 import { getPool } from '@/lib/db';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
+import { getProcessorApiKey } from '@/lib/processor-auth';
 import type { UploadResult } from './upload-file-route-types';
 import { processFileUpload } from './upload-file-route-storage';
 import type { ParsedUploadRequest } from './upload-file-route-request';
@@ -55,11 +56,12 @@ export async function broadcastUploadQueueChange(): Promise<void> {
 
 export async function triggerUploadQueueProcessing(request: NextRequest): Promise<void> {
   const processUrl = process.env.UPLOAD_QUEUE_PROCESS_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+  const processorApiKey = getProcessorApiKey();
 
   fetch(processUrl, {
     method: 'POST',
     headers: {
-      'x-api-key': process.env.PROCESSOR_API_KEY || '',
+      'x-api-key': processorApiKey || '',
     },
   }).catch((autoProcessError) => {
     console.error('[UPLOAD] Failed to auto-trigger upload queue processing:', autoProcessError);

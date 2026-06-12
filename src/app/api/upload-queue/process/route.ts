@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getSafeDbClient } from '@/lib/db';
+import { isValidProcessorApiKey } from '@/lib/processor-auth';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { claimNextUploadQueueJob } from './upload-queue-process-claim';
 import { processClaimedUploadQueueJob } from './upload-queue-process-runner';
@@ -32,7 +33,7 @@ function getErrorStack(error: unknown): string | undefined {
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
 
-  if (apiKey !== process.env.PROCESSOR_API_KEY) {
+  if (!isValidProcessorApiKey(apiKey)) {
     console.warn('Unauthorized attempt to process upload queue with invalid API key', {
       providedKey: apiKey ? 'present' : 'missing',
     });

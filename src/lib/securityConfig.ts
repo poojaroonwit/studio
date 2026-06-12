@@ -96,7 +96,7 @@ export const securityConfig = {
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://fonts.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:", "http://localhost:9001", "https://placehold.co", "https://dev-s3-cv-screening.qsncc.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http://localhost:9001", "https://placehold.co"],
       connectSrc: ["'self'", "http://localhost:9001"],
       frameAncestors: ["'self'"],
       baseUri: ["'self'"],

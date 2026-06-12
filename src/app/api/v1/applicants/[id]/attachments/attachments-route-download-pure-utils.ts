@@ -28,9 +28,6 @@ export function isBlockedAttachmentDownloadHost(hostname: string) {
 
 export function isAllowedAttachmentDownloadDomain(hostname: string, currentOrigin: string, allowedDomains: string[]) {
   const normalizedHostname = hostname.toLowerCase();
-  const isQsnccDomain = normalizedHostname === 'qsncc.com' || normalizedHostname.endsWith('.qsncc.com');
-  if (isQsnccDomain) return true;
-
   const isSameOrigin = normalizedHostname === currentOrigin || normalizedHostname.endsWith(`.${currentOrigin}`);
   const isAllowedDomain = allowedDomains.some(domain => normalizedHostname === domain || normalizedHostname.endsWith(`.${domain}`));
 

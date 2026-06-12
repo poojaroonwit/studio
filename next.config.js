@@ -125,7 +125,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             // SECURITY NOTE: 'unsafe-inline' and 'unsafe-eval' are required for Next.js
             // and some third-party libraries. Consider using nonces or hashes in the future.
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http://localhost:9001 https://placehold.co https://dev-s3-cv-screening.qsncc.com; connect-src 'self' http://localhost:9001; frame-ancestors 'self' https://uat-ncc-cv-screening.qsncc.com; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http://localhost:9001 https://placehold.co https://storage.example.com; connect-src 'self' http://localhost:9001; frame-ancestors 'self' https://your-app.example.com; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
           },
           {
             key: 'Cross-Origin-Embedder-Policy',

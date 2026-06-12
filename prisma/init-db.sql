@@ -1,12 +1,12 @@
 -- Initialize FitScan database with default data
 -- This script works with the postgres user and studio_production database
 
--- Create default admin user (password: nccadmin)
+-- Create default admin user. Prefer prisma/seed.ts for new deployments.
 INSERT INTO "User" (id, name, email, password, role, "authentication_methods", "force_password_change", "createdAt", "updatedAt") 
 VALUES (
   gen_random_uuid(),
   'Admin User',
-  'admin@ncc.com',
+  'admin@example.com',
   '$2a$10$dwiCxbUtCqnXeB2O8BmiyeWHL0e7rOqahafQAUACsnD4EZ9nGqPx2',
   'Admin',
   ARRAY['basic'],
@@ -45,7 +45,7 @@ ON CONFLICT (id) DO NOTHING;
 UPDATE "User"
 SET "userGroupId" = '00000000-0000-0000-0000-000000000001',
     "updatedAt" = NOW()
-WHERE email = 'admin@ncc.com'
+WHERE email = 'admin@example.com'
   AND ("userGroupId" IS NULL OR "userGroupId" <> '00000000-0000-0000-0000-000000000001');
 
  

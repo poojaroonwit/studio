@@ -24,7 +24,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/upload-queue/process-all",
+        "url": "https://your-app.example.com/api/upload-queue/process-all",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}

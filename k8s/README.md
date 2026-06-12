@@ -1,33 +1,33 @@
-# Kubernetes Deployment for FitScan
+# Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying the FitScan application.
+This directory contains Kubernetes manifests for deploying the application.
 
 ## Namespace
 
-All resources are deployed to the `ba-fitscan` namespace.
+All resources are deployed to the namespace configured in `00-namespace.yaml`.
 
 ## Common Labels
 
 All resources use the following labels:
-- `app.kubernetes.io/name: fitscan`
+- `app.kubernetes.io/name: app`
 - `app.kubernetes.io/version: "1.2.3"`
 - `app.kubernetes.io/component: application`
-- `app.kubernetes.io/part-of: fitscan-stack`
+- `app.kubernetes.io/part-of: app-stack`
 
 ## Deployment Files
 
 ### Core Resources (Apply in order)
 
-1. **00-namespace.yaml** - Creates the `ba-fitscan` namespace
-2. **01-configmap.yaml** - Application configuration (database, MinIO settings)
-3. **02-secrets.yaml** - Sensitive data (database credentials, API keys, MinIO credentials)
+1. **00-namespace.yaml** - Creates the application namespace
+2. **01-configmap.yaml** - Application configuration
+3. **02-secrets.yaml** - Sensitive data such as database, API, and storage credentials
 4. **03-fitscan-app.yaml** - Main application deployment containing:
-   - Deployment (fitscan-app)
-   - Service (fitscan-app-service)
-   - ServiceAccount (fitscan-app)
-   - PodDisruptionBudget (fitscan-app-pdb)
-   - ResourceQuota (fitscan-resource-quota)
-   - LimitRange (fitscan-limit-range)
+   - Deployment
+   - Service
+   - ServiceAccount
+   - PodDisruptionBudget
+   - ResourceQuota
+   - LimitRange
 5. **05-ingress.yaml** - Ingress configuration for external access
 
 ## Deployment Instructions
@@ -37,7 +37,7 @@ All resources use the following labels:
 1. Ensure you have `kubectl` configured to access your Kubernetes cluster
 2. Update the following files with your actual values:
    - **02-secrets.yaml**: Replace all base64 encoded secrets with your actual credentials
-   - **01-configmap.yaml**: Update external database and MinIO hostnames
+   - **01-configmap.yaml**: Update external database and storage hostnames
    - **05-ingress.yaml**: Update domain names
 
 ### Deploy All Resources
@@ -64,16 +64,16 @@ Check the status of your deployments:
 
 ```bash
 # Check pods
-kubectl get pods -n ba-fitscan
+kubectl get pods -n <namespace>
 
 # Check services
-kubectl get svc -n ba-fitscan
+kubectl get svc -n <namespace>
 
 # Check ingress
-kubectl get ingress -n ba-fitscan
+kubectl get ingress -n <namespace>
 
 # Check HPA
-kubectl get hpa -n ba-fitscan
+kubectl get hpa -n <namespace>
 ```
 
 ## Configuration
@@ -83,7 +83,7 @@ kubectl get hpa -n ba-fitscan
 The application is configured to use external services:
 ### Image Configuration
 
-Default image: `nccgit.qsncc.com:5555/ba/fitscan:1.2.3`
+Set the container image to your own registry and tag before deploying.
 
 To use a different image tag, update the `image` field in:
 - `03-fitscan-app.yaml`
@@ -99,7 +99,7 @@ To use a different image tag, update the `image` field in:
 ## Scaling
 
 The application uses Horizontal Pod Autoscaler (HPA) settings within `03-fitscan-app.yaml` (if configured):
-- **fitscan-app**: 2-10 replicas
+- Application deployment: 2-10 replicas
 
 ## Troubleshooting
 
@@ -107,20 +107,20 @@ The application uses Horizontal Pod Autoscaler (HPA) settings within `03-fitscan
 
 ```bash
 # App logs
-kubectl logs -f deployment/fitscan-app -n ba-fitscan
+kubectl logs -f deployment/<deployment-name> -n <namespace>
 ```
 
 ### Check Resource Usage
 
 ```bash
-kubectl top pods -n ba-fitscan
+kubectl top pods -n <namespace>
 kubectl top nodes
 ```
 
 ### Describe Resources
 
 ```bash
-kubectl describe deployment fitscan-app -n ba-fitscan
+kubectl describe deployment <deployment-name> -n <namespace>
 ```
 
 ## Cleanup
@@ -134,6 +134,6 @@ kubectl delete -f k8s/
 Or delete the namespace (this will delete all resources):
 
 ```bash
-kubectl delete namespace ba-fitscan
+kubectl delete namespace <namespace>
 ```
 

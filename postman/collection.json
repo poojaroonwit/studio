@@ -6320,7 +6320,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ncc.com\",\n  \"password\": \"nccadmin\"\n}"
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"CHANGE_THIS_PASSWORD\"\n}"
             }
           },
           "event": [
@@ -11140,7 +11140,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ncc.com\",\n  \"password\": \"nccadmin\"\n}"
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"CHANGE_THIS_PASSWORD\"\n}"
             }
           },
           "event": [

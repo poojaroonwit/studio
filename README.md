@@ -1,335 +1,142 @@
-# FitScan - Enterprise Applicant Tracking System (ATS)
+# FitScan - Applicant Tracking System
 
-A comprehensive, enterprise-grade Applicant Tracking System built with modern web technologies, featuring advanced applicant management, AI-powered matching, automated workflows, and seamless integrations.
+FitScan is a modern Applicant Tracking System for applicant management, resume processing, job matching, interview workflows, analytics, and configurable automation.
 
-![Next.js](https://img.shields.io/badge/Next.js-15.5.9-black?style=for-the-badge&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
-![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
-![AI](https://img.shields.io/badge/AI-Powered-orange?style=for-the-badge&logo=google)
-
----
-
-## 🎯 Overview
-
-FitScan is a modern, scalable Applicant Tracking System designed to streamline recruitment processes through intelligent automation, comprehensive applicant management, and powerful analytics.
-
-### Key Value Propositions
-
-- **AI-Powered applicant Matching**: Intelligent job-applicant matching using Google Gemini API
-- **Real-time Collaboration**: Live updates and notifications via Server-Sent Events
-- **Enterprise Security**: Role-based access control with granular permissions
-- **Scalable Architecture**: Built on modern tech stack for high performance
-- **Comprehensive Analytics**: Detailed insights into recruitment performance
-- **Workflow Automation**: N8N integration for custom automation workflows
-
----
-
-## 🚀 Features
-
-### 📊 Dashboard & Analytics
-- Real-time metrics and KPIs
-- Recruitment pipeline visualization
-- Performance analytics and SLA tracking
-
-### 👥 applicant Management
-- Comprehensive profiles with custom fields
-- Resume upload, parsing, and version history
-- Stage tracking with Kanban board
-- AI-powered resume parsing and matching
-- Evaluation system with expertise skills and personality traits
-
-### 💼 Position Management
-- Job posting creation with rich text editor
-- Headcount and SLA tracking
-- Interviewer assignment and expertise skills configuration
-
-### 👤 User & Access Management
-- Role-Based Access Control (RBAC)
-- Azure AD SSO integration
-- Granular permissions and user groups
-
-### 📋 Task Management
-- Personal task board for recruiters
-- Kanban and list views with filtering
-
-### ⚙️ System Configuration
-- Custom fields and recruitment stages
-- Webhook integration and notifications
-- Theme customization and API documentation
-
----
-
-## 🛠️ Technology Stack
+## Stack
 
 | Layer | Technology |
-|-------|------------|
-| **Frontend** | Next.js 15.5.9, React 18, TypeScript, Tailwind CSS, ShadCN UI |
-| **Backend** | Next.js API Routes, Prisma 6.11.0, NextAuth.js |
-| **Database** | PostgreSQL 15 |
-| **Storage** | MinIO (S3 Compatible) |
-| **AI** | Google Gemini API (Direct) |
-| **Real-time** | Server-Sent Events (SSE) |
-| **Automation** | N8N Workflow Engine |
-| **DevOps** | Docker, PM2 |
+| --- | --- |
+| Frontend | Next.js 15, React 18, TypeScript, Tailwind CSS |
+| Backend | Next.js API Routes, Auth.js, Prisma |
+| Database | PostgreSQL |
+| Storage | S3-compatible object storage |
+| AI | Configurable AI/webhook integrations |
+| Real-time | Server-Sent Events |
+| Deployment | Docker |
 
----
+## Features
 
-## 🚀 Quick Start
+- Applicant profiles, resumes, comments, attachments, and stage tracking
+- Position and headcount management
+- Role-based access control with optional Azure AD SSO
+- AI-assisted resume parsing, evaluation, and job matching
+- Upload queue processing built into the app service
+- Runtime system settings for processing, prompts, branding, and integrations
+- Audit logs, notifications, dashboards, and SLA analytics
 
-### Docker Deployment (Recommended)
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd studio-1
-
-# Configure environment
 cp env.local.template .env.local
-
-# Deploy with Docker Compose
-docker-compose up -d
+docker compose up -d
 ```
 
-### Access Points
+The app runs on:
 
-| Service | URL | Default Credentials |
-|---------|-----|---------------------|
-| **Main App** | http://localhost:8021 | admin@ncc.com / nccadmin |
-| **MinIO Console** | http://localhost:9848 | CHANGE_ME_MINIO_ACCESS_KEY / CHANGE_ME_MINIO_SECRET_KEY |
-| **N8N Automation** | http://localhost:8921 | admin / admin |
-
-⚠️ **Security**: Change all default passwords immediately after first login.
-
----
-
-## 🔌 n8n Workflow Setup
-
-FitScan uses **n8n** for background processing and email automation. Follow these steps to set up the automation layer:
-
-### 1. Access n8n
-- Open the n8n console at [http://localhost:8921](http://localhost:8921).
-- Use default credentials: `admin` / `admin`.
-
-### 2. Import Workflows
-Import the following JSON files located in `docs/n8n workflows/`:
-1.  **FitScan [Inbound applicant].json**: Handles incoming resumes via Outlook.
-2.  **FitScan [Process applicant].json**: Orchestrates AI parsing and scoring.
-3.  **Fitscan [run process queue].json**: Scheduled task to process the background queue.
-
-### 3. Configure Credentials
-Inside n8n, go to **Credentials** and add:
-- **Google Gemini API**: Create a "Google Gemini(PaLM)" credential with your `GOOGLE_API_KEY`.
-- **Microsoft Outlook**: Create a "Microsoft Outlook OAuth2" credential to monitor your inbox.
-- **App API Token**: Create a "Header Auth" credential with:
-    - **Name**: `Authorization`
-    - **Value**: `Bearer <Your_System_API_Key>` (Generate this in Settings > API Keys).
-
-### 4. Outlook Folder Structure
-The **Inbound applicant** workflow expects specific folders in your Outlook account to categorize processing status.
-
-#### Example Folder Hierarchy:
-```mermaid
-graph TD
-    Inbox([Outlook Inbox])
-    Inbox --> Queue[Queue]
-    Queue --> Processing[Processing]
-    Processing --> Processed[Processed]
-    Processing --> ServerDown[Server down]
-    Processing --> Unknown[Unknow position]
-    Processing --> Other[Other]
+```text
+http://localhost:8021
 ```
 
-- **Queue**: Primary folder monitored for new incoming resumes.
-- **Processing**: Temporary folder for emails currently being parsed.
-- **Processed**: Successfully handled and uploaded applicants.
-- **Server down**: Fallback for when the FitScan API is unreachable.
-- **Unknow position**: For applicants where the AI cannot identify the applied position.
-- **Other**: For non-applicant or irrelevant emails.
+## Required Environment Variables
 
-### 5. Windmill Integration (HTML-to-PDF)
-The workflow integrates with a **Windmill** worker for high-fidelity HTML to PDF conversion:
-- **Actual Endpoint**: `https://ncc-windmill.qsncc.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf`
-- **Method**: `POST`
-- **Purpose**: Converts HTML-only applicant profiles (e.g., from JobBKK) into standardized PDFs for AI parsing.
-- **Configuration**: Ensure the `HTML to PDF` node in n8n has the correct Bearer token for the Windmill API.
+For a basic deployment, configure:
 
-### 6. Activate Workflows
-- Open each imported workflow.
-- Ensure all nodes are correctly linked to your credentials.
-- Click **"Active"** toggle in the top-right corner.
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+NEXTAUTH_SECRET=generate-a-secure-secret
+NEXTAUTH_URL=https://your-app.example.com
 
----
+STORAGE_PROVIDER=s3-compatible
+STORAGE_ENDPOINT=https://your-storage-endpoint
+STORAGE_ACCESS_KEY_ID=your-storage-access-key
+STORAGE_SECRET_ACCESS_KEY=your-storage-secret-key
+STORAGE_BUCKET=your-bucket-name
+STORAGE_PUBLIC_BASE_URL=https://your-storage-public-base-url
+```
 
-## 📚 Documentation
+For the initial admin account, set these before the first seed:
 
-Detailed documentation is available in the `docs/` directory:
+```env
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your-secure-password
+```
 
-### 🗂 Documentation Index
+If `ADMIN_PASSWORD` is not provided, the seed script generates a random password and prints it once in startup logs.
 
-#### 📏 Standards
-*   [Sustainable Engineering](docs/Sustainable%20Engineering.md) - **Core engineering principles, code quality, and testing standards.**
+## Deployment Notes
 
-#### 🏗 Architecture
-*   [Architecture Overview](docs/architecture/Architecture.md) - High-level system design and stack.
-*   [Security Architecture](docs/architecture/Security.md) - Auth, RBAC, and data protection.
-*   [SSE Mechanism](docs/architecture/SSE%20Mechanism.md) - Real-time updates architecture.
-*   [System Configuration](docs/architecture/System%20Configuration.md) - Dynamic settings management.
-*   [Calculation Logic](docs/architecture/Calculation%20Logic.md) - Math behind fit scores and analytics.
+- The Docker image starts through `entrypoint.sh`.
+- `entrypoint.sh` waits for PostgreSQL, creates or syncs the schema, runs seed data, then starts Next.js.
+- Leave `SKIP_MIGRATIONS` unset or `false` for fresh deployments.
+- If your platform has a custom start command, do not set it to `npm run start`; that bypasses database preparation.
+- Built-in upload queue processing does not need a separate worker service.
+- `PROCESSOR_API_KEY` and `UPLOAD_QUEUE_PROCESS_URL` are only needed when using an external worker.
 
-#### 🔄 Workflows & Business Logic
-*   [Authentication Flow](docs/workflows/Authentication%20Flow.md) - Login, SSO, and session handling.
-*   [Job Matching](docs/workflows/Job%20Matching%20Flow.md) - AI applicant scoring logic.
-*   [Evaluation](docs/workflows/Evaluation%20Flow.md) - applicant assessment process.
-*   [AI Search](docs/workflows/AI%20Search%20Flow.md) - Natural language search internals.
-*   [SLA Tracking](docs/workflows/SLA%20Flow.md) - Performance monitoring logic.
-*   [Notifications](docs/workflows/Notification%20Flow.md) - Alerting system.
-*   [Process Queue](docs/workflows/Process%20Queue%20Flow.md) - Background job handling.
-*   [Backup & Recovery](docs/workflows/Backup%20&%20Recovery%20Flow.md) - Business continuity processes.
-*   [Audit Logging](docs/workflows/Audit%20Flow.md) - Security and activity tracking.
-*   [Custom Fields](docs/workflows/Custom%20Fields%20Flow.md) - Extensibility logic.
+## Optional Integrations
 
-#### 👩‍💻 Development
-*   [Development Guide](docs/development/Development%20Guide.md) - Local setup and contribution workflow.
-*   [API Specification](docs/development/API%20Specification.md) - REST API endpoints.
-*   [API Overview](docs/development/API%20Overview.md) - API design principles.
-*   [CLI Reference](docs/development/CLI%20Reference.md) - Management scripts.
-*   [Troubleshooting](docs/development/Troubleshooting.md) - Common fixes and debug steps.
+- Azure AD SSO through Azure application credentials
+- External resume/PDF processing webhooks
+- API key based automation through system API keys
+- S3-compatible object storage from providers such as AWS S3, Railway buckets, or compatible vendors
 
-#### 🚀 Infrastructure
-*   [Installation Guide](docs/infrastructure/Installation%20Guide.md) - Deployment and setup.
-*   [Deployment Flow](docs/infrastructure/Deployment%20Flow.md) - CI/CD and release pipeline.
-*   [Migration Guide](docs/infrastructure/Migration%20Guide.md) - Database and system upgrades.
-*   [Backup & Recovery Ops](docs/infrastructure/Backup%20&%20Recovery.md) - Technical recovery steps.
+## Useful Commands
 
-#### 🗄 Database
-*   [Entity Relationship Diagram](docs/database/Entity%20Relationship%20Diagram.md) - Database schema overview.
-*   [Design Generator](docs/database/Database%20Design.md) - Schema generation tools.
-*   [Start Comments Flow](docs/database/Database%20Comments%20Flow.md) - Database documentation sync.
-
-#### 🔌 Integrations
-*   [n8n Integration](docs/integrations/n8n%20Integration.md) - Automation workflow setup.
-
-#### 📋 Requirements
-*   [Business Requirements (BRD)](docs/requirements/Business%20Requirements%20Document.md)
-*   [System Requirements (SRS)](docs/requirements/Software%20Requirements%20Specification.md)
-
-#### 🧪 Testing
-*   [Test Cases](docs/testing/TEST_CASES.csv) - Manual test scenarios.
-
----
-
-## 🕵️ Gap Analysis: Missing Documentation
-
-To reach full sustainable engineering maturity, the following documents are **missing or need creation**:
-
-### 1. 📘 User Guide
-*   **Target**: Recruiters, Hiring Managers.
-*   **Gap**: We have technical flows, but no "How-To" guide for using the UI (e.g., "How to create a position", "How to interview a applicant").
-*   **Recommendation**: Create `docs/USER_GUIDE.md` or a wiki.
-
-### 2. 🚨 Operational Runbooks
-*   **Target**: DevOps / On-call Engineers.
-*   **Gap**: `TROUBLESHOOTING.md` is good for devs, but we need specific incident response guides (e.g., "What to do if MinIO is down", "How to restore a single table").
-*   **Recommendation**: Create `docs/infrastructure/RUNBOOKS.md`.
-
-### 3. 📖 Glossary
-*   **Target**: All Stakeholders.
-*   **Gap**: Ambiguous terms like "Fit Score", "Stage", "Grade" vs "Level" need clear definitions.
-*   **Recommendation**: Create `docs/GLOSSARY.md`.
-
-### 4. 🎨 Design System & UI Kit
-*   **Target**: Frontend Developers, Designers.
-*   **Gap**: No documentation on standard colors, typography, or component usage (ShadCN usage).
-*   **Recommendation**: Create `docs/development/DESIGN_SYSTEM.md`.
-
-### 5. 🔁 Release Notes / Changelog
-*   **Target**: All.
-*   **Gap**: Ensure a `CHANGELOG.md` exists in the root to track version history (Semantic Versioning).
-*   **Recommendation**: Maintain a `CHANGELOG.md` in the project root.
-
-
-
----
-
-## 🔧 Essential Scripts
-
-### Development
 ```bash
-npm run dev                 # Start development server
-npm run build               # Build for production
-npm run lint                # Run ESLint
+npm run dev          # Start local development server
+npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript checks
+npm run test:run     # Run tests
 ```
 
-### Database
+Database:
+
 ```bash
-npm run db:studio           # Open Prisma Studio
-npm run db:seed             # Seed database
-npm run db:create-admin     # Create admin user
+npx prisma db push --schema=prisma/schema.prisma
+npx prisma db seed
+npx prisma studio
 ```
 
-### System Settings CLI
-```bash
-npm run settings:list       # List all settings
-npm run settings:enable-basic-auth   # Enable basic auth
-```
+## Documentation
 
-See [CLI Reference](docs/development/CLI%20Reference.md) for complete script documentation.
+Detailed documentation lives in `docs/`.
 
----
+Key starting points:
 
-## 🔐 Authentication
+- [Architecture Overview](docs/architecture/Architecture.md)
+- [Security Architecture](docs/architecture/Security.md)
+- [System Configuration](docs/architecture/System%20Configuration.md)
+- [Development Guide](docs/development/Development%20Guide.md)
+- [API Overview](docs/development/API%20Overview.md)
+- [Installation Guide](docs/infrastructure/Installation%20Guide.md)
+- [Migration Guide](docs/infrastructure/Migration%20Guide.md)
+- [Backup & Recovery](docs/infrastructure/Backup%20&%20Recovery.md)
 
-### Methods
-1. **Email/Password**: Traditional login with bcrypt hashing
-2. **Azure AD SSO**: Enterprise single sign-on
+## Project Structure
 
-### Default Admin
-- **Email**: `admin@ncc.com`
-- **Password**: `nccadmin`
-
-See [Security Documentation](docs/architecture/Security.md) for configuration details.
-
----
-
-## 🏗️ Project Structure
-
-```
+```text
 studio-1/
 ├── src/
-│   ├── app/           # Next.js App Router (pages + API)
+│   ├── app/           # Next.js App Router pages and API routes
 │   ├── components/    # React components
-│   ├── lib/           # Utility libraries
+│   ├── lib/           # Server/client utilities
 │   ├── hooks/         # React hooks
 │   └── types/         # TypeScript types
-├── prisma/            # Database schema and migrations
+├── prisma/            # Database schema, migrations, and seed
 ├── scripts/           # Utility scripts
-├── docs/              # Documentation
-└── docker-compose.yml # Docker configuration
+├── docs/              # Product and engineering documentation
+└── docker-compose.yml
 ```
 
----
+## Security
 
-## 🤝 Contributing
+- Always set a strong `NEXTAUTH_SECRET`.
+- Always set `ADMIN_PASSWORD` before first production seed.
+- Do not commit real `.env` files or production secrets.
+- Keep object storage private unless a specific public asset workflow requires otherwise.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
-
----
-
-## 🆘 Support
-
-- Check documentation at `/docs` in the application
-- Review API documentation at `/api-docs`
-- See [Troubleshooting Guide](docs/development/Troubleshooting.md)
-
----
-
-**FitScan** - Modern, scalable, and feature-rich Applicant Tracking System
-
-Built with ❤️ using Next.js, TypeScript, and PostgreSQL

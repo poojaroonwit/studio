@@ -47,10 +47,10 @@ describe("cors utilities", () => {
     expect(getAllowedOrigin(requestWithOrigin("https://login.microsoftonline.com"))).toBe("https://login.microsoftonline.com");
   });
 
-  it("always allows qsncc subdomains and ignores same-origin requests", () => {
+  it("rejects unconfigured production origins and ignores same-origin requests", () => {
     setEnv({ NODE_ENV: "production", CORS_ALLOWED_ORIGINS: "" });
 
-    expect(getAllowedOrigin(requestWithOrigin("https://hr.qsncc.com"))).toBe("https://hr.qsncc.com");
+    expect(getAllowedOrigin(requestWithOrigin("https://hr.example.com"))).toBeNull();
     expect(getAllowedOrigin(requestWithOrigin(null))).toBeNull();
   });
 

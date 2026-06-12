@@ -134,7 +134,7 @@ graph TD
 
 ### 9.2 Windmill Integration (HTML-to-PDF)
 For high-fidelity parsing of HTML-based resumes, the system utilizes a **Windmill** worker:
-- **Endpoint**: `https://ncc-windmill.qsncc.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf`
+- **Endpoint**: Configure your own HTML-to-PDF worker endpoint.
 - **Method**: `POST`
 - **Mechanism**: POSTs raw HTML content to Windmill; receives a binary PDF in response.
 - **Credential**: Requires a "Header Auth" credential in n8n for the Windmill API Bearer token.

@@ -389,7 +389,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://ncc-windmill.qsncc.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
+        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -615,7 +615,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -672,7 +672,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -734,7 +734,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -796,7 +796,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -863,7 +863,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -935,7 +935,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1012,7 +1012,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1186,7 +1186,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://ncc-windmill.qsncc.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
+        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1329,11 +1329,11 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/auth/login",
+        "url": "https://your-app.example.com/api/v1/auth/login",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "{   \"email\": \"fitscan@qsncc.com\",   \"password\": \"nccadmin\" }",
+        "body": "{   \"email\": \"admin@example.com\",   \"password\": \"CHANGE_THIS_PASSWORD\" }",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1361,7 +1361,7 @@
     },
     {
       "parameters": {
-        "url": "=https://fitscan.nccthailand.com/api/v1/applicant-sources",
+        "url": "=https://your-app.example.com/api/v1/applicant-sources",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -1402,7 +1402,7 @@
     },
     {
       "parameters": {
-        "url": "=https://fitscan.nccthailand.com/api/v1/positions",
+        "url": "=https://your-app.example.com/api/v1/positions",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -1518,7 +1518,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1600,7 +1600,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1687,7 +1687,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://fitscan.nccthailand.com/api/v1/applicants/bulk-upload-cv",
+        "url": "https://your-app.example.com/api/v1/applicants/bulk-upload-cv",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

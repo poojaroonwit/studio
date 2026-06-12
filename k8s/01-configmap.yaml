@@ -4,35 +4,10 @@ metadata:
   name: fitscan-config
   namespace: ba-fitscan
 data:
-  # Application Configuration
   NODE_ENV: "production"
   NEXT_TELEMETRY_DISABLED: "1"
   APP_TIMEZONE: "Asia/Bangkok"
-
-  # Database Configuration (External)
-  POSTGRES_DB: "fitscan"
-  POSTGRES_HOST: "ncc-pgsql-data-product.qsncc.com"
-  POSTGRES_PORT: "5432"
-
-  # Database Connection Pool Configuration
-  DATABASE_SSL: "true" # Usually true for external databases
-  DATABASE_SSL_REJECT_UNAUTHORIZED: "false" # Allow self-signed certificates
-  DATABASE_MAX_CONNECTIONS: "20"
-  DATABASE_IDLE_TIMEOUT: "5000"
-  DATABASE_CONNECTION_TIMEOUT: "30000"
-  DATABASE_STATEMENT_TIMEOUT: "30000"
-
-  # MinIO Configuration (External)
-  MINIO_ENDPOINT: "ncc-prod-api-storage-data-product.qsncc.com"
-  MINIO_PORT: "9000"
-  MINIO_BUCKET_NAME: "fitscan"
-  MINIO_USE_SSL: "true"
-
-  # Migration Configuration
-  MIGRATION_FAILURE_ACTION: "continue"
-  SKIP_FAILED_MIGRATIONS: "true"
-  DB_PUSH_FALLBACK: "true"
+  STORAGE_PROVIDER: "s3-compatible"
+  STORAGE_BUCKET: "fitscan"
+  SKIP_MIGRATIONS: "false"
   SKIP_SEED: "false"
-
-
-

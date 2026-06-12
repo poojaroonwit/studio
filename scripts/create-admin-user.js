@@ -7,7 +7,7 @@ async function createAdminUser() {
   console.log('Creating admin user...');
 
   try {
-    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'fitscan@qsncc.com';
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
     const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (!adminPassword) {

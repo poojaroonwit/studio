@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('--- User Fix Script Start ---');
   
-  const adminPassword = 'nccadmin';
+  const adminPassword = 'Admin@123';
   const demoPassword = 'CHANGE_ME_DEMO_SEED_PASSWORD';
   
   const adminHash = await bcrypt.hash(adminPassword, 10);
@@ -23,10 +23,10 @@ async function main() {
 
   console.log(`Found Admin Group ID: ${adminGroup.id}`);
 
-  // 2. Fix admin@ncc.com
-  console.log('Fixing admin@ncc.com...');
+  // 2. Fix admin@example.com
+  console.log('Fixing admin@example.com...');
   await prisma.user.upsert({
-    where: { email: 'admin@ncc.com' },
+    where: { email: 'admin@example.com' },
     update: {
       password: adminHash,
       isActive: true,
@@ -36,8 +36,8 @@ async function main() {
       authenticationMethods: ['basic']
     },
     create: {
-      name: 'NCC Admin',
-      email: 'admin@ncc.com',
+      name: 'Admin User',
+      email: 'admin@example.com',
       password: adminHash,
       isActive: true,
       role: 'Admin',
@@ -45,12 +45,12 @@ async function main() {
       authenticationMethods: ['basic']
     }
   });
-  console.log('✅ admin@ncc.com fixed');
+  console.log('admin@example.com fixed');
 
-  // 3. Fix fitscan@qsncc.com
-  console.log('Fixing fitscan@qsncc.com...');
+  // 3. Fix secondary demo admin
+  console.log('Fixing demo-admin@example.com...');
   await prisma.user.upsert({
-    where: { email: 'fitscan@qsncc.com' },
+    where: { email: 'demo-admin@example.com' },
     update: {
       password: demoHash,
       isActive: true,
@@ -61,7 +61,7 @@ async function main() {
     },
     create: {
       name: 'FitScan Demo Admin',
-      email: 'fitscan@qsncc.com',
+      email: 'demo-admin@example.com',
       password: demoHash,
       isActive: true,
       role: 'Admin',
@@ -69,7 +69,7 @@ async function main() {
       authenticationMethods: ['basic']
     }
   });
-  console.log('✅ fitscan@qsncc.com fixed');
+  console.log('demo-admin@example.com fixed');
 
   console.log('--- User Fix Script End ---');
 }

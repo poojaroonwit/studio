@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Registry configuration
-        REGISTRY = 'nccgit.qsncc.com:5555'
+        REGISTRY = 'registry.example.com'
         REGISTRY_PROJECT = 'ba'
         IMAGE_NAME = 'fitscan'
         

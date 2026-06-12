@@ -775,8 +775,8 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440044',
-        name: 'JobsNCC',
-        description: 'JobsNCC internal job portal',
+        name: 'Internal Job Portal',
+        description: 'Internal company job portal',
         isActive: true,
         sortOrder: 5
       },
@@ -838,8 +838,8 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440053',
-        name: 'NCC Career',
-        description: 'NCC Career portal',
+        name: 'Company Career',
+        description: 'Company career portal',
         isActive: true,
         sortOrder: 14
       },

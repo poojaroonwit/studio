@@ -47,7 +47,7 @@
    - **Main App**: http://localhost:8021
    - **MinIO Console**: http://localhost:9848
    - **N8N Workflow Automation**: http://localhost:8921
-   - **Default Login**: admin@ncc.com / nccadmin
+   - **Default Login**: Use the `ADMIN_EMAIL` and `ADMIN_PASSWORD` values configured before first seed.
    - **N8N Login**: admin / admin
 
 ### Option 2: Portainer Deployment
@@ -124,8 +124,8 @@ GOOGLE_API_KEY=your-google-api-key
 ## 4. Authentication Setup
 
 ### 4.1 Default Admin Account
-- **Email**: `admin@ncc.com`
-- **Password**: `nccadmin`
+- **Email**: Value of `ADMIN_EMAIL` (default: `admin@example.com`)
+- **Password**: Value of `ADMIN_PASSWORD`; if unset, check startup logs for the generated password.
 
 **Security Note**: Change the default password immediately after first login.
 
@@ -279,7 +279,7 @@ After installation, verify the setup:
    - **Main App**: http://localhost:8021
    - **MinIO Console**: http://localhost:9848
    - **N8N Workflow Automation**: http://localhost:8921
-   - **Default Login**: admin@ncc.com / nccadmin
+   - **Default Login**: Use the `ADMIN_EMAIL` and `ADMIN_PASSWORD` values configured before first seed.
    - **N8N Login**: admin / admin
 
 ### Option 2: Portainer Deployment
@@ -356,8 +356,8 @@ GOOGLE_API_KEY=your-google-api-key
 ## 4. Authentication Setup
 
 ### 4.1 Default Admin Account
-- **Email**: `admin@ncc.com`
-- **Password**: `nccadmin`
+- **Email**: Value of `ADMIN_EMAIL` (default: `admin@example.com`)
+- **Password**: Value of `ADMIN_PASSWORD`; if unset, check startup logs for the generated password.
 
 ⚠️ **Security Note**: Change the default password immediately after first login.
 

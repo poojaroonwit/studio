@@ -39,7 +39,7 @@ graph LR
 
 ### 2. Registry Management
 Images are pushed to a private registry:
-- **Endpoint**: `nccgit.qsncc.com:5555`
+- **Endpoint**: Configure your own container registry endpoint.
 - **Security**: Authenticated via Jenkins `Credentials ID`.
 
 ### 3. Automated Deployment

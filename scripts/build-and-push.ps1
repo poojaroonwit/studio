@@ -1,5 +1,5 @@
 param (
-    [string]$Registry = "nccgit.qsncc.com:5555",
+    [string]$Registry = "registry.example.com",
     [string]$Namespace = "ba",
     [string]$ImageName = "fitscan",
     [string]$Tag = "latest"

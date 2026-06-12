@@ -14,7 +14,7 @@ const AZURE_AD_CORS_ORIGINS = [
   "https://graph.microsoft.com",
 ] as const;
 
-const ALWAYS_ALLOWED_WILDCARD_PATTERNS = ["*.qsncc.com"] as const;
+const ALWAYS_ALLOWED_WILDCARD_PATTERNS: readonly string[] = [];
 const CORS_DEVELOPMENT_FALLBACK_ORIGIN = "http://localhost:8021";
 
 const CORS_HEADERS = {

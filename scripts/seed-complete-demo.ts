@@ -92,7 +92,7 @@ async function main() {
   const userData = [
     {
       name: 'System Admin',
-      email: 'admin@ncc.com',
+      email: 'admin@example.com',
       role: 'Admin',
       department: 'IT Infrastructure',
       positionTitle: 'CTO / System Administrator',
@@ -134,7 +134,7 @@ async function main() {
       update: u,
       create: {
         ...u,
-        password: await bcrypt.hash(u.email === 'admin@ncc.com' ? 'Admin@123' : 'Demo@User#2024!', 10),
+        password: await bcrypt.hash(u.email === 'admin@example.com' ? 'Admin@123' : 'Demo@User#2024!', 10),
         authenticationMethods: ['basic'],
         isActive: true
       }

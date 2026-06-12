@@ -12,7 +12,7 @@ export function getSwaggerSpec() {
       description: 'Comprehensive API documentation for the Studio recruitment management system',
       contact: {
         name: 'FitScan API Support',
-        email: 'itdhelpdesk@qsncc.com'
+        email: 'support@example.com'
       },
       license: {
         name: 'MIT',

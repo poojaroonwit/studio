@@ -28,9 +28,9 @@ describe('attachments-route-utils', () => {
     expect(isBlockedAttachmentDownloadHost('files.example.com')).toBe(false);
   });
 
-  it('allows qsncc domains, same-origin domains, or configured download domains', () => {
-    expect(isAllowedAttachmentDownloadDomain('qsncc.com', '', [])).toBe(true);
-    expect(isAllowedAttachmentDownloadDomain('cdn.qsncc.com', '', [])).toBe(true);
+  it('allows same-origin domains or configured download domains', () => {
+    expect(isAllowedAttachmentDownloadDomain('example.com', '', [])).toBe(false);
+    expect(isAllowedAttachmentDownloadDomain('cdn.example.com', '', [])).toBe(false);
     expect(isAllowedAttachmentDownloadDomain('app.example.com', 'app.example.com', [])).toBe(true);
     expect(isAllowedAttachmentDownloadDomain('files.example.com', 'app.example.com', ['example.com'])).toBe(true);
     expect(isAllowedAttachmentDownloadDomain('evil.test', 'app.example.com', [])).toBe(false);

@@ -7,14 +7,14 @@ const DEMO_SEED_PASSWORD = process.env.DEMO_SEED_PASSWORD || 'CHANGE_ME_DEMO_SEE
 
 async function ensureRecruiterUser() {
   // Use existing admin as recruiter/evaluator fallback
-  const admin = await prisma.user.findFirst({ where: { email: 'fitscan@qsncc.com' } });
+  const admin = await prisma.user.findFirst({ where: { email: 'admin@example.com' } });
   if (admin) return admin;
 
   // Very small fallback in case seed.ts not run
   return prisma.user.create({
     data: {
       name: 'Admin User',
-      email: 'fitscan@qsncc.com',
+      email: 'admin@example.com',
       password: DEMO_SEED_PASSWORD,
       role: 'Admin',
       authenticationMethods: ['basic'],

@@ -15,10 +15,10 @@ services:
 
   app:
     container_name: fitscan_app
-    image: nccgit.qsncc.com:5555/ba/fitscan:1.2.6
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    image: ${APP_IMAGE:-fitscan:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
     # command: ["/bin/sh", "/app/entrypoint-local.sh"]
     restart: unless-stopped
     # depends_on:

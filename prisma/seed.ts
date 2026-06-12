@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { ADMIN_DEFAULT_PERMISSIONS, RECRUITER_DEFAULT_PERMISSIONS } from '../src/lib/default-role-permissions';
+import { ADMIN_DEFAULT_PERMISSIONS, RECRUITER_DEFAULT_PERMISSIONS } from './seed-role-permissions';
 
 const prisma = new PrismaClient();
 

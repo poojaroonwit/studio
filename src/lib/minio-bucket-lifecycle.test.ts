@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   checkMinioAvailability,
+  ensureMinioBucketExists,
   getMinioBucketInfo,
 } from './minio-bucket-lifecycle';
 
@@ -51,5 +52,24 @@ describe('minio-bucket-lifecycle', () => {
     await expect(checkMinioAvailability(minioClient({
       listBuckets: vi.fn().mockRejectedValue(new Error('offline')),
     }))).resolves.toBe(false);
+  });
+
+  it('continues when bucket policy APIs are not implemented by the provider', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const listObjects = vi.fn().mockResolvedValue([]);
+
+    await expect(ensureMinioBucketExists({
+      bucket: 'uploads',
+      client: minioClient({
+        bucketExists: vi.fn().mockResolvedValue(true),
+        listObjects,
+        setBucketPolicy: vi.fn().mockRejectedValue({ code: 'NotImplemented' }),
+      }),
+    })).resolves.toMatchObject({
+      status: 'success',
+      bucket: 'uploads',
+    });
+
+    expect(listObjects).toHaveBeenCalledWith('uploads', '', true);
   });
 });

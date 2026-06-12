@@ -24,3 +24,13 @@ export function buildPrivateBucketPolicy(bucket: string) {
 export async function enforcePrivateBucketPolicyForClient(client: Minio, bucket: string) {
   await client.setBucketPolicy(bucket, JSON.stringify(buildPrivateBucketPolicy(bucket)));
 }
+
+export function isUnsupportedBucketPolicyError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; message?: unknown };
+  return candidate.code === 'NotImplemented'
+    || (typeof candidate.message === 'string' && candidate.message.toLowerCase().includes('not implemented'));
+}

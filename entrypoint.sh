@@ -2,7 +2,15 @@
 
 set -u
 
-export NODE_ENV=${NODE_ENV:-production}
+case "${NODE_ENV:-production}" in
+    production|development|test)
+        export NODE_ENV=${NODE_ENV:-production}
+        ;;
+    *)
+        echo "Non-standard NODE_ENV='${NODE_ENV}' detected; using NODE_ENV=production"
+        export NODE_ENV=production
+        ;;
+esac
 export PORT=${PORT:-8021}
 
 if [ "${SKIP_MIGRATIONS:-false}" = "true" ]; then

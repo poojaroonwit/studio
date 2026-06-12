@@ -1,6 +1,9 @@
 import { Client as Minio } from 'minio';
 
-import { enforcePrivateBucketPolicyForClient } from './minio-security-policy';
+import {
+  enforcePrivateBucketPolicyForClient,
+  isUnsupportedBucketPolicyError,
+} from './minio-security-policy';
 import { getMinioObjectUrl } from './minio-url-utils';
 import {
   buildMinioClientConfig,
@@ -113,6 +116,11 @@ export async function enforcePrivateBucketPolicy(): Promise<void> {
   try {
     await enforcePrivateBucketPolicyForClient(minioClient, MINIO_BUCKET);
   } catch (error) {
+    if (isUnsupportedBucketPolicyError(error)) {
+      console.warn(`[STORAGE] Bucket policy API is not implemented for '${MINIO_BUCKET}'. Continuing with provider-managed bucket access.`);
+      return;
+    }
+
     console.error(`[MINIO] Failed to enforce private bucket policy for '${MINIO_BUCKET}':`, error);
     throw new Error(`Failed to enforce private bucket policy: ${getMinioErrorMessage(error)}`);
   }

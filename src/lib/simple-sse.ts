@@ -157,18 +157,9 @@ export async function handleSSEConnection(request: Request) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
         'X-Accel-Buffering': 'no',
-        'Keep-Alive': 'timeout=180, max=1000',
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
-        // CRITICAL: Disable chunked encoding for SSE streams
-        'Transfer-Encoding': 'identity',
-        'Content-Length': '0' // Set to 0 for streaming responses
       },
     });
   } catch (error) {

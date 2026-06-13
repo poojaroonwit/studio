@@ -78,12 +78,7 @@ export function subscribe(request: Request): Response {
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Credentials': 'true',
       'X-Accel-Buffering': 'no',
-      
     }
   });
 }

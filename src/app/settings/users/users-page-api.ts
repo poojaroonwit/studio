@@ -101,7 +101,15 @@ export async function createUsersPageUser(data: UnifiedUserFormValues) {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to add user');
+    const errorData = await readJsonOrFallback<{ message?: string; errors?: Record<string, string[]> }>(
+      response,
+      { message: response.statusText }
+    );
+    const firstFieldError = errorData.errors
+      ? Object.values(errorData.errors).flat().find(Boolean)
+      : null;
+
+    throw new Error(firstFieldError || errorData.message || 'Failed to add user');
   }
 }
 

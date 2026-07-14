@@ -1,4 +1,5 @@
 import { sendResumeProcessingWebhook } from '@/lib/upload-queue/resume-processing-webhook-client';
+import { processBuiltInResumeUploadQueueJob } from '@/lib/upload-queue/built-in-resume-processor';
 import { buildResumeProcessingWebhookRequest } from '@/lib/upload-queue/resume-processing-webhook-payload';
 import { getResumeProcessingWebhookSettings } from '@/lib/upload-queue/resume-processing-webhook-settings';
 import { validateUploadQueueFile } from '@/lib/upload-queue/upload-queue-file-validation';
@@ -50,6 +51,43 @@ export async function processSingleUploadQueueJob(
     }
 
     const settings = await getResumeProcessingWebhookSettings();
+    if (settings.mode === 'built-in') {
+      const builtInPayload = await processBuiltInResumeUploadQueueJob({
+        client,
+        job: { ...job, file_path: job.file_path },
+        settings,
+      });
+      payload = builtInPayload;
+
+      await updateUploadQueueJobProcessingResult(
+        client,
+        job.id,
+        'success',
+        null,
+        null,
+        builtInPayload
+      );
+
+      await dispatchUploadQueueProcessingWebhook(job, 'success', null, null);
+
+      if (typeof global !== 'undefined' && typeof global.gc === 'function') {
+        global.gc();
+      }
+
+      return {
+        job: {
+          ...job,
+          status: 'success',
+          error: null,
+          error_details: null,
+        },
+        webhook_response: {
+          status: 200,
+          response: 'Built-in processing completed',
+        },
+      };
+    }
+
     const webhookRequest = await buildResumeProcessingWebhookRequest(
       { ...job, file_path: job.file_path },
       settings.responseMode,

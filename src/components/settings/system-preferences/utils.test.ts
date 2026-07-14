@@ -182,7 +182,7 @@ describe('system preferences utilities', () => {
         ));
         expect(loadedPreferences.headerBackgroundGradient).toBeNull();
         expect(loadedPreferences.sidebarNavigationMode).toBe('single');
-        expect(loadedPreferences.sidebarSecondaryGroupLabels).toEqual([]);
+        expect(loadedPreferences.sidebarSecondaryGroupLabels).toEqual(['Settings']);
         expect(loadedPreferences.generativeAICanvasMode).toBe(false);
         expect(loadedPreferences.themeConfig.themePreference).toBe('system');
         expect(loadedPreferences.themeConfig.sidebarColors).toBe(loadedPreferences.sidebarColors);

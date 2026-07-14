@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { sidebarConfigData } from '../../layout/SidebarNavConfig';
-import type { SidebarNavigationMode } from '../../layout/sidebar-layout-settings';
+import {
+    SETTINGS_SIDEBAR_GROUP_LABEL,
+    type SidebarNavigationMode,
+} from '../../layout/sidebar-layout-settings';
 import {
     SidebarBackgroundType,
     SidebarColors,
@@ -120,23 +123,27 @@ export function SidebarTab({
                                 <div>
                                     <p className="text-sm font-medium">Groups shown in the secondary sidebar</p>
                                     <p className="text-xs text-muted-foreground">
-                                        When none are selected, split mode uses all available navigation groups.
+                                        Settings always opens as a secondary sidebar; add other groups when they need a nested menu.
                                     </p>
                                 </div>
                                 <div className="grid gap-2 sm:grid-cols-2">
-                                    {navigationGroups.map((groupLabel) => (
+                                    {navigationGroups.map((groupLabel) => {
+                                        const isRequiredSecondaryGroup = groupLabel === SETTINGS_SIDEBAR_GROUP_LABEL;
+
+                                        return (
                                         <label
                                             key={groupLabel}
                                             className="flex min-h-10 items-center gap-3 rounded-md border border-border/70 px-3 py-2 text-sm"
                                         >
                                             <Checkbox
-                                                checked={sidebarSecondaryGroupLabels.includes(groupLabel)}
-                                                disabled={!canEdit || !isSplitMode}
+                                                checked={isRequiredSecondaryGroup || sidebarSecondaryGroupLabels.includes(groupLabel)}
+                                                disabled={!canEdit || !isSplitMode || isRequiredSecondaryGroup}
                                                 onCheckedChange={(checked) => toggleSecondaryGroup(groupLabel, checked === true)}
                                             />
                                             <span className="min-w-0 truncate">{groupLabel}</span>
                                         </label>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>

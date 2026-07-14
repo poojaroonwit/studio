@@ -3,6 +3,7 @@
 import { FileText, Loader2, Tag } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 import { SystemPromptCategoriesTab } from './SystemPromptCategoriesTab';
 import { SystemPromptCategoryModal } from './SystemPromptCategoryModal';
@@ -130,10 +131,8 @@ function SystemPromptsTabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-        active
-          ? "text-primary border-b-2 border-primary"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+        getUnderlineNavTriggerClassName(active),
+        "px-6 py-3",
       )}
     >
       {icon}

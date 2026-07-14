@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sheet';
 import type { UserTeam } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 import { TeamFormFields, type TeamFormValues } from './UserTeamsForm';
 import { TeamMembersPanel, type TeamMember } from './UserTeamsMemberParts';
@@ -176,10 +177,8 @@ function TeamDrawerTabButton({
     <div
       onClick={onClick}
       className={cn(
-        'relative flex cursor-pointer items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200',
-        active
-          ? 'border-b-2 border-primary text-primary'
-          : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground',
+        getUnderlineNavTriggerClassName(active),
+        'px-6 py-3',
       )}
       role="button"
       tabIndex={0}

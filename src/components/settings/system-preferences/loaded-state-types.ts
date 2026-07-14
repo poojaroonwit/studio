@@ -4,6 +4,7 @@ import type {
     HeaderBackgroundType,
     LoginBackgroundType,
     LoginPageLayoutType,
+    SidebarNavigationMode,
     SidebarBackgroundType,
     SidebarColors,
     SidebarImageFit,
@@ -58,6 +59,8 @@ export interface LoadedSystemPreferencesState {
     sidebarBackgroundImage: string | null;
     sidebarImageFit: SidebarImageFit;
     sidebarImagePosition: SidebarImagePosition;
+    sidebarNavigationMode: SidebarNavigationMode;
+    sidebarSecondaryGroupLabels: string[];
     splashBackgroundColor: string;
     splashAnimationType: SplashAnimationType;
     splashLogoDataUrl: string | null;
@@ -120,6 +123,8 @@ export interface LoadedSystemPreferenceStateSetters {
     setSidebarImagePreviewUrl: PreferenceSetter<string | null>;
     setSidebarImageFit: PreferenceSetter<SidebarImageFit>;
     setSidebarImagePosition: PreferenceSetter<SidebarImagePosition>;
+    setSidebarNavigationMode: PreferenceSetter<SidebarNavigationMode>;
+    setSidebarSecondaryGroupLabels: PreferenceSetter<string[]>;
     setSplashBackgroundColor: PreferenceSetter<string>;
     setSplashAnimationType: PreferenceSetter<string>;
     setSavedSplashLogoDataUrl: PreferenceSetter<string | null>;

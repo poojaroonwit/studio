@@ -1,4 +1,14 @@
 export interface ProcessingTabProps {
+  resumeProcessingMode: 'built-in' | 'external';
+  setResumeProcessingMode: (val: 'built-in' | 'external') => void;
+  builtInProcessorNodeName: string;
+  setBuiltInProcessorNodeName: (val: string) => void;
+  builtInResumeExtractionPrompt: string;
+  setBuiltInResumeExtractionPrompt: (val: string) => void;
+  builtInApplicantMappingPrompt: string;
+  setBuiltInApplicantMappingPrompt: (val: string) => void;
+  builtInJobMatchingPrompt: string;
+  setBuiltInJobMatchingPrompt: (val: string) => void;
   maxConcurrentProcessors: number;
   setMaxConcurrentProcessors: (val: number) => void;
   resumeProcessingWebhookUrl: string;

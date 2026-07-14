@@ -3,6 +3,7 @@
 import type { ComponentType } from "react";
 import { ImageUp, Palette, Settings2, Sidebar as SidebarIcon, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
 
 export type SystemPreferencesTabId = "general" | "appearance" | "branding" | "sidebar" | "evaluate";
 
@@ -40,10 +41,8 @@ export function SystemPreferencesNavigation({
             type="button"
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-              activeTab === item.id
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+              getUnderlineNavTriggerClassName(activeTab === item.id),
+              "px-6 py-3",
             )}
           >
             <Icon className="h-4 w-4" />

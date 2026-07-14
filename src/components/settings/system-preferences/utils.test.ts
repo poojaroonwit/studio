@@ -17,6 +17,8 @@ import {
     LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY,
     LOGIN_PAGE_LOGO_SIZE_KEY,
     SIDEBAR_COLOR_KEYS,
+    SIDEBAR_NAVIGATION_MODE_KEY,
+    SIDEBAR_SECONDARY_GROUP_LABELS_KEY,
     SPLASH_LOGO_DATA_URL_KEY,
     createInitialSidebarColors,
 } from './constants';
@@ -179,6 +181,8 @@ describe('system preferences utilities', () => {
             DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END
         ));
         expect(loadedPreferences.headerBackgroundGradient).toBeNull();
+        expect(loadedPreferences.sidebarNavigationMode).toBe('single');
+        expect(loadedPreferences.sidebarSecondaryGroupLabels).toEqual([]);
         expect(loadedPreferences.generativeAICanvasMode).toBe(false);
         expect(loadedPreferences.themeConfig.themePreference).toBe('system');
         expect(loadedPreferences.themeConfig.sidebarColors).toBe(loadedPreferences.sidebarColors);
@@ -276,6 +280,8 @@ describe('system preferences utilities', () => {
             sidebarBackgroundType: 'gradient',
             sidebarImageFit: 'cover',
             sidebarImagePosition: 'center',
+            sidebarNavigationMode: 'split',
+            sidebarSecondaryGroupLabels: ['Settings', 'Hiring'],
             headerBackgroundType: 'solid',
             headerBackgroundColor: '0 0% 100%',
             headerBackgroundGradient: null,
@@ -305,6 +311,8 @@ describe('system preferences utilities', () => {
         expect(preferenceMap.get(APP_NAME_KEY)).toBe('FitScan');
         expect(preferenceMap.get(GENERATIVE_AI_CANVAS_MODE_KEY)).toBe('true');
         expect(preferenceMap.get(SPLASH_LOGO_DATA_URL_KEY)).toBe('/splash.png');
+        expect(preferenceMap.get(SIDEBAR_NAVIGATION_MODE_KEY)).toBe('split');
+        expect(preferenceMap.get(SIDEBAR_SECONDARY_GROUP_LABELS_KEY)).toBe(JSON.stringify(['Settings', 'Hiring']));
         expect(preferenceMap.get(HEADER_BACKGROUND_GRADIENT_KEY)).toBeNull();
         expect(SIDEBAR_COLOR_KEYS.every(key => preferenceMap.has(key))).toBe(true);
 

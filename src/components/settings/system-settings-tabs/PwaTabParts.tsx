@@ -5,7 +5,6 @@ import { Smartphone } from 'lucide-react';
 
 import { ColorPicker } from '@/components/ui/color-picker';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -19,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import type { PwaTabProps } from './pwa-tab-types';
 import type { PwaColorFieldDefinition, PwaTextFieldDefinition } from './pwa-tab-utils';
 import { PWA_COLOR_FIELDS, PWA_STATUS_BAR_OPTIONS, PWA_TEXT_FIELDS } from './pwa-tab-utils';
+import { SystemSettingsFieldRow } from './SystemSettingsFieldRow';
 
 type PwaTextStateKey = PwaTextFieldDefinition['stateKey'];
 type PwaTextSetterKey = PwaTextFieldDefinition['setterKey'];
@@ -47,15 +47,13 @@ export function PwaEnabledSwitch({
   isSaving
 }: Pick<PwaTabProps, 'pwaEnabled' | 'setPwaEnabled' | 'isSaving'>): React.ReactElement {
   return (
-    <div className="flex items-center justify-between">
-      <div className="space-y-0.5">
-        <Label htmlFor="pwa-enabled">Enable PWA</Label>
-        <p className="text-sm text-muted-foreground">
-          When enabled, the app will show install prompts on mobile devices and tablets, allowing users to add it to their home screen.
-        </p>
-      </div>
+    <SystemSettingsFieldRow
+      htmlFor="pwa-enabled"
+      label="Enable PWA"
+      description="When enabled, users can install the app on mobile devices and tablets."
+    >
       <Switch id="pwa-enabled" checked={pwaEnabled} onCheckedChange={setPwaEnabled} disabled={isSaving} />
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -71,8 +69,7 @@ function PwaTextFieldControl({
   isSaving: boolean;
 }): React.ReactElement {
   return (
-    <div className={`space-y-2 ${field.className ?? ''}`}>
-      <Label htmlFor={field.id}>{field.label}</Label>
+    <div className={field.className}>
       <Input
         id={field.id}
         value={value}
@@ -81,7 +78,6 @@ function PwaTextFieldControl({
         disabled={isSaving}
         maxLength={field.maxLength}
       />
-      <p className="text-xs text-muted-foreground">{field.description}</p>
     </div>
   );
 }
@@ -98,20 +94,16 @@ function PwaColorFieldControl({
   isSaving: boolean;
 }): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={field.id}>{field.label}</Label>
-      <div className="flex gap-2">
-        <ColorPicker value={value} onChange={onChange} disabled={isSaving} />
-        <Input
-          id={field.id}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={field.placeholder}
-          disabled={isSaving}
-          className="flex-1"
-        />
-      </div>
-      <p className="text-xs text-muted-foreground">{field.description}</p>
+    <div className="flex gap-2">
+      <ColorPicker value={value} onChange={onChange} disabled={isSaving} />
+      <Input
+        id={field.id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={field.placeholder}
+        disabled={isSaving}
+        className="flex-1"
+      />
     </div>
   );
 }
@@ -125,8 +117,11 @@ function PwaStatusBarField({
   'pwaAppleMobileWebAppStatusBarStyle' | 'setPwaAppleMobileWebAppStatusBarStyle' | 'isSaving'
 >): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="pwa-apple-status-bar">Apple Status Bar Style</Label>
+    <SystemSettingsFieldRow
+      htmlFor="pwa-apple-status-bar"
+      label="Apple Status Bar Style"
+      description="iOS status bar appearance when the installed app is opened."
+    >
       <Select
         value={pwaAppleMobileWebAppStatusBarStyle}
         onValueChange={setPwaAppleMobileWebAppStatusBarStyle}
@@ -143,8 +138,7 @@ function PwaStatusBarField({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">iOS status bar appearance</p>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -154,24 +148,36 @@ export function PwaMetadataFields(props: PwaSettingsProps): React.ReactElement {
       <Separator />
       <div className="space-y-4">
         <h4 className="text-sm font-semibold">PWA Metadata</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-5">
           {PWA_TEXT_FIELDS.map((field) => (
-            <PwaTextFieldControl
+            <SystemSettingsFieldRow
               key={field.id}
-              field={field}
-              value={props[field.stateKey as PwaTextStateKey]}
-              onChange={props[field.setterKey as PwaTextSetterKey]}
-              isSaving={props.isSaving}
-            />
+              htmlFor={field.id}
+              label={field.label}
+              description={field.description}
+            >
+              <PwaTextFieldControl
+                field={field}
+                value={props[field.stateKey as PwaTextStateKey]}
+                onChange={props[field.setterKey as PwaTextSetterKey]}
+                isSaving={props.isSaving}
+              />
+            </SystemSettingsFieldRow>
           ))}
           {PWA_COLOR_FIELDS.map((field) => (
-            <PwaColorFieldControl
+            <SystemSettingsFieldRow
               key={field.id}
-              field={field}
-              value={props[field.stateKey as PwaColorStateKey]}
-              onChange={props[field.setterKey as PwaColorSetterKey]}
-              isSaving={props.isSaving}
-            />
+              htmlFor={field.id}
+              label={field.label}
+              description={field.description}
+            >
+              <PwaColorFieldControl
+                field={field}
+                value={props[field.stateKey as PwaColorStateKey]}
+                onChange={props[field.setterKey as PwaColorSetterKey]}
+                isSaving={props.isSaving}
+              />
+            </SystemSettingsFieldRow>
           ))}
           <PwaStatusBarField
             pwaAppleMobileWebAppStatusBarStyle={props.pwaAppleMobileWebAppStatusBarStyle}

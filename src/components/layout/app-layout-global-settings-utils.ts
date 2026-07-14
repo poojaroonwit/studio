@@ -22,6 +22,8 @@ export interface AppConfigChangedDetail {
   showLogoOnly?: boolean;
   sidebarLogoSize?: number;
   collapsedSidebarLogoSize?: number;
+  sidebarNavigationMode?: unknown;
+  sidebarSecondaryGroupLabels?: unknown;
 }
 
 export function clearAppLayoutTimeout(timeoutRef: TimeoutRef) {

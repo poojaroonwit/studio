@@ -88,6 +88,15 @@ export function ServiceWorkerRecovery() {
 
     window.addEventListener('online', handleOnline);
 
+    const getResourceErrorSource = (event: Event) => {
+      const target = event.target;
+
+      if (target instanceof HTMLScriptElement) return target.src;
+      if (target instanceof HTMLLinkElement) return target.href;
+
+      return '';
+    };
+
     const handleChunkLoadFailure = (error: unknown) => {
       recoverFromChunkLoadError(error).catch((recoveryError) => {
         console.error('Chunk load recovery failed:', recoveryError);
@@ -95,20 +104,27 @@ export function ServiceWorkerRecovery() {
     };
 
     const handleWindowError = (event: ErrorEvent) => {
-      handleChunkLoadFailure(event.error || event.message);
+      const errorDetails = [
+        event.message,
+        event.error instanceof Error ? `${event.error.name} ${event.error.message} ${event.error.stack || ''}` : '',
+        typeof event.error === 'string' ? event.error : '',
+        getResourceErrorSource(event),
+      ].filter(Boolean).join(' ');
+
+      handleChunkLoadFailure(errorDetails || event.error);
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       handleChunkLoadFailure(event.reason);
     };
 
-    window.addEventListener('error', handleWindowError);
+    window.addEventListener('error', handleWindowError, true);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
       window.fetch = originalFetch;
       window.removeEventListener('online', handleOnline);
-      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('error', handleWindowError, true);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, [recoverServiceWorker]);

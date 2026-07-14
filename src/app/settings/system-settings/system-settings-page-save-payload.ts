@@ -18,6 +18,11 @@ type SystemSettingsPayloadField = {
 };
 
 const SYSTEM_SETTINGS_PAYLOAD_FIELDS: SystemSettingsPayloadField[] = [
+  { key: 'resumeProcessingMode', value: state => stringSetting(state.resumeProcessingMode, 'built-in') },
+  { key: 'builtInProcessorNodeName', value: state => stringSetting(state.builtInProcessorNodeName, 'Default built-in processor') },
+  { key: 'builtInResumeExtractionPrompt', value: state => stringSetting(state.builtInResumeExtractionPrompt) },
+  { key: 'builtInApplicantMappingPrompt', value: state => stringSetting(state.builtInApplicantMappingPrompt) },
+  { key: 'builtInJobMatchingPrompt', value: state => stringSetting(state.builtInJobMatchingPrompt) },
   { key: 'maxConcurrentProcessors', value: state => stringifySetting(state.maxConcurrentProcessors) },
   { key: 'resumeProcessingWebhookUrl', value: state => stringSetting(state.resumeProcessingWebhookUrl) },
   { key: 'resumeProcessingWebhookToken', value: state => stringSetting(state.resumeProcessingWebhookToken) },

@@ -8,6 +8,7 @@ import type {
   SidebarColors,
   SidebarImageFit,
   SidebarImagePosition,
+  SidebarNavigationMode,
   ThemePreference,
 } from './constants';
 
@@ -32,6 +33,8 @@ export interface SystemPreferencesSaveInput {
   sidebarBackgroundType: SidebarBackgroundType;
   sidebarImageFit: SidebarImageFit;
   sidebarImagePosition: SidebarImagePosition;
+  sidebarNavigationMode: SidebarNavigationMode;
+  sidebarSecondaryGroupLabels: string[];
   headerBackgroundType: HeaderBackgroundType;
   headerBackgroundColor: string;
   headerBackgroundGradient: string | null;

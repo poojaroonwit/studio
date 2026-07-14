@@ -3,14 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
-import { useSession } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+let hasShownSplashForCurrentDocument = false;
+
 export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
   const { settings } = useGlobalSettings();
-  const { status } = useSession();
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(() => (
+    persistent || !hasShownSplashForCurrentDocument
+  ));
 
   // Configuration from settings
   const backgroundColor = settings.splashBackgroundColor || '#ffffff';
@@ -24,22 +26,13 @@ export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
       return;
     }
 
-    // Determine initial visibility only on client
-    const hasInitialized = sessionStorage.getItem('splashInitialized');
-    if (hasInitialized) {
+    if (hasShownSplashForCurrentDocument) {
       setIsVisible(false);
       return;
     }
 
-    // Mark that we've initialized (for client-side navigation detection)
-    sessionStorage.setItem('splashInitialized', 'true');
-    
-    // Clear the flag when page unloads (so splash shows on next refresh/redirect)
-    const handleBeforeUnload = () => {
-      sessionStorage.removeItem('splashInitialized');
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
+    hasShownSplashForCurrentDocument = true;
+
     // Hide after allowing content to fully load, but keep this brief
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -47,9 +40,8 @@ export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isVisible, persistent]);
+  }, [persistent]);
   // Listen for manual triggers (e.g., from login flow)
   useEffect(() => {
     const handleShow = () => setIsVisible(true);
@@ -63,12 +55,6 @@ export function SplashScreen({ persistent = false }: { persistent?: boolean }) {
       window.removeEventListener('hideSplashScreen', handleHide);
     };
   }, []);
-
-  useEffect(() => {
-    if (!persistent && status === 'authenticated') {
-      setIsVisible(false);
-    }
-  }, [persistent, status]);
 
   // Removed early return - show splash screen immediately with defaults while settings load
   // The splash screen will update when settings are fetched

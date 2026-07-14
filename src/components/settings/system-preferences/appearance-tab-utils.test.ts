@@ -26,7 +26,7 @@ describe('appearance-tab-utils', () => {
 
   it('builds active and inactive device tab classes', () => {
     expect(getAppearanceDeviceTabClass(true)).toContain('text-primary');
-    expect(getAppearanceDeviceTabClass(true)).toContain('border-b-2');
+    expect(getAppearanceDeviceTabClass(true)).toContain('after:bg-primary');
     expect(getAppearanceDeviceTabClass(false)).toContain('text-muted-foreground');
     expect(getAppearanceDeviceTabClass(false)).toContain('hover:text-foreground');
   });

@@ -18,7 +18,7 @@ export function SplashScreenSection({
             <SectionHeading
                 badgeClassName="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
                 badgeLabel="New"
-                description="Customize the loading screen shown during page navigation"
+                description="Customize the loading screen shown during a full page load or reload"
                 title="Splash Screen"
             />
 

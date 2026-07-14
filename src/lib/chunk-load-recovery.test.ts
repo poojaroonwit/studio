@@ -9,6 +9,7 @@ describe('chunk-load-recovery', () => {
     expect(isChunkLoadError(new Error('Loading chunk 42 failed'))).toBe(true);
     expect(isChunkLoadError('Loading CSS chunk 7 failed')).toBe(true);
     expect(isChunkLoadError({ message: '/_next/static/chunks/app.js failed' })).toBe(true);
+    expect(isChunkLoadError('Refused to execute script from /_next/static/css/app.css')).toBe(true);
     expect(isChunkLoadError(new Error('ordinary error'))).toBe(false);
   });
 

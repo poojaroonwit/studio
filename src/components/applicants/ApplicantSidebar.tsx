@@ -11,6 +11,8 @@ import type { ApplicantCommentItem } from './applicant-comments-utils';
 
 
 import { EvaluateReportSection } from './evaluate-report/EvaluateReportSection';
+import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 interface ApplicantSidebarProps {
   applicant: Applicant;
@@ -69,6 +71,10 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
   const tabCount = hasEvaluationLink ? 3 : 2;
   const gridCols = tabCount === 3 ? 'grid-cols-3' : 'grid-cols-2';
+  const getTabClassName = (isActive: boolean) => cn(
+    getUnderlineNavTriggerClassName(isActive),
+    'justify-center px-3 py-4 text-xs flex-shrink-0 md:flex-1',
+  );
 
   return (
     <div className="h-full flex flex-col min-h-0 pointer-events-auto">
@@ -76,7 +82,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
       <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent md:overflow-x-visible md:pb-0 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
         <div className={`flex w-full min-w-max md:min-w-0 md:grid md:w-full ${gridCols} bg-background border-b border-border flex-shrink-0`}>
           <div
-            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+            className={getTabClassName(activeTab === 'comments')}
             onClick={() => setActiveTab('comments')}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <MessageSquare className="w-4 h-4" />
@@ -87,7 +93,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
             })()}
           </div>
           <div
-            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'attachments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+            className={getTabClassName(activeTab === 'attachments')}
             onClick={() => setActiveTab('attachments')}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <UploadCloud className="w-4 h-4" />
@@ -99,7 +105,7 @@ export const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
           </div>
           {hasEvaluationLink && (
             <div
-              className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'evaluate' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+              className={getTabClassName(activeTab === 'evaluate')}
               onClick={() => setActiveTab('evaluate')}
              role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
               <FileCheck className="w-4 h-4" />

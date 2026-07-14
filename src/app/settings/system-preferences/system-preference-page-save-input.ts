@@ -33,6 +33,8 @@ export function buildSystemPreferenceSaveActionInput({
     sidebarBackgroundType: state.sidebarBackgroundType,
     sidebarImageFit: state.sidebarImageFit,
     sidebarImagePosition: state.sidebarImagePosition,
+    sidebarNavigationMode: state.sidebarNavigationMode,
+    sidebarSecondaryGroupLabels: state.sidebarSecondaryGroupLabels,
     headerBackgroundType: state.headerBackgroundType,
     headerBackgroundColor: state.headerBackgroundColor,
     headerBackgroundGradient: state.headerBackgroundGradient,

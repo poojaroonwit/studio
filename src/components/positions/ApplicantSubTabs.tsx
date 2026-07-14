@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 import type { PositionApplicantTab } from './ApplicantsTabTypes';
 
@@ -57,11 +58,8 @@ function ApplicantSubTabButton({
       type="button"
       onClick={onSelect}
       className={cn(
-        'flex items-center gap-2 text-sm font-medium transition-all duration-200 relative',
+        getUnderlineNavTriggerClassName(active),
         isMobile ? 'px-4 py-2' : 'px-4 py-2.5',
-        active
-          ? 'text-primary border-b-2 border-primary'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
       )}
     >
       {label} ({count})

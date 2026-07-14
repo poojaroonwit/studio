@@ -9,6 +9,7 @@ import type { PlatformModuleId } from "@/lib/types";
 import { sidebarConfig } from "./SidebarNavConfig";
 import { SidebarMenuPanel } from "./SidebarMenuPanel";
 import { SidebarRail } from "./SidebarRail";
+import { SidebarSinglePanel } from "./SidebarSinglePanel";
 import { hasSidebarItemPermission } from "./safe-sidebar-permissions";
 import {
   buildFilteredSidebarGroups,
@@ -18,7 +19,17 @@ import {
   getSidebarGroupFirstHref,
   shouldShowSidebarMenuPanel,
 } from "./safe-sidebar-nav-utils";
+import {
+  DEFAULT_SIDEBAR_LAYOUT_SETTINGS,
+  SIDEBAR_NAVIGATION_MODE_KEY,
+  SIDEBAR_SECONDARY_GROUP_LABELS_KEY,
+  buildSidebarLayoutSettings,
+  getEffectiveSecondaryGroupLabels,
+  isSidebarGroupInSecondaryPanel,
+  type SidebarLayoutSettings,
+} from "./sidebar-layout-settings";
 import { usePendingCount } from "./use-pending-count";
+import type { AppConfigChangedDetail } from "./app-layout-settings-types";
 
 export { SidebarMenuPanel } from "./SidebarMenuPanel";
 export { SidebarRail } from "./SidebarRail";
@@ -31,6 +42,9 @@ const GroupedSidebarNav = React.memo(() => {
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions() as { hasPositions: boolean };
   const router = useRouter();
+  const [layoutSettings, setLayoutSettings] = React.useState<SidebarLayoutSettings>(
+    DEFAULT_SIDEBAR_LAYOUT_SETTINGS,
+  );
 
   const isAdmin = session?.user?.role === "Admin";
   const modulePermissions = (session?.user?.modulePermissions ?? []) as PlatformModuleId[];
@@ -57,6 +71,64 @@ const GroupedSidebarNav = React.memo(() => {
   }, [initialActiveGroupLabel, activeGroupLabel]);
 
   const activeGroup = getActiveSidebarGroup(filteredGroups, displayedGroupLabel);
+  const effectiveSecondaryGroupLabels = React.useMemo(() => (
+    getEffectiveSecondaryGroupLabels(layoutSettings.secondaryGroupLabels, filteredGroups)
+  ), [filteredGroups, layoutSettings.secondaryGroupLabels]);
+  const isSplitMode = layoutSettings.mode === "split";
+  const shouldRenderSecondaryPanel = isSplitMode
+    && shouldShowSidebarMenuPanel(pathname)
+    && isSidebarGroupInSecondaryPanel(displayedGroupLabel, effectiveSecondaryGroupLabels);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadSidebarLayoutSettings = async () => {
+      try {
+        const keys = [
+          SIDEBAR_NAVIGATION_MODE_KEY,
+          SIDEBAR_SECONDARY_GROUP_LABELS_KEY,
+        ].join(",");
+        const response = await fetch(`/api/settings/system-settings?keys=${keys}`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+
+        if (isMounted) {
+          setLayoutSettings(buildSidebarLayoutSettings(data));
+        }
+      } catch (error) {
+        console.error("[SIDEBAR] Failed to fetch layout settings:", error);
+      }
+    };
+
+    loadSidebarLayoutSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const handleAppConfigChanged = (event: Event) => {
+      const detail = (event as CustomEvent<AppConfigChangedDetail>).detail;
+      if (
+        detail?.sidebarNavigationMode === undefined
+        && detail?.sidebarSecondaryGroupLabels === undefined
+      ) {
+        return;
+      }
+
+      setLayoutSettings(buildSidebarLayoutSettings(detail));
+    };
+
+    window.addEventListener("appConfigChanged", handleAppConfigChanged);
+
+    return () => {
+      window.removeEventListener("appConfigChanged", handleAppConfigChanged);
+    };
+  }, []);
 
   const handleHubClick = React.useCallback((label: string) => {
     setActiveGroupLabel(label);
@@ -81,14 +153,24 @@ const GroupedSidebarNav = React.memo(() => {
       className="flex h-full"
       onMouseLeave={() => setHoveredGroupLabel(undefined)}
     >
-      <SidebarRail
-        filteredGroups={filteredGroups}
-        activeGroupLabel={activeGroupLabel}
-        hoveredGroupLabel={hoveredGroupLabel}
-        onHubClick={handleHubClick}
-        onHubHover={setHoveredGroupLabel}
-      />
-      {shouldShowSidebarMenuPanel(pathname) && (
+      {isSplitMode ? (
+        <SidebarRail
+          filteredGroups={filteredGroups}
+          activeGroupLabel={activeGroupLabel}
+          hoveredGroupLabel={hoveredGroupLabel}
+          onHubClick={handleHubClick}
+          onHubHover={setHoveredGroupLabel}
+        />
+      ) : (
+        <SidebarSinglePanel
+          filteredGroups={filteredGroups}
+          pathname={pathname}
+          pendingCount={pendingCount}
+          sidebarPreferences={sidebarPreferences}
+          hasPositions={hasPositions}
+        />
+      )}
+      {shouldRenderSecondaryPanel && (
         <SidebarMenuPanel
           activeGroup={activeGroup}
           pathname={pathname}

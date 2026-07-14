@@ -11,7 +11,7 @@ import {
   ORGANIZATION_LOGO_DATA_URL_KEY,
   ORGANIZATION_NAME_KEY,
 } from "./system-settings-page-constants";
-import type { EmailEditorMode } from "./system-settings-page-types";
+import type { EmailEditorMode, ResumeProcessingMode } from "./system-settings-page-types";
 import type { SystemSettingsRecord } from "./system-settings-utils";
 import {
   isNotFalseSetting,
@@ -22,7 +22,27 @@ import {
 } from "./system-settings-page-parse-utils";
 
 export function parseProcessingSettings(settings: SystemSettingsRecord) {
+  const resumeProcessingMode: ResumeProcessingMode =
+    stringSetting(settings, "resumeProcessingMode", "built-in") === "external" ? "external" : "built-in";
+
   return {
+    resumeProcessingMode,
+    builtInProcessorNodeName: stringSetting(settings, "builtInProcessorNodeName", "Default built-in processor"),
+    builtInResumeExtractionPrompt: stringSetting(
+      settings,
+      "builtInResumeExtractionPrompt",
+      "Extract structured candidate data from the uploaded resume, including contact details, work history, education, skills, languages, and certifications.",
+    ),
+    builtInApplicantMappingPrompt: stringSetting(
+      settings,
+      "builtInApplicantMappingPrompt",
+      "Create or update an applicant profile from the extracted resume data. Preserve source evidence and leave unknown fields blank.",
+    ),
+    builtInJobMatchingPrompt: stringSetting(
+      settings,
+      "builtInJobMatchingPrompt",
+      "Match the applicant against available positions using skills, experience, education, and configured match criteria. Return fit score and concise reasons.",
+    ),
     maxConcurrentProcessors: numberSetting(settings, "maxConcurrentProcessors", "5"),
     resumeProcessingWebhookUrl: stringSetting(settings, "resumeProcessingWebhookUrl"),
     resumeProcessingWebhookToken: stringSetting(settings, "resumeProcessingWebhookToken"),

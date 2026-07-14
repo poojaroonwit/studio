@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
 
 import type { UserPreferencesTab, UserPreferencesTabConfig } from "./UserPreferencesPageTypes";
 
@@ -64,10 +65,8 @@ export function UserPreferencesTabs({ activeTab, onTabChange }: UserPreferencesT
           type="button"
           onClick={() => onTabChange(id)}
           className={cn(
-            "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2",
-            activeTab === id
-              ? "text-primary border-primary"
-              : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50",
+            getUnderlineNavTriggerClassName(activeTab === id),
+            "px-1 h-12",
           )}
         >
           <Icon className="w-4 h-4" />

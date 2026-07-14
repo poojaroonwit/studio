@@ -22,6 +22,10 @@ export function buildSystemPreferencesSidebarProps({
     setSidebarImageFit: state.setSidebarImageFit,
     sidebarImagePosition: state.sidebarImagePosition,
     setSidebarImagePosition: state.setSidebarImagePosition,
+    sidebarNavigationMode: state.sidebarNavigationMode,
+    setSidebarNavigationMode: state.setSidebarNavigationMode,
+    sidebarSecondaryGroupLabels: state.sidebarSecondaryGroupLabels,
+    setSidebarSecondaryGroupLabels: state.setSidebarSecondaryGroupLabels,
   };
 }
 

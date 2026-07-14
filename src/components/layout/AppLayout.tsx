@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import React, { useMemo, memo } from 'react';
 import { SplashScreen } from '@/components/ui/SplashScreen';
-import { usePageLoading } from '@/hooks/use-page-loading';
 import { useFavicon } from '@/hooks/use-favicon';
 import { useSessionValidation } from '@/hooks/use-session-validation';
 import { useTheme } from '@/hooks/use-theme';
@@ -22,7 +21,6 @@ interface AppLayoutProps {
 const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const { isLoading } = usePageLoading();
   const { faviconDataUrl } = useFavicon();
   const { mounted: themeMounted } = useTheme();
 
@@ -65,7 +63,6 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
       contextualLogos={appLayoutState.contextualLogos}
       currentAppName={appLayoutState.currentAppName}
       faviconDataUrl={faviconDataUrl}
-      isLoading={isLoading}
       isLogoLoading={appLayoutState.isLogoLoading}
       pageTitle={pageTitle}
       showLogoOnly={appLayoutState.showLogoOnly}

@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { applySidebarStyles } from "@/lib/themeUtils";
+import {
+  DEFAULT_SIDEBAR_LAYOUT_SETTINGS,
+  type SidebarNavigationMode,
+} from "../../../components/layout/sidebar-layout-settings";
 import {
   DEFAULT_SIDEBAR_COLORS_BASE,
   DEFAULT_SPLASH_ANIMATION_TYPE,
@@ -20,6 +24,12 @@ export function useSystemPreferenceSidebarSplashState() {
   const [savedSidebarImageUrl, setSavedSidebarImageUrl] = useState<string | null>(null);
   const [sidebarImageFit, setSidebarImageFit] = useState<SidebarImageFit>("cover");
   const [sidebarImagePosition, setSidebarImagePosition] = useState<SidebarImagePosition>("center");
+  const [sidebarNavigationMode, setSidebarNavigationMode] = useState<SidebarNavigationMode>(
+    DEFAULT_SIDEBAR_LAYOUT_SETTINGS.mode,
+  );
+  const [sidebarSecondaryGroupLabels, setSidebarSecondaryGroupLabels] = useState<string[]>(
+    DEFAULT_SIDEBAR_LAYOUT_SETTINGS.secondaryGroupLabels,
+  );
 
   const [splashBackgroundColor, setSplashBackgroundColor] = useState<string>(DEFAULT_SPLASH_BACKGROUND_COLOR);
   const [splashAnimationType, setSplashAnimationType] = useState<string>(DEFAULT_SPLASH_ANIMATION_TYPE);
@@ -27,11 +37,25 @@ export function useSystemPreferenceSidebarSplashState() {
   const [splashLogoPreviewUrl, setSplashLogoPreviewUrl] = useState<string | null>(null);
   const [savedSplashLogoDataUrl, setSavedSplashLogoDataUrl] = useState<string | null>(null);
 
-  const resetSidebarColors = () => {
+  const resetSidebarColors = useCallback(() => {
     const newSidebarColors = createInitialSidebarColors();
     setSidebarColors(newSidebarColors);
     applySidebarStyles(newSidebarColors);
-  };
+  }, []);
+  const loadedPreferenceStateSetters = useMemo(() => ({
+    setSidebarColors,
+    setSidebarBackgroundType,
+    setSavedSidebarImageUrl,
+    setSidebarImagePreviewUrl,
+    setSidebarImageFit,
+    setSidebarImagePosition,
+    setSidebarNavigationMode,
+    setSidebarSecondaryGroupLabels,
+    setSplashBackgroundColor,
+    setSplashAnimationType,
+    setSavedSplashLogoDataUrl,
+    setSplashLogoPreviewUrl,
+  }), []);
 
   return {
     sidebarColors,
@@ -48,6 +72,10 @@ export function useSystemPreferenceSidebarSplashState() {
     setSidebarImageFit,
     sidebarImagePosition,
     setSidebarImagePosition,
+    sidebarNavigationMode,
+    setSidebarNavigationMode,
+    sidebarSecondaryGroupLabels,
+    setSidebarSecondaryGroupLabels,
     splashBackgroundColor,
     setSplashBackgroundColor,
     splashAnimationType,
@@ -59,17 +87,6 @@ export function useSystemPreferenceSidebarSplashState() {
     savedSplashLogoDataUrl,
     setSavedSplashLogoDataUrl,
     resetSidebarColors,
-    loadedPreferenceStateSetters: {
-      setSidebarColors,
-      setSidebarBackgroundType,
-      setSavedSidebarImageUrl,
-      setSidebarImagePreviewUrl,
-      setSidebarImageFit,
-      setSidebarImagePosition,
-      setSplashBackgroundColor,
-      setSplashAnimationType,
-      setSavedSplashLogoDataUrl,
-      setSplashLogoPreviewUrl,
-    },
+    loadedPreferenceStateSetters,
   };
 }

@@ -5,6 +5,16 @@ import type { SystemSettingsCorePanelProps } from './SystemSettingsCoreTabPanelT
 export function SystemSettingsProcessingPanel({ settingsPage }: SystemSettingsCorePanelProps) {
   return (
     <ProcessingTab
+      resumeProcessingMode={settingsPage.resumeProcessingMode}
+      setResumeProcessingMode={settingsPage.setResumeProcessingMode}
+      builtInProcessorNodeName={settingsPage.builtInProcessorNodeName}
+      setBuiltInProcessorNodeName={settingsPage.setBuiltInProcessorNodeName}
+      builtInResumeExtractionPrompt={settingsPage.builtInResumeExtractionPrompt}
+      setBuiltInResumeExtractionPrompt={settingsPage.setBuiltInResumeExtractionPrompt}
+      builtInApplicantMappingPrompt={settingsPage.builtInApplicantMappingPrompt}
+      setBuiltInApplicantMappingPrompt={settingsPage.setBuiltInApplicantMappingPrompt}
+      builtInJobMatchingPrompt={settingsPage.builtInJobMatchingPrompt}
+      setBuiltInJobMatchingPrompt={settingsPage.setBuiltInJobMatchingPrompt}
       maxConcurrentProcessors={settingsPage.maxConcurrentProcessors}
       setMaxConcurrentProcessors={settingsPage.setMaxConcurrentProcessors}
       resumeProcessingWebhookUrl={settingsPage.resumeProcessingWebhookUrl}

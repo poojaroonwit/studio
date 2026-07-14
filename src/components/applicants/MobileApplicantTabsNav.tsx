@@ -7,6 +7,7 @@ import {
   UserIcon as User,
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 export type MobileApplicantDetailTab = 'job-applied' | 'applicant-info' | 'attachments' | 'comments';
 
@@ -47,10 +48,8 @@ export function MobileApplicantTabsNav({
               key={tab.value}
               onClick={() => onTabChange(tab.value)}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
-                activeTab === tab.value
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                getUnderlineNavTriggerClassName(activeTab === tab.value),
+                "px-6 py-3 flex-shrink-0 touch-manipulation",
               )}
               role="button"
               tabIndex={0}

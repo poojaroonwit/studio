@@ -4,6 +4,7 @@ import type React from 'react';
 import { Activity, BarChart3, History, Zap } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 export type WebhookManagementTab = 'overview' | 'webhooks' | 'analytics' | 'logs';
 
@@ -34,10 +35,8 @@ export function WebhookNavigationTabs({
           key={id}
           onClick={() => onTabChange(id)}
           className={cn(
-            'flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer',
-            activeTab === id
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+            getUnderlineNavTriggerClassName(activeTab === id),
+            'px-6 py-3',
           )}
           role="button"
           tabIndex={0}

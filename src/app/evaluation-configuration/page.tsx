@@ -8,6 +8,7 @@ import TreeView from '@/components/settings/TreeView';
 import SkillTemplatesTab from '@/components/settings/SkillTemplatesTab';
 import EvaluationLinksTab from '@/components/settings/EvaluationLinksTab';
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 export default function EvaluationConfigurationPage() {
   const [activeTab, setActiveTab] = useState('expertise-groups-skills');
@@ -31,10 +32,8 @@ export default function EvaluationConfigurationPage() {
           <div
             onClick={() => setActiveTab('expertise-groups-skills')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-              activeTab === 'expertise-groups-skills'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              getUnderlineNavTriggerClassName(activeTab === 'expertise-groups-skills'),
+              "px-6 py-3",
             )}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Brain className="h-4 w-4" />
@@ -43,10 +42,8 @@ export default function EvaluationConfigurationPage() {
           <div
             onClick={() => setActiveTab('personality-groups-traits')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-              activeTab === 'personality-groups-traits'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              getUnderlineNavTriggerClassName(activeTab === 'personality-groups-traits'),
+              "px-6 py-3",
             )}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Users className="h-4 w-4" />
@@ -55,10 +52,8 @@ export default function EvaluationConfigurationPage() {
           <div
             onClick={() => setActiveTab('skill-templates')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-              activeTab === 'skill-templates'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              getUnderlineNavTriggerClassName(activeTab === 'skill-templates'),
+              "px-6 py-3",
             )}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <FileText className="h-4 w-4" />
@@ -67,10 +62,8 @@ export default function EvaluationConfigurationPage() {
           <div
             onClick={() => setActiveTab('evaluation-links')}
             className={cn(
-              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-              activeTab === 'evaluation-links'
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              getUnderlineNavTriggerClassName(activeTab === 'evaluation-links'),
+              "px-6 py-3",
             )}
            role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}>
             <Settings className="h-4 w-4" />

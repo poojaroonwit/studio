@@ -1,6 +1,7 @@
 import { Bars3BottomLeftIcon as ListFilter, CodeBracketIcon as Code } from '@heroicons/react/24/outline';
 
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 export type ApplicantFilterTab = 'filters' | 'advanced';
 
@@ -25,10 +26,8 @@ export function ApplicantFilterTabs({
           key={id}
           onClick={() => onTabChange(id)}
           className={cn(
-            'flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-1',
-            activeTab === id
-              ? 'text-primary border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+            getUnderlineNavTriggerClassName(activeTab === id),
+            'justify-center px-4 py-2 flex-1',
           )}
           role="button"
           tabIndex={0}

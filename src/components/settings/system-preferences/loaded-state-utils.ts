@@ -21,6 +21,8 @@ import {
     SIDEBAR_BACKGROUND_IMAGE_KEY,
     SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY,
     SIDEBAR_BACKGROUND_TYPE_KEY,
+    SIDEBAR_NAVIGATION_MODE_KEY,
+    SIDEBAR_SECONDARY_GROUP_LABELS_KEY,
     SPLASH_ANIMATION_TYPE_KEY,
     SPLASH_BACKGROUND_COLOR_KEY,
     SPLASH_LOGO_DATA_URL_KEY,
@@ -32,6 +34,7 @@ import {
     type SplashAnimationType,
     type ThemePreference,
 } from './constants';
+import { buildSidebarLayoutSettings } from '../../layout/sidebar-layout-settings';
 import type { LoadedSystemPreferencesState } from './loaded-state-types';
 import {
     buildLoadedEvaluateHeaderState,
@@ -49,6 +52,10 @@ const DEFAULT_THEME: ThemePreference = 'system';
 export function buildLoadedSystemPreferencesState(settings: SettingsRecord): LoadedSystemPreferencesState {
     const themePreference = (settings[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME;
     const sidebarColors = buildLoadedSidebarColors(settings);
+    const sidebarLayoutSettings = buildSidebarLayoutSettings({
+        [SIDEBAR_NAVIGATION_MODE_KEY]: settings[SIDEBAR_NAVIGATION_MODE_KEY],
+        [SIDEBAR_SECONDARY_GROUP_LABELS_KEY]: settings[SIDEBAR_SECONDARY_GROUP_LABELS_KEY],
+    });
 
     return {
         themePreference,
@@ -69,6 +76,8 @@ export function buildLoadedSystemPreferencesState(settings: SettingsRecord): Loa
         sidebarBackgroundImage: asStringOrNull(settings[SIDEBAR_BACKGROUND_IMAGE_KEY]),
         sidebarImageFit: (settings[SIDEBAR_BACKGROUND_IMAGE_FIT_KEY] as SidebarImageFit) || 'cover',
         sidebarImagePosition: (settings[SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY] as SidebarImagePosition) || 'center',
+        sidebarNavigationMode: sidebarLayoutSettings.mode,
+        sidebarSecondaryGroupLabels: sidebarLayoutSettings.secondaryGroupLabels,
         splashBackgroundColor: (settings[SPLASH_BACKGROUND_COLOR_KEY] as string) || DEFAULT_SPLASH_BACKGROUND_COLOR,
         splashAnimationType: (settings[SPLASH_ANIMATION_TYPE_KEY] as SplashAnimationType) || DEFAULT_SPLASH_ANIMATION_TYPE,
         splashLogoDataUrl: asStringOrNull(settings[SPLASH_LOGO_DATA_URL_KEY]),

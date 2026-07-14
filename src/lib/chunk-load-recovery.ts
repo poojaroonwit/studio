@@ -24,7 +24,7 @@ function getErrorText(error: unknown): string {
 
 export function isChunkLoadError(error: unknown): boolean {
   const errorText = getErrorText(error);
-  return /ChunkLoadError|Loading chunk \d+ failed|Loading CSS chunk \d+ failed|_next\/static\/chunks/i.test(errorText);
+  return /ChunkLoadError|Loading chunk \d+ failed|Loading CSS chunk \d+ failed|_next\/static\/(?:chunks|css)/i.test(errorText);
 }
 
 export async function recoverFromChunkLoadError(error?: unknown): Promise<boolean> {

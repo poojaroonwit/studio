@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR,
@@ -47,6 +47,31 @@ export function useSystemPreferenceAppearanceState() {
   const [headerBackgroundGradient, setHeaderBackgroundGradient] = useState<string | null>(null);
   const [headerBackgroundColor, setHeaderBackgroundColor] = useState<string>(DEFAULT_HEADER_BACKGROUND_COLOR);
   const [headerTextColor, setHeaderTextColor] = useState<string>(DEFAULT_HEADER_TEXT_COLOR);
+  const loadedPreferenceStateSetters = useMemo(() => ({
+    setLoginBackgroundType,
+    setSavedLoginImageDataUrl,
+    setLoginImagePreviewUrl,
+    setLoginBackgroundGradient,
+    setLoginBackgroundColor,
+    setLoginLayoutType,
+    setLoginBackgroundTypeMobile,
+    setSavedLoginImageDataUrlMobile,
+    setLoginImagePreviewUrlMobile,
+    setLoginBackgroundGradientMobile,
+    setLoginBackgroundColorMobile,
+    setEvaluateHeaderBackgroundType,
+    setSavedEvaluateHeaderImageDataUrl,
+    setEvaluateHeaderImagePreviewUrl,
+    setEvaluateHeaderBackgroundGradient,
+    setEvaluateHeaderBackgroundColor,
+    setEvaluateHeaderTextColor,
+    setHeaderBackgroundType,
+    setSavedHeaderImageDataUrl,
+    setHeaderImagePreviewUrl,
+    setHeaderBackgroundGradient,
+    setHeaderBackgroundColor,
+    setHeaderTextColor,
+  }), []);
 
   return {
     loginBackgroundType,
@@ -103,30 +128,6 @@ export function useSystemPreferenceAppearanceState() {
     setHeaderBackgroundColor,
     headerTextColor,
     setHeaderTextColor,
-    loadedPreferenceStateSetters: {
-      setLoginBackgroundType,
-      setSavedLoginImageDataUrl,
-      setLoginImagePreviewUrl,
-      setLoginBackgroundGradient,
-      setLoginBackgroundColor,
-      setLoginLayoutType,
-      setLoginBackgroundTypeMobile,
-      setSavedLoginImageDataUrlMobile,
-      setLoginImagePreviewUrlMobile,
-      setLoginBackgroundGradientMobile,
-      setLoginBackgroundColorMobile,
-      setEvaluateHeaderBackgroundType,
-      setSavedEvaluateHeaderImageDataUrl,
-      setEvaluateHeaderImagePreviewUrl,
-      setEvaluateHeaderBackgroundGradient,
-      setEvaluateHeaderBackgroundColor,
-      setEvaluateHeaderTextColor,
-      setHeaderBackgroundType,
-      setSavedHeaderImageDataUrl,
-      setHeaderImagePreviewUrl,
-      setHeaderBackgroundGradient,
-      setHeaderBackgroundColor,
-      setHeaderTextColor,
-    },
+    loadedPreferenceStateSetters,
   };
 }

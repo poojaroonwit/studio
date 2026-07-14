@@ -24,6 +24,9 @@ interface UseBulkUploadCvsModalInput {
   onUploadSuccess?: () => void;
 }
 
+const BULK_UPLOAD_EMPTY_TOAST_ID = "bulk-upload-cvs-empty-selection";
+const BULK_UPLOAD_RESULT_TOAST_ID = "bulk-upload-cvs-result";
+
 export function useBulkUploadCvsModal({
   isOpen,
   onOpenChange,
@@ -44,6 +47,7 @@ export function useBulkUploadCvsModal({
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [fileViewerFile, setFileViewerFile] = useState<BulkUploadViewerFile | null>(null);
   const modalContentRef = useRef<HTMLDivElement>(null);
+  const uploadInFlightRef = useRef(false);
   const availableSources = useBulkUploadSources(isOpen);
   const previewUrl = useBulkUploadPreviewUrl({
     selectedFileIndex,
@@ -103,11 +107,20 @@ export function useBulkUploadCvsModal({
     event?.preventDefault();
     event?.stopPropagation();
 
-    if (selectedFiles.length === 0) {
-      errorWithDescription("No files selected", "Please select at least one PDF file to upload.");
+    if (uploadInFlightRef.current) {
       return;
     }
 
+    if (selectedFiles.length === 0) {
+      errorWithDescription(
+        "No files selected",
+        "Please select at least one PDF file to upload.",
+        { id: BULK_UPLOAD_EMPTY_TOAST_ID },
+      );
+      return;
+    }
+
+    uploadInFlightRef.current = true;
     setUploading(true);
     setUploadProgress({ current: 0, total: selectedFiles.length });
 
@@ -123,7 +136,11 @@ export function useBulkUploadCvsModal({
 
       if (success) {
         const successToast = getBulkUploadSuccessToast({ successful, failed, errors });
-        successWithDescription(successToast.title, successToast.description);
+        successWithDescription(
+          successToast.title,
+          successToast.description,
+          { id: BULK_UPLOAD_RESULT_TOAST_ID },
+        );
 
         resetUploadFormState();
         onOpenChange(false);
@@ -134,9 +151,14 @@ export function useBulkUploadCvsModal({
     } catch (error) {
       console.error("Upload error:", error);
       const errorToast = getBulkUploadErrorToast(error);
-      errorWithDescription(errorToast.title, errorToast.description || "Please try again");
+      errorWithDescription(
+        errorToast.title,
+        errorToast.description || "Please try again",
+        { id: BULK_UPLOAD_RESULT_TOAST_ID },
+      );
       setUploadProgress(null);
     } finally {
+      uploadInFlightRef.current = false;
       setUploading(false);
     }
   }, [
@@ -152,6 +174,7 @@ export function useBulkUploadCvsModal({
   ]);
 
   const cancelUpload = useCallback(() => {
+    uploadInFlightRef.current = false;
     setUploading(false);
     setUploadProgress(null);
   }, []);

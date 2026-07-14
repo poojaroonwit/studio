@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { SystemPreferencesTabId } from "@/components/settings/system-preferences/SystemPreferencesNavigation";
 import {
@@ -24,6 +24,14 @@ export function useSystemPreferenceCoreState() {
   const [generativeAICanvasMode, setGenerativeAICanvasMode] = useState<boolean>(false);
   const [drawerStyle, setDrawerStyle] = useState<DrawerStyle>(DEFAULT_DRAWER_STYLE);
   const [loginPageLogoSize, setLoginPageLogoSize] = useState<number>(DEFAULT_LOGIN_PAGE_LOGO_SIZE);
+  const loadedPreferenceStateSetters = useMemo(() => ({
+    setThemePreference,
+    setAppName,
+    setShowLogoOnly,
+    setLoginPageLogoSize,
+    setGenerativeAICanvasMode,
+    setDrawerStyle,
+  }), []);
 
   return {
     isClient,
@@ -50,13 +58,6 @@ export function useSystemPreferenceCoreState() {
     setDrawerStyle,
     loginPageLogoSize,
     setLoginPageLogoSize,
-    loadedPreferenceStateSetters: {
-      setThemePreference,
-      setAppName,
-      setShowLogoOnly,
-      setLoginPageLogoSize,
-      setGenerativeAICanvasMode,
-      setDrawerStyle,
-    },
+    loadedPreferenceStateSetters,
   };
 }

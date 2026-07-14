@@ -7,6 +7,8 @@ import {
   ClockIcon as Clock,
   UserIcon as User,
 } from '@heroicons/react/24/outline';
+import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 
 interface FullApplicantDetailTabsNavProps {
   activeTab: string;
@@ -38,7 +40,10 @@ function DetailTabButton({
 
   return (
     <div
-      className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${isActive ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+      className={cn(
+        getUnderlineNavTriggerClassName(isActive),
+        'justify-center px-4 py-4 text-xs flex-1 md:flex-1 min-w-max md:min-w-0',
+      )}
       onClick={() => onTabChange(tab)}
       role="button"
       tabIndex={0}

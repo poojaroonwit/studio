@@ -3,6 +3,7 @@
 import { ChevronLeft, PlusCircle, RefreshCw, ServerCrash, ShieldCheck, Users, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
 import { UserGroupsTab } from "@/components/settings/UserGroupsTab";
 import { UserTeamsTab } from "@/components/settings/UserTeamsTab";
 
@@ -81,10 +82,8 @@ export function UsersPageTabs({ activeTab, onTabChange }: UsersPageTabsProps) {
               type="button"
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-1 h-12 text-sm font-medium transition-all duration-200 relative cursor-pointer border-b-2 -mb-[2px]",
-                activeTab === tab.id
-                  ? "text-foreground border-foreground z-10"
-                  : "text-muted-foreground hover:text-foreground border-transparent hover:border-border/50"
+                getUnderlineNavTriggerClassName(activeTab === tab.id),
+                "px-1 h-12 -mb-px",
               )}
             >
               <Icon className="h-4 w-4" /> {tab.label}

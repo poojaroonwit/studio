@@ -5,7 +5,6 @@ import { Eye, EyeOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -15,6 +14,7 @@ import {
 } from '@/components/ui/select';
 
 import type { ProcessingTabProps } from './processing-tab-types';
+import { SystemSettingsFieldRow } from './SystemSettingsFieldRow';
 
 type WebhookSettingsSectionProps = Pick<
   ProcessingTabProps,
@@ -54,8 +54,11 @@ function WebhookUrlField({
   'resumeProcessingWebhookUrl' | 'setResumeProcessingWebhookUrl' | 'isSaving' | 'onTestWebhook'
 >): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="resume-processing-webhook">Webhook URL</Label>
+    <SystemSettingsFieldRow
+      htmlFor="resume-processing-webhook"
+      label="Webhook URL"
+      description='Receives uploaded resume files as FormData. Used for resume uploads and "Create via Resume (Automated)" when External mode is selected.'
+    >
       <div className="flex gap-2">
         <Input
           id="resume-processing-webhook"
@@ -76,10 +79,7 @@ function WebhookUrlField({
           Test
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.). This webhook is used for all PDF processing including resume uploads and the "Create via Resume (Automated)" feature.
-      </p>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -98,8 +98,11 @@ function WebhookTokenField({
   | 'isSaving'
 >): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="resume-processing-webhook-token">Authentication Token (Optional)</Label>
+    <SystemSettingsFieldRow
+      htmlFor="resume-processing-webhook-token"
+      label="Authentication Token"
+      description="Optional Bearer token for webhook authentication. Leave empty if no authentication is required."
+    >
       <div className="relative">
         <Input
           id="resume-processing-webhook-token"
@@ -125,10 +128,7 @@ function WebhookTokenField({
           )}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Optional Bearer token for webhook authentication. Leave empty if no authentication is required.
-      </p>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -141,8 +141,11 @@ function WebhookResponseModeField({
   'resumeProcessingWebhookResponseMode' | 'setResumeProcessingWebhookResponseMode' | 'isSaving'
 >): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="resume-processing-webhook-response-mode">Response Mode</Label>
+    <SystemSettingsFieldRow
+      htmlFor="resume-processing-webhook-response-mode"
+      label="Response Mode"
+      description="Blocking waits for completion. Streaming is for real-time updates from compatible services."
+    >
       <Select
         value={resumeProcessingWebhookResponseMode}
         onValueChange={setResumeProcessingWebhookResponseMode}
@@ -156,10 +159,7 @@ function WebhookResponseModeField({
           <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">
-        Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.
-      </p>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -172,8 +172,11 @@ function WebhookTimeoutField({
   'resumeProcessingWebhookTimeout' | 'setResumeProcessingWebhookTimeout' | 'isSaving'
 >): React.ReactElement {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="resume-processing-webhook-timeout">Webhook Timeout (seconds)</Label>
+    <SystemSettingsFieldRow
+      htmlFor="resume-processing-webhook-timeout"
+      label="Webhook Timeout"
+      description="Timeout for webhook requests in seconds. Default is 1800 seconds (30 minutes)."
+    >
       <Input
         id="resume-processing-webhook-timeout"
         type="number"
@@ -184,9 +187,6 @@ function WebhookTimeoutField({
         min="30"
         max="36000"
       />
-      <p className="text-xs text-muted-foreground">
-        Timeout for webhook requests in seconds. Default is 1800 seconds (30 minutes). Minimum 30 seconds, maximum 36000 seconds (10 hours).
-      </p>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }

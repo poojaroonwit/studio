@@ -5,8 +5,6 @@ import { handleGetV1Applicant } from './applicant-v1-detail-read';
 import { handleUpdateV1Applicant } from './applicant-v1-detail-update';
 import { type V1ApplicantDetailContext } from './applicant-v1-detail-schema';
 
-export { updateApplicantSchema } from './applicant-v1-detail-schema';
-
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 

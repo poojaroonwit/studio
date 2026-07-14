@@ -35,6 +35,11 @@ export type SystemSettingKey =
   | 'organizationAddress'
   | 'organizationContact'
   | 'organizationLogoDataUrl'
+  | 'resumeProcessingMode'
+  | 'builtInProcessorNodeName'
+  | 'builtInResumeExtractionPrompt'
+  | 'builtInApplicantMappingPrompt'
+  | 'builtInJobMatchingPrompt'
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'
@@ -126,6 +131,8 @@ export type SystemSettingKey =
   | 'qrCodeLogo'
   // Sidebar Logo Size
   | 'sidebarLogoSize'
+  | 'sidebarNavigationMode'
+  | 'sidebarSecondaryGroupLabels'
   // Mobile Header Configuration
   | 'mobileHeaderGradient1'
   | 'mobileHeaderGradient2'

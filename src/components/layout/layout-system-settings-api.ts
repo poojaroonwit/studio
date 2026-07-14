@@ -21,6 +21,8 @@ const APP_LAYOUT_SETTINGS_KEYS = [
   'sidebarBackgroundImageUrl',
   'sidebarBackgroundImageFit',
   'sidebarBackgroundImagePosition',
+  'sidebarNavigationMode',
+  'sidebarSecondaryGroupLabels',
   ...APP_LAYOUT_SIDEBAR_COLOR_KEYS,
 ];
 

@@ -53,6 +53,8 @@ export function applyLoadedSystemPreferenceState(
     setters.setSidebarImagePreviewUrl(loadedPreferences.sidebarBackgroundImage);
     setters.setSidebarImageFit(loadedPreferences.sidebarImageFit);
     setters.setSidebarImagePosition(loadedPreferences.sidebarImagePosition);
+    setters.setSidebarNavigationMode(loadedPreferences.sidebarNavigationMode);
+    setters.setSidebarSecondaryGroupLabels(loadedPreferences.sidebarSecondaryGroupLabels);
     setters.setSplashBackgroundColor(loadedPreferences.splashBackgroundColor);
     setters.setSplashAnimationType(loadedPreferences.splashAnimationType);
     setters.setSavedSplashLogoDataUrl(loadedPreferences.splashLogoDataUrl);

@@ -6,6 +6,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { cn } from '@/lib/utils';
+import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 import type {
   ApplicantCommentChannel,
   ApplicantCommentsTab,
@@ -41,10 +42,8 @@ function ApplicantCommentsSubTabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap pb-3 border-b-2 px-1 rounded-none bg-transparent pt-1",
-        active
-          ? "border-primary text-foreground"
-          : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
+        getUnderlineNavTriggerClassName(active),
+        "whitespace-nowrap pb-3 px-1 pt-1",
       )}
     >
       {children}

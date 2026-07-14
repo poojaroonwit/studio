@@ -1,4 +1,5 @@
 import { hslGradientToGradientString } from './color-utils';
+import { getUnderlineNavTriggerClassName } from '../../ui/underline-nav';
 import {
   DEFAULT_LOGIN_BACKGROUND_GRADIENT_END,
   DEFAULT_LOGIN_BACKGROUND_GRADIENT_START,
@@ -36,9 +37,7 @@ export const DRAWER_STYLE_OPTIONS: Array<AppearanceSelectOption<DrawerStyle>> = 
 ];
 
 export function getAppearanceDeviceTabClass(isActive: boolean) {
-  return `appearance-none bg-transparent border-0 flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer ${
-    isActive ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'
-  }`;
+  return getUnderlineNavTriggerClassName(isActive, 'appearance-none px-6 py-3');
 }
 
 export function getDefaultLoginBackgroundGradient() {

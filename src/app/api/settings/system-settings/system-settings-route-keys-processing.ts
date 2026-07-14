@@ -1,4 +1,9 @@
 export const AI_PROCESSING_SETTING_KEYS = [
+  "resumeProcessingMode",
+  "builtInProcessorNodeName",
+  "builtInResumeExtractionPrompt",
+  "builtInApplicantMappingPrompt",
+  "builtInJobMatchingPrompt",
   "resumeProcessingWebhookUrl",
   "resumeProcessingWebhookToken",
   "resumeProcessingWebhookResponseMode",

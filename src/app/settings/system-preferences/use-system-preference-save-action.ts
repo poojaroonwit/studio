@@ -12,6 +12,7 @@ import type {
   SidebarColors,
   SidebarImageFit,
   SidebarImagePosition,
+  SidebarNavigationMode,
   ThemePreference,
   HeaderBackgroundType,
 } from "@/components/settings/system-preferences/constants";
@@ -48,6 +49,8 @@ export type SystemPreferenceSaveActionInput = ToastActions & {
   sidebarBackgroundType: SidebarBackgroundType;
   sidebarImageFit: SidebarImageFit;
   sidebarImagePosition: SidebarImagePosition;
+  sidebarNavigationMode: SidebarNavigationMode;
+  sidebarSecondaryGroupLabels: string[];
   headerBackgroundType: HeaderBackgroundType;
   headerBackgroundColor: string;
   headerBackgroundGradient: string | null;
@@ -97,6 +100,8 @@ export function useSystemPreferenceSaveAction({
   sidebarBackgroundType,
   sidebarImageFit,
   sidebarImagePosition,
+  sidebarNavigationMode,
+  sidebarSecondaryGroupLabels,
   headerBackgroundType,
   headerBackgroundColor,
   headerBackgroundGradient,
@@ -146,6 +151,8 @@ export function useSystemPreferenceSaveAction({
       sidebarBackgroundType,
       sidebarImageFit,
       sidebarImagePosition,
+      sidebarNavigationMode,
+      sidebarSecondaryGroupLabels,
       headerBackgroundType,
       headerBackgroundColor,
       headerBackgroundGradient,
@@ -183,6 +190,12 @@ export function useSystemPreferenceSaveAction({
         themePreference,
         sidebarColors,
       });
+      window.dispatchEvent(new CustomEvent("appConfigChanged", {
+        detail: {
+          sidebarNavigationMode,
+          sidebarSecondaryGroupLabels,
+        },
+      }));
     } catch (e) {
       const error = e as Error;
       showError(`Error Saving Preferences: ${error.message}`);

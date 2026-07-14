@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { Eye, FileText, List, Shield, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
 
 export type CustomFieldDrawerTab = "basic" | "permissions" | "visibility" | "options" | "advanced";
 
@@ -41,10 +42,8 @@ export function CustomFieldDrawerTabs({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === tab.id
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                getUnderlineNavTriggerClassName(activeTab === tab.id),
+                "px-6 py-3",
               )}
               role="button"
               tabIndex={0}

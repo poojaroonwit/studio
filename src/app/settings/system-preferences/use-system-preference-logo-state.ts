@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function useSystemPreferenceLogoState() {
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
@@ -24,6 +24,26 @@ export function useSystemPreferenceLogoState() {
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
   const [evaluateReportLogoPreviewUrl, setEvaluateReportLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluateReportLogoUrl, setSavedEvaluateReportLogoUrl] = useState<string | null>(null);
+  const loadedPreferenceStateSetters = useMemo(() => ({
+    setSavedLogoUrl,
+    setLogoPreviewUrl,
+    setSavedLoginPageLogoLightModeUrl,
+    setLoginPageLogoLightModePreviewUrl,
+    setSavedLoginPageLogoDarkModeUrl,
+    setLoginPageLogoDarkModePreviewUrl,
+    setSavedSidebarLogoCollapsedLightModeUrl,
+    setSidebarLogoCollapsedLightModePreviewUrl,
+    setSavedSidebarLogoExpandedLightModeUrl,
+    setSidebarLogoExpandedLightModePreviewUrl,
+    setSavedSidebarLogoCollapsedDarkModeUrl,
+    setSidebarLogoCollapsedDarkModePreviewUrl,
+    setSavedSidebarLogoExpandedDarkModeUrl,
+    setSidebarLogoExpandedDarkModePreviewUrl,
+    setSavedEvaluatePlatformLogoUrl,
+    setEvaluatePlatformLogoPreviewUrl,
+    setSavedEvaluateReportLogoUrl,
+    setEvaluateReportLogoPreviewUrl,
+  }), []);
 
   return {
     selectedLogoFile,
@@ -64,25 +84,6 @@ export function useSystemPreferenceLogoState() {
     setEvaluateReportLogoPreviewUrl,
     savedEvaluateReportLogoUrl,
     setSavedEvaluateReportLogoUrl,
-    loadedPreferenceStateSetters: {
-      setSavedLogoUrl,
-      setLogoPreviewUrl,
-      setSavedLoginPageLogoLightModeUrl,
-      setLoginPageLogoLightModePreviewUrl,
-      setSavedLoginPageLogoDarkModeUrl,
-      setLoginPageLogoDarkModePreviewUrl,
-      setSavedSidebarLogoCollapsedLightModeUrl,
-      setSidebarLogoCollapsedLightModePreviewUrl,
-      setSavedSidebarLogoExpandedLightModeUrl,
-      setSidebarLogoExpandedLightModePreviewUrl,
-      setSavedSidebarLogoCollapsedDarkModeUrl,
-      setSidebarLogoCollapsedDarkModePreviewUrl,
-      setSavedSidebarLogoExpandedDarkModeUrl,
-      setSidebarLogoExpandedDarkModePreviewUrl,
-      setSavedEvaluatePlatformLogoUrl,
-      setEvaluatePlatformLogoPreviewUrl,
-      setSavedEvaluateReportLogoUrl,
-      setEvaluateReportLogoPreviewUrl,
-    },
+    loadedPreferenceStateSetters,
   };
 }

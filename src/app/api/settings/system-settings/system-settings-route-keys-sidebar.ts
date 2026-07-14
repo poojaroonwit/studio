@@ -9,6 +9,8 @@ export const SIDEBAR_CONTAINER_SETTING_KEYS = [
   "sidebarBackgroundImageUrl",
   "sidebarBackgroundImageFit",
   "sidebarBackgroundImagePosition",
+  "sidebarNavigationMode",
+  "sidebarSecondaryGroupLabels",
   "sidebarActiveStylePreference",
   "sidebarBgStartL",
   "sidebarBgEndL",

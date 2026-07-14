@@ -1,6 +1,12 @@
 export type EmailEditorMode = 'wysiwyg' | 'html';
+export type ResumeProcessingMode = 'built-in' | 'external';
 
 export interface SystemSettingsViewState {
+  resumeProcessingMode: ResumeProcessingMode;
+  builtInProcessorNodeName: string;
+  builtInResumeExtractionPrompt: string;
+  builtInApplicantMappingPrompt: string;
+  builtInJobMatchingPrompt: string;
   maxConcurrentProcessors: number;
   resumeProcessingWebhookUrl: string;
   resumeProcessingWebhookToken: string;
@@ -61,6 +67,11 @@ export type SystemSettingsSavePayload = Array<{ key: string; value: string }>;
 export type SystemSettingsSaveState = Pick<
   SystemSettingsViewState,
   | 'maxConcurrentProcessors'
+  | 'resumeProcessingMode'
+  | 'builtInProcessorNodeName'
+  | 'builtInResumeExtractionPrompt'
+  | 'builtInApplicantMappingPrompt'
+  | 'builtInJobMatchingPrompt'
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'

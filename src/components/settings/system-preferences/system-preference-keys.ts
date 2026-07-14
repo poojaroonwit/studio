@@ -54,6 +54,8 @@ export const SIDEBAR_BACKGROUND_TYPE_KEY = "sidebarBackgroundType";
 export const SIDEBAR_BACKGROUND_IMAGE_KEY = "sidebarBackgroundImageUrl";
 export const SIDEBAR_BACKGROUND_IMAGE_FIT_KEY = "sidebarBackgroundImageFit";
 export const SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY = "sidebarBackgroundImagePosition";
+export const SIDEBAR_NAVIGATION_MODE_KEY = "sidebarNavigationMode";
+export const SIDEBAR_SECONDARY_GROUP_LABELS_KEY = "sidebarSecondaryGroupLabels";
 
 export const SPLASH_BACKGROUND_COLOR_KEY = "splashBackgroundColor";
 export const SPLASH_LOGO_DATA_URL_KEY = "splashLogoDataUrl";
@@ -67,6 +69,7 @@ export type EvaluateHeaderBackgroundType = "image" | "gradient" | "solid";
 export type HeaderBackgroundType = "image" | "gradient" | "solid";
 export type SidebarBackgroundType = "gradient" | "solid" | "image";
 export type SidebarImageFit = "cover" | "contain" | "fill" | "none" | "scale-down";
+export type { SidebarNavigationMode } from "../../layout/sidebar-layout-settings";
 export type SidebarImagePosition =
   | "center"
   | "top"

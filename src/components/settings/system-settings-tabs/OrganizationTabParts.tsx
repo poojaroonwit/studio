@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SystemSettingsFieldRow } from './SystemSettingsFieldRow';
 
 export function OrganizationLogoField({
   isSaving,
@@ -36,9 +37,11 @@ export function OrganizationLogoField({
   };
 
   return (
-    <div className="space-y-4">
-      <Label>Organization Logo</Label>
-      <div className="flex items-center gap-4">
+    <SystemSettingsFieldRow
+      label="Organization Logo"
+      description="Used on evaluation reports and generated documents. PNG or SVG, max 500KB."
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         {organizationLogoPreviewUrl && (
           <div className="relative">
             <img
@@ -60,7 +63,7 @@ export function OrganizationLogoField({
             </Button>
           </div>
         )}
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <Input
             type="file"
             accept="image/*"
@@ -76,12 +79,9 @@ export function OrganizationLogoField({
             <ImageUp className="mr-2 h-4 w-4" />
             {organizationLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
           </Label>
-          <p className="text-xs text-muted-foreground mt-1">
-            Recommended: PNG or SVG, max 500KB.
-          </p>
         </div>
       </div>
-    </div>
+    </SystemSettingsFieldRow>
   );
 }
 
@@ -104,8 +104,11 @@ export function OrganizationInfoFields({
 }) {
   return (
     <>
-      <div className="space-y-2">
-        <Label htmlFor="organization-name">Organization Name</Label>
+      <SystemSettingsFieldRow
+        htmlFor="organization-name"
+        label="Organization Name"
+        description="Primary organization name shown across reports and documents."
+      >
         <Input
           id="organization-name"
           value={organizationName}
@@ -113,10 +116,13 @@ export function OrganizationInfoFields({
           placeholder="Enter organization name"
           disabled={isSaving}
         />
-      </div>
+      </SystemSettingsFieldRow>
 
-      <div className="space-y-2">
-        <Label htmlFor="organization-address">Organization Address</Label>
+      <SystemSettingsFieldRow
+        htmlFor="organization-address"
+        label="Organization Address"
+        description="Optional address for report headers, footers, and exported documents."
+      >
         <Input
           id="organization-address"
           value={organizationAddress}
@@ -124,10 +130,13 @@ export function OrganizationInfoFields({
           placeholder="Enter organization address"
           disabled={isSaving}
         />
-      </div>
+      </SystemSettingsFieldRow>
 
-      <div className="space-y-2">
-        <Label htmlFor="organization-contact">Contact Information</Label>
+      <SystemSettingsFieldRow
+        htmlFor="organization-contact"
+        label="Contact Information"
+        description="Email, phone, or support contact shown where organization details are needed."
+      >
         <Input
           id="organization-contact"
           value={organizationContact}
@@ -135,7 +144,7 @@ export function OrganizationInfoFields({
           placeholder="Enter contact information"
           disabled={isSaving}
         />
-      </div>
+      </SystemSettingsFieldRow>
     </>
   );
 }

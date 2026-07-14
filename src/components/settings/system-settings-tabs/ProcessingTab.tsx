@@ -11,6 +11,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import {
+  BuiltInFlowConfigTitle,
+  BuiltInFlowSettingsSection,
   ProcessingConfigSection,
   ProcessingConfigTitle,
   WebhookConfigTitle,
@@ -20,6 +22,16 @@ import type { ProcessingTabProps } from './processing-tab-types';
 import { getWebhookTestToastMessage, testProcessingWebhook } from './processing-tab-utils';
 
 export default function ProcessingTab({
+  resumeProcessingMode,
+  setResumeProcessingMode,
+  builtInProcessorNodeName,
+  setBuiltInProcessorNodeName,
+  builtInResumeExtractionPrompt,
+  setBuiltInResumeExtractionPrompt,
+  builtInApplicantMappingPrompt,
+  setBuiltInApplicantMappingPrompt,
+  builtInJobMatchingPrompt,
+  setBuiltInJobMatchingPrompt,
   maxConcurrentProcessors,
   setMaxConcurrentProcessors,
   resumeProcessingWebhookUrl,
@@ -56,13 +68,22 @@ export default function ProcessingTab({
 
   return (
     <ScrollArea className="h-full">
-      <Accordion type="multiple" defaultValue={['processing-config', 'webhook']} className="w-full">
+      <Accordion
+        key={resumeProcessingMode}
+        type="multiple"
+        defaultValue={resumeProcessingMode === 'external'
+          ? ['processing-config', 'webhook']
+          : ['processing-config', 'built-in-flow']}
+        className="w-full"
+      >
         <AccordionItem value="processing-config" className="border-b">
           <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
             <ProcessingConfigTitle />
           </AccordionTrigger>
           <AccordionContent className="px-6 pb-4 pt-2">
             <ProcessingConfigSection
+              resumeProcessingMode={resumeProcessingMode}
+              setResumeProcessingMode={setResumeProcessingMode}
               maxConcurrentProcessors={maxConcurrentProcessors}
               setMaxConcurrentProcessors={setMaxConcurrentProcessors}
               isSaving={isSaving}
@@ -70,27 +91,50 @@ export default function ProcessingTab({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="webhook" className="border-b">
-          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
-            <WebhookConfigTitle />
-          </AccordionTrigger>
-          <AccordionContent className="px-6 pb-4 pt-2">
-            <WebhookSettingsSection
-              resumeProcessingWebhookUrl={resumeProcessingWebhookUrl}
-              setResumeProcessingWebhookUrl={setResumeProcessingWebhookUrl}
-              resumeProcessingWebhookToken={resumeProcessingWebhookToken}
-              setResumeProcessingWebhookToken={setResumeProcessingWebhookToken}
-              resumeProcessingWebhookResponseMode={resumeProcessingWebhookResponseMode}
-              setResumeProcessingWebhookResponseMode={setResumeProcessingWebhookResponseMode}
-              resumeProcessingWebhookTimeout={resumeProcessingWebhookTimeout}
-              setResumeProcessingWebhookTimeout={setResumeProcessingWebhookTimeout}
-              showWebhookToken={showWebhookToken}
-              setShowWebhookToken={setShowWebhookToken}
-              isSaving={isSaving}
-              onTestWebhook={handleTestWebhook}
-            />
-          </AccordionContent>
-        </AccordionItem>
+        {resumeProcessingMode === 'built-in' && (
+          <AccordionItem value="built-in-flow" className="border-b">
+            <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+              <BuiltInFlowConfigTitle />
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-4 pt-2">
+              <BuiltInFlowSettingsSection
+                builtInProcessorNodeName={builtInProcessorNodeName}
+                setBuiltInProcessorNodeName={setBuiltInProcessorNodeName}
+                builtInResumeExtractionPrompt={builtInResumeExtractionPrompt}
+                setBuiltInResumeExtractionPrompt={setBuiltInResumeExtractionPrompt}
+                builtInApplicantMappingPrompt={builtInApplicantMappingPrompt}
+                setBuiltInApplicantMappingPrompt={setBuiltInApplicantMappingPrompt}
+                builtInJobMatchingPrompt={builtInJobMatchingPrompt}
+                setBuiltInJobMatchingPrompt={setBuiltInJobMatchingPrompt}
+                isSaving={isSaving}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {resumeProcessingMode === 'external' && (
+          <AccordionItem value="webhook" className="border-b">
+            <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+              <WebhookConfigTitle />
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-4 pt-2">
+              <WebhookSettingsSection
+                resumeProcessingWebhookUrl={resumeProcessingWebhookUrl}
+                setResumeProcessingWebhookUrl={setResumeProcessingWebhookUrl}
+                resumeProcessingWebhookToken={resumeProcessingWebhookToken}
+                setResumeProcessingWebhookToken={setResumeProcessingWebhookToken}
+                resumeProcessingWebhookResponseMode={resumeProcessingWebhookResponseMode}
+                setResumeProcessingWebhookResponseMode={setResumeProcessingWebhookResponseMode}
+                resumeProcessingWebhookTimeout={resumeProcessingWebhookTimeout}
+                setResumeProcessingWebhookTimeout={setResumeProcessingWebhookTimeout}
+                showWebhookToken={showWebhookToken}
+                setShowWebhookToken={setShowWebhookToken}
+                isSaving={isSaving}
+                onTestWebhook={handleTestWebhook}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        )}
       </Accordion>
     </ScrollArea>
   );

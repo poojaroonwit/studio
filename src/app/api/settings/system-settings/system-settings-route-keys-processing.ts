@@ -90,6 +90,10 @@ export const AI_PROCESSING_SETTING_KEYS = [
 
 export const FEATURE_AND_SECURITY_SETTING_KEYS = [
   "jobMatchFeatureEnabled",
+  "publicApplicationsEnabled",
+  "publicApplicationsRequireCaptcha",
+  "publicApplicationsSendApplicantConfirmation",
+  "publicApplicationsNotifyRecruiter",
   "pwaEnabled",
   "exportImportFeatureEnabled",
   "warningCriteriaEnabled",

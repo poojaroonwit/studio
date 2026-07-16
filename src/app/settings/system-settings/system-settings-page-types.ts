@@ -44,6 +44,10 @@ export interface SystemSettingsViewState {
   defaultMatchCriteria: string;
   showLogoOnly: boolean;
   jobMatchFeatureEnabled: boolean;
+  publicApplicationsEnabled: boolean;
+  publicApplicationsRequireCaptcha: boolean;
+  publicApplicationsSendApplicantConfirmation: boolean;
+  publicApplicationsNotifyRecruiter: boolean;
   pwaEnabled: boolean;
   pwaName: string;
   pwaShortName: string;
@@ -78,6 +82,10 @@ export type SystemSettingsSaveState = Pick<
   | 'resumeProcessingWebhookTimeout'
   | 'defaultMatchCriteria'
   | 'jobMatchFeatureEnabled'
+  | 'publicApplicationsEnabled'
+  | 'publicApplicationsRequireCaptcha'
+  | 'publicApplicationsSendApplicantConfirmation'
+  | 'publicApplicationsNotifyRecruiter'
   | 'processQueueEnabled'
   | 'pwaEnabled'
   | 'pwaName'

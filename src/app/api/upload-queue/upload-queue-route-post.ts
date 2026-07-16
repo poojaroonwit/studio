@@ -4,6 +4,8 @@ import { getPool, type DbClient } from '@/lib/db';
 import { dispatchWebhooks, type WebhookData } from '@/lib/webhookDispatcher';
 import { isJsonObject } from '@/lib/json-types';
 import { readRequestJsonResult } from '@/lib/request-json';
+import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
+import { getResumeProcessingWebhookSettings } from '@/lib/upload-queue/resume-processing-webhook-settings';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 import { requireUploadQueueManageSession } from './upload-queue-route-auth';
 
@@ -20,6 +22,11 @@ interface UploadQueuePostBody {
   source_id?: string;
   sub_source?: string;
 }
+
+type UploadQueuePostJob = Record<string, unknown> & {
+  id: string;
+  status?: string | null;
+};
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -140,6 +147,29 @@ async function notifyUploadQueueCreated(job: unknown): Promise<void> {
   }
 }
 
+function isUploadQueuePostJob(job: unknown): job is UploadQueuePostJob {
+  return Boolean(job && typeof job === 'object' && typeof (job as { id?: unknown }).id === 'string');
+}
+
+async function processBuiltInUploadQueueJobIfNeeded(client: DbClient, job: UploadQueuePostJob) {
+  const settings = await getResumeProcessingWebhookSettings();
+  const status = typeof job.status === 'string' ? job.status : null;
+
+  if (settings.mode !== 'built-in' || status !== 'queued') {
+    return null;
+  }
+
+  await client.query(
+    `UPDATE upload_queue SET status = 'inprocess', process_date = now(), updated_at = now() WHERE id = $1`,
+    [job.id]
+  );
+
+  return processSingleUploadQueueJob({
+    ...job,
+    status: 'inprocess',
+  }, client);
+}
+
 export async function handleUploadQueuePost(request: NextRequest) {
   const authorization = await requireUploadQueueManageSession();
   if (!authorization.ok) {
@@ -176,10 +206,18 @@ export async function handleUploadQueuePost(request: NextRequest) {
     const result = normalizedBody.isReprocessJob
       ? await upsertReprocessUploadQueueJob(client, normalizedBody, authorization.actingUserId)
       : await insertUploadQueueJob(client, normalizedBody, authorization.actingUserId);
+    const job = result.rows[0];
+    if (!isUploadQueuePostJob(job)) {
+      throw new Error('Created upload queue job is missing id');
+    }
 
-    await notifyUploadQueueCreated(result.rows[0]);
+    await notifyUploadQueueCreated(job);
+    const processingResult = await processBuiltInUploadQueueJobIfNeeded(client, job);
 
-    return NextResponse.json(result.rows[0], { status: 201 });
+    return NextResponse.json({
+      ...job,
+      ...(processingResult ? { processingResult } : {}),
+    }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: getErrorMessage(error) || 'Internal server error',

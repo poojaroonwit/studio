@@ -62,21 +62,23 @@ export async function handleProcessAllUploadQueueJobs(request: NextRequest) {
       return processingTimeoutResponse(processed, messages);
     }
 
-    const maxConcurrent = await getProcessAllMaxConcurrent();
     await resetInterruptedJobs(messages);
 
-    const claimResult = await claimUploadQueueBatch({ maxConcurrent, messages, processed });
-    if (!claimResult.ok) {
-      return claimResult.response;
-    }
+    while (!hasProcessingTimedOut(startTime)) {
+      const maxConcurrent = await getProcessAllMaxConcurrent();
+      const claimResult = await claimUploadQueueBatch({ maxConcurrent, messages, processed });
+      if (!claimResult.ok) {
+        return claimResult.response;
+      }
 
-    if (claimResult.jobs.length === 0) {
-      messages.push('No queued jobs');
-      return NextResponse.json({ processed_count: 0, processed, messages }, { status: 200 });
-    }
+      if (claimResult.jobs.length === 0) {
+        messages.push(processed.length > 0 ? 'No more queued jobs' : 'No queued jobs');
+        return NextResponse.json({ processed_count: processed.length, processed, messages }, { status: 200 });
+      }
 
-    const results = await processClaimedUploadQueueJobs(claimResult.jobs, startTime);
-    processed.push(...results);
+      const results = await processClaimedUploadQueueJobs(claimResult.jobs, startTime);
+      processed.push(...results);
+    }
 
     const totalProcessingTime = Date.now() - startTime;
     if (totalProcessingTime > MAX_PROCESSING_TIME_MS) {

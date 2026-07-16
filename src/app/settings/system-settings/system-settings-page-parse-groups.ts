@@ -101,6 +101,10 @@ export function parseIntegrationSettings(settings: SystemSettingsRecord) {
     defaultMatchCriteria: stringSetting(settings, "defaultMatchCriteria"),
     showLogoOnly: settings.showLogoOnly === "true" || settings.showLogoOnly === true,
     jobMatchFeatureEnabled: isNotFalseSetting(settings, "jobMatchFeatureEnabled"),
+    publicApplicationsEnabled: isNotFalseSetting(settings, "publicApplicationsEnabled"),
+    publicApplicationsRequireCaptcha: isTrueSetting(settings, "publicApplicationsRequireCaptcha"),
+    publicApplicationsSendApplicantConfirmation: isNotFalseSetting(settings, "publicApplicationsSendApplicantConfirmation"),
+    publicApplicationsNotifyRecruiter: isNotFalseSetting(settings, "publicApplicationsNotifyRecruiter"),
   };
 }
 

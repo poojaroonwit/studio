@@ -20,6 +20,14 @@ interface FeatureFlagsTabProps {
     setHiringManagerRestrictToAssignedPositions: (val: boolean) => void;
     interviewInvitationFeatureEnabled: boolean;
     setInterviewInvitationFeatureEnabled: (val: boolean) => void;
+    publicApplicationsEnabled: boolean;
+    setPublicApplicationsEnabled: (val: boolean) => void;
+    publicApplicationsRequireCaptcha: boolean;
+    setPublicApplicationsRequireCaptcha: (val: boolean) => void;
+    publicApplicationsSendApplicantConfirmation: boolean;
+    setPublicApplicationsSendApplicantConfirmation: (val: boolean) => void;
+    publicApplicationsNotifyRecruiter: boolean;
+    setPublicApplicationsNotifyRecruiter: (val: boolean) => void;
     isSaving: boolean;
 }
 
@@ -32,6 +40,14 @@ export default function FeatureFlagsTab({
     setHiringManagerRestrictToAssignedPositions,
     interviewInvitationFeatureEnabled,
     setInterviewInvitationFeatureEnabled,
+    publicApplicationsEnabled,
+    setPublicApplicationsEnabled,
+    publicApplicationsRequireCaptcha,
+    setPublicApplicationsRequireCaptcha,
+    publicApplicationsSendApplicantConfirmation,
+    setPublicApplicationsSendApplicantConfirmation,
+    publicApplicationsNotifyRecruiter,
+    setPublicApplicationsNotifyRecruiter,
     isSaving,
 }: FeatureFlagsTabProps) {
     const featureSettings: FeatureFlagSetting[] = [
@@ -66,6 +82,38 @@ export default function FeatureFlagsTab({
             checked: interviewInvitationFeatureEnabled,
             onCheckedChange: setInterviewInvitationFeatureEnabled,
             disabled: isSaving,
+        },
+        {
+            id: 'public-applications-enabled',
+            title: 'Public Applications',
+            description: 'Allow unauthenticated candidates to submit applications through public apply pages.',
+            checked: publicApplicationsEnabled,
+            onCheckedChange: setPublicApplicationsEnabled,
+            disabled: isSaving,
+        },
+        {
+            id: 'public-applications-captcha',
+            title: 'Public Apply Captcha',
+            description: 'Require a signed verification challenge on public application submissions.',
+            checked: publicApplicationsRequireCaptcha,
+            onCheckedChange: setPublicApplicationsRequireCaptcha,
+            disabled: isSaving || !publicApplicationsEnabled,
+        },
+        {
+            id: 'public-applications-applicant-email',
+            title: 'Applicant Confirmation Email',
+            description: 'Send candidates an email confirmation after their public application is received.',
+            checked: publicApplicationsSendApplicantConfirmation,
+            onCheckedChange: setPublicApplicationsSendApplicantConfirmation,
+            disabled: isSaving || !publicApplicationsEnabled,
+        },
+        {
+            id: 'public-applications-recruiter-email',
+            title: 'Recruiter Notification Email',
+            description: 'Notify the assigned position recruiter when a public application is submitted.',
+            checked: publicApplicationsNotifyRecruiter,
+            onCheckedChange: setPublicApplicationsNotifyRecruiter,
+            disabled: isSaving || !publicApplicationsEnabled,
         },
     ];
 

@@ -70,6 +70,16 @@ function getExistingApplicantId(job: BuiltInProcessorJob) {
   return getString(payload.Applicant_id) || getString(payload.applicantId) || getString(payload.applicant_id);
 }
 
+function getPublicApplicantForm(job: BuiltInProcessorJob) {
+  const payload = getPayloadRecord(job);
+  const publicApplicant = isRecord(payload.publicApplicant) ? payload.publicApplicant : {};
+  return {
+    name: getString(publicApplicant.name) || getString(payload.candidateName),
+    email: getString(publicApplicant.email) || getString(payload.candidateEmail),
+    phone: getString(publicApplicant.phone) || getString(payload.candidatePhone),
+  };
+}
+
 export async function processBuiltInResumeUploadQueueJob({
   client,
   job,
@@ -82,7 +92,13 @@ export async function processBuiltInResumeUploadQueueJob({
   const resumeText = await extractResumeText(job);
   const aiResponse = await runBuiltInResumeAi({ job, resumeText, settings });
   const parsed = parseBuiltInResumeProcessorJson(aiResponse);
-  const applicant = normalizeBuiltInApplicant(parsed, job.file_name);
+  const applicant = normalizeBuiltInApplicant({
+    ...parsed,
+    applicant: {
+      ...getPublicApplicantForm(job),
+      ...(isRecord(parsed.applicant) ? parsed.applicant : {}),
+    },
+  }, job.file_name);
   const targetPositionId = getTargetPositionId(job);
   const jobMatches = normalizeBuiltInJobMatches(parsed, targetPositionId);
   const applicantId = await upsertBuiltInApplicant({

@@ -21,6 +21,7 @@ FitScan is a modern Applicant Tracking System for applicant management, resume p
 - Role-based access control with optional Azure AD SSO
 - AI-assisted resume parsing, evaluation, and job matching
 - Upload queue processing built into the app service
+- Public application pages for unauthenticated candidates
 - Runtime system settings for processing, prompts, branding, and integrations
 - Audit logs, notifications, dashboards, and SLA analytics
 
@@ -73,6 +74,15 @@ If `ADMIN_PASSWORD` is not provided, the seed script generates a random password
 - If your platform has a custom start command, do not set it to `npm run start`; that bypasses database preparation.
 - Built-in upload queue processing does not need a separate worker service.
 - `PROCESSOR_API_KEY` and `UPLOAD_QUEUE_PROCESS_URL` are only needed when using an external worker.
+
+## Public Applications
+
+- Public candidates can apply from `/apply` or a direct role URL such as `/apply/business-analyst-abc12345`.
+- The public API is `/api/public/apply`; it stores the resume in configured S3-compatible storage, creates an upload queue job, and processes it through the built-in queue processor.
+- Admins can enable or disable public applications in System Settings -> Feature Configuration.
+- Optional public apply controls in System Settings include captcha protection, applicant confirmation email, and recruiter notification email.
+- Position URLs are generated automatically. To customize a role URL, set `customAttributes.publicApplySlug` on the position, for example `business-analyst`.
+- Email notifications use the SMTP configuration from System Settings, not deployment environment variables.
 
 ## Optional Integrations
 

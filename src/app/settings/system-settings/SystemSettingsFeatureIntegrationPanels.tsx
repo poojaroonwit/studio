@@ -50,6 +50,14 @@ export function SystemSettingsFeatureFlagsPanel({ settingsPage }: SystemSettings
       setHiringManagerRestrictToAssignedPositions={settingsPage.setHiringManagerRestrictToAssignedPositions}
       interviewInvitationFeatureEnabled={settingsPage.interviewInvitationFeatureEnabled}
       setInterviewInvitationFeatureEnabled={settingsPage.setInterviewInvitationFeatureEnabled}
+      publicApplicationsEnabled={settingsPage.publicApplicationsEnabled}
+      setPublicApplicationsEnabled={settingsPage.setPublicApplicationsEnabled}
+      publicApplicationsRequireCaptcha={settingsPage.publicApplicationsRequireCaptcha}
+      setPublicApplicationsRequireCaptcha={settingsPage.setPublicApplicationsRequireCaptcha}
+      publicApplicationsSendApplicantConfirmation={settingsPage.publicApplicationsSendApplicantConfirmation}
+      setPublicApplicationsSendApplicantConfirmation={settingsPage.setPublicApplicationsSendApplicantConfirmation}
+      publicApplicationsNotifyRecruiter={settingsPage.publicApplicationsNotifyRecruiter}
+      setPublicApplicationsNotifyRecruiter={settingsPage.setPublicApplicationsNotifyRecruiter}
       isSaving={settingsPage.isSaving}
     />
   );

@@ -9,6 +9,7 @@ import {
 
 const SKIPPED_PATH_PREFIXES = [
   '/_next',
+  '/apply',
   '/api/auth',
   '/api/public',
   '/api-docs',

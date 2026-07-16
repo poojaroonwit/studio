@@ -55,15 +55,13 @@ export async function broadcastUploadQueueChange(): Promise<void> {
 }
 
 export async function triggerUploadQueueProcessing(request: NextRequest): Promise<void> {
-  const processUrl = process.env.UPLOAD_QUEUE_PROCESS_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+  const processUrl = `${request.nextUrl.origin}/api/upload-queue/process-all`;
   const processorApiKey = getProcessorApiKey();
 
-  fetch(processUrl, {
+  await fetch(processUrl, {
     method: 'POST',
     headers: {
       'x-api-key': processorApiKey || '',
     },
-  }).catch((autoProcessError) => {
-    console.error('[UPLOAD] Failed to auto-trigger upload queue processing:', autoProcessError);
   });
 }

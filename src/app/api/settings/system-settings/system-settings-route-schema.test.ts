@@ -14,6 +14,8 @@ describe("system settings route schema", () => {
     expect(systemSettingKeyEnum.safeParse("openaiApiKey_5_lastUsed").success).toBe(true);
     expect(systemSettingKeyEnum.safeParse("deepseekApiKey_5_lastUsed").success).toBe(true);
     expect(systemSettingKeyEnum.safeParse("deepseekModelSelection").success).toBe(true);
+    expect(systemSettingKeyEnum.safeParse("publicApplicationsEnabled").success).toBe(true);
+    expect(systemSettingKeyEnum.safeParse("publicApplicationsRequireCaptcha").success).toBe(true);
   });
 
   it("validates saved setting payloads", () => {

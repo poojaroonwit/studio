@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+require('dotenv').config({ path: '.env.local', override: true });
 
 const prisma = new PrismaClient();
 
@@ -7,7 +8,7 @@ async function createAdminUser() {
   console.log('Creating admin user...');
 
   try {
-    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
     const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (!adminPassword) {
@@ -26,7 +27,9 @@ async function createAdminUser() {
       await prisma.user.update({
         where: { email: adminEmail },
         data: {
-          // password: hashedPassword, // Don't reset password
+          password: hashedPassword,
+          authenticationMethods: ['basic'],
+          isActive: true,
           forcePasswordChange: false
         }
       });
@@ -41,7 +44,8 @@ async function createAdminUser() {
           email: adminEmail,
           password: hashedPassword,
           role: 'Admin',
-          authenticationMethod: 'basic',
+          authenticationMethods: ['basic'],
+          isActive: true,
           forcePasswordChange: false
         }
       });

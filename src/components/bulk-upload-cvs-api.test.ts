@@ -73,4 +73,20 @@ describe('bulk upload CV API helpers', () => {
     await expect(uploadBulkCvFiles({ files: [file('a.pdf')], batchId: 'batch-1' })).rejects.toThrow('Storage service unavailable');
     await expect(uploadBulkCvFiles({ files: [file('a.pdf')], batchId: 'batch-1' })).rejects.toThrow('Network error');
   });
+
+  it('treats client upload timeout as queued work instead of a failed upload', async () => {
+    const abortError = Object.assign(new Error('aborted'), { name: 'AbortError' });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abortError));
+
+    await expect(uploadBulkCvFiles({
+      files: [file('a.pdf'), file('b.pdf')],
+      batchId: 'batch-1',
+      timeoutMs: 1,
+    })).resolves.toMatchObject({
+      success: true,
+      successful: 2,
+      failed: 0,
+      queuedAfterTimeout: true,
+    });
+  });
 });

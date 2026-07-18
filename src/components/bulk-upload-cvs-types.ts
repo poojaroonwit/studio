@@ -4,6 +4,7 @@ export interface BulkUploadResultSummary {
   successful: number;
   failed: number;
   errors: string[];
+  queuedAfterTimeout?: boolean;
 }
 
 export interface BulkUploadToastMessage {

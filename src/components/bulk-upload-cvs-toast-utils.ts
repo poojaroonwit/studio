@@ -4,7 +4,15 @@ export function getBulkUploadSuccessToast({
   successful,
   failed,
   errors,
-}: Pick<BulkUploadResultSummary, "successful" | "failed" | "errors">): BulkUploadToastMessage {
+  queuedAfterTimeout,
+}: Pick<BulkUploadResultSummary, "successful" | "failed" | "errors" | "queuedAfterTimeout">): BulkUploadToastMessage {
+  if (queuedAfterTimeout) {
+    return {
+      title: `Upload queued: ${successful} files accepted for processing`,
+      description: "The server is still processing the upload response. You can follow progress in Process Queue.",
+    };
+  }
+
   if (failed === 0) {
     return {
       title: `Upload Complete: ${successful} files uploaded and queued for processing`,

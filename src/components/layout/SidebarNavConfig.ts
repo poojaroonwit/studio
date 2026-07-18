@@ -73,8 +73,8 @@ export const iconMap = {
 // Config with icon names instead of components for API serialization
 export const sidebarConfigData = [
   {
-    label: "Analyst",
-    icon: "BarChart3",
+    label: "Dashboard",
+    icon: "LayoutDashboard",
     items: [
       {
         label: "Dashboard",
@@ -86,16 +86,22 @@ export const sidebarConfigData = [
     ],
   },
   {
-    label: "Hiring",
-    icon: "Briefcase",
+    label: "My Taskboard",
+    icon: "ListTodo",
     items: [
       {
-        label: "My Task Board",
+        label: "My Taskboard",
         icon: "ListTodo",
         href: "/my-tasks",
         description: "Personal task management",
         permissionId: "TASK_BOARD_VIEW"
       },
+    ],
+  },
+  {
+    label: "Applicants",
+    icon: "Users",
+    items: [
       {
         label: "Applicants",
         icon: "Users",
@@ -103,6 +109,12 @@ export const sidebarConfigData = [
         description: "Manage Applicant profiles",
         permissionId: "applicantS_VIEW"
       },
+    ],
+  },
+  {
+    label: "Positions",
+    icon: "Briefcase",
+    items: [
       {
         label: "Positions",
         icon: "Briefcase",
@@ -110,32 +122,18 @@ export const sidebarConfigData = [
         description: "Job positions and openings",
         permissionId: "POSITIONS_VIEW"
       },
+    ],
+  },
+  {
+    label: "Process Queue",
+    icon: "UploadCloud",
+    items: [
       {
         label: "Process Queue",
         icon: "UploadCloud",
         href: "/process-queue",
         description: "Review and manage uploaded files",
         permissionId: "UPLOAD_QUEUE_VIEW"
-      },
-    ],
-  },
-  {
-    label: "Shortlist & Interview Calendar",
-    icon: "ClipboardCheck",
-    items: [
-      {
-        label: "Candidates",
-        icon: "Users",
-        href: "/candidates",
-        description: "Focus view for hiring managers and interviewers",
-        permissionId: "applicantS_VIEW"
-      },
-      {
-        label: "Interview Calendar",
-        icon: "Calendar",
-        href: "/calendar",
-        description: "Applicant evaluation portal",
-        permissionId: "EVALUATION_LINKS_VIEW"
       },
     ],
   },

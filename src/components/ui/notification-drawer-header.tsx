@@ -14,7 +14,7 @@ export function NotificationDrawerHeader({
 }) {
   return (
     <div className={cn(
-      '!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0 rounded-t-lg',
+      '!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0 rounded-t-2xl',
       isMobile && 'px-4'
     )}>
       <div className="flex items-center gap-2">
@@ -28,7 +28,7 @@ export function NotificationDrawerHeader({
         size="icon"
         aria-label="Close notifications"
         onClick={onClose}
-        className="ml-2"
+        className="ml-2 h-9 w-9 rounded-full border border-border/70 bg-background/80 text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground"
       >
         <X className="h-4 w-4" />
       </Button>

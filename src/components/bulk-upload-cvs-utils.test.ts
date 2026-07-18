@@ -166,6 +166,15 @@ describe('bulk upload CV utilities', () => {
     expect(getBulkUploadSuccessToast({ successful: 2, failed: 0, errors: [] })).toEqual({
       title: 'Upload Complete: 2 files uploaded and queued for processing',
     });
+    expect(getBulkUploadSuccessToast({
+      successful: 2,
+      failed: 0,
+      errors: [],
+      queuedAfterTimeout: true,
+    })).toEqual({
+      title: 'Upload queued: 2 files accepted for processing',
+      description: 'The server is still processing the upload response. You can follow progress in Process Queue.',
+    });
   });
 
   it('summarizes malformed upload responses defensively', () => {

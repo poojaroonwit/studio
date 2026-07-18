@@ -44,9 +44,13 @@ export async function readBulkUploadError(response: Response): Promise<string> {
   return getJsonErrorMessage(errorData, 'Failed to upload files');
 }
 
+export function isBulkUploadAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 export function normalizeBulkUploadCaughtError(error: unknown): Error {
   if (error instanceof Error) {
-    if (error.name === 'AbortError') {
+    if (isBulkUploadAbortError(error)) {
       return new Error('Upload timed out. Please try again with fewer files or smaller files.');
     }
 

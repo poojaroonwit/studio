@@ -74,9 +74,7 @@ const GroupedSidebarNav = React.memo(() => {
   const effectiveSecondaryGroupLabels = React.useMemo(() => (
     getEffectiveSecondaryGroupLabels(layoutSettings.secondaryGroupLabels, filteredGroups)
   ), [filteredGroups, layoutSettings.secondaryGroupLabels]);
-  const isSplitMode = layoutSettings.mode === "split";
-  const isSettingsContext = displayedGroupLabel === "Settings" || pathname.startsWith("/settings");
-  const shouldUseSplitLayout = isSplitMode || isSettingsContext;
+  const shouldUseSplitLayout = true;
   const shouldRenderSecondaryPanel = shouldUseSplitLayout
     && shouldShowSidebarMenuPanel(pathname, displayedGroupLabel)
     && isSidebarGroupInSecondaryPanel(displayedGroupLabel, effectiveSecondaryGroupLabels);

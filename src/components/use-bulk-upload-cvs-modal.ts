@@ -126,7 +126,7 @@ export function useBulkUploadCvsModal({
 
     try {
       const batchId = uuidv4();
-      const { success, successful, failed, errors } = await uploadBulkCvFiles({
+      const { success, successful, failed, errors, queuedAfterTimeout } = await uploadBulkCvFiles({
         files: selectedFiles,
         batchId,
         positionId: selectedPositionId,
@@ -135,7 +135,7 @@ export function useBulkUploadCvsModal({
       });
 
       if (success) {
-        const successToast = getBulkUploadSuccessToast({ successful, failed, errors });
+        const successToast = getBulkUploadSuccessToast({ successful, failed, errors, queuedAfterTimeout });
         successWithDescription(
           successToast.title,
           successToast.description,

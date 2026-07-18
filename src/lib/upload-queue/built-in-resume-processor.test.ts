@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   normalizeBuiltInApplicant,
   normalizeBuiltInJobMatches,
@@ -49,5 +51,15 @@ describe('built-in resume processor normalization', () => {
       matchReasons: [],
       job_description_summary: null,
     }]);
+  });
+
+  it('does not insert nonexistent createdAt column into attachments', () => {
+    const processorSource = readFileSync(
+      join(process.cwd(), 'src/lib/upload-queue/built-in-resume-processor.ts'),
+      'utf8',
+    );
+
+    expect(processorSource).not.toContain('"Attachment" (id, "applicantId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "createdAt"');
+    expect(processorSource).toContain('"Attachment" (id, "applicantId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "updatedAt"');
   });
 });

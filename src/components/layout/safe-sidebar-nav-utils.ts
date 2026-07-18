@@ -23,9 +23,6 @@ export function getInitialSidebarActiveGroupLabel(
   filteredGroups: SidebarNavGroup[]
 ) {
   if (pathname === '/settings') return 'Settings';
-  if (pathname === '/dashboard') return 'Analyst';
-  if (pathname === '/hiring') return 'Hiring';
-  if (pathname === '/shortlist-calendar') return 'Shortlist & Calendar';
 
   for (const group of filteredGroups) {
     if (group.items.some(item => isSidebarItemActive(pathname, item))) {
@@ -60,8 +57,7 @@ export function shouldShowSidebarMenuPanel(
   activeGroupLabel?: string,
 ) {
   if (pathname === '/') return false;
-  if (pathname === '/settings') return activeGroupLabel === 'Settings';
-  return true;
+  return activeGroupLabel === 'Settings';
 }
 
 export function getSidebarGroupFirstHref(group: SidebarNavGroup | undefined) {
@@ -119,5 +115,5 @@ export function shouldShowAssignedPositionsSection({
   showAssignedPositions: unknown;
   hasPositions: boolean;
 }) {
-  return activeGroupLabel === 'Hiring' && !!showAssignedPositions && hasPositions;
+  return activeGroupLabel === 'Positions' && !!showAssignedPositions && hasPositions;
 }

@@ -85,7 +85,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right" 
-        className="w-full max-w-md p-0 flex flex-col [&>button]:hidden"
+        className="!top-4 !right-4 !bottom-4 !left-auto !h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] sm:!w-[28rem] max-w-md p-0 flex flex-col overflow-hidden rounded-2xl border border-border/70 shadow-2xl [&>button]:hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {content}

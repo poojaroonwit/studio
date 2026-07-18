@@ -422,8 +422,8 @@ async function replaceResumeAttachment({
     [applicantId]
   );
   await client.query(
-    `INSERT INTO "Attachment" (id, "applicantId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, $4, $5, 'Resume', true, NOW(), NOW(), NOW())`,
+    `INSERT INTO "Attachment" (id, "applicantId", "uploadedById", "filePath", "fileName", label, "isPrimary", "uploadedAt", "updatedAt")
+     VALUES ($1, $2, $3, $4, $5, 'Resume', true, NOW(), NOW())`,
     [randomUUID(), applicantId, uploadedById, job.file_path, job.file_name || job.file_path]
   );
 }

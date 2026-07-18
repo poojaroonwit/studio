@@ -20,17 +20,23 @@ const Icon = () => null;
 
 const groups: SidebarNavGroup[] = [
   {
-    label: 'Analyst',
+    label: 'Dashboard',
     icon: Icon,
     items: [
       { label: 'Dashboard', icon: Icon, href: '/dashboard', permissionId: 'DASHBOARD_VIEW' },
     ],
   },
   {
-    label: 'Hiring',
+    label: 'Applicants',
     icon: Icon,
     items: [
       { label: 'Applicants', icon: Icon, href: '/applicants', permissionId: 'applicantS_VIEW' },
+    ],
+  },
+  {
+    label: 'Positions',
+    icon: Icon,
+    items: [
       { label: 'Positions', icon: Icon, href: '/positions', permissionId: 'POSITIONS_VIEW' },
     ],
   },
@@ -51,7 +57,7 @@ describe('safe-sidebar-nav-utils', () => {
     );
 
     expect(filteredGroups).toHaveLength(1);
-    expect(filteredGroups[0].label).toBe('Hiring');
+    expect(filteredGroups[0].label).toBe('Positions');
     expect(filteredGroups[0].items.map(item => item.href)).toEqual(['/positions']);
   });
 
@@ -64,27 +70,25 @@ describe('safe-sidebar-nav-utils', () => {
 
   it('derives initial active group from special paths and item matches', () => {
     expect(getInitialSidebarActiveGroupLabel('/settings', groups)).toBe('Settings');
-    expect(getInitialSidebarActiveGroupLabel('/dashboard', groups)).toBe('Analyst');
-    expect(getInitialSidebarActiveGroupLabel('/hiring', groups)).toBe('Hiring');
-    expect(getInitialSidebarActiveGroupLabel('/shortlist-calendar', groups)).toBe('Shortlist & Calendar');
-    expect(getInitialSidebarActiveGroupLabel('/positions/123', groups)).toBe('Hiring');
+    expect(getInitialSidebarActiveGroupLabel('/dashboard', groups)).toBe('Dashboard');
+    expect(getInitialSidebarActiveGroupLabel('/positions/123', groups)).toBe('Positions');
     expect(getInitialSidebarActiveGroupLabel('/settings/rooms', groups)).toBe('Settings');
-    expect(getInitialSidebarActiveGroupLabel('/unknown', groups)).toBe('Analyst');
+    expect(getInitialSidebarActiveGroupLabel('/unknown', groups)).toBe('Dashboard');
   });
 
   it('derives displayed and active groups', () => {
-    expect(getDisplayedSidebarGroupLabel('Hiring', 'Analyst')).toBe('Hiring');
-    expect(getDisplayedSidebarGroupLabel(undefined, 'Analyst')).toBe('Analyst');
-    expect(getActiveSidebarGroup(groups, 'Hiring')?.label).toBe('Hiring');
-    expect(getActiveSidebarGroup(groups, 'Missing')?.label).toBe('Analyst');
+    expect(getDisplayedSidebarGroupLabel('Positions', 'Dashboard')).toBe('Positions');
+    expect(getDisplayedSidebarGroupLabel(undefined, 'Dashboard')).toBe('Dashboard');
+    expect(getActiveSidebarGroup(groups, 'Positions')?.label).toBe('Positions');
+    expect(getActiveSidebarGroup(groups, 'Missing')?.label).toBe('Dashboard');
   });
 
-  it('hides the secondary menu on root and settings landing pages', () => {
+  it('shows the secondary menu only for settings', () => {
     expect(shouldShowSidebarMenuPanel('/')).toBe(false);
     expect(shouldShowSidebarMenuPanel('/settings')).toBe(false);
     expect(shouldShowSidebarMenuPanel('/settings', 'Settings')).toBe(true);
-    expect(shouldShowSidebarMenuPanel('/settings/users')).toBe(true);
-    expect(shouldShowSidebarMenuPanel('/positions')).toBe(true);
+    expect(shouldShowSidebarMenuPanel('/settings/users', 'Settings')).toBe(true);
+    expect(shouldShowSidebarMenuPanel('/positions', 'Positions')).toBe(false);
   });
 
   it('gets the first navigation href for a group', () => {
@@ -138,17 +142,17 @@ describe('safe-sidebar-nav-utils', () => {
     expect(formatProcessQueueBadgeCount(100)).toBe('99+');
   });
 
-  it('shows assigned positions only for hiring groups with enabled preferences and positions', () => {
+  it('shows assigned positions only for positions with enabled preferences and positions', () => {
     expect(
       shouldShowAssignedPositionsSection({
-        activeGroupLabel: 'Hiring',
+        activeGroupLabel: 'Positions',
         showAssignedPositions: true,
         hasPositions: true,
       })
     ).toBe(true);
     expect(
       shouldShowAssignedPositionsSection({
-        activeGroupLabel: 'Hiring',
+        activeGroupLabel: 'Positions',
         showAssignedPositions: 'true',
         hasPositions: true,
       })
@@ -162,14 +166,14 @@ describe('safe-sidebar-nav-utils', () => {
     ).toBe(false);
     expect(
       shouldShowAssignedPositionsSection({
-        activeGroupLabel: 'Hiring',
+        activeGroupLabel: 'Positions',
         showAssignedPositions: false,
         hasPositions: true,
       })
     ).toBe(false);
     expect(
       shouldShowAssignedPositionsSection({
-        activeGroupLabel: 'Hiring',
+        activeGroupLabel: 'Positions',
         showAssignedPositions: true,
         hasPositions: false,
       })

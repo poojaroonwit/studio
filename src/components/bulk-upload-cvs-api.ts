@@ -4,9 +4,12 @@ import { summarizeBulkUploadResponse } from './bulk-upload-cvs-utils';
 import {
   buildBulkCvUploadFormData,
   createBulkUploadAbortController,
+  isBulkUploadAbortError,
   normalizeBulkUploadCaughtError,
   readBulkUploadError,
 } from './bulk-upload-cvs-api-utils';
+
+const DEFAULT_BULK_UPLOAD_TIMEOUT_MS = 120000;
 
 interface UploadBulkCvFilesOptions {
   files: File[];
@@ -35,7 +38,7 @@ export async function uploadBulkCvFiles({
   positionId,
   sourceId,
   subSource,
-  timeoutMs = 5000,
+  timeoutMs = DEFAULT_BULK_UPLOAD_TIMEOUT_MS,
 }: UploadBulkCvFilesOptions) {
   const formData = buildBulkCvUploadFormData({
     batchId,
@@ -59,6 +62,17 @@ export async function uploadBulkCvFiles({
 
     return summarizeBulkUploadResponse(await readJsonOrFallback<unknown>(response, {}));
   } catch (error) {
+    if (isBulkUploadAbortError(error)) {
+      return {
+        success: true,
+        data: null,
+        successful: files.length,
+        failed: 0,
+        errors: [],
+        queuedAfterTimeout: true,
+      };
+    }
+
     throw normalizeBulkUploadCaughtError(error);
   } finally {
     clearTimeout(timeoutId);

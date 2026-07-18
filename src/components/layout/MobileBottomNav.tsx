@@ -10,8 +10,6 @@ import {
   ClipboardDocumentListIcon as ListTodo,
   CloudArrowUpIcon as UploadCloud,
   Cog6ToothIcon as Settings,
-  ClipboardDocumentCheckIcon as FileCheck,
-  CalendarIcon as Calendar
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +17,12 @@ import { useSession } from "next-auth/react";
 import { hasPermission } from "@/lib/permissions";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permissionId: "DASHBOARD_VIEW" },
+  { href: "/my-tasks", label: "My Taskboard", icon: ListTodo, permissionId: "TASK_BOARD_VIEW" },
   { href: "/applicants", label: "Applicants", icon: Users, permissionId: "applicantS_VIEW" },
-  { href: "/candidates", label: "Candidates", icon: Users, permissionId: "applicantS_VIEW" },
   { href: "/positions", label: "Positions", icon: Briefcase, permissionId: "POSITIONS_VIEW" },
-  { href: "/calendar", label: "Interview Calendar", icon: Calendar, permissionId: "EVALUATION_LINKS_VIEW" },
+  { href: "/process-queue", label: "Queue", icon: UploadCloud, permissionId: "UPLOAD_QUEUE_VIEW" },
+  { href: "/settings/system-settings", label: "Settings", icon: Settings, permissionId: "SYSTEM_SETTINGS_VIEW" },
 ];
 
 export function MobileBottomNav() {

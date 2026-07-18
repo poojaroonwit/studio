@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import * as React from "react";
 import {
   ArrowRightOnRectangleIcon as LogOut,
   ChevronDownIcon as ChevronDown,
@@ -14,20 +14,32 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
+import { cn } from "@/lib/utils";
 import { APP_VERSION } from "@/lib/version";
 import type { HeaderUserMenuSharedProps } from "./HeaderTypes";
 
 type HeaderDesktopMenuProps = HeaderUserMenuSharedProps;
 
-export function HeaderDesktopUserMenuTrigger({
+export const HeaderDesktopUserMenuTrigger = React.forwardRef<
+  HTMLButtonElement,
+  Pick<HeaderDesktopMenuProps, "user" | "refreshAvatar"> &
+    React.ButtonHTMLAttributes<HTMLButtonElement>
+>(function HeaderDesktopUserMenuTrigger({
   user,
   refreshAvatar,
-}: Pick<HeaderDesktopMenuProps, "user" | "refreshAvatar">) {
+  className,
+  ...props
+}, ref) {
   return (
     <button
+      ref={ref}
       type="button"
-      className="flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none"
+      className={cn(
+        "flex items-center space-x-3 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-200 group focus:outline-none",
+        className,
+      )}
       aria-label="Open user menu"
+      {...props}
     >
       <div className="relative">
         <UserAvatarCompact
@@ -48,7 +60,7 @@ export function HeaderDesktopUserMenuTrigger({
       <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200 shrink-0" />
     </button>
   );
-}
+});
 
 export function HeaderDesktopUserLabel({ user }: Pick<HeaderDesktopMenuProps, "user">) {
   return (

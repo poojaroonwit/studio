@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { SidebarNavGroup } from "./SidebarNavConfig";
-import { OptimizedLink } from "./OptimizedLink";
 
 interface SidebarRailProps {
   filteredGroups: SidebarNavGroup[];
@@ -82,29 +81,27 @@ export const SidebarRail = React.memo(function SidebarRail({
 
               return (
                 <TooltipTrigger asChild>
-                  <OptimizedLink href="/settings">
-                    <button
-                      type="button"
-                      onClick={() => onHubClick("Settings")}
-                      onMouseEnter={() => onHubHover("Settings")}
+                  <button
+                    type="button"
+                    onClick={() => onHubClick("Settings")}
+                    onMouseEnter={() => onHubHover("Settings")}
+                    className={cn(
+                      "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
+                      isEffectivelyActive
+                        ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
+                        : "text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]",
+                    )}
+                  >
+                    {isEffectivelyActive && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
+                    )}
+                    <Settings
                       className={cn(
-                        "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
-                        isEffectivelyActive
-                          ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
-                          : "text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]",
+                        "w-5 h-5 flex-shrink-0 transition-all duration-200",
+                        isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105",
                       )}
-                    >
-                      {isEffectivelyActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
-                      )}
-                      <Settings
-                        className={cn(
-                          "w-5 h-5 flex-shrink-0 transition-all duration-200",
-                          isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105",
-                        )}
-                      />
-                    </button>
-                  </OptimizedLink>
+                    />
+                  </button>
                 </TooltipTrigger>
               );
             })()}

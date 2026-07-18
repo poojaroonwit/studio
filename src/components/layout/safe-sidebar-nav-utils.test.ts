@@ -82,6 +82,7 @@ describe('safe-sidebar-nav-utils', () => {
   it('hides the secondary menu on root and settings landing pages', () => {
     expect(shouldShowSidebarMenuPanel('/')).toBe(false);
     expect(shouldShowSidebarMenuPanel('/settings')).toBe(false);
+    expect(shouldShowSidebarMenuPanel('/settings', 'Settings')).toBe(true);
     expect(shouldShowSidebarMenuPanel('/settings/users')).toBe(true);
     expect(shouldShowSidebarMenuPanel('/positions')).toBe(true);
   });

@@ -75,8 +75,10 @@ const GroupedSidebarNav = React.memo(() => {
     getEffectiveSecondaryGroupLabels(layoutSettings.secondaryGroupLabels, filteredGroups)
   ), [filteredGroups, layoutSettings.secondaryGroupLabels]);
   const isSplitMode = layoutSettings.mode === "split";
-  const shouldRenderSecondaryPanel = isSplitMode
-    && shouldShowSidebarMenuPanel(pathname)
+  const isSettingsContext = displayedGroupLabel === "Settings" || pathname.startsWith("/settings");
+  const shouldUseSplitLayout = isSplitMode || isSettingsContext;
+  const shouldRenderSecondaryPanel = shouldUseSplitLayout
+    && shouldShowSidebarMenuPanel(pathname, displayedGroupLabel)
     && isSidebarGroupInSecondaryPanel(displayedGroupLabel, effectiveSecondaryGroupLabels);
 
   React.useEffect(() => {
@@ -153,7 +155,7 @@ const GroupedSidebarNav = React.memo(() => {
       className="flex h-full"
       onMouseLeave={() => setHoveredGroupLabel(undefined)}
     >
-      {isSplitMode ? (
+      {shouldUseSplitLayout ? (
         <SidebarRail
           filteredGroups={filteredGroups}
           activeGroupLabel={activeGroupLabel}

@@ -5,6 +5,7 @@ import { authorizeUploadRequest } from './upload-file-route-auth';
 import { parseUploadRequest } from './upload-file-route-request';
 import {
   broadcastUploadQueueChange,
+  processBuiltInUploadedQueueJobs,
   processUploadsInTransaction,
   triggerUploadQueueProcessing,
 } from './upload-file-route-processing';
@@ -46,7 +47,10 @@ export async function handleUploadFilePost(request: NextRequest) {
 
     if (successCount > 0) {
       try {
-        await triggerUploadQueueProcessing(request);
+        const handledByBuiltInProcessor = await processBuiltInUploadedQueueJobs(results);
+        if (!handledByBuiltInProcessor) {
+          await triggerUploadQueueProcessing(request);
+        }
       } catch (autoProcessError) {
         console.error('[UPLOAD] Failed to auto-trigger upload queue processing:', autoProcessError);
       }

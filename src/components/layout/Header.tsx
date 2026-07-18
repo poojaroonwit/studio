@@ -37,7 +37,6 @@ export function Header({
     mounted,
     currentAppName,
     appLogoUrl,
-    effectivePageTitle,
   } = useHeaderBranding({
     initialPageTitle,
     propAppName,
@@ -114,8 +113,6 @@ export function Header({
           pathname={pathname}
           supportsHeaderSearch={supportsHeaderSearch}
           headerSearchLabel="Search everything"
-          isLoading={isLoading}
-          effectivePageTitle={effectivePageTitle}
           onLogoClick={() => router.push("/")}
           onMobileBack={() => router.back()}
         />

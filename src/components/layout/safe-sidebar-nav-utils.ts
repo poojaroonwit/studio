@@ -55,8 +55,13 @@ export function getActiveSidebarGroup(
   return filteredGroups.find(group => group.label === displayedGroupLabel) || filteredGroups[0];
 }
 
-export function shouldShowSidebarMenuPanel(pathname: string) {
-  return !['/', '/settings'].includes(pathname);
+export function shouldShowSidebarMenuPanel(
+  pathname: string,
+  activeGroupLabel?: string,
+) {
+  if (pathname === '/') return false;
+  if (pathname === '/settings') return activeGroupLabel === 'Settings';
+  return true;
 }
 
 export function getSidebarGroupFirstHref(group: SidebarNavGroup | undefined) {

@@ -15,8 +15,6 @@ interface HeaderBrandSectionProps {
   pathname?: string | null;
   supportsHeaderSearch: boolean;
   headerSearchLabel: string;
-  isLoading: boolean;
-  effectivePageTitle: string;
   onLogoClick: () => void;
   onMobileBack: () => void;
 }
@@ -29,8 +27,6 @@ export function HeaderBrandSection({
   pathname,
   supportsHeaderSearch,
   headerSearchLabel,
-  isLoading,
-  effectivePageTitle,
   onLogoClick,
   onMobileBack,
 }: HeaderBrandSectionProps) {
@@ -89,16 +85,6 @@ export function HeaderBrandSection({
           <HeaderUniversalSearch placeholder={headerSearchLabel} />
         </div>
       )}
-
-      <div className="hidden sm:block">
-        {isLoading ? (
-          <div className="h-5 w-32 rounded bg-muted animate-pulse" />
-        ) : (
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200" style={{ color: "var(--header-foreground, inherit)" }}>
-            {effectivePageTitle}
-          </h2>
-        )}
-      </div>
     </div>
   );
 }

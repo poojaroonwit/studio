@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design optimizes font loading in the FitScan application by reducing the number of loaded fonts from 6 to 2 (Inter for English, IBM Plex Sans Thai for Thai), implementing proper font-display strategies, adding font preloading for critical fonts, and using system fonts as fallbacks with metric matching to prevent layout shifts. The solution prioritizes performance while maintaining visual quality for both Thai and English content.
+This design optimizes font loading in the HRI application by reducing the number of loaded fonts from 6 to 2 (Inter for English, IBM Plex Sans Thai for Thai), implementing proper font-display strategies, adding font preloading for critical fonts, and using system fonts as fallbacks with metric matching to prevent layout shifts. The solution prioritizes performance while maintaining visual quality for both Thai and English content.
 
 ## Architecture
 

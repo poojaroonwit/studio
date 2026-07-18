@@ -1,4 +1,4 @@
--- Initialize FitScan database with default data
+-- Initialize HRI database with default data
 -- This script works with the postgres user and studio_production database
 
 -- Create default admin user. Prefer prisma/seed.ts for new deployments.

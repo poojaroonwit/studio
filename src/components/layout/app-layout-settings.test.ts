@@ -55,7 +55,7 @@ describe('app-layout-settings', () => {
       sidebarLogoSize: {},
     })).toMatchObject({
       appLogoUrl: null,
-      currentAppName: 'FitScan',
+      currentAppName: 'HRI',
       showLogoOnly: false,
       sidebarLogoSize: 48,
       collapsedSidebarLogoSize: 40,

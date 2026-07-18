@@ -63,12 +63,12 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata = {
-  title: 'FitScan - AI-Powered Recruitment Platform',
+  title: 'HRI - AI-Powered Recruitment Platform',
   description: 'Advanced AI-powered recruitment and Applicant management platform',
   keywords: 'recruitment, AI, Applicant management, HR, hiring',
-  authors: [{ name: 'FitScan' }],
-  creator: 'FitScan',
-  publisher: 'FitScan',
+  authors: [{ name: 'HRI' }],
+  creator: 'HRI',
+  publisher: 'HRI',
   formatDetection: {
     email: false,
     address: false,
@@ -76,16 +76,16 @@ export const metadata = {
   },
   metadataBase: getMetadataBaseUrl(),
   openGraph: {
-    title: 'FitScan - AI-Powered Recruitment Platform',
+    title: 'HRI - AI-Powered Recruitment Platform',
     description: 'Advanced AI-powered recruitment and Applicant management platform',
     url: '/',
-    siteName: 'FitScan',
+    siteName: 'HRI',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FitScan - AI-Powered Recruitment Platform',
+    title: 'HRI - AI-Powered Recruitment Platform',
     description: 'Advanced AI-powered recruitment and Applicant management platform',
   },
   robots: {

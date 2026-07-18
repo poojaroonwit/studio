@@ -60,7 +60,7 @@ async function main() {
       authenticationMethods: ['basic']
     },
     create: {
-      name: 'FitScan Demo Admin',
+      name: 'HRI Demo Admin',
       email: 'demo-admin@example.com',
       password: demoHash,
       isActive: true,

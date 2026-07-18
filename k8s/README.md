@@ -21,7 +21,7 @@ All resources use the following labels:
 1. **00-namespace.yaml** - Creates the application namespace
 2. **01-configmap.yaml** - Application configuration
 3. **02-secrets.yaml** - Sensitive data such as database, API, and storage credentials
-4. **03-fitscan-app.yaml** - Main application deployment containing:
+4. **03-hri-app.yaml** - Main application deployment containing:
    - Deployment
    - Service
    - ServiceAccount
@@ -48,7 +48,7 @@ Apply all resources in the correct order:
 kubectl apply -f k8s/00-namespace.yaml
 kubectl apply -f k8s/01-configmap.yaml
 kubectl apply -f k8s/02-secrets.yaml
-kubectl apply -f k8s/03-fitscan-app.yaml
+kubectl apply -f k8s/03-hri-app.yaml
 kubectl apply -f k8s/05-ingress.yaml
 ```
 
@@ -86,7 +86,7 @@ The application is configured to use external services:
 Set the container image to your own registry and tag before deploying.
 
 To use a different image tag, update the `image` field in:
-- `03-fitscan-app.yaml`
+- `03-hri-app.yaml`
 
 ## Resource Limits
 
@@ -98,7 +98,7 @@ To use a different image tag, update the `image` field in:
 
 ## Scaling
 
-The application uses Horizontal Pod Autoscaler (HPA) settings within `03-fitscan-app.yaml` (if configured):
+The application uses Horizontal Pod Autoscaler (HPA) settings within `03-hri-app.yaml` (if configured):
 - Application deployment: 2-10 replicas
 
 ## Troubleshooting

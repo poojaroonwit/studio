@@ -1,6 +1,6 @@
 # API Specification (V1)
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 3.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -11,7 +11,7 @@
 ---
 
 ## 1. Overview
-This document specifies the RESTful API endpoints for the FitScan application. It details the request parameters, body schemas, response formats, and underlying business logic (including data extraction and database interactions).
+This document specifies the RESTful API endpoints for the HRI application. It details the request parameters, body schemas, response formats, and underlying business logic (including data extraction and database interactions).
 
 **Base URL**: `/api/v1`
 **Authentication**: Bearer Token (JWT) required via `Authorization` header.

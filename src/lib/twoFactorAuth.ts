@@ -17,7 +17,7 @@ authenticator.options = {
 export function generateTotpSecret(email: string) {
   const secret = authenticator.generateSecret();
   // Format: otpauth://totp/AppName:userEmail?secret=SECRET&issuer=AppName
-  const otpauth = authenticator.keyuri(email, 'FitScan', secret);
+  const otpauth = authenticator.keyuri(email, 'HRI', secret);
   return { secret, otpauth };
 }
 
@@ -54,18 +54,18 @@ export function generateEmailOtp(): string {
  * Returns true if sent successfully, false otherwise
  */
 export async function sendEmailOtp(email: string, otp: string, userName: string): Promise<boolean> {
-  const subject = 'Your FitScan Verification Code';
+  const subject = 'Your HRI Verification Code';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333;">Verification Code</h2>
       <p>Hello ${userName},</p>
-      <p>Your verification code for FitScan is:</p>
+      <p>Your verification code for HRI is:</p>
       <div style="background-color: #f4f4f4; padding: 15px; text-align: center; border-radius: 5px; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
         ${otp}
       </div>
       <p>This code will expire in 10 minutes.</p>
       <p>If you didn't request this code, you can safely ignore this email.</p>
-      <p>Best regards,<br>FitScan</p>
+      <p>Best regards,<br>HRI</p>
     </div>
   `;
 

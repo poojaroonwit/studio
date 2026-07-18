@@ -1,4 +1,4 @@
-// OpenAPI schemas for FitScan API
+// OpenAPI schemas for HRI API
 
 export const schemas = {
   applicant: {

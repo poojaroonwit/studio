@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { SettingsClientLayout } from './SettingsClientLayout';
 
 export const metadata: Metadata = {
-  title: 'Settings | FitScan',
+  title: 'Settings | HRI',
   description: 'Manage system configuration, preferences, users, permissions, and operational settings.',
 };
 

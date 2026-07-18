@@ -4,13 +4,13 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://fitscan:CHANGE_ME_STRONG_PASSWORD@localhost:5433/fitscan'
+      url: 'postgresql://hri:CHANGE_ME_STRONG_PASSWORD@localhost:5433/hri'
     }
   }
 });
 
 async function main() {
-  const adminEmail = 'admin@ncc.com';
+  const adminEmail = 'admin@outboundcorporation.com';
   const adminPassword = 'nccadmin';
   const adminGroupId = 'c859c3e4-dbac-45b0-b3a0-7f7196df3258';
 

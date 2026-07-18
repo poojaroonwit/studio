@@ -26,8 +26,8 @@ export async function GET() {
     }
 
     const manifest = {
-      name: settings.pwaName || 'FitScan - AI-Powered Recruitment Platform',
-      short_name: settings.pwaShortName || 'FitScan',
+      name: settings.pwaName || 'HRI - AI-Powered Recruitment Platform',
+      short_name: settings.pwaShortName || 'HRI',
       description: settings.pwaDescription || 'Advanced AI-powered recruitment and Applicant management platform',
       start_url: '/',
       display: 'standalone',
@@ -84,8 +84,8 @@ export async function GET() {
     // Return a default manifest on error to prevent PWA from failing completely
     console.warn('[PWA Manifest] Returning fallback manifest due to error');
     return NextResponse.json({
-      name: 'FitScan - AI-Powered Recruitment Platform',
-      short_name: 'FitScan',
+      name: 'HRI - AI-Powered Recruitment Platform',
+      short_name: 'HRI',
       description: 'Advanced AI-powered recruitment and Applicant management platform',
       start_url: '/',
       display: 'standalone',

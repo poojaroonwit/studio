@@ -8,7 +8,7 @@
 ---
 
 ## 1. Introduction
-This document outlines the comprehensive security architecture for FitScan Enterprise, covering authentication, authorization, data protection, and infrastructure security.
+This document outlines the comprehensive security architecture for HRI Enterprise, covering authentication, authorization, data protection, and infrastructure security.
 
 ## 2. Authentication Architecture
 The system employs a dual-authentication strategy supporting both local credentials and Enterprise SSO.
@@ -129,7 +129,7 @@ Every write operation triggers a `UserActivityLog` entry:
 - [Architecture Overview](./Architecture.md)
 - [System Requirements](../requirements/Software Requirements Specification.md)
 
-**Project Name:** FitScan Enterprise  
+**Project Name:** HRI Enterprise  
 **Document Version:** 1.0  
 **Date:** December 16, 2025  
 **Status:** Active Development

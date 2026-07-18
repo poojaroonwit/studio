@@ -34,7 +34,7 @@ export function ApplicantEvaluationHeader({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm text-blue-100">FitScan</div>
+          <div className="text-sm text-blue-100">HRI</div>
         </div>
       </div>
     </div>

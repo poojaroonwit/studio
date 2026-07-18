@@ -1,6 +1,6 @@
 # Business Requirements Document (BRD)
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Approved
@@ -13,7 +13,7 @@
 ### 1.1 Project Background
 The current recruitment landscape faces challenges in efficiency and quality. Manual resume screening processes are time-consuming, subjective, and prone to bias, leading to extended "Time-to-Hire" metrics and suboptimal applicant placement. Communication gaps between recruiters and hiring managers further delay decision-making.
 
-FitScan Enterprise is proposed as a centralized Applicant Tracking System (ATS) designed to address these core inefficiencies. By integrating Generative AI for objective applicant scoring and facilitating real-time collaboration for interview panels, FitScan aims to modernize the end-to-end hiring lifecycle.
+HRI Enterprise is proposed as a centralized Applicant Tracking System (ATS) designed to address these core inefficiencies. By integrating Generative AI for objective applicant scoring and facilitating real-time collaboration for interview panels, HRI aims to modernize the end-to-end hiring lifecycle.
 
 ### 1.2 Business Goals
 1.  **Metric Improvement**: Reduce "Time-to-Hire" by 40% within the first 6 months of deployment.

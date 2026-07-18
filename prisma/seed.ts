@@ -239,7 +239,7 @@ async function main() {
     // Create basic system settings
     console.log('Creating system settings...');
 
-    // Create a smaller simple SVG logo for FitScan as a data URL (reduced size)
+    // Create a smaller simple SVG logo for HRI as a data URL (reduced size)
     const defaultLogoSvg = `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -303,7 +303,7 @@ async function main() {
 </html>`;
 
     const systemSettings = [
-      { key: 'appName', value: 'FitScan' },
+      { key: 'appName', value: 'HRI' },
       { key: 'appThemePreference', value: 'system' },
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },

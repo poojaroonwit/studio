@@ -43,7 +43,7 @@ export function GeneralTabAppNameCard({
             type="text"
             value={appName}
             onChange={(event) => setAppName(event.target.value)}
-            placeholder="e.g., FitScan Pro"
+            placeholder="e.g., HRI Pro"
             disabled={!canEdit}
           />
           <p className="text-xs text-muted-foreground">

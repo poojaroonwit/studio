@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Calendar | FitScan',
+  title: 'Calendar | HRI',
   description: 'Review upcoming evaluation sessions, reminders, and interview scheduling activity.',
 };
 

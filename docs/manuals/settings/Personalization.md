@@ -4,7 +4,7 @@
 
 | Feature | Description |
 | :--- | :--- |
-| **What** | Interface tools to tailor the FitScan experience to your personal working style. |
+| **What** | Interface tools to tailor the HRI experience to your personal working style. |
 | **Who** | **All Users** (Recruiters, Managers, Admins). |
 | **When** | During initial onboarding or whenever your workflow needs optimization. |
 | **Why** | To increase productivity by surface-level UI adjustments that matter to the individual. |

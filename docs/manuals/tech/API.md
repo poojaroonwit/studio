@@ -23,7 +23,7 @@ The documentation page functions as a live HTTP client.
 4.  **Result**: View the "Response Body" and "Response Code" directly below.
 
 > [!TIP]
-> Use the **"Download JSON Spec"** button to import the FitScan API definitions into tools like Postman or Insomnia.
+> Use the **"Download JSON Spec"** button to import the HRI API definitions into tools like Postman or Insomnia.
 
 ## 2. How to Verify (Test Case)
 To verify the API portal:

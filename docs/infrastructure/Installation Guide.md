@@ -1,6 +1,6 @@
 # Installation Guide
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -163,14 +163,14 @@ docker-compose up -d
 
 ```bash
 # Build the optimized image (uses Next.js standalone output)
-docker build -t fitscan:latest .
+docker build -t hri:latest .
 
 # Run with environment variables
 docker run -d \
-  --name fitscan \
+  --name hri \
   -p 8021:8021 \
   --env-file .env \
-  fitscan:latest
+  hri:latest
 ```
 
 **Note**: The Docker image uses Next.js standalone output mode, resulting in ~70% smaller image sizes compared to traditional builds. The final image is approximately 300-500MB instead of 2-3GB.
@@ -233,7 +233,7 @@ After installation, verify the setup:
 - [Troubleshooting](../development/Troubleshooting.md) - Common issues and solutions
 - [CLI Reference](../development/CLI Reference.md) - Command-line tools
 
-**Project Name:** FitScan Enterprise  
+**Project Name:** HRI Enterprise  
 **Document Version:** 1.0  
 **Date:** December 16, 2025  
 **Status:** Active Development
@@ -395,14 +395,14 @@ docker-compose up -d
 
 ```bash
 # Build the optimized image (uses Next.js standalone output)
-docker build -t fitscan:latest .
+docker build -t hri:latest .
 
 # Run with environment variables
 docker run -d \
-  --name fitscan \
+  --name hri \
   -p 8021:8021 \
   --env-file .env \
-  fitscan:latest
+  hri:latest
 ```
 
 > **Note**: The Docker image uses Next.js standalone output mode, resulting in ~70% smaller image sizes compared to traditional builds. The final image is approximately 300-500MB instead of 2-3GB.

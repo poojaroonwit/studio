@@ -1,4 +1,4 @@
-# GitLab CI/CD Pipeline for FitScan Kubernetes Deployment
+# GitLab CI/CD Pipeline for HRI Kubernetes Deployment
 # This pipeline handles building, testing, and deploying to Kubernetes
 
 stages:
@@ -16,8 +16,8 @@ variables:
   DOCKER_TLS_VERIFY: 1
 
   # Application variables
-  APP_NAME: "fitscan"
-  K8S_NAMESPACE: "fitscan"
+  APP_NAME: "hri"
+  K8S_NAMESPACE: "hri"
 
   # Image registry (GitLab Container Registry)
   IMAGE_NAME: $CI_REGISTRY_IMAGE
@@ -273,7 +273,7 @@ deploy:staging:
     - |
       # Update kustomization with staging image
       cd k8s
-      kustomize edit set image fitscan=$IMAGE_NAME:$IMAGE_TAG
+      kustomize edit set image hri=$IMAGE_NAME:$IMAGE_TAG
       cat kustomization.yaml
     - |
       # Apply manifests
@@ -282,8 +282,8 @@ deploy:staging:
     - |
       # Wait for deployments to be ready
       echo "Waiting for deployments to be ready..."
-      kubectl wait --for=condition=available --timeout=300s deployment/fitscan-app -n $K8S_NAMESPACE || true
-      kubectl wait --for=condition=available --timeout=300s deployment/fitscan-processor -n $K8S_NAMESPACE || true
+      kubectl wait --for=condition=available --timeout=300s deployment/hri-app -n $K8S_NAMESPACE || true
+      kubectl wait --for=condition=available --timeout=300s deployment/hri-processor -n $K8S_NAMESPACE || true
     - |
       # Show deployment status
       echo "Deployment Status:"
@@ -352,7 +352,7 @@ deploy:production:
     - |
       # Update kustomization with production image
       cd k8s
-      kustomize edit set image fitscan=$IMAGE_NAME:$IMAGE_TAG
+      kustomize edit set image hri=$IMAGE_NAME:$IMAGE_TAG
       cat kustomization.yaml
     - |
       # Apply manifests with production tag
@@ -361,8 +361,8 @@ deploy:production:
     - |
       # Wait for deployments to be ready
       echo "Waiting for deployments to be ready..."
-      kubectl wait --for=condition=available --timeout=600s deployment/fitscan-app -n $K8S_NAMESPACE || true
-      kubectl wait --for=condition=available --timeout=600s deployment/fitscan-processor -n $K8S_NAMESPACE || true
+      kubectl wait --for=condition=available --timeout=600s deployment/hri-app -n $K8S_NAMESPACE || true
+      kubectl wait --for=condition=available --timeout=600s deployment/hri-processor -n $K8S_NAMESPACE || true
     - |
       # Show deployment status
       echo "Deployment Status:"
@@ -373,7 +373,7 @@ deploy:production:
       # Health check
       echo "Performing health check..."
       sleep 30
-      kubectl get pods -n $K8S_NAMESPACE -l app=fitscan-app -o jsonpath='{.items[0].status.phase}' | grep -q Running && echo "✓ Application is running"
+      kubectl get pods -n $K8S_NAMESPACE -l app=hri-app -o jsonpath='{.items[0].status.phase}' | grep -q Running && echo "✓ Application is running"
     - echo "✓ Production deployment completed"
   environment:
     name: production
@@ -421,10 +421,10 @@ rollback:production:
       EOF
   script:
     - echo "Rolling back production deployment..."
-    - kubectl rollout undo deployment/fitscan-app -n $K8S_NAMESPACE
-    - kubectl rollout undo deployment/fitscan-processor -n $K8S_NAMESPACE
-    - kubectl rollout status deployment/fitscan-app -n $K8S_NAMESPACE
-    - kubectl rollout status deployment/fitscan-processor -n $K8S_NAMESPACE
+    - kubectl rollout undo deployment/hri-app -n $K8S_NAMESPACE
+    - kubectl rollout undo deployment/hri-processor -n $K8S_NAMESPACE
+    - kubectl rollout status deployment/hri-app -n $K8S_NAMESPACE
+    - kubectl rollout status deployment/hri-processor -n $K8S_NAMESPACE
     - echo "✓ Rollback completed"
   environment:
     name: production

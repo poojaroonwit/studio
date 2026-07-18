@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign In | FitScan',
-  description: 'Authenticate to access the FitScan recruitment platform.',
+  title: 'Sign In | HRI',
+  description: 'Authenticate to access the HRI recruitment platform.',
 };
 
 export default function SignInLayout({

@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const admin = await prisma.user.findUnique({ where: { email: 'admin@ncc.com' } });
+  const admin = await prisma.user.findUnique({ where: { email: 'admin@outboundcorporation.com' } });
   const position = await prisma.position.findFirst({ where: { title: 'Senior Frontend Developer' } });
 
   if (admin && position) {

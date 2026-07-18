@@ -1,6 +1,6 @@
 # Audit & Activity Tracking
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -14,7 +14,7 @@ The system distinguishes between general **System Logs** and high-level **Audit 
 
 ```mermaid
 graph TD
-    App[FitScan Application] -->|logAudit| LogTab[(LogEntry Table)]
+    App[HRI Application] -->|logAudit| LogTab[(LogEntry Table)]
     
     subgraph "Log Levels"
         LogTab --> INFO[Information / Debug]

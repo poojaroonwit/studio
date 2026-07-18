@@ -3,7 +3,7 @@ export { isNextRedirectError } from '../../lib/next-redirect-error';
 
 export type TwoFactorMethod = 'totp' | 'email';
 
-export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or verification code. Please try again.';
+export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email, password, or verification code. Please try again.';
 export const ACCOUNT_DISABLED_MESSAGE = 'This account has been disabled. Please contact an administrator.';
 export const ACCOUNT_LOCKED_MESSAGE = 'Account has been locked due to multiple failed login attempts. Please contact an administrator.';
 export const GENERIC_LOGIN_FAILED_MESSAGE = 'Login failed. Please try again.';

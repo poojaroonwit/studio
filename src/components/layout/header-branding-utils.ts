@@ -1,4 +1,5 @@
 import { DEFAULT_APP_NAME } from '../../lib/constants';
+import { normalizeAppName } from '../../lib/branding';
 
 export const HEADER_BRANDING_ZOOM_STORAGE_KEY = 'app-zoom-level';
 export const HEADER_BRANDING_BASE_FONT_SIZE = 16;
@@ -38,13 +39,13 @@ export function buildHeaderBrandingState(
   fallbackAppName = DEFAULT_APP_NAME
 ): HeaderBrandingState {
   return {
-    appName: typeof settings.appName === 'string' && settings.appName ? settings.appName : fallbackAppName,
+    appName: normalizeAppName(settings.appName, fallbackAppName),
     appLogoUrl: typeof settings.appLogoDataUrl === 'string' && settings.appLogoDataUrl ? settings.appLogoDataUrl : null,
   };
 }
 
 export function getInitialHeaderAppName(propAppName?: string) {
-  return propAppName || DEFAULT_APP_NAME;
+  return normalizeAppName(propAppName, DEFAULT_APP_NAME);
 }
 
 export function getInitialHeaderLogoUrl(propLogoUrl?: string | null) {

@@ -1,6 +1,6 @@
 services:
   # redis:
-  #   container_name: fitscan_redis
+  #   container_name: hri_redis
   #   image: redis:7-alpine
   #   restart: unless-stopped
   #   ports:
@@ -14,8 +14,8 @@ services:
   #     retries: 10
 
   app:
-    container_name: fitscan_app
-    image: ${APP_IMAGE:-fitscan:latest}
+    container_name: hri_app
+    image: ${APP_IMAGE:-hri:latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -32,14 +32,14 @@ services:
       PRODUCTION_HOST: ${PRODUCTION_HOST:-localhost}
       NODE_ENV: ${NODE_ENV:-development}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:${APP_PORT:-8021}}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-fitscan-local-nextauth-secret-change-me-32}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-hri-local-nextauth-secret-change-me-32}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-s3-compatible}
       STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:?STORAGE_ENDPOINT is required}
       STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:?STORAGE_ACCESS_KEY_ID is required}
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?STORAGE_SECRET_ACCESS_KEY is required}
-      STORAGE_BUCKET: ${STORAGE_BUCKET:-fitscan}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-hri}
       STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:?STORAGE_PUBLIC_BASE_URL is required}
       ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
       USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-true}

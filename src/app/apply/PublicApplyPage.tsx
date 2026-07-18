@@ -162,7 +162,7 @@ export function PublicApplyPage({ slug }: { slug?: string }) {
               )}
               <div>
                 <p className="text-sm font-semibold">{branding?.organizationName || 'Hiring Team'}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{branding?.appName || 'FitScan'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{branding?.appName || 'HRI'}</p>
               </div>
             </div>
 

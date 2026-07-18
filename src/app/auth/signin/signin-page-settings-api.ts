@@ -1,4 +1,5 @@
 import { readJsonOrFallback } from "../../../lib/response-json";
+import { normalizeAppName } from "../../../lib/branding";
 import {
   buildSignInAuthConfigState,
   normalizeSignInSettingsPayload,
@@ -84,7 +85,7 @@ function getLocalSignInPageSettings(
   storage: Pick<Storage, "getItem"> | undefined,
 ): LoadedSignInPageSettings {
   return {
-    appName: storage?.getItem(APP_CONFIG_APP_NAME_KEY) || DEFAULT_APP_NAME,
+    appName: normalizeAppName(storage?.getItem(APP_CONFIG_APP_NAME_KEY), DEFAULT_APP_NAME),
     logoUrl: storage?.getItem(APP_LOGO_DATA_URL_KEY) || null,
     pageSettings: null,
   };

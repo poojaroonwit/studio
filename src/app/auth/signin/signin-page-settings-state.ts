@@ -1,5 +1,6 @@
 import type { CSSProperties, Dispatch, SetStateAction } from "react";
 
+import { normalizeAppName } from "@/lib/branding";
 import type { LoginPageLayoutType, SystemSetting } from "@/lib/types";
 import {
   DEFAULT_LOGIN_LAYOUT_TYPE,
@@ -32,9 +33,10 @@ export function buildInitialSignInPageSettingsState(
     appLogoUrl:
       initialSettings?.find((setting) => setting.key === APP_LOGO_DATA_URL_KEY)
         ?.value || null,
-    currentAppName:
-      initialSettings?.find((setting) => setting.key === "appName")?.value ||
+    currentAppName: normalizeAppName(
+      initialSettings?.find((setting) => setting.key === "appName")?.value,
       DEFAULT_APP_NAME,
+    ),
     loginLayoutType:
       (initialSettings?.find((setting) => setting.key === "loginPageLayoutType")
         ?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE,

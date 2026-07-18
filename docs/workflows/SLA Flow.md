@@ -1,6 +1,6 @@
 # SLA & Time-to-Hire Flow
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active

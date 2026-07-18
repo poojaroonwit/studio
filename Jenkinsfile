@@ -5,7 +5,7 @@ pipeline {
         // Registry configuration
         REGISTRY = 'registry.example.com'
         REGISTRY_PROJECT = 'ba'
-        IMAGE_NAME = 'fitscan'
+        IMAGE_NAME = 'hri'
         
         // Credentials IDs (must be configured in Jenkins)
         REGISTRY_CREDENTIALS_ID = 'gitlab-registry-creds'

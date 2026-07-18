@@ -1,6 +1,6 @@
 # Sustainable Engineering Practices
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -12,7 +12,7 @@
 
 ## 1. Guiding Principles
 
-To ensure **FitScan** remains maintainable, scalable, and robust over time, we adhere to the following core principles:
+To ensure **HRI** remains maintainable, scalable, and robust over time, we adhere to the following core principles:
 
 1.  **Strict Type Safety**: leverage TypeScript's full power to prevent runtime errors.
 2.  **Documentation as Code**: Documentation should be treated with the same care as source code.

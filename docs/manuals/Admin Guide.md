@@ -4,7 +4,7 @@
 
 | Feature | Description |
 | :--- | :--- |
-| **What** | The master control guide for setting up and maintaining the FitScan ecosystem. |
+| **What** | The master control guide for setting up and maintaining the HRI ecosystem. |
 | **Who** | **System Administrators** and **HR Operations Leads**. |
 | **When** | From initial tenant provisioning through to long-term scaling and security audits. |
 | **Why** | To ensure the platform remains secure, compliant, and perfectly tuned to the organization's hiring DNA. |
@@ -13,7 +13,7 @@
 
 ## Functional Areas
 
-Explore the specific guides below to manage your FitScan environment:
+Explore the specific guides below to manage your HRI environment:
 
 ### ⚙️ Identity & Setup
 - **[User Management](./admin/User%20Management.md)**: Add users and define their access levels.

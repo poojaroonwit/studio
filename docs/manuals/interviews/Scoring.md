@@ -17,7 +17,7 @@ When you conduct an interview, you must submit a scorecard to capture structured
 ```mermaid
 sequenceDiagram
     participant HM as Hiring Manager
-    participant App as FitScan
+    participant App as HRI
     participant Rec as Recruiter
 
     HM->>App: Open applicant Profile

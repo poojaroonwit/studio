@@ -1,6 +1,6 @@
 # Deployment & CI/CD Flow
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -35,7 +35,7 @@ graph LR
 
 ### 1. Build & Containerization
 - **Multi-stage Build**: Uses a lightweight Node image for production, stripping out development dependencies.
-- **Tagging Strategy**: Uses the short Git commit hash as the unique image tag (e.g., `fitscan:a1b2c3d`) and updates the `latest` tag on successful builds.
+- **Tagging Strategy**: Uses the short Git commit hash as the unique image tag (e.g., `hri:a1b2c3d`) and updates the `latest` tag on successful builds.
 
 ### 2. Registry Management
 Images are pushed to a private registry:

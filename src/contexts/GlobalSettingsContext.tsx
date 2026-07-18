@@ -36,7 +36,7 @@ interface GlobalSettingsContextType {
 }
 
 const defaultSettings: GlobalSettings = {
-  appName: "FitScan",
+  appName: "HRI",
   appLogoDataUrl: null,
   appFaviconDataUrl: null,
   organizationLogoDataUrl: null,

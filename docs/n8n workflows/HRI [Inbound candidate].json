@@ -1,5 +1,5 @@
 {
-  "name": "FitScan [Inbound applicant] PROD",
+  "name": "HRI [Inbound applicant] PROD",
   "nodes": [
     {
       "parameters": {
@@ -389,7 +389,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
+        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/hri_convert_html_pdf",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1186,7 +1186,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/fitscan_convert_html_pdf",
+        "url": "https://worker.example.com/api/w/analyst-hub/jobs/run_wait_result/p/f/windmill/hri_convert_html_pdf",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

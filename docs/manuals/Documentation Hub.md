@@ -1,10 +1,10 @@
-# FitScan Enterprise Documentation
+# HRI Enterprise Documentation
 **Version:** 1.25 (Jan 2026)
 **Status:** Complete
 
-Welcome to the FitScan Enterprise documentation hub. Select your role or area of interest below.
+Welcome to the HRI Enterprise documentation hub. Select your role or area of interest below.
 
-![FitScan Landing Page](assets/landing_page.png)
+![HRI Landing Page](assets/landing_page.png)
 
 ## 🧭 Navigation & Menu Layout
 The side-bar is your primary tool for navigating the platform.

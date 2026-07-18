@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Evaluation Report | FitScan',
+  title: 'Evaluation Report | HRI',
   description: 'Review averaged scores, detailed analysis, and final interviewer remarks.',
 };
 

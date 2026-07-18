@@ -19,7 +19,7 @@ Activate or deactivate entire segments of the app without code changes:
 
 ## 2. Branding (Identity Work)
 Make the platform feel like home:
-- **Dynamic Logos**: Replace the default FitScan branding with your company's SVG/PNG logo.
+- **Dynamic Logos**: Replace the default HRI branding with your company's SVG/PNG logo.
 - **Core Theming**: Adjust the primary and secondary hex colors to align with your brand guidelines.
 
 ## 3. Email Configuration
@@ -48,7 +48,7 @@ Manage the connection to Google Gemini.
 *   **Usage Monitoring**: Check quota usage (requests per minute) to ensure service continuity.
 
 ## 5. Webhooks & Integrations
-Connect FitScan to your wider ecosystem.
+Connect HRI to your wider ecosystem.
 *   **Location**: **Settings > Webhooks**.
 *   **Create Webhook**: Define a URL endpoint (e.g., Slack or Zapier) to receive JSON payloads when events occur (e.g., `applicant Hired`, `Application Received`).
 *   **Logs**: View a history of delivery attempts and response codes for debugging.

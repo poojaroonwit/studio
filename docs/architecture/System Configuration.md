@@ -1,6 +1,6 @@
-# FitScan System Configuration
+# HRI System Configuration
 
-FitScan uses a dynamic configuration layer that allows administrators to modify application behavior at runtime without environment variable changes or redeployments.
+HRI uses a dynamic configuration layer that allows administrators to modify application behavior at runtime without environment variable changes or redeployments.
 
 ---
 
@@ -14,7 +14,7 @@ graph TD
     DB -->|Fetch| Service[systemSettings.ts]
     Service -->|Cache| Next[Next.js unstable_cache]
     
-    Next -->|getSystemSetting| App[FitScan Logic]
+    Next -->|getSystemSetting| App[HRI Logic]
     App -->|Feature Flags| Feature[e.g., Job Matching Enabled]
     App -->|SMTP| Email[e.g., emailSmtpHost]
     App -->|AI| AI[e.g., Search System Prompt]

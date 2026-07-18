@@ -1,6 +1,6 @@
 # N8N Workflow Automation
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-FitScan includes N8N for powerful workflow automation capabilities. N8N allows you to create automated workflows that integrate with your recruitment processes.
+HRI includes N8N for powerful workflow automation capabilities. N8N allows you to create automated workflows that integrate with your recruitment processes.
 
 ---
 
@@ -87,7 +87,7 @@ N8N_DB_CONNECTION_TIMEOUT=60000
 ## 8. Technical Deep Dive: Bi-Directional Communication
 
 ### App to n8n (Outgoing Webhooks)
-FitScan uses a built-in **Webhook Dispatcher** to notify n8n of specific events.
+HRI uses a built-in **Webhook Dispatcher** to notify n8n of specific events.
 
 - **Mechanism**: When an event occurs (e.g., a applicant is created), the `WebhookDispatcher` sends a POST request with a JSON payload to a pre-configured URL (your n8n Webhook Node).
 - **Supported Events**:
@@ -98,7 +98,7 @@ FitScan uses a built-in **Webhook Dispatcher** to notify n8n of specific events.
 - **Security**: Supports Basic Auth, Bearer tokens, or custom headers to ensure only authorized requests are accepted by n8n.
 
 ### n8n to App (REST API V2)
-n8n can perform actions in FitScan (like updating a applicant's status or fetching report data) using the **V2 API**.
+n8n can perform actions in HRI (like updating a applicant's status or fetching report data) using the **V2 API**.
 
 - **Authentication**: n8n uses **System API Keys** for secure access.
 - **n8n Compatibility**: The `/api/v2/auth/login` endpoint specifically supports the `Authorization: Bearer <sk_live_...>` header format, which is the standard for n8n's "Header Auth" or "HTTP Request" nodes.
@@ -112,7 +112,7 @@ n8n can perform actions in FitScan (like updating a applicant's status or fetchi
 ## 9. Workflow-Specific Requirements
 
 ### 9.1 Outlook Folder Structure (Inbound Processing)
-The `FitScan [Inbound applicant].json` workflow manages applicant emails. Create the following hierarchy in your monitoring Outlook account:
+The `HRI [Inbound applicant].json` workflow manages applicant emails. Create the following hierarchy in your monitoring Outlook account:
 
 ```mermaid
 graph TD
@@ -128,7 +128,7 @@ graph TD
 - **Queue**: Initial landing folder for incoming resumes.
 - **Processing**: Intermediate state while the workflow is running.
 - **Processed**: Destination for successfully uploaded applicants.
-- **Server down**: Failover destination if the FitScan API is unreachable.
+- **Server down**: Failover destination if the HRI API is unreachable.
 - **Unknow position**: Destination for emails where the AI cannot determine the target job position.
 - **Other**: Catch-all for non-applicant or irrelevant communications.
 

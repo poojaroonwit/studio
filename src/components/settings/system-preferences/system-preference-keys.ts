@@ -1,4 +1,4 @@
-export const DEFAULT_APP_NAME = "FitScan";
+export const DEFAULT_APP_NAME = "HRI";
 
 export const APP_THEME_KEY = "appThemePreference";
 export const APP_LOGO_DATA_URL_KEY = "appLogoDataUrl";

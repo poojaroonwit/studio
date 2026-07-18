@@ -1,6 +1,6 @@
 # Backup & Recovery Flow
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -10,11 +10,11 @@
 
 ## 1. Backup Strategy
 
-FitScan follows a tiered backup approach to protect the three core pillars of the system.
+HRI follows a tiered backup approach to protect the three core pillars of the system.
 
 ```mermaid
 graph TD
-    System[FitScan System] --> DB[PostgreSQL Data]
+    System[HRI System] --> DB[PostgreSQL Data]
     System --> S3[MinIO Objects]
     System --> Conf[System Settings]
 

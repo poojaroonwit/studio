@@ -3,7 +3,7 @@ import { normalizeSystemSettingsResponse } from './pwa-settings-utils';
 export const DARK_THEME_BACKGROUND = '#171a26';
 export const LIGHT_THEME_BACKGROUND = '#ffffff';
 export const DEFAULT_PWA_THEME_COLOR = '#000000';
-export const DEFAULT_PWA_APPLE_TITLE = 'FitScan';
+export const DEFAULT_PWA_APPLE_TITLE = 'HRI';
 export const DEFAULT_PWA_APPLE_STATUS_BAR_STYLE = 'default';
 export const PWA_MANIFEST_HREF = '/api/manifest.json';
 export const PWA_APPLE_TOUCH_ICON_HREF = '/icon-192x192.png';

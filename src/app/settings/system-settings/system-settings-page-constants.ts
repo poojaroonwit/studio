@@ -5,8 +5,8 @@ export const ORGANIZATION_CONTACT_KEY = 'organizationContact';
 
 export const DEFAULT_ICS_DESCRIPTION =
   'Interview with {{ApplicantName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}';
-export const DEFAULT_PWA_NAME = 'FitScan - AI-Powered Recruitment Platform';
-export const DEFAULT_PWA_SHORT_NAME = 'FitScan';
+export const DEFAULT_PWA_NAME = 'HRI - AI-Powered Recruitment Platform';
+export const DEFAULT_PWA_SHORT_NAME = 'HRI';
 export const DEFAULT_PWA_DESCRIPTION = 'Advanced AI-powered recruitment and Applicant management platform';
 export const DEFAULT_PWA_THEME_COLOR = '#000000';
 export const DEFAULT_PWA_BACKGROUND_COLOR = '#171a26';

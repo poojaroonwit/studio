@@ -1,6 +1,6 @@
 # Authentication Flow
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-FitScan implements a robust, multi-layered authentication system using **NextAuth.js v5 (Auth.js)** for user sessions and **System API Keys** for programmatic access.
+HRI implements a robust, multi-layered authentication system using **NextAuth.js v5 (Auth.js)** for user sessions and **System API Keys** for programmatic access.
 
 ---
 
@@ -91,7 +91,7 @@ For external systems like **n8n**:
 | **Security** | `__Secure-` HTTP-only Cookie | `__Secure-` HTTP-only Cookie |
 | **Idle Timeout** | Sliding window | Sliding window |
 
-FitScan implements a robust, multi-layered authentication system using **NextAuth.js v5 (Auth.js)** for user sessions and **System API Keys** for programmatic access.
+HRI implements a robust, multi-layered authentication system using **NextAuth.js v5 (Auth.js)** for user sessions and **System API Keys** for programmatic access.
 
 ---
 

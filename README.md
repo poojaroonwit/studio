@@ -1,6 +1,6 @@
-# FitScan - Applicant Tracking System
+# HRI - Applicant Tracking System
 
-FitScan is a modern Applicant Tracking System for applicant management, resume processing, job matching, interview workflows, analytics, and configurable automation.
+HRI is a modern Applicant Tracking System for applicant management, resume processing, job matching, interview workflows, analytics, and configurable automation.
 
 ## Stack
 

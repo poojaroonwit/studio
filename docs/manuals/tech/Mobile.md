@@ -18,7 +18,7 @@ The mobile app focuses on speed:
 - **Interview Mode**: A simplified interface for submitting star ratings during an interview.
 
 ## 2. Setting up the PWA
-For the best experience, install FitScan as a home screen icon:
+For the best experience, install HRI as a home screen icon:
 1. Open the platform URL in **Safari (iOS)** or **Chrome (Android)**.
 2. Tap the **"Share"** or **"Menu"** button.
 3. Select **"Add to Home Screen"**.

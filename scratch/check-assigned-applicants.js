@@ -3,13 +3,13 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://fitscan:CHANGE_ME_STRONG_PASSWORD@localhost:5433/fitscan'
+      url: 'postgresql://hri:CHANGE_ME_STRONG_PASSWORD@localhost:5433/hri'
     }
   }
 });
 
 async function main() {
-  const userId = '18047c90-c6da-4443-bab8-5c9fd6b29e4c'; // admin@ncc.com
+  const userId = '18047c90-c6da-4443-bab8-5c9fd6b29e4c'; // admin@outboundcorporation.com
   
   const assignments = await prisma.positionInterviewer.findMany({
     where: { userId },

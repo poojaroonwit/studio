@@ -1,6 +1,6 @@
 # Migration & Data Transition Guide
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -10,7 +10,7 @@
 
 ## 1. Database Migrations (Prisma)
 
-FitScan uses **Prisma Migrate** to manage the PostgreSQL schema. Migrations are tracked in the `prisma/migrations` directory.
+HRI uses **Prisma Migrate** to manage the PostgreSQL schema. Migrations are tracked in the `prisma/migrations` directory.
 
 ### 1. Local Development
 - **Create Migration**: `npx prisma migrate dev --name <description>`

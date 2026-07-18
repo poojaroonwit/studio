@@ -30,7 +30,7 @@ export const PWA_TEXT_FIELDS = [
     stateKey: 'pwaName',
     setterKey: 'setPwaName',
     label: 'PWA Name',
-    placeholder: 'FitScan - AI-Powered Recruitment Platform',
+    placeholder: 'HRI - AI-Powered Recruitment Platform',
     description: 'Full name displayed when installing the app'
   },
   {
@@ -38,7 +38,7 @@ export const PWA_TEXT_FIELDS = [
     stateKey: 'pwaShortName',
     setterKey: 'setPwaShortName',
     label: 'PWA Short Name',
-    placeholder: 'FitScan',
+    placeholder: 'HRI',
     description: 'Short name for home screen (max 12 characters)',
     maxLength: 12
   },
@@ -56,7 +56,7 @@ export const PWA_TEXT_FIELDS = [
     stateKey: 'pwaAppleMobileWebAppTitle',
     setterKey: 'setPwaAppleMobileWebAppTitle',
     label: 'Apple Mobile Web App Title',
-    placeholder: 'FitScan',
+    placeholder: 'HRI',
     description: 'Title for iOS home screen'
   }
 ] as const satisfies readonly PwaTextFieldDefinition[];

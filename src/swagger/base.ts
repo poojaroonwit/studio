@@ -1,13 +1,13 @@
-// Base OpenAPI 3.0 configuration for FitScan API
+// Base OpenAPI 3.0 configuration for HRI API
 
 export const baseSwaggerConfig = {
   openapi: '3.0.0',
   info: {
-    title: 'FitScan API',
+    title: 'HRI API',
     version: '1.0.0',
     description: 'Comprehensive API documentation for the Studio recruitment management system',
     contact: {
-      name: 'FitScan API Support',
+      name: 'HRI API Support',
       email: 'support@studio.com'
     },
     license: {
@@ -17,8 +17,8 @@ export const baseSwaggerConfig = {
   },
   servers: [
     {
-      url: process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_fitscan_app:8021',
-      description: 'FitScan API Server',
+      url: process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_hri_app:8021',
+      description: 'HRI API Server',
     },
   ],
   security: [

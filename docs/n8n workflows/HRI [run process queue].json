@@ -1,5 +1,5 @@
 {
-  "name": "Fitscan [run process queue] - prod",
+  "name": "HRI [run process queue] - prod",
   "nodes": [
     {
       "parameters": {
@@ -40,7 +40,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "eyQ5A2Mg9eQWZ5i2",
-          "name": "Header Auth fitscan prod process queue"
+          "name": "Header Auth hri prod process queue"
         }
       }
     },

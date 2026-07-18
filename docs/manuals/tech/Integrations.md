@@ -4,10 +4,10 @@
 
 | Feature | Description |
 | :--- | :--- |
-| **What** | Connections for automated data exchange between FitScan and external tools (Slack, Teams, N8N). |
+| **What** | Connections for automated data exchange between HRI and external tools (Slack, Teams, N8N). |
 | **Who** | **Technical Architects** and **Automations Engineers**. |
 | **When** | When scaling the hiring process or building custom notification workflows. |
-| **Why** | To eliminate "Copy-Paste" recruitment by making FitScan the single source of truth for all HR data. |
+| **Why** | To eliminate "Copy-Paste" recruitment by making HRI the single source of truth for all HR data. |
 | **Where** | Under the **Settings > Integrations** menu. |
 | **How** | 1. Configure Webhook URL <br> 2. Select subscription events <br> 3. Generate **API Key** <br> 4. Copy `sk_live_...` secret safely <br> 5. Test connection with external tool |
 
@@ -24,12 +24,12 @@ Generate triggers that notify other systems based on platform events.
 
 ```mermaid
 sequenceDiagram
-    participant FitScan
+    participant HRI
     participant N8N as Workflow Engine
     participant Slack
     participant Email
 
-    FitScan->>N8N: POST /webhook (Event: applicant.hired)
+    HRI->>N8N: POST /webhook (Event: applicant.hired)
     N8N->>N8N: Parse Payload
     par Notifications
         N8N->>Slack: Send Channel Alert

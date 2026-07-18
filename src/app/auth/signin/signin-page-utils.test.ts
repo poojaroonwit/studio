@@ -57,11 +57,11 @@ describe('signin page utilities', () => {
   });
 
   it('reads initial signin settings with fallback values', () => {
-    const settings: SystemSetting[] = [{ key: 'appName', value: 'FitScan Pro' }];
+    const settings: SystemSetting[] = [{ key: 'appName', value: 'HRI Pro' }];
 
-    expect(getInitialSignInSetting(settings, 'appName', 'FitScan')).toBe('FitScan Pro');
+    expect(getInitialSignInSetting(settings, 'appName', 'HRI')).toBe('HRI Pro');
     expect(getInitialSignInSetting(settings, 'missing', 'fallback')).toBe('fallback');
-    expect(getInitialSignInSetting(undefined, 'appName', 'FitScan')).toBe('FitScan');
+    expect(getInitialSignInSetting(undefined, 'appName', 'HRI')).toBe('HRI');
   });
 
   it('builds initial signin page state from server-provided settings', () => {

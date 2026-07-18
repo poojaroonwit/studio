@@ -1,6 +1,6 @@
-# FitScan SSE Real-time Mechanism
+# HRI SSE Real-time Mechanism
 
-FitScan uses **Server-Sent Events (SSE)** to provide real-time updates to recruiters without requiring page refreshes.
+HRI uses **Server-Sent Events (SSE)** to provide real-time updates to recruiters without requiring page refreshes.
 
 ---
 

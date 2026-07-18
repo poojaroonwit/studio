@@ -104,7 +104,7 @@ async function main() {
     },
     {
       name: 'Sarah Connor',
-      email: 'sarah.c@ncc.com',
+      email: 'sarah.c@outboundcorporation.com',
       role: 'Recruiter',
       department: 'HR Operations',
       positionTitle: 'Senior Talent Acquisition',
@@ -116,7 +116,7 @@ async function main() {
     },
     {
       name: 'James Bond',
-      email: 'james.b@ncc.com',
+      email: 'james.b@outboundcorporation.com',
       role: 'Hiring Manager',
       department: 'Technology',
       positionTitle: 'VP of Engineering',
@@ -141,8 +141,8 @@ async function main() {
     });
   }
   const allUsers = await prisma.user.findMany();
-  const sarah = allUsers.find(u => u.email === 'sarah.c@ncc.com')!;
-  const james = allUsers.find(u => u.email === 'james.b@ncc.com')!;
+  const sarah = allUsers.find(u => u.email === 'sarah.c@outboundcorporation.com')!;
+  const james = allUsers.find(u => u.email === 'james.b@outboundcorporation.com')!;
 
   // 7. Seed Positions
   console.log('--- Seeding Detailed Positions ---');

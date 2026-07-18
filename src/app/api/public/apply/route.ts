@@ -50,7 +50,7 @@ async function getPublicBranding() {
   ]);
 
   return {
-    appName: appName || 'FitScan',
+    appName: appName || 'HRI',
     organizationName: organizationName || appName || 'Hiring Team',
     appLogoDataUrl: appLogoDataUrl || null,
   };

@@ -9,7 +9,7 @@
 | **When** | Every time a applicant applies, a stage changes, or a resume is uploaded. |
 | **Why** | To ensure the user interface remains fast by offloading long-running "Think Time" tasks to N8N. |
 | **Where** | Managed via the **N8N Workflow Dashboard**. |
-| **How** | 1. Access the **N8N UI** <br> 2. Open `FitScan [Process applicant].json` <br> 3. Verify the **Webhook Trigger** node is active <br> 4. Check **Execution Logs** for any AI scoring errors <br> 5. Restart failed workflows if needed |
+| **How** | 1. Access the **N8N UI** <br> 2. Open `HRI [Process applicant].json` <br> 3. Verify the **Webhook Trigger** node is active <br> 4. Check **Execution Logs** for any AI scoring errors <br> 5. Restart failed workflows if needed |
 
 ## 1. Critical Workflow Paths
 - **Inbound Processing**: Receives raw file data and converts it into structured applicant profiles.

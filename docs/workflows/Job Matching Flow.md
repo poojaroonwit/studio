@@ -1,6 +1,6 @@
 # AI Job Matching Flow
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -15,7 +15,7 @@ The system uses **Google Gemini** models to perform context-aware matching, movi
 ```mermaid
 sequenceDiagram
     participant Rec as Recruiter
-    participant App as FitScan App
+    participant App as HRI App
     participant Gemini as Gemini AI API
     participant DB as PostgreSQL
 

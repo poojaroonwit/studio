@@ -2,11 +2,11 @@
 
 ## Introduction
 
-The FitScan application currently loads 6 different web fonts from Google Fonts, causing render-blocking behavior and poor performance metrics. This feature aims to optimize font loading to eliminate blocking, reduce FOUT (Flash of Unstyled Text), and improve initial page load performance while maintaining support for both Thai and English text.
+The HRI application currently loads 6 different web fonts from Google Fonts, causing render-blocking behavior and poor performance metrics. This feature aims to optimize font loading to eliminate blocking, reduce FOUT (Flash of Unstyled Text), and improve initial page load performance while maintaining support for both Thai and English text.
 
 ## Glossary
 
-- **System**: The FitScan web application
+- **System**: The HRI web application
 - **Web Font**: A font file loaded from an external source (Google Fonts)
 - **System Font**: A font already installed on the user's operating system
 - **FOUT**: Flash of Unstyled Text - when text briefly appears in a fallback font before the web font loads

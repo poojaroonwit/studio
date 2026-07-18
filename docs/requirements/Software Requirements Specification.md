@@ -1,6 +1,6 @@
 # System Requirements Specification (SRS)
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 1.0
 **Last Updated:** December 16, 2025
 **Status:** Approved
@@ -10,7 +10,7 @@
 ---
 
 ## 1. Introduction
-This System Requirements Specification (SRS) provides the comprehensive technical breakdown for the FitScan Enterprise application. It serves as the single source of truth for engineering, QA, and DevOps teams.
+This System Requirements Specification (SRS) provides the comprehensive technical breakdown for the HRI Enterprise application. It serves as the single source of truth for engineering, QA, and DevOps teams.
 
 ## 2. System Architecture
 

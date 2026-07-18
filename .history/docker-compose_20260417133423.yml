@@ -1,24 +1,24 @@
 services:
   postgres:
-    container_name: fitscan_postgres
+    container_name: hri_postgres
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-fitscan}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitscan_local_password}
-      POSTGRES_DB: ${POSTGRES_DB:-fitscan}
+      POSTGRES_USER: ${POSTGRES_USER:-hri}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hri_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-hri}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitscan} -d ${POSTGRES_DB:-fitscan}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hri} -d ${POSTGRES_DB:-hri}"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   redis:
-    container_name: fitscan_redis
+    container_name: hri_redis
     image: redis:7-alpine
     restart: unless-stopped
     ports:
@@ -32,13 +32,13 @@ services:
       retries: 10
 
   minio:
-    container_name: fitscan_minio
+    container_name: hri_minio
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fitscan-user}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fitscan-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-hri-user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-hri-secret}
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -51,7 +51,7 @@ services:
       retries: 10
 
   app:
-    container_name: fitscan_app
+    container_name: hri_app
     build:
       context: .
       dockerfile: Dockerfile
@@ -70,18 +70,18 @@ services:
       PRODUCTION_HOST: ${PRODUCTION_HOST:-localhost}
       NODE_ENV: ${NODE_ENV:-development}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:${APP_PORT:-8021}}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-fitscan-local-nextauth-secret-change-me-32}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-hri-local-nextauth-secret-change-me-32}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-fitscan}:${POSTGRES_PASSWORD:-fitscan_local_password}@postgres:5432/${POSTGRES_DB:-fitscan}}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-hri}:${POSTGRES_PASSWORD:-hri_local_password}@postgres:5432/${POSTGRES_DB:-hri}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
       MINIO_PORT: ${MINIO_PORT:-9000}
       MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-fitscan-user}}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-fitscan-secret}}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-fitscan}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-hri-user}}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-hri-secret}}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-hri}
       MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL:-http://localhost:${MINIO_CONSOLE_PORT:-9001}}
-      NEXT_PUBLIC_MINIO_BUCKET: ${NEXT_PUBLIC_MINIO_BUCKET:-fitscan}
+      NEXT_PUBLIC_MINIO_BUCKET: ${NEXT_PUBLIC_MINIO_BUCKET:-hri}
       NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL:-http://localhost:${MINIO_CONSOLE_PORT:-9001}}
       ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
       USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-true}

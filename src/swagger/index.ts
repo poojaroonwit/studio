@@ -1,17 +1,17 @@
-// Comprehensive OpenAPI 3.0 specification for FitScan API
+// Comprehensive OpenAPI 3.0 specification for HRI API
 // This file contains all API endpoints in a single location for better reliability
 
 export function getSwaggerSpec() {
   // Use production server URL for Swagger API testing
-  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_fitscan_app:8021';
+  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://8021_hri_app:8021';
   return {
     openapi: '3.0.0',
     info: {
-      title: 'FitScan API',
+      title: 'HRI API',
       version: '1.0.0',
       description: 'Comprehensive API documentation for the Studio recruitment management system',
       contact: {
-        name: 'FitScan API Support',
+        name: 'HRI API Support',
         email: 'support@example.com'
       },
       license: {
@@ -22,7 +22,7 @@ export function getSwaggerSpec() {
     servers: [
       {
         url: serverUrl,
-        description: 'FitScan API Server',
+        description: 'HRI API Server',
       },
     ],
     security: [

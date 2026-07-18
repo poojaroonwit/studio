@@ -19,7 +19,7 @@ export interface AppLayoutState {
   };
 }
 
-export const DEFAULT_APP_NAME = "FitScan";
+export const DEFAULT_APP_NAME = "HRI";
 
 export const INITIAL_APP_LAYOUT_STATE: AppLayoutState = {
   isClient: false,

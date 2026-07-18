@@ -1,7 +1,7 @@
 param (
     [string]$Registry = "registry.example.com",
     [string]$Namespace = "ba",
-    [string]$ImageName = "fitscan",
+    [string]$ImageName = "hri",
     [string]$Tag = "latest"
 )
 

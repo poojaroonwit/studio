@@ -1,6 +1,6 @@
 # API Documentation Overview
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 2.2
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -11,7 +11,7 @@
 ---
 
 ## 1. Introduction
-The FitScan API is a RESTful service built on Next.js API Routes. It powers the frontend client and provides integration points for external services (N8N, Webhooks).
+The HRI API is a RESTful service built on Next.js API Routes. It powers the frontend client and provides integration points for external services (N8N, Webhooks).
 
 ## 2. Base URL
 *   **Development**: `http://localhost:3000/api`
@@ -46,7 +46,7 @@ All API endpoints (except `/auth/*` and public webhooks) require authentication.
 *   `GET /settings/custom-fields`: List defined custom fields schema.
 
 ## 5. Webhooks
-FitScan can emit events to external URLs for automation.
+HRI can emit events to external URLs for automation.
 *   **Events**: `applicant.created`, `stage.changed`, `score.updated`.
 *   **Configuration**: Managed via `/api/settings/webhooks`.
 

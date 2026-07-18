@@ -1,6 +1,6 @@
-# Contributing to FitScan
+# Contributing to HRI
 
-Thank you for your interest in contributing to FitScan!
+Thank you for your interest in contributing to HRI!
 
 ---
 

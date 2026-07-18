@@ -1,3 +1,4 @@
+import { normalizeAppName } from '../../lib/branding';
 import { normalizeSystemSettingsResponse } from '../../lib/system-settings-response';
 import {
   asBooleanPreference,
@@ -13,7 +14,7 @@ import type {
   AppLayoutSettingsRecord,
 } from './app-layout-settings-types';
 
-const DEFAULT_APP_NAME = "FitScan";
+const DEFAULT_APP_NAME = "HRI";
 
 export type { AppLayoutContextualLogos, AppLayoutSettingsRecord };
 
@@ -24,7 +25,7 @@ export function parseAppLayoutSettingsResponse(data: unknown): AppLayoutSettings
 export function buildAppLayoutConfigUpdates(prefs: AppLayoutSettingsRecord) {
   return {
     appLogoUrl: getNullableStringPreference(prefs, 'appLogoDataUrl'),
-    currentAppName: getStringPreference(prefs, 'appName') ?? DEFAULT_APP_NAME,
+    currentAppName: normalizeAppName(getStringPreference(prefs, 'appName'), DEFAULT_APP_NAME),
     showLogoOnly: asBooleanPreference(prefs.showLogoOnly),
     sidebarLogoSize: asNumberPreference(prefs.sidebarLogoSize, 48),
     collapsedSidebarLogoSize: asNumberPreference(prefs.collapsedSidebarLogoSize, 40),
@@ -41,7 +42,7 @@ export function buildAppConfigChangedUpdates(detail?: AppConfigChangedDetail | n
   if (!detail) return {};
 
   return {
-    ...(detail.appName ? { currentAppName: detail.appName } : {}),
+    ...(detail.appName ? { currentAppName: normalizeAppName(detail.appName, DEFAULT_APP_NAME) } : {}),
     ...(detail.logoUrl !== undefined ? { appLogoUrl: detail.logoUrl } : {}),
     ...(detail.showLogoOnly !== undefined ? { showLogoOnly: detail.showLogoOnly } : {}),
     ...(detail.sidebarLogoSize !== undefined ? { sidebarLogoSize: detail.sidebarLogoSize } : {}),

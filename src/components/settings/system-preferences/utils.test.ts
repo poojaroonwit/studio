@@ -261,7 +261,7 @@ describe('system preferences utilities', () => {
     it('builds the system preferences save form data without duplicate header entries', () => {
         const input: SystemPreferencesSaveInput = {
             themePreference: 'dark',
-            appName: 'FitScan',
+            appName: 'HRI',
             generativeAICanvasMode: true,
             drawerStyle: 'modern',
             sidebarColors: createInitialSidebarColors(),
@@ -308,7 +308,7 @@ describe('system preferences utilities', () => {
 
         expect(JSON.parse(String(formData.get('preferences')))).toEqual(preferencesToSave);
         expect(preferenceMap.get(APP_THEME_KEY)).toBe('dark');
-        expect(preferenceMap.get(APP_NAME_KEY)).toBe('FitScan');
+        expect(preferenceMap.get(APP_NAME_KEY)).toBe('HRI');
         expect(preferenceMap.get(GENERATIVE_AI_CANVAS_MODE_KEY)).toBe('true');
         expect(preferenceMap.get(SPLASH_LOGO_DATA_URL_KEY)).toBe('/splash.png');
         expect(preferenceMap.get(SIDEBAR_NAVIGATION_MODE_KEY)).toBe('split');

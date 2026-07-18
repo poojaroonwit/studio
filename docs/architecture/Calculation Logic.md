@@ -1,6 +1,6 @@
-# FitScan Calculation & Aggregation Logic
+# HRI Calculation & Aggregation Logic
 
-FitScan performs various real-time calculations to provide recruiters with actionable insights. This document outlines the logic behind core metrics and data transformations.
+HRI performs various real-time calculations to provide recruiters with actionable insights. This document outlines the logic behind core metrics and data transformations.
 
 ---
 

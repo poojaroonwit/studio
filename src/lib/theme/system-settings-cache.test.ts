@@ -33,11 +33,11 @@ describe('theme system settings cache', () => {
     vi.stubGlobal('window', testWindow);
 
     expect(updateThemeSystemSettingsCache({
-      appName: 'FitScan',
+      appName: 'HRI',
       sidebarBackgroundType: 'image',
     })).toBe(true);
     expect(getThemeSystemSettingsCache()).toEqual({
-      appName: 'FitScan',
+      appName: 'HRI',
       sidebarBackgroundType: 'image',
     });
   });

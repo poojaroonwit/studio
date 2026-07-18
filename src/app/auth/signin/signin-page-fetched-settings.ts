@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 
+import { normalizeAppName } from '@/lib/branding';
 import type { LoginPageLayoutType } from '@/lib/types';
 import { DEFAULT_PRIMARY_GRADIENT_END_SIGNIN, DEFAULT_PRIMARY_GRADIENT_START_SIGNIN } from './signin-page-utils';
 import {
@@ -14,7 +15,7 @@ import {
   getStringSetting,
 } from './signin-page-settings-resolvers';
 
-export const DEFAULT_APP_NAME = 'FitScan';
+export const DEFAULT_APP_NAME = 'HRI';
 export const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 export const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
 
@@ -66,7 +67,7 @@ export function buildFetchedSignInPageSettings({
       loginPageLogoLightMode: getStringSetting(settings, 'loginPageLogoLightMode'),
       loginPageLogoDarkMode: getStringSetting(settings, 'loginPageLogoDarkMode'),
     },
-    currentAppName: getStringSetting(settings, 'appName') || DEFAULT_APP_NAME,
+    currentAppName: normalizeAppName(getStringSetting(settings, 'appName'), DEFAULT_APP_NAME),
     loginLayoutType: (settings.loginPageLayoutType as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE,
     loginPageLogoSize: Number(settings[LOGIN_PAGE_LOGO_SIZE_KEY] || DEFAULT_LOGIN_PAGE_LOGO_SIZE),
     loginPageStyle: buildLoginPageStyle({

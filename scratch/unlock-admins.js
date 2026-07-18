@@ -4,13 +4,13 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://fitscan:CHANGE_ME_STRONG_PASSWORD@localhost:5433/fitscan'
+      url: 'postgresql://hri:CHANGE_ME_STRONG_PASSWORD@localhost:5433/hri'
     }
   }
 });
 
 async function main() {
-  const adminEmails = ['admin@ncc.com', 'fitscan@qsncc.com', 'admin@example.com'];
+  const adminEmails = ['admin@outboundcorporation.com', 'hri@qsoutboundcorporation.com', 'admin@example.com'];
   const password = 'Admin@123';
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -35,7 +35,7 @@ async function main() {
   }
 
   console.log('\nYou should now be able to login with:');
-  console.log(`Email: admin@ncc.com`);
+  console.log(`Email: admin@outboundcorporation.com`);
   console.log(`Password: ${password}`);
 }
 

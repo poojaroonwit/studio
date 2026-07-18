@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to FitScan Enterprise ATS will be documented in this file.
+All notable changes to HRI Enterprise ATS will be documented in this file.
 
 ---
 
@@ -61,7 +61,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🐛 **Data Consistency**: Resolved "Unique constraint" errors in seeding and 500 errors in Recruitment Stage and applicant APIs.
 
 ### Changed & Improved
-- � **Architecture Simplification**: Decommissioned the standalone `fitscan-processor` (moved to n8n/V2 API) and removed Sentry integration.
+- � **Architecture Simplification**: Decommissioned the standalone `hri-processor` (moved to n8n/V2 API) and removed Sentry integration.
 - 🧱 **Infrastructure**: Removed legacy SigNoz and Elasticsearch dependencies in favor of optimized PostgreSQL audit trails.
 - ⚡ **Performance Optimization**: Reduced login times by 50-70% via query consolidation and throttled session activity updates.
 - 🔄 **Retry Mechanism**: Enhanced the Upload Queue with manual retry for failed applicant imports.

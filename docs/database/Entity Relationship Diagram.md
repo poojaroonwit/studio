@@ -1,6 +1,6 @@
 # Entity Relationship Diagram (ERD)
 
-**Project:** FitScan Enterprise
+**Project:** HRI Enterprise
 **Version:** 3.0
 **Last Updated:** December 16, 2025
 **Status:** Active
@@ -9,7 +9,7 @@
 ---
 
 ## 1. Introduction
-This document provides a comprehensive detailing of the data model for FitScan. It covers all database entities defined in the Prisma schema, categorized by their functional domain.
+This document provides a comprehensive detailing of the data model for HRI. It covers all database entities defined in the Prisma schema, categorized by their functional domain.
     
 ```mermaid
 erDiagram

@@ -35,6 +35,8 @@ export { SidebarMenuPanel } from "./SidebarMenuPanel";
 export { SidebarRail } from "./SidebarRail";
 export { usePendingCount } from "./use-pending-count";
 
+const MAIN_SIDEBAR_PINNED_KEY = "main-sidebar-pinned";
+
 const GroupedSidebarNav = React.memo(() => {
   const pathname = usePathname() || "";
   const { data: session, status } = useSession();
@@ -42,6 +44,7 @@ const GroupedSidebarNav = React.memo(() => {
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions() as { hasPositions: boolean };
   const router = useRouter();
+  const [isMainSidebarPinned, setIsMainSidebarPinned] = React.useState(true);
   const [layoutSettings, setLayoutSettings] = React.useState<SidebarLayoutSettings>(
     DEFAULT_SIDEBAR_LAYOUT_SETTINGS,
   );
@@ -78,6 +81,26 @@ const GroupedSidebarNav = React.memo(() => {
   const shouldRenderSecondaryPanel = shouldUseSplitLayout
     && shouldShowSidebarMenuPanel(pathname, displayedGroupLabel)
     && isSidebarGroupInSecondaryPanel(displayedGroupLabel, effectiveSecondaryGroupLabels);
+
+  React.useEffect(() => {
+    try {
+      const storedPinnedState = window.localStorage.getItem(MAIN_SIDEBAR_PINNED_KEY);
+      if (storedPinnedState !== null) {
+        setIsMainSidebarPinned(storedPinnedState !== "false");
+      }
+    } catch (error) {
+      console.error("[SIDEBAR] Failed to read pinned sidebar state:", error);
+    }
+  }, []);
+
+  const handleMainSidebarPinnedChange = React.useCallback((pinned: boolean) => {
+    setIsMainSidebarPinned(pinned);
+    try {
+      window.localStorage.setItem(MAIN_SIDEBAR_PINNED_KEY, String(pinned));
+    } catch (error) {
+      console.error("[SIDEBAR] Failed to save pinned sidebar state:", error);
+    }
+  }, []);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -158,6 +181,8 @@ const GroupedSidebarNav = React.memo(() => {
           filteredGroups={filteredGroups}
           activeGroupLabel={activeGroupLabel}
           hoveredGroupLabel={hoveredGroupLabel}
+          isPinned={isMainSidebarPinned}
+          onPinnedChange={handleMainSidebarPinnedChange}
           onHubClick={handleHubClick}
           onHubHover={setHoveredGroupLabel}
         />

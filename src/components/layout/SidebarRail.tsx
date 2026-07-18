@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Cog6ToothIcon as Settings } from "@heroicons/react/24/outline";
+import {
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  Cog6ToothIcon as Settings,
+} from "@heroicons/react/24/outline";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +19,8 @@ interface SidebarRailProps {
   filteredGroups: SidebarNavGroup[];
   activeGroupLabel: string | undefined;
   hoveredGroupLabel: string | undefined;
+  isPinned: boolean;
+  onPinnedChange: (pinned: boolean) => void;
   onHubClick: (label: string) => void;
   onHubHover: (label: string | undefined) => void;
 }
@@ -23,17 +29,55 @@ export const SidebarRail = React.memo(function SidebarRail({
   filteredGroups,
   activeGroupLabel,
   hoveredGroupLabel,
+  isPinned,
+  onPinnedChange,
   onHubClick,
   onHubHover,
 }: SidebarRailProps) {
   const settingsGroup = filteredGroups.find((group) => group.label === "Settings");
+  const mainGroups = filteredGroups.filter((group) => group.label !== "Settings");
 
   return (
-    <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[60px]">
-      <div />
+    <aside
+      className={cn(
+        "hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 transition-[width] duration-200",
+        isPinned ? "w-[220px]" : "w-[60px]",
+      )}
+    >
+      <div className={cn("flex items-center border-b border-gray-100 dark:border-zinc-800/80", isPinned ? "justify-between px-3 py-3" : "justify-center py-3")}>
+        {isPinned && (
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 dark:text-zinc-600">
+            Main menu
+          </p>
+        )}
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onPinnedChange(!isPinned)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-500 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                aria-label={isPinned ? "Collapse main sidebar" : "Expand main sidebar"}
+                aria-pressed={isPinned}
+              >
+                {isPinned ? (
+                  <ChevronDoubleLeftIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDoubleRightIcon className="h-4 w-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+              <p className="font-bold text-[10px] uppercase tracking-widest">
+                {isPinned ? "Collapse menu" : "Expand menu"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
 
-      <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
-        {filteredGroups.filter((group) => group.label !== "Settings").map((group) => {
+      <nav className={cn("flex-1 py-4 flex flex-col space-y-1.5", isPinned ? "items-stretch px-3" : "items-center")}>
+        {mainGroups.map((group) => {
           const isHubActive = activeGroupLabel === group.label;
           const isHubHovered = hoveredGroupLabel === group.label;
           const isEffectivelyActive = isHubHovered || (isHubActive && !hoveredGroupLabel);
@@ -47,7 +91,8 @@ export const SidebarRail = React.memo(function SidebarRail({
                     onClick={() => onHubClick(group.label)}
                     onMouseEnter={() => onHubHover(group.label)}
                     className={cn(
-                      "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
+                      "group relative h-11 flex items-center rounded-xl transition-all duration-250",
+                      isPinned ? "w-full justify-start gap-3 px-3" : "w-11 justify-center",
                       isEffectivelyActive
                         ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
                         : "text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]",
@@ -62,11 +107,18 @@ export const SidebarRail = React.memo(function SidebarRail({
                         isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105",
                       )}
                     />
+                    {isPinned && (
+                      <span className="min-w-0 truncate text-[13px] font-semibold">
+                        {group.label}
+                      </span>
+                    )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
-                  <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
-                </TooltipContent>
+                {!isPinned && (
+                  <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+                    <p className="font-bold text-[10px] uppercase tracking-widest">{group.label}</p>
+                  </TooltipContent>
+                )}
               </Tooltip>
             </TooltipProvider>
           );
@@ -74,7 +126,7 @@ export const SidebarRail = React.memo(function SidebarRail({
       </nav>
 
       {settingsGroup && (
-        <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-gray-100 dark:border-zinc-800/80">
+        <div className={cn("py-4 flex flex-col space-y-1.5 border-t border-gray-100 dark:border-zinc-800/80", isPinned ? "items-stretch px-3" : "items-center")}>
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               {(() => {
@@ -89,7 +141,8 @@ export const SidebarRail = React.memo(function SidebarRail({
                       onClick={() => onHubClick("Settings")}
                       onMouseEnter={() => onHubHover("Settings")}
                       className={cn(
-                        "group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250",
+                        "group relative h-11 flex items-center rounded-xl transition-all duration-250",
+                        isPinned ? "w-full justify-start gap-3 px-3" : "w-11 justify-center",
                         isEffectivelyActive
                           ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm"
                           : "text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08]",
@@ -104,13 +157,20 @@ export const SidebarRail = React.memo(function SidebarRail({
                           isEffectivelyActive ? "text-blue-600 dark:text-white" : "group-hover:scale-105",
                         )}
                       />
+                      {isPinned && (
+                        <span className="min-w-0 truncate text-[13px] font-semibold">
+                          Settings
+                        </span>
+                      )}
                     </button>
                   </TooltipTrigger>
                 );
               })()}
-              <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
-                <p className="font-bold text-[10px] uppercase tracking-widest">Settings</p>
-              </TooltipContent>
+              {!isPinned && (
+                <TooltipContent side="right" sideOffset={12} className="bg-slate-900/90 text-slate-50 backdrop-blur-xl border-slate-800/50 shadow-2xl px-3 py-1.5 rounded-xl">
+                  <p className="font-bold text-[10px] uppercase tracking-widest">Settings</p>
+                </TooltipContent>
+              )}
             </Tooltip>
           </TooltipProvider>
         </div>

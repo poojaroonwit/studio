@@ -30,6 +30,7 @@ export type LegacyUserPreferences = {
   };
   sidebar: {
     showAssignedPositions: boolean;
+    mainSidebarPinned: boolean;
   };
 };
 

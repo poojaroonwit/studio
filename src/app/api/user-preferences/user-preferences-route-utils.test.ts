@@ -31,6 +31,7 @@ describe('user-preferences-route-utils', () => {
       { modelType: 'appearance', attributeKey: 'themePreference', uiPreference: 'dark' },
       { modelType: 'Applicants', attributeKey: 'sortDirection', uiPreference: 'null' },
       { modelType: 'sidebar', attributeKey: 'showAssignedPositions', uiPreference: 'false' },
+      { modelType: 'sidebar', attributeKey: 'mainSidebarPinned', uiPreference: 'false' },
     ]);
 
     expect(preferences.taskBoard.viewMode).toBe('table');
@@ -38,6 +39,7 @@ describe('user-preferences-route-utils', () => {
     expect(preferences.appearance.themePreference).toBe('dark');
     expect(preferences.applicants.sortDirection).toBeNull();
     expect(preferences.sidebar.showAssignedPositions).toBe(false);
+    expect(preferences.sidebar.mainSidebarPinned).toBe(false);
   });
 
   it('builds upsert inputs with serialized values', () => {

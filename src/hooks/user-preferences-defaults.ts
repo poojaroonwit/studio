@@ -37,6 +37,7 @@ export interface AppearancePreferences {
 
 export interface SidebarPreferences {
   showAssignedPositions: boolean;
+  mainSidebarPinned: boolean;
 }
 
 export interface UserPreferences {
@@ -87,6 +88,7 @@ export const defaultAppearancePreferences: AppearancePreferences = {
 
 export const defaultSidebarPreferences: SidebarPreferences = {
   showAssignedPositions: true,
+  mainSidebarPinned: true,
 };
 
 export const defaultPreferences: UserPreferences = {

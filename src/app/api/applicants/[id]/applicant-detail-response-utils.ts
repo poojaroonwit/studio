@@ -99,10 +99,14 @@ export function buildApplicantSourceSummary(applicant: ApplicantDetailApplicantR
 export function normalizeApplicantDetailJobMatch(match: ApplicantDetailJobMatchRow) {
   return {
     ...match,
-    fitScore: normalizeFitScore(match.fitScore),
+    fitScore: normalizeNullableFitScore(match.fitScore),
     jobTitle: match.jobTitle || match.positionTitle || null,
     positionTitle: match.positionTitle || match.jobTitle || null,
   };
+}
+
+function normalizeNullableFitScore(score: number | null | undefined) {
+  return score === null || score === undefined ? null : normalizeFitScore(score);
 }
 
 export function buildApplicantDetailResponseData({
@@ -116,7 +120,7 @@ export function buildApplicantDetailResponseData({
 
   return {
     ...applicant,
-    fitScore: normalizeFitScore(applicant.fitScore),
+    fitScore: normalizeNullableFitScore(applicant.fitScore),
     isRead: userReadStatus,
     position: buildApplicantPositionSummary(applicant),
     recruiter: buildApplicantRecruiterSummary(applicant, { includeAvatar: true }),

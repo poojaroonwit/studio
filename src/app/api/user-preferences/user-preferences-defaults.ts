@@ -58,6 +58,7 @@ export function createDefaultUserPreferences() {
     },
     sidebar: {
       showAssignedPositions: true,
+      mainSidebarPinned: true,
     },
     applicants: {
       showApplicantColumn: true,

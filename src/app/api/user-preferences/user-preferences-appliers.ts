@@ -106,6 +106,9 @@ const sidebarSetters: Record<string, PreferenceSetter> = {
   showAssignedPositions: (preferences, value) => {
     preferences.sidebar.showAssignedPositions = value === 'true';
   },
+  mainSidebarPinned: (preferences, value) => {
+    preferences.sidebar.mainSidebarPinned = value !== 'false';
+  },
 };
 
 export function applyTaskBoardPreference(preferences: UserPreferenceDefaults, key: string, value: string | null) {

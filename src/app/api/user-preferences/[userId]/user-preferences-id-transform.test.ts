@@ -22,6 +22,7 @@ describe('legacy user preferences transform', () => {
       },
       sidebar: {
         showAssignedPositions: false,
+        mainSidebarPinned: true,
       },
     });
   });
@@ -36,6 +37,7 @@ describe('legacy user preferences transform', () => {
       { modelType: 'positions', attributeKey: 'sortOrder', uiPreference: 'asc' },
       { modelType: 'appearance', attributeKey: 'personalColor', uiPreference: '#111111' },
       { modelType: 'sidebar', attributeKey: 'showAssignedPositions', uiPreference: 'true' },
+      { modelType: 'sidebar', attributeKey: 'mainSidebarPinned', uiPreference: 'false' },
       { modelType: 'unknown', attributeKey: 'ignored', uiPreference: 'value' },
     ]);
 
@@ -47,6 +49,7 @@ describe('legacy user preferences transform', () => {
     expect(preferences.positions.sortOrder).toBe('asc');
     expect(preferences.appearance.personalColor).toBe('#111111');
     expect(preferences.sidebar.showAssignedPositions).toBe(true);
+    expect(preferences.sidebar.mainSidebarPinned).toBe(false);
   });
 
   it('falls back for invalid arrays and enum-like values', () => {

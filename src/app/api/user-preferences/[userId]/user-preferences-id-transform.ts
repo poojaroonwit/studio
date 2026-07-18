@@ -54,6 +54,9 @@ const sidebarPreferenceSetters: Record<string, LegacyPreferenceSetter> = {
   showAssignedPositions: (preferences, value) => {
     preferences.sidebar.showAssignedPositions = value === 'true';
   },
+  mainSidebarPinned: (preferences, value) => {
+    preferences.sidebar.mainSidebarPinned = value !== 'false';
+  },
 };
 
 const legacyPreferenceSetters: Record<string, Record<string, LegacyPreferenceSetter>> = {
@@ -86,6 +89,7 @@ export function createDefaultLegacyUserPreferences(): LegacyUserPreferences {
     },
     sidebar: {
       showAssignedPositions: false,
+      mainSidebarPinned: true,
     },
   };
 }

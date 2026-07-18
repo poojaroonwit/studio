@@ -46,6 +46,18 @@ type ApplicantRow = QueryResultRow & {
   email: string;
 };
 
+type PositionContext = {
+  id: string;
+  title: string | null;
+  department: string | null;
+  description: string | null;
+  matchCriteria: string | null;
+  positionLevel: string | null;
+  positionAttribute: string | null;
+  expertiseSkills: string[];
+  personalityTraits: string[];
+};
+
 function getPayloadRecord(job: BuiltInProcessorJob) {
   return isRecord(job.webhook_payload) ? job.webhook_payload : {};
 }
@@ -90,7 +102,9 @@ export async function processBuiltInResumeUploadQueueJob({
   settings: ResumeProcessingWebhookSettings;
 }) {
   const resumeText = await extractResumeText(job);
-  const aiResponse = await runBuiltInResumeAi({ job, resumeText, settings });
+  const targetPositionId = getTargetPositionId(job);
+  const targetPosition = await fetchTargetPositionContext(client, targetPositionId);
+  const aiResponse = await runBuiltInResumeAi({ job, resumeText, settings, targetPosition });
   const parsed = parseBuiltInResumeProcessorJson(aiResponse);
   const applicant = normalizeBuiltInApplicant({
     ...parsed,
@@ -99,7 +113,6 @@ export async function processBuiltInResumeUploadQueueJob({
       ...(isRecord(parsed.applicant) ? parsed.applicant : {}),
     },
   }, job.file_name);
-  const targetPositionId = getTargetPositionId(job);
   const jobMatches = normalizeBuiltInJobMatches(parsed, targetPositionId);
   const applicantId = await upsertBuiltInApplicant({
     applicant,
@@ -194,16 +207,18 @@ async function runBuiltInResumeAi({
   job,
   resumeText,
   settings,
+  targetPosition,
 }: {
   job: BuiltInProcessorJob;
   resumeText: string;
   settings: ResumeProcessingWebhookSettings;
+  targetPosition: PositionContext | null;
 }) {
   if (!resumeText) {
     throw new Error('Resume text is empty after extraction');
   }
 
-  const prompt = buildBuiltInResumePrompt({ job, resumeText, settings });
+  const prompt = buildBuiltInResumePrompt({ job, resumeText, settings, targetPosition });
   const result = await executeWithApiKeyFallback(
     (apiKey, model, provider) => generateTextWithProvider(provider, apiKey, model, prompt, {
       temperature: 0.2,
@@ -226,10 +241,12 @@ function buildBuiltInResumePrompt({
   job,
   resumeText,
   settings,
+  targetPosition,
 }: {
   job: BuiltInProcessorJob;
   resumeText: string;
   settings: ResumeProcessingWebhookSettings;
+  targetPosition: PositionContext | null;
 }) {
   const payload = getPayloadRecord(job);
 
@@ -243,6 +260,10 @@ function buildBuiltInResumePrompt({
     '',
     `Queue job id: ${job.id}`,
     `Target position id: ${getTargetPositionId(job) || ''}`,
+    targetPosition
+      ? `Target position context: ${JSON.stringify(targetPosition)}`
+      : 'Target position context: none found. If no job context is available, keep fitScore null and matchReasons empty.',
+    'When target position context is provided, score the applicant against that position on a 0-100 scale and return 3-5 concise, evidence-based matchReasons. Also set applicant.fitScore to the same score for the applied job.',
     `Source id: ${getSourceId(job) || ''}`,
     `Sub source: ${getSubSource(job) || ''}`,
     `Original payload: ${JSON.stringify(payload)}`,
@@ -250,6 +271,42 @@ function buildBuiltInResumePrompt({
     'Resume text:',
     resumeText.slice(0, 60000),
   ].join('\n');
+}
+
+async function fetchTargetPositionContext(client: DbClient, targetPositionId: string | null): Promise<PositionContext | null> {
+  if (!targetPositionId) {
+    return null;
+  }
+
+  const result = await client.query<PositionContext>(
+    `SELECT
+       p.id,
+       p.title,
+       p.department,
+       p.description,
+       p."matchCriteria",
+       p."positionLevel",
+       p."positionAttribute",
+       COALESCE(
+         ARRAY_REMOVE(ARRAY_AGG(DISTINCT es.name), NULL),
+         ARRAY[]::text[]
+       ) as "expertiseSkills",
+       COALESCE(
+         ARRAY_REMOVE(ARRAY_AGG(DISTINCT pt.name), NULL),
+         ARRAY[]::text[]
+       ) as "personalityTraits"
+     FROM "Position" p
+     LEFT JOIN "PositionExpertiseSkill" pes ON pes."positionId" = p.id
+     LEFT JOIN "ExpertiseSkill" es ON es.id = pes."skillId"
+     LEFT JOIN "PositionPersonalityTrait" ppt ON ppt."positionId" = p.id
+     LEFT JOIN "PersonalityTrait" pt ON pt.id = ppt."traitId"
+     WHERE p.id = $1::uuid
+     GROUP BY p.id, p.title, p.department, p.description, p."matchCriteria", p."positionLevel", p."positionAttribute"
+     LIMIT 1`,
+    [targetPositionId]
+  );
+
+  return result.rows[0] ?? null;
 }
 
 async function upsertBuiltInApplicant({
@@ -275,11 +332,16 @@ async function upsertBuiltInApplicant({
 
     const applicantId = existing?.id || randomUUID();
     const statusId = await resolveAppliedStatusId(client);
+    const appliedMatch = getAppliedJobMatch(jobMatches, targetPositionId);
+    const appliedFitScore = applicant.fitScore ?? appliedMatch?.fitScore ?? null;
+    const assignmentJustification = appliedMatch?.matchReasons.length
+      ? appliedMatch.matchReasons.join('\n')
+      : null;
 
     if (existing) {
-      await updateExistingApplicant({ applicant, applicantId, client, job, targetPositionId });
+      await updateExistingApplicant({ applicant, applicantId, appliedFitScore, assignmentJustification, client, job, targetPositionId });
     } else {
-      await insertBuiltInApplicant({ applicant, applicantId, client, job, statusId, targetPositionId });
+      await insertBuiltInApplicant({ applicant, applicantId, appliedFitScore, assignmentJustification, client, job, statusId, targetPositionId });
     }
 
     await replaceResumeAttachment({ applicantId, client, job });
@@ -290,6 +352,10 @@ async function upsertBuiltInApplicant({
     await client.query('ROLLBACK');
     throw error;
   }
+}
+
+function getAppliedJobMatch(jobMatches: BuiltInJobMatch[], targetPositionId: string | null) {
+  return jobMatches.find((match) => targetPositionId && match.jobId === targetPositionId) ?? jobMatches[0] ?? null;
 }
 
 async function findApplicantById(client: DbClient, applicantId: string) {
@@ -314,6 +380,8 @@ async function resolveAppliedStatusId(client: DbClient) {
 async function insertBuiltInApplicant({
   applicant,
   applicantId,
+  appliedFitScore,
+  assignmentJustification,
   client,
   job,
   statusId,
@@ -321,6 +389,8 @@ async function insertBuiltInApplicant({
 }: {
   applicant: BuiltInApplicant;
   applicantId: string;
+  appliedFitScore: number | null;
+  assignmentJustification: string | null;
   client: DbClient;
   job: BuiltInProcessorJob;
   statusId: string | null;
@@ -328,18 +398,19 @@ async function insertBuiltInApplicant({
 }) {
   await client.query(
     `INSERT INTO "Applicant" (
-      id, name, email, phone, "positionId", "fitScore", "statusId", "parsedData", "customAttributes",
+      id, name, email, phone, "positionId", "fitScore", "assignmentJustification", "statusId", "parsedData", "customAttributes",
       "applicationDate", "sourceId", "subSource", "resumePath", "emailDate", "emailSubject", "emailId",
       "emailMetadata", "updatedAt"
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}', NOW(), $9, $10, $11, $12, $13, $14, $15, NOW())`,
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '{}', NOW(), $10, $11, $12, $13, $14, $15, $16, NOW())`,
     [
       applicantId,
       applicant.name,
       applicant.email,
       applicant.phone,
       targetPositionId,
-      applicant.fitScore,
+      appliedFitScore,
+      assignmentJustification,
       statusId,
       applicant.parsedData,
       getSourceId(job),
@@ -356,12 +427,16 @@ async function insertBuiltInApplicant({
 async function updateExistingApplicant({
   applicant,
   applicantId,
+  appliedFitScore,
+  assignmentJustification,
   client,
   job,
   targetPositionId,
 }: {
   applicant: BuiltInApplicant;
   applicantId: string;
+  appliedFitScore: number | null;
+  assignmentJustification: string | null;
   client: DbClient;
   job: BuiltInProcessorJob;
   targetPositionId: string | null;
@@ -373,14 +448,15 @@ async function updateExistingApplicant({
          phone = COALESCE($4, phone),
          "positionId" = COALESCE($5, "positionId"),
          "fitScore" = COALESCE($6, "fitScore"),
-         "parsedData" = COALESCE("parsedData", '{}'::jsonb) || $7::jsonb,
-         "sourceId" = COALESCE($8, "sourceId"),
-         "subSource" = COALESCE($9, "subSource"),
-         "resumePath" = $10,
-         "emailDate" = COALESCE($11, "emailDate"),
-         "emailSubject" = COALESCE($12, "emailSubject"),
-         "emailId" = COALESCE($13, "emailId"),
-         "emailMetadata" = COALESCE($14, "emailMetadata"),
+         "assignmentJustification" = COALESCE($7, "assignmentJustification"),
+         "parsedData" = COALESCE("parsedData", '{}'::jsonb) || $8::jsonb,
+         "sourceId" = COALESCE($9, "sourceId"),
+         "subSource" = COALESCE($10, "subSource"),
+         "resumePath" = $11,
+         "emailDate" = COALESCE($12, "emailDate"),
+         "emailSubject" = COALESCE($13, "emailSubject"),
+         "emailId" = COALESCE($14, "emailId"),
+         "emailMetadata" = COALESCE($15, "emailMetadata"),
          "updatedAt" = NOW()
      WHERE id = $1`,
     [
@@ -389,7 +465,8 @@ async function updateExistingApplicant({
       applicant.email,
       applicant.phone,
       targetPositionId,
-      applicant.fitScore,
+      appliedFitScore,
+      assignmentJustification,
       JSON.stringify(applicant.parsedData),
       getSourceId(job),
       getSubSource(job),
@@ -479,6 +556,8 @@ function buildBuiltInPayload({
   resumeText: string;
   settings: ResumeProcessingWebhookSettings;
 }): BuiltInProcessorPayload {
+  const appliedFitScore = applicant.fitScore ?? getAppliedJobMatch(jobMatches, getTargetPositionId(job))?.fitScore ?? null;
+
   return {
     ...getPayloadRecord(job),
     processor_mode: 'built-in',
@@ -491,7 +570,7 @@ function buildBuiltInPayload({
       name: applicant.name,
       email: applicant.email,
       phone: applicant.phone,
-      fitScore: applicant.fitScore,
+      fitScore: appliedFitScore,
     },
     job_matches: jobMatches,
     parsed_result: parsed,

@@ -638,7 +638,7 @@ describe('applicant-detail-route-utils', () => {
       positionTitle: 'Senior Engineer',
     })).toMatchObject({
       id: 'match-1',
-      fitScore: 0,
+      fitScore: null,
       jobTitle: 'Senior Engineer',
       positionTitle: 'Senior Engineer',
     });
@@ -701,7 +701,7 @@ describe('applicant-detail-route-utils', () => {
       positionTitle: match.positionTitle,
     }))).toEqual([
       { fitScore: 91, jobTitle: 'Senior Engineer', positionTitle: 'Senior Engineer' },
-      { fitScore: 0, jobTitle: 'Architect', positionTitle: 'Architect' },
+      { fitScore: null, jobTitle: 'Architect', positionTitle: 'Architect' },
       { fitScore: 12, jobTitle: null, positionTitle: null },
     ]);
   });

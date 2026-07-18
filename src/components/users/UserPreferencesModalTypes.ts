@@ -24,6 +24,7 @@ export interface AppearancePreferences {
 
 export interface SidebarPreferences {
   showAssignedPositions: boolean;
+  mainSidebarPinned: boolean;
 }
 
 export interface UserPreferences {
@@ -70,6 +71,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   },
   sidebar: {
     showAssignedPositions: true,
+    mainSidebarPinned: true,
   },
 };
 
@@ -91,6 +93,7 @@ export function withSidebarPreferences(data: Partial<UserPreferences>): UserPref
     },
     sidebar: {
       showAssignedPositions: false,
+      mainSidebarPinned: true,
       ...data.sidebar,
     },
   };

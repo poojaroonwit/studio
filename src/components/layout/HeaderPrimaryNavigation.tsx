@@ -65,8 +65,8 @@ const megaMenuCategories = [
   },
   {
     label: "Hiring",
-    description: "Recruitment, clients, and the candidate-facing portal",
-    groupIds: ["recruitment", "client", "job-portal"],
+    description: "Recruitment and the candidate-facing portal",
+    groupIds: ["recruitment", "job-portal"],
   },
   {
     label: "Analytics",
@@ -81,7 +81,7 @@ const megaMenuCategories = [
   {
     label: "More",
     description: "Communications, policies, releases, and support",
-    groupIds: ["broadcast", "privacy-support"],
+    groupIds: ["broadcast", "privacy-support", "client", "other"],
   },
 ] as const;
 

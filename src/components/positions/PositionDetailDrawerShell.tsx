@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Briefcase, Loader2, X } from 'lucide-react';
 import type { Position } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 import {
   Dialog,
   DialogContent,
@@ -73,6 +74,7 @@ export function PositionDetailDrawerShell({
   const description = position
     ? `${position.department} - ${position.positionLevel || 'No level specified'}`
     : 'Loading position details...';
+  const { contentZIndex } = useDynamicZIndex('position-detail-drawer-mobile', 'drawer');
 
   if (isMobile) {
     if (!isOpen) {
@@ -80,7 +82,10 @@ export function PositionDetailDrawerShell({
     }
 
     return (
-      <div className="fixed left-0 right-0 bottom-[3.5rem] top-0 z-50 bg-background flex flex-col w-full overflow-hidden">
+      <div
+        className="fixed left-0 right-0 bottom-[3.5rem] top-0 bg-background flex flex-col w-full overflow-hidden"
+        style={{ zIndex: contentZIndex }}
+      >
         <div className="flex-shrink-0 border-b p-4 flex items-center justify-between bg-background">
           <div className="flex items-center gap-3">
             <Button

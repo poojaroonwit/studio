@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
+  History,
   FilePlus2,
   Inbox,
   Loader2,
@@ -152,6 +153,7 @@ export function ServiceDeskPage({
   const [composeIntent, setComposeIntent] = useState<ServiceDeskIntent | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showHistorical, setShowHistorical] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -246,16 +248,23 @@ export function ServiceDeskPage({
   const filtered = useMemo(() => {
     const search = query.trim().toLocaleLowerCase(locale);
     return tickets.filter(ticket => {
-      if (statusFilter === 'open' && isTerminalTicketStatus(ticket.status)) return false;
-      if (statusFilter === 'closed' && !isTerminalTicketStatus(ticket.status)) return false;
+      if (showHistorical) {
+        if (!isTerminalTicketStatus(ticket.status)) return false;
+      } else {
+        if (statusFilter === 'open' && isTerminalTicketStatus(ticket.status)) return false;
+        if (statusFilter === 'closed' && !isTerminalTicketStatus(ticket.status)) return false;
+      }
       if (!search) return true;
       return [ticket.requestNumber, ticket.requester, ticket.requesterEmail, ticket.subject, ticket.category]
         .some(value => value?.toLocaleLowerCase(locale).includes(search));
     });
-  }, [locale, query, statusFilter, tickets]);
+  }, [locale, query, statusFilter, showHistorical, tickets]);
 
   const active = tickets.find(ticket => ticket.id === activeId) || null;
   const openCount = tickets.filter(ticket => !isTerminalTicketStatus(ticket.status)).length;
+  const closedCount = tickets.filter(ticket => isTerminalTicketStatus(ticket.status)).length;
+  const isHistoryMode = showHistorical || statusFilter === 'closed';
+  const activeIsClosed = active ? isTerminalTicketStatus(active.status) : false;
 
   function openComposer(intent: ServiceDeskIntent = 'request') {
     setComposeIntent(intent);
@@ -263,6 +272,8 @@ export function ServiceDeskPage({
     setPendingConfirmation(null);
     setError('');
     setNotice('');
+    setShowHistorical(false);
+    setStatusFilter('open');
   }
 
   function closeWorkspace() {
@@ -372,7 +383,11 @@ export function ServiceDeskPage({
           <div className="border-b border-border px-4 pb-3 pt-4 sm:px-5">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-base font-semibold tracking-[-0.01em]">{isHr ? t('serviceDesk.inbox', 'Ticket inbox') : t('serviceDesk.yourTickets', 'Your tickets')}</h2>
-              <p className="shrink-0 text-xs text-muted-foreground">{t('serviceDesk.openCount', '{count} open tickets').replace('{count}', String(openCount))}</p>
+              <p className="shrink-0 text-xs text-muted-foreground">
+                {isHistoryMode
+                  ? t('serviceDesk.closedCount', '{count} closed tickets').replace('{count}', String(closedCount))
+                  : t('serviceDesk.openCount', '{count} open tickets').replace('{count}', String(openCount))}
+              </p>
             </div>
             <label className="relative mt-3 block">
               <span className="sr-only">{t('serviceDesk.searchLabel', 'Search tickets')}</span>
@@ -389,6 +404,18 @@ export function ServiceDeskPage({
                 </select>
                 <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               </label>
+              <Button
+                size="sm"
+                variant={isHistoryMode ? 'default' : 'outline'}
+                onClick={() => {
+                  const next = !isHistoryMode;
+                  setShowHistorical(next);
+                  setStatusFilter(next ? 'closed' : 'open');
+                }}
+              >
+                <History className="me-1.5 h-4 w-4" />
+                {isHistoryMode ? t('serviceDesk.currentConversations', 'Current conversations') : t('serviceDesk.historicalConversations', 'Historical conversations')}
+              </Button>
               {roleResolved
                 ? <Button size="sm" onClick={() => openComposer('request')} className="min-w-32 shrink-0"><FilePlus2 className="me-1.5 h-4 w-4" />{t('serviceDesk.newRequest', 'New request')}</Button>
                 : <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />}
@@ -410,7 +437,56 @@ export function ServiceDeskPage({
                 {!isHr && !query && statusFilter === 'all' && <Button variant="outline" size="sm" className="mt-4" onClick={() => openComposer('request')}>{t('serviceDesk.createFirst', 'Create your first request')}</Button>}
               </div>
             )}
-            {filtered.map(ticket => (
+            {isHistoryMode ? (
+              <div className="overflow-x-auto border-y border-border">
+                <table className="w-full min-w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-[0.08em] text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 text-start sm:px-5">#</th>
+                      <th className="px-4 py-3 text-start sm:px-5">{t('serviceDesk.ticketTitle', 'Subject')}</th>
+                      <th className="px-4 py-3 text-start sm:px-5">{t('serviceDesk.requester', 'Requester')}</th>
+                      <th className="px-4 py-3 text-start sm:px-5">{t('serviceDesk.category', 'Category')}</th>
+                      <th className="px-4 py-3 text-start sm:px-5">{t('serviceDesk.updatedAt', 'Updated')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td className="px-4 py-6 text-center text-sm text-muted-foreground sm:px-5" colSpan={5}>
+                          <p className="font-medium">{query || statusFilter !== 'all' ? t('serviceDesk.noMatches', 'No tickets match these filters.') : t('serviceDesk.empty', 'No support tickets yet.')}</p>
+                          <p className="mt-1 leading-5 text-muted-foreground">{query || statusFilter !== 'all' ? t('serviceDesk.adjustFilters', 'Try another search or status.') : t('serviceDesk.emptyHint', 'Start a private conversation when you need help from the People team.')}</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filtered.map(ticket => (
+                        <tr
+                          key={ticket.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => { setComposeIntent(null); setActiveId(ticket.id); }}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setComposeIntent(null);
+                              setActiveId(ticket.id);
+                            }
+                          }}
+                          className="cursor-pointer border-b border-border transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                        >
+                          <td className="px-4 py-3 sm:px-5">{ticket.requestNumber}</td>
+                          <td className="px-4 py-3 sm:px-5">
+                            <span className="font-medium">{ticket.subject}</span>
+                          </td>
+                          <td className="px-4 py-3 sm:px-5"><span className="truncate">{ticket.requester}</span></td>
+                          <td className="px-4 py-3 sm:px-5">{t(`serviceDesk.category.${ticket.category}`, serviceDeskCategories.find(category => category.key === ticket.category)?.label || ticket.category.replaceAll('_', ' '))}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground sm:px-5">{formatListDate(ticket.updatedAt, locale)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : filtered.map(ticket => (
               <button
                 key={ticket.id}
                 type="button"
@@ -480,11 +556,17 @@ export function ServiceDeskPage({
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-emerald-50/60 px-5 py-3 dark:bg-emerald-950/20 sm:px-6">
-                <p className="text-xs text-muted-foreground"><LockKeyhole className="me-2 inline h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" /><span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('serviceDesk.privateConversation', 'Private conversation')}</span><span className="ms-2">{t('serviceDesk.historyNotice', 'Replies and status changes are saved permanently in the employee ticket history.')}</span></p>
-                {canClose && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('close')} disabled={saving}><CheckCircle2 className="me-2 h-4 w-4" />{t('serviceDesk.close', 'Close ticket')}</Button>}
-                {canWithdraw && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('withdraw')} disabled={saving}><XCircle className="me-2 h-4 w-4" />{t('serviceDesk.withdraw', 'Withdraw request')}</Button>}
-              </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-emerald-50/60 px-5 py-3 dark:bg-emerald-950/20 sm:px-6">
+                  <p className="text-xs text-muted-foreground"><LockKeyhole className="me-2 inline h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" /><span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('serviceDesk.privateConversation', 'Private conversation')}</span><span className="ms-2">{t('serviceDesk.historyNotice', 'Replies and status changes are saved permanently in the employee ticket history.')}</span></p>
+                  {canClose && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('close')} disabled={saving}><CheckCircle2 className="me-2 h-4 w-4" />{t('serviceDesk.close', 'Close ticket')}</Button>}
+                  {canWithdraw && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('withdraw')} disabled={saving}><XCircle className="me-2 h-4 w-4" />{t('serviceDesk.withdraw', 'Withdraw request')}</Button>}
+                  {activeIsClosed && (
+                    <Button size="sm" variant="outline" onClick={() => openComposer('request')} disabled={saving}>
+                      <FilePlus2 className="me-2 h-4 w-4" />
+                      {t('serviceDesk.startNewConversation', 'Start new conversation')}
+                    </Button>
+                  )}
+                </div>
               <div className="border-b border-border bg-background px-5 py-5 sm:px-8">
                 <div className="mx-auto grid max-w-4xl grid-cols-[40px_minmax(0,1fr)] gap-3">
                   <Avatar size="md" className="rounded-full"><AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(active.requester))}>{initials(active.requester)}</AvatarFallback></Avatar>
@@ -500,15 +582,33 @@ export function ServiceDeskPage({
                   {active.activities.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t('serviceDesk.noActivity', 'No activity has been recorded yet.')}</p>}
                   {active.activities.map((activity, index) => {
                     const actor = activity.actor || (activity.action === 'reply' ? t('serviceDesk.participant', 'Ticket participant') : t('serviceDesk.system', 'System'));
+                    const splitAfter = activity.action === 'closed' || activity.action === 'withdrawn';
                     return (
-                      <article key={activity.id || `${activity.createdAt}-${index}`} className={cn('grid grid-cols-[40px_minmax(0,1fr)] gap-3 border-b border-border py-5', activity.action === 'closed' && 'text-emerald-800 dark:text-emerald-200')}>
-                        <Avatar size="md" className="rounded-full"><AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(actor))}>{initials(actor)}</AvatarFallback></Avatar>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{actor}</p><time className="text-[11px] text-muted-foreground">{formatDate(activity.createdAt, locale)}</time></div>
-                          {activity.message && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">{activity.message}</p>}
-                          {activity.action !== 'reply' && <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t(`serviceDesk.activity.${activity.action}`, activity.action.replaceAll('_', ' '))}</p>}
-                        </div>
-                      </article>
+                      <div key={activity.id || `${activity.createdAt}-${index}`} className="space-y-4 border-b border-border py-5">
+                        <article className={cn('grid grid-cols-[40px_minmax(0,1fr)] gap-3', activity.action === 'closed' && 'text-emerald-800 dark:text-emerald-200')}>
+                          <Avatar size="md" className="rounded-full"><AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(actor))}>{initials(actor)}</AvatarFallback></Avatar>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{actor}</p><time className="text-[11px] text-muted-foreground">{formatDate(activity.createdAt, locale)}</time></div>
+                            {activity.message && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">{activity.message}</p>}
+                            {activity.action !== 'reply' && <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t(`serviceDesk.activity.${activity.action}`, activity.action.replaceAll('_', ' '))}</p>}
+                          </div>
+                        </article>
+                        {splitAfter && (
+                          <div className="pt-1">
+                            <div className="relative mx-auto flex max-w-4xl items-center gap-3 text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                              <span className="h-px flex-1 bg-border"></span>
+                              <span className="px-2 text-center">{t('serviceDesk.conversationSplit', 'This conversation ended. Start a new request for a new ticket.')}</span>
+                              <span className="h-px flex-1 bg-border"></span>
+                            </div>
+                            <p className="mt-3 text-center">
+                              <Button type="button" size="sm" variant="outline" onClick={() => openComposer('request')} disabled={saving}>
+                                <FilePlus2 className="me-2 h-3.5 w-3.5" />
+                                {t('serviceDesk.startNewConversation', 'Start new conversation')}
+                              </Button>
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -537,3 +637,4 @@ export function ServiceDeskPage({
     </PrivacySupportShell>
   );
 }
+

@@ -222,7 +222,7 @@ async function exportDataModels(job: ClaimedJob) {
     const requested = Array.isArray(job.parameters?.domains) ? job.parameters.domains : DATA_TRANSFER_DOMAINS;
     const domains = requested.filter((value): value is DataTransferDomain => typeof value === 'string' && DATA_TRANSFER_DOMAINS.includes(value as DataTransferDomain));
     const output = await createBusinessTransferPackage(client, domains);
-    await completeJob(job, { result: { format: 'ZIP', scope: 'business-data-transfer', domains }, data: output, filename: `hrive_business_data_${new Date().toISOString().slice(0, 10)}.zip`, mimeType: 'application/zip' });
+    await completeJob(job, { result: { format: 'JSONL', scope: 'business-data-transfer', domains }, data: output, filename: `hrive_business_data_${new Date().toISOString().slice(0, 10)}.jsonl`, mimeType: 'application/jsonl' });
   } finally { client.release(); }
 }
 

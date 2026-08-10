@@ -1,8 +1,5 @@
 import { Prisma } from '@prisma/client';
-import archiver from 'archiver';
 import { createHash } from 'crypto';
-import { PassThrough } from 'stream';
-import * as unzipper from 'unzipper';
 import type { DbClient } from '@/lib/db';
 
 export const DATA_MODEL_BACKUP_FORMAT = 'hrive-business-transfer/v1';
@@ -11,8 +8,32 @@ export type DataTransferDomain = typeof DATA_TRANSFER_DOMAINS[number];
 type BackupTable = { model: string; table: string; rows: Record<string, unknown>[] };
 export interface DataModelBackup { format: typeof DATA_MODEL_BACKUP_FORMAT; exportedAt: string; schemaVersion: string; domains: DataTransferDomain[]; models: BackupTable[] }
 const quoteIdentifier = (value: string) => `"${value.replace(/"/g, '""')}"`;
+const MAX_TRANSFER_PAYLOAD_BYTES = 250 * 1024 * 1024;
 
 const NEVER_TRANSFER_MODELS = /(?:User|Account|Session|ApiKey|Token|Password|Audit|LogEntry|Webhook|DataOperationJob|UploadQueue|Notification|ReadStatus|Reminder|DeadLetter|Outbox|Sensitive.*Access|Privacy|SystemSetting|SystemPreference|SystemPrompt|ScreeningFinding)/i;
+
+type TransferManifest = {
+  kind: 'manifest';
+  format: typeof DATA_MODEL_BACKUP_FORMAT;
+  exportedAt: string;
+  schemaVersion: string;
+  domains: DataTransferDomain[];
+  modelCount: number;
+  rowCount: number;
+  checksum: {
+    algorithm: 'sha256';
+    value: string;
+  };
+};
+
+type TransferModelChunk = {
+  kind: 'model';
+  model: string;
+  table: string;
+  rows: Record<string, unknown>[];
+};
+
+type TransferChunk = TransferManifest | TransferModelChunk;
 
 export function getDataTransferDomain(model: string): DataTransferDomain {
   if (/Applicant|Recruitment|Position|JobOffer|JobMatch|Expertise|Personality|SkillTemplate|Headcount/i.test(model)) return 'recruiting';
@@ -50,6 +71,26 @@ function restorePortableValue(value: unknown): unknown {
   return value;
 }
 
+function toTransferChunks(backup: DataModelBackup) {
+  const data = Buffer.from(JSON.stringify(backup, jsonReplacer, 2), 'utf8');
+  const checksum = createHash('sha256').update(data).digest('hex');
+  const manifest: TransferManifest = {
+    kind: 'manifest',
+    format: backup.format,
+    exportedAt: backup.exportedAt,
+    schemaVersion: backup.schemaVersion,
+    domains: backup.domains,
+    modelCount: backup.models.length,
+    rowCount: backup.models.reduce((sum, model) => sum + model.rows.length, 0),
+    checksum: { algorithm: 'sha256', value: checksum },
+  };
+  const chunks: TransferChunk[] = [
+    manifest,
+    ...backup.models.map((entry) => ({ kind: 'model', model: entry.model, table: entry.table, rows: entry.rows })),
+  ];
+  return chunks;
+}
+
 export async function exportAllDataModels(client: DbClient, requestedDomains: DataTransferDomain[] = [...DATA_TRANSFER_DOMAINS]) {
   const selectedDomains = requestedDomains.filter((domain, index) => DATA_TRANSFER_DOMAINS.includes(domain) && requestedDomains.indexOf(domain) === index);
   if (!selectedDomains.length) throw new Error('Select at least one business data domain.');
@@ -63,48 +104,99 @@ export async function exportAllDataModels(client: DbClient, requestedDomains: Da
   return Buffer.from(JSON.stringify(backup, jsonReplacer, 2), 'utf8');
 }
 
-async function createZip(entries: Array<{ name: string; data: Buffer }>) {
-  const output = new PassThrough();
-  const chunks: Buffer[] = [];
-  output.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-  const completed = new Promise<Buffer>((resolve, reject) => {
-    output.on('end', () => resolve(Buffer.concat(chunks)));
-    output.on('error', reject);
-  });
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  archive.on('error', (error) => output.destroy(error));
-  archive.pipe(output);
-  entries.forEach((entry) => archive.append(entry.data, { name: entry.name }));
-  await archive.finalize();
-  return completed;
-}
-
 export async function createBusinessTransferPackage(client: DbClient, domains: DataTransferDomain[]) {
   const data = await exportAllDataModels(client, domains);
   const backup = parseDataModelBackup(data);
-  const checksum = createHash('sha256').update(data).digest('hex');
-  const manifest = Buffer.from(JSON.stringify({ format: backup.format, exportedAt: backup.exportedAt, schemaVersion: backup.schemaVersion, domains: backup.domains, modelCount: backup.models.length, rowCount: backup.models.reduce((sum, model) => sum + model.rows.length, 0), checksum: { algorithm: 'sha256', file: 'data.json', value: checksum } }, null, 2));
-  return createZip([{ name: 'manifest.json', data: manifest }, { name: 'data.json', data }]);
+  const chunks = toTransferChunks(backup);
+  const payload = chunks.map((chunk) => JSON.stringify(chunk)).join('\n');
+  return Buffer.from(payload, 'utf8');
 }
 
 export async function parseBusinessTransferPackage(data: Buffer) {
-  let directory: { files: Array<{ path: string; uncompressedSize?: number; buffer(): Promise<Buffer> }> };
-  try { directory = await unzipper.Open.buffer(data); } catch { throw new Error('The uploaded file is not a valid ZIP transfer package.'); }
-  const manifestEntry = directory.files.find((file) => file.path === 'manifest.json');
-  const dataEntry = directory.files.find((file) => file.path === 'data.json');
-  if (!manifestEntry || !dataEntry) throw new Error('Transfer package must contain manifest.json and data.json.');
-  if (typeof dataEntry.uncompressedSize === 'number' && dataEntry.uncompressedSize > 250 * 1024 * 1024) throw new Error('Transfer package expands beyond the 250 MB safety limit.');
-  const dataBuffer = await dataEntry.buffer();
-  let manifest: { checksum?: { algorithm?: unknown; value?: unknown } };
-  try { manifest = JSON.parse((await manifestEntry.buffer()).toString('utf8')); } catch { throw new Error('Transfer package manifest is invalid.'); }
-  if (manifest.checksum?.algorithm !== 'sha256' || typeof manifest.checksum.value !== 'string') throw new Error('Transfer package checksum is missing.');
-  const checksum = createHash('sha256').update(dataBuffer).digest('hex');
-  if (checksum !== manifest.checksum.value) throw new Error('Transfer package integrity check failed.');
-  const backup = parseDataModelBackup(dataBuffer);
+  if (data.length > MAX_TRANSFER_PAYLOAD_BYTES) {
+    throw new Error('Transfer package expands beyond the 250 MB safety limit.');
+  }
+
+  const lines = data.toString('utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) {
+    throw new Error('The uploaded file is not a valid transfer package.');
+  }
+
+  let manifest: TransferManifest | null = null;
+  const models: BackupTable[] = [];
+  const allowedTables = new Set(getDataModelTables().map((item) => item.table));
+  const seenModelTables = new Set<string>();
+
+  for (const line of lines) {
+    let chunk: unknown;
+    try { chunk = JSON.parse(line); } catch { throw new Error('The uploaded file is not a valid transfer package.'); }
+    if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) {
+      throw new Error('The uploaded file is not a valid transfer package.');
+    }
+
+    const kind = (chunk as { kind?: unknown }).kind;
+    if (kind === 'manifest') {
+      if (manifest) throw new Error('Transfer package contains more than one manifest chunk.');
+      const candidate = chunk as TransferManifest;
+      if (candidate.format !== DATA_MODEL_BACKUP_FORMAT) {
+        throw new Error(`The uploaded file is not a ${DATA_MODEL_BACKUP_FORMAT} file.`);
+      }
+      if (!Array.isArray(candidate.domains) || !candidate.domains.every((item): item is DataTransferDomain => typeof item === 'string' && DATA_TRANSFER_DOMAINS.includes(item))) {
+        throw new Error('Transfer package contains an unsupported business domain.');
+      }
+      if (!candidate.checksum || candidate.checksum.algorithm !== 'sha256' || typeof candidate.checksum.value !== 'string') {
+        throw new Error('Transfer package checksum is missing.');
+      }
+      if (typeof candidate.modelCount !== 'number' || candidate.modelCount < 0 || typeof candidate.rowCount !== 'number' || candidate.rowCount < 0) {
+        throw new Error('Transfer package manifest is invalid.');
+      }
+      manifest = candidate;
+      continue;
+    }
+
+    if (kind === 'model') {
+      const candidate = chunk as TransferModelChunk;
+      if (typeof candidate.model !== 'string' || typeof candidate.table !== 'string' || !Array.isArray(candidate.rows)) {
+        throw new Error('Transfer package contains a malformed data model.');
+      }
+      if (!allowedTables.has(candidate.table)) {
+        throw new Error('Transfer package contains an unknown or malformed data model.');
+      }
+      if (seenModelTables.has(candidate.table)) {
+        throw new Error('Transfer package contains a duplicate data model.');
+      }
+      seenModelTables.add(candidate.table);
+      models.push({ model: candidate.model, table: candidate.table, rows: candidate.rows });
+      continue;
+    }
+
+    throw new Error('Transfer package contains an unknown chunk type.');
+  }
+
+  if (!manifest) throw new Error('Transfer package must contain a manifest chunk.');
+
+  const backup: DataModelBackup = {
+    format: manifest.format,
+    exportedAt: manifest.exportedAt,
+    schemaVersion: manifest.schemaVersion,
+    domains: manifest.domains,
+    models,
+  };
+  const parsed = parseDataModelBackup(Buffer.from(JSON.stringify(backup, jsonReplacer, 2), 'utf8'));
+  const dataBuffer = Buffer.from(JSON.stringify(parsed, jsonReplacer, 2), 'utf8');
+  if (createHash('sha256').update(dataBuffer).digest('hex') !== manifest.checksum.value) {
+    throw new Error('Transfer package integrity check failed.');
+  }
+  if (parsed.models.length !== manifest.modelCount) {
+    throw new Error(`Transfer package contains ${parsed.models.length} model chunks but manifest declares ${manifest.modelCount}.`);
+  }
+  if (parsed.models.reduce((sum, model) => sum + model.rows.length, 0) !== manifest.rowCount) {
+    throw new Error('Transfer package row count does not match the manifest declaration.');
+  }
   const allowed = new Set(getDataModelTables().map((item) => item.table));
-  if (backup.domains.some((domain) => !DATA_TRANSFER_DOMAINS.includes(domain))) throw new Error('Transfer package contains an unsupported business domain.');
-  if (backup.models.some((model) => !model || !allowed.has(model.table) || !Array.isArray(model.rows))) throw new Error('Transfer package contains a prohibited or malformed data model.');
-  return backup;
+  if (parsed.domains.some((domain) => !DATA_TRANSFER_DOMAINS.includes(domain))) throw new Error('Transfer package contains an unsupported business domain.');
+  if (parsed.models.some((model) => !model || !allowed.has(model.table) || !Array.isArray(model.rows))) throw new Error('Backup contains an unknown or malformed data model.');
+  return parsed;
 }
 
 export function parseDataModelBackup(data: Buffer): DataModelBackup {
@@ -159,3 +251,4 @@ export async function importAllDataModels(client: DbClient, backup: DataModelBac
     throw error;
   }
 }
+

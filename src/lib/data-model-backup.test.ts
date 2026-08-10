@@ -34,7 +34,7 @@ describe('all data model backup contract', () => {
     expect(() => parseDataModelBackup(Buffer.from('{"models":[]}'))).toThrow(DATA_MODEL_BACKUP_FORMAT);
   });
 
-  it('creates a checksummed ZIP package that can be validated before import', async () => {
+  it('creates a checksummed split JSONL package that can be validated before import', async () => {
     const client = { query: vi.fn().mockResolvedValue({ rows: [] }) };
     const zipped = await createBusinessTransferPackage(client as never, ['leave']);
     const parsed = await parseBusinessTransferPackage(zipped);

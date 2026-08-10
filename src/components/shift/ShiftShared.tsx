@@ -24,6 +24,7 @@ import {
   HrisWorkspaceHeader,
   hrisStatusTone,
 } from '@/components/hris/HrisWorkspacePrimitives';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 import { cn } from '@/lib/utils';
 import { formatDate, stringValue, type ShiftRecord } from './shift-types';
 
@@ -225,12 +226,26 @@ export function DetailDrawer({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { contentZIndex, overlayZIndex } = useDynamicZIndex('shift-detail-drawer', 'drawer');
+
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/25" role="presentation" onMouseDown={event => {
+    <div
+      className="fixed inset-0 flex justify-end bg-slate-950/25"
+      style={{ zIndex: overlayZIndex }}
+      role="presentation"
+      onMouseDown={event => {
       if (event.currentTarget === event.target) onClose();
-    }}>
-      <aside className="h-full w-full max-w-lg overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" role="dialog" aria-modal="true" aria-label={title}>
+    }}
+    >
+      <aside
+        className="h-full w-full max-w-lg overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+        style={{ zIndex: contentZIndex }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className="sticky top-0 z-10 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
           <h2 className="font-semibold text-slate-950 dark:text-zinc-50">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close detail"><X className="h-4 w-4" /></Button>

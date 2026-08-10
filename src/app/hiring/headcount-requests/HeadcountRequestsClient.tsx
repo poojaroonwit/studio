@@ -1064,7 +1064,7 @@ function HeadcountDecisionPanel({
       role="dialog"
       aria-modal="false"
       aria-labelledby="headcount-decision-panel-title"
-      className="fixed inset-3 z-[60] flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl sm:bottom-20 sm:left-auto sm:right-4 sm:top-[118px] sm:w-[420px]"
+      className="fixed left-3 right-3 top-0 z-[130] flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl bottom-3 sm:bottom-20 sm:left-auto sm:right-4 sm:top-0 sm:w-[420px]"
     >
       <div key={request.id} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
         <div className="flex items-start justify-between gap-4 border-b border-border pb-4">

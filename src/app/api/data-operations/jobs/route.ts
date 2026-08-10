@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (operation === 'import' && !file) return NextResponse.json({ error: 'No import file uploaded' }, { status: 400 });
     if (file && entityType === 'positions' && !file.name.toLowerCase().endsWith('.csv')) return NextResponse.json({ error: 'Position imports require a CSV file.' }, { status: 400 });
     if (file && entityType === 'applicants' && !/\.(xlsx|csv)$/i.test(file.name)) return NextResponse.json({ error: 'Applicant imports require an Excel or CSV file.' }, { status: 400 });
-    if (file && entityType === 'system-transfer' && !file.name.toLowerCase().endsWith('.zip')) return NextResponse.json({ error: 'System data transfers require a ZIP package.' }, { status: 400 });
+    if (file && entityType === 'system-transfer' && !/\.jsonl$/i.test(file.name) && !/\.json$/i.test(file.name)) return NextResponse.json({ error: 'System data transfers require a JSONL package.' }, { status: 400 });
 
     let validation: Record<string, unknown> | undefined;
     if (operation === 'import' && entityType === 'system-transfer' && file) {

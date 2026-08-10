@@ -107,6 +107,7 @@ export function DataOperationsWorkspace() {
     setResult(null);
     if (id === 'positions') setFormat('excel');
     if (id === 'system-transfer') setFormat('jsonl');
+    if (id === 'applicants') setFormat('excel');
   };
 
   const handleTemplateDownload = async () => {

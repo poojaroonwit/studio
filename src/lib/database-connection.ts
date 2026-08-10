@@ -42,10 +42,11 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
       : environmentSslPreference === false
         ? !isLocalHost
         : !isLocalHost;
+  const defaultRejectUnauthorized = process.env.NODE_ENV === 'production';
 
   const ssl = useSsl
     ? {
-        rejectUnauthorized: environmentSslRejectUnauthorized ?? true,
+        rejectUnauthorized: environmentSslRejectUnauthorized ?? defaultRejectUnauthorized,
       }
     : false;
 

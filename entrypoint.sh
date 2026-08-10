@@ -77,17 +77,17 @@ has_required_tables() {
 
 sync_schema_with_prisma() {
     echo "Ensuring required PostgreSQL extensions..."
-    npx prisma db execute --skip-generate --schema=prisma/schema.prisma \
+    npx prisma db execute --schema=prisma/schema.prisma \
       --file=scripts/ensure-postgresql-extensions.sql || \
       echo "Warning: extension bootstrap failed; attempting schema sync anyway."
 
     echo "Deduplicating service desk knowledge documents by (category_id, file_name)..."
-    npx prisma db execute --skip-generate --schema=prisma/schema.prisma \
+    npx prisma db execute --schema=prisma/schema.prisma \
       --file=scripts/dedupe-service-desk-knowledge-documents.sql || \
       echo "Warning: duplicate cleanup failed; schema sync may still fail if duplicates remain."
 
     echo "Applying non-destructive schema changes from prisma/schema.prisma..."
-    if npx prisma db push --skip-generate --accept-data-loss --schema=prisma/schema.prisma; then
+    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
         echo "Database schema is up to date"
         echo "Backfilling legacy position organization links..."
         npx prisma db execute --schema=prisma/schema.prisma --file=scripts/backfill-position-organization-units.sql || \

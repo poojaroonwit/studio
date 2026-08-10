@@ -30,7 +30,7 @@ if ! pg_isready -d "$DATABASE_URL" >/dev/null 2>&1; then
 fi
 
 echo "Syncing schema from prisma/schema.prisma..."
-if npx prisma db execute --skip-generate --schema=prisma/schema.prisma \
+if npx prisma db execute --schema=prisma/schema.prisma \
   --file=scripts/ensure-postgresql-extensions.sql; then
     echo "PostgreSQL extensions are ready"
 else
@@ -38,14 +38,14 @@ else
 fi
 
 echo "Deduplicating service desk knowledge documents by (category_id, file_name)..."
-if npx prisma db execute --skip-generate --schema=prisma/schema.prisma \
+if npx prisma db execute --schema=prisma/schema.prisma \
   --file=scripts/dedupe-service-desk-knowledge-documents.sql; then
     echo "Knowledge documents dedupe completed"
 else
     echo "Warning: duplicate cleanup failed; schema sync may still fail if duplicates remain"
 fi
 
-if npx prisma db push --skip-generate --accept-data-loss --schema=prisma/schema.prisma; then
+if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
     echo "Database schema is ready"
 else
     echo "ERROR: safe Prisma schema sync failed; existing data was not reset"

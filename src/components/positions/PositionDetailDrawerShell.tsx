@@ -66,6 +66,8 @@ export function PositionDetailDrawerShell({
   onManualClose,
   children,
 }: PositionDetailDrawerShellProps) {
+  const { contentZIndex } = useDynamicZIndex('position-detail-drawer-mobile', 'drawer');
+
   if (!hasMounted) {
     return null;
   }
@@ -74,7 +76,6 @@ export function PositionDetailDrawerShell({
   const description = position
     ? `${position.department} - ${position.positionLevel || 'No level specified'}`
     : 'Loading position details...';
-  const { contentZIndex } = useDynamicZIndex('position-detail-drawer-mobile', 'drawer');
 
   if (isMobile) {
     if (!isOpen) {

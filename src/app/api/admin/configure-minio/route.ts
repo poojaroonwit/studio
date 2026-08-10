@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'MinIO CORS is managed via MINIO_API_CORS_* environment variables or `mc admin config`.',
+      message:
+        'Object storage CORS is managed via provider configuration (for MinIO-compatible services, use MINIO_API_CORS_* environment variables).',
       configuredAtRuntime: false,
       bucket: MINIO_BUCKET,
       timestamp: new Date().toISOString(),

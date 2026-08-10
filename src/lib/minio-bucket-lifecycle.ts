@@ -13,8 +13,10 @@ import {
 let bucketInitialized = false;
 let corsWarningShown = false;
 
-function isMinioCorsEnvConfigured(): boolean {
-  return Object.keys(process.env).some((name) => name.startsWith('MINIO_API_CORS_'));
+function isStorageCorsEnvConfigured(): boolean {
+  return Object.keys(process.env).some(
+    (name) => name.startsWith('MINIO_API_CORS_') || name.startsWith('STORAGE_API_CORS_'),
+  );
 }
 
 async function applyPrivateBucketPolicy({
@@ -40,10 +42,10 @@ async function applyPrivateBucketPolicy({
 
 export async function setMinIOCORSForClient() {
   if (!corsWarningShown) {
-    if (isMinioCorsEnvConfigured()) {
-      console.log('[MINIO] CORS is configured via MINIO_API_CORS_* environment variables.');
+    if (isStorageCorsEnvConfigured()) {
+      console.log('[STORAGE] CORS is configured via *API_CORS_* environment variables.');
     } else {
-      console.warn('[MINIO] Runtime CORS config is skipped. Configure CORS via MINIO_API_CORS_* environment variables or `mc admin config`.');
+      console.warn('[STORAGE] Runtime CORS config is skipped. Configure CORS through your storage provider settings (or MINIO_API_CORS_* if using MinIO-compatible service).');
     }
 
     corsWarningShown = true;

@@ -12,7 +12,7 @@ function parseBooleanValue(rawValue: string | undefined): boolean | undefined {
     return undefined;
   }
 
-  const normalized = rawValue.trim().toLowerCase();
+  const normalized = rawValue.trim().replace(/^['"]/, '').replace(/['"]$/, '').toLowerCase();
   if (['1', 'true', 'yes', 'on', 'enabled'].includes(normalized)) {
     return true;
   }
@@ -51,7 +51,7 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
     : false;
 
   if (useSsl && !hasExplicitSslMode) {
-    databaseUrl.searchParams.set('sslmode', 'require');
+    databaseUrl.searchParams.set('sslmode', 'verify-full');
   }
 
   return {

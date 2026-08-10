@@ -35,6 +35,7 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
 
   const environmentSslPreference = parseBooleanValue(process.env.DATABASE_SSL);
   const environmentSslRejectUnauthorized = parseBooleanValue(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED);
+  const shouldAllowInsecureCertificates = environmentSslRejectUnauthorized === false;
   const isLocalHost = isLocalDatabaseHost(databaseUrl.hostname);
   const useSsl =
     environmentSslPreference === true
@@ -50,8 +51,19 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
       }
     : false;
 
-  if (useSsl && !hasExplicitSslMode) {
-    databaseUrl.searchParams.set('sslmode', 'verify-full');
+  if (useSsl) {
+    if (!hasExplicitSslMode) {
+      if (shouldAllowInsecureCertificates) {
+        databaseUrl.searchParams.set('sslmode', 'require');
+        databaseUrl.searchParams.set('uselibpqcompat', 'true');
+      } else {
+        databaseUrl.searchParams.set('sslmode', 'verify-full');
+      }
+    } else if (shouldAllowInsecureCertificates) {
+      databaseUrl.searchParams.set('sslmode', 'require');
+      databaseUrl.searchParams.set('ssl', 'true');
+      databaseUrl.searchParams.set('uselibpqcompat', 'true');
+    }
   }
 
   return {

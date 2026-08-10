@@ -1,0 +1,31 @@
+import prisma from '@/lib/prisma';
+import { hasAnyPermission, isAdminUser, type SessionLikeUser } from '@/lib/permissions';
+import type { PayrollAccess } from './contracts';
+
+export async function getPayrollAccess(user: SessionLikeUser & { id?: string; email?: string | null }): Promise<PayrollAccess> {
+  const isAdmin = isAdminUser(user);
+  const canManage = isAdmin || hasAnyPermission(user, ['HR_PAYROLL_MANAGE']);
+  const canView = canManage || hasAnyPermission(user, ['HR_PAYROLL_VIEW']);
+  const employee = user.id ? await prisma.$queryRawUnsafe<Array<{ id: string; company_id: string | null }>>(
+    `SELECT id, company_id FROM hr_employees
+     WHERE user_id = $1::uuid OR lower(email) = lower($2)
+     ORDER BY CASE WHEN user_id = $1::uuid THEN 0 ELSE 1 END LIMIT 1`,
+    user.id,
+    user.email || '',
+  ).catch(() => []) : [];
+
+  return {
+    isAdmin,
+    canView,
+    canManage,
+    canApprove: canManage,
+    canExport: canManage,
+    actorCompanyId: isAdmin ? null : employee[0]?.company_id || null,
+    actorEmployeeId: employee[0]?.id || null,
+  };
+}
+
+export function maskPayrollReference(value: unknown) {
+  const normalized = String(value || '').replace(/\s/g, '');
+  return normalized ? `•••• ${normalized.slice(-4)}` : 'Not provided';
+}

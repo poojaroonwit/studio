@@ -7,7 +7,7 @@ import { minioClient, MINIO_BUCKET, setMinIOCORS } from '@/lib/minio';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   // Only allow admin users to configure MinIO
   if (session?.user?.role !== 'Admin') {
     return NextResponse.json(
@@ -17,27 +17,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // console.log('🔧 Configuring MinIO CORS for COEP compliance...');
-    
-    // Set CORS configuration
+    // MinIO CORS is now configured via environment variables or mc admin config.
     await setMinIOCORS();
-    
-    // SECURITY: Never set public read access - enforce private access only
-    // console.log('🔒 SECURITY: MinIO configured with private access only - no public file access');
-    
+
     return NextResponse.json({
       success: true,
-      message: 'MinIO CORS configuration completed successfully',
+      message: 'MinIO CORS is managed via MINIO_API_CORS_* environment variables or `mc admin config`.',
+      configuredAtRuntime: false,
       bucket: MINIO_BUCKET,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
   } catch (error) {
     console.error('❌ Error configuring MinIO CORS:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to configure MinIO CORS',
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );
@@ -46,7 +41,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  
+
   // Only allow admin users to view MinIO configuration
   if (session?.user?.role !== 'Admin') {
     return NextResponse.json(
@@ -63,19 +58,18 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       console.warn('Could not retrieve bucket policy:', error);
     }
-    
+
     return NextResponse.json({
       bucket: MINIO_BUCKET,
       bucketPolicy: bucketPolicy ? JSON.parse(bucketPolicy) : null,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
   } catch (error) {
     console.error('❌ Error retrieving MinIO configuration:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to retrieve MinIO configuration',
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );

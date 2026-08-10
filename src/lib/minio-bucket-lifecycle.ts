@@ -13,6 +13,10 @@ import {
 let bucketInitialized = false;
 let corsWarningShown = false;
 
+function isMinioCorsEnvConfigured(): boolean {
+  return Object.keys(process.env).some((name) => name.startsWith('MINIO_API_CORS_'));
+}
+
 async function applyPrivateBucketPolicy({
   bucket,
   client,
@@ -36,7 +40,12 @@ async function applyPrivateBucketPolicy({
 
 export async function setMinIOCORSForClient() {
   if (!corsWarningShown) {
-    console.warn('[MINIO] setMinIOCORS is a no-op. Configure CORS via MINIO_API_CORS_* env or mc admin config.');
+    if (isMinioCorsEnvConfigured()) {
+      console.log('[MINIO] CORS is configured via MINIO_API_CORS_* environment variables.');
+    } else {
+      console.warn('[MINIO] Runtime CORS config is skipped. Configure CORS via MINIO_API_CORS_* environment variables or `mc admin config`.');
+    }
+
     corsWarningShown = true;
   }
 }

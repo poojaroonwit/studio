@@ -25,59 +25,52 @@ export async function GET(request: NextRequest) {
       // Set a shorter timeout for filter data
       await client.query("SET statement_timeout = 10000"); // 10 seconds
 
-      // Fetch only the data needed for filters in parallel
-      const [positionsResult, stagesResult, recruitersResult, sourcesResult] =
-        await Promise.all([
-          // Open positions only
-          client.query(`
-          SELECT 
-            p.id,
-            p.title,
-            p.department,
-            p."isOpen",
-            u.name as "recruiterName"
-          FROM "Position" p 
-          LEFT JOIN "User" u ON p."recruiterId" = u.id
-          WHERE p."isOpen" = true
-          ORDER BY p.title ASC
-        `),
+      // Fetch filter data sequentially to avoid concurrent client query execution.
+      const positionsResult = await client.query(`
+        SELECT 
+          p.id,
+          p.title,
+          p.department,
+          p."isOpen",
+          u.name as "recruiterName"
+        FROM "Position" p 
+        LEFT JOIN "User" u ON p."recruiterId" = u.id
+        WHERE p."isOpen" = true
+        ORDER BY p.title ASC
+      `);
 
-          // Recruitment stages
-          client.query(`
-          SELECT 
-            id,
-            name,
-            "sort_order",
-            color_badge AS color,
-            description
-          FROM "RecruitmentStage" 
-          ORDER BY "sort_order" ASC
-        `),
+      const stagesResult = await client.query(`
+        SELECT 
+          id,
+          name,
+          "sort_order",
+          color_badge AS color,
+          description
+        FROM "RecruitmentStage" 
+        ORDER BY "sort_order" ASC
+      `);
 
-          // Recruiter (users with recruiter role)
-          client.query(`
-          SELECT 
-            id,
-            name,
-            email,
-            "avatarUrl",
-            personal_color AS "personalColor"
-          FROM "User" 
-          WHERE role = 'Recruiter' OR role = 'Admin'
-          ORDER BY name ASC
-        `),
+      const recruitersResult = await client.query(`
+        SELECT 
+          id,
+          name,
+          email,
+          "avatarUrl",
+          personal_color AS "personalColor"
+        FROM "User" 
+        WHERE role = 'Recruiter' OR role = 'Admin'
+        ORDER BY name ASC
+      `);
 
-          // Applicant sources
-          client.query(`
-          SELECT 
-            id,
-            name,
-            description,
-            logo
-          FROM "ApplicantSource" 
-          ORDER BY name ASC
-        `),
-        ]);
+      const sourcesResult = await client.query(`
+        SELECT 
+          id,
+          name,
+          description,
+          logo
+        FROM "ApplicantSource" 
+        ORDER BY name ASC
+      `);
 
       // Get basic Applicant counts for filter badges
       const applicantCountsResult = await client.query(`

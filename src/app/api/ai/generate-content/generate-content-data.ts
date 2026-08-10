@@ -128,12 +128,10 @@ export async function getGenerateContentApplicantData(applicantId: string) {
     }
 
     const applicant = applicantResult.rows[0];
-    const [commentsResult, transitionsResult, attachmentsResult, matchesResult] = await Promise.all([
-      client.query(APPLICANT_COMMENTS_QUERY, [applicantId]),
-      client.query(TRANSITION_RECORDS_QUERY, [applicantId]),
-      client.query(ATTACHMENTS_QUERY, [applicantId]),
-      client.query(JOB_MATCHES_QUERY, [applicantId]),
-    ]);
+    const commentsResult = await client.query(APPLICANT_COMMENTS_QUERY, [applicantId]);
+    const transitionsResult = await client.query(TRANSITION_RECORDS_QUERY, [applicantId]);
+    const attachmentsResult = await client.query(ATTACHMENTS_QUERY, [applicantId]);
+    const matchesResult = await client.query(JOB_MATCHES_QUERY, [applicantId]);
 
     let appliedPositionData = null;
     if (applicant.positionId) {

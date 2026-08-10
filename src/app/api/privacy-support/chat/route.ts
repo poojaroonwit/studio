@@ -42,7 +42,12 @@ async function answerEmployee(request: NextRequest) {
     parsed.data.category,
   );
   const category = categories[0];
-  if (!category) return NextResponse.json({ message: 'Choose an active HR category.' }, { status: 400 });
+  if (!category) {
+    return NextResponse.json({
+      requiresHuman: true,
+      message: 'Choose an active HR category.',
+    }, { status: 400 });
+  }
   if (!category.aiEnabled) {
     return NextResponse.json({ requiresHuman: true, message: 'This topic is handled directly by the People Team.' }, { status: 409 });
   }

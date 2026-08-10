@@ -22,18 +22,9 @@ export async function processUploadsInTransaction(
   actingUserId: string,
 ): Promise<UploadResult[]> {
   const client = await getPool().connect();
-  const dbTimeout = setTimeout(() => {
-    console.error('[UPLOAD] Database operation timeout - forcing rollback');
-    client.query('ROLLBACK').catch((rollbackError: unknown) => {
-      console.error('[UPLOAD] Error during forced rollback:', rollbackError);
-    });
-  }, 60000);
-
-  try {
-    await client.query('BEGIN');
-
-    const results = await Promise.all(
-      parsed.files.map((file) => processFileUpload(file, client, {
+  const transactionPromise = Promise.all(
+    parsed.files.map((file) =>
+      processFileUpload(file, client, {
         position_id: parsed.position_id,
         batch_id: parsed.batch_id,
         source: parsed.source,
@@ -41,17 +32,32 @@ export async function processUploadsInTransaction(
         sub_source: parsed.sub_source,
         webhook_payload: parsed.webhook_payload,
         created_by: actingUserId,
-      })),
-    );
+      }),
+    ),
+  );
+  const timeoutMs = 60000;
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error('[UPLOAD] Database operation timeout - forcing rollback'));
+    }, timeoutMs);
+  });
 
-    clearTimeout(dbTimeout);
+  try {
+    await client.query('BEGIN');
+    const results = await Promise.race([transactionPromise, timeoutPromise]);
     await client.query('COMMIT');
     return results;
   } catch (error) {
-    clearTimeout(dbTimeout);
+    if (error instanceof Error && error.message.includes('forcing rollback')) {
+      console.error('[UPLOAD] Database operation timeout - forcing rollback');
+    }
     await client.query('ROLLBACK');
     throw error;
   } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
     client.release();
   }
 }

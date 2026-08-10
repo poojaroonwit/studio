@@ -81,7 +81,7 @@ export function HrHelpWidget({
   function startChat(categoryKey: string) {
     setCategory(categoryKey);
     setChatStarted(true);
-    setHumanRequested(!categories.find(option => option.key === categoryKey)?.aiEnabled);
+    setHumanRequested(false);
     setChatMessages([]);
     setError('');
   }
@@ -181,7 +181,7 @@ export function HrHelpWidget({
     }
 
     const selected = categories.find(option => option.key === category);
-    if (selected?.aiEnabled && !humanRequested) {
+    if (selected && !humanRequested) {
       const userMessage: ChatMessage = { role: 'user', content: message.trim() };
       const history = chatMessages.map(({ role, content }) => ({ role, content }));
       setChatMessages(current => [...current, userMessage]);
@@ -197,7 +197,7 @@ export function HrHelpWidget({
         const answer = data.answer || data.message;
         if (answer) setChatMessages(current => [...current, { role: 'assistant', content: answer, citations: data.citations }]);
         if (data.requiresHuman) setHumanRequested(true);
-        if (!response.ok && !answer) setError(t('serviceDesk.widget.sendError', 'We could not answer your message. Please try again or talk with a human.'));
+        if (!response.ok) setError(data.message || t('serviceDesk.widget.sendError', 'We could not answer your message. Please try again or talk with a human.'));
       } catch {
         setError(t('serviceDesk.widget.networkError', 'The HR assistant is unavailable right now. You can talk with a human instead.'));
         setHumanRequested(true);
@@ -330,10 +330,15 @@ export function HrHelpWidget({
             </div>
 
             <div className="flex h-[320px] flex-col bg-white">
-              {selectedCategory?.aiEnabled && !humanRequested && <div className="mx-[20px] mt-[20px] max-w-[304px] rounded-[12px] bg-slate-100 px-[16px] py-[14px] text-[14px] leading-[21px] text-slate-600">{t('serviceDesk.widget.aiWelcome', `Ask a question about ${selectedCategory.label}. Answers use only this topic's approved knowledge base.`)}</div>}
-              <div className={cn("mx-[20px] mt-[20px] max-w-[292px] rounded-[12px] bg-slate-100 px-[16px] py-[14px] text-[14px] leading-[21px] text-slate-600", selectedCategory?.aiEnabled && !humanRequested && 'hidden')}>
+            {humanRequested ? (
+              <div className="mx-[20px] mt-[20px] max-w-[292px] rounded-[12px] bg-slate-100 px-[16px] py-[14px] text-[14px] leading-[21px] text-slate-600">
                 {t('serviceDesk.widget.privateWelcome', 'You’re starting a private conversation with the People Team.')}
               </div>
+            ) : (
+              <div className="mx-[20px] mt-[20px] max-w-[304px] rounded-[12px] bg-slate-100 px-[16px] py-[14px] text-[14px] leading-[21px] text-slate-600">
+                {t('serviceDesk.widget.aiWelcome', `Ask a question about ${selectedCategory.label}. Answers use only this topic's approved knowledge base.`)}
+              </div>
+            )}
 
               <div className="flex-1 overflow-y-auto px-[20px] py-4">
                 <div className="space-y-3">

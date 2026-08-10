@@ -71,13 +71,11 @@ export default async function DashboardPageServer() {
       // Fetch optimized metrics
       initialMetrics = await fetchDashboardMetrics(client, userId, canViewAll);
 
-      // Fetch other data in parallel
-      const [applicantsResult, positionsResult, usersResult, stagesResult] = await Promise.all([
-        client.query(DASHBOARD_APPLICANTS_QUERY, [canViewAll, userId]),
-        client.query(DASHBOARD_POSITIONS_QUERY),
-        client.query(DASHBOARD_USERS_QUERY),
-        client.query(DASHBOARD_STAGES_QUERY)
-      ]);
+      // Fetch other data sequentially to avoid overlapping client queries
+      const applicantsResult = await client.query(DASHBOARD_APPLICANTS_QUERY, [canViewAll, userId]);
+      const positionsResult = await client.query(DASHBOARD_POSITIONS_QUERY);
+      const usersResult = await client.query(DASHBOARD_USERS_QUERY);
+      const stagesResult = await client.query(DASHBOARD_STAGES_QUERY);
 
       // Transform Applicants data - omitting transitionHistory as it's expensive and now pre-calculated
       initialApplicants = mapDashboardApplicants(applicantsResult.rows as DashboardApplicantRow[]);

@@ -1,4 +1,4 @@
-import { getPool, type DbClient } from '@/lib/db';
+import { getPool } from '@/lib/db';
 
 const APPLICANT_STATS_QUERY = `
   SELECT 
@@ -49,30 +49,26 @@ const RECENT_ACTIVITY_QUERY = `
 `;
 
 export async function fetchDashboardV1Data() {
-  const client = await getPool().connect();
+  const [applicantStats, positionStats, applicationStats, recruiterStats, recentActivity] =
+    await fetchDashboardV1QueryResults();
 
-  try {
-    const [applicantStats, positionStats, applicationStats, recruiterStats, recentActivity] =
-      await fetchDashboardV1QueryResults(client);
-
-    return {
-      applicantStats: applicantStats.rows[0],
-      positionStats: positionStats.rows[0],
-      applicationStats: applicationStats.rows[0],
-      recruiterStats: recruiterStats.rows[0],
-      recentActivity: recentActivity.rows,
-    };
-  } finally {
-    client.release();
-  }
+  return {
+    applicantStats: applicantStats.rows[0],
+    positionStats: positionStats.rows[0],
+    applicationStats: applicationStats.rows[0],
+    recruiterStats: recruiterStats.rows[0],
+    recentActivity: recentActivity.rows,
+  };
 }
 
-async function fetchDashboardV1QueryResults(client: DbClient) {
+async function fetchDashboardV1QueryResults() {
+  const pool = getPool();
+
   return Promise.all([
-    client.query(APPLICANT_STATS_QUERY),
-    client.query(POSITION_STATS_QUERY),
-    client.query(APPLICATION_STATS_QUERY),
-    client.query(RECRUITER_STATS_QUERY),
-    client.query(RECENT_ACTIVITY_QUERY),
+    pool.query(APPLICANT_STATS_QUERY),
+    pool.query(POSITION_STATS_QUERY),
+    pool.query(APPLICATION_STATS_QUERY),
+    pool.query(RECRUITER_STATS_QUERY),
+    pool.query(RECENT_ACTIVITY_QUERY),
   ]);
 }

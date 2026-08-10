@@ -34,7 +34,7 @@ export async function validateApiKey(
       return { valid: false, error: invalidReason };
     }
 
-    recordSystemApiKeyUsage(client, apiKeyData.id, ipAddress);
+    await recordSystemApiKeyUsage(client, apiKeyData.id, ipAddress);
     return { valid: true, data: apiKeyData };
   } catch (error) {
     console.error("[SystemApiKey] Error validating API key:", error);

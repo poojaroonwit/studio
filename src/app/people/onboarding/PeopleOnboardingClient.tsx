@@ -323,7 +323,7 @@ export function PeopleOnboardingClient() {
 
   return (
     <main className="min-h-full bg-[#f8fafc] text-[#14213d] dark:bg-zinc-950 dark:text-zinc-50">
-      <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-7">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-7">
         <PageHeader canManage={canManageOnboarding} onStart={() => setCreateOpen(true)} />
 
         {error && <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">{error}</p>}

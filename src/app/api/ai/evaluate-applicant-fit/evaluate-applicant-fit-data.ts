@@ -81,38 +81,36 @@ export async function fetchPositionForFitEvaluation(client: EvaluateFitClient, p
 }
 
 export async function fetchFitEvaluationContextRows(client: EvaluateFitClient, applicantId: string) {
-  const [attachmentsResult, matchesResult, evaluationsResult, commentsResult] = await Promise.all([
-    client.query(`
-      SELECT "fileName", "filePath", label, "isPrimary", "uploadedAt"
-      FROM "Attachment"
-      WHERE "applicantId" = $1
-      ORDER BY "isPrimary" DESC, "uploadedAt" DESC
-    `, [applicantId]),
-    client.query(`
-      SELECT jm."fitScore", jm."matchReasons", jm."jobTitle", jm."jobId", p.title as "positionTitle", p."matchCriteria"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."applicant_id" = $1
-      ORDER BY jm."fitScore" DESC NULLS LAST
-      LIMIT 10
-    `, [applicantId]),
-    client.query(`
-      SELECT ae."overallScore", ae.comments, ae.status, ae."completedAt", u.name as "evaluatorName"
-      FROM "ApplicantEvaluation" ae
-      LEFT JOIN "User" u ON ae."evaluatorId" = u.id
-      WHERE ae."applicantId" = $1
-      ORDER BY ae."completedAt" DESC NULLS LAST, ae."updatedAt" DESC
-      LIMIT 10
-    `, [applicantId]),
-    client.query(`
-      SELECT ac.content, ac."createdAt", u.name as "authorName"
-      FROM "ApplicantComment" ac
-      LEFT JOIN "User" u ON ac."authorId" = u.id
-      WHERE ac."applicantId" = $1
-      ORDER BY ac."createdAt" DESC
-      LIMIT 10
-    `, [applicantId]),
-  ]);
+  const attachmentsResult = await client.query(`
+    SELECT "fileName", "filePath", label, "isPrimary", "uploadedAt"
+    FROM "Attachment"
+    WHERE "applicantId" = $1
+    ORDER BY "isPrimary" DESC, "uploadedAt" DESC
+  `, [applicantId]);
+  const matchesResult = await client.query(`
+    SELECT jm."fitScore", jm."matchReasons", jm."jobTitle", jm."jobId", p.title as "positionTitle", p."matchCriteria"
+    FROM "JobMatch" jm
+    LEFT JOIN "Position" p ON jm."jobId" = p.id
+    WHERE jm."applicant_id" = $1
+    ORDER BY jm."fitScore" DESC NULLS LAST
+    LIMIT 10
+  `, [applicantId]);
+  const evaluationsResult = await client.query(`
+    SELECT ae."overallScore", ae.comments, ae.status, ae."completedAt", u.name as "evaluatorName"
+    FROM "ApplicantEvaluation" ae
+    LEFT JOIN "User" u ON ae."evaluatorId" = u.id
+    WHERE ae."applicantId" = $1
+    ORDER BY ae."completedAt" DESC NULLS LAST, ae."updatedAt" DESC
+    LIMIT 10
+  `, [applicantId]);
+  const commentsResult = await client.query(`
+    SELECT ac.content, ac."createdAt", u.name as "authorName"
+    FROM "ApplicantComment" ac
+    LEFT JOIN "User" u ON ac."authorId" = u.id
+    WHERE ac."applicantId" = $1
+    ORDER BY ac."createdAt" DESC
+    LIMIT 10
+  `, [applicantId]);
 
   return {
     resumesAndAttachments: attachmentsResult.rows,

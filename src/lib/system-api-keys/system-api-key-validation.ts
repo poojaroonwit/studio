@@ -13,20 +13,24 @@ export function getSystemApiKeyInvalidReason(apiKeyData: ApiKeyData): string | n
   return null;
 }
 
-export function recordSystemApiKeyUsage(
+export async function recordSystemApiKeyUsage(
   client: DbClient,
   apiKeyId: string,
   ipAddress?: string
-) {
-  client.query(
-    `UPDATE "SystemApiKey"
-     SET last_used_at = NOW(),
-         last_used_ip = $1,
-         usage_count = usage_count + 1,
-         "updatedAt" = NOW()
-     WHERE id = $2`,
-    [ipAddress || null, apiKeyId]
-  ).catch((err: unknown) => console.error('[SystemApiKey] Failed to update usage stats:', err));
+): Promise<void> {
+  try {
+    await client.query(
+      `UPDATE "SystemApiKey"
+       SET last_used_at = NOW(),
+           last_used_ip = $1,
+           usage_count = usage_count + 1,
+           "updatedAt" = NOW()
+       WHERE id = $2`,
+      [ipAddress || null, apiKeyId],
+    );
+  } catch (err: unknown) {
+    console.error('[SystemApiKey] Failed to update usage stats:', err);
+  }
 }
 
 export function getSystemApiKeyErrorMessage(error: unknown): string {

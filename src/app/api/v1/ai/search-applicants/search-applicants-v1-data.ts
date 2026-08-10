@@ -121,10 +121,8 @@ export async function fetchSearchApplicantDetails(options: SearchApplicantsDetai
     filterParams[0] = options.matchedApplicantIds;
     const detailParams = [...filterParams, options.limit, options.offset];
 
-    const [applicantResult, countResult] = await Promise.all([
-      client.query(detailQuery, detailParams),
-      client.query(countQuery, filterParams),
-    ]);
+    const applicantResult = await client.query(detailQuery, detailParams);
+    const countResult = await client.query(countQuery, filterParams);
 
     const applicants = (applicantResult.rows as ApplicantSearchRow[]).map(applicant =>
       formatApplicant(applicant, options.query, options.aiReasoning)

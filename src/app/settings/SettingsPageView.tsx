@@ -22,6 +22,7 @@ import {
   Files,
   GitBranch,
   History,
+  Database,
   Images,
   KeyRound,
   Languages,

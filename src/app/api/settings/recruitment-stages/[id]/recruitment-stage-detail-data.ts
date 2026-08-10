@@ -52,10 +52,8 @@ export async function deleteRecruitmentStage(id: string) {
       return { status: 'protected' as const, stageName };
     }
 
-    const [applicantCount, transitionCount] = await Promise.all([
-      client.query('SELECT COUNT(*) as count FROM "Applicant" WHERE "statusId" = $1', [id]),
-      client.query('SELECT COUNT(*) as count FROM "TransitionRecord" WHERE stage = $1', [stageName]),
-    ]);
+    const applicantCount = await client.query('SELECT COUNT(*) as count FROM "Applicant" WHERE "statusId" = $1', [id]);
+    const transitionCount = await client.query('SELECT COUNT(*) as count FROM "TransitionRecord" WHERE stage = $1', [stageName]);
     const totalUsage = parseInt(applicantCount.rows[0].count) + parseInt(transitionCount.rows[0].count);
 
     if (totalUsage > 0) {

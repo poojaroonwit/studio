@@ -19,7 +19,7 @@ export function DesktopSignInHero({
   const companyLogoUrl = secureLogoUrl || '/brand/default-company-building.svg';
 
   return (
-    <div className="hidden md:flex flex-1 items-center px-12 lg:px-20">
+    <div className="hidden flex-1 items-center px-12 md:flex lg:px-20">
       <div className="max-w-3xl space-y-8 text-slate-900 dark:text-white">
         <div className="flex h-11 items-center gap-4">
           <span className="relative h-10 w-10 shrink-0 overflow-hidden">
@@ -29,7 +29,7 @@ export function DesktopSignInHero({
               fill
               unoptimized
               sizes="40px"
-              className="object-contain"
+              className="object-contain brightness-0 invert"
             />
           </span>
           <span aria-hidden="true" className="h-8 w-px shrink-0 bg-slate-700/50 dark:bg-white/30" />
@@ -42,7 +42,7 @@ export function DesktopSignInHero({
             className="h-9 w-auto object-contain lg:h-10"
           />
         </div>
-        <div className="space-y-5">
+        <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-8 motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-600/80 dark:text-white/60">
             {loginHeroCopy.eyebrow}
           </p>

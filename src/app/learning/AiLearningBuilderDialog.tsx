@@ -3,9 +3,12 @@
 import * as React from 'react';
 import Link from 'next/link';
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
+  BookOpenIcon,
   CheckCircleIcon,
   DocumentTextIcon,
+  MapIcon,
   SparklesIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
@@ -34,6 +37,7 @@ export function AiLearningBuilderDialog({
   onCreated: () => void;
 }) {
   const [outputType, setOutputType] = React.useState<OutputType>(initialType);
+  const [stage, setStage] = React.useState<'choose' | 'configure'>('choose');
   const [files, setFiles] = React.useState<File[]>([]);
   const [goal, setGoal] = React.useState('');
   const [audience, setAudience] = React.useState('All employees');
@@ -45,7 +49,10 @@ export function AiLearningBuilderDialog({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if (open && !isGenerating && !result) setOutputType(initialType);
+    if (open && !isGenerating && !result) {
+      setOutputType(initialType);
+      setStage('choose');
+    }
   }, [initialType, isGenerating, open, result]);
 
   const addFiles = (incoming: File[]) => {
@@ -92,6 +99,7 @@ export function AiLearningBuilderDialog({
       setGoal('');
       setAudience('All employees');
       setDifficulty('Foundational');
+      setStage('choose');
       setResult(null);
       setError('');
     }, 200);
@@ -105,12 +113,13 @@ export function AiLearningBuilderDialog({
             <div className="absolute -right-16 -top-14 h-44 w-44 rounded-full border border-[#d9ef95]/25" />
             <div className="absolute -right-6 top-10 h-24 w-24 rounded-full border border-[#d9ef95]/20" />
             <span className="grid h-11 w-11 place-items-center rounded-full bg-[#d9ef95] text-[#173f37]"><SparklesIcon className="h-5 w-5" /></span>
-            <p className="mt-5 text-xs font-bold uppercase tracking-[.15em] text-[#bed0c4] md:mt-8">AI course builder</p>
+            <p className="mt-5 text-xs font-bold uppercase tracking-[.15em] text-[#bed0c4] md:mt-8">AI learning builder</p>
             <h2 className="mt-2 max-w-sm text-xl font-bold leading-tight tracking-[-.035em] md:mt-3 md:text-2xl">From source material to a teachable journey.</h2>
             <ol className="mt-10 hidden space-y-5 text-sm md:block">
-              {['Add trusted sources', 'Set the learning intent', 'Review the editable draft'].map((label, index) => (
-                <li key={label} className="flex items-center gap-3"><span className="grid h-6 w-6 place-items-center rounded-full border border-[#d9ef95]/45 text-xs font-bold">{result || index < 2 ? <CheckCircleIcon className="h-4 w-4" /> : index + 1}</span><span>{label}</span></li>
-              ))}
+              {['Choose the format', 'Add trusted sources', 'Set the learning intent', 'Review the editable draft'].map((label, index) => {
+                const complete = Boolean(result) || (stage === 'configure' && index === 0) || (isGenerating && index < 3);
+                return <li key={label} className="flex items-center gap-3"><span className="grid h-6 w-6 place-items-center rounded-full border border-[#d9ef95]/45 text-xs font-bold">{complete ? <CheckCircleIcon className="h-4 w-4" /> : index + 1}</span><span>{label}</span></li>;
+              })}
             </ol>
             <p className="absolute bottom-7 left-6 right-6 hidden text-xs leading-5 text-[#bed0c4] md:block">AI creates a draft. Your learning team keeps final editorial and publishing control.</p>
           </aside>
@@ -138,16 +147,46 @@ export function AiLearningBuilderDialog({
                 <h3 className="mt-7 text-2xl font-bold tracking-[-.03em]">Building the learning arc</h3>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500 dark:text-zinc-400">Reading {files.length} source{files.length === 1 ? '' : 's'}, finding teachable ideas, and writing an editable {outputType} draft.</p>
               </div>
+            ) : stage === 'choose' ? (
+              <div className="flex flex-1 flex-col">
+                <DialogHeader className="text-left">
+                  <DialogTitle className="text-2xl tracking-[-.03em]">What would you like to create?</DialogTitle>
+                  <DialogDescription>Choose the learning format first. You’ll add source documents and goals in the next step.</DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => { setOutputType('course'); setStage('configure'); }}
+                    className="group flex min-h-56 flex-col rounded-xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#316be8] hover:shadow-[0_12px_32px_rgba(49,107,232,.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#316be8] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-[#316be8]"
+                  >
+                    <span className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-[#316be8] dark:bg-blue-950/50"><BookOpenIcon className="h-6 w-6" /></span>
+                    <span className="mt-6 text-lg font-bold tracking-[-.025em]">Single course</span>
+                    <span className="mt-2 text-sm leading-6 text-slate-500 dark:text-zinc-400">Create one focused course with modules, lessons, activities, and knowledge checks.</span>
+                    <span className="mt-auto inline-flex items-center pt-6 text-sm font-semibold text-[#316be8]">Create a course<ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setOutputType('path'); setStage('configure'); }}
+                    className="group flex min-h-56 flex-col rounded-xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#316be8] hover:shadow-[0_12px_32px_rgba(49,107,232,.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#316be8] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-[#316be8]"
+                  >
+                    <span className="grid h-11 w-11 place-items-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300"><MapIcon className="h-6 w-6" /></span>
+                    <span className="mt-6 text-lg font-bold tracking-[-.025em]">Learning path</span>
+                    <span className="mt-2 text-sm leading-6 text-slate-500 dark:text-zinc-400">Build a sequenced journey containing multiple editable courses and milestones.</span>
+                    <span className="mt-auto inline-flex items-center pt-6 text-sm font-semibold text-[#316be8]">Create a path<ArrowRightIcon className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                  </button>
+                </div>
+
+                <p className="mt-auto pt-8 text-xs leading-5 text-slate-500 dark:text-zinc-400">Both formats are generated as unpublished drafts so your learning team can review and edit them before release.</p>
+              </div>
             ) : (
               <>
                 <DialogHeader className="text-left">
-                  <DialogTitle className="text-2xl tracking-[-.03em]">Create with your documents</DialogTitle>
+                  <button type="button" onClick={() => setStage('choose')} className="mb-3 inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#316be8] dark:text-zinc-400 dark:hover:text-blue-300"><ArrowLeftIcon className="h-4 w-4" />Change format</button>
+                  <DialogTitle className="text-2xl tracking-[-.03em]">Create a {outputType === 'course' ? 'single course' : 'learning path'}</DialogTitle>
                   <DialogDescription>Choose the shape, then give AI grounded source material and a clear outcome.</DialogDescription>
                 </DialogHeader>
-
-                <div className="mt-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1 dark:bg-zinc-900" role="radiogroup" aria-label="Learning format">
-                  {(['course', 'path'] as const).map(type => <button key={type} type="button" role="radio" aria-checked={outputType === type} onClick={() => setOutputType(type)} className={cn('rounded-md px-3 py-2.5 text-sm font-semibold capitalize transition', outputType === type ? 'bg-white text-slate-950 shadow-sm dark:bg-zinc-800 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200')}>{type === 'path' ? 'Learning path' : 'Single course'}</button>)}
-                </div>
 
                 <button
                   type="button"

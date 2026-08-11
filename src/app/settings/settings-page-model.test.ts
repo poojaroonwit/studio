@@ -8,14 +8,19 @@ describe('Admin Center settings model', () => {
   it('keeps the Figma category order and provides content for every tab', () => {
     expect(adminCenterTabs).toEqual([
       'HR Setup',
+      'People Lifecycle',
+      'Workforce',
+      'Payroll & Expenses',
+      'Performance & Learning',
+      'User Accounts',
       'Roles & Permissions',
       'Branding',
       'Field Management',
       'Communication',
       'AI',
-      'Security',
+      'Integrations & API',
+      'Security & Governance',
       'Billing',
-      'App API',
       'Logs & Monitoring',
     ]);
 
@@ -27,9 +32,10 @@ describe('Admin Center settings model', () => {
   it('does not expose placeholder settings destinations', () => {
     expect(settingsItems.some(item => item.value === 'Coming soon')).toBe(false);
     expect(settingsItems.some(item => item.href.startsWith('/settings/coming-soon/'))).toBe(false);
-    expect(settingsItems.find(item => item.label === 'Billing')).toMatchObject({
-      hidden: true,
-      value: 'Unavailable',
+    expect(settingsItems.find(item => item.label === 'Billing Preferences')).toMatchObject({
+      href: '/settings/policy-configuration?area=billing',
+      tab: 'Billing',
+      value: 'Configure',
     });
   });
 
@@ -47,17 +53,17 @@ describe('Admin Center settings model', () => {
 
   it('groups PWA settings with platform feature flags', () => {
     expect(settingsItems.find(item => item.label === 'PWA Settings')).toMatchObject({
-      tab: 'Security',
-      section: 'Platform Features',
+      tab: 'Security & Governance',
+      section: 'Platform Governance',
     });
   });
 
   it('groups authentication configuration while keeping login methods separate from Azure', () => {
     expect(settingsItems.filter(item => ['Login Methods', 'Azure Integration', 'Domain Verification'].includes(item.label)))
       .toEqual(expect.arrayContaining([
-        expect.objectContaining({ label: 'Login Methods', tab: 'Security', section: 'Authentication Features' }),
-        expect.objectContaining({ label: 'Azure Integration', tab: 'Security', section: 'Authentication Features' }),
-        expect.objectContaining({ label: 'Domain Verification', tab: 'Security', section: 'Authentication Features' }),
+        expect.objectContaining({ label: 'Login Methods', tab: 'Security & Governance', section: 'Authentication' }),
+        expect.objectContaining({ label: 'Azure Integration', tab: 'Security & Governance', section: 'Authentication' }),
+        expect.objectContaining({ label: 'Domain Verification', tab: 'Security & Governance', section: 'Authentication' }),
       ]));
     expect(settingsItems.find(item => item.label === 'Login Methods')).toMatchObject({
       href: '/settings/system-settings?tab=login-methods',
@@ -72,26 +78,46 @@ describe('Admin Center settings model', () => {
       expect(getAdminCenterTabFromSlug(adminCenterTabSlugs[tab])).toBe(tab);
     }
     expect(getAdminCenterTabFromSlug('unknown')).toBe('HR Setup');
-    expect(getAdminCenterTabFromSlug('feature-flags')).toBe('Security');
+    expect(getAdminCenterTabFromSlug('feature-flags')).toBe('Security & Governance');
+    expect(getAdminCenterTabFromSlug('security')).toBe('Security & Governance');
+    expect(getAdminCenterTabFromSlug('app-api')).toBe('Integrations & API');
   });
 
-  it('keeps workforce holiday configuration out of HR Setup', () => {
+  it('exposes workforce holiday configuration in Workforce', () => {
     expect(settingsItems.find(item => item.label === 'Holiday List')).toBeUndefined();
-    expect(settingsItems.find(item => item.label === 'Leave Block List')).toBeUndefined();
+    expect(settingsItems.find(item => item.label === 'Holiday Calendars')).toMatchObject({ tab: 'Workforce' });
+    expect(settingsItems.find(item => item.label === 'Leave Block List')).toMatchObject({ tab: 'Workforce' });
   });
 
-  it('keeps employee documents out of HR Setup because it has a dedicated sidebar link', () => {
-    expect(settingsItems.find(item => item.label === 'Employee Documents')).toBeUndefined();
+  it('includes employee documents in HR Setup', () => {
+    expect(settingsItems.find(item => item.label === 'Employee Documents')).toMatchObject({
+      href: '/settings/document-templates',
+      tab: 'HR Setup',
+      section: 'Documents',
+      permissionId: 'SYSTEM_SETTINGS_VIEW',
+    });
   });
 
-  it('keeps duplicate role and team destinations out of the Roles & Permissions menu', () => {
+  it('keeps user accounts separate from Roles & Permissions', () => {
+    const accountItems = settingsItems.filter(item => item.tab === 'User Accounts');
     const rolePermissionItems = settingsItems.filter(item => item.tab === 'Roles & Permissions');
 
-    expect(rolePermissionItems.map(item => item.label)).toEqual([
-      'Active Users',
-      'Employee Account Role',
-    ]);
-    expect(rolePermissionItems.map(item => item.section)).toEqual(['Users', 'Users']);
+    expect(accountItems.map(item => item.label)).toEqual(['Active Users']);
+    expect(accountItems.map(item => item.section)).toEqual(['Accounts']);
+    expect(rolePermissionItems.map(item => item.label)).toEqual(['Employee Account Role', 'User Teams']);
+  });
+
+  it('merges appearance controls into Branding instead of exposing a separate menu item', () => {
+    expect(settingsItems.find(item => item.label === 'Appearance')).toBeUndefined();
+    expect(settingsItems.find(item => item.label === 'Branding')).toMatchObject({
+      href: '/settings/system-preferences?tab=branding',
+      tab: 'Branding',
+    });
+  });
+
+  it('merges evaluation theme controls into Branding instead of exposing a separate menu item', () => {
+    expect(settingsItems.find(item => item.label === 'Evaluation Theme')).toBeUndefined();
+    expect(settingsItems.find(item => item.label === 'Branding')).toBeDefined();
   });
 
   it('provides a direct Leave Policies entry in HR Setup', () => {
@@ -138,12 +164,13 @@ describe('Admin Center settings model', () => {
     ]));
   });
 
-  it('groups system status with logs and monitoring', () => {
+  it('groups audit controls with logs and monitoring', () => {
     expect(settingsItems.filter(item => item.tab === 'Logs & Monitoring')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ label: 'Application Logs', section: 'System Logs' }),
         expect.objectContaining({ label: 'System Monitoring', section: 'Monitoring' }),
         expect.objectContaining({ label: 'System Status', href: '/system-status', section: 'Monitoring' }),
+        expect.objectContaining({ label: 'Audit & Controls', href: '/audit-controls', section: 'Audit & Governance' }),
       ]),
     );
   });

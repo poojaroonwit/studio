@@ -25,8 +25,14 @@ export function HrResourceSearchSelect({ id, value, onValueChange, apiPath, labe
     const controller = new AbortController();
     setLoading(true);
     void fetch(apiPath, { credentials: 'include', signal: controller.signal })
-      .then(async (response): Promise<{ resource?: { records?: ResourceRecord[] } }> => response.ok ? response.json() as Promise<{ resource?: { records?: ResourceRecord[] } }> : {})
-      .then(payload => setRecords(payload.resource?.records || []))
+      .then(async (response): Promise<unknown> => response.ok ? response.json() : {})
+      .then(payload => {
+        if (Array.isArray(payload)) return setRecords(payload as ResourceRecord[]);
+        const object = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+        const resource = object.resource && typeof object.resource === 'object' ? object.resource as Record<string, unknown> : {};
+        const candidates = [resource.records, object.data, object.records];
+        setRecords((candidates.find(Array.isArray) || []) as ResourceRecord[]);
+      })
       .catch(error => { if (!(error instanceof DOMException && error.name === 'AbortError')) setRecords([]); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();

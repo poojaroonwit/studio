@@ -58,7 +58,7 @@ export function MobileBottomNav() {
   }, []);
 
   // Hide on login page
-  if (pathname?.startsWith('/auth/') || !session || isEmbeddedFrame || isFullPageWorkspacePath(pathname)) {
+  if (pathname?.startsWith('/auth/') || !session?.user || isEmbeddedFrame || isFullPageWorkspacePath(pathname)) {
     return null;
   }
 

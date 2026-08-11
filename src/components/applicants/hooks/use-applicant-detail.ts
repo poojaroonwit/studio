@@ -30,6 +30,7 @@ export const useApplicantDetail = (applicantId: string, options?: UseApplicantDe
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [profileEditRequestKey, setProfileEditRequestKey] = useState(0);
   const [customFieldsRefreshTrigger, setCustomFieldsRefreshTrigger] = useState(0);
 
   useApplicantAutoMarkRead({ applicant, setApplicant });
@@ -121,13 +122,13 @@ export const useApplicantDetail = (applicantId: string, options?: UseApplicantDe
 
   const { isConnected: realtimeConnected } = useEnhancedSSE();
 
-  // Handle entering edit mode
+  // The profile uses employee-style, per-attribute editing. The header action
+  // opens the personal details tab instead of switching every field into a form.
   const handleEnterEditMode = useCallback(() => {
     if (applicant) {
-      setIsEditing(true);
-      setFormPopulated(false);
+      setProfileEditRequestKey(current => current + 1);
     }
-  }, [applicant, setFormPopulated]);
+  }, [applicant]);
 
   const calculateTotalExperienceDuration = useCallback(calculateApplicantTotalExperienceDuration, []);
   const calculateAverageDurationPerCompany = useCallback(calculateApplicantAverageExperienceDuration, []);
@@ -154,6 +155,7 @@ export const useApplicantDetail = (applicantId: string, options?: UseApplicantDe
     isSaving,
     realtimeConnected,
     formPopulated,
+    profileEditRequestKey,
 
     // Form
     control,

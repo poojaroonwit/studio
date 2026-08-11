@@ -18,13 +18,45 @@ describe('buildFigmaSidebarSections', () => {
     expect(isFigmaSidebarItemActive('/settings?adminTab=field-management', fieldManagement!)).toBe(true);
   });
 
-  it('keeps the merged Security item active for legacy Feature Flags links', () => {
-    const security = sidebarConfig
+  it('keeps the Admin Center overview distinct from the existing HR Setup page', () => {
+    const adminItems = sidebarConfig
       .find(group => group.label === 'Admin Center')
-      ?.items.find(item => item.label === 'Security');
+      ?.items ?? [];
+    const overview = adminItems.find(item => item.label === 'Overview');
+    const hrSetup = adminItems.find(item => item.label === 'HR Setup');
+
+    expect(overview).toBeDefined();
+    expect(hrSetup).toBeDefined();
+    expect(isFigmaSidebarItemActive('/settings/overview', overview!)).toBe(true);
+    expect(isFigmaSidebarItemActive('/settings/overview', hrSetup!)).toBe(false);
+    expect(isFigmaSidebarItemActive('/settings', overview!)).toBe(false);
+    expect(isFigmaSidebarItemActive('/settings', hrSetup!)).toBe(true);
+  });
+
+  it('routes legacy Security and API links to their dedicated workspaces', () => {
+    const adminItems = sidebarConfig
+      .find(group => group.label === 'Admin Center')
+      ?.items ?? [];
+    const security = adminItems.find(item => item.label === 'Security & Governance');
+    const integrations = adminItems.find(item => item.label === 'Integrations & API');
 
     expect(security).toBeDefined();
+    expect(integrations).toBeDefined();
     expect(isFigmaSidebarItemActive('/settings?adminTab=feature-flags', security!)).toBe(true);
+    expect(isFigmaSidebarItemActive('/settings?adminTab=security', security!)).toBe(true);
+    expect(isFigmaSidebarItemActive('/settings?adminTab=app-api', integrations!)).toBe(true);
+  });
+
+  it('keeps an Admin Center tab active while a configuration item is selected', () => {
+    const unified = sidebarConfig
+      .find(group => group.label === 'Admin Center')
+      ?.items.find(item => item.label === 'Audit, Logs & Monitoring');
+
+    expect(unified).toBeDefined();
+    expect(isFigmaSidebarItemActive(
+      '/settings?adminTab=logs-monitoring&config=audit-controls',
+      unified!,
+    )).toBe(true);
   });
 
   it('renders Admin Portal, HR Dashboard, Employee Portal, and My Workday as standalone items at the top', () => {
@@ -79,17 +111,22 @@ describe('buildFigmaSidebarSections', () => {
     expect(adminCenter).toMatchObject({
       type: 'group',
       children: expect.arrayContaining([
-        expect.objectContaining({ label: 'Employee Documents', item: expect.objectContaining({ href: '/settings/document-templates' }) }),
+        expect.objectContaining({ label: 'Overview', item: expect.objectContaining({ href: '/settings/overview' }) }),
         expect.objectContaining({ label: 'HR Setup', item: expect.objectContaining({ href: '/settings' }) }),
+        expect.objectContaining({ label: 'People Lifecycle', item: expect.objectContaining({ href: '/settings?adminTab=people-lifecycle' }) }),
+        expect.objectContaining({ label: 'Workforce', item: expect.objectContaining({ href: '/settings?adminTab=workforce' }) }),
+        expect.objectContaining({ label: 'Payroll & Expenses', item: expect.objectContaining({ href: '/settings?adminTab=payroll-expenses' }) }),
+        expect.objectContaining({ label: 'Performance & Learning', item: expect.objectContaining({ href: '/settings?adminTab=performance-learning' }) }),
+        expect.objectContaining({ label: 'User Accounts', item: expect.objectContaining({ href: '/settings?adminTab=user-accounts' }) }),
         expect.objectContaining({ label: 'Roles & Permissions', item: expect.objectContaining({ href: '/settings?adminTab=roles-permissions' }) }),
-        expect.objectContaining({ label: 'Branding', item: expect.objectContaining({ href: '/settings?adminTab=branding' }) }),
+        expect.objectContaining({ label: 'Preferences', item: expect.objectContaining({ href: '/settings?adminTab=branding' }) }),
         expect.objectContaining({ label: 'Field Management', item: expect.objectContaining({ href: '/settings?adminTab=field-management' }) }),
         expect.objectContaining({ label: 'Communication', item: expect.objectContaining({ href: '/settings?adminTab=communication' }) }),
         expect.objectContaining({ label: 'AI', item: expect.objectContaining({ href: '/settings?adminTab=ai' }) }),
-        expect.objectContaining({ label: 'Security', item: expect.objectContaining({ href: '/settings?adminTab=security' }) }),
+        expect.objectContaining({ label: 'Integrations & API', item: expect.objectContaining({ href: '/settings?adminTab=integrations-api' }) }),
+        expect.objectContaining({ label: 'Security & Governance', item: expect.objectContaining({ href: '/settings?adminTab=security-governance' }) }),
         expect.objectContaining({ label: 'Billing', item: expect.objectContaining({ href: '/settings?adminTab=billing' }) }),
-        expect.objectContaining({ label: 'API & Integrations', item: expect.objectContaining({ href: '/settings?adminTab=app-api' }) }),
-        expect.objectContaining({ label: 'Logs & Monitoring', item: expect.objectContaining({ href: '/settings?adminTab=logs-monitoring' }) }),
+        expect.objectContaining({ label: 'Audit, Logs & Monitoring', item: expect.objectContaining({ href: '/settings?adminTab=logs-monitoring' }) }),
       ]),
     });
     if (adminCenter?.type === 'group') {

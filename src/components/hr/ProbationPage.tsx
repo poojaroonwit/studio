@@ -5,14 +5,13 @@ import Link from 'next/link';
 import {
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
-  ArrowRightIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   MapPinIcon,
-  PencilSquareIcon,
   UserIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -20,16 +19,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Sheet, SheetContent, SheetDescription } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
 import { HrisEmptyState } from '@/components/hris/HrisWorkspacePrimitives';
 import { formatProbationDate } from '@/lib/hr/probation';
 import { cn } from '@/lib/utils';
@@ -64,8 +58,8 @@ interface ProbationEmployee {
 
 interface ProbationResponse {
   employees?: ProbationEmployee[];
-  canManage?: boolean;
   message?: string;
+  canManage?: boolean;
   summary?: {
     total: number;
     evaluationsDueInSevenDays: number;
@@ -81,6 +75,7 @@ const emptySummary = {
   endingInThirtyDays: 0,
 };
 
+/* Legacy visual-reference fixtures retained in history only; production always loads the probation API.
 const designPreviewEmployees: ProbationEmployee[] = [
   ['10000000-0000-4000-8000-000000000001', 'EMP-100284', 'Julia', 'Mendes', 'Product Designer', 'Lisbon, Portugal', 'Marcus Lee', 'Design Manager', '2026-02-10', '2026-09-28', '2026-08-11', 1, 49, 58],
   ['10000000-0000-4000-8000-000000000002', 'EMP-100191', 'Aarav', 'Rao', 'Data Analyst', 'Bengaluru, India', 'Priya Nair', 'Analytics Manager', '2026-05-16', '2026-08-14', '2026-08-14', 3, 4, 96],
@@ -116,6 +111,7 @@ const designPreviewEmployees: ProbationEmployee[] = [
   daysRemaining: Number(daysRemaining),
   progressPercent: Number(progressPercent),
 }));
+*/
 
 function employeeName(employee: ProbationEmployee) {
   return `${employee.firstName} ${employee.lastName}`.trim();
@@ -158,28 +154,19 @@ function viewLabel(view: RosterView) {
 export function ProbationPage() {
   const [employees, setEmployees] = React.useState<ProbationEmployee[]>([]);
   const [summary, setSummary] = React.useState(emptySummary);
-  const [canManage, setCanManage] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [editingEmployee, setEditingEmployee] = React.useState<ProbationEmployee | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [activeView, setActiveView] = React.useState<RosterView>('all');
   const [query, setQuery] = React.useState('');
   const [position, setPosition] = React.useState('all');
   const [location, setLocation] = React.useState('all');
+  const [canManage, setCanManage] = React.useState(false);
 
   const loadProbation = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      if (process.env.NODE_ENV === 'development' && new URLSearchParams(window.location.search).has('preview')) {
-        const nextEmployees = designPreviewEmployees;
-        setEmployees(nextEmployees);
-        setSummary({ total: nextEmployees.length, evaluationsDueInSevenDays: 2, endingInThirtyDays: 3 });
-        setCanManage(true);
-        setSelectedId(current => current || nextEmployees[0].id);
-        return;
-      }
       const response = await fetch('/api/hr/probation', { credentials: 'include' });
       const payload = await response.json().catch(() => ({})) as ProbationResponse;
       if (!response.ok) throw new Error(payload.message || 'Unable to load probation employees.');
@@ -229,23 +216,16 @@ export function ProbationPage() {
   }, [filteredEmployees]);
 
   const selectedEmployee = employees.find(employee => employee.id === selectedId) || null;
-  const nextDecision = employees.find(employee => rosterView(employee) === 'overdue') || employees.find(employee => rosterView(employee) === 'due') || employees[0] || null;
 
   return (
     <main className="min-h-full w-full bg-background text-foreground">
-      <div className="grid min-h-[calc(100vh-7rem)] xl:grid-cols-[minmax(0,1fr)_390px]">
-        <section className="min-w-0 border-r border-border/80">
+      <div className="min-h-[calc(100vh-7rem)]">
+        <section className="min-w-0">
           <header className="flex min-h-[100px] flex-col gap-4 border-b border-border/80 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-[-0.03em]">Probation</h1>
               <p className="mt-1 text-sm text-muted-foreground">Review probation evaluations and confirmation decisions that need your attention.</p>
             </div>
-            {nextDecision ? (
-              <Button type="button" onClick={() => setSelectedId(nextDecision.id)}>
-                Review next decision
-                <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden />
-              </Button>
-            ) : null}
           </header>
 
           {error ? (
@@ -343,19 +323,17 @@ export function ProbationPage() {
           ) : null}
         </section>
 
-        <DecisionPanel
-          employee={selectedEmployee}
-          canManage={canManage}
-          onClose={() => setSelectedId(null)}
-          onConfigure={() => selectedEmployee && setEditingEmployee(selectedEmployee)}
-        />
+        <Sheet open={Boolean(selectedEmployee)} onOpenChange={open => { if (!open) setSelectedId(null); }}>
+          {selectedEmployee ? (
+            <DecisionPanel
+              employee={selectedEmployee}
+              canManage={canManage}
+              onDecisionRecorded={loadProbation}
+              onClose={() => setSelectedId(null)}
+            />
+          ) : null}
+        </Sheet>
       </div>
-
-      <ProbationConfigDialog
-        employee={editingEmployee}
-        onOpenChange={open => { if (!open) setEditingEmployee(null); }}
-        onSaved={async () => { setEditingEmployee(null); await loadProbation(); }}
-      />
     </main>
   );
 }
@@ -424,48 +402,173 @@ function ProbationRosterRow({ employee, selected, onSelect }: { employee: Probat
   );
 }
 
-function DecisionPanel({ employee, canManage, onClose, onConfigure }: { employee: ProbationEmployee | null; canManage: boolean; onClose: () => void; onConfigure: () => void }) {
-  if (!employee) {
-    return (
-      <aside className="hidden min-h-[480px] place-items-center px-8 text-center xl:grid">
-        <div>
-          <UserIcon className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden />
-          <p className="mt-3 font-medium">Select an employee</p>
-          <p className="mt-1 text-sm text-muted-foreground">Choose a probation record to review its timeline and next action.</p>
-        </div>
-      </aside>
-    );
+function DecisionPanel({ employee, canManage, onDecisionRecorded, onClose }: { employee: ProbationEmployee; canManage: boolean; onDecisionRecorded: () => Promise<void>; onClose: () => void }) {
+  const [panelState, setPanelState] = React.useState<'summary' | 'record' | 'complete'>('summary');
+  const [outcome, setOutcome] = React.useState<'confirm' | 'extend' | 'end'>('confirm');
+  const [rationale, setRationale] = React.useState('');
+  const [effectiveDate, setEffectiveDate] = React.useState('');
+  const [showNextSteps, setShowNextSteps] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const nextDay = new Date(employee.probationEndDate);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    setPanelState('summary');
+    setOutcome('confirm');
+    setRationale(`${employee.firstName} has demonstrated strong performance, ownership, and collaboration throughout the probation period.`);
+    setEffectiveDate(nextDay.toISOString().slice(0, 10));
+    setShowNextSteps(true);
+    setSaveError(null);
+  }, [employee]);
+
+  function selectOutcome(nextOutcome: typeof outcome) {
+    setOutcome(nextOutcome);
+    setSaveError(null);
+    const nextDate = new Date(employee.probationEndDate);
+    if (nextOutcome === 'extend') nextDate.setUTCDate(nextDate.getUTCDate() + 30);
+    else if (nextOutcome === 'confirm') nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    setEffectiveDate(nextDate.toISOString().slice(0, 10));
+  }
+
+  async function recordDecision() {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch('/api/hr/probation', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId: employee.id, outcome, rationale, effectiveDate }),
+      });
+      const payload = await response.json().catch(() => ({})) as { message?: string };
+      if (!response.ok) throw new Error(payload.message || 'Unable to record the probation decision.');
+      setPanelState('complete');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to record the probation decision.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const meta = evaluationMeta(employee);
   const evaluationTwoDate = new Date(employee.nextEvaluationDate);
   evaluationTwoDate.setUTCDate(evaluationTwoDate.getUTCDate() + employee.effectiveFrequencyDays);
   const showSecondEvaluation = evaluationTwoDate < new Date(employee.probationEndDate);
+  const completedDecisionCopy = outcome === 'confirm'
+    ? `${employee.firstName}'s employment has been confirmed`
+    : outcome === 'extend'
+      ? `${employee.firstName}'s probation has been extended`
+      : `${employee.firstName}'s employment end decision has been recorded`;
 
-  return (
-    <aside className="bg-muted/[0.08] xl:sticky xl:top-0 xl:h-[calc(100vh-7rem)] xl:overflow-y-auto">
-      <div className="relative border-b border-border/80 px-5 pb-14 pt-20">
-        <div className="flex items-start gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar className="h-16 w-16 shrink-0 rounded-full">
-              {employee.profilePhotoUrl ? <AvatarImage src={employee.profilePhotoUrl} alt="" /> : null}
-              <AvatarFallback className="bg-primary/15 text-lg font-semibold text-primary">{initials(employee)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold">{employeeName(employee)}</h2>
-              <p className="text-xs text-muted-foreground">{employee.employeeNumber}</p>
-              <p className="mt-1 truncate text-sm">{employee.positionTitle || 'Position not linked'}</p>
+  if (panelState === 'complete') {
+    return (
+      <ProbationDrawer employee={employee}>
+      <aside className="flex h-full min-h-0 flex-col overflow-y-auto bg-muted/[0.08]">
+        <DecisionEmployeeHeader employee={employee} onClose={onClose} />
+        <div className="flex flex-1 flex-col p-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+            <CheckCircleIcon className="h-7 w-7" aria-hidden />
+          </div>
+          <h3 className="mt-5 text-lg font-semibold">Decision recorded</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {completedDecisionCopy} effective {formatProbationDate(`${effectiveDate}T00:00:00.000Z`)}.
+          </p>
+
+          <div className="mt-7 border-y border-border/80">
+            <NextStepRow label="Employee record updated" detail="The employment status and effective date are now current." state="complete" />
+            <NextStepRow label="Employment event stored" detail="The rationale and decision are available in Operations history." state="complete" />
+            <NextStepRow label="Communication and acknowledgment" detail="Schedule the conversation and record any follow-up documents." state="future" />
+          </div>
+
+          <div className="mt-auto grid gap-2 pt-8">
+            <Button asChild><Link href={`/people/${employee.id}?tab=Probation`}>Open employee record</Link></Button>
+            <Button type="button" variant="outline" onClick={() => { void onDecisionRecorded().finally(onClose); }}>Back to probation overview</Button>
+          </div>
+        </div>
+      </aside>
+      </ProbationDrawer>
+    );
+  }
+
+  if (panelState === 'record') {
+    const canSubmit = rationale.trim().length >= 20 && Boolean(effectiveDate);
+    return (
+      <ProbationDrawer employee={employee}>
+      <aside className="flex h-full min-h-0 flex-col overflow-y-auto bg-muted/[0.08]">
+        <DecisionEmployeeHeader employee={employee} onClose={onClose} />
+        <form
+          className="flex flex-1 flex-col"
+          onSubmit={event => {
+            event.preventDefault();
+            if (canSubmit && !isSaving) void recordDecision();
+          }}
+        >
+          <div className="flex-1 p-5">
+            <h3 className="text-sm font-semibold">Record probation decision</h3>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">Select the outcome and provide a brief rationale.</p>
+
+            <RadioGroup value={outcome} onValueChange={value => selectOutcome(value as typeof outcome)} className="mt-5 gap-0 border-y border-border/80">
+              <DecisionChoice value="confirm" title="Confirm employment" description="Employee has met the expectations of the role." />
+              <DecisionChoice value="extend" title="Extend probation" description="More time is needed to meet expectations." />
+              <DecisionChoice value="end" title="End employment" description="Performance has not met the required standard." />
+            </RadioGroup>
+
+            <div className="mt-5 space-y-2">
+              <Label htmlFor="probation-rationale">Manager rationale</Label>
+              <Textarea
+                id="probation-rationale"
+                value={rationale}
+                onChange={event => setRationale(event.target.value)}
+                maxLength={300}
+                className="min-h-28 resize-none"
+              />
+              <p className="text-right text-xs tabular-nums text-muted-foreground">{rationale.length}/300</p>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="probation-effective-date">{outcome === 'extend' ? 'New probation end date' : 'Effective date'}</Label>
+              <Input id="probation-effective-date" type="date" max={new Date().toISOString().slice(0, 10)} value={effectiveDate} onChange={event => setEffectiveDate(event.target.value)} />
+            </div>
+
+            {saveError ? <p role="alert" className="mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{saveError}</p> : null}
+
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold">HR readiness</h4>
+              <div className="mt-3 border-y border-border/80">
+                <ReadinessRow label="Required rationale entered" state={rationale.trim().length >= 20 ? 'complete' : 'pending'} />
+                <ReadinessRow label="Effective date selected" state={effectiveDate ? 'complete' : 'pending'} />
+                <ReadinessRow label="Decision not yet saved" state="pending" />
+              </div>
+            </div>
+
+            <div className="mt-5 border-y border-border/80">
+              <button type="button" className="flex w-full items-center justify-between py-3 text-left text-sm font-semibold" onClick={() => setShowNextSteps(current => !current)} aria-expanded={showNextSteps}>
+                What happens next
+                <ChevronDownIcon className={cn('h-4 w-4 transition-transform', showNextSteps && 'rotate-180')} aria-hidden />
+              </button>
+              {showNextSteps ? (
+                <p className="border-t border-border/70 py-3 text-sm leading-6 text-muted-foreground">
+                  Saving updates the employee record and creates an audited employment event. Communication and document follow-up remain visible next steps for People Operations.
+                </p>
+              ) : null}
             </div>
           </div>
-          <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose} aria-label="Close employee details">
-            <XMarkIcon className="h-5 w-5" aria-hidden />
-          </Button>
-        </div>
-        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><MapPinIcon className="h-4 w-4" aria-hidden />{employee.location || 'Location not set'}</span>
-          <span className="flex items-center gap-1.5"><CalendarDaysIcon className="h-4 w-4" aria-hidden />Started {formatProbationDate(employee.probationStartDate)}</span>
-        </div>
-      </div>
+
+          <div className="sticky bottom-0 grid grid-cols-2 gap-2 border-t border-border/80 bg-background/95 p-5 backdrop-blur">
+            <Button type="button" variant="outline" onClick={() => setPanelState('summary')} disabled={isSaving}>Cancel</Button>
+            <Button type="submit" disabled={!canSubmit || isSaving}>{isSaving ? 'Recording…' : 'Confirm decision'}</Button>
+          </div>
+        </form>
+      </aside>
+      </ProbationDrawer>
+    );
+  }
+
+  return (
+    <ProbationDrawer employee={employee}>
+    <aside className="h-full min-h-0 overflow-y-auto bg-muted/[0.08]">
+      <DecisionEmployeeHeader employee={employee} onClose={onClose} />
 
       <div className="min-h-[260px] border-b border-border/80 p-5">
         <h3 className="text-sm font-semibold">Probation timeline</h3>
@@ -495,14 +598,88 @@ function DecisionPanel({ employee, canManage, onClose, onConfigure }: { employee
       <div className="p-5">
         <h3 className="text-sm font-semibold">Your actions</h3>
         <div className="mt-4 grid gap-2">
-          <Button asChild>
-            <Link href={`/people/${employee.id}?tab=Probation`}>Record decision <ChevronRightIcon className="ml-auto h-4 w-4" aria-hidden /></Link>
-          </Button>
+          {canManage ? <Button type="button" onClick={() => setPanelState('record')}>Record decision <ChevronRightIcon className="ml-auto h-4 w-4" aria-hidden /></Button> : <p className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">You have view-only access to probation records.</p>}
           <Button asChild variant="outline"><Link href={`/people/${employee.id}?tab=Probation`}>View profile</Link></Button>
-          {canManage ? <Button type="button" variant="ghost" onClick={onConfigure}><PencilSquareIcon className="mr-2 h-4 w-4" aria-hidden />Configure schedule</Button> : null}
         </div>
       </div>
     </aside>
+    </ProbationDrawer>
+  );
+}
+
+function ProbationDrawer({ employee, children }: { employee: ProbationEmployee; children: React.ReactNode }) {
+  return (
+    <SheetContent
+      side="right"
+      hideCloseButton
+      sheetId="probation-detail-drawer"
+      className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card p-0 shadow-2xl sm:!max-w-[420px]"
+    >
+      <SheetDescription className="sr-only">
+        Review the probation timeline and decision actions for {employeeName(employee)}.
+      </SheetDescription>
+      {children}
+    </SheetContent>
+  );
+}
+function DecisionEmployeeHeader({ employee, onClose }: { employee: ProbationEmployee; onClose: () => void }) {
+  return (
+    <div className="relative border-b border-border/80 px-5 pb-6 pt-14">
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar className="h-14 w-14 shrink-0 rounded-full">
+          {employee.profilePhotoUrl ? <AvatarImage src={employee.profilePhotoUrl} alt="" /> : null}
+          <AvatarFallback className="bg-primary/15 text-base font-semibold text-primary">{initials(employee)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-semibold">{employeeName(employee)}</h2>
+          <p className="text-xs text-muted-foreground">{employee.employeeNumber}</p>
+          <p className="mt-1 truncate text-sm">{employee.positionTitle || 'Position not linked'}</p>
+        </div>
+      </div>
+      <Button type="button" variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose} aria-label="Close employee details">
+        <XMarkIcon className="h-5 w-5" aria-hidden />
+      </Button>
+      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><MapPinIcon className="h-4 w-4" aria-hidden />{employee.location || 'Location not set'}</span>
+        <span className="flex items-center gap-1.5"><CalendarDaysIcon className="h-4 w-4" aria-hidden />Started {formatProbationDate(employee.probationStartDate)}</span>
+      </div>
+    </div>
+  );
+}
+
+function DecisionChoice({ value, title, description }: { value: string; title: string; description: string }) {
+  return (
+    <Label htmlFor={`probation-outcome-${value}`} className="flex cursor-pointer items-start gap-3 border-b border-border/70 py-3 last:border-b-0">
+      <RadioGroupItem id={`probation-outcome-${value}`} value={value} className="mt-0.5 rounded-full" />
+      <span>
+        <span className="block text-sm font-medium text-foreground">{title}</span>
+        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{description}</span>
+      </span>
+    </Label>
+  );
+}
+
+function ReadinessRow({ label, state }: { label: string; state: 'complete' | 'pending' }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border/70 py-2.5 text-sm last:border-b-0">
+      <span className="flex items-center gap-2">
+        {state === 'complete' ? <CheckCircleIcon className="h-4 w-4 text-emerald-500" aria-hidden /> : <ClockIcon className="h-4 w-4 text-muted-foreground" aria-hidden />}
+        {label}
+      </span>
+      <span className={cn('text-xs', state === 'complete' ? 'text-emerald-500' : 'text-muted-foreground')}>{state === 'complete' ? 'Complete' : 'Pending'}</span>
+    </div>
+  );
+}
+
+function NextStepRow({ label, detail, state }: { label: string; detail: string; state: 'complete' | 'current' | 'future' }) {
+  return (
+    <div className="flex gap-3 border-b border-border/70 py-4 last:border-b-0">
+      {state === 'complete' ? <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" aria-hidden /> : <ClockIcon className={cn('mt-0.5 h-5 w-5 shrink-0', state === 'current' ? 'text-primary' : 'text-muted-foreground')} aria-hidden />}
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{detail}</p>
+      </div>
+    </div>
   );
 }
 
@@ -517,72 +694,5 @@ function TimelineItem({ label, date, state, last }: { label: string; date: strin
         <p className="mt-0.5 text-xs text-muted-foreground">{date}</p>
       </div>
     </div>
-  );
-}
-
-function ProbationConfigDialog({ employee, onOpenChange, onSaved }: { employee: ProbationEmployee | null; onOpenChange: (open: boolean) => void; onSaved: () => Promise<void> }) {
-  const [periodDays, setPeriodDays] = React.useState('');
-  const [frequencyDays, setFrequencyDays] = React.useState('');
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setPeriodDays(employee?.probationPeriodDays ? String(employee.probationPeriodDays) : '');
-    setFrequencyDays(employee?.evaluationFrequencyDays ? String(employee.evaluationFrequencyDays) : '');
-    setError(null);
-  }, [employee]);
-
-  const save = async () => {
-    if (!employee) return;
-    setIsSaving(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/hr/probation', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: employee.id,
-          probationPeriodDays: periodDays ? Number(periodDays) : null,
-          evaluationFrequencyDays: frequencyDays ? Number(frequencyDays) : null,
-        }),
-      });
-      const payload = await response.json().catch(() => ({})) as { message?: string };
-      if (!response.ok) throw new Error(payload.message || 'Unable to save probation configuration.');
-      await onSaved();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save probation configuration.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={Boolean(employee)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Configure probation</DialogTitle>
-          <DialogDescription>Override the position defaults for {employee ? employeeName(employee) : 'this employee'}. Leave a value blank to inherit from the position.</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="employee-probation-period">Probation period (days)</Label>
-            <Input id="employee-probation-period" type="number" min={1} max={730} value={periodDays} placeholder={String(employee?.positionProbationPeriodDays || 90)} onChange={event => setPeriodDays(event.target.value)} />
-            <p className="text-xs text-muted-foreground">Position default: {employee?.positionProbationPeriodDays || 90} days</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="employee-probation-frequency">Evaluate every (days)</Label>
-            <Input id="employee-probation-frequency" type="number" min={1} max={365} value={frequencyDays} placeholder={String(employee?.positionEvaluationFrequencyDays || 30)} onChange={event => setFrequencyDays(event.target.value)} />
-            <p className="text-xs text-muted-foreground">Position default: {employee?.positionEvaluationFrequencyDays || 30} days</p>
-          </div>
-        </div>
-        {employee?.positionId ? <Button asChild variant="link" className="h-auto justify-start p-0"><Link href={`/positions/${employee.positionId}`}>Configure defaults for {employee.positionTitle || 'this position'}</Link></Button> : null}
-        {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={isSaving} onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" disabled={isSaving} onClick={() => void save()}><CalendarDaysIcon className="mr-2 h-4 w-4" aria-hidden />{isSaving ? 'Saving…' : 'Save schedule'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

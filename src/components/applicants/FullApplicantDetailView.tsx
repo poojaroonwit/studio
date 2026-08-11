@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { ApplicantDetailSkeleton } from "./ApplicantDetailSkeleton";
@@ -17,23 +16,6 @@ interface FullApplicantDetailViewProps {
   controller: FullApplicantDetailController;
 }
 
-const reviewThemeStyle = {
-  colorScheme: "light",
-  "--app-page-background": "220 23% 97%",
-  "--background": "0 0% 100%",
-  "--foreground": "220 25% 25%",
-  "--card": "0 0% 100%",
-  "--card-foreground": "220 25% 25%",
-  "--popover": "0 0% 100%",
-  "--popover-foreground": "220 25% 25%",
-  "--muted": "220 14% 96%",
-  "--muted-foreground": "220 25% 45%",
-  "--accent": "220 14% 96%",
-  "--accent-foreground": "220 25% 25%",
-  "--border": "220 13% 91%",
-  "--input": "220 13% 91%",
-} as CSSProperties;
-
 export function FullApplicantDetailView({ controller }: FullApplicantDetailViewProps) {
   if (controller.loading) {
     return <ApplicantDetailSkeleton />;
@@ -51,18 +33,17 @@ export function FullApplicantDetailView({ controller }: FullApplicantDetailViewP
   return (
     <div
       className={controller.isModal
-        ? "pointer-events-auto relative h-full min-h-0 overflow-hidden bg-white font-[var(--font-dm-sans)] text-[#12213d]"
-        : "relative min-h-full overflow-y-auto bg-white font-[var(--font-dm-sans)] text-[#12213d] lg:h-full lg:min-h-0 lg:overflow-hidden"
+        ? "pointer-events-auto relative h-full min-h-0 overflow-hidden bg-background font-[var(--font-dm-sans)] text-foreground"
+        : "relative min-h-full overflow-y-auto bg-background font-[var(--font-dm-sans)] text-foreground lg:h-full lg:min-h-0 lg:overflow-hidden"
       }
       data-testid={controller.isModal ? "applicant-review-drawer" : "applicant-review-page"}
       data-theme="applicant-review"
-      style={reviewThemeStyle}
     >
       <div className={controller.isModal
         ? "grid h-full min-h-0 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_350px]"
         : "grid min-h-full grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_350px]"
       }>
-        <div className="flex min-h-[640px] flex-col bg-white lg:min-h-0 lg:overflow-hidden">
+        <div className="flex min-h-[640px] flex-col bg-background lg:min-h-0 lg:overflow-hidden">
           <FullApplicantHeaderSection controller={loadedController} />
           <section
             aria-label="Applicant profile"
@@ -78,7 +59,7 @@ export function FullApplicantDetailView({ controller }: FullApplicantDetailViewP
 
         <aside
           aria-label="Applicant review activity"
-          className="flex min-h-[520px] flex-col overflow-hidden border-t border-slate-200 bg-white lg:min-h-0 lg:border-l lg:border-t-0"
+          className="flex min-h-[520px] flex-col overflow-hidden border-t border-border bg-background lg:min-h-0 lg:border-l lg:border-t-0"
         >
           <ApplicantReviewDecisionPanel
             applicant={loadedController.applicant}

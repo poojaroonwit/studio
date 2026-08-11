@@ -46,7 +46,7 @@ export default function ApplicantDetailModal({
         dialogId={`applicant-detail-modal-${applicantId}`}
         placement="right"
         overlayClassName="bg-slate-950/10 dark:bg-black/25"
-        className="h-dvh w-[min(72rem,calc(100vw-1.5rem))] max-w-[72rem] gap-0 overflow-hidden rounded-none border-y-0 border-r-0 border-[#dfe5ee] bg-white p-0 shadow-[-12px_0_36px_-22px_rgba(15,27,52,0.45)] sm:rounded-l-md"
+        className="h-dvh w-[min(72rem,calc(100vw-1.5rem))] max-w-[72rem] gap-0 overflow-hidden rounded-none border-y-0 border-r-0 border-border bg-background p-0 shadow-[-12px_0_36px_-22px_rgba(15,27,52,0.45)] sm:rounded-l-md"
         hideCloseButton
         aria-describedby="applicant-review-drawer-description"
       >

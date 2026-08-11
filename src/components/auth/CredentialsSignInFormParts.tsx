@@ -1,7 +1,7 @@
 "use client";
 
 import type { UseFormReturn } from 'react-hook-form';
-import { AlertTriangle, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, KeyRound, LoaderCircle, Lock, Mail } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -109,15 +109,20 @@ export function CredentialsPasswordForm({
 
         <Button
           type="submit"
-          className={`w-full h-12 rounded-2xl shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.99] ${submitButtonClassName || ''}`}
+          aria-busy={isLoading || isActioning}
+          className={`h-12 w-full rounded-2xl shadow-lg transition-[transform,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] hover:-translate-y-0.5 hover:shadow-xl active:scale-[0.99] disabled:translate-y-0 disabled:shadow-md ${submitButtonClassName || ''}`}
           disabled={isLoading || isActioning}
         >
           {(isLoading || isActioning) ? (
-            <div className="animate-spin rounded-md h-5 w-5 border-b-2 border-primary-foreground" />
+            <span className="inline-flex min-w-32 items-center justify-center gap-2.5" role="status">
+              <LoaderCircle className="h-[18px] w-[18px] animate-spin motion-reduce:animate-none" strokeWidth={2.25} aria-hidden="true" />
+              <span className="font-semibold">Signing in…</span>
+            </span>
           ) : (
-            <>
-              <KeyRound className="mr-2 h-4 w-4" /> Sign in
-            </>
+            <span className="inline-flex min-w-32 items-center justify-center gap-2">
+              <KeyRound className="h-4 w-4" aria-hidden="true" />
+              <span className="font-semibold">Sign in</span>
+            </span>
           )}
         </Button>
       </form>

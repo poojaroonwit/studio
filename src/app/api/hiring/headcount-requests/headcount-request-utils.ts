@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import type { HeadcountApprovalRoute } from '@/lib/headcount-approval-path-config';
 
 export type HeadcountRequestStatus = 'draft' | 'in_review' | 'approved' | 'rejected' | 'filled';
-export type HeadcountRequestAction = 'approve' | 'reject';
+export type HeadcountRequestAction = 'submit' | 'approve' | 'reject';
 
 export interface HeadcountRequestCreateInput {
   positionId?: unknown;
@@ -71,14 +71,22 @@ export function getHeadcountRequestActionValidationError(input: HeadcountRequest
   const reason = getString(input.reason);
 
   if (!id) return 'Request ID is required';
-  if (action !== 'approve' && action !== 'reject') return 'Request action is invalid';
+  if (action !== 'submit' && action !== 'approve' && action !== 'reject') return 'Request action is invalid';
   if (action === 'reject' && !reason) return 'Rejection reason is required';
 
   return null;
 }
 
 export function getHeadcountRequestActionStatus(action: HeadcountRequestAction) {
+  if (action === 'submit') return 'in_review';
   return action === 'approve' ? 'vacant' : 'rejected';
+}
+
+export function getHeadcountRequestActionTransitionError(status: string, action: HeadcountRequestAction) {
+  if (status === 'filled') return 'Filled headcount requests cannot be changed.';
+  if (action === 'submit' && status !== 'draft') return 'Only draft requests can be submitted for review.';
+  if (action !== 'submit' && status === 'draft') return 'Submit the draft for review before making a decision.';
+  return null;
 }
 
 export function mergeHeadcountRequestActionFields(
@@ -97,6 +105,20 @@ export function mergeHeadcountRequestActionFields(
       ? { ...step, status: 'complete' }
       : step
   ));
+
+  if (action === 'submit') {
+    return {
+      ...previousFields,
+      submittedAt: new Date().toISOString(),
+      submittedById: user.id,
+      submittedByName: actorName,
+      approvalAction: null,
+      approvalActionAt: null,
+      approvalActionById: null,
+      approvalActionByName: null,
+      rejectionReason: null,
+    };
+  }
 
   return {
     ...previousFields,

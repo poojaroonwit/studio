@@ -280,19 +280,20 @@ export const sidebarConfigData = [
         permissionId: "HR_PEOPLE_MANAGE"
       },
       {
+        label: "Contracts",
+        icon: "Clock",
+        href: "/people/contracts",
+        exact: true,
+        description: "Monitor contract end dates, notice periods, renewals, and missing data",
+        section: "People records",
+        permissionId: "HR_PEOPLE_VIEW"
+      },
+      {
         label: "Service Desk",
         icon: "MessageSquare",
         href: "/service-desk",
         exact: true,
         description: "Manage employee questions, requests, and confidential follow-up",
-        section: "Support"
-      },
-      {
-        label: "Contact",
-        icon: "Mail",
-        href: "/service-desk?new=question",
-        exact: true,
-        description: "Ask the People team a private question",
         section: "Support"
       },
     ],
@@ -460,6 +461,14 @@ export const sidebarConfigData = [
         icon: "Trophy",
         href: "/learning/achievements",
         description: "Badge canvas and achievement conditions",
+        section: "Learning",
+        permissionId: "HR_LEARNING_VIEW"
+      },
+      {
+        label: "Career Explorer",
+        icon: "Target",
+        href: "/learning/career-explorer",
+        description: "Explore career paths from your current role and strengths",
         section: "Learning",
         permissionId: "HR_LEARNING_VIEW"
       },
@@ -716,6 +725,14 @@ export const sidebarConfigData = [
     icon: "Settings",
     items: [
       {
+        label: "Overview",
+        icon: "LayoutDashboard",
+        href: "/settings/overview",
+        exact: true,
+        description: "Find configuration areas and open frequently used settings",
+        section: "Configuration",
+      },
+      {
         label: "HR Setup",
         icon: "Settings",
         href: "/settings",
@@ -724,18 +741,58 @@ export const sidebarConfigData = [
         section: "Configuration",
       },
       {
-        label: "Roles & Permissions",
+        label: "People Lifecycle",
         icon: "Users",
-        href: "/settings?adminTab=roles-permissions",
-        description: "Manage users, roles, permissions, and teams",
+        href: "/settings?adminTab=people-lifecycle",
+        description: "Configure onboarding, probation, contracts, offboarding, assets, and documents",
+        section: "People Operations",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
+      },
+      {
+        label: "Workforce",
+        icon: "CalendarDays",
+        href: "/settings?adminTab=workforce",
+        description: "Configure attendance, schedules, overtime, leave, and holiday rules",
+        section: "People Operations",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
+      },
+      {
+        label: "Payroll & Expenses",
+        icon: "Banknotes",
+        href: "/settings?adminTab=payroll-expenses",
+        description: "Configure payroll cadence, compensation approvals, expenses, and travel",
+        section: "People Operations",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
+      },
+      {
+        label: "Performance & Learning",
+        icon: "AcademicCap",
+        href: "/settings?adminTab=performance-learning",
+        description: "Configure performance reviews, goals, learning, and certification rules",
+        section: "People Operations",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
+      },
+      {
+        label: "User Accounts",
+        icon: "Identification",
+        href: "/settings?adminTab=user-accounts",
+        description: "Manage platform accounts, status, and sign-in access",
         section: "Configuration",
         permissionId: "USERS_VIEW"
       },
       {
-        label: "Branding",
+        label: "Roles & Permissions",
+        icon: "Users",
+        href: "/settings?adminTab=roles-permissions",
+        description: "Define roles and reusable permission policies",
+        section: "Configuration",
+        permissionId: "USERS_VIEW"
+      },
+      {
+        label: "Preferences",
         icon: "Palette",
         href: "/settings?adminTab=branding",
-        description: "Configure application branding and themes",
+        description: "Configure application branding and preferences",
         section: "Configuration",
         permissionId: "SYSTEM_SETTINGS_VIEW"
       },
@@ -759,16 +816,24 @@ export const sidebarConfigData = [
         label: "AI",
         icon: "BrainCircuit",
         href: "/settings?adminTab=ai",
-        description: "Configure AI services, prompts, and processing",
+        description: "Configure AI services, prompts, matching, knowledge, and screening",
         section: "Configuration",
         permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
-        label: "Security",
+        label: "Integrations & API",
+        icon: "Code2",
+        href: "/settings?adminTab=integrations-api",
+        description: "Configure APIs, credentials, webhooks, synchronization, and connection policy",
+        section: "Platform Governance",
+        permissionId: "SYSTEM_SETTINGS_VIEW"
+      },
+      {
+        label: "Security & Governance",
         icon: "Shield",
-        href: "/settings?adminTab=security",
-        description: "Configure security controls, authentication, and platform features",
-        section: "Configuration",
+        href: "/settings?adminTab=security-governance",
+        description: "Configure authentication, access, retention, feature, and data policies",
+        section: "Platform Governance",
         permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
@@ -780,38 +845,12 @@ export const sidebarConfigData = [
         permissionId: "SYSTEM_SETTINGS_VIEW"
       },
       {
-        label: "API & Integrations",
-        icon: "Code2",
-        href: "/settings?adminTab=app-api",
-        description: "Open API documentation and manage application keys",
-        section: "Configuration",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
-        label: "Logs & Monitoring",
+        label: "Audit, Logs & Monitoring",
         icon: "BarChart3",
         href: "/settings?adminTab=logs-monitoring",
-        description: "Review logs, monitoring, and connected system health",
+        description: "Review audit controls, logs, monitoring, and connected system health",
         section: "Configuration",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
-        label: "Audit & Controls",
-        icon: "Shield",
-        href: "/audit-controls",
-        exact: true,
-        description: "Certify access, govern retention, and prepare immutable audit evidence",
-        section: "Configuration",
-        permissionId: "AUDIT_CONTROLS_VIEW"
-      },
-      {
-        label: "Employee Documents",
-        icon: "FileText",
-        href: "/settings/document-templates",
-        exact: true,
-        description: "Design documents employees can generate through self-service",
-        section: "Configuration",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
+        permissionIds: ["SYSTEM_SETTINGS_VIEW", "AUDIT_CONTROLS_VIEW"]
       },
     ],
   },

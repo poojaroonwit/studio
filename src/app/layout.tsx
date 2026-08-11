@@ -1,7 +1,6 @@
 import React from 'react';
 import { DM_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 import Script from 'next/script';
-import { auth } from '@/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import './globals.css';
 import { FontLoader } from '@/components/ui/FontLoader';
@@ -15,6 +14,7 @@ import { themeInitializerScript } from './theme-initializer-script';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { normalizeAppName } from '@/lib/branding';
+import { getValidatedAuthSession } from '@/lib/validated-auth-session';
 import type { Metadata } from 'next';
 
 function getMetadataBaseUrl() {
@@ -29,15 +29,6 @@ function getMetadataBaseUrl() {
   }
 
   return new URL('http://localhost:3000');
-}
-
-async function getRootLayoutSession() {
-  try {
-    return await auth();
-  } catch (error) {
-    console.error('[ROOT LAYOUT] Failed to resolve auth session:', error);
-    return null;
-  }
 }
 
 const dmSans = DM_Sans({
@@ -120,7 +111,7 @@ export const viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const fastDev = process.env.NEXT_PUBLIC_FAST_DEV === 'true';
-  const session = fastDev ? null : await getRootLayoutSession();
+  const session = fastDev ? null : await getValidatedAuthSession();
 
   return (
     <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${ibmPlexSansThai.variable}`}>

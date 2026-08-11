@@ -43,37 +43,35 @@ export interface HrisOperationAccess {
 type Row = Record<string, unknown> & { id: string; version?: number | string };
 type FormState = Record<string, string | boolean>;
 
-const RESOURCE_DEFINITIONS: Record<ResourceKey, { label: string; description: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
-  assignments: { label: 'Assignments', description: 'Effective-dated roles, managers, departments, and work arrangements.', icon: UserGroupIcon },
-  'employment-events': { label: 'Employment events', description: 'Record transfers, promotions, manager changes, and contract changes.', icon: CalendarDaysIcon },
-  'compensation-reviews': { label: 'Compensation reviews', description: 'Plan review cycles, budgets, dates, and decision guidelines.', icon: ChartBarIcon },
-  'succession-plans': { label: 'Succession', description: 'Track critical roles, incumbents, successor readiness, and risk.', icon: UserGroupIcon },
-  'talent-reviews': { label: 'Talent reviews', description: 'Schedule structured talent review sessions and assessment configuration.', icon: CheckCircleIcon },
-  'internal-opportunities': { label: 'Internal mobility', description: 'Publish internal opportunities with eligibility rules and windows.', icon: DocumentTextIcon },
-  'workforce-plans': { label: 'Workforce plans', description: 'Model planning periods, scenarios, demand, supply, and cost forecasts.', icon: ChartBarIcon },
-  'retention-policies': { label: 'Retention policies', description: 'Define legal basis, retention periods, and record actions.', icon: DocumentTextIcon },
-  'privacy-requests': { label: 'Privacy requests', description: 'Manage access, correction, export, restriction, and deletion requests.', icon: DocumentTextIcon },
-  'integration-mappings': { label: 'Integration mappings', description: 'Connect external provider keys to internal HRIS resources.', icon: Cog6ToothIcon },
-  'feature-flags': { label: 'Feature flags', description: 'Enable company-scoped HR features with configuration payloads.', icon: WrenchScrewdriverIcon },
+const RESOURCE_DEFINITIONS: Record<ResourceKey, { label: string; description: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; statuses: string[] }> = {
+  assignments: { label: 'Assignments', description: 'Effective-dated roles, managers, departments, and work arrangements.', icon: UserGroupIcon, statuses: ['active', 'inactive', 'ended', 'corrected'] },
+  'employment-events': { label: 'Employment events', description: 'Record transfers, promotions, manager changes, and contract changes.', icon: CalendarDaysIcon, statuses: ['draft', 'pending', 'approved', 'applied', 'rejected', 'cancelled'] },
+  'compensation-reviews': { label: 'Compensation reviews', description: 'Plan review cycles, budgets, dates, and decision guidelines.', icon: ChartBarIcon, statuses: ['draft', 'open', 'under_review', 'approved', 'completed', 'cancelled'] },
+  'succession-plans': { label: 'Succession', description: 'Track critical roles, incumbents, successor readiness, and risk.', icon: UserGroupIcon, statuses: ['draft', 'active', 'archived'] },
+  'talent-reviews': { label: 'Talent reviews', description: 'Schedule structured talent review sessions and assessment configuration.', icon: CheckCircleIcon, statuses: ['draft', 'scheduled', 'in_progress', 'completed', 'archived'] },
+  'internal-opportunities': { label: 'Internal mobility', description: 'Publish internal opportunities with eligibility rules and windows.', icon: DocumentTextIcon, statuses: ['draft', 'published', 'closed', 'archived'] },
+  'workforce-plans': { label: 'Workforce plans', description: 'Model planning periods, scenarios, demand, supply, and cost forecasts.', icon: ChartBarIcon, statuses: ['draft', 'active', 'approved', 'archived'] },
+  'retention-policies': { label: 'Retention policies', description: 'Define legal basis, retention periods, and record actions.', icon: DocumentTextIcon, statuses: [] },
+  'privacy-requests': { label: 'Privacy requests', description: 'Manage access, correction, export, restriction, and deletion requests.', icon: DocumentTextIcon, statuses: ['received', 'in_progress', 'completed', 'closed', 'withdrawn', 'rejected'] },
+  'integration-mappings': { label: 'Integration mappings', description: 'Connect external provider keys to internal HRIS resources.', icon: Cog6ToothIcon, statuses: ['active', 'inactive'] },
+  'feature-flags': { label: 'Feature flags', description: 'Enable company-scoped HR features with configuration payloads.', icon: WrenchScrewdriverIcon, statuses: [] },
 };
 
 const RESOURCE_ORDER = Object.keys(RESOURCE_DEFINITIONS) as ResourceKey[];
-const STATUS_OPTIONS = ['draft', 'active', 'open', 'published', 'queued', 'under_review', 'in_progress', 'completed', 'closed', 'on_hold', 'archived'];
-
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
 function initialForm(key: ResourceKey): FormState {
   switch (key) {
-    case 'assignments': return { employeeId: '', assignmentType: 'primary', employmentType: 'full_time', jobTitle: '', location: '', positionId: '', departmentId: '', managerId: '', contractNumber: '', effectiveFrom: today(), effectiveTo: '', reason: '' };
+    case 'assignments': return { employeeId: '', clientId: '', assignmentType: 'primary', employmentType: 'full_time', jobTitle: '', location: '', positionId: '', departmentId: '', managerId: '', gradeId: '', workScheduleId: '', contractNumber: '', effectiveFrom: today(), effectiveTo: '', reason: '' };
     case 'employment-events': return { employeeId: '', eventType: 'transfer', effectiveDate: today(), proposedValues: '{}', reason: '', requestId: '', idempotencyKey: `employment-event-${Date.now()}` };
     case 'compensation-reviews': return { name: '', effectiveDate: today(), budgetAmount: '0', currency: 'THB', guidelines: '{}' };
     case 'succession-plans': return { positionId: '', incumbentEmployeeId: '', criticality: 'normal', riskLevel: 'medium', notes: '' };
     case 'talent-reviews': return { name: '', reviewDate: today(), configuration: '{}' };
     case 'internal-opportunities': return { positionId: '', title: '', description: '', eligibilityRules: '{}', opensAt: '', closesAt: '' };
     case 'workforce-plans': return { name: '', planningPeriodStart: today(), planningPeriodEnd: '', scenario: 'baseline', assumptions: '{}', demand: '[]', supply: '[]', costForecast: '{}' };
-    case 'retention-policies': return { recordType: '', retentionDays: '365', legalBasis: '', action: 'review' };
+    case 'retention-policies': return { recordType: '', retentionDays: '365', legalBasis: '', action: 'review', isActive: true };
     case 'privacy-requests': return { employeeId: '', requestType: 'access', dueAt: '', scope: '{}' };
     case 'integration-mappings': return { integrationType: 'identity', provider: '', externalKey: '', internalResource: '', internalId: '', configuration: '{}' };
     case 'feature-flags': return { featureKey: '', enabled: false, configuration: '{}' };
@@ -139,8 +137,9 @@ function payloadFor(key: ResourceKey, form: FormState) {
   switch (key) {
     case 'assignments': return {
       employeeId: value('employeeId'), assignmentType: value('assignmentType'), employmentType: value('employmentType'),
-      jobTitle: value('jobTitle') || null, location: value('location') || null, positionId: value('positionId') || null,
-      departmentId: value('departmentId') || null, managerId: value('managerId') || null, contractNumber: value('contractNumber') || null,
+      jobTitle: value('jobTitle') || null, location: value('location') || null, clientId: value('clientId') || null, positionId: value('positionId') || null,
+      departmentId: value('departmentId') || null, managerId: value('managerId') || null, gradeId: value('gradeId') || null,
+      workScheduleId: value('workScheduleId') || null, contractNumber: value('contractNumber') || null,
       effectiveFrom: value('effectiveFrom'), effectiveTo: value('effectiveTo') || null, reason: value('reason'),
     };
     case 'employment-events': return {
@@ -153,11 +152,19 @@ function payloadFor(key: ResourceKey, form: FormState) {
     case 'talent-reviews': return { name: value('name'), reviewDate: value('reviewDate'), configuration: parseJson(value('configuration'), 'Configuration') };
     case 'internal-opportunities': return { positionId: value('positionId') || null, title: value('title'), description: value('description') || null, eligibilityRules: parseJson(value('eligibilityRules'), 'Eligibility rules'), opensAt: toIso(value('opensAt')), closesAt: toIso(value('closesAt')) };
     case 'workforce-plans': return { name: value('name'), planningPeriodStart: value('planningPeriodStart'), planningPeriodEnd: value('planningPeriodEnd'), scenario: value('scenario'), assumptions: parseJson(value('assumptions'), 'Assumptions'), demand: parseJson(value('demand'), 'Demand', true), supply: parseJson(value('supply'), 'Supply', true), costForecast: parseJson(value('costForecast'), 'Cost forecast') };
-    case 'retention-policies': return { recordType: value('recordType'), retentionDays: Number(value('retentionDays')), legalBasis: value('legalBasis'), action: value('action') };
+    case 'retention-policies': return { recordType: value('recordType'), retentionDays: Number(value('retentionDays')), legalBasis: value('legalBasis'), action: value('action'), isActive: Boolean(form.isActive) };
     case 'privacy-requests': return { employeeId: value('employeeId') || null, requestType: value('requestType'), dueAt: toIso(value('dueAt')), scope: parseJson(value('scope'), 'Scope') };
     case 'integration-mappings': return { integrationType: value('integrationType'), provider: value('provider'), externalKey: value('externalKey'), internalResource: value('internalResource'), internalId: value('internalId') || null, configuration: parseJson(value('configuration'), 'Configuration') };
     case 'feature-flags': return { featureKey: value('featureKey'), enabled: Boolean(form.enabled), configuration: parseJson(value('configuration'), 'Configuration') };
   }
+}
+
+function updatePayloadFor(key: ResourceKey, form: FormState) {
+  const payload = payloadFor(key, form) as Record<string, unknown>;
+  if (key === 'assignments' || key === 'employment-events') delete payload.employeeId;
+  if (key === 'employment-events') delete payload.idempotencyKey;
+  if (key === 'feature-flags') delete payload.featureKey;
+  return payload;
 }
 
 function primaryLabel(key: ResourceKey, row: Row) {
@@ -242,7 +249,7 @@ export function HrisOperationsWorkspace({ resources, employeeId, employeeName, e
       const response = editingRow
         ? await fetch(`/api/hr/v1/${activeKey}?id=${encodeURIComponent(editingRow.id)}`, {
           method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expectedVersion: Number(editingRow.version || 1), reason: 'Updated from HRIS Operations', changes: payloadFor(activeKey, form) }),
+          body: JSON.stringify({ expectedVersion: Number(editingRow.version || 1), reason: 'Updated from HRIS Operations', changes: updatePayloadFor(activeKey, form) }),
         })
         : await fetch(`/api/hr/v1/${activeKey}`, {
           method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadFor(activeKey, form)),
@@ -316,14 +323,14 @@ function ResourceForm({ resource, form, onChange }: { resource: ResourceKey; for
   const employee = (field: string, label: string) => <Field key={field} label={label}>{form.__lockedEmployeeName ? <div className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm font-medium">{String(form.__lockedEmployeeName)}</div> : <HrEmployeeSearchSelect value={String(form[field] ?? '')} onValueChange={value => onChange(field, value)} />}</Field>;
 
   switch (resource) {
-    case 'assignments': return <div className="grid gap-4 sm:grid-cols-2">{employee('employeeId', 'Employee')}{select('assignmentType', 'Assignment type', ['primary', 'secondary', 'temporary', 'secondment'])}{select('employmentType', 'Employment type', ['full_time', 'part_time', 'contractor', 'subcontract', 'intern'])}{input('jobTitle', 'Job title')}{input('location', 'Location')}{input('positionId', 'Position ID', 'text', 'Optional UUID')}{input('departmentId', 'Department ID', 'text', 'Optional UUID')}{input('managerId', 'Manager ID', 'text', 'Optional UUID')}{input('contractNumber', 'Contract number')}{input('effectiveFrom', 'Effective from', 'date')}{input('effectiveTo', 'Effective to', 'date')}{divField('reason', 'Reason', form, onChange, 4, 'Why is this assignment being created?')}</div>;
-    case 'employment-events': return <div className="grid gap-4 sm:grid-cols-2">{employee('employeeId', 'Employee')}{select('eventType', 'Event type', ['hire', 'transfer', 'promotion', 'demotion', 'manager_change', 'location_change', 'contract_change', 'correction'])}{input('effectiveDate', 'Effective date', 'date')}{input('requestId', 'Request ID', 'text', 'Optional request reference')}{input('idempotencyKey', 'Idempotency key')}{divField('reason', 'Reason', form, onChange, 4, 'Explain the employment change.')}{json('proposedValues', 'Proposed values', 5)}</div>;
+    case 'assignments': return <div className="grid gap-4 sm:grid-cols-2">{employee('employeeId', 'Employee')}{select('assignmentType', 'Assignment type', ['primary', 'secondary', 'temporary', 'secondment'])}{select('employmentType', 'Employment type', ['full_time', 'part_time', 'contractor', 'subcontract', 'intern'])}{input('jobTitle', 'Job title')}{input('location', 'Location')}{input('clientId', 'Client ID', 'text', 'Optional UUID')}{input('positionId', 'Position ID', 'text', 'Optional UUID')}{input('departmentId', 'Department ID', 'text', 'Optional UUID')}{input('managerId', 'Manager ID', 'text', 'Optional UUID')}{input('gradeId', 'Grade ID', 'text', 'Optional UUID')}{input('workScheduleId', 'Work schedule ID', 'text', 'Optional UUID')}{input('contractNumber', 'Contract number')}{input('effectiveFrom', 'Effective from', 'date')}{input('effectiveTo', 'Effective to', 'date')}{divField('reason', 'Reason', form, onChange, 4, 'Why is this assignment being created?')}</div>;
+    case 'employment-events': return <div className="grid gap-4 sm:grid-cols-2">{employee('employeeId', 'Employee')}{select('eventType', 'Event type', ['hire', 'transfer', 'promotion', 'demotion', 'manager_change', 'location_change', 'contract_change', 'probation_decision', 'correction'])}{input('effectiveDate', 'Effective date', 'date')}{input('requestId', 'Request ID', 'text', 'Optional request reference')}{input('idempotencyKey', 'Idempotency key')}{divField('reason', 'Reason', form, onChange, 4, 'Explain the employment change.')}{json('proposedValues', 'Proposed values', 5)}</div>;
     case 'compensation-reviews': return <div className="grid gap-4 sm:grid-cols-2">{input('name', 'Review cycle name', 'text', '2027 Annual Compensation Review')}{input('effectiveDate', 'Effective date', 'date')}{input('budgetAmount', 'Budget amount', 'number', '0')}{input('currency', 'Currency', 'text', 'THB')}{json('guidelines', 'Guidelines', 5)}</div>;
     case 'succession-plans': return <div className="grid gap-4 sm:grid-cols-2">{input('positionId', 'Position ID', 'text', 'Optional UUID')}{employee('incumbentEmployeeId', 'Incumbent employee')}{select('criticality', 'Criticality', ['normal', 'important', 'critical'])}{select('riskLevel', 'Risk level', ['low', 'medium', 'high'])}{divField('notes', 'Notes', form, onChange, 4, 'Successor context, readiness notes, and risk rationale.')}</div>;
     case 'talent-reviews': return <div className="grid gap-4 sm:grid-cols-2">{input('name', 'Review name', 'text', 'Mid-year talent review')}{input('reviewDate', 'Review date', 'date')}{json('configuration', 'Configuration', 5)}</div>;
     case 'internal-opportunities': return <div className="grid gap-4 sm:grid-cols-2">{input('title', 'Opportunity title')}{input('positionId', 'Position ID', 'text', 'Optional UUID')}{input('opensAt', 'Opens at', 'datetime-local')}{input('closesAt', 'Closes at', 'datetime-local')}{divField('description', 'Description', form, onChange, 4, 'Describe the opportunity and expectations.')}{json('eligibilityRules', 'Eligibility rules', 5)}</div>;
     case 'workforce-plans': return <div className="grid gap-4 sm:grid-cols-2">{input('name', 'Plan name', 'text', 'FY2027 baseline plan')}{input('scenario', 'Scenario', 'text', 'baseline')}{input('planningPeriodStart', 'Planning period start', 'date')}{input('planningPeriodEnd', 'Planning period end', 'date')}{json('assumptions', 'Assumptions')}{json('demand', 'Demand', 5, '[]')}{json('supply', 'Supply', 5, '[]')}{json('costForecast', 'Cost forecast')}</div>;
-    case 'retention-policies': return <div className="grid gap-4 sm:grid-cols-2">{input('recordType', 'Record type', 'text', 'employee_documents')}{input('retentionDays', 'Retention days', 'number', '365')}{select('action', 'Action', ['review', 'archive', 'anonymize', 'delete'])}{divField('legalBasis', 'Legal basis', form, onChange, 4, 'Policy or legal justification for this retention period.')}</div>;
+    case 'retention-policies': return <div className="grid gap-4 sm:grid-cols-2">{input('recordType', 'Record type', 'text', 'employee_documents')}{input('retentionDays', 'Retention days', 'number', '365')}{select('action', 'Action', ['review', 'archive', 'anonymize', 'delete'])}<FieldCheckbox label="Policy active" checked={Boolean(form.isActive)} onChange={value => onChange('isActive', value)} />{divField('legalBasis', 'Legal basis', form, onChange, 4, 'Policy or legal justification for this retention period.')}</div>;
     case 'privacy-requests': return <div className="grid gap-4 sm:grid-cols-2">{employee('employeeId', 'Employee')}{select('requestType', 'Request type', ['access', 'correction', 'export', 'restriction', 'deletion'])}{input('dueAt', 'Due at', 'datetime-local')}{json('scope', 'Request scope', 5)}</div>;
     case 'integration-mappings': return <div className="grid gap-4 sm:grid-cols-2">{select('integrationType', 'Integration type', ['identity', 'banking', 'accounting', 'benefits', 'time', 'payroll'])}{input('provider', 'Provider', 'text', 'Workday, Azure AD, etc.')}{input('externalKey', 'External key')}{input('internalResource', 'Internal resource', 'text', 'employees')}{input('internalId', 'Internal ID', 'text', 'Optional UUID')}{json('configuration', 'Configuration', 5)}</div>;
     case 'feature-flags': return <div className="grid gap-4 sm:grid-cols-2">{input('featureKey', 'Feature key', 'text', 'effective_employment')}<FieldCheckbox label="Enabled" checked={Boolean(form.enabled)} onChange={value => onChange('enabled', value)} />{json('configuration', 'Configuration', 5)}</div>;
@@ -331,9 +338,10 @@ function ResourceForm({ resource, form, onChange }: { resource: ResourceKey; for
 }
 
 function RecordRow({ resource, row, statusEdit, onEditStatus, onEdit, onSaveStatus, saving, canManage }: { resource: ResourceKey; row: Row; statusEdit: { id: string; version: number; status: string } | null; onEditStatus: (value: { id: string; version: number; status: string } | null) => void; onEdit: () => void; onSaveStatus: () => void; saving: boolean; canManage: boolean }) {
-  const hasStatus = typeof row.status === 'string' && row.status.length > 0;
+  const statusOptions = RESOURCE_DEFINITIONS[resource].statuses;
+  const hasStatus = typeof row.status === 'string' && row.status.length > 0 && statusOptions.length > 0;
   const editing = statusEdit?.id === row.id;
-  return <article className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_180px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-semibold capitalize text-foreground">{primaryLabel(resource, row)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{secondaryLabel(resource, row)}</p><p className="mt-2 truncate text-xs text-muted-foreground">ID: {row.id}</p></div><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{detailLabel(resource, row)}</p></div><div>{hasStatus ? editing ? <div className="flex items-center gap-2"><select className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-xs capitalize" value={statusEdit.status} onChange={event => onEditStatus({ ...statusEdit, status: event.target.value })}>{STATUS_OPTIONS.map(status => <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>)}</select><Button type="button" size="sm" onClick={onSaveStatus} disabled={saving}>Save</Button></div> : <Badge variant="outline" className="capitalize">{formatValue(row.status)}</Badge> : <span className="text-sm text-muted-foreground">No status field</span>}</div><div className="flex flex-wrap justify-start gap-2 lg:justify-end">{canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}>Edit</Button>}{canManage && hasStatus && !editing ? <Button type="button" size="sm" variant="ghost" onClick={() => onEditStatus({ id: row.id, version: Number(row.version || 1), status: String(row.status) })}>Status</Button> : null}</div></article>;
+  return <article className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_180px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-semibold capitalize text-foreground">{primaryLabel(resource, row)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{secondaryLabel(resource, row)}</p><p className="mt-2 truncate text-xs text-muted-foreground">ID: {row.id}</p></div><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{detailLabel(resource, row)}</p></div><div>{hasStatus ? editing ? <div className="flex items-center gap-2"><select aria-label={`Status for ${primaryLabel(resource, row)}`} className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-xs capitalize" value={statusEdit.status} onChange={event => onEditStatus({ ...statusEdit, status: event.target.value })}>{statusOptions.map(status => <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>)}</select><Button type="button" size="sm" onClick={onSaveStatus} disabled={saving}>Save</Button></div> : <Badge variant="outline" className="capitalize">{formatValue(row.status)}</Badge> : <span className="text-sm text-muted-foreground">No status workflow</span>}</div><div className="flex flex-wrap justify-start gap-2 lg:justify-end">{canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}>Edit</Button>}{canManage && hasStatus && !editing ? <Button type="button" size="sm" variant="ghost" onClick={() => onEditStatus({ id: row.id, version: Number(row.version || 1), status: String(row.status) })}>Status</Button> : null}</div></article>;
 }
 
 function detailLabel(key: ResourceKey, row: Row) {

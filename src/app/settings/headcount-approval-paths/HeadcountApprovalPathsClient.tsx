@@ -20,7 +20,27 @@ interface ApprovalRoute {
   steps: ApprovalStep[];
 }
 
-export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) {
+interface ApprovalPathsClientProps {
+  canEdit: boolean;
+  endpoint?: string;
+  title?: string;
+  description?: string;
+  saveMessage?: string;
+  newPathName?: string;
+  newStepRole?: string;
+  newStepTitle?: string;
+}
+
+export function HeadcountApprovalPathsClient({
+  canEdit,
+  endpoint = '/api/settings/headcount-approval-paths',
+  title = 'Headcount approval paths',
+  description = 'Configure the ordered reviews applied when a headcount request is submitted.',
+  saveMessage = 'Approval paths saved',
+  newPathName = 'New approval path',
+  newStepRole = 'Department lead',
+  newStepTitle = 'Business approval',
+}: ApprovalPathsClientProps) {
   const [routes, setRoutes] = useState<ApprovalRoute[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -33,7 +53,7 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
   useEffect(() => {
     void (async () => {
       try {
-        const response = await fetch('/api/settings/headcount-approval-paths', { cache: 'no-store' });
+        const response = await fetch(endpoint, { cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to load approval paths');
         const payload = await response.json() as { routes?: ApprovalRoute[] };
         const nextRoutes = payload.routes || [];
@@ -45,7 +65,7 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
         setLoading(false);
       }
     })();
-  }, []);
+  }, [endpoint]);
 
   const updateSelected = (change: Partial<ApprovalRoute>) => {
     if (!selectedRoute) return;
@@ -70,11 +90,11 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
     const id = `route-${Date.now().toString(36)}`;
     const route: ApprovalRoute = {
       id,
-      name: 'New approval path',
+      name: newPathName,
       description: '',
       isActive: true,
       isDefault: routes.length === 0,
-      steps: [{ role: 'Department lead', title: 'Business approval' }],
+      steps: [{ role: newStepRole, title: newStepTitle }],
     };
     setRoutes(current => [...current, route]);
     setSelectedId(id);
@@ -100,7 +120,7 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
   const save = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/settings/headcount-approval-paths', {
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ routes }),
@@ -108,7 +128,7 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
       const payload = await response.json().catch(() => ({})) as { message?: string; routes?: ApprovalRoute[] };
       if (!response.ok) throw new Error(payload.message || 'Failed to save approval paths');
       if (payload.routes) setRoutes(payload.routes);
-      toast.success('Approval paths saved');
+      toast.success(saveMessage);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save approval paths');
     } finally {
@@ -123,8 +143,8 @@ export function HeadcountApprovalPathsClient({ canEdit }: { canEdit: boolean }) 
       <div className="mx-auto max-w-[1080px] overflow-hidden rounded-[6px] border border-[#dfe2e8] bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfe2e8] px-5 py-4 dark:border-zinc-800">
           <div>
-            <h1 className="text-base font-semibold">Headcount approval paths</h1>
-            <p className="mt-1 text-xs leading-5 text-[#6f7682] dark:text-zinc-400">Configure the ordered reviews applied when a headcount request is submitted.</p>
+            <h1 className="text-base font-semibold">{title}</h1>
+            <p className="mt-1 text-xs leading-5 text-[#6f7682] dark:text-zinc-400">{description}</p>
           </div>
           <Button size="sm" disabled={!canEdit || saving} onClick={() => void save()}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

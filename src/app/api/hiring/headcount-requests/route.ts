@@ -8,6 +8,7 @@ import { runHeadcountCreationEffects } from '@/app/api/headcount/headcount-route
 import {
   buildHeadcountRequestCreateData,
   getHeadcountRequestActionStatus,
+  getHeadcountRequestActionTransitionError,
   getHeadcountRequestActionValidationError,
   getHeadcountRequestStatus,
   getHeadcountRequestValidationError,
@@ -225,15 +226,17 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: 'Headcount request not found' }, { status: 404 });
   }
 
-  if (existing.status === 'filled') {
-    return NextResponse.json({ message: 'Filled headcount requests cannot be changed.' }, { status: 400 });
-  }
-
   const action = String(input.action) as HeadcountRequestAction;
+  const transitionError = getHeadcountRequestActionTransitionError(existing.status, action);
+  if (transitionError) {
+    return NextResponse.json({ message: transitionError }, { status: 400 });
+  }
   let updated: HeadcountRequestRow;
   try {
     updated = await prisma.$transaction(async tx => {
-      if (action === 'approve') {
+      if (action === 'submit') {
+        await assertPositionHeadcountCapacity(tx, existing.positionId, 1);
+      } else if (action === 'approve') {
         await assertPositionHeadcountCapacity(tx, existing.positionId, existing.status === 'rejected' ? 1 : 0);
       }
       return tx.headcount.update({

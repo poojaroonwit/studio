@@ -27,7 +27,6 @@ export function HeaderDesktopUserMenu(props: HeaderUserMenuSharedProps) {
         <HeaderDesktopAccountActions
           onOpenProfile={props.onOpenProfile}
           onOpenSecurity={props.onOpenSecurity}
-          onOpenSettings={props.onOpenSettings}
           labels={props.labels}
         />
         <HeaderDesktopPreviewTools

@@ -32,12 +32,12 @@ export default function Error({
   }
 
   return (
-    <div className="flex min-items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        <h2 className="mb-4 text-2xl font-bold text-foreground">
           Something went wrong!
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="mb-6 text-muted-foreground">
           {error.message || 'An unexpected error occurred'}
         </p>
         <button type="button"

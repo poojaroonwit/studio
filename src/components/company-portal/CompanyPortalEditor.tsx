@@ -476,7 +476,7 @@ export function CompanyPortalEditor({
                   type="button"
                   onClick={() => selectPage('homepage')}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-slate-50',
+                    'flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800',
                     selectedPageId === 'homepage' && 'bg-primary/10 text-primary',
                   )}
                 >
@@ -490,7 +490,7 @@ export function CompanyPortalEditor({
                   <div
                       key={page.id}
                       className={cn(
-                        'flex items-center gap-1 rounded-[4px] hover:bg-slate-50',
+                        'flex items-center gap-1 rounded-[4px] hover:bg-slate-50 dark:hover:bg-slate-800',
                         selectedPageId === page.id && 'bg-primary/10 text-primary',
                       )}
                     >
@@ -499,7 +499,7 @@ export function CompanyPortalEditor({
                         onClick={() => selectPage(page.id)}
                         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left"
                       >
-                        <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                        <FileText className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[11px] font-medium">{page.title}</span>
                           <span className="block truncate text-[10px] text-muted-foreground">
@@ -540,7 +540,7 @@ export function CompanyPortalEditor({
                 {portalAssets.length ? portalAssets.map(asset => (
                   <div
                     key={asset.name}
-                    className="flex items-center gap-2 rounded-[4px] px-2 py-2 hover:bg-slate-50"
+                    className="flex items-center gap-2 rounded-[4px] px-2 py-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     <ImageIcon className="h-4 w-4 shrink-0 text-blue-600" />
                     <span className="min-w-0 flex-1">
@@ -582,7 +582,7 @@ export function CompanyPortalEditor({
                         key={collection.id}
                         type="button"
                         onClick={() => openCmsCollection(collection)}
-                        className="flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-slate-50"
+                        className="flex w-full items-center gap-2 rounded-[4px] px-2 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                       >
                         <Database className="h-4 w-4 shrink-0 text-blue-600" />
                         <span className="min-w-0 flex-1">
@@ -604,11 +604,11 @@ export function CompanyPortalEditor({
           </Accordion>
         </aside>
 
-        <main className="min-w-0 bg-[#e9edf3] p-4 lg:p-7">
+        <main className="min-w-0 bg-[#e9edf3] p-4 dark:bg-[#07111f] lg:p-7">
           <div className="mx-auto max-w-[900px] overflow-hidden border bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b bg-white px-4 py-2">
-              <span className="text-xs font-medium text-slate-500">{activePageTitle} canvas</span>
-              <span className="text-[10px] text-slate-400">{activeBlocks.length} components</span>
+            <div className="flex items-center justify-between border-b bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-900">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-300">{activePageTitle} canvas</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">{activeBlocks.length} components</span>
             </div>
             {activeBlocks.length === 0 ? (
               <div
@@ -678,8 +678,8 @@ export function CompanyPortalEditor({
                         onSelectBlock={setSelectedBlockId}
                       />
                       {selectedBlockId === block.id && (
-                        <div className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-md border bg-white p-1 shadow-sm">
-                          <GripVertical className="h-4 w-4 text-slate-400" />
+                        <div className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-md border bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                          <GripVertical className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                           <IconButton
                             label="Move up"
                             disabled={index === 0}

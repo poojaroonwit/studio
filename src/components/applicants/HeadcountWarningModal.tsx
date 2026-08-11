@@ -115,20 +115,20 @@ export function HeadcountWarningModal({
           </div>
 
           {headcountStatus && (
-            <div className="rounded-lg bg-gray-50 p-4 border border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Current Headcount Status</h4>
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
+              <h4 className="mb-2 text-sm font-medium text-foreground">Current Headcount Status</h4>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className="text-lg font-semibold text-gray-900">{headcountStatus.total}</div>
-                  <div className="text-xs text-gray-500">Total</div>
+                  <div className="text-lg font-semibold text-foreground">{headcountStatus.total}</div>
+                  <div className="text-xs text-muted-foreground">Total</div>
                 </div>
                 <div>
                   <div className="text-lg font-semibold text-green-600">{headcountStatus.vacant}</div>
-                  <div className="text-xs text-gray-500">Vacant</div>
+                  <div className="text-xs text-muted-foreground">Vacant</div>
                 </div>
                 <div>
                   <div className="text-lg font-semibold text-red-600">{headcountStatus.filled}</div>
-                  <div className="text-xs text-gray-500">Filled</div>
+                  <div className="text-xs text-muted-foreground">Filled</div>
                 </div>
               </div>
             </div>

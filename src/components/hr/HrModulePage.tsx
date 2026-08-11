@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import {
+  ArrowRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CheckCircleIcon,
@@ -10,9 +11,12 @@ import {
   CloudArrowUpIcon,
   DocumentArrowDownIcon,
   DocumentArrowUpIcon,
+  EyeIcon,
   FunnelIcon,
+  InformationCircleIcon,
   PencilSquareIcon,
   MagnifyingGlassIcon,
+  NoSymbolIcon,
   PlusIcon,
   PlayIcon,
   TrashIcon,
@@ -42,7 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { HrisSurface } from '@/components/hris/HrisWorkspacePrimitives';
+import { useLocalization } from '@/contexts/LocalizationContext';
 import type { HrModuleData } from '@/lib/hr/hr-api-data';
 import type { HrModuleConfig } from '@/lib/hr/hr-module-config';
 import type { HrResourceField } from '@/lib/hr/hr-resource-registry';
@@ -249,6 +253,8 @@ function EmployeeDirectoryTable({
   setDeleteRecord: React.Dispatch<React.SetStateAction<Record<string, unknown> & { id: string } | null>>;
   onEmployeeCreated: () => Promise<void> | void;
 }) {
+  const { locale } = useLocalization();
+  const isThaiLocale = locale.toLowerCase().startsWith('th');
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [employmentFilter, setEmploymentFilter] = React.useState('all');
   const [locationFilter, setLocationFilter] = React.useState('all');
@@ -257,6 +263,8 @@ function EmployeeDirectoryTable({
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
   const [importMode, setImportMode] = React.useState<'excel' | 'azure'>('excel');
   const [importFile, setImportFile] = React.useState<File | null>(null);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importMessage, setImportMessage] = React.useState<string | null>(null);
   const [createEmployeeOpen, setCreateEmployeeOpen] = React.useState(false);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = React.useState('active');
@@ -322,6 +330,14 @@ function EmployeeDirectoryTable({
   const activeFilters = [statusFilter, employmentFilter, locationFilter, contractFilter].filter(value => value !== 'all').length;
   const visibleEmployeeIds = visibleEmployees.map(employee => employee.id);
   const allVisibleSelected = visibleEmployeeIds.length > 0 && visibleEmployeeIds.every(id => selectedEmployeeIds.has(id));
+  const selectedEmployees = resource.records.filter(employee => selectedEmployeeIds.has(employee.id));
+  const selectedEmployee = selectedEmployees.length === 1 ? selectedEmployees[0] : null;
+  const activeFilterItems = [
+    statusFilter !== 'all' ? { key: 'status', label: `Status: ${employeeText(statusFilter)}`, clear: () => setStatusFilter('all') } : null,
+    employmentFilter !== 'all' ? { key: 'employment', label: `Type: ${employeeText(employmentFilter)}`, clear: () => setEmploymentFilter('all') } : null,
+    locationFilter !== 'all' ? { key: 'location', label: `Location: ${locationFilter}`, clear: () => setLocationFilter('all') } : null,
+    contractFilter !== 'all' ? { key: 'contract', label: `Contract: ${employeeText(contractFilter)}`, clear: () => setContractFilter('all') } : null,
+  ].filter((item): item is { key: string; label: string; clear: () => void } => Boolean(item));
 
   function toggleVisibleEmployees(checked: boolean) {
     setSelectedEmployeeIds(current => {
@@ -331,7 +347,7 @@ function EmployeeDirectoryTable({
     });
   }
 
-  async function updateSelectedEmployeeStatus() {
+  async function updateSelectedEmployeeStatus(nextStatus = bulkStatus) {
     const ids = Array.from(selectedEmployeeIds);
     if (ids.length === 0 || isBulkUpdating) return;
     setIsBulkUpdating(true);
@@ -341,8 +357,9 @@ function EmployeeDirectoryTable({
       const results = await Promise.allSettled(ids.map(async id => {
         const response = await fetch(`/api/hr/employees?id=${encodeURIComponent(id)}`, {
           method: 'PATCH',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: bulkStatus }),
+          body: JSON.stringify({ status: nextStatus }),
         });
         if (!response.ok) throw new Error(`Failed to update employee ${id}`);
       }));
@@ -374,30 +391,59 @@ function EmployeeDirectoryTable({
     }
   }
 
+  async function runEmployeeImport() {
+    if (isImporting) return;
+    if (importMode === 'excel' && !importFile) return;
+    setIsImporting(true);
+    setImportMessage(null);
+    try {
+      const response = importMode === 'excel'
+        ? await (() => {
+            const body = new FormData();
+            body.set('file', importFile as File);
+            return fetch('/api/hr/employees/import', { method: 'POST', credentials: 'include', body });
+          })()
+        : await fetch('/api/v1/users/sync-ad', { method: 'POST', credentials: 'include' });
+      const payload = await response.json().catch(() => ({})) as { message?: string };
+      if (!response.ok) throw new Error(payload.message || (importMode === 'excel' ? 'Unable to import employees.' : 'Unable to sync Azure AD users.'));
+      setImportMessage(payload.message || (importMode === 'excel' ? 'Employee import completed.' : 'Azure AD user sync completed.'));
+      await onEmployeeCreated();
+      if (importMode === 'excel') setImportFile(null);
+    } catch (importError) {
+      setImportMessage(importError instanceof Error ? importError.message : 'Import failed.');
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   return (
     <main className="flex min-h-full w-full flex-col bg-background text-foreground">
       <div className="flex min-h-full w-full flex-1">
         <section className="flex min-h-full w-full flex-1 flex-col bg-background">
-          <div className="space-y-5 px-4 py-5 sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">People · Employee records</p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-foreground sm:text-3xl">Employee directory</h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{filteredEmployees.length} employee{filteredEmployees.length === 1 ? '' : 's'} in the current view. Search, filter, and manage lifecycle records.</p>
+          <div className="px-4 py-6 sm:px-6 lg:px-7 lg:py-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold tracking-[0.04em] text-primary">People <span className="px-1.5 text-muted-foreground/60">›</span> Employee records</p>
+              <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-[-0.035em] text-foreground">Employee directory</h1>
+              <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
+                {isThaiLocale ? `${filteredEmployees.length} พนักงาน` : `${filteredEmployees.length} employee${filteredEmployees.length === 1 ? '' : 's'}`}
+                <span aria-hidden="true" className="mx-1 text-border">|</span>
+                {isThaiLocale ? 'ข้อมูล ณ ปัจจุบัน' : 'Data as of today'}
+              </p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-              <label className="relative block w-full sm:w-80">
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
+              <label className="relative block w-full sm:min-w-80 lg:w-[400px] lg:shrink-0">
                 <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-muted/35 pl-9 pr-3 text-sm outline-none transition-colors focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-11 w-full rounded-md border border-input bg-muted/35 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring"
                   placeholder="Search employees"
                 />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" className="h-10 justify-start gap-2">
+                  <Button type="button" variant="outline" className="h-11 justify-start gap-2 px-4">
                     <FunnelIcon className="h-4 w-4" />
                     Filter
                     {activeFilters > 0 && <Badge variant="secondary" className="ml-1 rounded-full">{activeFilters}</Badge>}
@@ -453,7 +499,7 @@ function EmployeeDirectoryTable({
               </Popover>
               <Button
                 type="button"
-                className="h-10 justify-start gap-2"
+                className="h-11 justify-start gap-2 px-4"
                 onClick={() => setCreateEmployeeOpen(true)}
               >
                 <PlusIcon className="h-4 w-4" />
@@ -461,7 +507,7 @@ function EmployeeDirectoryTable({
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="outline" className="h-10 justify-start gap-2">
+                  <Button type="button" variant="outline" className="h-11 justify-start gap-2 px-4">
                     <CloudArrowUpIcon className="h-4 w-4" />
                     Import / Export
                   </Button>
@@ -484,25 +530,40 @@ function EmployeeDirectoryTable({
             </div>
           </div>
 
-          {error && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-              {error}
-            </div>
-          )}
+          {activeFilterItems.length > 0 && <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="Active employee filters">
+            {activeFilterItems.map(item => <button key={item.key} type="button" onClick={item.clear} className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted/45 px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"><span>{item.label}</span><XCircleIcon className="h-4 w-4 text-muted-foreground" /></button>)}
+            <button type="button" onClick={() => { setStatusFilter('all'); setEmploymentFilter('all'); setLocationFilter('all'); setContractFilter('all'); }} className="h-8 px-2 text-xs font-semibold text-primary hover:underline">Clear all</button>
+          </div>}
 
-          <HrisSurface className="grid overflow-hidden sm:grid-cols-3">
+          <div className="mt-7 flex flex-col border-y border-border/80 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid min-w-0 flex-1 sm:grid-cols-3 lg:grid-cols-[minmax(280px,1.15fr)_minmax(240px,0.9fr)_minmax(260px,1fr)] xl:grid-cols-[370px_270px_minmax(260px,1fr)]">
             {[
-              { label: 'Contracts in notice period', value: contractSummary.due, filter: 'due', tone: 'text-amber-700 dark:text-amber-300' },
-              { label: 'Contracts expired', value: contractSummary.expired, filter: 'expired', tone: 'text-red-700 dark:text-red-300' },
-              { label: 'Missing end date', value: contractSummary.missing, filter: 'missing_end_date', tone: 'text-orange-700 dark:text-orange-300' },
+              { label: 'Contracts in notice period', value: contractSummary.due, filter: 'due', tone: 'text-rose-600 dark:text-rose-300', dot: 'bg-rose-400' },
+              { label: 'Contracts expired', value: contractSummary.expired, filter: 'expired', tone: 'text-amber-600 dark:text-amber-300', dot: 'bg-amber-400' },
+              { label: 'Missing end date', value: contractSummary.missing, filter: 'missing_end_date', tone: 'text-emerald-600 dark:text-emerald-300', dot: 'bg-emerald-400' },
             ].map(item => (
-              <button key={item.filter} type="button" onClick={() => setContractFilter(current => current === item.filter ? 'all' : item.filter)} className={cn('min-w-0 border-b border-border/70 bg-card p-5 text-left transition-colors hover:bg-muted/25 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0', contractFilter === item.filter && 'bg-primary/5 ring-2 ring-inset ring-primary/40')}>
-                <p className="text-sm font-medium text-muted-foreground">{item.label}</p>
-                <p className={cn('mt-3 text-3xl font-semibold tracking-[-0.04em] tabular-nums', item.tone)}>{item.value}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">Select to filter the directory</p>
+              <button key={item.filter} type="button" aria-pressed={contractFilter === item.filter} onClick={() => setContractFilter(current => current === item.filter ? 'all' : item.filter)} className={cn('group flex min-h-20 min-w-0 items-center gap-3 border-b border-border/70 px-3 text-left transition-colors hover:bg-muted/25 focus-visible:relative focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:border-b-0 sm:border-r sm:px-4 sm:last:border-r-0 lg:px-5', contractFilter === item.filter && 'bg-primary/5')}>
+                <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', item.dot)} aria-hidden="true" />
+                <span className="min-w-0 truncate text-sm font-medium text-muted-foreground group-hover:text-foreground">{item.label}</span>
+                <span className={cn('ml-auto shrink-0 text-xl font-semibold tracking-[-0.04em] tabular-nums', item.tone)}>{item.value}</span>
               </button>
             ))}
-          </HrisSurface>
+            </div>
+            <button type="button" aria-pressed={contractFilter === 'attention'} onClick={() => setContractFilter(current => current === 'attention' ? 'all' : 'attention')} className="group inline-flex min-h-14 shrink-0 items-center justify-center gap-2 px-4 text-sm font-semibold text-[#1769e0] transition-colors hover:bg-blue-500/5 hover:text-[#0f56bf] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:text-[#60a5fa] dark:hover:text-[#93c5fd] lg:min-h-20 lg:px-5">
+              {isThaiLocale ? 'ดูภาพรวมสัญญา' : 'View contract overview'}
+              <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </button>
+          </div>
+
+          {error && (
+            <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/80 px-2 text-sm text-muted-foreground">
+              <InformationCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+              <button type="button" disabled={isLoading} onClick={() => void onEmployeeCreated()} className="font-semibold text-[#1769e0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 dark:text-[#60a5fa]">
+                {isLoading ? 'Retrying…' : 'Retry'}
+              </button>
+            </div>
+          )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border bg-muted/25 px-5 py-2">
             <p className="text-xs text-muted-foreground">Alerts use each employee's configured notice period and are de-duplicated daily.</p>
@@ -510,13 +571,19 @@ function EmployeeDirectoryTable({
           </div>
 
           {selectedEmployeeIds.size > 0 && (
-            <div className="flex min-h-12 flex-wrap items-center gap-2 border-b border-primary/20 bg-primary/5 px-5 py-2">
-              <span className="text-sm font-semibold text-foreground">{selectedEmployeeIds.size} selected</span>
-              <Label htmlFor="employee-bulk-status" className="ml-2 text-sm">Update status</Label>
+            <div className="flex min-h-14 flex-wrap items-center gap-2 border-y border-primary/20 bg-primary/5 px-5 py-2">
+              <span className="min-w-40 border-r border-border pr-5 text-sm font-semibold text-foreground">{selectedEmployeeIds.size} employee{selectedEmployeeIds.size === 1 ? '' : 's'} selected</span>
+              {selectedEmployee && <>
+                <Button asChild type="button" variant="ghost" size="sm" className="gap-2"><Link href={`/people/${selectedEmployee.id}`}><EyeIcon className="h-4 w-4" />View profile</Link></Button>
+                <Button asChild type="button" variant="ghost" size="sm" className="gap-2"><Link href={`/people/${selectedEmployee.id}`}><PencilSquareIcon className="h-4 w-4" />Edit</Link></Button>
+              </>}
+              <Button type="button" variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive" disabled={isBulkUpdating} onClick={() => void updateSelectedEmployeeStatus('inactive')}><NoSymbolIcon className="h-4 w-4" />Deactivate</Button>
+              <span aria-hidden="true" className="mx-1 h-7 w-px bg-border" />
+              <Label htmlFor="employee-bulk-status" className="text-xs text-muted-foreground">Set status</Label>
               <select id="employee-bulk-status" value={bulkStatus} onChange={event => setBulkStatus(event.target.value)} disabled={isBulkUpdating} className="h-8 rounded-md border border-input bg-background px-2 text-sm capitalize">
                 {['active', 'inactive', 'onboarding', 'probation'].map(status => <option key={status} value={status}>{employeeText(status)}</option>)}
               </select>
-              <Button type="button" size="sm" disabled={isBulkUpdating} onClick={() => void updateSelectedEmployeeStatus()}>
+              <Button type="button" size="sm" variant="outline" disabled={isBulkUpdating} onClick={() => void updateSelectedEmployeeStatus()}>
                 {isBulkUpdating ? 'Updating...' : 'Apply'}
               </Button>
               <Button type="button" variant="ghost" size="sm" disabled={isBulkUpdating} onClick={() => setSelectedEmployeeIds(new Set())} className="ml-auto">Clear</Button>
@@ -526,7 +593,7 @@ function EmployeeDirectoryTable({
 
           <div className="flex-1 overflow-x-auto">
             <table className="min-w-full table-fixed text-left text-sm">
-              <thead className="border-b border-border bg-muted/35 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <thead className="sticky top-0 z-10 border-b border-border bg-muted text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 <tr>
                   <th className="w-12 px-4 py-3">
                     <Checkbox
@@ -563,7 +630,7 @@ function EmployeeDirectoryTable({
                   ))
                 ) : visibleEmployees.length > 0 ? (
                   visibleEmployees.map((employee) => (
-                    <tr key={employee.id} className="transition-colors hover:bg-muted/20">
+                    <tr key={employee.id} className={cn('transition-colors hover:bg-muted/20', selectedEmployeeIds.has(employee.id) && 'bg-primary/10 hover:bg-primary/10')}>
                       <td className="px-4 py-3">
                         <Checkbox
                           aria-label={`Select ${employeeName(employee)}`}
@@ -678,7 +745,7 @@ function EmployeeDirectoryTable({
       </div>
       <Dialog open={importDialogOpen} onOpenChange={(open) => {
         setImportDialogOpen(open);
-        if (!open) setImportFile(null);
+        if (!open) { setImportFile(null); setImportMessage(null); }
       }}>
         <DialogContent className="max-w-2xl rounded-[8px]">
           <DialogHeader>
@@ -708,25 +775,26 @@ function EmployeeDirectoryTable({
             >
               <CloudArrowUpIcon className="h-5 w-5 text-indigo-600" />
               <h3 className="mt-3 text-sm font-bold text-foreground">Import via Azure AD</h3>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Sync users from Azure AD and create linked employee records for selected directory users.</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Run the configured Azure AD account sync. Existing employee records are linked automatically when their work email matches.</p>
             </button>
           </div>
           {importMode === 'excel' ? (
             <div className="rounded-[8px] border border-border bg-muted/35 p-4">
               <Label htmlFor="employee-excel-import">Excel file</Label>
-              <Input id="employee-excel-import" type="file" accept=".xlsx,.xls,.csv" className="mt-2" onChange={(event) => setImportFile(event.target.files?.[0] || null)} />
-              <p className="mt-2 text-xs text-muted-foreground">{importFile ? importFile.name : 'Accepted formats: .xlsx, .xls, .csv'}</p>
+              <Input id="employee-excel-import" type="file" accept=".xlsx,.csv" className="mt-2" onChange={(event) => setImportFile(event.target.files?.[0] || null)} />
+              <p className="mt-2 text-xs text-muted-foreground">{importFile ? importFile.name : 'Accepted formats: .xlsx, .csv · maximum 1,000 rows'}</p>
             </div>
           ) : (
             <div className="rounded-[8px] border border-border bg-muted/35 p-4">
               <h3 className="text-sm font-bold text-foreground">Azure AD sync</h3>
-              <p className="mt-1 text-sm text-muted-foreground">This will use the existing Azure AD user lookup/sync configuration. Run sync after confirming department and manager mapping rules.</p>
+              <p className="mt-1 text-sm text-muted-foreground">This calls the existing secured Azure AD synchronization service. It creates or updates platform users and links matching employee records by email.</p>
             </div>
           )}
+          {importMessage && <p role="status" className="rounded-[8px] border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">{importMessage}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setImportDialogOpen(false)}>Cancel</Button>
-            <Button type="button" disabled={importMode === 'excel' && !importFile}>
-              {importMode === 'excel' ? 'Import Excel' : 'Start Azure AD sync'}
+            <Button type="button" variant="outline" onClick={() => setImportDialogOpen(false)} disabled={isImporting}>Close</Button>
+            <Button type="button" disabled={isImporting || (importMode === 'excel' && !importFile)} onClick={() => void runEmployeeImport()}>
+              {isImporting ? 'Working...' : importMode === 'excel' ? 'Import employees' : 'Start Azure AD sync'}
             </Button>
           </DialogFooter>
         </DialogContent>

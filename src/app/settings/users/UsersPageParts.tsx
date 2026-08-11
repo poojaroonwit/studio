@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusCircle, RefreshCw, ServerCrash, ShieldCheck, UsersRound } from "lucide-react";
+import { Plus, RefreshCw, ServerCrash, ShieldCheck, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
@@ -24,22 +24,22 @@ export function UsersPageHeader({
   onAddUser,
 }: UsersPageHeaderProps) {
   return (
-    <div className="p-4 pb-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+    <div className="px-6 pb-0 pt-5">
+      <div className="mb-3 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
-            <p className="text-muted-foreground">Manage users, roles, and access permissions</p>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">User accounts</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Manage platform accounts, status, and sign-in security.</p>
           </div>
         </div>
         {canCreateUsers && activeTab === "users" && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onSyncFromAD} disabled={isSyncing}>
+            <Button size="sm" variant="outline" onClick={onSyncFromAD} disabled={isSyncing}>
               <RefreshCw className={cn("mr-2 h-4 w-4", isSyncing && "animate-spin")} />
               Sync from Azure AD
             </Button>
-            <Button variant="default" onClick={onAddUser}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+            <Button size="sm" variant="default" onClick={onAddUser}>
+              <Plus className="mr-2 h-4 w-4" /> Add account
             </Button>
           </div>
         )}
@@ -65,7 +65,7 @@ const USER_SETTINGS_TABS = [
 export function UsersPageTabs({ activeTab, onTabChange }: UsersPageTabsProps) {
   return (
     <div className="px-6">
-      <div className="flex w-full border-b-2 border-zinc-200 dark:border-zinc-800 mb-4 gap-6">
+      <div className="mb-4 flex w-full gap-6 border-b border-border">
         {USER_SETTINGS_TABS.map((tab) => {
           const Icon = tab.icon;
 
@@ -76,7 +76,7 @@ export function UsersPageTabs({ activeTab, onTabChange }: UsersPageTabsProps) {
               onClick={() => onTabChange(tab.id)}
               className={cn(
                 getUnderlineNavTriggerClassName(activeTab === tab.id),
-                "px-1 h-12 -mb-px",
+                "-mb-px h-10 px-1 text-sm",
               )}
             >
               <Icon className="h-4 w-4" /> {tab.label}

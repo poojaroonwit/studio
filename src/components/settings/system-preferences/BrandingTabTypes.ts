@@ -1,12 +1,18 @@
 import type React from 'react';
+import type { EvaluateTabProps } from './EvaluateTabTypes';
 import type {
+    DrawerStyle,
     HeaderBackgroundType,
     LoginBackgroundType,
     LoginPageLayoutType,
 } from './constants';
 
-export interface BrandingTabProps {
+export interface BrandingTabProps extends EvaluateTabProps {
     canEdit: boolean;
+    onSave: () => void;
+    saving: boolean;
+    drawerStyle: DrawerStyle;
+    setDrawerStyle: (value: DrawerStyle) => void;
     handleLogoFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
     logoPreviewUrl: string | null;
     removeSelectedLogo: (shouldRemoveSaved: boolean) => void;

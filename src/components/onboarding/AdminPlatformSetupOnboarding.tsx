@@ -15,6 +15,7 @@ import {
   Loader2,
   Mail,
   FileOutput,
+  Eye,
   ShieldCheck,
   MailCheck,
   Palette,
@@ -44,6 +45,7 @@ import {
   type PlatformSetupFeatureId,
   type PlatformSetupFeatureStatus,
 } from '@/lib/admin-platform-setup';
+import type { AppKitSetupPreviewGroup } from '@/lib/appkit-setup-preview';
 import { getJsonErrorMessage, readJsonObject } from '@/lib/response-json';
 
 interface AdminPlatformSetupOnboardingProps {
@@ -130,6 +132,10 @@ export function AdminPlatformSetupOnboarding({
   const [isInitializingAll, setIsInitializingAll] = React.useState(false);
   const [failedFeatures, setFailedFeatures] = React.useState<Partial<Record<PlatformSetupFeatureId, string>>>({});
   const [setupMessage, setSetupMessage] = React.useState('');
+  const [previewFeatureIds, setPreviewFeatureIds] = React.useState<PlatformSetupFeatureId[]>([]);
+  const [previewGroups, setPreviewGroups] = React.useState<AppKitSetupPreviewGroup[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
+  const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
   const pathname = usePathname();
   const storageKey = React.useMemo(() => `hri:admin-platform-setup:v5:${userId}`, [userId]);
 
@@ -275,6 +281,49 @@ export function AdminPlatformSetupOnboarding({
       setSetupMessage(`${successfulIds.length} item${successfulIds.length === 1 ? '' : 's'} initialized. ${failureCount} still need attention.`);
       toast.error(`${failureCount} setup item${failureCount === 1 ? '' : 's'} could not be initialized`);
     }
+  };
+
+  const previewInitialization = async (featureIds: PlatformSetupFeatureId[]) => {
+    if (featureIds.length === 0) return;
+    setPreviewFeatureIds(featureIds);
+    setPreviewGroups([]);
+    setIsPreviewOpen(true);
+    setIsLoadingPreview(true);
+    try {
+      const response = await fetch('/api/settings/platform-setup/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ environment: 'production', featureIds }),
+      });
+      const payload = await readJsonObject(response);
+      if (!response.ok) throw new Error(getJsonErrorMessage(payload, 'Unable to preview AppKit data'));
+      setPreviewGroups(Array.isArray(payload.groups) ? payload.groups as unknown as AppKitSetupPreviewGroup[] : []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to preview AppKit data';
+      toast.error(message);
+      setIsPreviewOpen(false);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const confirmPreviewInitialization = async () => {
+    const featureIds = previewFeatureIds;
+    setIsPreviewOpen(false);
+    if (featureIds.length === 1) {
+      await initializeFeature(featureIds[0]);
+      return;
+    }
+    await initializeRemaining();
+  };
+
+  const reviewRecommendedInitialization = () => {
+    const pendingIds = getRecommendedPlatformInitializationIds(statuses);
+    if (pendingIds.length === 0) {
+      void initializeRemaining();
+      return;
+    }
+    void previewInitialization(pendingIds);
   };
 
   const progress = getPlatformSetupProgress(statuses);
@@ -461,7 +510,7 @@ export function AdminPlatformSetupOnboarding({
                     <Button
                       type="button"
                       disabled={selectedReady || isBusy}
-                      onClick={() => void initializeFeature(selectedFeature.id)}
+                      onClick={() => void previewInitialization([selectedFeature.id])}
                     >
                       {activeFeature === selectedFeature.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {selectedReady ? 'Ready' : 'Initialize this default'}
@@ -494,7 +543,7 @@ export function AdminPlatformSetupOnboarding({
             <Button
               type="button"
               disabled={isLoading || isBusy}
-              onClick={() => allReady ? dismiss('completed') : void initializeRemaining()}
+              onClick={() => allReady ? dismiss('completed') : reviewRecommendedInitialization()}
             >
               {isInitializingAll && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {allReady ? 'Continue to activation' : 'Initialize recommended defaults'}
@@ -502,6 +551,62 @@ export function AdminPlatformSetupOnboarding({
           </div>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={isPreviewOpen} onOpenChange={(nextOpen) => !isBusy && setIsPreviewOpen(nextOpen)}>
+        <DialogContent dialogId="admin-platform-setup-preview" className="max-h-[85vh] overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b px-6 pb-5 pt-6 pr-14">
+            <div className="flex items-start gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"><Eye className="h-4 w-4" /></span>
+              <div>
+                <DialogTitle>Preview AppKit data</DialogTitle>
+                <DialogDescription className="mt-1 leading-5">
+                  Review the production starter data below. Nothing is saved until you confirm.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="max-h-[55vh] overflow-y-auto px-6 py-5">
+            {isLoadingPreview ? (
+              <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading preview from AppKit…
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {previewGroups.map(group => {
+                  const feature = platformSetupFeatures.find(item => item.id === group.featureId);
+                  return (
+                    <section key={group.featureId} className="rounded-lg border bg-muted/15 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-semibold">{feature?.title || group.featureId}</h3>
+                        <Badge variant="secondary">{group.count} {group.count === 1 ? 'record' : 'records'}</Badge>
+                      </div>
+                      {group.items.length ? (
+                        <ul className="mt-3 divide-y text-sm">
+                          {group.items.map((item, index) => (
+                            <li key={`${item.label}-${index}`} className="py-2 first:pt-0 last:pb-0">
+                              <p className="font-medium">{item.label}</p>
+                              {item.detail && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.detail}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="mt-2 text-xs text-muted-foreground">No AppKit records were returned for this item.</p>}
+                      {group.count > group.items.length && <p className="mt-3 text-xs font-medium text-primary">+ {group.count - group.items.length} more</p>}
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="border-t px-6 py-4 sm:justify-between">
+            <p className="text-xs text-muted-foreground">Existing records may be updated by matching keys or names.</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" disabled={isLoadingPreview} onClick={() => setIsPreviewOpen(false)}>Cancel</Button>
+              <Button type="button" disabled={isLoadingPreview || previewGroups.length === 0} onClick={() => void confirmPreviewInitialization()}>
+                Confirm and initialize
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

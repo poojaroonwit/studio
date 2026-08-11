@@ -22,6 +22,28 @@ export const hrisResourceNames = [
 
 export type HrisResourceName = (typeof hrisResourceNames)[number];
 
+const jsonCreateColumns = new Set([
+  'proposed_values', 'checklist', 'metadata', 'guidelines', 'configuration',
+  'eligibility_rules', 'assumptions', 'demand', 'supply', 'cost_forecast', 'scope',
+  'exit_interview', 'evidence', 'actions',
+]);
+
+const createColumnCasts: Partial<Record<HrisResourceName, Record<string, string>>> = {
+  exits: {
+    employee_id: 'uuid',
+    company_id: 'uuid',
+    notice_date: 'date',
+    last_working_date: 'date',
+    document_retention_until: 'date',
+  },
+};
+
+export function castCreatePlaceholder(resource: HrisResourceName, column: string, placeholder: string) {
+  if (jsonCreateColumns.has(column)) return `${placeholder}::jsonb`;
+  const cast = createColumnCasts[resource]?.[column];
+  return cast ? `${placeholder}::${cast}` : placeholder;
+}
+
 type ResourceConfig = {
   table: string;
   companyScoped: boolean;
@@ -82,7 +104,7 @@ export const hrisResourceConfig: Record<HrisResourceName, ResourceConfig> = {
     managePermissions: ['HR_PEOPLE_MANAGE'],
     createSchema: z.object({
       ...lifecycleBase,
-      eventType: z.enum(['hire', 'transfer', 'promotion', 'demotion', 'manager_change', 'location_change', 'contract_change', 'correction']),
+      eventType: z.enum(['hire', 'transfer', 'promotion', 'demotion', 'manager_change', 'location_change', 'contract_change', 'probation_decision', 'correction']),
       effectiveDate: date,
       proposedValues: z.record(z.string(), z.unknown()),
       requestId: z.string().trim().max(160).nullish(),
@@ -258,6 +280,7 @@ export const hrisResourceConfig: Record<HrisResourceName, ResourceConfig> = {
       retentionDays: z.number().int().min(1).max(36500),
       legalBasis: z.string().trim().min(2).max(1000),
       action: z.enum(['review', 'archive', 'anonymize', 'delete']).default('review'),
+      isActive: z.boolean().default(true),
     }),
   },
   'privacy-requests': {
@@ -319,6 +342,120 @@ export const updateEnvelopeSchema = z.object({
   reason: z.string().trim().min(2).max(4000),
   changes: z.record(z.string(), z.unknown()).default({}),
 });
+
+const updateSchemas = {
+  assignments: z.object({
+    clientId: optionalUuid, positionId: optionalUuid, departmentId: optionalUuid, managerId: optionalUuid,
+    gradeId: optionalUuid, workScheduleId: optionalUuid,
+    assignmentType: z.enum(['primary', 'secondary', 'temporary', 'secondment']),
+    employmentType: z.string().trim().min(1).max(80), jobTitle: z.string().trim().max(240).nullish(),
+    location: z.string().trim().max(240).nullish(), contractNumber: z.string().trim().max(120).nullish(),
+    effectiveFrom: date, effectiveTo: optionalDate, reason: z.string().trim().min(2).max(2000),
+  }).partial().strict(),
+  'employment-events': z.object({
+    eventType: z.enum(['hire', 'transfer', 'promotion', 'demotion', 'manager_change', 'location_change', 'contract_change', 'probation_decision', 'correction']),
+    effectiveDate: date, proposedValues: z.record(z.string(), z.unknown()), requestId: z.string().trim().max(160).nullish(),
+    reason: z.string().trim().min(2).max(4000),
+  }).partial().strict(),
+  exits: z.object({
+    exitType: z.enum(['resignation', 'termination', 'retirement', 'abandonment', 'contract_end']),
+    noticeDate: optionalDate, lastWorkingDate: date, reason: z.string().trim().min(2).max(4000),
+    rehireEligible: z.boolean().nullish(), rehireNotes: z.string().trim().max(4000).nullish(),
+    exitInterview: z.record(z.string(), z.unknown()),
+    leaveSettlementStatus: z.enum(['pending', 'in_progress', 'completed', 'not_required']),
+    finalPayrollStatus: z.enum(['pending', 'in_progress', 'completed', 'not_required']),
+    accessRevocationStatus: z.enum(['pending', 'in_progress', 'completed', 'not_required']),
+    ownershipTransferStatus: z.enum(['pending', 'in_progress', 'completed', 'not_required']),
+    documentRetentionUntil: optionalDate, checklist: z.array(z.record(z.string(), z.unknown())),
+    completedAt: z.string().datetime().nullish(),
+  }).partial().strict(),
+  cases: z.object({
+    caseType: z.enum(['grievance', 'disciplinary', 'investigation', 'complaint', 'corrective_action', 'other']),
+    confidentiality: z.enum(['restricted', 'strictly_confidential']), title: z.string().trim().min(2).max(240),
+    description: z.string().trim().min(2).max(20000), priority: z.enum(['low', 'normal', 'high', 'critical']),
+    ownerUserId: optionalUuid, dueAt: z.string().datetime().nullish(), evidence: z.array(z.unknown()),
+    actions: z.array(z.unknown()), outcome: z.string().trim().max(10000).nullish(),
+    appealStatus: z.string().trim().max(80).nullish(), closedAt: z.string().datetime().nullish(),
+  }).partial().strict(),
+  assets: z.object({
+    assetTag: z.string().trim().min(1).max(100), assetType: z.string().trim().min(1).max(100),
+    name: z.string().trim().min(1).max(240), serialNumber: z.string().trim().max(200).nullish(),
+    purchaseDate: optionalDate, value: z.number().min(0).nullish(), currency: z.string().trim().length(3),
+    metadata: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'asset-assignments': z.object({
+    expectedReturnAt: z.string().datetime().nullish(), acknowledgedAt: z.string().datetime().nullish(),
+    returnedAt: z.string().datetime().nullish(), returnCondition: z.string().trim().max(500).nullish(),
+    notes: z.string().trim().max(2000).nullish(),
+  }).partial().strict(),
+  'compensation-reviews': z.object({
+    name: z.string().trim().min(2).max(200), effectiveDate: date, budgetAmount: z.number().min(0),
+    currency: z.string().trim().length(3), guidelines: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'succession-plans': z.object({
+    positionId: optionalUuid, incumbentEmployeeId: optionalUuid,
+    criticality: z.enum(['normal', 'important', 'critical']), riskLevel: z.enum(['low', 'medium', 'high']).nullish(),
+    notes: z.string().trim().max(4000).nullish(),
+  }).partial().strict(),
+  'talent-reviews': z.object({
+    name: z.string().trim().min(2).max(200), reviewDate: date, configuration: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'internal-opportunities': z.object({
+    positionId: optionalUuid, title: z.string().trim().min(2).max(240), description: z.string().trim().max(10000).nullish(),
+    eligibilityRules: z.record(z.string(), z.unknown()), opensAt: z.string().datetime().nullish(), closesAt: z.string().datetime().nullish(),
+  }).partial().strict(),
+  'workforce-plans': z.object({
+    name: z.string().trim().min(2).max(240), planningPeriodStart: date, planningPeriodEnd: date,
+    scenario: z.string().trim().min(1).max(100), assumptions: z.record(z.string(), z.unknown()),
+    demand: z.array(z.record(z.string(), z.unknown())), supply: z.array(z.record(z.string(), z.unknown())),
+    costForecast: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'retention-policies': z.object({
+    recordType: z.string().trim().min(2).max(120), retentionDays: z.number().int().min(1).max(36500),
+    legalBasis: z.string().trim().min(2).max(1000), action: z.enum(['review', 'archive', 'anonymize', 'delete']),
+    isActive: z.boolean(),
+  }).partial().strict(),
+  'privacy-requests': z.object({
+    employeeId: optionalUuid, requestType: z.enum(['access', 'correction', 'export', 'restriction', 'deletion']),
+    dueAt: z.string().datetime(), scope: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'integration-mappings': z.object({
+    integrationType: z.enum(['identity', 'banking', 'accounting', 'benefits', 'time', 'payroll']),
+    provider: z.string().trim().min(1).max(120), externalKey: z.string().trim().min(1).max(240),
+    internalResource: z.string().trim().min(1).max(120), internalId: optionalUuid,
+    configuration: z.record(z.string(), z.unknown()),
+  }).partial().strict(),
+  'feature-flags': z.object({ enabled: z.boolean(), configuration: z.record(z.string(), z.unknown()) }).partial().strict(),
+} satisfies Record<HrisResourceName, z.ZodType<Record<string, unknown>>>;
+
+export const hrisResourceStatusOptions: Record<HrisResourceName, readonly string[]> = {
+  assignments: ['active', 'inactive', 'ended', 'corrected'],
+  'employment-events': ['draft', 'pending', 'approved', 'applied', 'rejected', 'cancelled'],
+  exits: ['draft', 'submitted', 'notice_received', 'approved', 'in_progress', 'final_settlement', 'completed', 'cancelled'],
+  cases: ['open', 'in_progress', 'on_hold', 'resolved', 'closed'],
+  assets: ['available', 'assigned', 'maintenance', 'retired', 'lost'],
+  'asset-assignments': ['assigned', 'returned', 'lost'],
+  'compensation-reviews': ['draft', 'open', 'under_review', 'approved', 'completed', 'cancelled'],
+  'succession-plans': ['draft', 'active', 'archived'],
+  'talent-reviews': ['draft', 'scheduled', 'in_progress', 'completed', 'archived'],
+  'internal-opportunities': ['draft', 'published', 'closed', 'archived'],
+  'workforce-plans': ['draft', 'active', 'approved', 'archived'],
+  'retention-policies': [],
+  'privacy-requests': ['received', 'in_progress', 'completed', 'closed', 'withdrawn', 'rejected'],
+  'integration-mappings': ['active', 'inactive'],
+  'feature-flags': [],
+};
+
+export function parseHrisResourceUpdate(resource: HrisResourceName, changes: unknown, status?: string) {
+  const parsedChanges = updateSchemas[resource].safeParse(changes);
+  if (!parsedChanges.success) return parsedChanges;
+  const parsedStatus = z.string().refine(
+    value => hrisResourceStatusOptions[resource].includes(value),
+    { message: `Unsupported status for ${resource}.`, path: ['status'] },
+  ).optional().safeParse(status);
+  if (!parsedStatus.success) return parsedStatus;
+  return { success: true as const, data: { changes: parsedChanges.data, status } };
+}
 
 export function isHrisResource(value: string): value is HrisResourceName {
   return (hrisResourceNames as readonly string[]).includes(value);

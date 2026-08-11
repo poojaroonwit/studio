@@ -4,9 +4,11 @@ import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
 import {
   hrisResourceConfig,
+  castCreatePlaceholder,
   isHrisResource,
   listQuerySchema,
   mapRow,
+  parseHrisResourceUpdate,
   toSnakeCase,
   updateEnvelopeSchema,
 } from '@/lib/hr/hris-v1';
@@ -47,7 +49,7 @@ async function authorize(resource: string, manage = false) {
       return { response: error('COMPANY_SCOPE_REQUIRED', 'A company-scoped employee account is required.', 403) };
     }
   }
-  return { session, config, resource, actorCompanyId };
+  return { session, config, resource: resource as keyof typeof hrisResourceConfig, actorCompanyId };
 }
 
 export async function GET(request: NextRequest, context: Context) {
@@ -123,29 +125,35 @@ export async function POST(request: NextRequest, context: Context) {
     typeof value === 'object' && value !== null && !(value instanceof Date) ? JSON.stringify(value) : value
   ));
   const placeholders = values.map((_value, index) => `$${index + 1}`);
-  const jsonColumns = new Set(['proposed_values', 'checklist', 'metadata', 'guidelines', 'configuration', 'eligibility_rules', 'assumptions', 'demand', 'supply', 'cost_forecast', 'scope']);
-  const casted = placeholders.map((placeholder, index) => (
-    jsonColumns.has(columns[index]) ? `${placeholder}::jsonb` : placeholder
+  const casted = placeholders.map((placeholder, index) => castCreatePlaceholder(
+    access.resource as Parameters<typeof castCreatePlaceholder>[0],
+    columns[index],
+    placeholder,
   ));
 
   try {
-    const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `INSERT INTO ${access.config.table} (${columns.join(', ')}) VALUES (${casted.join(', ')}) RETURNING *`,
-      ...values,
-    );
+    const rows = await prisma.$transaction(async transaction => {
+      const createdRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+        `INSERT INTO ${access.config.table} (${columns.join(', ')}) VALUES (${casted.join(', ')}) RETURNING *`,
+        ...values,
+      );
+      const created = createdRows[0];
+      if (!created) throw new Error('CREATE_RETURNED_NO_RECORD');
+      await transaction.$executeRawUnsafe(
+        `INSERT INTO hr_domain_events(company_id, aggregate_type, aggregate_id, event_type, payload, idempotency_key)
+         VALUES ($1::uuid, $2, $3::uuid, $4, $5::jsonb, $6)
+         ON CONFLICT (company_id, idempotency_key) DO NOTHING`,
+        (created.company_id as string | null) ?? null,
+        resource,
+        created.id,
+        `${resource}.created`,
+        JSON.stringify({ id: created.id, resource }),
+        `${resource}:created:${created.id}`,
+      );
+      return createdRows;
+    });
     const created = rows[0];
     if (!created) return error('CREATE_FAILED', 'The record was not created.', 500);
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO hr_domain_events(company_id, aggregate_type, aggregate_id, event_type, payload, idempotency_key)
-       VALUES ($1::uuid, $2, $3::uuid, $4, $5::jsonb, $6)
-       ON CONFLICT (company_id, idempotency_key) DO NOTHING`,
-      (created.company_id as string | null) ?? null,
-      resource,
-      created.id,
-      `${resource}.created`,
-      JSON.stringify({ id: created.id, resource }),
-      `${resource}:created:${created.id}`,
-    );
     await logAudit('AUDIT', `HRIS ${resource} record created.`, `API:HRIS:v1:${resource}:Create`, access.session.user.id, { id: created.id });
     return NextResponse.json({ data: mapRow(created) }, { status: 201 });
   } catch (cause) {
@@ -166,13 +174,22 @@ export async function PATCH(request: NextRequest, context: Context) {
   const parsed = updateEnvelopeSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return error('VALIDATION_FAILED', 'Invalid update envelope.', 422, parsed.error.flatten());
 
-  const allowed = Object.entries(parsed.data.changes)
-    .filter(([key]) => !['id', 'companyId', 'createdAt', 'createdById', 'version'].includes(key));
-  if (parsed.data.status) allowed.push(['status', parsed.data.status]);
+  const validatedUpdate = parseHrisResourceUpdate(access.resource, parsed.data.changes, parsed.data.status);
+  if (!validatedUpdate.success) {
+    return error('VALIDATION_FAILED', 'One or more attributes are not editable for this HR resource.', 422, validatedUpdate.error.flatten());
+  }
+  const allowed = Object.entries(validatedUpdate.data.changes);
+  if (validatedUpdate.data.status) allowed.push(['status', validatedUpdate.data.status]);
   const values: unknown[] = [];
   const sets = allowed.map(([key, value]) => {
     values.push(typeof value === 'object' && value !== null ? JSON.stringify(value) : value);
-    return `${toSnakeCase(key)} = $${values.length}`;
+    const column = toSnakeCase(key);
+    const placeholder = castCreatePlaceholder(
+      access.resource as Parameters<typeof castCreatePlaceholder>[0],
+      column,
+      `$${values.length}`,
+    );
+    return `${column} = ${placeholder}`;
   });
   values.push(parsed.data.expectedVersion, id);
   const companyPredicate = access.config.companyScoped && access.actorCompanyId
@@ -181,14 +198,48 @@ export async function PATCH(request: NextRequest, context: Context) {
   sets.push('version = version + 1', 'updated_at = now()');
 
   try {
-    const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `UPDATE ${access.config.table} SET ${sets.join(', ')}
-       WHERE version = $${values.length - (companyPredicate ? 2 : 1)}
-         AND id = $${values.length - (companyPredicate ? 1 : 0)}::uuid
-         ${companyPredicate}
-       RETURNING *`,
-      ...values,
-    );
+    const rows = await prisma.$transaction(async transaction => {
+      const updatedRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+        `UPDATE ${access.config.table} SET ${sets.join(', ')}
+         WHERE version = $${values.length - (companyPredicate ? 2 : 1)}
+           AND id = $${values.length - (companyPredicate ? 1 : 0)}::uuid
+           ${companyPredicate}
+         RETURNING *`,
+        ...values,
+      );
+      const updated = updatedRows[0];
+      if (resource === 'exits' && parsed.data.status === 'completed' && updated) {
+        const checklist = Array.isArray(updated.checklist) ? updated.checklist as Array<Record<string, unknown>> : [];
+        if (!checklist.length || checklist.some(task => !['complete', 'completed', 'done'].includes(String(task.status || '').toLowerCase()))) {
+          throw new Error('EXIT_CHECKLIST_INCOMPLETE');
+        }
+        const lastWorkingDate = updated.last_working_date instanceof Date
+          ? updated.last_working_date
+          : new Date(String(updated.last_working_date));
+        const today = new Date().toISOString().slice(0, 10);
+        if (Number.isNaN(lastWorkingDate.valueOf()) || lastWorkingDate.toISOString().slice(0, 10) > today) {
+          throw new Error('EXIT_DATE_NOT_REACHED');
+        }
+        await transaction.$executeRawUnsafe(
+          `UPDATE hr_employees employee
+           SET status = 'inactive', end_date = COALESCE(exit_case.last_working_date, employee.end_date),
+             version = version + 1, updated_at = now()
+           FROM hr_exit_cases exit_case
+           WHERE exit_case.id = $1::uuid AND employee.id = exit_case.employee_id`,
+          id,
+        );
+        await transaction.$executeRawUnsafe(
+          `UPDATE "User" account
+           SET is_active = false, "updatedAt" = now()
+           FROM hr_employees employee, hr_exit_cases exit_case
+           WHERE exit_case.id = $1::uuid
+             AND employee.id = exit_case.employee_id
+             AND account.id = employee.user_id`,
+          id,
+        );
+      }
+      return updatedRows;
+    });
     if (!rows[0]) return error('VERSION_CONFLICT', 'The record changed since it was loaded.', 409);
     await logAudit('AUDIT', `HRIS ${resource} record updated.`, `API:HRIS:v1:${resource}:Update`, access.session.user.id, {
       id,
@@ -198,6 +249,12 @@ export async function PATCH(request: NextRequest, context: Context) {
     return NextResponse.json({ data: mapRow(rows[0]) });
   } catch (cause) {
     console.error(`[HRIS v1] PATCH ${resource} failed`, cause);
+    if (cause instanceof Error && cause.message === 'EXIT_CHECKLIST_INCOMPLETE') {
+      return error('CHECKLIST_INCOMPLETE', 'Complete every offboarding task before closing the case.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EXIT_DATE_NOT_REACHED') {
+      return error('EXIT_DATE_NOT_REACHED', 'The case cannot be completed before the employee\'s last working date.', 409);
+    }
     return error('UPDATE_FAILED', 'Unable to update the HR record.', 500);
   }
 }

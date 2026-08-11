@@ -64,6 +64,10 @@ import { OPEN_SYSTEM_API_KEY_CREATION_EVENT } from '../../components/settings/sy
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { cn } from '../../lib/utils';
+import { HrSetupWorkspace } from './HrSetupWorkspace';
+import { RolesPermissionsWorkspace } from './RolesPermissionsWorkspace';
+import { ManageUsersPageContent } from './users/page';
+import { AuditControlsWorkspace } from '../../components/audit-controls/AuditControlsWorkspace';
 
 export function SettingsPageView({
   accessibleItems,
@@ -76,6 +80,7 @@ export function SettingsPageView({
   const searchParams = useSearchParams();
   const requestedSystemTab = searchParams.get('systemTab');
   const requestedConfig = searchParams.get('config');
+  const requestedConfigArea = searchParams.get('configArea');
   const requestedSystemItem = requestedSystemTab
     ? accessibleItems.find(item => (
         item.href.startsWith('/settings/system-settings')
@@ -83,7 +88,12 @@ export function SettingsPageView({
       ))
     : null;
   const requestedConfigItem = requestedConfig
-    ? accessibleItems.find(item => item.href.split('?', 1)[0] === `/settings/${requestedConfig}`)
+    ? accessibleItems.find(item => {
+        const itemPath = item.href.split('?', 1)[0];
+        const pathMatches = itemPath === `/settings/${requestedConfig}` || itemPath === `/${requestedConfig}`;
+        if (!pathMatches || !requestedConfigArea) return pathMatches;
+        return new URL(item.href, 'https://admin.local').searchParams.get('area') === requestedConfigArea;
+      })
     : null;
   const activeTab = searchParams.has('adminTab')
     ? getAdminCenterTabFromSlug(searchParams.get('adminTab'))
@@ -130,17 +140,25 @@ export function SettingsPageView({
     return <SettingsPageLoadingState />;
   }
 
+  if (activeTab === 'HR Setup') {
+    return (
+      <HrSetupWorkspace
+        items={accessibleItems.filter(item => item.tab === 'HR Setup')}
+        requestedItem={requestedConfigItem?.tab === 'HR Setup' ? requestedConfigItem : null}
+      />
+    );
+  }
+
+  if (activeTab === 'Roles & Permissions') {
+    return <RolesPermissionsWorkspace />;
+  }
+
+  if (activeTab === 'User Accounts') {
+    return <ManageUsersPageContent accountsOnly />;
+  }
+
   return (
     <div className="settings-page-grid flex h-full min-h-0 flex-col text-[#20242c] dark:text-zinc-100">
-      <header className="shrink-0 border-b border-[#d9dde5] bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950 sm:px-5">
-        <div>
-          <h1 className="text-base font-semibold tracking-[-0.01em]">Admin Center</h1>
-          <p className="mt-0.5 text-xs text-[#777c86] dark:text-zinc-400">
-            Manage organization settings, access, integrations, and platform behavior.
-          </p>
-        </div>
-      </header>
-
       {accessibleItems.length === 0 ? (
         <SettingsPageEmptyState />
       ) : sections.length === 0 || !selectedItem ? (
@@ -215,6 +233,7 @@ function InlineAdminCenterConfig({
   const ItemIcon = getSettingsItemIcon(item.label);
   const isFieldManagement = item.href.split('?', 1)[0] === '/settings/field-management';
   const isApplicantSources = item.href.split('?', 1)[0] === '/settings/applicant-sources';
+  const isAuditControls = item.href.split('?', 1)[0] === '/audit-controls';
   const isSystemApiKeys = item.href.startsWith('/settings/system-settings')
     && new URL(item.href, 'https://admin.local').searchParams.get('tab') === 'system-api-keys';
 
@@ -245,6 +264,14 @@ function InlineAdminCenterConfig({
       window.location.origin,
     );
   };
+
+  if (isAuditControls) {
+    return (
+      <div className="h-full min-h-0 overflow-y-auto bg-background">
+        <AuditControlsWorkspace />
+      </div>
+    );
+  }
 
   return (
     <section
@@ -458,6 +485,16 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Leave Policies': CalendarDays,
   'Policy Documents': Files,
   'Onboarding Checklist': ClipboardCheck,
+  'Onboarding Templates': ClipboardCheck,
+  'Employee Lifecycle Policies': ClipboardCheck,
+  'Journey Configuration': GitBranch,
+  'Employee Document Templates': Files,
+  'Workforce Rules': CalendarDays,
+  'Leave & Absence Policies': CalendarDays,
+  'Holiday Calendars': CalendarDays,
+  'Payroll & Expense Policies': CircleDollarSign,
+  'Performance & Learning Policies': BadgeCheck,
+  'Learning Taxonomy': Tags,
   'Service Desk Categories': UsersRound,
   'Company References': Building2,
   'Cost Centers & Projects': CircleDollarSign,
@@ -466,6 +503,7 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Course Categories': Tags,
   'Headcount Types': UsersRound,
   'Headcount Approval Paths': GitBranch,
+  'Compensation Approval Routes': GitBranch,
   Grades: BadgeCheck,
   'Position Levels': ListPlus,
   'Holiday List': CalendarDays,
@@ -493,9 +531,12 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Applicant Sources': Tags,
   'Evaluation Configuration': ClipboardCheck,
   'Notification Settings': Bell,
+  'Notification Rules': Bell,
+  'Service Desk Policies': UsersRound,
   'Broadcast Channels': Bell,
   'Email Server': Mail,
   'Email Templates': Files,
+  'Employee Documents': Files,
   Webhooks: Webhook,
   'Meeting Rooms': DoorOpen,
   'AI Prompt Library': MessageSquareCode,
@@ -508,17 +549,22 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Knowledge Base': Database,
   'Position Auto-Close': CalendarOff,
   'Azure Integration': LogIn,
+  'Integration Governance': Webhook,
+  'Recruiter Assignment Sync': DownloadCloud,
+  'Security & Access Governance': ShieldCheck,
+  'Data Governance': Database,
   'Login Methods': LogIn,
   'Domain Verification': BadgeCheck,
   'Security Controls': LockKeyhole,
   'Security Logs': ScrollText,
   'Feature Flags': ToggleRight,
-  Billing: CreditCard,
+  'Billing Preferences': CreditCard,
   'API Documentation': BookOpen,
   'API Keys': KeyRound,
   'Application Logs': Logs,
   'System Monitoring': Activity,
   'System Status': ShieldCheck,
+  'Audit & Controls': ShieldCheck,
 };
 
 export function getSettingsItemIcon(label: string): SettingsItemIcon {

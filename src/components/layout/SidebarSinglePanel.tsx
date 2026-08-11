@@ -375,21 +375,27 @@ export function isFigmaSidebarItemActive(currentHrefState: string, item: Sidebar
   const itemPathname = stripHrefState(item.href);
 
   if (item.href.includes("?")) {
-    if (
-      currentHrefState === "/settings?adminTab=feature-flags"
-      && item.href === "/settings?adminTab=security"
-    ) {
-      return true;
-    }
-
-    if (
-      currentHrefState === "/settings?adminTab=feature-flags"
-      && item.href === "/settings?adminTab=security"
-    ) {
+    const legacyAdminCenterTarget = currentHrefState === "/settings?adminTab=app-api"
+      ? "/settings?adminTab=integrations-api"
+      : ["/settings?adminTab=feature-flags", "/settings?adminTab=security"].includes(currentHrefState)
+        ? "/settings?adminTab=security-governance"
+        : null;
+    if (legacyAdminCenterTarget === item.href) {
       return true;
     }
 
     if (item.href === "/workforce/attendance?view=attendance" && currentPathname === "/workforce/attendance" && !currentHrefState.includes("?")) {
+      return true;
+    }
+
+    const currentUrl = new URL(currentHrefState, "https://admin.local");
+    const itemUrl = new URL(item.href, "https://admin.local");
+    const itemAdminTab = itemUrl.searchParams.get("adminTab");
+    if (
+      currentUrl.pathname === itemUrl.pathname
+      && itemAdminTab !== null
+      && currentUrl.searchParams.get("adminTab") === itemAdminTab
+    ) {
       return true;
     }
 

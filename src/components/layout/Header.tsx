@@ -97,7 +97,6 @@ export function Header({
       isSearchingUsers: userActions.isSearchingUsers,
       onOpenProfile: userActions.handleOpenProfileModal,
       onOpenSecurity: () => userActions.setIsChangePasswordModalOpen(true),
-      onOpenSettings: () => router.push("/settings"),
       onClearCache: userActions.handleClearCache,
       onLocaleChange: changeLocale,
       onSignOut: userActions.handleSignOut,

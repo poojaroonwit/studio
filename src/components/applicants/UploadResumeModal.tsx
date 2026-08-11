@@ -110,14 +110,14 @@ const UploadResumeModal = ({ isOpen, onOpenChange, applicant, onUploadSuccess }:
             <div className="flex items-center justify-center w-full">
               <label
                 htmlFor="resume-file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/50 hover:bg-muted"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <UploadCloud className="w-8 h-8 mb-4 text-gray-500" />
-                  <p className="mb-2 text-sm text-gray-500">
+                  <UploadCloud className="mb-4 h-8 w-8 text-muted-foreground" />
+                  <p className="mb-2 text-sm text-muted-foreground">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">PDF, DOC, or DOCX (max 5MB)</p>
+                  <p className="text-xs text-muted-foreground">PDF, DOC, or DOCX (max 5MB)</p>
                 </div>
                 <Input
                   id="resume-file"

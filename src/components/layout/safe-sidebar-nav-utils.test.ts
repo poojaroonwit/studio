@@ -76,6 +76,9 @@ describe('safe-sidebar-nav-utils', () => {
     expect(isSidebarItemActive('/applicants', { href: '/applicants?view=task-board' })).toBe(false);
     expect(isSidebarItemActive('/ess/leave', { href: '/ess', exact: true })).toBe(false);
     expect(isSidebarItemActive('/ess', { href: '/ess', exact: true })).toBe(true);
+    expect(isSidebarItemActive('/settings?adminTab=hr-setup&setupView=map', { href: '/settings', exact: true })).toBe(true);
+    expect(isSidebarItemActive('/settings?adminTab=roles-permissions', { href: '/settings', exact: true })).toBe(false);
+    expect(isSidebarItemActive('/settings?adminTab=roles-permissions', { href: '/settings?adminTab=roles-permissions' })).toBe(true);
     expect(isSidebarItemActive('/workforce/leave', { href: '/workforce/leave', exact: true })).toBe(true);
     expect(isSidebarItemActive('/workforce/leave/allocation', { href: '/workforce/leave', exact: true })).toBe(false);
     expect(isSidebarItemActive('/anything', { href: '/' })).toBe(false);

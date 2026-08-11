@@ -520,7 +520,7 @@ function buildColumnValues(config: HrResourceConfig, values: Record<string, unkn
 
 function columnValuePlaceholder(entry: HrColumnValue, parameterIndex: number) {
   const placeholder = `$${parameterIndex}`;
-  if (entry.column === 'id') return `${placeholder}::uuid`;
+  if (entry.column === 'id' || entry.column === 'employee_id' || entry.column === 'verified_by_id') return `${placeholder}::uuid`;
   if (entry.fieldType === 'json' || entry.fieldType === 'jsonValue') return `${placeholder}::jsonb`;
   return placeholder;
 }
@@ -710,10 +710,10 @@ export async function updateHrCrudRecord({
   return getHrCrudRecord(moduleKey, String(rows[0].id), view);
 }
 
-export async function deleteHrCrudRecord(moduleKey: HrModuleKey, id: string, view?: string | null) {
+export async function deleteHrCrudRecord(moduleKey: HrModuleKey, id: string, view?: string | null, permanent = false) {
   const config = getHrResourceConfig(moduleKey, view);
 
-  if (config.softDelete) {
+  if (config.softDelete && !permanent) {
     const value = config.softDelete.value === 'now' ? new Date() : config.softDelete.value;
     const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `UPDATE ${quoteTable(config.table)} SET ${quoteIdent(config.softDelete.column)} = $2, "updated_at" = CURRENT_TIMESTAMP WHERE "id" = $1::uuid RETURNING *`,

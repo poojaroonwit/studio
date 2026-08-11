@@ -49,8 +49,37 @@ export function isSidebarItemActive(pathname: string, item: Pick<SidebarNavItem,
   const currentPathname = stripHrefState(pathname);
   const itemPathname = stripHrefState(item.href);
 
-  if (item.href.includes('?')) return pathname === item.href;
-  if (item.exact) return currentPathname === itemPathname;
+  if (item.href.includes('?')) {
+    const legacyAdminCenterTarget = pathname === '/settings?adminTab=app-api'
+      ? '/settings?adminTab=integrations-api'
+      : ['/settings?adminTab=feature-flags', '/settings?adminTab=security'].includes(pathname)
+        ? '/settings?adminTab=security-governance'
+        : null;
+    if (legacyAdminCenterTarget === item.href) {
+      return true;
+    }
+
+    const currentUrl = new URL(pathname, 'https://admin.local');
+    const itemUrl = new URL(item.href, 'https://admin.local');
+    const itemAdminTab = itemUrl.searchParams.get('adminTab');
+    if (
+      currentUrl.pathname === itemUrl.pathname
+      && itemAdminTab !== null
+      && currentUrl.searchParams.get('adminTab') === itemAdminTab
+    ) {
+      return true;
+    }
+
+    return pathname === item.href;
+  }
+  if (item.exact) {
+    if (currentPathname !== itemPathname) return false;
+    if (itemPathname === '/settings') {
+      const adminTab = new URL(pathname, 'https://admin.local').searchParams.get('adminTab');
+      return adminTab === null || adminTab === 'hr-setup';
+    }
+    return true;
+  }
   if (itemPathname === '/') return currentPathname === '/';
 
   return currentPathname === itemPathname || currentPathname.startsWith(`${itemPathname}/`);

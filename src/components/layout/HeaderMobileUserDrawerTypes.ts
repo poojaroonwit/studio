@@ -16,7 +16,6 @@ export interface HeaderMobileUserDrawerProps {
   isSearchingUsers: boolean;
   onOpenProfile: () => void;
   onOpenSecurity: () => void;
-  onOpenSettings: () => void;
   onClearCache: () => void;
   onLocaleChange: (locale: "en-US" | "th-TH") => void;
   onSignOut: () => void;

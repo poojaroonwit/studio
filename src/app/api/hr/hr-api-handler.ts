@@ -28,6 +28,7 @@ export async function handleHrModuleGet(request: NextRequest, key: HrModuleKey) 
 
   const config = getHrModuleConfig(key);
   const view = request.nextUrl.searchParams.get('view');
+  const permanent = key === 'learning' && view === 'certifications' && request.nextUrl.searchParams.get('permanent') === 'true';
   const id = request.nextUrl.searchParams.get('id');
   const hasModulePermission = hasHrPermission(session.user, [config.permission, config.managePermission]);
   if (!hasModulePermission) {
@@ -139,9 +140,9 @@ export async function handleHrModuleDelete(request: NextRequest, key: HrModuleKe
   }
 
   try {
-    const data = await deleteHrCrudRecord(key, id, view);
+    const data = await deleteHrCrudRecord(key, id, view, permanent);
     if (!data) return NextResponse.json({ message: 'HR record not found' }, { status: 404 });
-    await logAudit('AUDIT', `HR record archived/deleted.`, `API:HR:${key}:Delete`, session.user.id, { id });
+    await logAudit('AUDIT', permanent ? 'HR record permanently deleted.' : 'HR record archived/deleted.', `API:HR:${key}:Delete`, session.user.id, { id, permanent });
     return NextResponse.json({ data });
   } catch (error) {
     console.error('[HR API] Delete failed:', error);

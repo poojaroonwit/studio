@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   ArrowRightOnRectangleIcon as LogOut,
-  Cog6ToothIcon as Settings,
   ChevronDownIcon,
   KeyIcon as KeyRound,
   PencilSquareIcon as Edit3,
@@ -81,14 +80,12 @@ export function HeaderDesktopUserLabel({ user, labels }: Pick<HeaderDesktopMenuP
 export function HeaderDesktopAccountActions({
   onOpenProfile,
   onOpenSecurity,
-  onOpenSettings,
   labels,
-}: Pick<HeaderDesktopMenuProps, "onOpenProfile" | "onOpenSecurity" | "onOpenSettings" | "labels">) {
+}: Pick<HeaderDesktopMenuProps, "onOpenProfile" | "onOpenSecurity" | "labels">) {
   return (
     <div className="space-y-0.5 p-2">
       <DesktopMenuItem onClick={onOpenProfile} icon={<Edit3 className="mr-2 h-4 w-4" />} label={labels.myProfile} />
       <DesktopMenuItem onClick={onOpenSecurity} icon={<KeyRound className="mr-2 h-4 w-4" />} label={labels.security} />
-      <DesktopMenuItem onClick={onOpenSettings} icon={<Settings className="mr-2 h-4 w-4" />} label={labels.settings} />
     </div>
   );
 }

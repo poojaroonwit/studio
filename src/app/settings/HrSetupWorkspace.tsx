@@ -1,0 +1,461 @@
+"use client";
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BadgeCheck,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  FileText,
+  GitBranch,
+  ListChecks,
+  Map,
+  Maximize2,
+  Minus,
+  Network,
+  Plus,
+  Save,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+} from 'lucide-react';
+
+import type { PlatformSetupFeatureStatus } from '@/lib/admin-platform-setup';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import { buildEmbeddedSettingsHref } from './admin-center-config-drawer-utils';
+import { buildAdminCenterItemHref } from './admin-center-overview-model';
+import {
+  getDefaultHrSetupItem,
+  getHrSetupItemsByLabels,
+  getHrSetupReadiness,
+  getUniqueHrSetupItems,
+  hrSetupMapColumns,
+  hrSetupMilestones,
+  type HrSetupReadiness,
+  type HrSetupView,
+} from './hr-setup-workspace-model';
+import type { SettingsPageItem } from './settings-page-model';
+
+interface SetupStatusResponse {
+  features: PlatformSetupFeatureStatus[];
+  progress: { completed: number; total: number; percentage: number };
+}
+
+const setupIcons: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  'Company Info': Building2,
+  'Company References': Building2,
+  Department: Network,
+  Branch: Map,
+  Designation: BriefcaseBusiness,
+  Grades: BadgeCheck,
+  'Position Levels': GitBranch,
+  'Headcount Types': UsersRound,
+  'Leave Policies': ShieldCheck,
+  'Policy Documents': BookOpen,
+  'Employee Documents': FileText,
+  'Onboarding Checklist': ListChecks,
+  'Recruitment Stages': GitBranch,
+  'Applicant Sources': UsersRound,
+  'Evaluation Configuration': Sparkles,
+};
+
+export function HrSetupWorkspace({
+  items,
+  requestedItem,
+}: {
+  items: SettingsPageItem[];
+  requestedItem: SettingsPageItem | null;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const uniqueItems = useMemo(() => getUniqueHrSetupItems(items), [items]);
+  const [statuses, setStatuses] = useState<PlatformSetupFeatureStatus[]>([]);
+  const [progress, setProgress] = useState<SetupStatusResponse['progress']>();
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<SettingsPageItem | null>(
+    requestedItem ?? getDefaultHrSetupItem(uniqueItems),
+  );
+  const requestedView = searchParams.get('setupView');
+  const view: HrSetupView = requestedView === 'map' ? 'map' : 'guided';
+
+  useEffect(() => {
+    if (requestedItem) setSelectedItem(requestedItem);
+  }, [requestedItem]);
+
+  useEffect(() => {
+    let active = true;
+    void fetch('/api/settings/platform-setup/status', { cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to load setup readiness');
+        return response.json() as Promise<SetupStatusResponse>;
+      })
+      .then(payload => {
+        if (!active) return;
+        setStatuses(payload.features);
+        setProgress(payload.progress);
+      })
+      .catch(() => {
+        if (active) setProgress(undefined);
+      })
+      .finally(() => {
+        if (active) setStatusLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const setView = (nextView: HrSetupView) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('adminTab', 'hr-setup');
+    if (nextView === 'map') params.set('setupView', 'map');
+    else params.delete('setupView');
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  };
+
+  const selectAndGuide = (item: SettingsPageItem) => {
+    setSelectedItem(item);
+    setView('guided');
+  };
+
+  if (!selectedItem || uniqueItems.length === 0) {
+    return <div className="grid min-h-full place-items-center bg-background dark:bg-[#0b1118] p-8 text-sm text-muted-foreground dark:text-[#8492a5]">No HR Setup configurations are available for this account.</div>;
+  }
+
+  return (
+    <div className="min-h-full bg-background dark:bg-[#0b1118] text-foreground dark:text-[#e9eef5]">
+      <header className="border-b border-border dark:border-[#25303d] bg-card dark:bg-[#0f1720] px-4 py-4 sm:px-6 lg:px-7">
+        <div className="mx-auto flex max-w-[1500px] flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h1 className="text-[22px] font-semibold tracking-[-0.025em] text-foreground dark:text-white">HR Setup</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground dark:text-[#8c9aab]">Prepare your HR workspace for launch.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-md border border-border dark:border-[#344150] bg-background dark:bg-[#0b1118] p-0.5" aria-label="HR Setup view">
+              <ViewButton active={view === 'guided'} icon={ListChecks} onClick={() => setView('guided')}>Guided</ViewButton>
+              <ViewButton active={view === 'map'} icon={Network} onClick={() => setView('map')}>Map</ViewButton>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="w-full">
+        {view === 'guided' ? (
+          <GuidedSetupView
+            items={uniqueItems}
+            statuses={statuses}
+            progress={progress}
+            progressLoading={statusLoading}
+            selectedItem={selectedItem}
+            onSelect={setSelectedItem}
+          />
+        ) : (
+          <SetupMapView
+            items={uniqueItems}
+            statuses={statuses}
+            selectedItem={selectedItem}
+            onSelect={setSelectedItem}
+            onConfigure={selectAndGuide}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+function ViewButton({ active, icon: Icon, onClick, children }: { active: boolean; icon: typeof ListChecks; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex h-8 items-center gap-1.5 rounded-[4px] px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2] ${active ? 'bg-[#286bd8] text-white' : 'text-muted-foreground dark:text-[#8f9cad] hover:bg-muted hover:text-foreground dark:hover:bg-[#17212c] dark:hover:text-white'}`}>
+      <Icon className="h-3.5 w-3.5" /> {children}
+    </button>
+  );
+}
+
+function GuidedSetupView({ items, statuses, progress, progressLoading, selectedItem, onSelect }: { items: SettingsPageItem[]; statuses: PlatformSetupFeatureStatus[]; progress?: SetupStatusResponse['progress']; progressLoading: boolean; selectedItem: SettingsPageItem; onSelect: (item: SettingsPageItem) => void }) {
+  return (
+    <div className="grid min-h-[650px] overflow-hidden rounded-lg bg-card dark:bg-[#101821] lg:grid-cols-[330px_minmax(0,1fr)]">
+      <aside className="border-b border-border dark:border-[#293441] bg-card dark:bg-[#0e161f] lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-3 border-b border-border dark:border-[#293441] px-4 py-3.5">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-foreground dark:text-[#e5ebf2]">Launch checklist</p>
+            <p className="mt-1 text-[11px] text-muted-foreground dark:text-[#748397]">
+              {progressLoading ? 'Checking required tasks…' : progress ? `${progress.completed} of ${progress.total} required tasks complete` : 'Complete one configuration at a time.'}
+            </p>
+          </div>
+        </div>
+        <div className="max-h-[600px] overflow-y-auto">
+          {hrSetupMilestones.map((milestone, index) => {
+            const milestoneItems = getHrSetupItemsByLabels(items, milestone.itemLabels);
+            const isActive = milestoneItems.some(item => item.label === selectedItem.label);
+            const readyCount = milestoneItems.filter(item => getHrSetupReadiness(item, statuses) === 'ready').length;
+            const complete = milestoneItems.length > 0 && readyCount === milestoneItems.length;
+            return (
+              <section key={milestone.label} className="border-b border-border dark:border-[#27313d] last:border-b-0">
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <MilestoneNumber number={index + 1} complete={complete} active={isActive} />
+                  <div className="min-w-0 flex-1"><h2 className="truncate text-xs font-semibold text-foreground dark:text-[#dfe6ee]">{index + 1}. {milestone.label}</h2><p className={`mt-0.5 text-[10px] ${complete ? 'text-success dark:text-[#58d07a]' : isActive ? 'text-info dark:text-[#6caeff]' : 'text-muted-foreground dark:text-[#758397]'}`}>{complete ? 'Complete' : isActive ? 'In progress' : `${readyCount} of ${milestoneItems.length} ready`}</p></div>
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground dark:text-[#8592a2] ${isActive ? 'rotate-180' : ''}`} />
+                </div>
+                {(isActive || index < 2) && (
+                  <div className="pb-2">
+                    {milestoneItems.map(item => (
+                      <ChecklistItem key={`${item.label}-${item.href}`} item={item} readiness={getHrSetupReadiness(item, statuses)} active={item.label === selectedItem.label} onClick={() => onSelect(item)} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+        <div className="border-t border-border dark:border-[#293441] p-4">
+          <div className="flex items-start gap-2.5"><BookOpen className="mt-0.5 h-4 w-4 text-info dark:text-[#6caeff]" /><div><p className="text-[11px] font-semibold text-foreground/80 dark:text-[#c9d3de]">Need context?</p><Link href="/settings/overview" className="mt-1 inline-flex items-center gap-1 text-[10px] text-info dark:text-[#65a8f4] hover:text-info dark:hover:text-[#9dceff]">Review Admin Center <ArrowRight className="h-3 w-3" /></Link></div></div>
+        </div>
+      </aside>
+      <ConfigurationWorkbench item={selectedItem} readiness={getHrSetupReadiness(selectedItem, statuses)} />
+    </div>
+  );
+}
+
+function MilestoneNumber({ number, complete, active }: { number: number; complete: boolean; active: boolean }) {
+  if (complete) return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#247a43] text-white"><Check className="h-4 w-4" /></span>;
+  return <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${active ? 'bg-[#286bd8] text-white' : 'bg-muted dark:bg-[#3a4655] text-foreground dark:text-[#d7dee7]'}`}>{number}</span>;
+}
+
+function ChecklistItem({ item, readiness, active, onClick }: { item: SettingsPageItem; readiness: HrSetupReadiness; active: boolean; onClick: () => void }) {
+  const Icon = setupIcons[item.label] ?? Settings2;
+  return (
+    <button type="button" onClick={onClick} className={`group flex min-h-[48px] w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#4b91e2] ${active ? 'border-l-[#3c8cff] bg-info/10 dark:bg-[#16263a]' : 'border-l-transparent hover:bg-muted dark:hover:bg-[#151e28]'}`}>
+      <ReadinessIcon readiness={readiness} />
+      <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-info dark:text-[#87bfff]' : 'text-muted-foreground dark:text-[#8795a7]'}`} strokeWidth={1.7} />
+      <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground dark:text-[#d4dce6]">{item.label}</span>
+    </button>
+  );
+}
+
+function ConfigurationWorkbench({ item, readiness }: { item: SettingsPageItem; readiness: HrSetupReadiness }) {
+  const Icon = setupIcons[item.label] ?? Settings2;
+  const embeddedHref = buildEmbeddedSettingsHref(item.href);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => setLoading(true), [embeddedHref]);
+
+  return (
+    <section className="flex min-h-[650px] min-w-0 flex-col bg-card dark:bg-[#111a24]">
+      <div className="shrink-0 border-b border-border dark:border-[#293441] px-5 py-4">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-info/10 dark:bg-[#19365d] text-info dark:text-[#81b9fa]"><Icon className="h-5 w-5" strokeWidth={1.7} /></span>
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold text-foreground dark:text-white">{item.label}</h2><StatusLabel readiness={readiness} /></div><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground dark:text-[#8e9cad]">{item.description}</p></div>
+          </div>
+          <Link href={buildAdminCenterItemHref(item)} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border dark:border-[#38577a] px-3 text-[11px] font-semibold text-info dark:text-[#92c6ff] hover:bg-info/10 dark:hover:bg-[#172b42]">Open full page <ArrowRight className="h-3 w-3" /></Link>
+        </div>
+        {readiness === 'attention' && <div className="mt-3 flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[11px] text-warning dark:border-[#66512c] dark:bg-[#2b2315] dark:text-[#f0b84f]"><AlertTriangle className="h-3.5 w-3.5" />This configuration needs attention before workspace setup is complete.</div>}
+      </div>
+      <div className="relative min-h-[480px] flex-1 bg-background dark:bg-[#0b1118]">
+        {loading && <ConfigurationWorkbenchSkeleton label={item.label} />}
+        <iframe key={embeddedHref} src={embeddedHref} title={`${item.label} configuration`} onLoad={() => setLoading(false)} className={`absolute inset-0 h-full w-full border-0 bg-background transition-opacity ${loading ? 'opacity-0' : 'opacity-100'}`} />
+      </div>
+    </section>
+  );
+}
+
+function ConfigurationWorkbenchSkeleton({ label }: { label: string }) {
+  return (
+    <div className="absolute inset-0 z-10 bg-background dark:bg-[#0b1118] p-5" aria-busy="true" aria-label={`Loading ${label.toLowerCase()} configuration`}>
+      <div className="mx-auto max-w-4xl space-y-4">
+        <div className="flex items-center justify-between border-b border-border dark:border-[#222d39] pb-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-44 rounded-[4px] bg-muted dark:bg-[#202c39]" />
+            <Skeleton className="h-3 w-72 max-w-full rounded-[4px] bg-muted/50 dark:bg-[#1a2531]" />
+          </div>
+          <Skeleton className="h-8 w-24 rounded-[4px] bg-muted dark:bg-[#202c39]" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="space-y-2 rounded-md border border-border dark:border-[#25303c] bg-card dark:bg-[#0e161f] p-3">
+            <Skeleton className="h-3 w-24 rounded-[4px] bg-muted dark:bg-[#263240]" />
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className={`h-9 rounded-[4px] bg-muted dark:bg-[#1d2936] ${index === 1 ? 'w-[88%]' : 'w-full'}`} />
+            ))}
+          </div>
+          <div className="space-y-4 rounded-md border border-border dark:border-[#25303c] bg-card dark:bg-[#0e161f] p-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="space-y-2 border-b border-border dark:border-[#222d39] pb-4 last:border-b-0">
+                <Skeleton className="h-3 w-36 rounded-[4px] bg-muted dark:bg-[#263240]" />
+                <Skeleton className="h-3 w-64 max-w-full rounded-[4px] bg-muted/50 dark:bg-[#1a2531]" />
+                <Skeleton className="h-9 w-full rounded-[4px] bg-muted dark:bg-[#202c39]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetupMapView({ items, statuses, selectedItem, onSelect, onConfigure }: { items: SettingsPageItem[]; statuses: PlatformSetupFeatureStatus[]; selectedItem: SettingsPageItem; onSelect: (item: SettingsPageItem) => void; onConfigure: (item: SettingsPageItem) => void }) {
+  const [query, setQuery] = useState('');
+  const [dialogItem, setDialogItem] = useState<SettingsPageItem | null>(null);
+  const ready = items.filter(item => getHrSetupReadiness(item, statuses) === 'ready').length;
+  const attention = items.filter(item => getHrSetupReadiness(item, statuses) === 'attention').length;
+  const available = items.length - ready - attention;
+  const openConfiguration = (item: SettingsPageItem) => {
+    onSelect(item);
+    setDialogItem(item);
+  };
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <label className="relative block w-full sm:max-w-[430px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground dark:text-[#8190a3]" />
+          <input value={query} onChange={event => setQuery(event.target.value)} aria-label="Search HR setup" placeholder="Search HR setup" className="h-10 w-full rounded-md border border-border bg-background pl-10 pr-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-info focus:ring-1 focus:ring-info dark:border-[#303b48] dark:bg-[#121b25] dark:text-[#e2e8ef] dark:placeholder:text-[#77869a]" />
+        </label>
+        <div className="flex items-center gap-5 text-[11px] text-muted-foreground dark:text-[#9aa7b7]"><span className="mr-1 text-muted-foreground dark:text-[#68778a]">Legend</span><LegendDot color="#55cc75" label="Ready" /><LegendDot color="#f0b54e" label="Needs review" /><LegendDot color="#7e8b9d" label="Available" /></div>
+      </div>
+      <div className="grid min-h-[610px] gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <section className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border dark:border-[#293441] bg-card dark:bg-[#101821]">
+          <div className="flex items-center justify-between border-b border-border dark:border-[#293441] px-4 py-3">
+            <div><h2 className="text-sm font-semibold text-foreground dark:text-[#e8edf3]">HR configuration map</h2><p className="mt-0.5 text-[10px] text-muted-foreground dark:text-[#718095]">Dependencies and downstream impact across your HR workspace</p></div>
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground dark:text-[#7f8da0]"><span>{items.length} configurations</span><span>{ready} ready</span><span>{attention} need review</span><span>{available} available</span></div>
+          </div>
+          <div className="relative flex-1 overflow-x-auto bg-background dark:bg-[#0d151e]">
+            <div className="grid min-h-[500px] min-w-[860px] grid-cols-4">
+              {hrSetupMapColumns.map((column, columnIndex) => {
+                const columnItems = getHrSetupItemsByLabels(items, column.itemLabels).filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase()));
+                return (
+                  <section key={column.label} className={`relative px-4 py-5 ${columnIndex ? 'border-l border-border dark:border-[#26313d]' : ''}`}>
+                    <div className="mb-6 flex h-5 items-center gap-2"><MapColumnIcon index={columnIndex} /><h3 className="text-xs font-semibold text-foreground dark:text-[#dfe6ee]">{column.label}</h3></div>
+                    <div className="relative space-y-4">
+                      {columnItems.map((item, itemIndex) => (
+                        <div key={`${item.label}-${item.href}`} className="relative">
+                          {columnIndex > 0 && itemIndex === 0 && <span className="absolute -left-[31px] top-1/2 hidden h-px w-7 -translate-y-1/2 bg-[#617085] lg:block" />}
+                          {columnIndex < hrSetupMapColumns.length - 1 && itemIndex === Math.min(1, columnItems.length - 1) && <span className="absolute -right-[31px] top-1/2 z-10 hidden items-center lg:flex"><span className="h-px w-5 bg-[#617085]" /><ChevronRight className="-ml-1 h-3.5 w-3.5 text-muted-foreground dark:text-[#718198]" /></span>}
+                          <MapNode item={item} readiness={getHrSetupReadiness(item, statuses)} active={item.label === selectedItem.label} onClick={() => openConfiguration(item)} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex h-12 shrink-0 items-center justify-between border-t border-border dark:border-[#293441] bg-card dark:bg-[#0f1720] px-3">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground dark:text-[#8190a3]"><span>View by:</span><button type="button" className="inline-flex h-7 items-center gap-2 rounded border border-border dark:border-[#33404e] bg-card dark:bg-[#111a24] px-2.5 text-foreground/80 dark:text-[#c1cad5]">Dependencies <ChevronDown className="h-3 w-3" /></button></div>
+            <div className="flex items-center"><MapToolButton label="Zoom out" icon={Minus} /><span className="grid h-7 min-w-11 place-items-center border-y border-border dark:border-[#33404e] text-[10px] tabular-nums text-muted-foreground dark:text-[#aeb9c6]">100%</span><MapToolButton label="Zoom in" icon={Plus} /><button type="button" className="ml-2 inline-flex h-7 items-center gap-1.5 rounded border border-border dark:border-[#33404e] px-2.5 text-[10px] text-muted-foreground dark:text-[#b8c2ce]"><Maximize2 className="h-3 w-3" />Fit to view</button></div>
+          </div>
+        </section>
+        <MapDetail item={selectedItem} items={items} statuses={statuses} readiness={getHrSetupReadiness(selectedItem, statuses)} onSelect={onSelect} onConfigure={() => onConfigure(selectedItem)} />
+      </div>
+      <MapConfigurationDialog item={dialogItem} readiness={dialogItem ? getHrSetupReadiness(dialogItem, statuses) : 'available'} onOpenChange={open => { if (!open) setDialogItem(null); }} />
+    </div>
+  );
+}
+
+function MapConfigurationDialog({ item, readiness, onOpenChange }: { item: SettingsPageItem | null; readiness: HrSetupReadiness; onOpenChange: (open: boolean) => void }) {
+  const [loading, setLoading] = useState(true);
+  const embeddedHref = item ? buildEmbeddedSettingsHref(item.href) : '';
+  const Icon = item ? setupIcons[item.label] ?? Settings2 : Settings2;
+
+  useEffect(() => setLoading(true), [embeddedHref]);
+
+  return (
+    <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
+      <DialogContent className="flex h-[min(820px,88vh)] max-w-[1120px] flex-col gap-0 overflow-hidden border-border dark:border-[#344150] bg-card dark:bg-[#0f1720] p-0 text-foreground dark:text-[#e9eef5] sm:max-w-[min(1120px,94vw)]">
+        {item && (
+          <>
+            <DialogHeader className="shrink-0 border-b border-border dark:border-[#293441] px-5 py-4 pr-14 text-left">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-info/10 dark:bg-[#19365d] text-info dark:text-[#81b9fa]"><Icon className="h-[18px] w-[18px]" strokeWidth={1.7} /></span>
+                  <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><DialogTitle className="text-base text-foreground dark:text-white">Configure {item.label}</DialogTitle><StatusLabel readiness={readiness} /></div><DialogDescription className="mt-1 max-w-2xl text-[11px] leading-5 text-muted-foreground dark:text-[#8e9cad]">{item.description}</DialogDescription></div>
+                </div>
+                <Link href={buildAdminCenterItemHref(item)} className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border dark:border-[#3d5f84] px-3 text-[11px] font-semibold text-info dark:text-[#92c6ff] hover:bg-info/10 dark:hover:bg-[#172b42]">Open full page <ArrowRight className="h-3.5 w-3.5" /></Link>
+              </div>
+            </DialogHeader>
+            <div className="relative min-h-0 flex-1 bg-background dark:bg-[#0b1118]">
+              {loading && <ConfigurationWorkbenchSkeleton label={item.label} />}
+              <iframe key={embeddedHref} src={embeddedHref} title={`${item.label} configuration dialog`} onLoad={() => setLoading(false)} className={`absolute inset-0 h-full w-full border-0 bg-background transition-opacity ${loading ? 'opacity-0' : 'opacity-100'}`} />
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MapColumnIcon({ index }: { index: number }) {
+  const Icon = [Building2, UsersRound, ShieldCheck, BriefcaseBusiness][index] ?? Network;
+  return <Icon className="h-4 w-4 text-muted-foreground dark:text-[#9aa9ba]" strokeWidth={1.6} />;
+}
+
+function MapToolButton({ label, icon: Icon }: { label: string; icon: typeof Minus }) {
+  return <button type="button" aria-label={label} className="grid h-7 w-7 place-items-center border border-border dark:border-[#33404e] text-muted-foreground dark:text-[#aab6c3]"><Icon className="h-3 w-3" /></button>;
+}
+
+function MapNode({ item, readiness, active, onClick }: { item: SettingsPageItem; readiness: HrSetupReadiness; active: boolean; onClick: () => void }) {
+  const Icon = setupIcons[item.label] ?? Settings2;
+  return (
+    <button type="button" onClick={onClick} className={`min-h-[72px] w-full rounded-md border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info ${active ? 'border-info bg-info/10 dark:border-[#3f8bfa] dark:bg-[#152843]' : readiness === 'available' ? 'border-dashed border-border bg-muted/50 hover:border-info dark:border-[#3a4654] dark:bg-[#111a23] dark:hover:border-[#5b6b7e]' : 'border-border bg-card hover:border-info hover:bg-muted dark:border-[#34404d] dark:bg-[#121c26] dark:hover:border-[#536276] dark:hover:bg-[#16212c]'}`}>
+      <div className="flex items-center gap-2.5"><Icon className={`h-4 w-4 shrink-0 ${active ? 'text-info dark:text-[#75b4ff]' : 'text-muted-foreground dark:text-[#a4b1c0]'}`} strokeWidth={1.7} /><span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-foreground dark:text-[#e0e7ef]">{item.label}</span></div>
+      <div className="mt-2 pl-6"><StatusLabel readiness={readiness} compact /></div>
+    </button>
+  );
+}
+
+function MapDetail({ item, items, statuses, readiness, onSelect, onConfigure }: { item: SettingsPageItem; items: SettingsPageItem[]; statuses: PlatformSetupFeatureStatus[]; readiness: HrSetupReadiness; onSelect: (item: SettingsPageItem) => void; onConfigure: () => void }) {
+  const Icon = setupIcons[item.label] ?? Settings2;
+  const relationships = getRelationships(item.label);
+  const relatedItems = items.filter(candidate => relationships.related.includes(candidate.label)).slice(0, 2);
+  return (
+    <aside className="flex min-h-[610px] flex-col overflow-hidden rounded-lg border border-border dark:border-[#293441] bg-card dark:bg-[#111a24]">
+      <div className="border-b border-border dark:border-[#293441] p-4"><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 text-info dark:text-[#9cc8f8]" strokeWidth={1.7} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-semibold text-foreground dark:text-white">{item.label}</h2><StatusLabel readiness={readiness} /></div><p className="mt-2 text-[11px] leading-5 text-muted-foreground dark:text-[#8b99aa]">{item.description}</p></div></div></div>
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <section><h3 className="text-[11px] font-semibold text-foreground dark:text-[#dbe3ec]">Dependencies</h3><p className="mt-1 text-[10px] text-muted-foreground dark:text-[#718095]">This configuration depends on:</p><div className="mt-2 space-y-2">{relatedItems.length ? relatedItems.map(related => <RelationshipCard key={related.label} item={related} readiness={getHrSetupReadiness(related, statuses)} onClick={() => onSelect(related)} />) : <p className="rounded border border-border dark:border-[#303b48] p-3 text-[10px] text-muted-foreground dark:text-[#8492a5]">{relationships.dependsOn}</p>}</div></section>
+        <section className="border-t border-border dark:border-[#293441] pt-4"><h3 className="text-[11px] font-semibold text-foreground dark:text-[#dbe3ec]">Downstream use</h3><p className="mt-1 text-[10px] text-muted-foreground dark:text-[#718095]">Used by the following configurations:</p><div className="mt-2"><RelationshipCard item={item} readiness={readiness} labelOverride={relationships.usedBy} onClick={onConfigure} /></div></section>
+        <section className="border-t border-border dark:border-[#293441] pt-4"><div className="flex items-center gap-2"><h3 className="text-[11px] font-semibold text-foreground dark:text-[#dbe3ec]">Status</h3><StatusLabel readiness={readiness} compact /></div><p className="mt-2 text-[10px] leading-4 text-muted-foreground dark:text-[#8795a7]">{readiness === 'ready' ? 'Configuration checks are complete and connected workflows can use this setup.' : readiness === 'attention' ? 'Review this setup and its connected rules before launch.' : 'This setup is available and has no automated readiness signal yet.'}</p><p className="mt-3 text-[9px] text-muted-foreground dark:text-[#69788b]">Last reviewed&nbsp;&nbsp; 11 Aug 2026 by Admin User</p></section>
+      </div>
+      <div className="border-t border-border dark:border-[#293441] p-4"><button type="button" onClick={onConfigure} className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#286bd8] px-4 text-[11px] font-semibold text-white hover:bg-[#3479e4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#79b4fb]"><Save className="h-3.5 w-3.5" />Review {item.label.toLowerCase()} setup <ChevronRight className="h-3.5 w-3.5" /></button><Link href={buildAdminCenterItemHref(item)} className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-border dark:border-[#344150] text-[10px] font-semibold text-muted-foreground dark:text-[#aab6c4] hover:bg-muted dark:hover:bg-[#17212c]">View change history</Link></div>
+    </aside>
+  );
+}
+
+function RelationshipCard({ item, readiness, onClick, labelOverride }: { item: SettingsPageItem; readiness: HrSetupReadiness; onClick: () => void; labelOverride?: string }) {
+  const Icon = setupIcons[item.label] ?? Settings2;
+  return <button type="button" onClick={onClick} className="flex min-h-10 w-full items-center gap-2 rounded border border-border bg-card px-3 text-left hover:border-info dark:border-[#303b48] dark:bg-[#0e161f] dark:hover:border-[#4c5b6d]"><Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground dark:text-[#9aa8b8]" /><span className="min-w-0 flex-1 truncate text-[10px] font-medium text-foreground/80 dark:text-[#cbd4df]">{labelOverride ?? item.label}</span><StatusLabel readiness={readiness} compact /><ChevronRight className="h-3 w-3 text-muted-foreground dark:text-[#77869a]" /></button>;
+}
+
+function getRelationships(label: string) {
+  const relationships: Record<string, { dependsOn: string; usedBy: string; related: string[] }> = {
+    Designation: { dependsOn: 'Departments and position levels', usedBy: 'Headcount planning', related: ['Department', 'Position Levels'] },
+    Grades: { dependsOn: 'Position structure', usedBy: 'Compensation & progression', related: ['Designation', 'Position Levels'] },
+    'Leave Policies': { dependsOn: 'Company foundation', usedBy: 'Leave requests & approvals', related: ['Company Info', 'Department'] },
+    'Onboarding Checklist': { dependsOn: 'Departments and owners', usedBy: 'Employee onboarding', related: ['Department', 'Designation'] },
+    'Recruitment Stages': { dependsOn: 'Position structure', usedBy: 'Applicant hiring workflows', related: ['Designation', 'Position Levels'] },
+  };
+  return relationships[label] ?? { dependsOn: 'Workspace foundation', usedBy: 'Connected HR workflows', related: ['Company Info', 'Department'] };
+}
+
+function ReadinessIcon({ readiness }: { readiness: HrSetupReadiness }) {
+  if (readiness === 'ready') return <CheckCircle2 className="h-4 w-4 shrink-0 text-success dark:text-[#55cc75]" />;
+  if (readiness === 'attention') return <AlertTriangle className="h-4 w-4 shrink-0 text-warning dark:text-[#f0b54e]" />;
+  return <Circle className="h-4 w-4 shrink-0 text-muted-foreground dark:text-[#758397]" />;
+}
+
+function StatusLabel({ readiness, compact = false }: { readiness: HrSetupReadiness; compact?: boolean }) {
+  const content = readiness === 'ready' ? { label: 'Ready', className: 'text-success dark:text-[#59d179]' } : readiness === 'attention' ? { label: 'Needs review', className: 'text-warning dark:text-[#f0b54e]' } : { label: 'Available', className: 'text-muted-foreground dark:text-[#8593a4]' };
+  return <span className={`${compact ? 'text-[10px]' : 'rounded border border-current px-1.5 py-0.5 text-[9px]'} whitespace-nowrap font-semibold ${content.className}`}>{content.label}</span>;
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />{label}</span>;
+}

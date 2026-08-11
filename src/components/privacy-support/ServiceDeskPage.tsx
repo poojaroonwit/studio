@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,15 +8,14 @@ import {
   ChevronRight,
   Clock3,
   History,
-  FilePlus2,
   Inbox,
   Loader2,
   LockKeyhole,
+  MessageSquareText,
   Paperclip,
   RefreshCw,
   Search,
   Send,
-  Smile,
   XCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -33,11 +31,8 @@ import {
   canRequesterWithdraw,
   isTerminalTicketStatus,
   type ServiceDeskAction,
-  type ServiceDeskIntent,
-  type SupportCreateInput,
 } from '@/lib/service-desk-contract';
 import { PrivacySupportShell, StatusPill } from './PrivacySupportShell';
-import { ServiceDeskComposer } from './ServiceDeskComposer';
 
 type TicketActivity = {
   id?: string;
@@ -50,6 +45,7 @@ type TicketActivity = {
 
 type SupportTicket = {
   id: string;
+  requesterId?: string;
   requestNumber: string;
   requester: string;
   requesterEmail?: string;
@@ -75,23 +71,6 @@ type ApiPayload = {
 
 type StatusFilter = 'all' | 'open' | 'closed';
 type PendingConfirmation = 'close' | 'withdraw' | null;
-
-const designPreviewTickets: SupportTicket[] = [
-  {
-    id: 'preview-payroll', requestNumber: 'SD-1048', requester: 'Jamie Wilson', requesterEmail: 'jamie.wilson@hrive.com', category: 'payroll', subject: 'Payroll deduction discrepancy', description: 'Hi HR team,\n\nI noticed an extra health insurance deduction on my most recent paycheck. Can you please review and confirm?\n\nThanks,\nJamie', status: 'in_review', priority: 'normal', submittedAt: '2026-08-10T03:24:00.000Z', updatedAt: '2026-08-10T03:55:00.000Z', activities: [
-      { id: 'preview-1', action: 'reply', message: 'Hi Jamie,\n\nThanks for reaching out. I’m happy to help look into this for you. Can you confirm which paycheck date this appeared on?\n\nBest,\nMorgan', createdAt: '2026-08-10T03:37:00.000Z', actor: 'Morgan Harper (HR)' },
-      { id: 'preview-2', action: 'reply', message: 'Sure, it was on the 8/7/2026 paycheck.\n\nThanks!', createdAt: '2026-08-10T03:41:00.000Z', actor: 'Jamie Wilson' },
-      { id: 'preview-3', action: 'reply', message: 'Thanks, Jamie. I’ve reviewed your deductions and identified the issue. I’ll have our payroll team correct it and issue a reimbursement. You’ll see it on your next paycheck.\n\nLet me know if you have any other questions.', createdAt: '2026-08-10T03:55:00.000Z', actor: 'Morgan Harper (HR)' },
-    ],
-  },
-  { id: 'preview-bank', requestNumber: 'SD-1047', requester: 'Sam Patel', category: 'payroll', subject: 'Update bank information', description: 'I need help updating my direct deposit details.', status: 'action_required', priority: 'normal', submittedAt: '2026-08-10T02:12:00.000Z', updatedAt: '2026-08-10T02:12:00.000Z', activities: [] },
-  { id: 'preview-benefits', requestNumber: 'SD-1046', requester: 'Maria Lopez', category: 'benefits', subject: '401(k) enrollment question', description: 'Could you clarify the next enrollment window?', status: 'in_review', priority: 'normal', submittedAt: '2026-08-09T09:30:00.000Z', updatedAt: '2026-08-09T09:30:00.000Z', activities: [] },
-  { id: 'preview-dependent', requestNumber: 'SD-1045', requester: 'David Kim', category: 'benefits', subject: 'Add new dependent', description: 'I need to add a dependent after a qualifying life event.', status: 'submitted', priority: 'normal', submittedAt: '2026-08-09T06:10:00.000Z', updatedAt: '2026-08-09T06:10:00.000Z', activities: [] },
-  { id: 'preview-timesheet', requestNumber: 'SD-1044', requester: 'Emma Brown', category: 'time_attendance', subject: 'Timesheet not showing hours', description: 'My Friday hours are missing from the current timesheet.', status: 'in_review', priority: 'normal', submittedAt: '2026-08-08T08:00:00.000Z', updatedAt: '2026-08-08T08:00:00.000Z', activities: [] },
-  { id: 'preview-w2', requestNumber: 'SD-1043', requester: 'James Taylor', category: 'payroll', subject: 'W-2 reissue request', description: 'Please help me request a replacement W-2.', status: 'action_required', priority: 'normal', submittedAt: '2026-08-07T08:00:00.000Z', updatedAt: '2026-08-07T08:00:00.000Z', activities: [] },
-  { id: 'preview-address', requestNumber: 'SD-1042', requester: 'Aisha Carter', category: 'personal_info', subject: 'Address change', description: 'I recently moved and need to update my home address.', status: 'in_review', priority: 'normal', submittedAt: '2026-08-07T07:00:00.000Z', updatedAt: '2026-08-07T07:00:00.000Z', activities: [] },
-  { id: 'preview-timeoff', requestNumber: 'SD-1041', requester: 'Riley Lee', category: 'leave', subject: 'Paid time off balance', description: 'My PTO balance does not include the latest accrual.', status: 'submitted', priority: 'normal', submittedAt: '2026-08-06T05:00:00.000Z', updatedAt: '2026-08-06T05:00:00.000Z', activities: [] },
-];
 
 function formatDate(value: string, locale: string) {
   const date = new Date(value);
@@ -127,6 +106,50 @@ function avatarTone(value: string) {
   return tones[[...value].reduce((total, character) => total + character.charCodeAt(0), 0) % tones.length];
 }
 
+function ConversationMessage({
+  actor,
+  email,
+  message,
+  createdAt,
+  locale,
+  requesterMessage,
+}: {
+  actor: string;
+  email?: string;
+  message: string;
+  createdAt: string;
+  locale: string;
+  requesterMessage: boolean;
+}) {
+  const avatar = (
+    <Avatar size="md" className="mt-5 shrink-0 rounded-full">
+      <AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(actor))}>{initials(actor)}</AvatarFallback>
+    </Avatar>
+  );
+
+  return (
+    <article className={cn('flex items-start gap-3', requesterMessage ? 'justify-end' : 'justify-start')}>
+      {!requesterMessage && avatar}
+      <div className={cn('min-w-0 max-w-[min(78%,44rem)]', requesterMessage && 'text-end')}>
+        <div className={cn('mb-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5', requesterMessage && 'justify-end')}>
+          <span className="text-xs font-semibold text-foreground">{actor}</span>
+          {email && <span className="break-all text-[10px] text-muted-foreground">{email}</span>}
+        </div>
+        <div className={cn(
+          'inline-block max-w-full whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-start text-sm leading-6 [overflow-wrap:anywhere]',
+          requesterMessage
+            ? 'rounded-se-sm bg-primary text-primary-foreground'
+            : 'rounded-ss-sm border border-border bg-muted/65 text-foreground',
+        )}>
+          {message}
+        </div>
+        <time className="mt-1.5 block text-[10px] text-muted-foreground">{formatDate(createdAt, locale)}</time>
+      </div>
+      {requesterMessage && avatar}
+    </article>
+  );
+}
+
 function statusTone(status: string): 'neutral' | 'good' | 'warn' | 'bad' {
   if (status === 'closed' || status === 'resolved') return 'good';
   if (status === 'action_required') return 'warn';
@@ -139,27 +162,22 @@ async function readPayload(response: Response): Promise<ApiPayload> {
 }
 
 export function ServiceDeskPage({
-  initialIntent = null,
   initialTicketId = null,
 }: {
-  initialIntent?: ServiceDeskIntent | null;
   initialTicketId?: string | null;
 }) {
-  const router = useRouter();
   const { locale, t } = useLocalization();
   const serviceDeskCategories = useServiceDeskCategories();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [composeIntent, setComposeIntent] = useState<ServiceDeskIntent | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [showHistorical, setShowHistorical] = useState(false);
+  const [showTicketHistory, setShowTicketHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [isHr, setIsHr] = useState(false);
-  const [roleResolved, setRoleResolved] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>(null);
   const loadController = useRef<AbortController | null>(null);
 
@@ -200,7 +218,6 @@ export function ServiceDeskPage({
 
       if (controller.signal.aborted) return;
       setIsHr(nextIsHr);
-      setRoleResolved(true);
       setTickets(nextTickets);
       setActiveId(current => {
         const requested = preferredId || initialTicketId;
@@ -213,15 +230,6 @@ export function ServiceDeskPage({
       setError('');
     } catch (loadError) {
       if (controller.signal.aborted) return;
-      if (process.env.NODE_ENV !== 'production' && initialTicketId === '00000000-0000-0000-0000-000000000001') {
-        setIsHr(true);
-        setRoleResolved(true);
-        setTickets(designPreviewTickets);
-        setActiveId(designPreviewTickets[0].id);
-        setError('');
-        return;
-      }
-      setRoleResolved(true);
       setError(loadError instanceof Error ? loadError.message : t('serviceDesk.error.load', 'Unable to load support tickets.'));
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -234,79 +242,45 @@ export function ServiceDeskPage({
   }, [load]);
 
   useEffect(() => {
-    if (!initialIntent || !roleResolved) return;
-    setComposeIntent(initialIntent);
-    setActiveId(null);
-    setPendingConfirmation(null);
-    router.replace('/service-desk', { scroll: false });
-  }, [initialIntent, roleResolved, router]);
-
-  useEffect(() => {
     setPendingConfirmation(null);
   }, [activeId]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLocaleLowerCase(locale);
     return tickets.filter(ticket => {
-      if (showHistorical) {
-        if (!isTerminalTicketStatus(ticket.status)) return false;
-      } else {
-        if (statusFilter === 'open' && isTerminalTicketStatus(ticket.status)) return false;
-        if (statusFilter === 'closed' && !isTerminalTicketStatus(ticket.status)) return false;
-      }
+      if (statusFilter === 'open' && isTerminalTicketStatus(ticket.status)) return false;
+      if (statusFilter === 'closed' && !isTerminalTicketStatus(ticket.status)) return false;
       if (!search) return true;
       return [ticket.requestNumber, ticket.requester, ticket.requesterEmail, ticket.subject, ticket.category]
         .some(value => value?.toLocaleLowerCase(locale).includes(search));
     });
-  }, [locale, query, statusFilter, showHistorical, tickets]);
+  }, [locale, query, statusFilter, tickets]);
 
   const active = tickets.find(ticket => ticket.id === activeId) || null;
+  const requesterHistory = useMemo(() => {
+    if (!active) return [];
+    return tickets
+      .filter(ticket => {
+        if (!isHr && active.requester === t('serviceDesk.you', 'You')) return true;
+        if (active.requesterId && ticket.requesterId) return active.requesterId === ticket.requesterId;
+        if (active.requesterEmail && ticket.requesterEmail) return active.requesterEmail === ticket.requesterEmail;
+        return active.requester === ticket.requester;
+      })
+      .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+  }, [active, isHr, t, tickets]);
   const openCount = tickets.filter(ticket => !isTerminalTicketStatus(ticket.status)).length;
   const closedCount = tickets.filter(ticket => isTerminalTicketStatus(ticket.status)).length;
-  const isHistoryMode = showHistorical || statusFilter === 'closed';
-  const activeIsClosed = active ? isTerminalTicketStatus(active.status) : false;
-
-  function openComposer(intent: ServiceDeskIntent = 'request') {
-    setComposeIntent(intent);
-    setActiveId(null);
-    setPendingConfirmation(null);
-    setError('');
-    setNotice('');
-    setShowHistorical(false);
-    setStatusFilter('open');
-  }
+  const isHistoryMode = statusFilter === 'closed';
 
   function closeWorkspace() {
-    setComposeIntent(null);
     setActiveId(null);
+    setShowTicketHistory(false);
     setPendingConfirmation(null);
   }
 
-  async function createTicket(input: SupportCreateInput) {
-    setSaving(true);
-    setError('');
-    setNotice('');
-    try {
-      const response = await fetch('/api/privacy-support/support', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      });
-      const data = await readPayload(response);
-      if (!response.ok || !data.id) {
-        setError(data.message || t('serviceDesk.error.create', 'Unable to create your request. Your draft has been preserved.'));
-        return false;
-      }
-      setComposeIntent(null);
-      setNotice(t('serviceDesk.notice.created', 'Your request was sent to the People team.'));
-      await load(data.id);
-      return true;
-    } catch {
-      setError(t('serviceDesk.error.network', 'The service desk could not be reached. Check your connection and try again.'));
-      return false;
-    } finally {
-      setSaving(false);
-    }
+  function openTicketHistory() {
+    setShowTicketHistory(true);
+    setPendingConfirmation(null);
   }
 
   async function updateTicket(action: ServiceDeskAction, message?: string) {
@@ -371,14 +345,11 @@ export function ServiceDeskPage({
       hideHeader
       fullPage
     >
-      <section className="flex h-full min-h-[680px] w-full flex-col overflow-hidden bg-background">
-        <header className="flex min-h-16 items-center border-b border-border bg-card px-5 sm:px-7">
-          <h1 className="text-[22px] font-semibold tracking-[-0.03em] text-foreground">{t('serviceDesk.title', 'Service Desk')}</h1>
-        </header>
+      <section className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(360px,34%)_minmax(0,1fr)]">
         <aside className={cn(
           'min-h-0 min-w-0 flex-col bg-card lg:flex lg:border-e lg:border-border',
-          (active || composeIntent) ? 'hidden' : 'flex',
+          active ? 'hidden' : 'flex',
         )} aria-label={t('serviceDesk.ticketList', 'Support ticket list')}>
           <div className="border-b border-border px-4 pb-3 pt-4 sm:px-5">
             <div className="flex items-center justify-between gap-4">
@@ -394,7 +365,7 @@ export function ServiceDeskPage({
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={query} onChange={event => setQuery(event.target.value)} className="h-10 bg-background ps-9 shadow-none" placeholder={t('serviceDesk.searchPlaceholder', 'Search tickets or employees')} />
             </label>
-            <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="mt-3 flex items-center gap-3">
               <label className="relative block">
                 <span className="sr-only">{t('serviceDesk.filterLabel', 'Filter tickets by status')}</span>
                 <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as StatusFilter)} className="h-9 appearance-none rounded-md border border-input bg-background py-0 pe-9 ps-3 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -404,26 +375,11 @@ export function ServiceDeskPage({
                 </select>
                 <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               </label>
-              <Button
-                size="sm"
-                variant={isHistoryMode ? 'default' : 'outline'}
-                onClick={() => {
-                  const next = !isHistoryMode;
-                  setShowHistorical(next);
-                  setStatusFilter(next ? 'closed' : 'open');
-                }}
-              >
-                <History className="me-1.5 h-4 w-4" />
-                {isHistoryMode ? t('serviceDesk.currentConversations', 'Current conversations') : t('serviceDesk.historicalConversations', 'Historical conversations')}
-              </Button>
-              {roleResolved
-                ? <Button size="sm" onClick={() => openComposer('request')} className="min-w-32 shrink-0"><FilePlus2 className="me-1.5 h-4 w-4" />{t('serviceDesk.newRequest', 'New request')}</Button>
-                : <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />}
             </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {error && !active && !composeIntent && (
+            {error && !active && (
               <div role="alert" className="border-b border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-950 dark:bg-red-950/30 dark:text-red-200 lg:hidden">
                 <p>{error}</p>
                 <Button type="button" size="sm" variant="ghost" className="mt-2" onClick={() => void load()}><RefreshCw className="me-1.5 h-4 w-4" />{t('common.retry', 'Try again')}</Button>
@@ -434,7 +390,6 @@ export function ServiceDeskPage({
               <div className="p-6 text-sm">
                 <p className="font-medium">{query || statusFilter !== 'all' ? t('serviceDesk.noMatches', 'No tickets match these filters.') : t('serviceDesk.empty', 'No support tickets yet.')}</p>
                 <p className="mt-1 leading-5 text-muted-foreground">{query || statusFilter !== 'all' ? t('serviceDesk.adjustFilters', 'Try another search or status.') : t('serviceDesk.emptyHint', 'Start a private conversation when you need help from the People team.')}</p>
-                {!isHr && !query && statusFilter === 'all' && <Button variant="outline" size="sm" className="mt-4" onClick={() => openComposer('request')}>{t('serviceDesk.createFirst', 'Create your first request')}</Button>}
               </div>
             )}
             {isHistoryMode ? (
@@ -453,8 +408,8 @@ export function ServiceDeskPage({
                     {filtered.length === 0 ? (
                       <tr>
                         <td className="px-4 py-6 text-center text-sm text-muted-foreground sm:px-5" colSpan={5}>
-                          <p className="font-medium">{query || statusFilter !== 'all' ? t('serviceDesk.noMatches', 'No tickets match these filters.') : t('serviceDesk.empty', 'No support tickets yet.')}</p>
-                          <p className="mt-1 leading-5 text-muted-foreground">{query || statusFilter !== 'all' ? t('serviceDesk.adjustFilters', 'Try another search or status.') : t('serviceDesk.emptyHint', 'Start a private conversation when you need help from the People team.')}</p>
+                          <p className="font-medium">{query ? t('serviceDesk.noMatches', 'No tickets match these filters.') : t('serviceDesk.noClosedTickets', 'No closed or withdrawn tickets yet.')}</p>
+                          <p className="mt-1 leading-5 text-muted-foreground">{query ? t('serviceDesk.adjustFilters', 'Try another search or status.') : t('serviceDesk.noClosedTicketsHint', 'Closed and withdrawn conversations will appear here.')}</p>
                         </td>
                       </tr>
                     ) : (
@@ -463,11 +418,11 @@ export function ServiceDeskPage({
                           key={ticket.id}
                           role="button"
                           tabIndex={0}
-                          onClick={() => { setComposeIntent(null); setActiveId(ticket.id); }}
+                          onClick={() => { setShowTicketHistory(false); setActiveId(ticket.id); }}
                           onKeyDown={event => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
-                              setComposeIntent(null);
+                              setShowTicketHistory(false);
                               setActiveId(ticket.id);
                             }
                           }}
@@ -490,7 +445,7 @@ export function ServiceDeskPage({
               <button
                 key={ticket.id}
                 type="button"
-                onClick={() => { setComposeIntent(null); setActiveId(ticket.id); }}
+                onClick={() => { setShowTicketHistory(false); setActiveId(ticket.id); }}
                 aria-current={activeId === ticket.id ? 'true' : undefined}
                 className={cn(
                   'relative grid w-full grid-cols-[40px_minmax(0,1fr)_auto] gap-x-3 border-b border-border px-4 py-3 text-start transition-colors hover:bg-muted/45 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5',
@@ -505,11 +460,8 @@ export function ServiceDeskPage({
           </div>
         </aside>
 
-        {composeIntent ? (
-          <ServiceDeskComposer key={composeIntent} intent={composeIntent} saving={saving} error={error} t={t} onCancel={closeWorkspace} onSubmit={createTicket} />
-        ) : (
-          <div className={cn(
-            'min-h-0 min-w-0 flex-col bg-card lg:flex',
+        <div className={cn(
+            'min-h-0 min-w-0 flex-col overflow-hidden bg-card lg:flex',
             active ? 'flex' : 'hidden',
           )}>
             <div className="sr-only" aria-live="polite">{notice}</div>
@@ -542,7 +494,11 @@ export function ServiceDeskPage({
                     <div className="flex min-w-0 flex-wrap items-center gap-2"><h2 className="min-w-0 break-words font-semibold">{active.subject}</h2><StatusPill tone={statusTone(active.status)}>{displayStatus(active.status)}</StatusPill></div>
                     <p className="mt-1 break-words text-xs text-muted-foreground">{active.requestNumber} · {t(`serviceDesk.category.${active.category}`, serviceDeskCategories.find(category => category.key === active.category)?.label || active.category.replaceAll('_', ' '))}</p>
                   </div>
-                  <div className="min-w-28"><p className="text-[10px] text-muted-foreground">{t('serviceDesk.submittedLabel', 'Submitted')}</p><p className="mt-1 text-xs font-medium">{formatListDate(active.submittedAt, locale)}</p></div>
+                  <div className="min-w-24"><p className="text-[10px] text-muted-foreground">{t('serviceDesk.submittedLabel', 'Submitted')}</p><p className="mt-1 text-xs font-medium">{formatListDate(active.submittedAt, locale)}</p></div>
+                  <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => showTicketHistory ? setShowTicketHistory(false) : openTicketHistory()}>
+                    {showTicketHistory ? <MessageSquareText className="me-1.5 h-4 w-4" /> : <History className="me-1.5 h-4 w-4" />}
+                    {showTicketHistory ? t('serviceDesk.backToConversation', 'Back to conversation') : t('serviceDesk.ticketHistory', 'Ticket history')}
+                  </Button>
                 </div>
               </header>
 
@@ -556,56 +512,84 @@ export function ServiceDeskPage({
                 </div>
               )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-emerald-50/60 px-5 py-3 dark:bg-emerald-950/20 sm:px-6">
+                {!showTicketHistory && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-emerald-50/60 px-5 py-3 dark:bg-emerald-950/20 sm:px-6">
                   <p className="text-xs text-muted-foreground"><LockKeyhole className="me-2 inline h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" /><span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('serviceDesk.privateConversation', 'Private conversation')}</span><span className="ms-2">{t('serviceDesk.historyNotice', 'Replies and status changes are saved permanently in the employee ticket history.')}</span></p>
                   {canClose && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('close')} disabled={saving}><CheckCircle2 className="me-2 h-4 w-4" />{t('serviceDesk.close', 'Close ticket')}</Button>}
                   {canWithdraw && <Button variant="outline" size="sm" onClick={() => setPendingConfirmation('withdraw')} disabled={saving}><XCircle className="me-2 h-4 w-4" />{t('serviceDesk.withdraw', 'Withdraw request')}</Button>}
-                  {activeIsClosed && (
-                    <Button size="sm" variant="outline" onClick={() => openComposer('request')} disabled={saving}>
-                      <FilePlus2 className="me-2 h-4 w-4" />
-                      {t('serviceDesk.startNewConversation', 'Start new conversation')}
-                    </Button>
-                  )}
-                </div>
-              <div className="border-b border-border bg-background px-5 py-5 sm:px-8">
-                <div className="mx-auto grid max-w-4xl grid-cols-[40px_minmax(0,1fr)] gap-3">
-                  <Avatar size="md" className="rounded-full"><AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(active.requester))}>{initials(active.requester)}</AvatarFallback></Avatar>
-                  <div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold"><span className="break-words">{active.requester}</span>{active.requesterEmail && <span className="break-all text-[11px] font-normal text-muted-foreground">{active.requesterEmail}</span>}</div>
-                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground/80 [overflow-wrap:anywhere]">{active.description}</p>
-                <p className="mt-2 text-[11px] text-muted-foreground">{t('serviceDesk.submitted', 'Submitted')} {formatDate(active.submittedAt, locale)}</p>
+                </div>}
+              {showTicketHistory ? (
+                <section className="min-h-0 flex-1 overflow-y-auto bg-background" aria-labelledby="ticket-history-heading">
+                  <div className="border-b border-border px-5 py-6 sm:px-8">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{active.requester}</p>
+                    <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <h3 id="ticket-history-heading" className="text-xl font-semibold tracking-[-0.025em]">{t('serviceDesk.ticketHistory', 'Ticket history')}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{t('serviceDesk.ticketHistoryDescription', 'Each new conversation remains one ticket until it is closed.')}</p>
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">{t('serviceDesk.ticketCount', '{count} tickets').replace('{count}', String(requesterHistory.length))}</span>
+                    </div>
                   </div>
-                </div>
-              </div>
-
+                  <div className="divide-y divide-border border-b border-border">
+                    {requesterHistory.map(ticket => (
+                      <button
+                        key={ticket.id}
+                        type="button"
+                        onClick={() => { setShowTicketHistory(false); setActiveId(ticket.id); }}
+                        className="grid w-full gap-3 px-5 py-5 text-start transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_auto] sm:px-8"
+                      >
+                        <span className="min-w-0">
+                          <span className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="break-words text-sm font-semibold">{ticket.subject}</span>
+                            {ticket.id === active.id && <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">{t('serviceDesk.currentTicket', 'Current ticket')}</span>}
+                          </span>
+                          <span className="mt-1.5 block text-xs text-muted-foreground">{ticket.requestNumber} · {t(`serviceDesk.category.${ticket.category}`, serviceDeskCategories.find(category => category.key === ticket.category)?.label || ticket.category.replaceAll('_', ' '))}</span>
+                          <span className="mt-2 line-clamp-2 block text-xs leading-5 text-foreground/70">{ticket.description}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-start">
+                          <StatusPill tone={statusTone(ticket.status)}>{displayStatus(ticket.status)}</StatusPill>
+                          <span className="text-[10px] text-muted-foreground">{formatDate(ticket.updatedAt, locale)}</span>
+                        </span>
+                      </button>
+                    ))}
+                    {requesterHistory.length === 0 && <p className="px-5 py-12 text-center text-sm text-muted-foreground sm:px-8">{t('serviceDesk.noTicketHistory', 'No ticket history is available for this employee.')}</p>}
+                  </div>
+                </section>
+              ) : <>
               <div className="min-h-0 flex-1 overflow-y-auto bg-background px-5 sm:px-8">
-                <div className="mx-auto max-w-4xl">
+                <div className="mx-auto max-w-5xl space-y-6 py-6">
+                  <ConversationMessage
+                    actor={active.requester}
+                    email={active.requesterEmail}
+                    message={active.description}
+                    createdAt={active.submittedAt}
+                    locale={locale}
+                    requesterMessage
+                  />
                   {active.activities.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t('serviceDesk.noActivity', 'No activity has been recorded yet.')}</p>}
                   {active.activities.map((activity, index) => {
                     const actor = activity.actor || (activity.action === 'reply' ? t('serviceDesk.participant', 'Ticket participant') : t('serviceDesk.system', 'System'));
                     const splitAfter = activity.action === 'closed' || activity.action === 'withdrawn';
+                    const requesterMessage = activity.actorId
+                      ? activity.actorId === active.requesterId
+                      : actor.replace(/\s*\(HR\)\s*$/i, '') === active.requester;
                     return (
-                      <div key={activity.id || `${activity.createdAt}-${index}`} className="space-y-4 border-b border-border py-5">
-                        <article className={cn('grid grid-cols-[40px_minmax(0,1fr)] gap-3', activity.action === 'closed' && 'text-emerald-800 dark:text-emerald-200')}>
-                          <Avatar size="md" className="rounded-full"><AvatarFallback className={cn('rounded-full text-[11px] font-semibold', avatarTone(actor))}>{initials(actor)}</AvatarFallback></Avatar>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{actor}</p><time className="text-[11px] text-muted-foreground">{formatDate(activity.createdAt, locale)}</time></div>
-                            {activity.message && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">{activity.message}</p>}
-                            {activity.action !== 'reply' && <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t(`serviceDesk.activity.${activity.action}`, activity.action.replaceAll('_', ' '))}</p>}
+                      <div key={activity.id || `${activity.createdAt}-${index}`} className="space-y-4">
+                        {activity.action === 'reply' && activity.message ? (
+                          <ConversationMessage actor={actor} message={activity.message} createdAt={activity.createdAt} locale={locale} requesterMessage={requesterMessage} />
+                        ) : (
+                          <div className="flex items-center gap-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                            <span className="h-px flex-1 bg-border" />
+                            <span>{t(`serviceDesk.activity.${activity.action}`, activity.action.replaceAll('_', ' '))} · {formatDate(activity.createdAt, locale)}</span>
+                            <span className="h-px flex-1 bg-border" />
                           </div>
-                        </article>
+                        )}
                         {splitAfter && (
                           <div className="pt-1">
                             <div className="relative mx-auto flex max-w-4xl items-center gap-3 text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
                               <span className="h-px flex-1 bg-border"></span>
-                              <span className="px-2 text-center">{t('serviceDesk.conversationSplit', 'This conversation ended. Start a new request for a new ticket.')}</span>
+                              <span className="px-2 text-center">{t('serviceDesk.conversationSplitWidget', 'This conversation ended. Start a new request from the support widget.')}</span>
                               <span className="h-px flex-1 bg-border"></span>
                             </div>
-                            <p className="mt-3 text-center">
-                              <Button type="button" size="sm" variant="outline" onClick={() => openComposer('request')} disabled={saving}>
-                                <FilePlus2 className="me-2 h-3.5 w-3.5" />
-                                {t('serviceDesk.startNewConversation', 'Start new conversation')}
-                              </Button>
-                            </p>
                           </div>
                         )}
                       </div>
@@ -614,24 +598,29 @@ export function ServiceDeskPage({
                 </div>
               </div>
 
-              <form key={active.id} onSubmit={sendReply} className="border-t border-border bg-card px-4 py-3 sm:px-6 lg:pe-64">
-                <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-md border border-input bg-background p-2 focus-within:ring-2 focus-within:ring-ring">
+              <form key={active.id} onSubmit={sendReply} className="border-t border-border bg-card px-3 py-2 sm:px-5">
+                <div className="relative w-full">
+                  <button type="button" className="absolute start-1.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t('serviceDesk.attach', 'Attach file')}>
+                    <Paperclip className="h-4 w-4" />
+                  </button>
                   <Textarea
                     name="message"
                     aria-label={t('serviceDesk.replyLabel', 'Reply to this ticket')}
-                    className="min-h-16 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    className="h-11 min-h-11 resize-none rounded-xl border border-input bg-background py-2.5 pe-12 ps-12 shadow-none"
                     maxLength={3000}
                     required
                     disabled={saving || !canReply}
                     placeholder={canReply ? (isHr ? t('serviceDesk.hrReplyPlaceholder', 'Write an HR reply…') : t('serviceDesk.employeeReplyPlaceholder', 'Add information or reply to HR…')) : t('serviceDesk.terminalPlaceholder', 'This ticket is read-only.')}
                   />
-                  <div className="flex shrink-0 items-center gap-1"><button type="button" className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t('serviceDesk.attach', 'Attach file')}><Paperclip className="h-4 w-4" /></button><button type="button" className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t('serviceDesk.emoji', 'Add emoji')}><Smile className="h-4 w-4" /></button><Button className="h-10 min-w-28" disabled={saving || !canReply}>{saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Send className="me-2 h-4 w-4" />}{t('serviceDesk.sendReply', 'Send reply')}</Button></div>
+                  <Button type="submit" size="icon" className="absolute inset-y-0 end-1.5 z-10 my-auto h-8 w-8 rounded-md transition-none motion-safe:hover:translate-y-0 motion-safe:active:translate-y-0 hover:shadow-none" aria-label={t('serviceDesk.sendReply', 'Send reply')} title={t('serviceDesk.sendReply', 'Send reply')} disabled={saving || !canReply}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
                 </div>
-                <p className="mx-auto mt-2 flex max-w-4xl items-center gap-1.5 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />{t('serviceDesk.replyVisibility', 'Everyone in this ticket can see this reply in the permanent history.')}</p>
+                <p className="mt-1.5 flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />{t('serviceDesk.ticketLifecycle', 'This conversation remains one ticket until it is closed.')}</p>
               </form>
+              </>}
             </>}
-          </div>
-        )}
+        </div>
         </div>
       </section>
     </PrivacySupportShell>

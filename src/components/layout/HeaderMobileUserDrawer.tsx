@@ -22,7 +22,6 @@ export function HeaderMobileUserDrawer({
   isSearchingUsers,
   onOpenProfile,
   onOpenSecurity,
-  onOpenSettings,
   onClearCache,
   onLocaleChange,
   onSignOut,
@@ -55,7 +54,6 @@ export function HeaderMobileUserDrawer({
               refreshAvatar={refreshAvatar}
               onOpenProfile={onOpenProfile}
               onOpenSecurity={onOpenSecurity}
-              onOpenSettings={onOpenSettings}
               labels={labels}
             />
 

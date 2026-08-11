@@ -1,4 +1,5 @@
 import type { ModalMode } from '@/components/users/UnifiedUserModal';
+import type { UnifiedUserFormValues } from '@/components/users/UnifiedUserModal';
 import type { UserProfile, UserTeam } from '@/lib/types';
 
 export interface UsersPageUsersTabProps {
@@ -23,6 +24,7 @@ export interface UsersPageUsersTabProps {
   onBulkUpdateStatus: (isActive: boolean) => void;
   onClearSelection: () => void;
   onOpenUserModal: (mode: ModalMode, user?: UserProfile) => void;
+  onEditUser: (userId: string, data: UnifiedUserFormValues) => Promise<void>;
   onToggleUserStatus: (user: UserProfile) => void;
   onConfirmDeleteUser: (user: UserProfile) => void;
 }

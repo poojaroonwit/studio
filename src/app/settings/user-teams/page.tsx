@@ -1,5 +1,9 @@
-import { redirect } from 'next/navigation';
+import { UserTeamsTab } from '@/components/settings/UserTeamsTab';
 
 export default function UserTeamsPage() {
-  redirect('/people/department');
+  return (
+    <main className="min-h-full bg-background p-6">
+      <UserTeamsTab />
+    </main>
+  );
 }

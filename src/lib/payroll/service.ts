@@ -29,6 +29,24 @@ function number(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function matchesBenefitRules(employee: Row, rawRules: unknown) {
+  if (!rawRules || typeof rawRules !== 'object' || Array.isArray(rawRules)) return true;
+  const rules = rawRules as Record<string, unknown>;
+  const values = (key: string) => Array.isArray(rules[key]) ? (rules[key] as unknown[]).map(String) : [];
+  const employmentTypes = values('employmentTypes');
+  const departmentIds = values('departmentIds');
+  const locations = values('locations');
+  const statuses = values('statuses');
+  const minimumServiceMonths = number(rules.minimumServiceMonths);
+  const hireDate = employee.hire_date ? new Date(String(employee.hire_date)) : null;
+  const serviceMonths = hireDate && !Number.isNaN(hireDate.getTime()) ? Math.max(0, (Date.now() - hireDate.getTime()) / 2_629_800_000) : Number.POSITIVE_INFINITY;
+  return (!employmentTypes.length || employmentTypes.includes(String(employee.employment_type || '')))
+    && (!departmentIds.length || departmentIds.includes(String(employee.department_id || '')))
+    && (!locations.length || locations.includes(String(employee.location || '')))
+    && (!statuses.length || statuses.includes(String(employee.status || '')))
+    && serviceMonths >= minimumServiceMonths;
+}
+
 function iso(value: unknown) {
   if (!value) return null;
   const date = new Date(String(value));
@@ -56,10 +74,14 @@ async function common(companyId: string | null) {
       ORDER BY name`, companyId,
     ),
     prisma.$queryRawUnsafe<Row[]>(
-      `SELECT id, employee_number, concat(first_name, ' ', last_name) name, job_title, department_id
-       FROM hr_employees WHERE status IN ('active','probation','onboarding','notice')
-         AND ($1::uuid IS NULL OR company_id = $1::uuid)
-       ORDER BY first_name, last_name LIMIT 1000`, companyId,
+      `SELECT employee.id, employee.employee_number, concat(employee.first_name, ' ', employee.last_name) name,
+              employee.job_title, employee.department_id, department.name department_name,
+              employee.employment_type, employee.status, employee.hire_date, employee.location
+       FROM hr_employees employee
+       LEFT JOIN hr_departments department ON department.id = employee.department_id
+       WHERE employee.status IN ('active','probation','onboarding','notice')
+         AND ($1::uuid IS NULL OR employee.company_id = $1::uuid)
+       ORDER BY employee.first_name, employee.last_name LIMIT 1000`, companyId,
     ),
   ]);
   return { periods, groups, employees };
@@ -227,7 +249,9 @@ async function benefits(companyId: string | null) {
     ),
     prisma.$queryRawUnsafe<Row[]>(
       `SELECT enrollment.*, plan.name plan_name, plan.type plan_type,
-              concat(employee.first_name, ' ', employee.last_name) employee_name, employee.employee_number
+              employee.id employee_id, concat(employee.first_name, ' ', employee.last_name) employee_name,
+              employee.employee_number, employee.job_title position, employee.employment_type,
+              employee.hire_date joined_at, employee.location
        FROM hr_employee_benefit_enrollments enrollment
        JOIN hr_benefit_plans plan ON plan.id = enrollment.benefit_plan_id
        JOIN hr_employees employee ON employee.id = enrollment.employee_id
@@ -880,36 +904,67 @@ async function compensationAction(input: Extract<PayrollActionInput, { action: '
   });
 }
 
-async function benefitAction(input: Extract<PayrollActionInput, { action: 'create_plan' | 'enroll' | 'approve_enrollment' | 'end_enrollment' }>, access: PayrollAccess) {
+async function benefitAction(input: Extract<PayrollActionInput, { action: 'create_plan' | 'update_plan' | 'enroll' | 'approve_enrollment' | 'return_enrollment' | 'end_enrollment' }>, access: PayrollAccess) {
   if (input.action === 'create_plan') {
     if (!input.name || !input.type || !input.effectiveFrom) throw new PayrollServiceError('VALIDATION_FAILED', 'Plan name, type, and effective date are required.', 422);
     const rows = await prisma.$queryRawUnsafe<Row[]>(
       `INSERT INTO hr_benefit_plans
-        (id, company_id, name, type, employer_cost, employee_cost, effective_from, is_active, version, created_at, updated_at)
-       VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7::date, true, 1, now(), now()) RETURNING *`,
-      randomUUID(), access.actorCompanyId, input.name, input.type, input.employerCost, input.employeeCost, input.effectiveFrom,
+        (id, company_id, name, type, description, provider_code, employer_cost, employee_cost,
+         effective_from, effective_to, is_active, eligibility_rules, version, created_at, updated_at)
+       VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9::date, $10::date, $11,
+               $12::jsonb, 1, now(), now()) RETURNING *`,
+      randomUUID(), access.actorCompanyId, input.name, input.type, input.description || null, input.providerCode || null,
+      input.employerCost, input.employeeCost, input.effectiveFrom, input.effectiveTo || null, input.isActive !== false,
+      JSON.stringify(input.eligibilityRules || {}),
     );
     return rows[0];
   }
+  if (input.action === 'update_plan') {
+    if (!input.id || !input.name || !input.type || !input.effectiveFrom) throw new PayrollServiceError('VALIDATION_FAILED', 'Plan id, name, type, and effective date are required.', 422);
+    const rows = await prisma.$queryRawUnsafe<Row[]>(
+      `UPDATE hr_benefit_plans SET name = $2, type = $3, description = COALESCE($4, description), provider_code = COALESCE($5, provider_code),
+         employer_cost = $6, employee_cost = $7, effective_from = $8::date, effective_to = $9::date,
+         is_active = COALESCE($10, is_active), eligibility_rules = COALESCE($11::jsonb, eligibility_rules), version = version + 1, updated_at = now()
+       WHERE id = $1::uuid AND ($12::uuid IS NULL OR company_id = $12::uuid OR company_id IS NULL)
+       RETURNING *`,
+      input.id, input.name, input.type, input.description || null, input.providerCode || null,
+      input.employerCost, input.employeeCost, input.effectiveFrom, input.effectiveTo || null,
+      input.isActive ?? null, input.eligibilityRules ? JSON.stringify(input.eligibilityRules) : null, access.actorCompanyId,
+    );
+    if (!rows[0]) throw new PayrollServiceError('NOT_FOUND', 'Benefit plan was not found.', 404);
+    return rows[0];
+  }
   if (input.action === 'enroll') {
-    if (!input.employeeId || !input.benefitPlanId || !input.effectiveFrom) throw new PayrollServiceError('VALIDATION_FAILED', 'Employee, plan, and effective date are required.', 422);
+    let employeeIds = input.employeeIds?.length ? input.employeeIds : input.employeeId ? [input.employeeId] : [];
+    if (!employeeIds.length || !input.benefitPlanId || !input.effectiveFrom) throw new PayrollServiceError('VALIDATION_FAILED', 'At least one employee, a plan, and an effective date are required.', 422);
+    if (input.enrollmentMode === 'rules') {
+      const [planRows, employeeRows] = await Promise.all([
+        prisma.$queryRawUnsafe<Row[]>(`SELECT eligibility_rules FROM hr_benefit_plans WHERE id = $1::uuid AND ($2::uuid IS NULL OR company_id = $2::uuid OR company_id IS NULL)`, input.benefitPlanId, access.actorCompanyId),
+        prisma.$queryRawUnsafe<Row[]>(`SELECT id, employment_type, department_id, location, status, hire_date FROM hr_employees WHERE id = ANY($1::uuid[]) AND ($2::uuid IS NULL OR company_id = $2::uuid)`, employeeIds, access.actorCompanyId),
+      ]);
+      if (!planRows[0]) throw new PayrollServiceError('NOT_FOUND', 'Benefit plan was not found.', 404);
+      employeeIds = employeeRows.filter(employee => matchesBenefitRules(employee, planRows[0].eligibility_rules)).map(employee => String(employee.id));
+      if (!employeeIds.length) throw new PayrollServiceError('NO_ELIGIBLE_EMPLOYEES', 'No selected employees meet the plan eligibility conditions.', 422);
+    }
     const rows = await prisma.$queryRawUnsafe<Row[]>(
       `INSERT INTO hr_employee_benefit_enrollments
         (id, employee_id, benefit_plan_id, company_id, status, effective_from,
          employee_contribution, employer_contribution, enrolled_at, created_at, updated_at)
-       SELECT $1::uuid, employee.id, plan.id, employee.company_id, 'pending_approval', $4::date,
+       SELECT gen_random_uuid(), employee.id, plan.id, employee.company_id,
+              CASE WHEN COALESCE((plan.eligibility_rules->>'approvalRequired')::boolean, true) THEN 'pending_approval' ELSE 'active' END,
+              $3::date,
               plan.employee_cost, plan.employer_cost, now(), now(), now()
-       FROM hr_employees employee JOIN hr_benefit_plans plan ON plan.id = $3::uuid
-       WHERE employee.id = $2::uuid AND ($5::uuid IS NULL OR employee.company_id = $5::uuid)
-       ON CONFLICT (employee_id, benefit_plan_id) DO UPDATE SET status = 'pending_approval',
+       FROM hr_employees employee JOIN hr_benefit_plans plan ON plan.id = $2::uuid
+       WHERE employee.id = ANY($1::uuid[]) AND ($4::uuid IS NULL OR employee.company_id = $4::uuid)
+       ON CONFLICT (employee_id, benefit_plan_id) DO UPDATE SET status = EXCLUDED.status,
          effective_from = EXCLUDED.effective_from, version = hr_employee_benefit_enrollments.version + 1, updated_at = now()
-       RETURNING *`, randomUUID(), input.employeeId, input.benefitPlanId, input.effectiveFrom, access.actorCompanyId,
+       RETURNING *`, employeeIds, input.benefitPlanId, input.effectiveFrom, access.actorCompanyId,
     );
     if (!rows[0]) throw new PayrollServiceError('SCOPE_VIOLATION', 'Employee or plan is outside your company scope.', 403);
     return rows[0];
   }
   if (!input.id) throw new PayrollServiceError('VALIDATION_FAILED', 'Enrollment id is required.', 422);
-  const status = input.action === 'approve_enrollment' ? 'active' : 'ended';
+  const status = input.action === 'approve_enrollment' ? 'active' : input.action === 'return_enrollment' ? 'returned_for_revision' : 'ended';
   const rows = await prisma.$queryRawUnsafe<Row[]>(
     `UPDATE hr_employee_benefit_enrollments enrollment SET status = $2,
        ended_at = CASE WHEN $2 = 'ended' THEN now() ELSE ended_at END,
@@ -922,6 +977,55 @@ async function benefitAction(input: Extract<PayrollActionInput, { action: 'creat
   return rows[0];
 }
 
+async function assignPayrollProfile(
+  input: Extract<PayrollActionInput, { action: 'assign_payroll_profile' }>,
+  access: PayrollAccess,
+  actorId: string,
+) {
+  const employees = await prisma.$queryRawUnsafe<Row[]>(
+    `SELECT employee.id, employee.company_id
+     FROM hr_employees employee
+     JOIN hr_payroll_groups payroll_group ON payroll_group.id = $2::uuid
+       AND (payroll_group.company_id IS NULL OR payroll_group.company_id IS NOT DISTINCT FROM employee.company_id)
+     WHERE employee.id = $1::uuid
+       AND ($3::uuid IS NULL OR employee.company_id = $3::uuid)
+     LIMIT 1`,
+    input.employeeId, input.payrollGroupId, access.actorCompanyId,
+  );
+  const employee = employees[0];
+  if (!employee) {
+    throw new PayrollServiceError(
+      'SCOPE_VIOLATION',
+      'The employee or payroll group is outside your company scope.',
+      403,
+    );
+  }
+
+  const rows = await prisma.$queryRawUnsafe<Row[]>(
+    `INSERT INTO hr_employee_payroll_profiles
+       (id, employee_id, company_id, payroll_group_id, payment_method, payment_currency,
+        bank_account_reference, payroll_start_date, status, version, updated_by_id, created_at, updated_at)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8::date,
+             'active', 1, $9::uuid, now(), now())
+     ON CONFLICT (employee_id) DO UPDATE SET
+       company_id = EXCLUDED.company_id,
+       payroll_group_id = EXCLUDED.payroll_group_id,
+       payment_method = EXCLUDED.payment_method,
+       payment_currency = EXCLUDED.payment_currency,
+       bank_account_reference = EXCLUDED.bank_account_reference,
+       payroll_start_date = EXCLUDED.payroll_start_date,
+       status = 'active',
+       version = hr_employee_payroll_profiles.version + 1,
+       updated_by_id = EXCLUDED.updated_by_id,
+       updated_at = now()
+     RETURNING *`,
+    randomUUID(), input.employeeId, employee.company_id || null, input.payrollGroupId,
+    input.paymentMethod, input.paymentCurrency, input.bankAccountReference || null,
+    input.payrollStartDate, actorId,
+  );
+  return rows[0];
+}
+
 export async function mutatePayroll(
   input: PayrollActionInput,
   access: PayrollAccess,
@@ -929,7 +1033,8 @@ export async function mutatePayroll(
 ) {
   if (!access.canManage) throw new PayrollServiceError('FORBIDDEN', 'Payroll management permission is required.', 403);
   try {
-    const result = input.action === 'create_group' ? await createGroup(input, access, actorId)
+    const result = input.action === 'assign_payroll_profile' ? await assignPayrollProfile(input, access, actorId)
+      : input.action === 'create_group' ? await createGroup(input, access, actorId)
       : input.action === 'create_period' ? await createPeriod(input, access, actorId)
       : input.action === 'create_run' ? await createRun(input, access, actorId)
       : 'runId' in input ? await runAction(input, access, actorId)

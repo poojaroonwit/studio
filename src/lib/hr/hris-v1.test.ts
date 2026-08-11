@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hrisResourceConfig, isHrisResource, listQuerySchema, mapRow } from './hris-v1';
+import { castCreatePlaceholder, hrisResourceConfig, isHrisResource, listQuerySchema, mapRow, parseHrisResourceUpdate } from './hris-v1';
 
 const employeeId = '00000000-0000-4000-8000-000000000001';
 
@@ -47,6 +47,38 @@ describe('HRIS v1 contracts', () => {
       lastWorkingDate: '2026-08-31',
       reason: 'Invalid notice range',
     }).success).toBe(false);
+  });
+
+  it('casts offboarding identifiers and dates for PostgreSQL inserts', () => {
+    expect(castCreatePlaceholder('exits', 'employee_id', '$1')).toBe('$1::uuid');
+    expect(castCreatePlaceholder('exits', 'company_id', '$2')).toBe('$2::uuid');
+    expect(castCreatePlaceholder('exits', 'notice_date', '$3')).toBe('$3::date');
+    expect(castCreatePlaceholder('exits', 'last_working_date', '$4')).toBe('$4::date');
+    expect(castCreatePlaceholder('exits', 'checklist', '$5')).toBe('$5::jsonb');
+    expect(castCreatePlaceholder('exits', 'reason', '$6')).toBe('$6');
+  });
+
+  it('rejects attributes that are not explicitly editable for a resource', () => {
+    const parsed = parseHrisResourceUpdate('assets', { name: 'Laptop', companyId: '8fb21620-9d88-4e72-9b9a-6e2a0f390ec0' });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('accepts the complete supported offboarding task update shape', () => {
+    const parsed = parseHrisResourceUpdate('exits', {
+      checklist: [{ id: 'equipment-return', status: 'completed' }],
+      accessRevocationStatus: 'completed',
+      finalPayrollStatus: 'in_progress',
+      completedAt: '2026-08-12T10:00:00.000Z',
+    }, 'in_progress');
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it('rejects a status that does not belong to the selected resource', () => {
+    const parsed = parseHrisResourceUpdate('asset-assignments', {}, 'published');
+
+    expect(parsed.success).toBe(false);
   });
 
   it('rejects invalid confidential case types', () => {

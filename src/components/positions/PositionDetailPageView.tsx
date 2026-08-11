@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
@@ -43,23 +43,6 @@ interface PositionDetailPageViewProps {
   controller: PositionDetailDrawerController;
   contentProps: PositionDetailDrawerContentProps;
 }
-
-const pageThemeStyle = {
-  colorScheme: "light",
-  "--app-page-background": "220 23% 97%",
-  "--background": "0 0% 100%",
-  "--foreground": "220 42% 14%",
-  "--card": "0 0% 100%",
-  "--card-foreground": "220 42% 14%",
-  "--popover": "0 0% 100%",
-  "--popover-foreground": "220 42% 14%",
-  "--muted": "220 18% 96%",
-  "--muted-foreground": "220 18% 42%",
-  "--accent": "220 18% 96%",
-  "--accent-foreground": "220 42% 14%",
-  "--border": "218 24% 88%",
-  "--input": "218 24% 88%",
-} as CSSProperties;
 
 const pageTabs: Array<{ id: PositionDetailTabId; label: string }> = [
   { id: "details", label: "Overview" },
@@ -125,16 +108,16 @@ function countStage(applicants: Applicant[], stageNames: Record<string, string>,
 
 function PositionPageLoading() {
   return (
-    <div className="h-full bg-white p-8" aria-label="Loading position details">
-      <div className="h-4 w-36 animate-pulse rounded bg-slate-200" />
-      <div className="mt-5 h-8 w-72 animate-pulse rounded bg-slate-200" />
-      <div className="mt-10 h-px bg-slate-200" />
+    <div className="h-full bg-background p-8" aria-label="Loading position details">
+      <div className="h-4 w-36 animate-pulse rounded bg-muted" />
+      <div className="mt-5 h-8 w-72 animate-pulse rounded bg-muted" />
+      <div className="mt-10 h-px bg-border" />
       <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_350px]">
         <div className="space-y-5">
-          <div className="h-32 animate-pulse rounded-md bg-slate-100" />
-          <div className="h-48 animate-pulse rounded-md bg-slate-100" />
+          <div className="h-32 animate-pulse rounded-md bg-muted" />
+          <div className="h-48 animate-pulse rounded-md bg-muted" />
         </div>
-        <div className="h-80 animate-pulse rounded-md bg-slate-100" />
+        <div className="h-80 animate-pulse rounded-md bg-muted" />
       </div>
     </div>
   );
@@ -149,10 +132,10 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
 
   if (baseData.fetchError || !position) {
     return (
-      <div className="grid h-full place-items-center bg-white p-8 text-center">
+      <div className="grid h-full place-items-center bg-background p-8 text-center">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Position could not be loaded</h1>
-          <p className="mt-2 text-sm text-slate-500">{baseData.fetchError || "The position is unavailable."}</p>
+          <h1 className="text-xl font-semibold text-foreground">Position could not be loaded</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{baseData.fetchError || "The position is unavailable."}</p>
           <Button className="mt-5" onClick={() => router.push("/positions")}>Back to Job Openings</Button>
         </div>
       </div>
@@ -208,10 +191,9 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
 
   return (
     <div
-      className="min-h-full bg-white font-[var(--font-dm-sans)] text-[#12213d] lg:h-full lg:min-h-0 lg:overflow-hidden"
+      className="min-h-full bg-background font-[var(--font-dm-sans)] text-foreground lg:h-full lg:min-h-0 lg:overflow-hidden"
       data-testid="position-detail-page"
       data-theme="position-detail-page"
-      style={pageThemeStyle}
     >
       <div className="grid min-h-full lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_350px]">
         <div className="flex min-h-0 flex-col">

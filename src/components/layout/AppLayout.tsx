@@ -64,7 +64,10 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     );
   }
 
-  if (!session) {
+  // Auth.js can surface a non-null error payload during local setup failures.
+  // Treat any session without a usable user id as unauthenticated so the
+  // shared layout never dereferences a malformed session object.
+  if (!session?.user?.id) {
     return (
       <div className="min-h-screen">
         {children}

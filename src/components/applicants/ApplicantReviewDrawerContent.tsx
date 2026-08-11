@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AcademicCapIcon,
   BuildingOffice2Icon,
@@ -44,6 +44,10 @@ export function ApplicantReviewDrawerContent({
 }) {
   const [activeTab, setActiveTab] = useState<ReviewTab>("overview");
 
+  useEffect(() => {
+    if (controller.profileEditRequestKey > 0) setActiveTab("personal");
+  }, [controller.profileEditRequestKey]);
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-white text-[#12213d]">
       <nav
@@ -75,7 +79,13 @@ export function ApplicantReviewDrawerContent({
         )}
         {activeTab === "personal" && (
           <div className="px-7 py-[26px]">
-            <ApplicantInfoDisplayCard applicant={controller.applicant} />
+            <ApplicantInfoDisplayCard
+              applicant={controller.applicant}
+              editable
+              editRequestKey={controller.profileEditRequestKey}
+              onApplicantChange={controller.setApplicant}
+              onRefresh={controller.onRefresh}
+            />
           </div>
         )}
         {activeTab === "resume" && (

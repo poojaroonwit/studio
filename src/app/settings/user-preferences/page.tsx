@@ -41,7 +41,9 @@ export default function UserPreferencesPage() {
 
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab');
-    if (tab === 'accessibility') setActiveTab('accessibility');
+    if (tab && ['appearance', 'accessibility', 'taskboard', 'positions', 'sidebar', 'security'].includes(tab)) {
+      setActiveTab(tab as UserPreferencesTab);
+    }
   }, []);
 
   const memoizedTaskBoardPreferences = useMemo(() => preferences.taskBoard, [

@@ -147,6 +147,15 @@ export async function toggleUsersPageUserStatus(userId: string, isActive: boolea
   }
 }
 
+export async function sendUsersPageMfaSetupLink(userId: string) {
+  const response = await fetch(`/api/users/${userId}/mfa-setup-link`, { method: 'POST' });
+  const data = await readJsonOrFallback<{ message?: string }>(response, { message: response.statusText });
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to send MFA setup link');
+  }
+  return data.message || 'MFA setup link sent.';
+}
+
 export async function syncUsersPageFromActiveDirectory() {
   const response = await fetch('/api/users/sync-ad', { method: 'POST' });
 

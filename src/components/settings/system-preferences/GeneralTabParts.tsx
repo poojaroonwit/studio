@@ -24,10 +24,7 @@ export function GeneralTabAppNameCard({
   setAppName: (value: string) => void;
 }) {
   return (
-    <SystemPreferenceSection
-      title="Application"
-      description="Set the name that appears throughout the application."
-    >
+    <section className="border-b border-border/60 py-5 sm:py-6">
       <SystemPreferenceRow
         htmlFor="app-name-input"
         label="Application Name"
@@ -42,7 +39,7 @@ export function GeneralTabAppNameCard({
           disabled={!canEdit}
         />
       </SystemPreferenceRow>
-    </SystemPreferenceSection>
+    </section>
   );
 }
 

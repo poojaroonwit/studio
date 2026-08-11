@@ -1,9 +1,10 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Check, CheckCircle2, ChevronRight, Clock3, Download, FileText, Flag, LockKeyhole, Menu, Pause, Play, ShieldCheck, Sparkles, Target, Upload } from 'lucide-react';
+import { ArrowLeft, BookOpen, Captions, Check, CheckCircle2, ChevronRight, ChevronUp, Clock3, Download, FileText, Flag, LockKeyhole, Maximize2, Menu, Pause, Play, RotateCcw, RotateCw, Save, ShieldCheck, Sparkles, Target, Upload, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -68,35 +69,29 @@ export function CourseExperience({ courseId, player = false }: { courseId: strin
 
   if (error) return <main className="grid min-h-[70vh] place-items-center p-6"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Learning is unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p><Button asChild variant="outline" className="mt-5"><Link href="/learning/courses">Back to courses</Link></Button></div></main>;
   if (!detail) return <main className="min-h-[70vh] bg-[#f4f1e9] p-6 dark:bg-zinc-950"><div className="mx-auto max-w-6xl animate-pulse"><div className="h-4 w-36 rounded-full bg-[#d9d5c9] dark:bg-zinc-800" /><div className="mt-8 h-80 rounded-[28px] bg-[#e6e1d5] dark:bg-zinc-900" /></div></main>;
-  if (player) return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-slate-50/60 text-slate-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open syllabus"><Menu className="h-5 w-5" /></Button>
-        <Link href={`/learning/courses/${courseId}`} className="hidden items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950 sm:flex dark:text-zinc-300"><ArrowLeft className="h-4 w-4" />Course overview</Link>
-        <div className="mx-auto min-w-0 text-center"><p className="truncate text-sm font-bold">{detail.course.title}</p><p className="text-xs text-slate-500">{detail.enrollment?.progress || 0}% complete</p></div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300"><Clock3 className="h-4 w-4" />{minutes(activeSeconds)}</div>
-      </header>
-      <div className="grid flex-1 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className={cn('border-r border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 lg:block', menuOpen ? 'block' : 'hidden')}>
-          <p className="mb-4 text-xs font-bold uppercase tracking-[.18em] text-slate-500">Syllabus</p>
-          <Syllabus detail={detail} selected={selected?.id} onSelect={id => { setSelectedLessonId(id); setMenuOpen(false); }} compact />
-        </aside>
-        <main className="mx-auto flex w-full max-w-5xl flex-col px-4 py-6 sm:px-8 lg:px-12 lg:py-10">
-          <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[.16em] text-indigo-700 dark:text-indigo-300">Lesson {selectedIndex + 1} of {lessons.length}</p><h1 className="mt-2 text-3xl font-bold tracking-[-.035em] sm:text-4xl">{selected?.title}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-zinc-300">{selected?.description}</p></div>
-          <div className="space-y-8">{selected?.blocks.map(block => <ContentBlock key={block.id} block={block} detail={detail} lesson={selected} onDone={load} />)}</div>
-          <div className="mt-auto flex items-center justify-between border-t border-slate-300 pt-6 dark:border-zinc-700">
-            <Button variant="ghost" disabled={selectedIndex <= 0} onClick={() => setSelectedLessonId(lessons[selectedIndex - 1]?.id)}>Previous</Button>
-            <div className="hidden text-center text-xs text-slate-500 sm:block">{progress?.status === 'completed' ? 'Lesson complete' : 'Complete all required content to continue'}</div>
-            <Button disabled={!lessons[selectedIndex + 1]?.unlocked} onClick={() => setSelectedLessonId(lessons[selectedIndex + 1]?.id)}>Next lesson<ChevronRight className="ml-2 h-4 w-4" /></Button>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+  if (player) return <CourseLessonPlayer detail={detail} courseId={courseId} lessons={lessons} selected={selected} selectedIndex={selectedIndex} progress={progress} activeSeconds={activeSeconds} menuOpen={menuOpen} onMenuOpenChange={setMenuOpen} onSelectLesson={setSelectedLessonId} onReload={load} />;
 
   const completed = lessons.filter(lesson => detail.progress[lesson.id]?.status === 'completed').length;
   const isDraft = detail.course.status !== 'published' || detail.course.version_status === 'draft';
   const lessonOptions = detail.sections.flatMap(section => section.lessons.map(lesson => ({ id: String(lesson.id), title: String(lesson.title), sectionTitle: String(section.title) })));
+  const useProposedDesign = detail.course.experience_variant !== 'legacy';
+
+  if (useProposedDesign) return (
+    <CourseOverviewProposal
+      detail={detail}
+      courseId={courseId}
+      lessons={lessons}
+      completed={completed}
+      isDraft={isDraft}
+      saving={saving}
+      lessonOptions={lessonOptions}
+      assignmentDialogOpen={assignmentDialogOpen}
+      onAssignmentDialogChange={setAssignmentDialogOpen}
+      onStart={() => void start()}
+      onReload={() => void load()}
+    />
+  );
+
   return (
     <main className="min-h-full w-full bg-[#f4f1e9] px-4 py-6 text-[#17251f] dark:bg-[#111613] dark:text-[#edf4ee] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1240px]">
@@ -117,10 +112,269 @@ export function CourseExperience({ courseId, player = false }: { courseId: strin
   );
 }
 
+function CourseLessonPlayer({
+  detail,
+  courseId,
+  lessons,
+  selected,
+  selectedIndex,
+  progress,
+  activeSeconds,
+  menuOpen,
+  onMenuOpenChange,
+  onSelectLesson,
+  onReload,
+}: {
+  detail: Detail;
+  courseId: string;
+  lessons: Row[];
+  selected: Row;
+  selectedIndex: number;
+  progress?: Row;
+  activeSeconds: number;
+  menuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
+  onSelectLesson: (id: string) => void;
+  onReload: () => Promise<void>;
+}) {
+  const videoBlock = selected.blocks?.find((block: Row) => block.type === 'video');
+  const assignmentBlock = selected.blocks?.find((block: Row) => block.type === 'assignment');
+  const reflectableBlock = selected.blocks?.find((block: Row) => block.required && !['video', 'quiz', 'assignment'].includes(block.type));
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(Number(progress?.furthest_second || 522));
+  const [duration, setDuration] = React.useState(Number(videoBlock?.content?.durationSeconds || 720));
+  const [captions, setCaptions] = React.useState(true);
+  const [playbackRate, setPlaybackRate] = React.useState(1.25);
+  const [transcriptOpen, setTranscriptOpen] = React.useState(true);
+  const [reflection, setReflection] = React.useState('');
+  const [status, setStatus] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
+  const storageKey = `learning-reflection:${courseId}:${selected.id}`;
+
+  React.useEffect(() => {
+    setReflection(window.localStorage.getItem(storageKey) || '');
+    setStatus('');
+  }, [storageKey]);
+  React.useEffect(() => {
+    const id = window.setTimeout(() => window.localStorage.setItem(storageKey, reflection), 350);
+    return () => window.clearTimeout(id);
+  }, [reflection, storageKey]);
+  React.useEffect(() => {
+    if (videoBlock?.content?.url || !playing) return;
+    const id = window.setInterval(() => setCurrentTime(value => Math.min(duration, value + playbackRate)), 1000);
+    return () => window.clearInterval(id);
+  }, [duration, playbackRate, playing, videoBlock?.content?.url]);
+
+  const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  const togglePlayback = async () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) await videoRef.current.play(); else videoRef.current.pause();
+      setPlaying(!videoRef.current.paused);
+      return;
+    }
+    setPlaying(value => !value);
+  };
+  const seek = (seconds: number) => {
+    const next = Math.max(0, Math.min(duration, seconds));
+    setCurrentTime(next);
+    if (videoRef.current) videoRef.current.currentTime = next;
+  };
+  const changeRate = () => {
+    const next = playbackRate === 1 ? 1.25 : playbackRate === 1.25 ? 1.5 : 1;
+    setPlaybackRate(next);
+    if (videoRef.current) videoRef.current.playbackRate = next;
+  };
+  const submitReflection = async () => {
+    if (!reflection.trim() || !detail.enrollment) return;
+    setSubmitting(true);
+    setStatus('Saving your reflection…');
+    try {
+      let response: Response | null = null;
+      if (assignmentBlock) {
+        response = await fetch('/api/learning/progress', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'submit_assignment', enrollmentId: detail.enrollment.id, blockId: assignmentBlock.id, text: reflection.trim() }) });
+      } else if (reflectableBlock && !(progress?.completed_blocks || []).includes(reflectableBlock.id)) {
+        response = await fetch('/api/learning/progress', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'complete_block', enrollmentId: detail.enrollment.id, lessonId: selected.id, blockId: reflectableBlock.id }) });
+      }
+      if (response && !response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || 'Unable to save your reflection.');
+      }
+      window.localStorage.removeItem(storageKey);
+      await onReload();
+      const nextLesson = lessons[selectedIndex + 1];
+      if (nextLesson?.unlocked) onSelectLesson(nextLesson.id);
+      else setStatus('Reflection saved. Finish the remaining required activity to unlock the next lesson.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Unable to save your reflection.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const transcript = Array.isArray(videoBlock?.content?.transcript) && videoBlock.content.transcript.length
+    ? videoBlock.content.transcript
+    : [
+        { time: '08:15', speaker: 'Alex', text: "I felt like my concerns weren't really heard in the last meeting." },
+        { time: '08:18', speaker: 'Jordan', text: 'That sounds really frustrating. Can you tell me more about what felt overlooked?' },
+        { time: '08:24', speaker: 'Alex', text: 'I shared the data, but we moved on quickly without discussing the impact.' },
+        { time: '08:29', speaker: 'Jordan', text: "I see. It's important to you that the data gets the attention it deserves." },
+        { time: '08:33', speaker: 'Alex', text: 'Exactly. It could really change the outcome if we look at it closely.' },
+      ];
+
+  return (
+    <main className="min-h-[calc(100vh-6rem)] bg-[#f8fafc] px-4 pb-8 pt-4 font-dm-sans text-[#17213a] dark:bg-[#09111d] dark:text-[#f4f6fb] sm:px-6 lg:px-9">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href={`/learning/courses/${courseId}`} className="inline-flex items-center gap-2 text-sm font-semibold text-[#316be8] hover:text-[#2457c3] dark:text-[#6fa0ff]"><ArrowLeft className="h-4 w-4" />Back to course</Link>
+          <div className="flex items-center gap-3"><Button variant="outline" size="sm" className="border-[#7b8798] bg-transparent" asChild><Link href={`/learning/courses/${courseId}`}><Save className="mr-2 h-4 w-4" />Save and exit</Link></Button><span className="hidden items-center gap-2 text-xs text-[#637188] dark:text-zinc-400 sm:flex"><CheckCircle2 className="h-4 w-4 text-lime-500" />Autosave on · {minutes(activeSeconds)}</span><Button variant="outline" size="icon" className="lg:hidden" onClick={() => onMenuOpenChange(!menuOpen)} aria-label="Toggle course progress"><Menu className="h-4 w-4" /></Button></div>
+        </div>
+
+        <div className="mt-2 text-sm text-[#647086] dark:text-zinc-400"><span>{detail.course.title}</span><ChevronRight className="mx-1.5 inline h-3.5 w-3.5" /><span>{detail.sections.find(section => section.lessons.some((lesson: Row) => lesson.id === selected.id))?.title}</span><ChevronRight className="mx-1.5 inline h-3.5 w-3.5" /><span>Lesson {selectedIndex + 1} of {lessons.length}</span></div>
+
+        <div className="mt-3 grid gap-8 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_480px]">
+          <section className="min-w-0">
+            <h1 className="text-3xl font-semibold tracking-[-.04em] sm:text-4xl">{selected.title}</h1>
+            <div className="relative mt-4 aspect-video overflow-hidden rounded-[7px] border border-[#334055] bg-black">
+              {videoBlock?.content?.url ? <video ref={videoRef} src={videoBlock.content.url} poster="/learning/courses/active-listening-workplace.png" className="h-full w-full object-cover" onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)} onDurationChange={event => setDuration(event.currentTarget.duration || duration)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} /> : <Image src="/learning/courses/active-listening-workplace.png" alt="Two coworkers practicing active listening" fill priority sizes="(max-width: 1024px) 100vw, 68vw" className="object-cover" />}
+              <div className="absolute inset-x-0 bottom-0 bg-black/70 px-4 pb-3 pt-2 text-white">
+                <input aria-label="Video position" type="range" min={0} max={Math.max(1, duration)} value={Math.min(currentTime, duration)} onChange={event => seek(Number(event.target.value))} className="h-1 w-full cursor-pointer accent-[#316be8]" />
+                <div className="mt-2 flex items-center gap-3"><button type="button" onClick={() => void togglePlayback()} aria-label={playing ? 'Pause video' : 'Play video'}>{playing ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}</button><button type="button" onClick={() => seek(currentTime - 10)} aria-label="Back 10 seconds"><RotateCcw className="h-4 w-4" /></button><button type="button" onClick={() => seek(currentTime + 10)} aria-label="Forward 10 seconds"><RotateCw className="h-4 w-4" /></button><Volume2 className="h-4 w-4" /><span className="ml-auto text-xs font-semibold tabular-nums">{formatTime(currentTime)} / {formatTime(duration)}</span><button type="button" onClick={() => setCaptions(value => !value)} aria-pressed={captions} className={cn('rounded border px-1.5 py-0.5 text-xs font-bold', captions ? 'border-white text-white' : 'border-white/40 text-white/60')}><Captions className="h-4 w-4" /></button><button type="button" onClick={changeRate} className="text-xs font-bold">{playbackRate}x</button><Maximize2 className="h-4 w-4" /></div>
+              </div>
+            </div>
+
+            <section className="mt-3 overflow-hidden rounded-[7px] border border-[#c9d1dc] dark:border-[#314056]">
+              <button type="button" onClick={() => setTranscriptOpen(value => !value)} className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-bold"><span>Transcript</span><span className="flex items-center gap-2 text-xs font-normal text-[#6a778b] dark:text-zinc-400">{transcriptOpen ? 'Hide' : 'Show'}<ChevronUp className={cn('h-4 w-4 transition-transform', !transcriptOpen && 'rotate-180')} /></span></button>
+              {transcriptOpen && <div className="max-h-40 space-y-2 border-t border-[#d5dbe3] px-4 py-3 text-xs leading-5 dark:border-[#314056]">{transcript.map((line: Row, index: number) => <p key={`${line.time}-${index}`} className="grid grid-cols-[48px_56px_minmax(0,1fr)] gap-2"><span className="text-[#748197]">{line.time}</span><strong>{line.speaker}:</strong><span className="text-[#536176] dark:text-zinc-300">{line.text}</span></p>)}</div>}
+            </section>
+
+            <section className="mt-4">
+              <div className="flex items-end justify-between gap-4"><label htmlFor="lesson-reflection" className="text-sm font-bold">What did the listener do that built trust?</label><span className="text-xs text-[#748197]">Your reflection (required)</span></div>
+              <textarea id="lesson-reflection" value={reflection} onChange={event => setReflection(event.target.value.slice(0, 500))} className="mt-2 min-h-24 w-full rounded-[6px] border border-[#316be8] bg-transparent px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#316be8]/30" placeholder="Type your response here…" />
+              <div className="mt-1 flex justify-between gap-4"><p role="status" className="text-xs text-[#66758a] dark:text-zinc-400">{status || (reflection ? 'Saved automatically' : '')}</p><span className="text-xs tabular-nums text-[#748197]">{reflection.length} / 500</span></div>
+              <div className="mt-3 flex justify-end"><Button className="h-11 bg-[#316be8] px-6 hover:bg-[#285dce]" disabled={!reflection.trim() || submitting} onClick={() => void submitReflection()}>{submitting ? 'Saving…' : 'Submit reflection & continue'}<ChevronRight className="ml-2 h-5 w-5" /></Button></div>
+            </section>
+          </section>
+
+          <CourseProgressRail detail={detail} lessons={lessons} selected={selected} menuOpen={menuOpen} onSelectLesson={id => { onSelectLesson(id); onMenuOpenChange(false); }} />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function CourseProgressRail({ detail, lessons, selected, menuOpen, onSelectLesson }: { detail: Detail; lessons: Row[]; selected: Row; menuOpen: boolean; onSelectLesson: (id: string) => void }) {
+  return <aside className={cn('relative border-l border-[#cbd3dd] pl-8 dark:border-[#314056] lg:block', menuOpen ? 'block' : 'hidden')}><h2 className="mb-4 text-lg font-bold">Your progress</h2><span aria-hidden="true" className="absolute bottom-12 left-[15px] top-14 w-px bg-[#8f9bad] dark:bg-[#526074]" />{detail.sections.map((section, sectionIndex) => { const sectionLessons = section.lessons || []; const sectionComplete = sectionLessons.every((lesson: Row) => detail.progress[lesson.id]?.status === 'completed'); return <section key={section.id} className="relative pb-3"><span className={cn('absolute -left-8 top-1 z-10 grid h-6 w-6 place-items-center rounded-full border-2 bg-[#f8fafc] dark:bg-[#09111d]', sectionComplete ? 'border-lime-500 text-lime-500' : sectionLessons.some((lesson: Row) => lesson.id === selected.id) ? 'border-[#316be8] text-[#316be8]' : 'border-[#7d899a] text-[#7d899a]')}>{sectionComplete ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : sectionLessons.some((lesson: Row) => lesson.id === selected.id) ? <Play className="h-3 w-3 fill-current" /> : <LockKeyhole className="h-3 w-3" />}</span><div className="flex items-center gap-2 border-b border-[#d7dde5] pb-3 dark:border-[#2c394d]"><strong>Module {sectionIndex + 1}</strong><span className="min-w-0 flex-1 truncate text-sm text-[#607087] dark:text-zinc-300">{section.title}</span><span className="text-[11px] text-[#748197]">{sectionLessons.length} lessons</span></div><div>{sectionLessons.map((lesson: Row) => { const state = detail.progress[lesson.id]?.status; const current = lesson.id === selected.id; const complete = state === 'completed'; const unlocked = lesson.unlocked !== false; const globalIndex = lessons.findIndex(item => item.id === lesson.id); return <button type="button" key={lesson.id} disabled={!unlocked} onClick={() => onSelectLesson(lesson.id)} className={cn('grid w-full grid-cols-[22px_22px_minmax(0,1fr)_55px] items-start gap-2 border-b border-[#d7dde5] px-2 py-3 text-left text-sm dark:border-[#2c394d]', current && 'rounded-[5px] border border-[#265ab7] bg-[#e9f1ff] dark:bg-[#142744]')}><span className={cn('mt-0.5 grid h-5 w-5 place-items-center rounded-full border', complete ? 'border-lime-500 text-lime-500' : current ? 'border-[#316be8] text-[#316be8]' : 'border-[#7d899a] text-[#7d899a]')}>{complete ? <Check className="h-3 w-3" /> : current ? <Play className="h-3 w-3 fill-current" /> : !unlocked ? <LockKeyhole className="h-3 w-3" /> : null}</span><span className="text-xs">{globalIndex + 1}.</span><span><strong className="block font-semibold">{lesson.title}</strong>{current && <span className="mt-1 block text-xs text-[#62738d] dark:text-zinc-300">{lesson.description}</span>}</span><span className="text-right text-xs text-[#6d7a8d]">{lesson.estimated_minutes || 0} min<span className={cn('mt-1 block', complete ? 'text-lime-600 dark:text-lime-400' : current ? 'text-[#316be8]' : '')}>{complete ? 'Completed' : current ? 'In progress' : unlocked ? 'Next' : ''}</span></span></button>; })}</div></section>; })}<div className="relative mt-1 flex items-center gap-3 border-t border-[#d7dde5] py-3 dark:border-[#2c394d]"><span className="absolute -left-8 grid h-6 w-6 place-items-center rounded-full border border-[#7d899a] bg-[#f8fafc] dark:bg-[#09111d]"><Flag className="h-3.5 w-3.5" /></span><strong>Summit</strong><span className="text-sm text-[#607087] dark:text-zinc-300">Final check</span></div></aside>;
+}
+
+function CourseOverviewProposal({
+  detail,
+  courseId,
+  lessons,
+  completed,
+  isDraft,
+  saving,
+  lessonOptions,
+  assignmentDialogOpen,
+  onAssignmentDialogChange,
+  onStart,
+  onReload,
+}: {
+  detail: Detail;
+  courseId: string;
+  lessons: Row[];
+  completed: number;
+  isDraft: boolean;
+  saving: boolean;
+  lessonOptions: Array<{ id: string; title: string; sectionTitle: string }>;
+  assignmentDialogOpen: boolean;
+  onAssignmentDialogChange: (open: boolean) => void;
+  onStart: () => void;
+  onReload: () => void;
+}) {
+  const [expandedSections, setExpandedSections] = React.useState<Set<string>>(() => new Set(detail.sections.map(section => String(section.id))));
+  React.useEffect(() => setExpandedSections(new Set(detail.sections.map(section => String(section.id)))), [detail.sections]);
+
+  const progressValue = Math.min(100, Math.max(0, Number(detail.enrollment?.progress || 0)));
+  const coverImage = String(detail.course.cover_image_url || detail.course.coverImageUrl || '/learning/paths/new-manager-foundations.webp');
+  const incompleteLessons = lessons.filter(lesson => detail.progress[lesson.id]?.status !== 'completed');
+  const remainingMinutes = incompleteLessons.reduce((total, lesson) => total + Number(lesson.estimated_minutes || 0), 0);
+  const currentLessonId = String(detail.enrollment?.current_lesson_id || incompleteLessons.find(lesson => lesson.unlocked)?.id || '');
+  const courseDuration = Number(detail.course.duration_hours || detail.course.durationHours || 0);
+  const passingScore = Number(detail.rules.passingScore || detail.rules.passing_score || 70);
+  const maxAttempts = Number(detail.rules.maxAttempts || detail.rules.max_attempts || 3);
+  const toggleSection = (sectionId: string) => setExpandedSections(current => {
+    const next = new Set(current);
+    if (next.has(sectionId)) next.delete(sectionId); else next.add(sectionId);
+    return next;
+  });
+
+  return (
+    <main className="min-h-full w-full bg-[#f8fafc] px-4 pb-14 pt-5 font-dm-sans text-[#17213a] dark:bg-[#09111d] dark:text-[#f4f6fb] sm:px-6 lg:px-9">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/learning/courses" className="group inline-flex items-center gap-2 text-sm font-semibold text-[#316be8] hover:text-[#2457c3] dark:text-[#6fa0ff]"><ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />Back to courses</Link>
+          {detail.canManage && <div className="flex items-center gap-2"><Button type="button" variant="ghost" size="sm" className="text-[#607086] hover:text-[#316be8] dark:text-zinc-300" onClick={() => onAssignmentDialogChange(true)}><Sparkles className="mr-2 h-4 w-4" />Create AI assignment</Button><Button asChild variant="outline" size="sm" className="border-[#7c899b] bg-transparent"><Link href={`/learning/courses/${courseId}/studio`}>Open Studio<span className="ml-2 text-[10px] font-normal text-[#7c899b]">Manager only</span></Link></Button></div>}
+        </div>
+
+        <section className="mt-5 grid gap-6 lg:grid-cols-[minmax(420px,.92fr)_minmax(520px,1.08fr)] lg:items-stretch">
+          <div className="flex min-h-[276px] flex-col justify-center py-2 lg:pr-8">
+            <span className="w-fit rounded bg-[#e9edf4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-[#43536a] dark:bg-[#1c2737] dark:text-zinc-200">{detail.course.category || 'General'}</span>
+            <h1 className="mt-4 text-[clamp(2.45rem,4.6vw,4rem)] font-semibold leading-[.98] tracking-[-.055em]">{detail.course.title}</h1>
+            <p className="mt-4 max-w-2xl text-[15px] leading-6 text-[#5e6b7e] dark:text-[#bcc5d2]">{detail.course.description || 'A focused learning experience designed to help you put new skills into practice.'}</p>
+            <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+              <div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-[#64748b]" /><div><dt className="sr-only">Total duration</dt><dd className="font-bold">{courseDuration} hours</dd><p className="text-xs text-[#748094] dark:text-zinc-400">Total duration</p></div></div>
+              <div className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-[#64748b]" /><div><dt className="sr-only">Lessons</dt><dd className="font-bold">{lessons.length} lessons</dd><p className="text-xs text-[#748094] dark:text-zinc-400">Total lessons</p></div></div>
+              <div className="flex items-center gap-2"><Target className="h-5 w-5 text-[#64748b]" /><div><dt className="sr-only">Progress</dt><dd className="font-bold">{progressValue}%</dd><p className="text-xs text-[#748094] dark:text-zinc-400">Complete</p></div></div>
+            </dl>
+            {!isDraft && <div className="mt-5 max-w-[670px]"><div className="mb-2 flex items-center justify-between text-sm"><span>{completed} of {lessons.length} lessons complete</span><span className="font-bold text-[#316be8]">{progressValue}%</span></div><Progress value={progressValue} className="h-1.5 bg-[#d4dae2] [&>div]:bg-[#316be8] dark:bg-white/15" /></div>}
+            <div className="mt-5">{isDraft ? <Button asChild className="h-12 rounded-md bg-[#316be8] px-7 hover:bg-[#285dce]"><Link href={`/learning/courses/${courseId}/studio`}>Open Course Studio<ChevronRight className="ml-2 h-5 w-5" /></Link></Button> : <Button className="h-12 rounded-md bg-[#316be8] px-7 text-base font-semibold hover:bg-[#285dce]" onClick={onStart} disabled={saving}>{saving ? 'Opening…' : detail.enrollment ? 'Continue course' : 'Start course'}<ChevronRight className="ml-2 h-5 w-5" /></Button>}</div>
+          </div>
+          <div className="relative min-h-[290px] overflow-hidden rounded-[8px] bg-[#d9e3e1] lg:min-h-[335px]"><Image src={coverImage} alt={`${String(detail.course.title || 'Course')} cover`} fill priority unoptimized sizes="(max-width: 1024px) 100vw, 54vw" className="object-cover" /></div>
+        </section>
+
+        <section className="mt-3 grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10">
+          <aside className="h-fit rounded-[8px] border border-[#cbd3dd] bg-white p-6 dark:border-[#2f3b4d] dark:bg-[#111b29] lg:sticky lg:top-24">
+            <h2 className="text-lg font-bold">Your journey</h2>
+            <p className="mt-7 text-4xl font-semibold tracking-[-.05em] text-[#316be8]">{progressValue}%</p><p className="mt-1 text-base text-[#5f6d82] dark:text-zinc-300">Complete</p>
+            <Progress value={progressValue} className="mt-4 h-1.5 bg-[#d6dce4] [&>div]:bg-[#316be8] dark:bg-white/15" /><p className="mt-2 text-right text-xs text-[#728095] dark:text-zinc-400">{completed} of {lessons.length} lessons</p>
+            <div className="mt-6 border-y border-[#dde2e8] py-5 dark:border-[#2f3b4d]"><div className="flex items-center gap-3"><Clock3 className="h-5 w-5 text-[#65758b]" /><div><p className="font-bold">~{remainingMinutes} min</p><p className="mt-0.5 text-xs text-[#728095] dark:text-zinc-400">Estimated time remaining</p></div></div></div>
+            <div className="pt-6"><h3 className="text-sm font-bold">To complete this course</h3><ul className="mt-5 space-y-5 text-sm"><li className="flex gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#718096]" /><span><strong className="block">Complete all {lessons.length} lessons</strong><span className="mt-1 block text-xs text-[#728095] dark:text-zinc-400">Work through each lesson in order</span></span></li><li className="flex gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#718096]" /><span><strong className="block">Pass the final check</strong><span className="mt-1 block text-xs text-[#728095] dark:text-zinc-400">Score at least {passingScore}% within {maxAttempts} attempts</span></span></li><li className="flex gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#718096]" /><span><strong className="block">Apply and reflect</strong><span className="mt-1 block text-xs text-[#728095] dark:text-zinc-400">Use what you learn in the real world</span></span></li></ul></div>
+          </aside>
+
+          <div className="relative min-w-0 pb-4">
+            <span aria-hidden="true" className="absolute bottom-16 left-4 top-5 w-px bg-[#9aa6b6] dark:bg-[#526074]" />
+            {detail.sections.map((section, sectionIndex) => {
+              const sectionId = String(section.id);
+              const expanded = expandedSections.has(sectionId);
+              const sectionLessons = section.lessons || [];
+              const sectionComplete = sectionLessons.length > 0 && sectionLessons.every((lesson: Row) => detail.progress[lesson.id]?.status === 'completed');
+              const sectionMinutes = sectionLessons.reduce((sum: number, lesson: Row) => sum + Number(lesson.estimated_minutes || 0), 0);
+              return <section key={sectionId} className="relative pl-11">
+                <span className={cn('absolute left-0 top-[18px] z-10 grid h-8 w-8 place-items-center rounded-full border-2 bg-[#f8fafc] dark:bg-[#09111d]', sectionComplete ? 'border-emerald-500 text-emerald-500' : sectionIndex === 0 ? 'border-[#316be8] text-[#316be8]' : 'border-[#7f8b9d] text-[#7f8b9d]')}>{sectionComplete ? <Check className="h-4 w-4 stroke-[3]" /> : <BookOpen className="h-4 w-4" />}</span>
+                <button type="button" onClick={() => toggleSection(sectionId)} className="flex w-full items-center gap-3 border-b border-[#d8dee6] py-4 text-left dark:border-[#263447]" aria-expanded={expanded}><span className="font-bold">Module {sectionIndex + 1}</span><span className="min-w-0 flex-1 truncate text-[#657286] dark:text-zinc-300">{section.title}</span><span className="hidden text-xs text-[#748094] sm:block">{sectionLessons.length} lesson{sectionLessons.length === 1 ? '' : 's'} · {sectionMinutes} min</span><ChevronRight className={cn('h-4 w-4 text-[#748094] transition-transform', expanded && 'rotate-90')} /></button>
+                {expanded && <div>{sectionLessons.map((lesson: Row, lessonIndex: number) => {
+                  const lessonStatus = detail.progress[lesson.id]?.status;
+                  const isComplete = lessonStatus === 'completed';
+                  const isCurrent = String(lesson.id) === currentLessonId || lessonStatus === 'in_progress';
+                  const isUnlocked = lesson.unlocked !== false;
+                  return <div key={lesson.id} className={cn('grid gap-3 border-b border-[#d8dee6] py-3.5 pl-1 sm:grid-cols-[38px_210px_minmax(0,1fr)_70px_90px] sm:items-center dark:border-[#263447]', isCurrent && 'bg-[#eaf1ff] px-3 dark:bg-[#142744]')}><span className={cn('grid h-6 w-6 place-items-center rounded-full border', isComplete ? 'border-emerald-500 text-emerald-500' : isCurrent ? 'border-[#316be8] text-[#316be8]' : 'border-[#718096] text-[#718096]')}>{isComplete ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : isCurrent ? <Play className="h-3.5 w-3.5 fill-current" /> : !isUnlocked ? <LockKeyhole className="h-3.5 w-3.5" /> : <span className="text-[10px] font-bold">{lessonIndex + 1}</span>}</span><p className="truncate text-sm font-semibold">{lesson.title}</p><p className="truncate text-xs text-[#69778b] dark:text-zinc-400">{lesson.description || 'Continue building practical skills in this lesson.'}</p><p className="text-xs text-[#69778b] dark:text-zinc-400">{lesson.estimated_minutes || 0} min</p><div className="sm:text-right">{isComplete ? <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Completed</span> : isCurrent ? <Button type="button" size="sm" className="h-7 bg-[#316be8] px-3 text-xs" onClick={onStart}>Continue</Button> : <span className="text-xs font-medium text-[#748094]">{isUnlocked ? 'Available' : 'Locked'}</span>}</div></div>;
+                })}</div>}
+              </section>;
+            })}
+            <div className="relative ml-0 flex items-center gap-4 border-b border-[#d8dee6] py-5 pl-11 dark:border-[#263447]"><span className="absolute left-0 grid h-8 w-8 place-items-center rounded-full border-2 border-[#7f8b9d] bg-[#f8fafc] text-[#7f8b9d] dark:bg-[#09111d]"><Flag className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="font-bold">Summit <span className="ml-2 font-normal text-[#657286] dark:text-zinc-300">Final check</span></p><p className="mt-1 text-xs text-[#748094] dark:text-zinc-400">Complete the final check to finish the course.</p></div><span className="rounded bg-[#e9edf3] px-3 py-1.5 text-xs font-semibold text-[#657286] dark:bg-[#172335] dark:text-zinc-300">Locked</span></div>
+          </div>
+        </section>
+      </div>
+      <AiAssignmentDialog courseId={courseId} courseTitle={String(detail.course.title || 'Course')} lessons={lessonOptions} open={assignmentDialogOpen} onOpenChange={onAssignmentDialogChange} onCreated={onReload} />
+    </main>
+  );
+}
+
 function Syllabus({ detail, selected, onSelect, compact = false }: { detail: Detail; selected?: string; onSelect?: (id: string) => void; compact?: boolean }) {
-  return <div className={cn(compact ? 'space-y-6' : 'divide-y divide-[#cfcfc2] dark:divide-white/15')}>{detail.sections.map((section, sectionIndex) => <section key={section.id} className={cn(!compact && 'grid gap-4 py-7 sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-8')}><h3 className={cn('text-xs font-bold uppercase tracking-[.14em] text-slate-500', compact && 'mb-2', !compact && 'pt-3 text-[#68766f] dark:text-[#9eaaa2]')}>{String(sectionIndex + 1).padStart(2,'0')} · {section.title}</h3><div className={cn(!compact && 'space-y-1')}>{section.lessons.map((lesson: Row, lessonIndex: number) => {
+  return <div className={cn(compact ? 'space-y-6' : 'divide-y divide-[#d5d1c7] dark:divide-white/10')}>{detail.sections.map((section, sectionIndex) => <section key={section.id} className={cn(!compact && 'grid gap-5 py-7 sm:grid-cols-[190px_minmax(0,1fr)] sm:gap-8')}><div className={cn(compact && 'mb-2', !compact && 'pt-3')}><p className={cn('text-[10px] font-bold uppercase tracking-[.2em] text-[#ff654c]', compact && 'hidden')}>Module {String(sectionIndex + 1).padStart(2,'0')}</p><h3 className={cn('font-semibold text-slate-600 dark:text-zinc-300', compact ? 'text-xs uppercase tracking-[.14em]' : 'mt-2 text-base leading-5 text-[#303951] dark:text-[#d9deea]')}>{section.title}</h3></div><div className={cn(!compact && 'space-y-1')}>{section.lessons.map((lesson: Row, lessonIndex: number) => {
     const status = detail.progress[lesson.id]?.status;
-    return <button type="button" key={lesson.id} disabled={!lesson.unlocked || !onSelect} onClick={() => onSelect?.(lesson.id)} className={cn('flex w-full items-center gap-3 text-left transition', compact ? 'border-t border-slate-300 px-1 py-3 text-sm dark:border-zinc-700' : 'rounded-xl px-2 py-3.5 sm:px-3', selected === lesson.id && 'font-bold text-[#315f50] dark:text-[#9bc4b1]', onSelect && lesson.unlocked && (compact ? 'hover:pl-2' : 'hover:bg-[#e8e6dc] dark:hover:bg-white/5'))}><span className={cn(!compact && 'grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[#b9beb4] text-[11px] font-bold text-[#68766f] dark:border-white/20 dark:text-[#aab5ae]')}>{status === 'completed' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : compact ? (lesson.unlocked ? <Play className="h-4 w-4" /> : <LockKeyhole className="h-4 w-4 text-slate-400" />) : String(lessonIndex + 1).padStart(2, '0')}</span><span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">{lesson.title}</span><span className="text-xs font-medium text-[#78837d] dark:text-[#98a39c]">{lesson.estimated_minutes} min</span></button>;
+    return <button type="button" key={lesson.id} disabled={!lesson.unlocked || !onSelect} onClick={() => onSelect?.(lesson.id)} className={cn('group flex w-full items-center gap-3 text-left transition duration-300', compact ? 'border-t border-slate-300 px-1 py-3 text-sm dark:border-zinc-700' : 'px-0 py-3.5 sm:px-2', selected === lesson.id && 'font-bold text-[#2947c7] dark:text-[#9eafff]', onSelect && lesson.unlocked && (compact ? 'hover:pl-2' : 'hover:translate-x-1'))}><span className={cn(!compact && 'grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#c8c5bc] text-[11px] font-bold text-[#6c7382] transition-colors group-hover:border-[#2947c7] group-hover:text-[#2947c7] dark:border-white/20 dark:text-[#b1b7c3]')}>{status === 'completed' ? <CheckCircle2 className="h-4 w-4 text-[#2947c7] dark:text-[#9eafff]" /> : compact ? (lesson.unlocked ? <Play className="h-4 w-4" /> : <LockKeyhole className="h-4 w-4 text-slate-400" />) : String(lessonIndex + 1).padStart(2, '0')}</span><span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">{lesson.title}</span><span className="text-xs font-medium text-[#7b8190] dark:text-[#9fa6b4]">{lesson.estimated_minutes} min</span></button>;
   })}</div></section>)}</div>;
 }
 

@@ -38,6 +38,16 @@ export const createPayrollGroupSchema = z.object({
   paymentMethod: z.string().trim().min(2).max(80).default('bank_transfer'),
 });
 
+export const assignPayrollProfileSchema = z.object({
+  action: z.literal('assign_payroll_profile'),
+  employeeId: z.string().uuid(),
+  payrollGroupId: z.string().uuid(),
+  paymentMethod: z.enum(['bank_transfer', 'cash', 'cheque']),
+  paymentCurrency: z.string().trim().length(3).transform(value => value.toUpperCase()).default('THB'),
+  payrollStartDate: z.string().date(),
+  bankAccountReference: z.string().trim().max(160).nullish(),
+});
+
 export const payrollRunActionSchema = z.object({
   action: z.enum(['collect_inputs', 'calculate', 'submit', 'approve', 'return', 'finalize', 'generate_outputs', 'mark_paid', 'reconcile', 'close', 'reverse']),
   runId: z.string().uuid(),
@@ -58,15 +68,22 @@ export const compensationChangeSchema = z.object({
 });
 
 export const benefitActionSchema = z.object({
-  action: z.enum(['create_plan', 'enroll', 'approve_enrollment', 'end_enrollment']),
+  action: z.enum(['create_plan', 'update_plan', 'enroll', 'approve_enrollment', 'return_enrollment', 'end_enrollment']),
   id: z.string().uuid().optional(),
   employeeId: z.string().uuid().optional(),
+  employeeIds: z.array(z.string().uuid()).min(1).max(1000).optional(),
   benefitPlanId: z.string().uuid().optional(),
   name: z.string().trim().min(2).max(160).optional(),
   type: z.string().trim().min(2).max(80).optional(),
   employerCost: z.coerce.number().nonnegative().default(0),
   employeeCost: z.coerce.number().nonnegative().default(0),
   effectiveFrom: z.string().date().optional(),
+  effectiveTo: z.string().date().optional(),
+  description: z.string().trim().max(4000).optional(),
+  providerCode: z.string().trim().max(160).optional(),
+  isActive: z.boolean().optional(),
+  eligibilityRules: z.record(z.string(), z.unknown()).optional(),
+  enrollmentMode: z.enum(['rules', 'manual']).optional(),
   reason: z.string().trim().min(2).max(2000),
 });
 
@@ -74,6 +91,7 @@ export const payrollActionSchema = z.discriminatedUnion('action', [
   createPayrollRunSchema,
   createPayrollPeriodSchema,
   createPayrollGroupSchema,
+  assignPayrollProfileSchema,
   payrollRunActionSchema,
   compensationChangeSchema,
   benefitActionSchema,

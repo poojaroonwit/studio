@@ -29,6 +29,14 @@ interface CreateEmployeeResponse {
   };
 }
 
+interface DirectEmployeeResponse {
+  data?: {
+    id: string;
+    employeeNumber: string;
+  };
+  message?: string;
+}
+
 export async function fetchEligibleEmployeeApplicants(signal?: AbortSignal) {
   const response = await fetch("/api/hr/employees/eligible-applicants", {
     credentials: "include",
@@ -84,4 +92,26 @@ export async function createEmployeeFromSelectedApplicant(
   }
 
   return payload;
+}
+
+export async function createEmployeeDirect(
+  employeeAttributes: Record<string, unknown>,
+): Promise<CreateEmployeeResponse> {
+  const response = await fetch("/api/hr/employees", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(employeeAttributes),
+  });
+  const payload = await readJsonOrFallback<DirectEmployeeResponse>(response, {});
+
+  if (!response.ok) {
+    throw new Error(payload.message || "Unable to create employee.");
+  }
+
+  return {
+    created: true,
+    message: payload.message,
+    employee: payload.data,
+  };
 }

@@ -4,12 +4,12 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
+  ArrowLeftIcon,
   ArrowTopRightOnSquareIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  ClipboardDocumentCheckIcon,
   ClockIcon,
   Cog6ToothIcon,
   ExclamationCircleIcon,
@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { isAdminUser } from '@/lib/permissions';
 
@@ -33,6 +34,7 @@ type RecordItem = Record<string, unknown> & { id: string };
 type ResourceResponse = { resource?: { records?: RecordItem[] }; records?: RecordItem[]; data?: RecordItem };
 type JourneyFilter = 'all' | 'needs_action' | 'starting_soon' | 'on_track' | 'completed';
 type JourneyGroup = 'needs_action' | 'starting_soon' | 'on_track' | 'completed';
+type JourneyStageId = 'personal_information' | 'employment_details' | 'equipment' | 'compliance' | 'orientation';
 
 type JourneyRow = {
   caseItem: RecordItem;
@@ -53,6 +55,7 @@ type JourneyRow = {
   status: string;
   group: JourneyGroup;
   risk: 'high' | 'medium' | 'low' | 'none';
+  topBlocker: string;
   nextAction: string;
 };
 
@@ -66,7 +69,7 @@ const FILTERS: Array<{ id: JourneyFilter; label: string }> = [
 
 const GROUPS: Array<{ id: JourneyGroup; label: string }> = [
   { id: 'needs_action', label: 'Needs action' },
-  { id: 'starting_soon', label: 'Starting this week' },
+  { id: 'starting_soon', label: 'Starting soon' },
   { id: 'on_track', label: 'On track' },
   { id: 'completed', label: 'Completed' },
 ];
@@ -153,7 +156,7 @@ function buildJourneyRow(caseItem: RecordItem, employees: RecordItem[]): Journey
   const group: JourneyGroup = status === 'completed' ? 'completed' : needsAction ? 'needs_action' : startingSoon ? 'starting_soon' : 'on_track';
   const risk = group === 'needs_action' ? (progress < 35 || targetOverdue ? 'high' : 'medium') : group === 'starting_soon' && progress < 75 ? 'medium' : group === 'completed' ? 'none' : 'low';
   const phase = journeyPhase(daysToStart, status);
-  const nextAction = status === 'completed'
+  const defaultNextAction = status === 'completed'
     ? 'No action needed'
     : group === 'needs_action'
       ? 'Review overdue tasks'
@@ -162,6 +165,14 @@ function buildJourneyRow(caseItem: RecordItem, employees: RecordItem[]): Journey
         : phase === 'First week'
           ? 'Review first-week tasks'
           : 'Continue onboarding';
+  const nextAction = firstText(caseItem, [['nextAction', 'next_action']], defaultNextAction);
+  const topBlocker = firstText(caseItem, [['topBlocker', 'top_blocker'], ['blocker']], group === 'needs_action'
+    ? 'Overdue tasks require review'
+    : group === 'starting_soon'
+      ? 'Preparation due soon'
+      : group === 'completed'
+        ? 'Journey complete'
+        : 'No blockers');
   const name = employeeName(employee, caseItem);
 
   return {
@@ -183,6 +194,7 @@ function buildJourneyRow(caseItem: RecordItem, employees: RecordItem[]): Journey
     status,
     group,
     risk,
+    topBlocker,
     nextAction,
   };
 }
@@ -278,6 +290,19 @@ export function PeopleOnboardingClient() {
   const learningComplete = selectedEnrollments.length ? Math.round(selectedEnrollments.reduce((sum, item) => sum + percentage(item.progress), 0) / selectedEnrollments.length) : 0;
   const selectedProgress = selectedRow ? (selectedRow.progress || Math.round((profileComplete + checklistComplete + learningComplete) / 3)) : 0;
 
+  const handleTaskUpdated = React.useCallback((taskId: string, status: string, progress: number) => {
+    setEmployeeDetail(current => {
+      if (!current || !Array.isArray(current.onboardingTasks)) return current;
+      return {
+        ...current,
+        onboardingTasks: (current.onboardingTasks as RecordItem[]).map(task => task.id === taskId ? { ...task, status } : task),
+      };
+    });
+    setCases(current => current.map(caseItem => caseItem.id === selectedCaseId
+      ? { ...caseItem, progress, status: progress >= 100 ? 'completed' : 'in_progress' }
+      : caseItem));
+  }, [selectedCaseId]);
+
   const departments = React.useMemo(() => Array.from(new Set(rows.map(row => row.department))).sort(), [rows]);
   const locations = React.useMemo(() => Array.from(new Set(rows.map(row => row.location))).sort(), [rows]);
   const owners = React.useMemo(() => Array.from(new Set(rows.map(row => row.owner))).sort(), [rows]);
@@ -328,56 +353,45 @@ export function PeopleOnboardingClient() {
 
         {error && <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">{error}</p>}
 
-        <nav aria-label="Onboarding status" className="mt-7 flex gap-7 overflow-x-auto border-b border-slate-200 dark:border-zinc-800">
-          {FILTERS.map(filter => (
-            <button
-              key={filter.id}
-              type="button"
-              onClick={() => setActiveFilter(filter.id)}
-              className={cn(
-                'relative shrink-0 pb-3 text-sm font-semibold transition-colors',
-                activeFilter === filter.id ? 'text-[#155bd7]' : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white',
-              )}
-            >
-              {filter.label} <span className="ml-1 font-normal text-slate-400">({counts[filter.id] || 0})</span>
-              {activeFilter === filter.id && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#155bd7]" />}
-            </button>
-          ))}
-        </nav>
-
-        <FilterBar
-          searchQuery={searchQuery}
-          onSearch={setSearchQuery}
-          startDate={startDateFilter}
-          onStartDate={setStartDateFilter}
-          department={departmentFilter}
-          onDepartment={setDepartmentFilter}
-          departments={departments}
-          location={locationFilter}
-          onLocation={setLocationFilter}
-          locations={locations}
-          owner={ownerFilter}
-          onOwner={setOwnerFilter}
-          owners={owners}
-        />
-
         {isLoading ? (
           <OnboardingSkeleton />
         ) : rows.length ? (
-          <div className={cn('mt-4 grid min-w-0 gap-5', drawerOpen && selectedRow ? 'xl:grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1')}>
-            <JourneyTable
-              rows={visibleRows}
-              selectedCaseId={selectedCaseId}
-              onSelect={caseId => { setSelectedCaseId(caseId); setDrawerOpen(true); }}
-            />
+          <div className="mt-6 min-w-0">
+            <div className="min-w-0">
+              <StatusOverview activeFilter={activeFilter} counts={counts} onChange={setActiveFilter} />
+              <FilterBar
+                searchQuery={searchQuery}
+                onSearch={setSearchQuery}
+                startDate={startDateFilter}
+                onStartDate={setStartDateFilter}
+                department={departmentFilter}
+                onDepartment={setDepartmentFilter}
+                departments={departments}
+                location={locationFilter}
+                onLocation={setLocationFilter}
+                locations={locations}
+                owner={ownerFilter}
+                onOwner={setOwnerFilter}
+                owners={owners}
+              />
+              <JourneyTable
+                rows={visibleRows}
+                selectedCaseId={drawerOpen ? selectedCaseId : null}
+                selectedProgress={selectedProgress}
+                onSelect={caseId => { setSelectedCaseId(caseId); setDrawerOpen(true); }}
+              />
+            </div>
             {drawerOpen && selectedRow && (
               <JourneyDrawer
+                open={drawerOpen}
                 row={selectedRow}
                 employeeDetail={employeeDetail}
                 tasks={detailTasks}
                 progress={selectedProgress}
                 completedTasks={completedTasks}
                 courseCount={selectedCourses.length}
+                canManage={canManageOnboarding}
+                onTaskUpdated={handleTaskUpdated}
                 onClose={() => setDrawerOpen(false)}
               />
             )}
@@ -400,7 +414,6 @@ export function PeopleOnboardingClient() {
 }
 
 function PageHeader({ canManage, onStart }: { canManage: boolean; onStart: () => void }) {
-  const today = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -408,7 +421,6 @@ function PageHeader({ canManage, onStart }: { canManage: boolean; onStart: () =>
         <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">Review upcoming hires, prioritize exceptions, and open an employee journey for action.</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <time className="mr-1 text-sm font-medium text-slate-500 dark:text-zinc-400">{today}</time>
         {canManage && (
           <>
           <Button asChild variant="outline" className="h-10 bg-white dark:bg-zinc-900">
@@ -439,7 +451,7 @@ function FilterBar({ searchQuery, onSearch, startDate, onStartDate, department, 
 }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <label className="relative min-w-[230px] flex-1 sm:max-w-[310px]">
+      <label className="relative min-w-[220px] flex-1">
         <span className="sr-only">Search hires</span>
         <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input value={searchQuery} onChange={event => onSearch(event.target.value)} placeholder="Search hires" className="h-9 bg-white pl-9 dark:bg-zinc-900" />
@@ -479,17 +491,17 @@ function FilterSelect({ label: selectLabel, value: selectValue, onChange, option
   );
 }
 
-function JourneyTable({ rows, selectedCaseId, onSelect }: { rows: JourneyRow[]; selectedCaseId: string | null; onSelect: (caseId: string) => void }) {
+function JourneyTable({ rows, selectedCaseId, selectedProgress, onSelect }: { rows: JourneyRow[]; selectedCaseId: string | null; selectedProgress: number; onSelect: (caseId: string) => void }) {
   if (!rows.length) {
     return <div className="grid min-h-[360px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-700 dark:bg-zinc-900"><div><FunnelIcon className="mx-auto h-7 w-7 text-slate-400" /><h2 className="mt-3 font-semibold">No journeys match these filters</h2><p className="mt-1 text-sm text-slate-500">Try widening the status, department, or search filters.</p></div></div>;
   }
 
   return (
-    <section aria-label="Onboarding journeys" className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <section aria-label="Onboarding journeys" className="mt-4 min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="overflow-x-auto">
-        <div className="min-w-[900px]">
-          <div className="grid grid-cols-[minmax(190px,1.35fr)_126px_112px_130px_minmax(150px,1fr)_110px_78px] items-center border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
-            <span>Employee</span><span>Start date</span><span>Phase</span><span>Readiness</span><span>Next action</span><span>Owner</span><span>Risk</span>
+        <div className="min-w-[920px]">
+          <div className="grid grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
+            <span>Employee</span><span>Start date</span><span>Phase</span><span>Readiness</span><span>Top blocker</span><span>Next action</span><span>Owner</span>
           </div>
           {GROUPS.map(group => {
             const groupRows = rows.filter(row => row.group === group.id);
@@ -501,7 +513,7 @@ function JourneyTable({ rows, selectedCaseId, onSelect }: { rows: JourneyRow[]; 
                   <GroupIcon group={group.id} />
                   {group.label} <span className="font-normal text-slate-400">({groupRows.length})</span>
                 </div>
-                {groupRows.map(row => <JourneyTableRow key={row.caseItem.id} row={row} selected={selectedCaseId === row.caseItem.id} onSelect={() => onSelect(row.caseItem.id)} />)}
+                {groupRows.map(row => <JourneyTableRow key={row.caseItem.id} row={row} selected={selectedCaseId === row.caseItem.id} selectedProgress={selectedProgress} onSelect={() => onSelect(row.caseItem.id)} />)}
               </div>
             );
           })}
@@ -511,20 +523,21 @@ function JourneyTable({ rows, selectedCaseId, onSelect }: { rows: JourneyRow[]; 
   );
 }
 
-function GroupIcon({ group }: { group: JourneyGroup }) {
-  if (group === 'needs_action') return <ExclamationCircleIcon className="h-4 w-4 text-amber-500" />;
-  if (group === 'starting_soon') return <ClockIcon className="h-4 w-4 text-blue-500" />;
-  if (group === 'completed') return <CheckCircleIcon className="h-4 w-4 text-emerald-500" />;
-  return <CheckCircleIcon className="h-4 w-4 text-emerald-500" />;
+function GroupIcon({ group, className }: { group: JourneyGroup; className?: string }) {
+  if (group === 'needs_action') return <ExclamationCircleIcon className={cn('h-4 w-4 text-rose-500', className)} />;
+  if (group === 'starting_soon') return <ClockIcon className={cn('h-4 w-4 text-amber-500', className)} />;
+  if (group === 'completed') return <CheckCircleIcon className={cn('h-4 w-4 text-slate-400', className)} />;
+  return <CheckCircleIcon className={cn('h-4 w-4 text-emerald-500', className)} />;
 }
 
-function JourneyTableRow({ row, selected, onSelect }: { row: JourneyRow; selected: boolean; onSelect: () => void }) {
+function JourneyTableRow({ row, selected, selectedProgress, onSelect }: { row: JourneyRow; selected: boolean; selectedProgress: number; onSelect: () => void }) {
+  const visibleProgress = selected ? selectedProgress : row.progress;
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        'relative grid w-full grid-cols-[minmax(190px,1.35fr)_126px_112px_130px_minmax(150px,1fr)_110px_78px] items-center border-b border-slate-100 px-4 py-2.5 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50 dark:border-zinc-800/70 dark:hover:bg-zinc-800/40',
+        'relative grid w-full grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-slate-100 px-4 py-3 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#155bd7] dark:border-zinc-800/70 dark:hover:bg-zinc-800/40',
         selected && 'bg-blue-50/80 hover:bg-blue-50 dark:bg-blue-950/25 dark:hover:bg-blue-950/30',
       )}
     >
@@ -536,51 +549,118 @@ function JourneyTableRow({ row, selected, onSelect }: { row: JourneyRow; selecte
       </span>
       <span><span className="block font-medium">{row.startDateLabel}</span><span className="mt-0.5 block text-slate-500">{relativeStart(row.daysToStart)}</span></span>
       <span><span className="block font-medium">{row.phase}</span><span className="mt-0.5 block text-slate-500 capitalize">{row.status}</span></span>
-      <span className="pr-5"><span className="font-semibold tabular-nums">{row.progress}%</span><span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><span className={cn('block h-full rounded-full', row.progress >= 90 ? 'bg-emerald-500' : 'bg-[#155bd7]')} style={{ width: `${row.progress}%` }} /></span></span>
-      <span><span className="block truncate font-medium">{row.nextAction}</span><span className="mt-0.5 block text-slate-500">Open journey to review</span></span>
-      <span className="capitalize"><span className="block font-medium">{row.owner}</span><span className="mt-0.5 block text-slate-500">Owner</span></span>
-      <RiskLabel risk={row.risk} />
+      <span className="pr-5"><span className="font-semibold tabular-nums">{visibleProgress}%</span><span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><span className={cn('block h-full rounded-full', visibleProgress >= 90 ? 'bg-emerald-500' : 'bg-[#155bd7]')} style={{ width: `${visibleProgress}%` }} /></span></span>
+      <span className="flex min-w-0 items-start gap-1.5 pr-3"><GroupIcon group={row.group} className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="min-w-0"><span className="block truncate font-medium">{row.topBlocker}</span><span className="mt-0.5 block truncate text-slate-500">{row.group === 'needs_action' ? 'Needs review' : row.group === 'starting_soon' ? relativeStart(row.daysToStart) : 'Current status'}</span></span></span>
+      <span><span className="block truncate font-medium">{row.nextAction}</span><span className="mt-0.5 block truncate text-slate-500">Open journey to review</span></span>
+      <span className="capitalize"><span className="block truncate font-medium">{row.owner}</span><span className="mt-0.5 block text-slate-500">Owner</span></span>
     </button>
   );
 }
 
-function RiskLabel({ risk }: { risk: JourneyRow['risk'] }) {
-  if (risk === 'none') return <span className="text-emerald-600">—</span>;
-  const tone = risk === 'high' ? 'bg-rose-500' : risk === 'medium' ? 'bg-amber-500' : 'bg-emerald-500';
-  return <span className="inline-flex items-center gap-1.5 capitalize"><span className={cn('h-1.5 w-1.5 rounded-full', tone)} />{risk}</span>;
+const JOURNEY_STAGES: Array<{ id: JourneyStageId; label: string }> = [
+  { id: 'personal_information', label: 'Personal information' },
+  { id: 'employment_details', label: 'Employment details' },
+  { id: 'equipment', label: 'Equipment' },
+  { id: 'compliance', label: 'Compliance' },
+  { id: 'orientation', label: 'Orientation' },
+];
+
+function journeyStageForTask(task: RecordItem): JourneyStageId {
+  const taskText = `${label(task.title, '')} ${label(task.description, '')}`.toLowerCase();
+  if (/personal|profile|contact|emergency/.test(taskText)) return 'personal_information';
+  if (/employment|contract|payroll|bank|benefit/.test(taskText)) return 'employment_details';
+  if (/equipment|laptop|device|hardware|access|account/.test(taskText)) return 'equipment';
+  if (/compliance|policy|i-9|tax|document|background|acknowledg/.test(taskText)) return 'compliance';
+  return 'orientation';
 }
 
-function JourneyDrawer({ row, employeeDetail, tasks, progress, completedTasks, courseCount, onClose }: {
+function onboardingTaskDueDate(row: JourneyRow, task: RecordItem | null) {
+  if (!task || !row.startDate) return null;
+  const dueDay = Number(value(task, 'dueDay', 'due_day') || 0);
+  return new Date(row.startDate.getTime() + dueDay * 86_400_000);
+}
+
+function JourneyDrawer({ open, row, employeeDetail, tasks, progress, completedTasks, courseCount, canManage, onTaskUpdated, onClose }: {
+  open: boolean;
   row: JourneyRow;
   employeeDetail: RecordItem | null;
   tasks: RecordItem[];
   progress: number;
   completedTasks: number;
   courseCount: number;
+  canManage: boolean;
+  onTaskUpdated: (taskId: string, status: string, progress: number) => void;
   onClose: () => void;
 }) {
+  const [activeStage, setActiveStage] = React.useState<JourneyStageId | null>(null);
+  React.useEffect(() => { setActiveStage(null); }, [row.caseItem.id]);
   const prioritized = [...tasks]
     .filter(task => label(task.status, 'pending').toLowerCase() !== 'completed')
     .sort((a, b) => Number(value(a, 'dueDay', 'due_day') || 0) - Number(value(b, 'dueDay', 'due_day') || 0))
     .slice(0, 5);
   const manager = firstText(employeeDetail, [['managerName', 'manager_name'], ['reportsToName', 'reports_to_name']], 'Not assigned');
-  const phaseProgress = [
-    { label: 'Before start', helper: `${completedTasks} of ${tasks.length || 0} tasks complete`, value: progress },
-    { label: 'First week', helper: `${courseCount} learning assignment${courseCount === 1 ? '' : 's'}`, value: courseCount ? Math.min(progress, 100) : 0 },
-    { label: 'First 30 days', helper: 'Journey review', value: row.phase === 'First 30 days' || row.status === 'completed' ? progress : 0 },
-  ];
+  const stageProgress = JOURNEY_STAGES.map(stage => {
+    const stageTasks = tasks.filter(task => journeyStageForTask(task) === stage.id);
+    const stageCompleted = stageTasks.filter(task => label(task.status, 'pending').toLowerCase() === 'completed').length;
+    const profileComplete = stage.id === 'personal_information' && Boolean(employeeDetail || row.employee);
+    const employmentComplete = stage.id === 'employment_details' && row.role !== 'Role not set' && Boolean(row.startDate);
+    const complete = profileComplete || employmentComplete || (stageTasks.length > 0 && stageCompleted === stageTasks.length);
+    const inProgress = !complete && stageCompleted > 0;
+    const completedAt = stageTasks
+      .map(task => dateValue(value(task, 'completedAt', 'completed_at')))
+      .filter((date): date is Date => Boolean(date))
+      .sort((a, b) => b.getTime() - a.getTime())[0] || null;
+    return {
+      ...stage,
+      tasks: stageTasks,
+      complete,
+      inProgress,
+      helper: complete
+        ? completedAt ? `Completed ${formatDate(completedAt)}` : 'Completed'
+        : inProgress
+          ? `${stageTasks.length - stageCompleted} task${stageTasks.length - stageCompleted === 1 ? '' : 's'} remaining`
+          : stage.id === 'orientation' && courseCount
+            ? `${courseCount} learning assignment${courseCount === 1 ? '' : 's'}`
+            : 'Not started',
+      value: complete ? 100 : stageTasks.length ? Math.round((stageCompleted / stageTasks.length) * 100) : 0,
+    };
+  });
+  const selectedStage = stageProgress.find(stage => stage.id === activeStage) || null;
+  const blockerTask = prioritized[0] || null;
+  const blockerDueDate = onboardingTaskDueDate(row, blockerTask) || dateValue(value(row.caseItem, 'targetDate', 'target_date'));
+  const blockerOverdueDays = blockerDueDate ? Math.max(0, Math.floor((Date.now() - blockerDueDate.getTime()) / 86_400_000)) : 0;
+  const nextActionDue = blockerDueDate ? formatDate(blockerDueDate) : relativeStart(row.daysToStart);
 
   return (
-    <aside aria-label="Journey details" className="self-start overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(20,33,61,0.08)] dark:border-zinc-800 dark:bg-zinc-900 xl:sticky xl:top-4">
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-zinc-800">
-        <h2 className="text-lg font-bold tracking-[-0.02em]">Journey details</h2>
-        <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="Close journey details"><XMarkIcon className="h-5 w-5" /></button>
+    <Sheet open={open} onOpenChange={nextOpen => { if (!nextOpen) onClose(); }}>
+      <SheetContent
+        side="right"
+        hideCloseButton
+        sheetId="onboarding-journey-details"
+        className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card p-0 shadow-2xl sm:!max-w-[420px]"
+      >
+        <SheetTitle className="sr-only">{row.name}</SheetTitle>
+        <SheetDescription className="sr-only">Review onboarding readiness, blockers, tasks, and next actions for {row.name}.</SheetDescription>
+        <aside aria-label="Journey details" className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-zinc-800">
+        <h2 className="text-lg font-bold tracking-[-0.025em]">{row.name}</h2>
+        <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7] dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="Close journey details"><XMarkIcon className="h-4 w-4" /></button>
       </div>
 
-      <div className="max-h-[calc(100vh-190px)] overflow-y-auto px-5 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        {selectedStage ? (
+          <JourneyStageDetails
+            row={row}
+            stage={selectedStage}
+            canManage={canManage}
+            onBack={() => setActiveStage(null)}
+            onTaskUpdated={onTaskUpdated}
+          />
+        ) : (
+          <>
         <div className="flex items-start gap-3">
           <EmployeeAvatar row={row} size="lg" />
-          <div className="min-w-0"><h3 className="truncate text-lg font-bold">{row.name}</h3><p className="mt-0.5 truncate text-sm text-slate-500">{row.role}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><CalendarDaysIcon className="h-4 w-4" />Starts {row.startDateLabel} <span className="font-semibold text-[#155bd7]">({relativeStart(row.daysToStart)})</span></p><p className="mt-1 text-xs text-slate-500">Manager: <span className="font-semibold text-slate-700 dark:text-zinc-200">{manager}</span></p></div>
+          <div className="min-w-0"><h3 className="truncate text-base font-bold">{row.name}</h3><p className="mt-0.5 truncate text-sm text-slate-500">{row.role}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><CalendarDaysIcon className="h-4 w-4" />Starts {row.startDateLabel} <span className="font-medium text-slate-600 dark:text-zinc-300">({relativeStart(row.daysToStart)})</span></p><p className="mt-1 text-xs text-slate-500">Manager: <span className="font-medium text-slate-700 dark:text-zinc-200">{manager}</span></p></div>
         </div>
 
         <div className="mt-5 border-y border-slate-200 py-4 dark:border-zinc-800">
@@ -588,50 +668,198 @@ function JourneyDrawer({ row, employeeDetail, tasks, progress, completedTasks, c
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full rounded-full bg-[#155bd7]" style={{ width: `${progress}%` }} /></div>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800">
-          {phaseProgress.map((phase, index) => (
-            <div key={phase.label} className={cn('grid grid-cols-[28px_minmax(0,1fr)_45px_16px] items-center gap-2 border-b border-slate-200 px-3 py-3 last:border-b-0 dark:border-zinc-800', index === 0 && 'bg-blue-50/70 dark:bg-blue-950/20')}>
-              <span className={cn('grid h-6 w-6 place-items-center rounded-full border text-[10px] font-bold', index === 0 ? 'border-[#155bd7] bg-[#155bd7] text-white' : 'border-slate-300 text-slate-500 dark:border-zinc-700')}>{index + 1}</span>
-              <span><span className="block text-xs font-semibold">{phase.label}</span><span className="mt-0.5 block text-[11px] text-slate-500">{phase.helper}</span></span>
-              <span className="text-right text-xs font-semibold tabular-nums">{phase.value}%</span>
-              <ChevronRightIcon className="h-4 w-4 text-slate-400" />
-            </div>
-          ))}
+        <div className="divide-y divide-slate-200 dark:divide-zinc-800">
+          <div className="py-4">
+            <p className="text-xs font-medium text-slate-500">Top blocker</p>
+            <div className="mt-2.5 flex items-start gap-2.5"><GroupIcon group={row.group} className="mt-0.5 h-4 w-4 shrink-0" /><div className="min-w-0"><p className="text-sm font-semibold">{row.topBlocker}</p><p className="mt-1 text-xs text-slate-500">{blockerDueDate ? <>Due {formatDate(blockerDueDate)}{blockerOverdueDays > 0 && <span className="text-rose-500"> · Overdue by {blockerOverdueDays} day{blockerOverdueDays === 1 ? '' : 's'}</span>}</> : row.group === 'needs_action' ? 'Needs attention now' : 'No urgent blocker recorded'}</p></div></div>
+          </div>
+          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="group flex items-center gap-2.5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7]">
+            <CheckCircleIcon className="h-4 w-4 shrink-0 text-[#155bd7]" />
+            <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-slate-500">Next action</span><span className="mt-1 block truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{row.nextAction}</span><span className="mt-1 block text-xs text-slate-500">Due {nextActionDue}</span></span>
+            <ChevronRightIcon className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
-        <section className="mt-6">
-          <h3 className="text-sm font-bold">Prioritized actions</h3>
-          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_70px_62px] border-b border-slate-200 pb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:border-zinc-800"><span>Action</span><span>Owner</span><span className="text-right">Due</span></div>
-          {prioritized.length ? prioritized.map(task => {
-            const owner = label(value(task, 'ownerRole', 'owner_role'), 'employee');
-            const dueDay = Number(value(task, 'dueDay', 'due_day') || 0);
-            const dueDate = row.startDate ? new Date(row.startDate.getTime() + dueDay * 86_400_000) : null;
-            const overdue = Boolean(dueDate && dueDate.getTime() < Date.now());
-            return (
-              <div key={task.id} className="grid grid-cols-[minmax(0,1fr)_70px_62px] items-start gap-2 border-b border-slate-100 py-3 text-xs last:border-b-0 dark:border-zinc-800/70">
-                <span className="flex min-w-0 gap-2"><ExclamationCircleIcon className={cn('mt-0.5 h-4 w-4 shrink-0', overdue ? 'text-rose-500' : 'text-amber-500')} /><span className="min-w-0"><span className="block truncate font-medium">{label(task.title, 'Checklist task')}</span><span className="mt-0.5 block truncate text-[11px] text-slate-500">{label(task.description, 'Not started')}</span></span></span>
-                <span className="truncate capitalize text-slate-600 dark:text-zinc-300">{owner}</span>
-                <span className={cn('text-right tabular-nums', overdue && 'font-semibold text-rose-600')}>{dueDate ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(dueDate) : `Day ${dueDay}`}</span>
-              </div>
-            );
-          }) : <p className="py-5 text-center text-xs text-slate-500">All configured tasks are complete.</p>}
+        <section className="border-t border-slate-200 py-4 dark:border-zinc-800">
+          <h3 className="text-xs font-medium text-slate-500">Journey progress</h3>
+          <div className="mt-3 space-y-3">
+            {stageProgress.map((stage, index) => (
+              <button type="button" key={stage.id} disabled={!stage.tasks.length} onClick={() => stage.tasks.length && setActiveStage(stage.id)} className="group flex w-full items-start gap-3 text-left disabled:cursor-default">
+                {stage.complete ? (
+                  <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+                ) : (
+                  <span className={cn('mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] font-bold', stage.inProgress ? 'border-[#155bd7] bg-[#155bd7] text-white' : 'border-slate-300 bg-slate-100 text-slate-500 dark:border-zinc-600 dark:bg-zinc-800')}>{index + 1}</span>
+                )}
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900 dark:text-zinc-100">{stage.label}</span><span className="mt-1 block text-xs text-slate-500">{stage.helper}</span></span>
+                {stage.tasks.length > 0 && <ChevronRightIcon className="mt-1 h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-zinc-600" />}
+              </button>
+            ))}
+          </div>
         </section>
 
-        <div className="mt-5 flex gap-2 border-t border-slate-200 pt-4 dark:border-zinc-800">
-          <Button asChild className="h-10 flex-1 bg-[#155bd7] hover:bg-[#104dbb]"><Link href={`/people/${row.employeeId}?tab=Onboarding`}><ArrowTopRightOnSquareIcon className="mr-2 h-4 w-4" />Open full journey</Link></Button>
-          <Button asChild variant="outline" className="h-10"><Link href={`/people/${row.employeeId}`}>Profile</Link></Button>
+        <div className="border-t border-slate-200 pt-4 dark:border-zinc-800">
+          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="inline-flex items-center gap-2 text-sm font-medium text-[#155bd7] hover:text-[#104dbb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7]">View full journey <ArrowTopRightOnSquareIcon className="h-4 w-4" /></Link>
         </div>
+          </>
+        )}
       </div>
-    </aside>
+        </aside>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function StatusOverview({ activeFilter, counts, onChange }: {
+  activeFilter: JourneyFilter;
+  counts: Record<string, number>;
+  onChange: (filter: JourneyFilter) => void;
+}) {
+  return (
+    <section aria-label="Onboarding status overview">
+      <nav aria-label="Onboarding status" className="flex gap-6 overflow-x-auto border-b border-slate-200 dark:border-zinc-800">
+        {FILTERS.map(filter => (
+          <button
+            key={filter.id}
+            type="button"
+            onClick={() => onChange(filter.id)}
+            className={cn(
+              'relative flex h-11 shrink-0 items-center gap-1.5 text-xs font-semibold transition-colors',
+              activeFilter === filter.id ? 'text-[#155bd7]' : 'text-slate-600 hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white',
+            )}
+          >
+            {filter.id !== 'all' && <GroupIcon group={filter.id} className="h-3.5 w-3.5" />}
+            {filter.label} <span className="font-normal text-slate-400">({counts[filter.id] || 0})</span>
+            {activeFilter === filter.id && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#155bd7]" />}
+          </button>
+        ))}
+      </nav>
+    </section>
+  );
+}
+
+function JourneyStageDetails({ row, stage, canManage, onBack, onTaskUpdated }: {
+  row: JourneyRow;
+  stage: { id: JourneyStageId; label: string; helper: string; value: number; tasks: RecordItem[] };
+  canManage: boolean;
+  onBack: () => void;
+  onTaskUpdated: (taskId: string, status: string, progress: number) => void;
+}) {
+  const [updatingTaskId, setUpdatingTaskId] = React.useState<string | null>(null);
+  const [updateError, setUpdateError] = React.useState<string | null>(null);
+  const completed = stage.tasks.filter(task => label(task.status, 'pending').toLowerCase() === 'completed').length;
+  const incompleteTasks = stage.tasks.filter(task => label(task.status, 'pending').toLowerCase() !== 'completed');
+
+  const persistTask = React.useCallback(async (task: RecordItem, isCompleted: boolean) => {
+    const response = await fetch('/api/hr/onboarding/task-progress', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        onboardingId: row.caseItem.id,
+        employeeId: row.employeeId,
+        taskId: task.id,
+        completed: isCompleted,
+      }),
+    });
+    const payload = await response.json().catch(() => ({})) as { data?: { status?: string; progress?: number }; message?: string };
+    if (!response.ok) throw new Error(payload.message || 'Unable to update onboarding task.');
+    onTaskUpdated(task.id, payload.data?.status || (isCompleted ? 'completed' : 'pending'), Number(payload.data?.progress || 0));
+  }, [onTaskUpdated, row.caseItem.id, row.employeeId]);
+
+  async function toggleTask(task: RecordItem) {
+    const isCompleted = label(task.status, 'pending').toLowerCase() === 'completed';
+    setUpdatingTaskId(task.id);
+    setUpdateError(null);
+    try {
+      await persistTask(task, !isCompleted);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : 'Unable to update onboarding task.');
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  }
+
+  async function completeStage() {
+    setUpdatingTaskId('stage');
+    setUpdateError(null);
+    try {
+      for (const task of incompleteTasks) await persistTask(task, true);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : 'Unable to complete this stage.');
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  }
+
+  return (
+    <section aria-label={`${stage.label} stage details`}>
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-[#155bd7] hover:text-[#104dbb]">
+        <ArrowLeftIcon className="h-4 w-4" />Journey overview
+      </button>
+
+      <div className="mt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Journey stage</p><h3 className="mt-1 text-2xl font-bold tracking-[-0.03em]">{stage.label}</h3></div>
+          <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', stage.value >= 100 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-[#155bd7] dark:bg-blue-950 dark:text-blue-300')}>{stage.value >= 100 ? 'Complete' : 'In progress'}</span>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-slate-500">Complete the assigned {stage.label.toLowerCase()} actions for {row.name}.</p>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/35">
+        <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-slate-500">Stage readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{stage.value}%</p></div><p className="text-right text-xs text-slate-500">{completed} of {stage.tasks.length}<br />tasks completed</p></div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full rounded-full bg-[#155bd7] transition-[width]" style={{ width: `${stage.value}%` }} /></div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <div><h4 className="text-sm font-bold">Stage checklist</h4><p className="mt-0.5 text-xs text-slate-500">Updates are saved to the employee journey.</p></div>
+        {canManage && <Button asChild size="sm" variant="outline"><Link href="/settings?adminTab=hr-setup&config=onboarding">Configure</Link></Button>}
+      </div>
+
+      {updateError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{updateError}</p>}
+
+      <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800">
+        {stage.tasks.map(task => {
+          const isCompleted = label(task.status, 'pending').toLowerCase() === 'completed';
+          const dueDay = Number(value(task, 'dueDay', 'due_day') || 0);
+          const dueDate = row.startDate ? new Date(row.startDate.getTime() + dueDay * 86_400_000) : null;
+          const overdue = Boolean(!isCompleted && dueDate && dueDate.getTime() < Date.now());
+          return (
+            <article key={task.id} className="flex gap-3 border-b border-slate-200 p-4 last:border-b-0 dark:border-zinc-800">
+              <button
+                type="button"
+                disabled={!canManage || updatingTaskId !== null}
+                onClick={() => void toggleTask(task)}
+                aria-label={`${isCompleted ? 'Reopen' : 'Complete'} ${label(task.title, 'onboarding task')}`}
+                className={cn('mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50', isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 hover:border-[#155bd7] dark:border-zinc-600')}
+              >
+                {isCompleted && <CheckCircleIcon className="h-4 w-4" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3"><h5 className={cn('text-sm font-semibold', isCompleted && 'text-slate-400 line-through')}>{label(task.title, 'Checklist task')}</h5>{overdue && <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">Overdue</span>}</div>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{label(task.description, 'No additional instructions.')}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500"><span className="capitalize">Owner: <strong className="font-semibold text-slate-700 dark:text-zinc-300">{label(value(task, 'ownerRole', 'owner_role'), 'Employee')}</strong></span><span>Due: <strong className={cn('font-semibold text-slate-700 dark:text-zinc-300', overdue && 'text-rose-600 dark:text-rose-400')}>{dueDate ? formatDate(dueDate) : `Day ${dueDay}`}</strong></span></div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {canManage && stage.tasks.length > 0 && (
+        <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-2 border-t border-slate-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <Button type="button" variant="outline" className="flex-1" onClick={onBack}>Back</Button>
+          <Button type="button" className="flex-1 bg-[#155bd7] hover:bg-[#104dbb]" disabled={!incompleteTasks.length || updatingTaskId !== null} onClick={() => void completeStage()}>{updatingTaskId === 'stage' ? 'Saving…' : incompleteTasks.length ? 'Mark stage complete' : 'Stage complete'}</Button>
+        </div>
+      )}
+    </section>
   );
 }
 
 function EmployeeAvatar({ row, size }: { row: JourneyRow; size: 'sm' | 'lg' }) {
-  return <Avatar size={size === 'lg' ? 'lg' : 'sm'} className={cn('rounded-full border border-slate-200 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800', size === 'lg' && 'h-14 w-14')}><AvatarImage src={row.avatarUrl || undefined} alt="" /><AvatarFallback className="rounded-full bg-blue-50 text-xs font-bold text-[#155bd7] dark:bg-blue-950 dark:text-blue-300">{row.initials}</AvatarFallback></Avatar>;
+  return <Avatar size={size === 'lg' ? 'lg' : 'sm'} className={cn('rounded-full border border-slate-200 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800', size === 'lg' && 'h-12 w-12')}><AvatarImage src={row.avatarUrl || undefined} alt="" /><AvatarFallback className="rounded-full bg-blue-50 text-xs font-bold text-[#155bd7] dark:bg-blue-950 dark:text-blue-300">{row.initials}</AvatarFallback></Avatar>;
 }
 
 function OnboardingSkeleton() {
-  return <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]" aria-label="Loading onboarding journeys"><div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"><div className="h-10 animate-pulse bg-slate-100 dark:bg-zinc-800" />{Array.from({ length: 7 }).map((_, index) => <div key={index} className="flex items-center gap-4 border-t border-slate-100 px-4 py-4 dark:border-zinc-800"><span className="h-8 w-8 animate-pulse rounded-full bg-slate-200 dark:bg-zinc-700" /><span className="h-3 w-36 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /><span className="ml-auto h-2 w-28 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /></div>)}</div><div className="h-[610px] animate-pulse rounded-[18px] border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" /></div>;
+  return <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" aria-label="Loading onboarding journeys"><div className="h-10 animate-pulse bg-slate-100 dark:bg-zinc-800" />{Array.from({ length: 7 }).map((_, index) => <div key={index} className="flex items-center gap-4 border-t border-slate-100 px-4 py-4 dark:border-zinc-800"><span className="h-8 w-8 animate-pulse rounded-full bg-slate-200 dark:bg-zinc-700" /><span className="h-3 w-36 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /><span className="ml-auto h-2 w-28 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /></div>)}</div>;
 }
 
 function EmptyState({ canManage, onStart }: { canManage: boolean; onStart: () => void }) {

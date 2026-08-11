@@ -19,7 +19,7 @@ async function getRequests() {
   const user = await requireAdmin();
   if (!user) return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   const support = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-    `SELECT r.id, r.request_number AS "requestNumber", r.category, r.subject, r.description,
+    `SELECT r.id, r.requester_user_id AS "requesterId", r.request_number AS "requestNumber", r.category, r.subject, r.description,
             r.status, r.priority, r.submitted_at AS "submittedAt", r.updated_at AS "updatedAt",
             r.resolved_at AS "resolvedAt", u.name AS requester, u.email AS "requesterEmail",
             assignee.name AS assignee,

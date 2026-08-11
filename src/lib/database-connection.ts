@@ -35,19 +35,22 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
 
   const environmentSslPreference = parseBooleanValue(process.env.DATABASE_SSL);
   const environmentSslRejectUnauthorized = parseBooleanValue(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED);
-  const shouldAllowInsecureCertificates = environmentSslRejectUnauthorized === false;
   const isLocalHost = isLocalDatabaseHost(databaseUrl.hostname);
+  const allowDevelopmentSslOptOut =
+    environmentSslPreference === false && process.env.NODE_ENV !== 'production';
   const useSsl =
     environmentSslPreference === true
       ? true
-      : environmentSslPreference === false
-        ? !isLocalHost
+      : allowDevelopmentSslOptOut
+        ? false
         : !isLocalHost;
   const defaultRejectUnauthorized = process.env.NODE_ENV === 'production';
+  const rejectUnauthorized = environmentSslRejectUnauthorized ?? defaultRejectUnauthorized;
+  const shouldAllowInsecureCertificates = !rejectUnauthorized;
 
   const ssl = useSsl
     ? {
-        rejectUnauthorized: environmentSslRejectUnauthorized ?? defaultRejectUnauthorized,
+        rejectUnauthorized,
       }
     : false;
 
@@ -64,6 +67,10 @@ function buildDatabaseConnectionSettings(rawDatabaseUrl: string): DatabaseConnec
       databaseUrl.searchParams.set('ssl', 'true');
       databaseUrl.searchParams.set('uselibpqcompat', 'true');
     }
+  } else if (allowDevelopmentSslOptOut) {
+    // Prisma's query engine otherwise negotiates TLS for remote PostgreSQL hosts
+    // even when the Node pg pool is configured with `ssl: false`.
+    databaseUrl.searchParams.set('sslmode', 'disable');
   }
 
   return {

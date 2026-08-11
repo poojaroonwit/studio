@@ -1,9 +1,11 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangleIcon,
+  ArrowUpRightIcon,
   Building2Icon,
   CalendarDaysIcon,
   CheckIcon,
@@ -15,6 +17,7 @@ import {
   PlusIcon,
   SearchIcon,
   SearchXIcon,
+  SendIcon,
   ShapesIcon,
   SlidersHorizontalIcon,
   UserRoundPlusIcon,
@@ -249,7 +252,7 @@ export function HeadcountRequestsClient() {
   const [isPositionChoiceOpen, setIsPositionChoiceOpen] = useState(false);
   const [isAddPositionOpen, setIsAddPositionOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<"approve" | "reject" | null>(null);
+  const [actionLoading, setActionLoading] = useState<"submit" | "approve" | "reject" | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectPopoverOpen, setRejectPopoverOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -388,7 +391,7 @@ export function HeadcountRequestsClient() {
     toast.success("Position created and selected");
   }
 
-  async function handleRequestAction(action: "approve" | "reject") {
+  async function handleRequestAction(action: "submit" | "approve" | "reject") {
     if (!selectedRequest) return;
 
     setActionLoading(action);
@@ -416,7 +419,11 @@ export function HeadcountRequestsClient() {
       )));
       setRejectReason("");
       setRejectPopoverOpen(false);
-      toast.success(action === "approve" ? "Job request approved" : "Job request rejected");
+      toast.success({
+        submit: "Request submitted for review",
+        approve: "Job request approved",
+        reject: "Job request declined",
+      }[action]);
     } catch (actionError) {
       toast.error(actionError instanceof Error ? actionError.message : `Failed to ${action} request`);
     } finally {
@@ -685,6 +692,7 @@ export function HeadcountRequestsClient() {
             setRejectPopoverOpen(false);
           }}
           onApprove={() => void handleRequestAction("approve")}
+          onSubmit={() => void handleRequestAction("submit")}
           onReject={() => void handleRequestAction("reject")}
           onRejectReasonChange={setRejectReason}
           onRejectOpenChange={setRejectPopoverOpen}
@@ -778,8 +786,8 @@ function HeadcountRequestWorkspace({
   const allSelected = selectable.length > 0 && selectable.every(request => selectedIds.has(request.id));
 
   return (
-    <section className="min-w-0 px-4 pb-8 sm:px-6">
-      <nav aria-label="Headcount request status" className="flex gap-7 overflow-x-auto border-b border-border">
+    <section className="min-w-0 pb-8">
+      <nav aria-label="Headcount request status" className="mx-4 flex gap-7 overflow-x-auto border-b border-border sm:mx-6">
         {([
           ["all", "All", counts.all],
           ["draft", "Draft", counts.draft],
@@ -801,7 +809,7 @@ function HeadcountRequestWorkspace({
         ))}
       </nav>
 
-      <div className="flex flex-col gap-3 border-b border-border py-4 lg:flex-row lg:items-center">
+      <div className="mx-4 flex flex-col gap-3 border-b border-border py-4 sm:mx-6 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1 lg:max-w-xs">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={event => onSearchChange(event.target.value)} placeholder="Search requests" className="pl-9" />
@@ -840,7 +848,7 @@ function HeadcountRequestWorkspace({
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-primary/20 bg-primary/5 px-3 py-2">
+        <div className="mx-4 flex flex-wrap items-center gap-2 border-b border-primary/20 bg-primary/5 px-3 py-2 sm:mx-6">
           <span className="text-sm font-semibold">{selectedIds.size} selected</span>
           <Button size="sm" disabled={bulkLoading} onClick={onBulkApprove}>Approve</Button>
           <Button size="sm" variant="outline" disabled={bulkLoading} onClick={onBulkReject}>Reject</Button>
@@ -848,7 +856,7 @@ function HeadcountRequestWorkspace({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="mx-4 overflow-x-auto sm:mx-6">
         <Table className="min-w-[1120px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -1038,16 +1046,18 @@ function HeadcountDecisionPanel({
   rejectReason,
   rejectOpen,
   onClose,
+  onSubmit,
   onApprove,
   onReject,
   onRejectReasonChange,
   onRejectOpenChange,
 }: {
   request: HeadcountRequestItem | null;
-  actionLoading: "approve" | "reject" | null;
+  actionLoading: "submit" | "approve" | "reject" | null;
   rejectReason: string;
   rejectOpen: boolean;
   onClose: () => void;
+  onSubmit: () => void;
   onApprove: () => void;
   onReject: () => void;
   onRejectReasonChange: (reason: string) => void;
@@ -1056,15 +1066,24 @@ function HeadcountDecisionPanel({
   if (!request) return null;
 
   const decisionAction = getDecisionAction(request);
+  const canSubmit = request.status === "draft";
   const canApprove = request.status === "in_review" || request.status === "rejected";
   const canReject = request.status === "in_review" || request.status === "approved";
+  const hasDecisionActions = canApprove || canReject;
+  const actionHint = {
+    draft: "Submit this draft to start the approval journey.",
+    in_review: "Review the request details before recording your decision.",
+    approved: "This request is approved and the job opening is ready for hiring.",
+    rejected: "You can approve this request if the blocker has been resolved.",
+    filled: "This request is complete. Open the position to review the hiring outcome.",
+  }[request.status];
 
   return (
     <aside
       role="dialog"
       aria-modal="false"
       aria-labelledby="headcount-decision-panel-title"
-      className="fixed left-3 right-3 top-0 z-[130] flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl bottom-3 sm:bottom-20 sm:left-auto sm:right-4 sm:top-0 sm:w-[420px]"
+      className="fixed bottom-3 left-3 right-3 top-3 z-[130] flex flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl sm:bottom-20 sm:left-auto sm:right-4 sm:top-4 sm:w-[420px]"
     >
       <div key={request.id} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
         <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
@@ -1126,41 +1145,56 @@ function HeadcountDecisionPanel({
         )}
       </div>
 
-      {(canApprove || canReject) && (
-        <div className="border-t border-border bg-background p-4">
-          {rejectOpen && (
-            <div className="mb-3 space-y-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-              <Label htmlFor="headcount-panel-reject-reason">Reason for declining</Label>
-              <Textarea
-                id="headcount-panel-reject-reason"
-                value={rejectReason}
-                onChange={event => onRejectReasonChange(event.target.value)}
-                placeholder="Budget, timing, duplicate request..."
-                rows={3}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => onRejectOpenChange(false)}>Cancel</Button>
-                <Button type="button" variant="destructive" size="sm" disabled={!rejectReason.trim() || actionLoading === "reject"} onClick={onReject}>
-                  {actionLoading === "reject" ? "Declining..." : "Confirm decline"}
+      <div className="border-t border-border bg-background p-4">
+        <p className="mb-3 text-xs leading-5 text-muted-foreground">{actionHint}</p>
+        {rejectOpen && (
+          <div className="mb-3 space-y-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <Label htmlFor="headcount-panel-reject-reason">Reason for declining</Label>
+            <Textarea
+              id="headcount-panel-reject-reason"
+              value={rejectReason}
+              onChange={event => onRejectReasonChange(event.target.value)}
+              placeholder="Budget, timing, duplicate request..."
+              rows={3}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRejectOpenChange(false)}>Cancel</Button>
+              <Button type="button" variant="destructive" size="sm" disabled={!rejectReason.trim() || actionLoading === "reject"} onClick={onReject}>
+                {actionLoading === "reject" ? "Declining..." : "Confirm decline"}
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="grid gap-2">
+          {canSubmit && (
+            <Button type="button" className="w-full" disabled={actionLoading !== null} onClick={onSubmit}>
+              <SendIcon className="mr-2 h-4 w-4" />
+              {actionLoading === "submit" ? "Submitting..." : "Submit for review"}
+            </Button>
+          )}
+          {hasDecisionActions && (
+            <div className="grid grid-cols-2 gap-2">
+              {canReject && (
+                <Button type="button" variant="outline" className="text-destructive hover:text-destructive" disabled={actionLoading !== null} onClick={() => onRejectOpenChange(true)}>
+                  Decline
                 </Button>
-              </div>
+              )}
+              {canApprove && (
+                <Button type="button" className={canReject ? "" : "col-span-2"} disabled={actionLoading !== null} onClick={onApprove}>
+                  <CheckIcon className="mr-2 h-4 w-4" />
+                  {actionLoading === "approve" ? "Approving..." : request.status === "rejected" ? "Approve request" : "Approve"}
+                </Button>
+              )}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            {canReject && (
-              <Button type="button" variant="outline" className="text-destructive hover:text-destructive" onClick={() => onRejectOpenChange(true)}>
-                Decline
-              </Button>
-            )}
-            {canApprove && (
-              <Button type="button" className={canReject ? "" : "col-span-2"} disabled={actionLoading === "approve"} onClick={onApprove}>
-                <CheckIcon className="mr-2 h-4 w-4" />
-                {actionLoading === "approve" ? "Approving..." : "Approve request"}
-              </Button>
-            )}
-          </div>
+          <Button asChild type="button" variant={canSubmit || hasDecisionActions ? "outline" : "default"} className="w-full">
+            <Link href={`/positions/${request.position.id}`}>
+              {request.status === "filled" ? "View filled position" : "Open job opening"}
+              <ArrowUpRightIcon className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
-      )}
+      </div>
     </aside>
   );
 }

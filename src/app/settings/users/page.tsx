@@ -3,7 +3,6 @@
 
 import { Loader2 } from 'lucide-react';
 
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnifiedUserModal } from '@/components/users/UnifiedUserModal';
 
 import {
@@ -16,6 +15,10 @@ import { UsersDeleteDialog } from './UsersDeleteDialog';
 import { useUsersPageController } from './use-users-page-controller';
 
 export default function ManageUsersPage() {
+  return <ManageUsersPageContent accountsOnly />;
+}
+
+export function ManageUsersPageContent({ accountsOnly = false }: { accountsOnly?: boolean }) {
   const controller = useUsersPageController();
 
   if (controller.isInitialLoading) {
@@ -36,13 +39,15 @@ export default function ManageUsersPage() {
         onAddUser={() => controller.openUserModal('create')}
       />
 
-      <UsersPageTabs
-        activeTab={controller.activeTab}
-        onTabChange={controller.setActiveTab}
-      />
+      {!accountsOnly && (
+        <UsersPageTabs
+          activeTab={controller.activeTab}
+          onTabChange={controller.setActiveTab}
+        />
+      )}
 
-      <ScrollArea className="flex-1 px-6">
-        <div className="space-y-4">
+      <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
+        <div className="h-full min-h-0">
           {controller.activeTab === 'users' && (
             <UsersPageUsersTab
               users={controller.users}
@@ -66,14 +71,15 @@ export default function ManageUsersPage() {
               onBulkUpdateStatus={controller.handleBulkUpdateStatus}
               onClearSelection={controller.clearSelection}
               onOpenUserModal={controller.openUserModal}
+              onEditUser={controller.handleEditUser}
               onToggleUserStatus={controller.handleToggleUserStatus}
               onConfirmDeleteUser={controller.setUserToDelete}
             />
           )}
 
-          {controller.activeTab === 'groups' && <SafeGroupsTab />}
+          {!accountsOnly && controller.activeTab === 'groups' && <SafeGroupsTab />}
         </div>
-      </ScrollArea>
+      </div>
 
       <UnifiedUserModal
         isOpen={controller.isUserModalOpen}

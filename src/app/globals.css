@@ -75,6 +75,106 @@
   }
 }
 
+@layer components {
+  /* Legacy detail views use a compact bespoke palette. Keep that visual language,
+     but translate its neutral surfaces through the active application theme. */
+  .dark [data-theme="applicant-review"],
+  .dark [data-theme="position-detail-page"] {
+    color-scheme: dark;
+    --app-page-background: 218 36% 9%;
+    --background: 218 34% 11%;
+    --foreground: 214 32% 91%;
+    --card: 218 31% 13%;
+    --card-foreground: 214 32% 91%;
+    --popover: 218 31% 13%;
+    --popover-foreground: 214 32% 91%;
+    --muted: 217 25% 18%;
+    --muted-foreground: 215 18% 66%;
+    --accent: 217 25% 18%;
+    --accent-foreground: 214 32% 91%;
+    --border: 216 22% 25%;
+    --input: 216 22% 25%;
+  }
+
+  .dark [data-theme="applicant-review"] [class~="bg-white"],
+  .dark [data-theme="position-detail-page"] [class~="bg-white"] {
+    background-color: hsl(var(--background));
+  }
+
+  .dark [data-theme="applicant-review"] :is(
+    [class~="bg-[#edf2f8]"], [class~="bg-[#eef1f6]"], [class~="bg-[#eef2f7]"],
+    [class~="bg-[#f0f2f5]"], [class~="bg-[#f0f2f6]"], [class~="bg-[#f1f4f8]"],
+    [class~="bg-[#f3f5f8]"], [class~="bg-[#f5f7fa]"], [class~="bg-slate-50"],
+    [class~="bg-slate-100"]
+  ),
+  .dark [data-theme="position-detail-page"] :is(
+    [class~="bg-[#edf2f8]"], [class~="bg-[#eef1f6]"], [class~="bg-[#eef2f7]"],
+    [class~="bg-[#f0f2f5]"], [class~="bg-[#f0f2f6]"], [class~="bg-[#f1f4f8]"],
+    [class~="bg-[#f3f5f8]"], [class~="bg-[#f5f7fa]"], [class~="bg-slate-50"],
+    [class~="bg-slate-100"]
+  ) {
+    background-color: hsl(var(--muted));
+  }
+
+  .dark [data-theme="applicant-review"] :is(
+    [class~="text-[#12213d]"], [class~="text-[#25344f]"], [class~="text-[#263451]"],
+    [class~="text-[#33425c]"], [class~="text-[#33425f]"], [class~="text-[#34425b]"],
+    [class~="text-slate-800"], [class~="text-slate-900"]
+  ),
+  .dark [data-theme="position-detail-page"] :is(
+    [class~="text-[#12213d]"], [class~="text-[#25344f]"], [class~="text-[#263451]"],
+    [class~="text-[#33425c]"], [class~="text-[#33425f]"], [class~="text-[#34425b]"],
+    [class~="text-slate-800"], [class~="text-slate-900"]
+  ) {
+    color: hsl(var(--foreground));
+  }
+
+  .dark [data-theme="applicant-review"] :is(
+    [class~="text-[#3d4c68]"], [class~="text-[#46536a]"], [class~="text-[#526079]"],
+    [class~="text-[#52617a]"], [class~="text-[#536079]"], [class~="text-[#60708b]"],
+    [class~="text-[#61708b]"], [class~="text-[#63718a]"], [class~="text-[#68758e]"],
+    [class~="text-[#9aa4b7]"], [class~="text-slate-400"], [class~="text-slate-600"]
+  ),
+  .dark [data-theme="position-detail-page"] :is(
+    [class~="text-[#3d4c68]"], [class~="text-[#46536a]"], [class~="text-[#526079]"],
+    [class~="text-[#52617a]"], [class~="text-[#536079]"], [class~="text-[#60708b]"],
+    [class~="text-[#61708b]"], [class~="text-[#63718a]"], [class~="text-[#68758e]"],
+    [class~="text-[#9aa4b7]"], [class~="text-slate-400"], [class~="text-slate-600"]
+  ) {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .dark [data-theme="applicant-review"] :is(
+    [class~="border-[#b9c1ce]"], [class~="border-[#d8dee8]"], [class~="border-[#d8e0eb]"],
+    [class~="border-[#dfe5ed]"], [class~="border-[#dfe5ee]"], [class~="border-[#e2e7ef]"],
+    [class~="border-[#e4e9f0]"], [class~="border-[#edf0f4]"], [class~="border-slate-200"]
+  ),
+  .dark [data-theme="position-detail-page"] :is(
+    [class~="border-[#b9c1ce]"], [class~="border-[#d8dee8]"], [class~="border-[#d8e0eb]"],
+    [class~="border-[#dfe5ed]"], [class~="border-[#dfe5ee]"], [class~="border-[#e2e7ef]"],
+    [class~="border-[#e4e9f0]"], [class~="border-[#edf0f4]"], [class~="border-slate-200"]
+  ) {
+    border-color: hsl(var(--border));
+  }
+
+  .dark [data-theme="applicant-review"] :is([class~="divide-[#e2e7ef]"], [class~="divide-[#e5e9ef]"]) > :not([hidden]) ~ :not([hidden]),
+  .dark [data-theme="position-detail-page"] :is([class~="divide-[#e2e7ef]"], [class~="divide-[#e5e9ef]"]) > :not([hidden]) ~ :not([hidden]) {
+    border-color: hsl(var(--border));
+  }
+
+  html:not(.dark) .theme-balanced-panel :is([class~="text-white"], [class~="text-slate-100"], [class~="text-slate-200"]) {
+    color: hsl(var(--foreground));
+  }
+
+  html:not(.dark) .theme-balanced-panel :is([class~="text-slate-300"], [class~="text-slate-400"]) {
+    color: hsl(var(--muted-foreground));
+  }
+
+  html:not(.dark) .theme-balanced-panel :is([class~="border-[#2c3c52]"], [class~="border-[#33465f]"]) {
+    border-color: hsl(var(--border));
+  }
+}
+
 html,
 body {
   background: hsl(var(--app-page-background, var(--background)));

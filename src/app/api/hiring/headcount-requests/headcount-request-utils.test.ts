@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHeadcountRequestCreateData,
   getHeadcountRequestActionStatus,
+  getHeadcountRequestActionTransitionError,
   getHeadcountRequestActionValidationError,
   getHeadcountRequestStatus,
   getHeadcountRequestValidationError,
@@ -93,11 +94,13 @@ describe("headcount-request-utils", () => {
     expect(getHeadcountRequestActionValidationError({ action: "approve" })).toBe("Request ID is required");
     expect(getHeadcountRequestActionValidationError({ id: "hc-1", action: "hold" })).toBe("Request action is invalid");
     expect(getHeadcountRequestActionValidationError({ id: "hc-1", action: "reject", reason: "" })).toBe("Rejection reason is required");
+    expect(getHeadcountRequestActionValidationError({ id: "hc-1", action: "submit" })).toBeNull();
     expect(getHeadcountRequestActionValidationError({ id: "hc-1", action: "approve" })).toBeNull();
     expect(getHeadcountRequestActionValidationError({ id: "hc-1", action: "reject", reason: "Budget not approved" })).toBeNull();
   });
 
   it("maps request actions to stored headcount statuses", () => {
+    expect(getHeadcountRequestActionStatus("submit")).toBe("in_review");
     expect(getHeadcountRequestActionStatus("approve")).toBe("vacant");
     expect(getHeadcountRequestActionStatus("reject")).toBe("rejected");
   });
@@ -130,5 +133,26 @@ describe("headcount-request-utils", () => {
       approvalActionByName: "Grace Hopper",
       rejectionReason: null,
     });
+
+    const submittedFields = mergeHeadcountRequestActionFields(
+      { requestedByName: "Hiring Manager" },
+      { action: "submit" },
+      { id: "user-3", name: "Lin Chen" },
+    );
+
+    expect(submittedFields).toMatchObject({
+      submittedById: "user-3",
+      submittedByName: "Lin Chen",
+      approvalAction: null,
+      rejectionReason: null,
+    });
+    expect(String((submittedFields as Record<string, unknown>).submittedAt)).toBeTruthy();
+  });
+
+  it("guards request actions by journey state", () => {
+    expect(getHeadcountRequestActionTransitionError("draft", "submit")).toBeNull();
+    expect(getHeadcountRequestActionTransitionError("draft", "approve")).toBe("Submit the draft for review before making a decision.");
+    expect(getHeadcountRequestActionTransitionError("in_review", "submit")).toBe("Only draft requests can be submitted for review.");
+    expect(getHeadcountRequestActionTransitionError("filled", "reject")).toBe("Filled headcount requests cannot be changed.");
   });
 });

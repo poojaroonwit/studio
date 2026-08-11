@@ -251,7 +251,7 @@ export function CompanyPortalCmsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid shrink-0 gap-3 border-b bg-slate-50/70 px-5 py-3 sm:grid-cols-[1fr_220px]">
+        <div className="grid shrink-0 gap-3 border-b bg-muted/70 px-5 py-3 sm:grid-cols-[1fr_220px]">
           <Field label="Collection name">
             <Input
               value={draft.name}
@@ -296,7 +296,7 @@ export function CompanyPortalCmsDialog({
           </TabsList>
 
           <TabsContent value="fields" className="min-h-0 flex-1 overflow-y-auto p-5">
-            <div className="mb-4 grid gap-3 rounded-[6px] border bg-slate-50 p-3 sm:grid-cols-2">
+            <div className="mb-4 grid gap-3 rounded-[6px] border bg-muted/50 p-3 sm:grid-cols-2">
               <Field label="Data source">
                 <Select
                   value={draft.sourceType}
@@ -333,7 +333,7 @@ export function CompanyPortalCmsDialog({
             </div>
 
             {draft.sourceType === 'custom' && (
-            <div className="grid gap-3 rounded-[6px] border bg-slate-50 p-3 sm:grid-cols-[1fr_170px_auto_auto] sm:items-end">
+            <div className="grid gap-3 rounded-[6px] border bg-muted/50 p-3 sm:grid-cols-[1fr_170px_auto_auto] sm:items-end">
               <Field label="Field name">
                 <Input value={fieldName} onChange={event => setFieldName(event.target.value)} placeholder="Article title" />
               </Field>
@@ -447,7 +447,7 @@ export function CompanyPortalCmsDialog({
               <EmptyState title="Fields required" description="Create collection fields before adding CMS records." />
             ) : (
               <>
-                <div className="grid gap-3 rounded-[6px] border bg-slate-50 p-3 sm:grid-cols-2">
+                <div className="grid gap-3 rounded-[6px] border bg-muted/50 p-3 sm:grid-cols-2">
                   {draft.fields.map(field => (
                     <Field key={field.id} label={`${field.name}${field.required ? ' *' : ''}`}>
                       <Input
@@ -470,7 +470,7 @@ export function CompanyPortalCmsDialog({
 
                 <div className="mt-4 overflow-x-auto rounded-[6px] border">
                   <table className="w-full min-w-[560px] text-left text-xs">
-                    <thead className="bg-slate-50 text-muted-foreground">
+                    <thead className="bg-muted/50 text-muted-foreground">
                       <tr>
                         {draft.fields.map(field => <th key={field.id} className="px-3 py-2 font-medium">{field.name}</th>)}
                         <th className="w-12 px-3 py-2" />

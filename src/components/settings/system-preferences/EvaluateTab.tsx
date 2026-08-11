@@ -13,7 +13,17 @@ import {
 import type { EvaluateTabProps } from './EvaluateTabTypes';
 import { SystemPreferenceSection } from './SystemPreferenceRows';
 
-export function EvaluateTab({
+export function EvaluateTab(props: EvaluateTabProps) {
+  return (
+    <ScrollArea className="h-full pr-4">
+      <div className="space-y-6">
+        <EvaluateSettingsContent {...props} />
+      </div>
+    </ScrollArea>
+  );
+}
+
+export function EvaluateSettingsContent({
   canEdit,
   evaluateHeaderBackgroundType,
   setEvaluateHeaderBackgroundType,
@@ -35,51 +45,47 @@ export function EvaluateTab({
   );
 
   return (
-    <ScrollArea className="h-full pr-4">
-      <div className="space-y-6">
-        <SystemPreferenceSection
-          title="Evaluate Page Settings"
-          description="Customize the appearance of the Applicants evaluation page."
-        >
-            <EvaluateHeaderBackgroundTypeSelect
-              canEdit={canEdit}
-              value={evaluateHeaderBackgroundType}
-              onChange={setEvaluateHeaderBackgroundType}
-            />
+    <SystemPreferenceSection
+      title="Evaluate Page Settings"
+      description="Customize the appearance of the Applicants evaluation page."
+    >
+      <EvaluateHeaderBackgroundTypeSelect
+        canEdit={canEdit}
+        value={evaluateHeaderBackgroundType}
+        onChange={setEvaluateHeaderBackgroundType}
+      />
 
-            {evaluateHeaderBackgroundType === 'image' && (
-              <EvaluateHeaderImageSection
-                canEdit={canEdit}
-                previewImageSrc={evaluateHeaderPreviewImageSrc}
-                onRemoveImage={removeSelectedEvaluateHeaderImage}
-                onImageFileChange={handleEvaluateHeaderImageFileChange}
-              />
-            )}
+      {evaluateHeaderBackgroundType === 'image' && (
+        <EvaluateHeaderImageSection
+          canEdit={canEdit}
+          previewImageSrc={evaluateHeaderPreviewImageSrc}
+          onRemoveImage={removeSelectedEvaluateHeaderImage}
+          onImageFileChange={handleEvaluateHeaderImageFileChange}
+        />
+      )}
 
-            {evaluateHeaderBackgroundType === 'gradient' && (
-              <EvaluateHeaderGradientSection
-                canEdit={canEdit}
-                value={evaluateHeaderBackgroundGradient}
-                defaultGradient={defaultEvaluateHeaderGradient}
-                onChange={setEvaluateHeaderBackgroundGradient}
-              />
-            )}
+      {evaluateHeaderBackgroundType === 'gradient' && (
+        <EvaluateHeaderGradientSection
+          canEdit={canEdit}
+          value={evaluateHeaderBackgroundGradient}
+          defaultGradient={defaultEvaluateHeaderGradient}
+          onChange={setEvaluateHeaderBackgroundGradient}
+        />
+      )}
 
-            {evaluateHeaderBackgroundType === 'solid' && (
-              <EvaluateHeaderSolidColorSection
-                canEdit={canEdit}
-                value={evaluateHeaderBackgroundColor}
-                onChange={setEvaluateHeaderBackgroundColor}
-              />
-            )}
+      {evaluateHeaderBackgroundType === 'solid' && (
+        <EvaluateHeaderSolidColorSection
+          canEdit={canEdit}
+          value={evaluateHeaderBackgroundColor}
+          onChange={setEvaluateHeaderBackgroundColor}
+        />
+      )}
 
-            <EvaluateHeaderTextColorSection
-              canEdit={canEdit}
-              value={evaluateHeaderTextColor}
-              onChange={setEvaluateHeaderTextColor}
-            />
-        </SystemPreferenceSection>
-      </div>
-    </ScrollArea>
+      <EvaluateHeaderTextColorSection
+        canEdit={canEdit}
+        value={evaluateHeaderTextColor}
+        onChange={setEvaluateHeaderTextColor}
+      />
+    </SystemPreferenceSection>
   );
 }

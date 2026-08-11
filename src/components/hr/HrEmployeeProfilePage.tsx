@@ -58,6 +58,7 @@ import { HrisOperationsWorkspace } from './HrisOperationsWorkspace';
 interface HrEmployeeProfilePageProps {
   employeeId: string;
   selfService?: boolean;
+  embedded?: boolean;
 }
 
 const profileTabs = [
@@ -354,7 +355,7 @@ function SectionHeader({ title, description }: { title: string; description?: st
   );
 }
 
-export function HrEmployeeProfilePage({ employeeId, selfService = false }: HrEmployeeProfilePageProps) {
+export function HrEmployeeProfilePage({ employeeId, selfService = false, embedded = false }: HrEmployeeProfilePageProps) {
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get('tab');
   const { data: session } = useSession();
@@ -427,6 +428,7 @@ export function HrEmployeeProfilePage({ employeeId, selfService = false }: HrEmp
 
   return (
     <EmployeeProfileScaffold
+      className={embedded ? 'h-full min-h-0' : undefined}
       header={<EmployeeHeader
         employee={employee}
         title={title}

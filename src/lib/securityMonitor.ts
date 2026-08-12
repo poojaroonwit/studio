@@ -20,6 +20,11 @@ import {
 // In-memory store for security events (in production, use Redis or database)
 const securityEvents: SecurityEvent[] = [];
 const securityAlerts: SecurityAlert[] = [];
+const MAX_SECURITY_ALERTS = 1000;
+
+const globalSecurityMonitorState = globalThis as unknown as {
+  __securityCleanupInterval?: NodeJS.Timeout;
+};
 
 /**
  * Record a security event
@@ -89,6 +94,9 @@ async function createSecurityAlert(alert: Omit<SecurityAlert, 'id' | 'timestamp'
   };
 
   securityAlerts.push(securityAlert);
+  if (securityAlerts.length > MAX_SECURITY_ALERTS) {
+    securityAlerts.splice(0, securityAlerts.length - MAX_SECURITY_ALERTS);
+  }
 
   // Log the security alert
   await logAudit(
@@ -234,4 +242,7 @@ export async function cleanupSecurityData(): Promise<void> {
 }
 
 // Run cleanup every hour
-setInterval(cleanupSecurityData, 60 * 60 * 1000);
+if (!globalSecurityMonitorState.__securityCleanupInterval) {
+  globalSecurityMonitorState.__securityCleanupInterval = setInterval(cleanupSecurityData, 60 * 60 * 1000);
+  globalSecurityMonitorState.__securityCleanupInterval.unref?.();
+}

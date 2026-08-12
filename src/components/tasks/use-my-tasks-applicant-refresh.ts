@@ -11,6 +11,7 @@ import {
   reloadTaskboardApplicants,
   shouldHandleMyTasksApplicantRefreshEvent,
 } from './my-tasks-applicant-refresh-utils';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 interface UseMyTasksApplicantRefreshInput {
   applicants: TaskboardApplicant[];
@@ -32,7 +33,7 @@ export function useMyTasksApplicantRefresh({
   status,
 }: UseMyTasksApplicantRefreshInput) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
+  const { subscribeToEvents } = useSharedSSE();
 
   useEffect(() => {
     let mounted = true;
@@ -92,28 +93,15 @@ export function useMyTasksApplicantRefresh({
     });
   }, [refreshTrigger, buildTaskboardApplicantParams, setApplicants, setLoading]);
 
-  useEffect(() => {
-    if (!sessionUserId) return;
+  useVisibilityInterval(() => {
+    if (!sessionUserId || loading || applicants.length === 0) {
+      return;
+    }
 
-    const interval = setInterval(() => {
-      if (loading || applicants.length === 0) {
-        return;
-      }
-
-      refreshTaskboardApplicantsIfChanged({
-        applicants,
-        buildTaskboardApplicantParams,
-        setApplicants,
-      });
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [
-    sessionUserId,
-    loading,
-    applicants,
-    buildTaskboardApplicantParams,
-    realtimeConnected,
-    setApplicants,
-  ]);
+    refreshTaskboardApplicantsIfChanged({
+      applicants,
+      buildTaskboardApplicantParams,
+      setApplicants,
+    });
+  }, applicants.length > 0 ? 10000 : 30000, Boolean(sessionUserId));
 }

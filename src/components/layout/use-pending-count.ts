@@ -7,12 +7,12 @@ import {
 } from "./pending-count-utils";
 import { fetchPendingCountState } from "./pending-count-api";
 import { useSharedSSE } from "@/hooks/use-shared-sse";
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 export function usePendingCount() {
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasPermission, setHasPermission] = React.useState<boolean | null>(null);
-  const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
   const { isConnected, subscribeToEvents } = useSharedSSE();
 
   const fetchPendingCount = React.useCallback(async () => {
@@ -28,13 +28,6 @@ export function usePendingCount() {
 
   React.useEffect(() => {
     void fetchPendingCount();
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    };
   }, [fetchPendingCount]);
 
   React.useEffect(() => {
@@ -50,24 +43,8 @@ export function usePendingCount() {
     });
   }, [hasPermission, subscribeToEvents]);
 
-  React.useEffect(() => {
-    if (isConnected || hasPermission === false) {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-      return;
-    }
-
-    pollIntervalRef.current = setInterval(fetchPendingCount, PENDING_COUNT_POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-    };
-  }, [fetchPendingCount, hasPermission, isConnected]);
+  const shouldPollCount = !isConnected && hasPermission !== false;
+  useVisibilityInterval(fetchPendingCount, PENDING_COUNT_POLL_INTERVAL_MS, shouldPollCount);
 
   return { pendingCount, isLoading };
 }

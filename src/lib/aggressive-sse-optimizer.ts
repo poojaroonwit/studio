@@ -20,6 +20,11 @@ import type { AggressiveBroadcastOptions, BatchedEvent } from './aggressive-sse-
 import { broadcast } from './realtime';
 import type { EventPayload, UnifiedEventType } from './realtime-event-types';
 
+const globalSseOptimizerState = globalThis as unknown as {
+  __aggressiveSseFlushInterval?: NodeJS.Timeout;
+  __aggressiveSseCleanupInterval?: NodeJS.Timeout;
+};
+
 function sendBroadcastEvent(event: BatchedEvent): void {
   if (!event.targetUserId) {
     broadcast({ type: event.type, ...event.data }, event.type);
@@ -27,9 +32,12 @@ function sendBroadcastEvent(event: BatchedEvent): void {
 }
 
 // Start batch flushing
-setInterval(() => {
-  flushEventBatches(canSendEvent, sendBroadcastEvent);
-}, BATCH_FLUSH_INTERVAL);
+if (!globalSseOptimizerState.__aggressiveSseFlushInterval) {
+  globalSseOptimizerState.__aggressiveSseFlushInterval = setInterval(() => {
+    flushEventBatches(canSendEvent, sendBroadcastEvent);
+  }, BATCH_FLUSH_INTERVAL);
+  globalSseOptimizerState.__aggressiveSseFlushInterval.unref?.();
+}
 
 // Aggressive broadcast functions
 export function aggressiveBroadcast(
@@ -120,9 +128,12 @@ export function emergencyReset(): void {
 }
 
 // Auto-reset throttles and cleanup stale data every 2 minutes
-setInterval(() => {
-  const now = Date.now();
+if (!globalSseOptimizerState.__aggressiveSseCleanupInterval) {
+  globalSseOptimizerState.__aggressiveSseCleanupInterval = setInterval(() => {
+    const now = Date.now();
 
-  cleanupEventThrottles(now);
-  cleanupEventBatches(now);
-}, CLEANUP_INTERVAL);
+    cleanupEventThrottles(now);
+    cleanupEventBatches(now);
+  }, CLEANUP_INTERVAL);
+  globalSseOptimizerState.__aggressiveSseCleanupInterval.unref?.();
+}

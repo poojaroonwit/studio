@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import { fetchPwaSettingsState } from './pwa-settings-api';
 import {
   clearServiceWorkerCaches,
@@ -18,6 +19,7 @@ import type { PwaSettingsState } from './pwa-settings-api';
 
 export function ServiceWorkerRegistration({ pwaState }: { pwaState?: PwaSettingsState | null }) {
   const [pwaEnabled, setPwaEnabled] = useState(pwaState?.enabled ?? false);
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     if (pwaState !== undefined) {
@@ -64,27 +66,27 @@ export function ServiceWorkerRegistration({ pwaState }: { pwaState?: PwaSettings
   }, []);
 
   useEffect(() => {
-    if (shouldUnregisterServiceWorkers({ pwaEnabled, nodeEnv: process.env.NODE_ENV })) {
+    const canRegisterServiceWorker = shouldRegisterServiceWorker({
+      pwaEnabled,
+      nodeEnv: process.env.NODE_ENV,
+      serviceWorkerSupported: hasServiceWorkerSupport(),
+    });
+
+    if (shouldUnregisterServiceWorkers({ pwaEnabled, nodeEnv: process.env.NODE_ENV }) || !canRegisterServiceWorker) {
       if (hasServiceWorkerSupport()) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           unregisterServiceWorkerRegistrations(registrations);
         });
       }
+      setRegistration(null);
       return;
     }
-
-    if (!shouldRegisterServiceWorker({
-      pwaEnabled,
-      nodeEnv: process.env.NODE_ENV,
-      serviceWorkerSupported: hasServiceWorkerSupport(),
-    })) return;
-
-    let updateInterval: NodeJS.Timeout | undefined;
 
     const registrationTimeout = setTimeout(() => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
+          setRegistration(registration);
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (newWorker) {
@@ -95,21 +97,26 @@ export function ServiceWorkerRegistration({ pwaState }: { pwaState?: PwaSettings
               });
             }
           });
-
-          updateInterval = setInterval(() => {
-            registration.update();
-          }, SW_UPDATE_INTERVAL_MS);
         })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
+          setRegistration(null);
         });
     }, SW_REGISTRATION_DELAY_MS);
 
     return () => {
       clearTimeout(registrationTimeout);
-      if (updateInterval) clearInterval(updateInterval);
+      setRegistration(null);
     };
   }, [pwaEnabled]);
+
+  useVisibilityInterval(
+    () => {
+      void registration?.update();
+    },
+    SW_UPDATE_INTERVAL_MS,
+    Boolean(registration),
+  );
 
   return null;
 }

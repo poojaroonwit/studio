@@ -131,7 +131,7 @@ describe('HR sidebar links', () => {
       'Leave Policy Assignment',
       'Leave Encashment',
     ]);
-    expect(labelsFor('Data & Analytics')).toEqual(['Import & Export']);
+    expect(labelsFor('Data & Analytics')).toEqual(['Import', 'Export']);
     expect(labelsFor('Payroll')).toEqual([
       'Payroll',
       'Payroll Runs',

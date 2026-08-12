@@ -418,11 +418,19 @@ export const sidebarConfigData = [
     icon: "ChartPie",
     items: [
       {
-        label: "Import & Export",
+        label: "Import",
         icon: "UploadCloud",
-        href: "/data-operations",
-        description: "Import workforce data and manage data exports",
-        section: "Data operations",
+        href: "/data-operations?mode=import",
+        description: "Import workforce data from supported file formats.",
+        section: "System data transfer",
+        permissionId: "UPLOAD_QUEUE_VIEW"
+      },
+      {
+        label: "Export",
+        icon: "UploadCloud",
+        href: "/data-operations?mode=export",
+        description: "Generate system-export packages and reports.",
+        section: "System data transfer",
         permissionId: "UPLOAD_QUEUE_VIEW"
       },
     ],

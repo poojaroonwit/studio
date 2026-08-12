@@ -12,6 +12,10 @@ import {
 
 export { cleanupOldTrackers, getChangeTrackingStats } from './data-change-tracker-store';
 
+const globalChangeTrackerState = globalThis as unknown as {
+  __changeTrackerCleanupInterval?: NodeJS.Timeout;
+};
+
 // Smart broadcast functions that only send when data changes
 export function broadcastApplicantUpdateIfChanged(
   applicant: TrackedRecord & { id?: string | number }, 
@@ -118,7 +122,10 @@ export function forceBroadcast(eventType: UnifiedEventType, data: EventPayload, 
   }
 }
 
-// Auto-cleanup every 10 minutes
-setInterval(() => {
-  cleanupOldTrackers();
-}, 10 * 60 * 1000);
+// Auto-cleanup every 10 minutes, with process-level dedupe to avoid duplicate timers.
+if (!globalChangeTrackerState.__changeTrackerCleanupInterval) {
+  globalChangeTrackerState.__changeTrackerCleanupInterval = setInterval(() => {
+    cleanupOldTrackers();
+  }, 10 * 60 * 1000);
+  globalChangeTrackerState.__changeTrackerCleanupInterval.unref?.();
+}

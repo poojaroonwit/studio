@@ -2,8 +2,23 @@ import { buildPositionsTemplateCsvContent } from '@/components/positions/import-
 import { getJsonArray, getJsonNumber, getJsonObject, getJsonString, readJsonObject, type JsonObject } from '@/lib/response-json';
 import { sanitizeUrl } from '@/lib/security';
 
-export type DataOperationModelId = 'applicants' | 'positions' | 'system-transfer';
 export type ExportFormat = 'excel' | 'csv' | 'jsonl';
+
+export const DATA_TRANSFER_DOMAIN_OPTIONS = [
+  { id: 'people', label: 'People & organization', description: 'Employees, departments, mobility settings, and employee lifecycle references.' },
+  { id: 'recruiting', label: 'Recruiting', description: 'Applicants, positions, job matches, and hiring history.' },
+  { id: 'attendance', label: 'Attendance & shifts', description: 'Attendance logs, shift templates, rosters, and time reporting.' },
+  { id: 'leave', label: 'Leave', description: 'Leave entitlements, requests, calendars, and balance history.' },
+  { id: 'performance', label: 'Performance', description: 'Goals, evaluations, competencies, and recognition records.' },
+  { id: 'learning', label: 'Learning', description: 'Courses, lessons, certifications, and related assignments.' },
+  { id: 'payroll', label: 'Payroll & compensation', description: 'Payroll runs, compensation settings, and payslip-related data.' },
+  { id: 'surveys', label: 'Surveys', description: 'Survey definitions, assignments, and response records.' },
+  { id: 'expenses', label: 'Expenses & travel', description: 'Expense claims, advances, travel entries, and reimbursement data.' },
+  { id: 'configuration', label: 'Business configuration', description: 'Core setup records, roles, benefits, and operational defaults.' },
+] as const;
+
+export type DataTransferDomain = (typeof DATA_TRANSFER_DOMAIN_OPTIONS)[number]['id'];
+export type DataOperationModelId = 'applicants' | 'positions' | 'system-transfer' | `system-transfer:${DataTransferDomain}`;
 
 export interface DataOperationModel {
   id: DataOperationModelId;
@@ -16,6 +31,7 @@ export interface DataOperationModel {
   templateHelp: string;
   importBehavior: string;
   reviewHelp: string;
+  systemTransferDomain?: DataTransferDomain;
 }
 
 export interface ImportResult {
@@ -24,31 +40,92 @@ export interface ImportResult {
   summary: string;
 }
 
+const ABSOLUTE_MAX_IMPORT_SIZE = 100 * 1024 * 1024;
+const DATA_TRANSFER_DOMAINS = new Set(DATA_TRANSFER_DOMAIN_OPTIONS.map((entry) => entry.id));
+
+const systemTransferHelpers: DataOperationModel = {
+  id: 'system-transfer',
+  name: 'System data transfer (all domains)',
+  description: 'Permission-controlled business data package for migration between compatible HRI systems.',
+  accept: '.jsonl,.json,application/json',
+  importTypesLabel: 'JSONL package',
+  exportFormatsLabel: 'JSONL',
+  uploadHelp: 'JSONL · admin-configured size limit',
+  templateHelp: 'Create a compatible package from the export tab first',
+  importBehavior: 'Validate the package, then merge records by primary key in one transaction',
+  reviewHelp: 'Credentials, sessions, API keys, audit internals, logs, notifications, and queue payloads are never imported.',
+};
+
+const systemTransferDomainModels: DataOperationModel[] = DATA_TRANSFER_DOMAIN_OPTIONS.map((domain) => ({
+  id: `system-transfer:${domain.id}`,
+  name: `${domain.label} data`,
+  description: domain.description,
+  accept: '.jsonl,.json,application/json',
+  importTypesLabel: 'JSONL package',
+  exportFormatsLabel: 'JSONL',
+  uploadHelp: 'JSONL · admin-configured size limit',
+  templateHelp: 'Export this model first to create a compatible package.',
+  importBehavior: 'Validate the package, then merge records by primary key in one transaction',
+  reviewHelp: 'Credentials, sessions, API keys, audit internals, logs, notifications, and queue payloads are never imported.',
+  systemTransferDomain: domain.id,
+}));
+
 export const DATA_OPERATION_MODELS: DataOperationModel[] = [
   {
-    id: 'applicants', name: 'Applicants', description: 'Candidate profiles, recruiting stages, sources, and matching information.', accept: '.xlsx,.csv', importTypesLabel: 'Excel or CSV', exportFormatsLabel: 'Excel or CSV', uploadHelp: 'XLSX or CSV Â· admin-configured size limit', templateHelp: 'Excel workbook with field instructions', importBehavior: 'Create new records; update rows that include an existing ID', reviewHelp: 'Rows with a blank ID create applicants. Rows with an existing applicant ID update that record.',
+    id: 'applicants',
+    name: 'Applicants',
+    description: 'Candidate profiles, recruiting stages, sources, and matching information.',
+    accept: '.xlsx,.csv',
+    importTypesLabel: 'Excel or CSV',
+    exportFormatsLabel: 'Excel or CSV',
+  uploadHelp: 'XLSX or CSV · admin-configured size limit',
+    templateHelp: 'Excel workbook with field instructions',
+    importBehavior: 'Create new records; update rows that include an existing ID',
+    reviewHelp: 'Rows with a blank ID create applicants. Rows with an existing applicant ID update that record.',
   },
   {
-    id: 'positions', name: 'Job openings', description: 'Position titles, departments, descriptions, levels, and open status.', accept: '.csv,text/csv', importTypesLabel: 'CSV', exportFormatsLabel: 'Excel', uploadHelp: 'UTF-8 CSV Â· admin-configured size limit Â· up to 1,000 rows', templateHelp: 'UTF-8 CSV with supported headers and examples', importBehavior: 'Create new records; duplicate title and department pairs are skipped', reviewHelp: 'Existing title and department pairs are skipped. New positions are created in batches.',
+    id: 'positions',
+    name: 'Job openings',
+    description: 'Position titles, departments, descriptions, levels, and open status.',
+    accept: '.csv,text/csv',
+    importTypesLabel: 'CSV',
+    exportFormatsLabel: 'Excel',
+    uploadHelp: 'UTF-8 CSV · admin-configured size limit · up to 1,000 rows',
+    templateHelp: 'UTF-8 CSV with supported headers and examples',
+    importBehavior: 'Create new records; duplicate title and department pairs are skipped',
+    reviewHelp: 'Existing title and department pairs are skipped. New positions are created in batches.',
   },
-  {
-    id: 'system-transfer', name: 'System data transfer', description: 'Permission-controlled business data package for migration between compatible HRI systems.', accept: '.jsonl,.json,application/json', importTypesLabel: 'JSONL package', exportFormatsLabel: 'JSONL', uploadHelp: 'JSONL Â· admin-configured size limit', templateHelp: 'Create a compatible package from the export tab first', importBehavior: 'Validate the package, then merge records by primary key in one transaction', reviewHelp: 'Credentials, sessions, API keys, audit internals, logs, notifications, and queue payloads are never imported.',
-  },
+  systemTransferHelpers,
+  ...systemTransferDomainModels,
 ];
 
-const ABSOLUTE_MAX_IMPORT_SIZE = 100 * 1024 * 1024;
+function isSystemTransferModel(modelId: DataOperationModelId) {
+  return modelId === 'system-transfer' || modelId.startsWith('system-transfer:');
+}
+
+function getSystemTransferDomainFromModelId(modelId: DataOperationModelId): DataTransferDomain | undefined {
+  if (!modelId.startsWith('system-transfer:')) return undefined;
+  const value = modelId.slice('system-transfer:'.length);
+  const candidate = value as DataTransferDomain;
+  return DATA_TRANSFER_DOMAINS.has(candidate) ? candidate : undefined;
+}
+
+export function getSystemTransferDomainLabel(domain?: DataTransferDomain) {
+  if (!domain) return '';
+  return DATA_TRANSFER_DOMAIN_OPTIONS.find((item) => item.id === domain)?.label || domain;
+}
 
 export function getImportFileError(model: DataOperationModelId, file: File | null) {
   if (!file) return null;
   if (file.size > ABSOLUTE_MAX_IMPORT_SIZE) return 'File too large. The platform cannot accept files larger than 100 MB.';
-  if (model === 'system-transfer') return ['.jsonl', '.json'].some((suffix) => file.name.toLowerCase().endsWith(suffix)) ? null : 'Please select an HRI system data transfer package.';
+  if (isSystemTransferModel(model)) return ['.jsonl', '.json'].some((suffix) => file.name.toLowerCase().endsWith(suffix)) ? null : 'Please select an HRI system data transfer package.';
   if (model === 'positions') return file.name.toLowerCase().endsWith('.csv') ? null : 'Please select a CSV file (.csv). Only CSV files are supported.';
   if (!/\.(xlsx|csv)$/i.test(file.name)) return 'Choose an Excel (.xlsx) or CSV file.';
   return null;
 }
 
 export async function downloadImportTemplate(model: DataOperationModelId) {
-  if (model === 'system-transfer') throw new Error('Export system data first to create a compatible package.');
+  if (isSystemTransferModel(model)) throw new Error('Export system data first to create a compatible package.');
   if (model === 'positions') {
     downloadBlob(new Blob([buildPositionsTemplateCsvContent()], { type: 'text/csv;charset=utf-8' }), 'positions_import_template.csv');
     return;
@@ -64,7 +141,9 @@ export async function importData(model: DataOperationModelId, file: File): Promi
   const body = new FormData();
   body.append('file', file);
   body.append('operation', 'import');
-  body.append('entityType', model);
+  body.append('entityType', isSystemTransferModel(model) ? 'system-transfer' : model);
+  const transferDomain = getSystemTransferDomainFromModelId(model);
+  if (transferDomain) body.append('parameters', JSON.stringify({ domains: [transferDomain] }));
   const response = await fetch('/api/data-operations/jobs', { method: 'POST', body });
   const data = await readJsonObject(response);
   if (!response.ok) throw new Error(formatImportError(data, response.status));
@@ -80,11 +159,13 @@ export async function importData(model: DataOperationModelId, file: File): Promi
 
 export async function exportData(model: DataOperationModelId, format: ExportFormat, filters: Record<string, string>) {
   const body = new FormData();
+  const isSystemTransfer = isSystemTransferModel(model);
+  const transferDomain = getSystemTransferDomainFromModelId(model);
   body.append('operation', 'export');
-  body.append('entityType', model);
-  body.append('format', model === 'positions' ? 'excel' : model === 'system-transfer' ? 'jsonl' : format);
-  const parameters: Record<string, unknown> = { ...filters };
-  if (model === 'system-transfer') parameters.domains = (filters.transferDomains || '').split(',').filter(Boolean);
+  body.append('entityType', isSystemTransfer ? 'system-transfer' : model);
+  body.append('format', isSystemTransfer ? 'jsonl' : model === 'positions' ? 'excel' : format);
+  const parameters: Record<string, unknown> = isSystemTransfer ? {} : { ...filters };
+  if (isSystemTransfer) parameters.domains = transferDomain ? [transferDomain] : (filters.transferDomains || '').split(',').filter(Boolean);
   body.append('parameters', JSON.stringify(parameters));
   const response = await fetch('/api/data-operations/jobs', { method: 'POST', body });
   const data = await readJsonObject(response);
@@ -135,4 +216,3 @@ function formatImportError(data: JsonObject, status: number) {
   }
   return getJsonString(data, 'error') || getJsonString(data, 'message') || `Import failed (HTTP ${status}).`;
 }
-

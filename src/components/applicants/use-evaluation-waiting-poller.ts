@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type {
   EvaluationWaitingInterviewer,
@@ -10,6 +10,7 @@ import {
   countCompletedWaitingInterviewers,
   haveAllWaitingInterviewersCompleted,
 } from './evaluation-waiting-utils';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 interface UseEvaluationWaitingPollerInput {
   applicantId: string;
@@ -28,7 +29,7 @@ export function useEvaluationWaitingPoller({
   onEvaluationsUpdate,
   onAllCompleted,
   onCompletedNavigate,
-  pollingIntervalMs = 2000,
+  pollingIntervalMs = 3000,
 }: UseEvaluationWaitingPollerInput) {
   const [isPolling, setIsPolling] = useState(true);
   const [currentEvaluations, setCurrentEvaluations] = useState(initialEvaluations);
@@ -41,43 +42,37 @@ export function useEvaluationWaitingPoller({
     countCompletedWaitingInterviewers(interviewers, currentEvaluations)
   ), [interviewers, currentEvaluations]);
 
-  useEffect(() => {
-    if (!isPolling) return;
+  const pollEvaluations = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`, {
+        cache: 'no-store',
+      });
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/v1/applicants/${applicantId}/evaluations`, {
-          cache: 'no-store',
-        });
+      if (!response.ok) return;
 
-        if (!response.ok) return;
+      const evaluationsMap = buildWaitingEvaluationsMap(
+        await readJsonOrFallback<unknown>(response, [])
+      );
+      setCurrentEvaluations(evaluationsMap);
+      onEvaluationsUpdate?.(evaluationsMap);
 
-        const evaluationsMap = buildWaitingEvaluationsMap(
-          await readJsonOrFallback<unknown>(response, [])
-        );
-        setCurrentEvaluations(evaluationsMap);
-        onEvaluationsUpdate?.(evaluationsMap);
-
-        if (haveAllWaitingInterviewersCompleted(interviewers, evaluationsMap)) {
-          setIsPolling(false);
-          onAllCompleted();
-          onCompletedNavigate();
-        }
-      } catch (error) {
-        console.error('Error polling evaluations:', error);
+      if (haveAllWaitingInterviewersCompleted(interviewers, evaluationsMap)) {
+        setIsPolling(false);
+        onAllCompleted();
+        onCompletedNavigate();
       }
-    }, pollingIntervalMs);
-
-    return () => clearInterval(pollInterval);
+    } catch (error) {
+      console.error('Error polling evaluations:', error);
+    }
   }, [
     applicantId,
     interviewers,
-    isPolling,
     onAllCompleted,
     onCompletedNavigate,
     onEvaluationsUpdate,
-    pollingIntervalMs,
   ]);
+
+  useVisibilityInterval(pollEvaluations, pollingIntervalMs, isPolling);
 
   return {
     completedCount,

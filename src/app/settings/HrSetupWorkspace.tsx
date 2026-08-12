@@ -183,6 +183,35 @@ function ViewButton({ active, icon: Icon, onClick, children }: { active: boolean
 }
 
 function GuidedSetupView({ items, statuses, progress, progressLoading, selectedItem, onSelect }: { items: SettingsPageItem[]; statuses: PlatformSetupFeatureStatus[]; progress?: SetupStatusResponse['progress']; progressLoading: boolean; selectedItem: SettingsPageItem; onSelect: (item: SettingsPageItem) => void }) {
+  const [expandedMilestones, setExpandedMilestones] = useState(() => new Set([0, 1]));
+
+  useEffect(() => {
+    const activeMilestoneIndex = hrSetupMilestones.findIndex(milestone =>
+      milestone.itemLabels.includes(selectedItem.label),
+    );
+
+    if (activeMilestoneIndex >= 0) {
+      setExpandedMilestones(previous => {
+        if (previous.has(activeMilestoneIndex)) return previous;
+        const next = new Set(previous);
+        next.add(activeMilestoneIndex);
+        return next;
+      });
+    }
+  }, [selectedItem.label]);
+
+  const toggleMilestone = (index: number) => {
+    setExpandedMilestones(previous => {
+      const next = new Set(previous);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="grid min-h-[650px] overflow-hidden rounded-lg bg-card dark:bg-[#101821] lg:grid-cols-[330px_minmax(0,1fr)]">
       <aside className="border-b border-border dark:border-[#293441] bg-card dark:bg-[#0e161f] lg:border-b-0 lg:border-r">
@@ -200,14 +229,20 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
             const isActive = milestoneItems.some(item => item.label === selectedItem.label);
             const readyCount = milestoneItems.filter(item => getHrSetupReadiness(item, statuses) === 'ready').length;
             const complete = milestoneItems.length > 0 && readyCount === milestoneItems.length;
+            const isExpanded = expandedMilestones.has(index);
             return (
               <section key={milestone.label} className="border-b border-border dark:border-[#27313d] last:border-b-0">
-                <div className="flex items-center gap-3 px-4 py-3.5">
+                <button
+                  type="button"
+                  onClick={() => toggleMilestone(index)}
+                  aria-expanded={isExpanded}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2]"
+                >
                   <MilestoneNumber number={index + 1} complete={complete} active={isActive} />
                   <div className="min-w-0 flex-1"><h2 className="truncate text-xs font-semibold text-foreground dark:text-[#dfe6ee]">{index + 1}. {milestone.label}</h2><p className={`mt-0.5 text-[10px] ${complete ? 'text-success dark:text-[#58d07a]' : isActive ? 'text-info dark:text-[#6caeff]' : 'text-muted-foreground dark:text-[#758397]'}`}>{complete ? 'Complete' : isActive ? 'In progress' : `${readyCount} of ${milestoneItems.length} ready`}</p></div>
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground dark:text-[#8592a2] ${isActive ? 'rotate-180' : ''}`} />
-                </div>
-                {(isActive || index < 2) && (
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform dark:text-[#8592a2] ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExpanded && (
                   <div className="pb-2">
                     {milestoneItems.map(item => (
                       <ChecklistItem key={`${item.label}-${item.href}`} item={item} readiness={getHrSetupReadiness(item, statuses)} active={item.label === selectedItem.label} onClick={() => onSelect(item)} />

@@ -8,6 +8,7 @@ import { ArrowLeft, BookOpen, Captions, Check, CheckCircle2, ChevronRight, Chevr
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import { AiAssignmentDialog } from './AiAssignmentDialog';
 
 type Row = Record<string, any>;
@@ -49,23 +50,32 @@ export function CourseExperience({ courseId, player = false }: { courseId: strin
   const selected = lessons.find(lesson => lesson.id === selectedLessonId) || lessons[0];
   const selectedIndex = lessons.findIndex(lesson => lesson.id === selected?.id);
   const progress = detail?.progress[selected?.id];
+  const interactionAtRef = React.useRef(Date.now());
+  const shouldTrackActiveProgress = player && !!detail?.enrollment && !!selected && progress?.status !== 'completed';
 
   React.useEffect(() => {
-    if (!player || !detail?.enrollment || !selected || document.hidden || progress?.status === 'completed') return;
-    let interactionAt = Date.now();
-    const active = () => { interactionAt = Date.now(); };
+    if (!shouldTrackActiveProgress) return;
+    interactionAtRef.current = Date.now();
+    const active = () => { interactionAtRef.current = Date.now(); };
     window.addEventListener('pointerdown', active);
     window.addEventListener('keydown', active);
-    const timer = window.setInterval(() => {
-      if (document.hidden || Date.now() - interactionAt > 60_000) return;
-      setActiveSeconds(value => value + 15);
-      void fetch('/api/learning/progress', {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'heartbeat', enrollmentId: detail.enrollment!.id, lessonId: selected.id, seconds: 15 }),
-      });
-    }, 15_000);
-    return () => { clearInterval(timer); window.removeEventListener('pointerdown', active); window.removeEventListener('keydown', active); };
-  }, [detail?.enrollment, player, progress?.status, selected]);
+    return () => {
+      window.removeEventListener('pointerdown', active);
+      window.removeEventListener('keydown', active);
+    };
+  }, [shouldTrackActiveProgress]);
+
+  const sendActiveHeartbeat = React.useCallback(() => {
+    if (!shouldTrackActiveProgress || !detail?.enrollment || !selected) return;
+    if (Date.now() - interactionAtRef.current > 60_000) return;
+    setActiveSeconds(value => value + 15);
+    void fetch('/api/learning/progress', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'heartbeat', enrollmentId: detail.enrollment.id, lessonId: selected.id, seconds: 15 }),
+    });
+  }, [detail?.enrollment?.id, selected?.id, shouldTrackActiveProgress]);
+
+  useVisibilityInterval(sendActiveHeartbeat, 15_000, shouldTrackActiveProgress);
 
   if (error) return <main className="grid min-h-[70vh] place-items-center p-6"><div className="max-w-md text-center"><h1 className="text-xl font-semibold">Learning is unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p><Button asChild variant="outline" className="mt-5"><Link href="/learning/courses">Back to courses</Link></Button></div></main>;
   if (!detail) return <main className="min-h-[70vh] bg-[#f4f1e9] p-6 dark:bg-zinc-950"><div className="mx-auto max-w-6xl animate-pulse"><div className="h-4 w-36 rounded-full bg-[#d9d5c9] dark:bg-zinc-800" /><div className="mt-8 h-80 rounded-[28px] bg-[#e6e1d5] dark:bg-zinc-900" /></div></main>;
@@ -160,11 +170,12 @@ function CourseLessonPlayer({
     const id = window.setTimeout(() => window.localStorage.setItem(storageKey, reflection), 350);
     return () => window.clearTimeout(id);
   }, [reflection, storageKey]);
-  React.useEffect(() => {
-    if (videoBlock?.content?.url || !playing) return;
-    const id = window.setInterval(() => setCurrentTime(value => Math.min(duration, value + playbackRate)), 1000);
-    return () => window.clearInterval(id);
-  }, [duration, playbackRate, playing, videoBlock?.content?.url]);
+  const advanceCurrentTime = React.useCallback(
+    () => setCurrentTime(value => Math.min(duration, value + playbackRate)),
+    [duration, playbackRate]
+  );
+
+  useVisibilityInterval(advanceCurrentTime, 1000, !!playing && !videoBlock?.content?.url);
 
   const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
   const togglePlayback = async () => {

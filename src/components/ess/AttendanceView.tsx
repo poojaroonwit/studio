@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import { EmptyState, Section, StatusBadge } from './EssShared';
 import type { EssDashboard } from './ess-types';
 import { dateValue, statusLabel, stringValue, timeValue } from './ess-types';
@@ -48,10 +49,7 @@ export function AttendanceView({
   const [checkInOpen, setCheckInOpen] = React.useState(false);
   const [locationError, setLocationError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    const interval = window.setInterval(() => setCurrentTime(new Date()), 30_000);
-    return () => window.clearInterval(interval);
-  }, []);
+  useVisibilityInterval(() => setCurrentTime(new Date()), 30_000, true);
 
   const liveWorkedHours = React.useMemo(() => {
     if (!today?.clock_in) return Number(today?.hours_worked || 0);

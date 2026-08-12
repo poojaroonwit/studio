@@ -12,6 +12,10 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
+const globalRateLimiterState = globalThis as unknown as {
+  __rateLimiterCleanupInterval?: NodeJS.Timeout;
+};
+
 type LegacyConnectionRequest = NextRequest & {
   connection?: {
     remoteAddress?: string;
@@ -21,15 +25,18 @@ type LegacyConnectionRequest = NextRequest & {
 // In-memory store for rate limiting (in production, use Redis)
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
+// Clean up expired entries every 5 minutes (single timer per process)
+if (!globalRateLimiterState.__rateLimiterCleanupInterval) {
+  globalRateLimiterState.__rateLimiterCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  }, 5 * 60 * 1000);
+  globalRateLimiterState.__rateLimiterCleanupInterval.unref?.();
+}
 
 /**
  * Rate limiting middleware

@@ -313,22 +313,62 @@ async function reports(companyId: string | null) {
 async function payslips(companyId: string | null, access: PayrollAccess) {
   const employeeFilter = access.canView ? null : access.actorEmployeeId;
   const records = await prisma.$queryRawUnsafe<Row[]>(
-    `SELECT payslip.id, payslip.employee_id, concat(employee.first_name, ' ', employee.last_name) employee_name,
-            employee.employee_number, period.name period_name, period.pay_date, payslip.status,
-            payslip.currency, payslip.gross_pay, payslip.total_deductions, payslip.net_pay,
-            payslip.year_to_date, payslip.breakdown, payslip.published_at, payslip.version,
-            CASE WHEN payslip.file_path IS NULL THEN false ELSE true END AS downloadable
+    `SELECT payslip.id, payslip.employee_id, payslip.payroll_run_item_id, payslip.payroll_period_id,
+            concat(employee.first_name, ' ', employee.last_name) employee_name,
+            employee.employee_number, employee.job_title,
+            department.name AS department, period.name AS period_name, period.pay_date,
+            payslip.status, payslip.currency, payslip.gross_pay, payslip.total_deductions, payslip.net_pay,
+            payslip.year_to_date, payslip.breakdown, payslip.published_at, payslip.version, payslip.file_path,
+            payslip.created_at, payslip.updated_at, payslip.download_count, payslip.last_downloaded_at,
+            CASE WHEN payslip.file_path IS NULL THEN false ELSE true END AS downloadable,
+            payment.payment_method, payment.payment_destination
      FROM hr_payslips payslip
      JOIN hr_employees employee ON employee.id = payslip.employee_id
+     LEFT JOIN hr_departments department ON department.id = employee.department_id
      LEFT JOIN hr_payroll_periods period ON period.id = payslip.payroll_period_id
+     LEFT JOIN LATERAL (
+       SELECT pay.payment_method, pay.payment_destination
+       FROM hr_payroll_payments pay
+       WHERE pay.payroll_run_item_id = payslip.payroll_run_item_id
+       ORDER BY pay.created_at DESC
+       LIMIT 1
+     ) payment ON true
      WHERE ($1::uuid IS NULL OR employee.company_id = $1::uuid)
        AND ($2::uuid IS NULL OR payslip.employee_id = $2::uuid)
        AND ($2::uuid IS NULL OR payslip.status = 'released')
      ORDER BY period.pay_date DESC NULLS LAST, payslip.created_at DESC LIMIT 120`, companyId, employeeFilter,
   );
+
+  const enriched: Row[] = records.map(record => {
+    const status = String(record.status || 'draft');
+    const downloadCount = number(record.download_count);
+    const hasDownload = downloadCount > 0 || Boolean(record.last_downloaded_at);
+    const deliveryStatus = status === 'released'
+      ? hasDownload ? 'delivered' : 'unopened'
+      : 'issue';
+    const lastActivity = record.last_downloaded_at || record.published_at || record.updated_at || record.created_at;
+    return { ...record, delivery_status: deliveryStatus, last_activity: lastActivity } as Row;
+  });
+  const releasedRows = enriched.filter(record => String(record.delivery_status) !== 'issue');
+  const deliveredRows = enriched.filter(record => String(record.delivery_status) === 'delivered');
+  const unopenedRows = enriched.filter(record => String(record.delivery_status) === 'unopened');
+  const issueRows = enriched.filter(record => String(record.delivery_status) === 'issue');
+  const publishedValues = releasedRows
+    .map(row => row.published_at ? new Date(String(row.published_at)).getTime() : NaN)
+    .filter(value => Number.isFinite(value));
+
   return {
-    summary: { released: records.filter(row => row.status === 'released').length, totalNet: records.reduce((sum, row) => sum + number(row.net_pay), 0) },
-    records: mapMoneyRows(records), secondary: [], issues: [],
+    summary: {
+      released: releasedRows.length,
+      delivered: deliveredRows.length,
+      unopened: unopenedRows.length,
+      issues: issueRows.length,
+      totalNet: records.reduce((sum, row) => sum + number(row.net_pay), 0),
+      lastReleasedAt: publishedValues.length ? String(new Date(Math.max(...publishedValues)).toISOString()) : '',
+      totalDownloaded: deliveredRows.reduce((sum, row) => sum + number(row.download_count), 0),
+      recordsWithDownload: deliveredRows.length,
+    },
+    records: mapMoneyRows(enriched), secondary: [], issues: [],
   };
 }
 

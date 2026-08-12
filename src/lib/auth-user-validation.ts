@@ -4,6 +4,37 @@ import { getPool } from "@/lib/db";
 
 const USER_VALIDATION_CACHE_TTL_MS = 5 * 60 * 1000;
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
+const MAX_USER_VALIDATION_CACHE_ENTRIES = 10000;
+const userValidationCacheState = globalThis as unknown as {
+  __userValidationCleanupInterval?: NodeJS.Timeout;
+};
+
+function cleanupUserValidationCache() {
+  const now = Date.now();
+
+  for (const [userId, cached] of userValidationCache.entries()) {
+    if (now - cached.timestamp > USER_VALIDATION_CACHE_TTL_MS) {
+      userValidationCache.delete(userId);
+    }
+  }
+
+  if (userValidationCache.size > MAX_USER_VALIDATION_CACHE_ENTRIES) {
+    const toDelete = userValidationCache.size - MAX_USER_VALIDATION_CACHE_ENTRIES;
+    const iterator = userValidationCache.keys();
+    for (let i = 0; i < toDelete; i += 1) {
+      const key = iterator.next().value;
+      if (!key) {
+        break;
+      }
+      userValidationCache.delete(key);
+    }
+  }
+}
+
+if (!userValidationCacheState.__userValidationCleanupInterval) {
+  userValidationCacheState.__userValidationCleanupInterval = setInterval(cleanupUserValidationCache, USER_VALIDATION_CACHE_TTL_MS);
+  userValidationCacheState.__userValidationCleanupInterval.unref?.();
+}
 
 export async function validateUserExists(userId: string): Promise<boolean> {
   if (!userId) {

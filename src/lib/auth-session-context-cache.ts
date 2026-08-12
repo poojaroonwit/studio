@@ -27,6 +27,37 @@ const sessionContextCache = new Map<string, {
   expiresAt: number;
   value: UserFullContextResult;
 }>();
+const MAX_SESSION_CONTEXT_CACHE_ENTRIES = 2000;
+const sessionContextCacheState = globalThis as unknown as {
+  __sessionContextCleanupInterval?: NodeJS.Timeout;
+};
+
+function cleanupSessionContextCache() {
+  const now = Date.now();
+
+  for (const [sessionToken, cached] of sessionContextCache.entries()) {
+    if (cached.expiresAt <= now) {
+      sessionContextCache.delete(sessionToken);
+    }
+  }
+
+  if (sessionContextCache.size > MAX_SESSION_CONTEXT_CACHE_ENTRIES) {
+    const excess = sessionContextCache.size - MAX_SESSION_CONTEXT_CACHE_ENTRIES;
+    const iterator = sessionContextCache.keys();
+    for (let i = 0; i < excess; i += 1) {
+      const key = iterator.next().value;
+      if (!key) {
+        break;
+      }
+      sessionContextCache.delete(key);
+    }
+  }
+}
+
+if (!sessionContextCacheState.__sessionContextCleanupInterval) {
+  sessionContextCacheState.__sessionContextCleanupInterval = setInterval(cleanupSessionContextCache, 30_000);
+  sessionContextCacheState.__sessionContextCleanupInterval.unref?.();
+}
 
 export function getCachedUserFullContext(sessionToken: string) {
   const cached = sessionContextCache.get(sessionToken);

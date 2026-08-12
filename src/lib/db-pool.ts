@@ -21,7 +21,7 @@ let shutdownHandlerAdded = false;
 
 const connectionUsageTracker = new Map<PoolClient, ConnectionUsage>();
 
-setInterval(cleanupOldConnections, CLEANUP_INTERVAL_MS);
+// No-op by default in environments that don't initialize a pool yet.
 
 export function trackConnectionUsage(client: PoolClient) {
   const existing = connectionUsageTracker.get(client);
@@ -170,6 +170,9 @@ function startPoolMonitoring() {
     clearInterval(poolMonitorInterval);
     poolMonitorInterval = null;
   }
+
+  poolMonitorInterval = setInterval(cleanupOldConnections, CLEANUP_INTERVAL_MS);
+  poolMonitorInterval.unref?.();
 }
 
 function registerShutdownHandler() {

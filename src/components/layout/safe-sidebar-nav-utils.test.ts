@@ -223,7 +223,7 @@ describe('safe-sidebar-nav-utils', () => {
     }));
     expect(
       sidebarConfigData.find(group => group.label === 'Data & Analytics')?.items.map(item => item.href),
-    ).toEqual(['/data-operations', '/dashboard']);
+    ).toEqual(['/data-operations?mode=import', '/data-operations?mode=export']);
     expect(
       sidebarConfigData.find(group => group.label === 'Admin Center')?.items[0],
     ).toMatchObject({ label: 'HR Setup', href: '/settings' });

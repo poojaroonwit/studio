@@ -1,7 +1,7 @@
 export const SW_VERSION = '2.1.3';
 export const SW_VERSION_KEY = 'sw-version';
 export const SW_REGISTRATION_DELAY_MS = 1000;
-export const SW_UPDATE_INTERVAL_MS = 60000;
+export const SW_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
 
 export function hasServiceWorkerSupport() {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator;

@@ -27,15 +27,12 @@ export function useEvaluationLinksTab() {
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(20);
   const [offset, setOffset] = useState(0);
-  const [, setTick] = useState(0);
   const [updatingRequireLogin, setUpdatingRequireLogin] = useState<Set<string>>(new Set());
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<EvalLinkQrData | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setTick((value) => value + 1), 1000);
-
     const fetchLogo = async () => {
       try {
         const data = await readJsonObject(await fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl'));
@@ -46,8 +43,6 @@ export function useEvaluationLinksTab() {
     };
 
     void fetchLogo();
-
-    return () => clearInterval(timer);
   }, []);
 
   const fetchData = useCallback(async () => {

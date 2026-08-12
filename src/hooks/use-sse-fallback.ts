@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { safeFetch } from '@/lib/safe-fetch';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 interface SSEFallbackOptions {
   fallbackIntervalMs?: number;
@@ -18,41 +19,33 @@ export function useSSEFallback(options: SSEFallbackOptions = {}) {
 
   const [isPolling, setIsPolling] = useState(false);
   const [lastPollTime, setLastPollTime] = useState<Date | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const poll = async () => {
+    try {
+      const result = await safeFetch('/api/sse/status', { timeoutMs: 5000 });
+      if (result.ok) {
+        setLastPollTime(new Date());
+      }
+    } catch (error) {
+      // Safe fail: polling is only a fallback/keep-alive.
+    }
+  };
+
+  useVisibilityInterval(poll, fallbackIntervalMs, enableFallback && isPolling);
 
   const startPolling = () => {
-    if (!enableFallback || intervalRef.current) {
-      return;
-    }
-
+    if (!enableFallback) return;
     setIsPolling(true);
-
-    intervalRef.current = setInterval(async () => {
-      try {
-        // Just ping a lightweight endpoint to keep the connection alive
-        const result = await safeFetch('/api/sse/status', { timeoutMs: 5000 });
-        if (result.ok) {
-          setLastPollTime(new Date());
-        } else {
-        }
-      } catch (error) {
-      }
-    }, fallbackIntervalMs);
   };
 
   const stopPolling = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-      setIsPolling(false);
-    }
+    setIsPolling(false);
   };
 
   useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, []);
+    if (!enableFallback) {
+      setIsPolling(false);
+    }
+  }, [enableFallback]);
 
   return {
     isPolling,

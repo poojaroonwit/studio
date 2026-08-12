@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { getUploadQueueSummaryToastMessage } from '../applicant-import-queue-utils';
 import type { QueueItem, QueueResponse, QueueSummary } from '../applicant-import-queue-types';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 type FetchQueue = (currentPage?: number, currentPageSize?: number) => Promise<void>;
 
@@ -137,17 +138,9 @@ export function useApplicantImportQueueRealtime({
     };
   }, [setLastUpdate]);
 
-  useEffect(() => {
-    if (realtimeConnected) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      fetchQueueRef.current(pageRef.current, pageSizeRef.current);
-      setLastUpdate(new Date());
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [realtimeConnected, setLastUpdate]);
-
+  useVisibilityInterval(() => {
+    if (realtimeConnected) return;
+    fetchQueueRef.current(pageRef.current, pageSizeRef.current);
+    setLastUpdate(new Date());
+  }, 15000, !realtimeConnected);
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 interface LoadingMonitorProps {
   isLoading: boolean;
@@ -23,18 +24,12 @@ export const LoadingMonitor: React.FC<LoadingMonitorProps> = ({
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  useEffect(() => {
-    if (!isLoading || !startTime) {
-      setElapsedTime(0);
-      return;
-    }
+  const updateElapsedTime = () => {
+    if (!startTime) return;
+    setElapsedTime(Date.now() - startTime);
+  };
 
-    const interval = setInterval(() => {
-      setElapsedTime(Date.now() - startTime);
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isLoading, startTime]);
+  useVisibilityInterval(updateElapsedTime, 500, isLoading && !!startTime);
 
   if (!isLoading && !error) {
     return null;

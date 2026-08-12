@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 import {
   buildApplicantTableFetchRequestId,
@@ -79,18 +80,16 @@ export function useApplicantsPageLiveEffects({
     fetchTableData,
   ]);
 
-  useEffect(() => {
-    if (shouldStartApplicantRealtimeRefresh({ realtimeConnected, sessionStatus, hasInitialDataFetch })) {
-      const interval = setInterval(() => {
-        if (filters) {
-          fetchTableData(filters, page, pageSize);
-        }
-        fetchAllApplicantsForCounts();
-      }, 30000);
+  const shouldPollApplicants = shouldStartApplicantRealtimeRefresh({ realtimeConnected, sessionStatus, hasInitialDataFetch });
 
-      return () => clearInterval(interval);
+  const pollApplicantsIfNeeded = useCallback(() => {
+    if (filters) {
+      fetchTableData(filters, page, pageSize);
     }
-  }, [realtimeConnected, sessionStatus, hasInitialDataFetch, filters, page, pageSize, fetchTableData, fetchAllApplicantsForCounts]);
+    fetchAllApplicantsForCounts();
+  }, [filters, page, pageSize, fetchTableData, fetchAllApplicantsForCounts]);
+
+  useVisibilityInterval(pollApplicantsIfNeeded, 30000, shouldPollApplicants);
 
   useEffect(() => {
     if (initialFetchError) {

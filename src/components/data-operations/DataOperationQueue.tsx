@@ -5,6 +5,7 @@ import { ArrowDownToLine, ArrowUpFromLine, CheckCircle2, Clock3, Download, Loade
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import { getJsonArray, readJsonObject } from '@/lib/response-json';
 
 interface QueueJob {
@@ -48,9 +49,20 @@ export function DataOperationQueue() {
 
   React.useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(true), 3000);
-    return () => window.clearInterval(timer);
   }, [load]);
+
+  const hasActiveJobs = React.useMemo(() => (
+    jobs.some((job) => job.status === 'pending' || job.status === 'processing')
+  ), [jobs]);
+  const pollIntervalMs = React.useMemo(() => {
+    if (hasActiveJobs) return 3000;
+    if (loading) return 10000;
+    return 30000;
+  }, [hasActiveJobs, loading]);
+
+  useVisibilityInterval(() => {
+    void load(true);
+  }, pollIntervalMs, true);
 
   const counts = React.useMemo(() => ({
     active: jobs.filter((job) => job.status === 'pending' || job.status === 'processing').length,

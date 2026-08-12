@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import {
   Activity,
   AlertTriangle,
@@ -248,13 +249,12 @@ function useAdminCenterHealth() {
 
   useEffect(() => {
     mounted.current = true;
-    void load();
-    const timer = window.setInterval(() => void load(), POLL_INTERVAL_MS);
     return () => {
       mounted.current = false;
-      window.clearInterval(timer);
     };
   }, [load]);
+
+  useVisibilityInterval(load, POLL_INTERVAL_MS, true);
 
   return { snapshot, probes, loading, refreshing, error, refresh: () => void load() };
 }

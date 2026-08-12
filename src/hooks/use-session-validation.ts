@@ -1,7 +1,8 @@
-import { useEffect, useCallback, useState, useRef, useMemo, type MutableRefObject } from 'react';
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { readJsonObject } from '@/lib/response-json';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 import {
   DEFAULT_SESSION_REQUEST_TIMEOUT_MS,
   isSessionValidationTimeout,
@@ -26,9 +27,9 @@ export function useSessionValidation(options: SessionValidationOptions = {}) {
   const [isValidating, setIsValidating] = useState(false);
   const lastValidationTime = useRef<number>(0);
   const validationInProgress = useRef<boolean>(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
   const lastSessionIdRef = useRef<string | undefined>(undefined);
+  const [isSessionValidationEnabled, setIsSessionValidationEnabled] = useState(false);
 
   const memoizedOptions = useMemo(
     () => resolveSessionValidationOptions(options),
@@ -38,6 +39,9 @@ export function useSessionValidation(options: SessionValidationOptions = {}) {
   const sessionId = useMemo(() => session?.user?.id, [session?.user?.id]);
 
   const validateSession = useCallback(async () => {
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
     const now = Date.now();
     const location = typeof window !== 'undefined' ? window.location : undefined;
 
@@ -120,7 +124,9 @@ export function useSessionValidation(options: SessionValidationOptions = {}) {
     const location = typeof window !== 'undefined' ? window.location : undefined;
 
     if (shouldResetSessionValidationInterval({ location, status: effectDependencies.status })) {
-      clearValidationInterval(intervalRef);
+      setIsSessionValidationEnabled(false);
+      hasInitializedRef.current = false;
+      lastSessionIdRef.current = undefined;
       return;
     }
 
@@ -136,13 +142,10 @@ export function useSessionValidation(options: SessionValidationOptions = {}) {
     lastSessionIdRef.current = effectDependencies.sessionId;
 
     validateSession();
-
-    intervalRef.current = setInterval(validateSession, effectDependencies.validateInterval);
-
-    return () => {
-      clearValidationInterval(intervalRef);
-    };
+    setIsSessionValidationEnabled(true);
   }, [effectDependencies, validateSession]);
+
+  useVisibilityInterval(validateSession, effectDependencies.validateInterval, isSessionValidationEnabled);
 
   const memoizedValue = useMemo(() => ({
     isValidating,
@@ -152,11 +155,4 @@ export function useSessionValidation(options: SessionValidationOptions = {}) {
   }), [isValidating, status, session, validateSession]);
 
   return memoizedValue;
-} 
-
-function clearValidationInterval(intervalRef: MutableRefObject<NodeJS.Timeout | null>) {
-  if (intervalRef.current) {
-    clearInterval(intervalRef.current);
-    intervalRef.current = null;
-  }
 }

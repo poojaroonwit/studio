@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
+import { useVisibilityInterval } from '@/hooks/use-visibility-interval';
 
 import {
   canSyncUserPresence,
@@ -9,7 +10,6 @@ import {
   updateCurrentUserPresence,
   type UserPresence,
 } from './user-presence-api';
-import { clearPresenceIntervalRefs } from './user-presence-timer-utils';
 
 export type { UserPresence } from './user-presence-api';
 
@@ -21,8 +21,6 @@ export function useUserPresence() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isUpdatingRef = useRef(false);
 
   const updatePresence = useCallback(async () => {
@@ -69,17 +67,15 @@ export function useUserPresence() {
     }
   }, [pathname, sessionUser?.id, updatePresence]);
 
+  useVisibilityInterval(updatePresence, 30000, !!sessionUser?.id);
+  useVisibilityInterval(fetchPresence, 60000, !!sessionUser?.id);
+
   useEffect(() => {
     if (!sessionUser?.id) return;
-
     updatePresence();
     fetchPresence();
 
-    presenceIntervalRef.current = setInterval(updatePresence, 30000);
-    updateIntervalRef.current = setInterval(fetchPresence, 30000);
-
     return () => {
-      clearPresenceIntervalRefs(presenceIntervalRef, updateIntervalRef);
       removePresence();
     };
   }, [sessionUser?.id, updatePresence, fetchPresence, removePresence]);

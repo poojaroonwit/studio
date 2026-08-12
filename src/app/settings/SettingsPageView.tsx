@@ -504,6 +504,7 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Headcount Types': UsersRound,
   'Headcount Approval Paths': GitBranch,
   'Compensation Approval Routes': GitBranch,
+  'Payroll Approval Routes': GitBranch,
   Grades: BadgeCheck,
   'Position Levels': ListPlus,
   'Holiday List': CalendarDays,

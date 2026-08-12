@@ -19,6 +19,103 @@ import { CompensationReviewWorkspace } from './CompensationReviewWorkspace';
 import { BenefitsCommandCenter } from './BenefitsCommandCenter';
 
 type Row = Record<string, unknown>;
+type PayrollApprovalStep = {
+  sequence: number;
+  role: string;
+  status: string;
+  approverId: string;
+  approverName: string;
+  decisionReason: string;
+  decidedAt: unknown;
+};
+
+type ApprovalStatusStyle = {
+  label: string;
+  labelClass: string;
+  badgeClass: string;
+  initialsClass: string;
+};
+
+function initialsFromName(value: unknown) {
+  const text = String(value || '').trim();
+  if (!text) return 'NA';
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'NA';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function parseApprovalSteps(raw: unknown): PayrollApprovalStep[] {
+  if (!raw) return [];
+  let parsed = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_error) {
+      return [];
+    }
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .map(item => {
+      if (!item || typeof item !== 'object') return null;
+      const step = item as Record<string, unknown>;
+      const sequence = Number(step.sequence);
+      const status = String(step.status || 'pending');
+      return {
+        sequence: Number.isFinite(sequence) ? sequence : 0,
+        role: String(step.role || ''),
+        status,
+        approverId: String(step.approver_id || ''),
+        approverName: String(step.approver_name || ''),
+        decisionReason: String(step.decision_reason || ''),
+        decidedAt: step.decided_at,
+      } as PayrollApprovalStep;
+    })
+    .filter((step): step is PayrollApprovalStep => step !== null);
+}
+
+function approvalStepStyle(statusRaw: unknown, thai = false): ApprovalStatusStyle {
+  const status = String(statusRaw || 'pending').toLowerCase().trim();
+  if (['approved', 'approved_by', 'approved_at', 'completed', 'done', 'success'].includes(status)) {
+    return {
+      label: thai ? 'approved' : 'Approved',
+      labelClass: 'text-emerald-600 dark:text-emerald-300',
+      badgeClass: 'bg-emerald-600',
+      initialsClass: 'bg-emerald-600',
+    };
+  }
+  if (['rejected', 'returned', 'blocked', 'failed', 'denied'].includes(status)) {
+    return {
+      label: thai ? 'rejected' : 'Rejected',
+      labelClass: 'text-rose-600 dark:text-rose-300',
+      badgeClass: 'bg-rose-600',
+      initialsClass: 'bg-rose-600',
+    };
+  }
+  if (['in_progress', 'reviewing', 'under_review', 'pending_review'].includes(status)) {
+    return {
+      label: thai ? 'in progress' : 'In progress',
+      labelClass: 'text-blue-600 dark:text-blue-300',
+      badgeClass: 'bg-blue-600',
+      initialsClass: 'bg-blue-600',
+    };
+  }
+  if (['waiting', 'pending', 'open', 'queued', 'not_started'].includes(status)) {
+    return {
+      label: thai ? 'waiting' : 'Waiting',
+      labelClass: 'text-amber-600 dark:text-amber-300',
+      badgeClass: 'bg-amber-600',
+      initialsClass: 'bg-amber-600',
+    };
+  }
+  return {
+    label: thai ? 'pending' : 'Pending',
+    labelClass: 'text-amber-600 dark:text-amber-300',
+    badgeClass: 'bg-amber-600',
+    initialsClass: 'bg-amber-600',
+  };
+}
 
 export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
   const router = useRouter();
@@ -231,6 +328,8 @@ function PayrollBlockersDrawer({ data, open, busy, onOpenChange, onAssignProfile
   onAssignProfile: (body: Row) => Promise<unknown>;
 }) {
   const router = useRouter();
+  const { locale } = useLocalization();
+  const thai = locale.toLowerCase().startsWith('th');
   const tasks = React.useMemo(() => payrollBlockerTasks(data), [data]);
   const [selectedId, setSelectedId] = React.useState('');
   const [profileTaskId, setProfileTaskId] = React.useState('');
@@ -242,7 +341,7 @@ function PayrollBlockersDrawer({ data, open, busy, onOpenChange, onAssignProfile
     bankAccountReference: '',
   });
   const selected = tasks.find(task => task.id === selectedId) || tasks[0] || null;
-  const cutoff = String(data.summary.cutoffLabel || '11 Aug 2026 10:30');
+  const cutoff = String(data.summary.cutoffLabel || '');
 
   React.useEffect(() => {
     if (open && tasks.length && !tasks.some(task => task.id === selectedId)) setSelectedId(tasks[0].id);
@@ -331,7 +430,7 @@ function PayrollBlockersDrawer({ data, open, busy, onOpenChange, onAssignProfile
 
           <div className="flex shrink-0 items-center gap-3 border-b border-border dark:border-slate-700 px-5 py-3 text-sm text-foreground/75 dark:text-slate-300">
             <CalendarDays className="h-4 w-4 text-muted-foreground dark:text-slate-400" aria-hidden="true"/>
-            <span>Cutoff: {cutoff}</span>
+            <span>{thai ? `วันสิ้นสุด: ${cutoff || '-'}` : `Cutoff: ${cutoff || '-'}`}</span>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -453,6 +552,8 @@ function OverviewView({ data, onResolve, onReports }: { data: PayrollWorkspacePa
   const thai = locale.toLowerCase().startsWith('th');
   const integration = data.secondary[0] || {};
   const summary = data.summary;
+  const currentSummaryRun = data.records[0] || {};
+  const previousSummaryRun = data.records[1] || {};
   const readiness = Math.max(0, Math.min(100, Number(summary.readiness || (Number(summary.notReady || 0) ? 82 : 100))));
   const employees = Number(summary.employees || 0);
   const blockers = Number(summary.notReady || data.issues.filter(issue => String(issue.severity) === 'blocking').length);
@@ -462,6 +563,8 @@ function OverviewView({ data, onResolve, onReports }: { data: PayrollWorkspacePa
     const previousValue = Number(previous || 0);
     return previousValue ? ((currentValue - previousValue) / previousValue) * 100 : 0;
   };
+  const ledgerCurrentPeriod = formatMonthLabel(currentSummaryRun.pay_date, thai ? 'เดือนปัจจุบัน' : 'Current period');
+  const ledgerPreviousPeriod = formatMonthLabel(previousSummaryRun.pay_date, thai ? 'เดือนก่อนหน้า' : 'Previous period');
   const financialRows = [
     { label: thai ? 'ค่าจ้างและรายได้รวม (Gross Pay)' : 'Gross pay', current: summary.gross, previous: summary.priorGross },
     { label: thai ? 'รายการหักรวม (Deductions)' : 'Deductions', current: summary.deductions, previous: summary.priorDeductions },
@@ -490,8 +593,8 @@ function OverviewView({ data, onResolve, onReports }: { data: PayrollWorkspacePa
         { icon: CalendarDays, label: thai ? 'รอบบัญชีปัจจุบัน' : 'Current period', value: String(summary.currentPeriod || (thai ? 'ยังไม่ได้กำหนด' : 'Not configured')) },
         { icon: Users, label: thai ? 'พนักงานทั้งหมด' : 'Employees', value: employees.toLocaleString() },
         { icon: WalletCards, label: thai ? 'ประมาณการจ่ายสุทธิ' : 'Estimated net pay', value: `${money(summary.net)} THB`, valueClass: 'text-emerald-600 dark:text-emerald-300' },
-        { icon: Clock3, label: thai ? 'ตัดรอบ' : 'Cutoff', value: String(summary.cutoffLabel || (thai ? '11 ส.ค. 2026 10:30' : '11 Aug 2026 10:30')) },
-        { icon: CalendarDays, label: thai ? 'วันจ่ายเงินเดือน' : 'Pay date', value: String(summary.payDateLabel || (thai ? '31 ส.ค. 2026' : '31 Aug 2026')) },
+        { icon: Clock3, label: thai ? 'ตัดรอบ' : 'Cutoff', value: String(summary.cutoffLabel || '-') },
+        { icon: CalendarDays, label: thai ? 'วันจ่ายเงินเดือน' : 'Pay date', value: String(summary.payDateLabel || '-') },
         { icon: ShieldCheck, label: thai ? 'ความพร้อมรวม' : 'Overall readiness', value: `${readiness}%`, valueClass: 'text-emerald-600 dark:text-emerald-300' },
       ].map(({ icon: Icon, label, value, valueClass }, index) => <div key={label} className={cn('flex min-h-11 min-w-0 items-center gap-2 px-3', index > 0 && 'border-l border-slate-200 dark:border-slate-800')}>
         <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true"/><span className="text-[13px] leading-4 text-slate-500">{label}:</span><strong className={cn('truncate text-[13px] font-semibold leading-4 tabular-nums text-slate-900 dark:text-slate-100', valueClass)}>{value}</strong>
@@ -507,17 +610,28 @@ function OverviewView({ data, onResolve, onReports }: { data: PayrollWorkspacePa
             <span className="mt-1 text-[10px] font-medium text-slate-500">{thai ? 'พร้อมสำหรับจ่าย' : 'ready to pay'}</span>
           </div>
           <dl className="space-y-3 text-[13px] leading-4">
-            <div><dt className="text-slate-500">{thai ? 'ตัดรอบล่าสุด' : 'Last cutoff'}</dt><dd className="mt-0.5 font-semibold">{String(summary.cutoffLabel || (thai ? '11 ส.ค. 2026 10:30' : '11 Aug 2026 10:30'))}</dd></div>
+            <div><dt className="text-slate-500">{thai ? 'ตัดรอบล่าสุด' : 'Last cutoff'}</dt><dd className="mt-0.5 font-semibold">{String(summary.cutoffLabel || '-')}</dd></div>
             <div><dt className="text-slate-500">{thai ? 'พนักงานในรอบนี้' : 'Employees in scope'}</dt><dd className="mt-0.5 font-semibold tabular-nums">{employees.toLocaleString()} {thai ? 'คน' : ''}</dd></div>
-            <div><dt className="text-slate-500">{thai ? 'วันจ่ายเงินเดือน' : 'Pay date'}</dt><dd className="mt-0.5 font-semibold">{String(summary.payDateLabel || (thai ? '31 ส.ค. 2026' : '31 Aug 2026'))}</dd></div>
+            <div><dt className="text-slate-500">{thai ? 'วันจ่ายเงินเดือน' : 'Pay date'}</dt><dd className="mt-0.5 font-semibold">{String(summary.payDateLabel || '-')}</dd></div>
           </dl>
         </div>
 
         <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <p className="text-xs text-slate-500">{thai ? 'ผู้ตรวจสอบหลัก' : 'Primary reviewer'}</p>
-          <div className="mt-2 flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500 text-xs font-bold text-white">FA</span><div><p className="text-sm font-semibold">{String(summary.reviewOwner || (thai ? 'พัทธิดา วัฒนเมล' : 'Patricia Wintonmail'))}</p><p className="text-xs text-slate-500">{thai ? 'ผู้จัดการฝ่ายการเงิน' : 'Finance manager'}</p></div></div>
-          <p className="mt-3 text-xs text-slate-500">{thai ? 'อัปเดตล่าสุด' : 'Last reviewed'}</p><p className="mt-0.5 text-xs font-medium">{String(summary.reviewedAtLabel || (thai ? '11 ส.ค. 2026 09:12' : '11 Aug 2026 09:12'))}</p>
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-300"><Check className="h-3.5 w-3.5"/>{thai ? 'พร้อมตรวจสอบ' : 'Ready for review'}</p>
+          {(() => {
+            const reviewer = String(summary.reviewOwner || (thai ? 'ยังไม่ระบุผู้ตรวจสอบ' : 'Not assigned'));
+            const reviewerStyle = approvalStepStyle('approved', thai);
+            return (
+              <>
+                <p className="text-xs text-slate-500">{thai ? 'ผู้ตรวจสอบหลัก' : 'Primary reviewer'}</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className={cn('flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white', reviewerStyle.initialsClass)}>{initialsFromName(reviewer)}</span>
+                  <div><p className="text-sm font-semibold">{reviewer}</p><p className="text-xs text-slate-500">{thai ? 'ผู้จัดการฝ่ายการเงิน' : 'Finance manager'}</p></div>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">{thai ? 'อัปเดตล่าสุด' : 'Last reviewed'}</p><p className="mt-0.5 text-xs font-medium">{String(summary.reviewedAtLabel || (thai ? 'ยังไม่ตรวจสอบล่าสุด' : 'Not reviewed yet'))}</p>
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-300"><Check className="h-3.5 w-3.5"/>{thai ? 'พร้อมตรวจสอบ' : 'Ready for review'}</p>
+              </>
+            );
+          })()}
         </div>
 
         <Button onClick={onResolve} className="mt-4 min-h-11 w-full justify-between bg-blue-600 text-white hover:bg-blue-500"><span className="flex items-center gap-2"><AlertCircle className="h-4 w-4"/>{thai ? `แก้ไข ${blockers} รายการที่เป็นการบล็อก` : `Resolve ${blockers} blocking items`}</span><ChevronRight className="h-4 w-4"/></Button>
@@ -536,8 +650,8 @@ function OverviewView({ data, onResolve, onReports }: { data: PayrollWorkspacePa
 
       <div className="min-w-0 border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-[#07111f]">
         <section>
-          <div className="flex items-center justify-between gap-4"><h2 className="text-base font-bold">{thai ? 'บัญชีควบคุมทางการเงิน (ส.ค. 2026)' : 'Financial control ledger (Aug 2026)'}</h2><button type="button" onClick={onReports} className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300">{thai ? 'ดูรายงานฉบับเต็ม' : 'View full report'} <ChevronRight className="ml-1 inline h-3.5 w-3.5"/></button></div>
-          <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-[13px] leading-4"><thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900"><tr><th className="px-3 py-2 font-medium">{thai ? 'รายการทางการเงิน' : 'Financial item'}</th><th className="px-3 py-2 text-right font-medium">{thai ? 'ส.ค. 2026 (THB)' : 'Aug 2026 (THB)'}</th><th className="px-3 py-2 text-right font-medium">{thai ? 'ก.ค. 2026 (THB)' : 'Jul 2026 (THB)'}</th><th className="px-3 py-2 text-right font-medium">{thai ? 'เปลี่ยนแปลง (THB)' : 'Change (THB)'}</th><th className="px-3 py-2 text-right font-medium">MoM</th></tr></thead><tbody>{financialRows.map(row => {
+          <div className="flex items-center justify-between gap-4"><h2 className="text-base font-bold">{thai ? `บัญชีควบคุมทางการเงิน (${ledgerCurrentPeriod})` : `Financial control ledger (${ledgerCurrentPeriod})`}</h2><button type="button" onClick={onReports} className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300">{thai ? 'ดูรายงานฉบับเต็ม' : 'View full report'} <ChevronRight className="ml-1 inline h-3.5 w-3.5"/></button></div>
+          <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-[13px] leading-4"><thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900"><tr><th className="px-3 py-2 font-medium">{thai ? 'รายการทางการเงิน' : 'Financial item'}</th><th className="px-3 py-2 text-right font-medium">{ledgerCurrentPeriod} (THB)</th><th className="px-3 py-2 text-right font-medium">{ledgerPreviousPeriod} (THB)</th><th className="px-3 py-2 text-right font-medium">{thai ? 'เปลี่ยนแปลง (THB)' : 'Change (THB)'}</th><th className="px-3 py-2 text-right font-medium">MoM</th></tr></thead><tbody>{financialRows.map(row => {
             const change = Number(row.current || 0) - Number(row.previous || 0); const delta = percent(row.current, row.previous);
             return <tr key={row.label} className={cn('border-b border-slate-200 dark:border-slate-800', row.emphasis && 'border-t-2 border-t-slate-400 font-bold dark:border-t-slate-500')}><td className="px-3 py-2.5">{row.label}</td><td className="px-3 py-2.5 text-right tabular-nums">{money(row.current)}</td><td className="px-3 py-2.5 text-right tabular-nums text-slate-500">{money(row.previous)}</td><td className="px-3 py-2.5 text-right tabular-nums">{change >= 0 ? '+' : ''}{money(change)}</td><td className={cn('px-3 py-2.5 text-right font-semibold tabular-nums', delta >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300')}>{delta >= 0 ? '+' : ''}{delta.toFixed(2)}%</td></tr>;
           })}</tbody></table></div>
@@ -725,24 +839,48 @@ function PayrollRunRegisterDesign({
 }) {
   const { locale } = useLocalization();
   const thai = locale.toLowerCase().startsWith('th');
+  const allPeriodValue = '__all_periods__';
   const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [typeFilter, setTypeFilter] = React.useState('all');
+  const [periodFilter, setPeriodFilter] = React.useState(allPeriodValue);
   const [selectedId, setSelectedId] = React.useState(String(data.records[0]?.id || ''));
   const moneyValue = (value: unknown) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0));
   const normalized = query.trim().toLowerCase();
+  const periodOptions = React.useMemo(() => {
+    const seen = new Set<string>();
+    const options: { id: string; label: string }[] = [{ id: allPeriodValue, label: thai ? 'ช่วงเวลา: ทั้งหมด' : 'All periods' }];
+    for (const period of data.periods) {
+      const periodId = String(period.id || '');
+      if (!periodId || seen.has(periodId)) continue;
+      seen.add(periodId);
+      options.push({
+        id: periodId,
+        label: String(period.name || formatMonthLabel(period.pay_date, thai ? 'ช่วงที่ไม่ระบุชื่อ' : 'Unnamed period')),
+      });
+    }
+    return options;
+  }, [data.periods, thai]);
   const rows = data.records.filter(row => {
     const searchText = [row.period_name, row.id, row.run_type, row.payroll_group_name, row.owner_name].join(' ').toLowerCase();
+    const rowPeriodId = String(row.period_id || '');
+    const periodMatches = periodFilter === allPeriodValue || rowPeriodId === periodFilter || (!rowPeriodId && periodFilter === allPeriodValue);
     return (!normalized || searchText.includes(normalized))
+      && periodMatches
       && (statusFilter === 'all' || String(row.status) === statusFilter)
       && (typeFilter === 'all' || String(row.run_type || 'regular') === typeFilter);
   });
   const selected = data.records.find(row => String(row.id) === selectedId) || rows[0] || data.records[0];
   const selectedAction = selected ? nextAction(selected) : null;
   const stageIndex = selected ? ({ draft: 0, returned_for_correction: 0, collecting_inputs: 1, calculated: 2, exceptions_pending: 2, pending_approval: 3, approved: 3, finalized: 4, payment_processing: 4, paid: 4, reconciled: 5, closed: 5 }[String(selected.status)] ?? 0) : 0;
+  const approvalSteps = selected ? parseApprovalSteps(selected.approval_steps) : [];
   const stages = thai
     ? ['เตรียมข้อมูล', 'ตรวจสอบข้อมูล', 'คำนวณเงินเดือน', 'ตรวจสอบและอนุมัติ', 'ประกาศสลิป', 'จ่ายเงินเดือน']
     : ['Prepare data', 'Validate inputs', 'Calculate payroll', 'Review and approve', 'Release payslips', 'Pay employees'];
+  const completedStepDate = approvalSteps
+    .map(step => Number(step.sequence) > 0 ? step.decidedAt : selected?.created_at)
+    .find(value => value);
+  const fallbackTimelineLabel = formatTimelineLabel(completedStepDate || selected?.updated_at || selected?.created_at || '', thai ? 'เสร็จสิ้น' : 'Completed');
   const runningCount = Number(data.summary.inProgress || data.records.filter(row => ['draft','collecting_inputs','calculated','exceptions_pending'].includes(String(row.status))).length);
   const approvalCount = Number(data.summary.pendingApproval || data.records.filter(row => String(row.status) === 'pending_approval').length);
   const downloadRegister = () => {
@@ -785,7 +923,14 @@ function PayrollRunRegisterDesign({
         <Input value={query} onChange={event => setQuery(event.target.value)} className="h-10 border-slate-300 bg-white pl-9 dark:border-slate-700 dark:bg-[#0b1422]" placeholder={thai ? 'ค้นหารอบบัญชีเงินเดือน' : 'Search payroll runs'}/>
       </label>
       <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 lg:pb-0">
-        <select aria-label={thai ? 'ช่วงเวลา' : 'Period'} className="h-10 min-w-[142px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"><option>{thai ? 'ส.ค. 2026 – เม.ย. 2026' : 'Aug 2026 – Apr 2026'}</option></select>
+        <select
+          aria-label={thai ? 'ช่วงเวลา' : 'Period'}
+          value={periodFilter}
+          onChange={event => setPeriodFilter(event.target.value)}
+          className="h-10 min-w-[142px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+        >
+          {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+        </select>
         <select aria-label={thai ? 'ประเภท' : 'Type'} value={typeFilter} onChange={event => setTypeFilter(event.target.value)} className="h-10 min-w-[112px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"><option value="all">{thai ? 'ประเภท: ทั้งหมด' : 'All types'}</option><option value="regular">{thai ? 'รอบปกติ' : 'Regular'}</option><option value="off_cycle">{thai ? 'นอกงวด' : 'Off-cycle'}</option><option value="bonus">{thai ? 'โบนัส' : 'Bonus'}</option><option value="correction">{thai ? 'ปรับปรุง' : 'Correction'}</option></select>
         <button type="button" className="inline-flex h-10 min-w-[118px] items-center justify-between gap-2 border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"><SlidersHorizontal className="h-4 w-4"/>{thai ? 'กลุ่มการจ่าย' : 'Payroll group'}<ChevronDown className="h-3.5 w-3.5"/></button>
         <select aria-label={thai ? 'สถานะ' : 'Status'} value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 min-w-[118px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"><option value="all">{thai ? 'สถานะ: ทั้งหมด' : 'All statuses'}</option><option value="exceptions_pending">{thai ? 'ตรวจสอบข้อยกเว้น' : 'Review exceptions'}</option><option value="pending_approval">{thai ? 'รออนุมัติ' : 'Awaiting approval'}</option><option value="approved">{thai ? 'อนุมัติแล้ว' : 'Approved'}</option><option value="paid">{thai ? 'จ่ายแล้ว' : 'Paid'}</option><option value="reconciled">{thai ? 'กระทบยอดแล้ว' : 'Reconciled'}</option></select>
@@ -820,9 +965,38 @@ function PayrollRunRegisterDesign({
       {selected && <aside className="self-start border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#07111f]">
         <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800"><p className="text-xs text-slate-500">{thai ? 'รายละเอียดรอบที่เลือก' : 'Selected run details'}</p><div className="mt-1 flex items-start justify-between gap-3"><div><h3 className="text-lg font-semibold">{String(selected.period_name)} · {String(selected.run_type || 'regular').replaceAll('_',' ')}</h3><p className="mt-0.5 text-xs text-slate-500">{String(selected.id)}</p></div><PayrollStatus value={selected.status}/></div><dl className="mt-4 grid grid-cols-3 gap-3 text-xs"><div><dt className="text-slate-500">{thai ? 'พนักงาน' : 'Employees'}</dt><dd className="mt-1 font-semibold tabular-nums">{Number(selected.employee_count || 0)} {thai ? 'คน' : ''}</dd></div><div><dt className="text-slate-500">{thai ? 'วันที่จ่าย' : 'Pay date'}</dt><dd className="mt-1 font-semibold">{String(selected.pay_date_label || date(selected.pay_date))}</dd></div><div><dt className="text-slate-500">{thai ? 'เจ้าของรอบ' : 'Owner'}</dt><dd className="mt-1 font-semibold">{String(selected.owner_name || 'Payroll Operations')}</dd></div></dl></div>
         <div className="px-4 py-4"><div className="flex items-center justify-between"><div><p className="text-xs text-slate-500">{thai ? 'สถานะรอบ' : 'Run status'}</p><p className="mt-1 font-semibold text-blue-600 dark:text-blue-300">{stages[stageIndex]}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-blue-500 text-sm font-bold tabular-nums">{Number(selected.readiness ?? 82)}%</div></div>
-          <ol className="mt-5 space-y-0">{stages.map((stage, index) => <li key={stage} className="relative flex min-h-[46px] gap-3"><span className={cn('relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px]', index < stageIndex ? 'border-emerald-500 bg-emerald-500 text-white' : index === stageIndex ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-600 bg-[#07111f] text-slate-500')}>{index < stageIndex ? <Check className="h-3 w-3"/> : index + 1}</span>{index < stages.length - 1 && <span className={cn('absolute left-[9px] top-5 h-[27px] w-px', index < stageIndex ? 'bg-emerald-500' : 'bg-slate-700')}/>}<div className="min-w-0"><p className={cn('text-xs font-semibold', index === stageIndex && 'text-blue-600 dark:text-blue-300')}>{stage}</p><p className="mt-0.5 text-[10px] text-slate-500">{index < stageIndex ? (thai ? 'เสร็จสิ้น · 11 ส.ค. 2026' : 'Completed · 11 Aug 2026') : index === stageIndex ? (thai ? `${Number(selected.exception_count || 0)} ประเด็นที่ต้องตรวจสอบ` : `${Number(selected.exception_count || 0)} exceptions to review`) : (thai ? 'รอดำเนินการ' : 'Pending')}</p></div></li>)}</ol>
-          {Number(selected.exception_count || 0) > 0 && <div className="mt-1 border-y border-amber-500/30 bg-amber-500/5 py-3"><p className="text-xs font-semibold text-amber-600 dark:text-amber-300">{thai ? `ประเด็นที่เป็นอุปสรรค (${Number(selected.exception_count)})` : `Blocking issues (${Number(selected.exception_count)})`}</p><div className="mt-2 space-y-1 text-[11px]"><p className="flex justify-between"><span>{thai ? 'ข้อมูลบัญชีธนาคารไม่ครบ' : 'Missing bank details'}</span><strong className="text-rose-500">8 {thai ? 'คน' : ''}</strong></p><p className="flex justify-between"><span>{thai ? 'ขาดการอนุมัติเวลาทำงาน' : 'Attendance approval missing'}</span><strong className="text-rose-500">5 {thai ? 'คน' : ''}</strong></p><p className="flex justify-between"><span>{thai ? 'การเปลี่ยนแปลงค่าตอบแทน' : 'Compensation changes'}</span><strong className="text-amber-500">3 {thai ? 'คน' : ''}</strong></p></div></div>}
-          <div className="mt-4"><p className="text-xs font-semibold">{thai ? 'ผู้อนุมัติ' : 'Approvers'}</p><div className="mt-2 space-y-2 text-xs"><div className="flex items-center justify-between"><span className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white">FA</span>{thai ? 'Payroll Manager' : 'Payroll Manager'}</span><span className="text-amber-500">{thai ? 'รออนุมัติ' : 'Waiting'}</span></div><div className="flex items-center justify-between"><span className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">SP</span>Finance Director</span><span className="text-amber-500">{thai ? 'รออนุมัติ' : 'Waiting'}</span></div></div></div>
+          <ol className="mt-5 space-y-0">{stages.map((stage, index) => {
+            const completedLabel = index < stageIndex
+              ? (index < approvalSteps.length && approvalSteps[index]?.decidedAt
+                ? formatTimelineLabel(approvalSteps[index]?.decidedAt, '')
+                : fallbackTimelineLabel)
+              : null;
+            const activeLabel = index === stageIndex
+              ? `${Number(selected.exception_count || 0)} ${thai ? 'ประเด็นที่ต้องตรวจสอบ' : 'exceptions to review'}`
+              : (thai ? 'รอดำเนินการ' : 'Pending');
+            return <li key={stage} className="relative flex min-h-[46px] gap-3"><span className={cn('relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px]', index < stageIndex ? 'border-emerald-500 bg-emerald-500 text-white' : index === stageIndex ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-600 bg-[#07111f] text-slate-500')}>{index < stageIndex ? <Check className="h-3 w-3"/> : index + 1}</span>{index < stages.length - 1 && <span className={cn('absolute left-[9px] top-5 h-[27px] w-px', index < stageIndex ? 'bg-emerald-500' : 'bg-slate-700')}/>}<div className="min-w-0"><p className={cn('text-xs font-semibold', index === stageIndex && 'text-blue-600 dark:text-blue-300')}>{stage}</p><p className="mt-0.5 text-[10px] text-slate-500">{index < stageIndex ? completedLabel || (thai ? 'เสร็จสิ้น' : 'Completed') : index === stageIndex ? activeLabel : (thai ? 'รอดำเนินการ' : 'Pending')}</p></div></li>;
+          })}</ol>
+          {Number(selected.exception_count || 0) > 0 && <div className="mt-1 border-y border-amber-500/30 bg-amber-500/5 py-3"><p className="text-xs font-semibold text-amber-600 dark:text-amber-300">{thai ? `ประเด็นที่เป็นอุปสรรค (${Number(selected.exception_count)})` : `Blocking issues (${Number(selected.exception_count)})`}</p><div className="mt-2 space-y-1 text-[11px]"><p className="flex justify-between"><span>{thai ? 'ข้อยกเว้นที่เปิดอยู่' : 'Open exceptions'}</span><strong className="text-rose-500">{Number(selected.exception_count)} {thai ? 'รายการ' : 'items'}</strong></p><p className="flex justify-between"><span>{thai ? 'ความคลาดเคลื่อน' : 'Open variances'}</span><strong className="text-amber-500">{Number(selected.variance_count || 0)} {thai ? 'รายการ' : 'items'}</strong></p></div></div>}
+          <div className="mt-4">
+            <p className="text-xs font-semibold">{thai ? 'ผู้อนุมัติ' : 'Approvers'}</p>
+            <div className="mt-2 space-y-2 text-xs">
+              {approvalSteps.length ? approvalSteps.map(step => {
+                const style = approvalStepStyle(step.status, thai);
+                return (
+                  <div key={`${step.sequence}-${step.approverId || step.approverName || step.role || 'approver'}`} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className={cn('flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white', style.initialsClass)}>{initialsFromName(step.approverName || step.role)}</span>
+                      <span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">{step.approverName || step.role || (thai ? 'ผู้รับผิดชอบ' : 'Approver')}</span>
+                        {step.role ? <span className="text-slate-500">{step.role}</span> : null}
+                      </span>
+                    </span>
+                    <span className={style.labelClass}>{style.label}</span>
+                  </div>
+                );
+              }) : <p className="text-slate-500">{thai ? 'ยังไม่กำหนดผู้อนุมัติสำหรับรอบนี้' : 'No approvers configured for this run.'}</p>}
+            </div>
+          </div>
           <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800"><div className="flex items-baseline justify-between"><span className="text-xs text-slate-500">{thai ? 'จ่ายสุทธิ' : 'Net pay'}</span><strong className="text-lg tabular-nums">{moneyValue(selected.net_total)} <span className="text-xs font-medium text-slate-500">THB</span></strong></div>{selectedAction && <Button disabled={Boolean(busy)} onClick={() => onAction(selected, selectedAction)} className="mt-3 min-h-11 w-full bg-blue-600 text-white hover:bg-blue-500">{busy === `${selected.id}-${selectedAction}` ? (thai ? 'กำลังดำเนินการ…' : 'Working…') : (thai ? 'เปิดพื้นที่ควบคุมรอบ' : 'Open run control')}<ChevronRight className="ml-auto h-4 w-4"/></Button>}<Button variant="outline" className="mt-2 min-h-10 w-full">{thai ? 'ดูบันทึกตรวจสอบ' : 'View audit log'}</Button></div>
         </div>
       </aside>}
@@ -1097,7 +1271,7 @@ function PayslipsView({ data, onRuns }: { data: PayrollWorkspacePayload; onRuns:
     <div className="grid gap-4">
       <section className="min-w-0 border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
-          <div><h2 className="font-bold">Employee release register</h2><p className="text-xs text-slate-500">{selectedPeriodLabel} � {periodFilteredRows.length} records</p></div>
+          <div><h2 className="font-bold">Employee release register</h2><p className="text-xs text-slate-500">{selectedPeriodLabel}  ·  {periodFilteredRows.length} records</p></div>
           <div className="flex flex-wrap gap-2"><label className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search employee" className="h-9 w-52 pl-9"/></label><Button variant="outline" size="sm" onClick={exportRegister}><Download className="mr-2 h-4 w-4"/>Export</Button></div>
         </div>
         <div className="flex gap-5 overflow-x-auto border-b border-slate-200 px-4 dark:border-slate-800">
@@ -1155,6 +1329,26 @@ function parseDate(value: unknown): Date | null {
   if (!value) return null;
   const parsed = value instanceof Date ? value : new Date(String(value));
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatMonthLabel(value: unknown, fallback = '') {
+  const parsed = parseDate(value);
+  if (!parsed) return fallback;
+  return new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+function formatTimelineLabel(value: unknown, fallback = '') {
+  const parsed = parseDate(value);
+  if (!parsed) return fallback;
+  const dateValue = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed);
+  return `Completed · ${dateValue}`;
 }
 
 function normalizePayslipDeliveryStatus(

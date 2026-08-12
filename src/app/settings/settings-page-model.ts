@@ -368,6 +368,16 @@ export const settingsItems: SettingsPageItem[] = [
     adminOnlyOrPermission: true,
   },
   {
+    href: '/settings/payroll-approval-routes',
+    label: 'Payroll Approval Routes',
+    description: 'Configure the approval sequence used by payroll runs before approval.',
+    tab: 'Payroll & Expenses',
+    section: 'Approvals',
+    value: 'Configure',
+    permissionId: 'SYSTEM_SETTINGS_VIEW',
+    adminOnlyOrPermission: true,
+  },
+  {
     href: '/settings/policy-configuration?area=performance-learning',
     label: 'Performance & Learning Policies',
     description: 'Set review cycles, rating scales, goals, required learning, and certification reminders.',

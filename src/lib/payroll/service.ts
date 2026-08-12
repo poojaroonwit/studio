@@ -7,6 +7,7 @@ import { NotificationService } from '@/lib/notificationService';
 import { resolveCompanyScope } from '@/lib/hr/company-scope';
 import { calculatePayroll } from './calculation-engine';
 import type { PayrollAccess, PayrollActionInput, PayrollResource, PayrollWorkspacePayload } from './contracts';
+import { getPayrollApprovalRoute } from '../payroll-approval-route-config';
 import { maskPayrollReference } from './permissions';
 
 type Db = Prisma.TransactionClient | typeof prisma;
@@ -53,12 +54,47 @@ function iso(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
 }
 
+function formatReviewDateTimeLabel(value: unknown) {
+  if (!value) return '';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '';
+  const calendar = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const clock = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `${calendar.format(date)} ${clock.format(date)}`;
+}
+
 function mapMoneyRows(rows: Row[]) {
   return rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => (
     /(^|_)(amount|salary|pay|cost|total|deductions|contribution|debit|credit)$/.test(key)
       ? [key, number(value)]
       : [key, value instanceof Date ? value.toISOString() : value]
   ))));
+}
+
+function formatDateLabel(value: unknown) {
+  if (!value) return '';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+function approvalStepStatusLabel(status: string) {
+  if (status === 'approved') return 'approved';
+  if (status === 'returned' || status === 'rejected') return 'returned';
+  if (status === 'pending') return 'pending';
+  return 'queued';
 }
 
 async function common(companyId: string | null) {
@@ -129,16 +165,18 @@ async function overview(companyId: string | null) {
     prisma.$queryRawUnsafe<Row[]>(
       `SELECT run.id, run.status, run.run_type, run.employee_count, run.gross_total,
               run.total_deductions, run.net_total, run.employer_cost, run.approval_status,
-              run.payment_status, run.reconciliation_status, run.version,
-              period.name AS period_name, period.pay_date,
+              run.payment_status, run.reconciliation_status, run.version, run.approved_by_id, run.approved_at,
+              concat(approved_by.name, ' ', approved_by.email) AS review_owner_name,
+              period.name AS period_name, period.start_date, period.end_date, period.pay_date,
               payroll_group.name AS payroll_group_name,
               (SELECT COUNT(*) FROM hr_payroll_exceptions exception WHERE exception.payroll_run_id = run.id AND exception.status = 'open')::int AS exception_count,
               (SELECT COUNT(*) FROM hr_payroll_variances variance WHERE variance.payroll_run_id = run.id AND variance.status = 'open')::int AS variance_count
-       FROM hr_payroll_runs run
-       JOIN hr_payroll_periods period ON period.id = run.period_id
-       LEFT JOIN hr_payroll_groups payroll_group ON payroll_group.id = run.payroll_group_id
-       WHERE ($1::uuid IS NULL OR run.company_id = $1::uuid)
-       ORDER BY period.pay_date DESC, run.created_at DESC LIMIT 8`, companyId,
+      FROM hr_payroll_runs run
+      JOIN hr_payroll_periods period ON period.id = run.period_id
+      LEFT JOIN "User" approved_by ON approved_by.id = run.approved_by_id
+      LEFT JOIN hr_payroll_groups payroll_group ON payroll_group.id = run.payroll_group_id
+      WHERE ($1::uuid IS NULL OR run.company_id = $1::uuid)
+      ORDER BY period.pay_date DESC, run.created_at DESC LIMIT 8`, companyId,
     ),
     prisma.$queryRawUnsafe<Row[]>(
       `SELECT issue_type, severity, employee_id, employee_name, reason, source_module, required_action
@@ -187,6 +225,10 @@ async function overview(companyId: string | null) {
       missingPayrollGroup: number(metric.missing_payroll_group),
       currentStatus: String(currentRuns[0]?.status || 'No active run'),
       currentPeriod: String(currentRuns[0]?.period_name || 'Not configured'),
+      cutoffLabel: formatDateLabel(currentRuns[0]?.end_date),
+      payDateLabel: formatDateLabel(currentRuns[0]?.pay_date),
+      reviewOwner: String(currentRuns[0]?.review_owner_name || ''),
+      reviewedAtLabel: formatReviewDateTimeLabel(currentRuns[0]?.approved_at),
     },
     records: mapMoneyRows(currentRuns),
     secondary: integrations.map(integration => ({ ...integration, expenses_ready: expensesReady })),
@@ -198,7 +240,21 @@ async function runs(companyId: string | null) {
   const records = await prisma.$queryRawUnsafe<Row[]>(
     `SELECT run.*, period.name AS period_name, period.start_date, period.end_date, period.pay_date,
             payroll_group.name AS payroll_group_name,
-            concat(creator.name, creator.email) AS created_by,
+            concat(creator.name, ' ', creator.email) AS owner_name,
+            (SELECT COALESCE(jsonb_agg(
+               jsonb_build_object(
+                 'sequence', approval.sequence,
+                 'role', approval.approval_role,
+                 'status', approval.status,
+                 'approver_id', approval.approver_user_id,
+                 'approver_name', concat(approver.name, ' ', approver.email),
+                 'decision_reason', approval.decision_reason,
+                 'decided_at', approval.decided_at
+               ) ORDER BY approval.sequence
+             ), '[]'::jsonb)
+             FROM hr_payroll_approvals approval
+             LEFT JOIN "User" approver ON approver.id = approval.approver_user_id
+             WHERE approval.payroll_run_id = run.id) AS approval_steps,
             (SELECT COUNT(*) FROM hr_payroll_exceptions exception WHERE exception.payroll_run_id = run.id AND exception.status = 'open')::int AS exception_count,
             (SELECT COUNT(*) FROM hr_payroll_variances variance WHERE variance.payroll_run_id = run.id AND variance.status = 'open')::int AS variance_count
      FROM hr_payroll_runs run
@@ -793,12 +849,27 @@ async function runAction(input: Extract<PayrollActionInput, { runId: string }>, 
         `SELECT COUNT(*)::int count FROM hr_payroll_exceptions WHERE payroll_run_id = $1::uuid AND status = 'open' AND severity IN ('error','blocking')`, input.runId,
       );
       if (number(blocking[0]?.count)) throw new PayrollServiceError('BLOCKING_EXCEPTIONS', 'Resolve blocking exceptions before submission.', 409);
+      const route = await getPayrollApprovalRoute();
+      if (!route || !route.steps.length) throw new PayrollServiceError('INVALID_APPROVAL_ROUTE', 'No active payroll approval route is configured.', 409);
+      await client.$executeRawUnsafe(`DELETE FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid`, input.runId);
       await client.$executeRawUnsafe(
         `INSERT INTO hr_payroll_approvals(id, payroll_run_id, sequence, approval_role, status)
-         VALUES ($1::uuid, $2::uuid, 1, 'payroll_reviewer', 'pending'),
-                ($3::uuid, $2::uuid, 2, 'finance_approver', 'queued')
-         ON CONFLICT (payroll_run_id, sequence, approval_role) DO NOTHING`, randomUUID(), input.runId, randomUUID(),
+         VALUES ($1::uuid, $2::uuid, $3, $4, 'pending')`,
+        randomUUID(),
+        input.runId,
+        1,
+        route.steps[0].role,
       );
+      for (let index = 1; index < route.steps.length; index += 1) {
+        await client.$executeRawUnsafe(
+          `INSERT INTO hr_payroll_approvals(id, payroll_run_id, sequence, approval_role, status)
+           VALUES ($1::uuid, $2::uuid, $3, $4, 'queued')`,
+          randomUUID(),
+          input.runId,
+          index + 1,
+          route.steps[index].role,
+        );
+      }
       result = await client.$queryRawUnsafe<Row[]>(
         `UPDATE hr_payroll_runs SET status = 'pending_approval', approval_status = 'pending', version = version + 1, updated_at = now()
          WHERE id = $1::uuid RETURNING *`, input.runId,
@@ -806,21 +877,60 @@ async function runAction(input: Extract<PayrollActionInput, { runId: string }>, 
     } else if (input.action === 'approve') {
       if (status !== 'pending_approval') throw new PayrollServiceError('INVALID_TRANSITION', 'Only submitted payroll can be approved.', 409);
       if (String(run.created_by_id || '') === actorId) throw new PayrollServiceError('FOUR_EYES_REQUIRED', 'The payroll creator cannot approve the same run.', 409);
-      await client.$executeRawUnsafe(
-        `UPDATE hr_payroll_approvals SET status = 'approved', approver_user_id = $2::uuid,
-           decision_reason = $3, decided_at = now(), updated_at = now()
-         WHERE payroll_run_id = $1::uuid AND status IN ('pending','queued')`, input.runId, actorId, input.reason,
+      const approvals = await client.$queryRawUnsafe<Row[]>(
+        `SELECT id, sequence, approval_role, status
+         FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid
+         ORDER BY sequence FOR UPDATE`,
+        input.runId,
       );
-      result = await client.$queryRawUnsafe<Row[]>(
-        `UPDATE hr_payroll_runs SET status = 'approved', approval_status = 'approved', approved_by_id = $2::uuid,
+      if (!approvals.length) {
+        result = await client.$queryRawUnsafe<Row[]>(
+          `UPDATE hr_payroll_runs SET status = 'approved', approval_status = 'approved', approved_by_id = $2::uuid,
            approved_at = now(), version = version + 1, updated_at = now() WHERE id = $1::uuid RETURNING *`, input.runId, actorId,
-      );
+        );
+      } else {
+        const pending = approvals.find(approval => approvalStepStatusLabel(String(approval.status)) === 'pending');
+        if (!pending) throw new PayrollServiceError('INVALID_TRANSITION', 'No approval step is currently waiting for action.', 409);
+        const currentSequence = Number(pending.sequence);
+        await client.$executeRawUnsafe(
+          `UPDATE hr_payroll_approvals SET status = 'approved', approver_user_id = $2::uuid,
+           decision_reason = $3, decided_at = now(), updated_at = now()
+           WHERE payroll_run_id = $1::uuid AND sequence = $4`, input.runId, actorId, input.reason, currentSequence,
+        );
+        const next = approvals.find(approval => Number(approval.sequence) === currentSequence + 1);
+        if (next) {
+          await client.$executeRawUnsafe(
+            `UPDATE hr_payroll_approvals SET status = 'pending', updated_at = now()
+             WHERE payroll_run_id = $1::uuid AND sequence = $2`, input.runId, currentSequence + 1,
+          );
+          result = await client.$queryRawUnsafe<Row[]>(`SELECT * FROM hr_payroll_runs WHERE id = $1::uuid`, input.runId);
+        } else {
+          result = await client.$queryRawUnsafe<Row[]>(
+            `UPDATE hr_payroll_runs SET status = 'approved', approval_status = 'approved', approved_by_id = $2::uuid,
+             approved_at = now(), version = version + 1, updated_at = now() WHERE id = $1::uuid RETURNING *`, input.runId, actorId,
+          );
+        }
+      }
     } else if (input.action === 'return') {
       if (status !== 'pending_approval') throw new PayrollServiceError('INVALID_TRANSITION', 'Only submitted payroll can be returned.', 409);
+      const approvals = await client.$queryRawUnsafe<Row[]>(
+        `SELECT id, sequence, status FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid ORDER BY sequence FOR UPDATE`,
+        input.runId,
+      );
+      const pending = approvals.find(approval => approvalStepStatusLabel(String(approval.status)) === 'pending');
+      if (pending) {
+        const currentSequence = Number(pending.sequence);
+        await client.$executeRawUnsafe(
+          `UPDATE hr_payroll_approvals SET status = 'returned', approver_user_id = $2::uuid,
+             decision_reason = $3, decided_at = now(), updated_at = now()
+           WHERE payroll_run_id = $1::uuid AND sequence = $4`, input.runId, actorId, input.reason, currentSequence,
+        );
+      }
       await client.$executeRawUnsafe(
-        `UPDATE hr_payroll_approvals SET status = 'returned', approver_user_id = $2::uuid,
-           decision_reason = $3, decided_at = now(), updated_at = now()
-         WHERE payroll_run_id = $1::uuid AND status = 'pending'`, input.runId, actorId, input.reason,
+        `UPDATE hr_payroll_approvals SET status = 'queued', updated_at = now()
+         WHERE payroll_run_id = $1::uuid AND status IN ('pending','queued') AND sequence > $2`,
+        input.runId,
+        pending ? Number(pending.sequence) : -1,
       );
       result = await client.$queryRawUnsafe<Row[]>(
         `UPDATE hr_payroll_runs SET status = 'returned_for_correction', approval_status = 'returned',

@@ -797,6 +797,14 @@ export const sidebarConfigData = [
         permissionId: "USERS_VIEW"
       },
       {
+        label: "User Teams",
+        icon: "Users",
+        href: "/settings/user-teams",
+        description: "Manage user teams used for ownership, routing, and access policy grouping.",
+        section: "Configuration",
+        permissionId: "USERS_VIEW"
+      },
+      {
         label: "Preferences",
         icon: "Palette",
         href: "/settings?adminTab=branding",

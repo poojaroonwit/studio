@@ -6,8 +6,15 @@ export async function getPayrollAccess(user: SessionLikeUser & { id?: string; em
   const isAdmin = isAdminUser(user);
   const canManage = isAdmin || hasAnyPermission(user, ['HR_PAYROLL_MANAGE']);
   const canView = canManage || hasAnyPermission(user, ['HR_PAYROLL_VIEW']);
-  const employee = user.id ? await prisma.$queryRawUnsafe<Array<{ id: string; company_id: string | null }>>(
-    `SELECT id, company_id FROM hr_employees
+  const employee = user.id ? await prisma.$queryRawUnsafe<Array<{
+    id: string;
+    company_id: string | null;
+    job_title: string | null;
+    department: string | null;
+  }>>(
+    `SELECT employee.id, employee.company_id, employee.job_title, department.name AS department
+     FROM hr_employees employee
+     LEFT JOIN hr_departments department ON department.id = employee.department_id
      WHERE user_id = $1::uuid OR lower(email) = lower($2)
      ORDER BY CASE WHEN user_id = $1::uuid THEN 0 ELSE 1 END LIMIT 1`,
     user.id,
@@ -22,6 +29,9 @@ export async function getPayrollAccess(user: SessionLikeUser & { id?: string; em
     canExport: canManage,
     actorCompanyId: isAdmin ? null : employee[0]?.company_id || null,
     actorEmployeeId: employee[0]?.id || null,
+    actorUserRole: user.role || null,
+    actorJobTitle: employee[0]?.job_title || null,
+    actorDepartment: employee[0]?.department || null,
   };
 }
 

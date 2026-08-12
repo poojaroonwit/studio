@@ -169,9 +169,15 @@ export function RolesPermissionsWorkspace() {
             <h1 className="text-[20px] font-semibold leading-6 tracking-[-0.02em]">Roles &amp; Permissions</h1>
             <p className="mt-1 text-xs text-[#777c86] dark:text-zinc-400">Define reusable access policies for your workforce.</p>
           </div>
-          <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Create role
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => router.push('/settings/user-teams')}>
+              <UsersRound className="mr-1.5 h-4 w-4" />
+              Manage user teams
+            </Button>
+            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Create role
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -346,7 +346,7 @@ export function ServiceDeskPage({
       fullPage
     >
       <section className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(360px,34%)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(300px,28%)_minmax(0,1fr)]">
         <aside className={cn(
           'min-h-0 min-w-0 flex-col bg-card lg:flex lg:border-e lg:border-border',
           active ? 'hidden' : 'flex',

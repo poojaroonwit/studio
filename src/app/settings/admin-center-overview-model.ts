@@ -51,23 +51,7 @@ export function toQueueCount(value: unknown) {
 export const adminCenterOverviewCategories = [
   {
     tab: 'HR Setup',
-    description: 'Organization, positions, reference data, and recruitment setup.',
-  },
-  {
-    tab: 'People Lifecycle',
-    description: 'Probation, contracts, onboarding, offboarding, assets, and employee documents.',
-  },
-  {
-    tab: 'Workforce',
-    description: 'Attendance, schedules, overtime, leave, holidays, and workforce rules.',
-  },
-  {
-    tab: 'Payroll & Expenses',
-    description: 'Payroll cadence, compensation approvals, expenses, receipts, and travel policies.',
-  },
-  {
-    tab: 'Performance & Learning',
-    description: 'Reviews, goals, ratings, learning requirements, and certification policy.',
+    description: 'Organization, positions, policy, workforce, payroll, expenses, and learning configuration.',
   },
   {
     tab: 'User Accounts',

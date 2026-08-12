@@ -78,11 +78,15 @@ describe('user teams utilities', () => {
       description: null,
       color: null,
       isActive: undefined,
+      assignmentMode: 'automatic',
+      assignmentConditions: { department: ['ops'] },
     })).toEqual({
       name: 'Hiring',
       description: '',
       color: '#3B82F6',
       isActive: true,
+      assignmentMode: 'automatic',
+      assignmentConditions: { department: ['ops'] },
     });
 
     expect(buildTeamFormValues({
@@ -90,11 +94,15 @@ describe('user teams utilities', () => {
       description: 'Paused',
       color: '#111827',
       isActive: false,
+      assignmentMode: 'automatic',
+      assignmentConditions: { positionTitle: ['Manager'], officeLocation: [] },
     })).toEqual({
       name: 'Inactive team',
       description: 'Paused',
       color: '#111827',
       isActive: false,
+      assignmentMode: 'automatic',
+      assignmentConditions: { positionTitle: ['Manager'], officeLocation: [] },
     });
 
     expect(buildTeamFormValues()).toEqual({
@@ -102,6 +110,8 @@ describe('user teams utilities', () => {
       description: '',
       color: '#3B82F6',
       isActive: true,
+      assignmentMode: 'manual',
+      assignmentConditions: {},
     });
   });
 

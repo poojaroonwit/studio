@@ -97,6 +97,64 @@ function approvalStepStatusLabel(status: string) {
   return 'queued';
 }
 
+function normalizeResponsibilityValue(value: unknown) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function matchesResponsibility(requiredRaw: string, candidateRaw: string) {
+  const required = normalizeResponsibilityValue(requiredRaw);
+  if (!required) return true;
+  const candidate = normalizeResponsibilityValue(candidateRaw);
+  if (!candidate) return false;
+  if (required === candidate) return true;
+  if (required.includes(candidate) || candidate.includes(required)) return true;
+  const requiredTokens = required.split(' ').filter(Boolean);
+  const candidateTokens = candidate.split(' ').filter(Boolean);
+  if (!requiredTokens.length) return false;
+  if (!candidateTokens.length) return false;
+  return requiredTokens.every(token =>
+    candidateTokens.some(part => part === token || part.includes(token) || token.includes(part)),
+  );
+}
+
+function actorHasPayrollResponsibility(access: PayrollAccess, requiredRole: string) {
+  if (!requiredRole) return true;
+  const candidates = [
+    access.actorUserRole || '',
+    access.actorJobTitle || '',
+    access.actorDepartment || '',
+  ];
+  return candidates.some(candidate => matchesResponsibility(requiredRole, candidate));
+}
+
+function assertPayrollStepResponsibility(access: PayrollAccess, actorId: string, approval: Row) {
+  if (access.isAdmin) return;
+  const approverId = approval.approver_user_id;
+  if (approverId && String(approverId) !== actorId) {
+    throw new PayrollServiceError(
+      'INVALID_APPROVAL_RESPONSIBILITY',
+      'This payroll approval step is assigned to a different approver.',
+      403,
+      { assignedTo: String(approverId) },
+    );
+  }
+  const requiredRole = String(approval.approval_role || '').trim();
+  if (!actorHasPayrollResponsibility(access, requiredRole)) {
+    throw new PayrollServiceError(
+      'INVALID_APPROVAL_RESPONSIBILITY',
+      'You are not assigned to this payroll approval responsibility.',
+      403,
+      { requiredRole, actorId },
+    );
+  }
+}
+
 async function common(companyId: string | null) {
   const [periods, groups, employees] = await Promise.all([
     prisma.$queryRawUnsafe<Row[]>(
@@ -453,6 +511,7 @@ export async function getPayrollWorkspace(
       access: {
         canView: access.canView, canManage: access.canManage, canApprove: access.canApprove,
         canExport: access.canExport, isAdmin: access.isAdmin,
+        actorUserRole: access.actorUserRole, actorJobTitle: access.actorJobTitle, actorDepartment: access.actorDepartment,
       },
       ...data,
       ...shared,
@@ -466,15 +525,42 @@ export async function getPayrollWorkspace(
 
 async function createRun(input: Extract<PayrollActionInput, { action: 'create_run' }>, access: PayrollAccess, actorId: string) {
   const companyId = scope(access, input.companyId);
-  const rows = await prisma.$queryRawUnsafe<Row[]>(
+  const existing = await prisma.$queryRawUnsafe<Row[]>(
+    `SELECT * FROM hr_payroll_runs
+     WHERE idempotency_key = $1::text
+       AND ($2::uuid IS NULL OR company_id = $2::uuid)
+     LIMIT 1`,
+    input.idempotencyKey, companyId,
+  );
+  if (existing[0]) {
+    await logAudit('AUDIT', 'Payroll run idempotent retry.', 'Payroll:Run:Create', actorId, {
+      runId: existing[0]?.id,
+      companyId,
+      runType: input.runType,
+      idempotencyKey: input.idempotencyKey,
+    });
+    return existing[0];
+  }
+
+  let rows: Row[] = [];
+  rows = await prisma.$queryRawUnsafe<Row[]>(
     `INSERT INTO hr_payroll_runs
       (id, period_id, company_id, payroll_group_id, run_type, status, created_by_id, idempotency_key, version, created_at, updated_at)
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, 'draft', $6::uuid, $7, 1, now(), now())
-     ON CONFLICT (company_id, idempotency_key) WHERE idempotency_key IS NOT NULL
-     DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
      RETURNING *`,
     randomUUID(), input.periodId, companyId, input.payrollGroupId || null, input.runType, actorId, input.idempotencyKey,
   );
+  if (!rows[0]) {
+    const fallback = await prisma.$queryRawUnsafe<Row[]>(
+      `SELECT * FROM hr_payroll_runs
+       WHERE idempotency_key = $1::text
+         AND ($2::uuid IS NULL OR company_id = $2::uuid)
+       LIMIT 1`,
+      input.idempotencyKey, companyId,
+    );
+    if (fallback[0]) return fallback[0];
+    throw new PayrollServiceError('CREATION_FAILED', 'Payroll run could not be created.', 500);
+  }
   await logAudit('AUDIT', 'Payroll run created.', 'Payroll:Run:Create', actorId, { runId: rows[0]?.id, companyId, runType: input.runType });
   return rows[0];
 }
@@ -878,7 +964,7 @@ async function runAction(input: Extract<PayrollActionInput, { runId: string }>, 
       if (status !== 'pending_approval') throw new PayrollServiceError('INVALID_TRANSITION', 'Only submitted payroll can be approved.', 409);
       if (String(run.created_by_id || '') === actorId) throw new PayrollServiceError('FOUR_EYES_REQUIRED', 'The payroll creator cannot approve the same run.', 409);
       const approvals = await client.$queryRawUnsafe<Row[]>(
-        `SELECT id, sequence, approval_role, status
+        `SELECT id, sequence, approval_role, approver_user_id, status
          FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid
          ORDER BY sequence FOR UPDATE`,
         input.runId,
@@ -891,6 +977,7 @@ async function runAction(input: Extract<PayrollActionInput, { runId: string }>, 
       } else {
         const pending = approvals.find(approval => approvalStepStatusLabel(String(approval.status)) === 'pending');
         if (!pending) throw new PayrollServiceError('INVALID_TRANSITION', 'No approval step is currently waiting for action.', 409);
+        assertPayrollStepResponsibility(access, actorId, pending);
         const currentSequence = Number(pending.sequence);
         await client.$executeRawUnsafe(
           `UPDATE hr_payroll_approvals SET status = 'approved', approver_user_id = $2::uuid,
@@ -914,10 +1001,11 @@ async function runAction(input: Extract<PayrollActionInput, { runId: string }>, 
     } else if (input.action === 'return') {
       if (status !== 'pending_approval') throw new PayrollServiceError('INVALID_TRANSITION', 'Only submitted payroll can be returned.', 409);
       const approvals = await client.$queryRawUnsafe<Row[]>(
-        `SELECT id, sequence, status FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid ORDER BY sequence FOR UPDATE`,
+        `SELECT id, sequence, approval_role, approver_user_id, status FROM hr_payroll_approvals WHERE payroll_run_id = $1::uuid ORDER BY sequence FOR UPDATE`,
         input.runId,
       );
       const pending = approvals.find(approval => approvalStepStatusLabel(String(approval.status)) === 'pending');
+      if (pending) assertPayrollStepResponsibility(access, actorId, pending);
       if (pending) {
         const currentSequence = Number(pending.sequence);
         await client.$executeRawUnsafe(

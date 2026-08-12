@@ -26,6 +26,12 @@ export const createUserSchema = z.object({
   forcePasswordChange: z.boolean().optional().default(false),
   personalColor: optionalNonBlankStringWithDefault('#3B82F6'),
   positionTitle: optionalNonBlankString.nullable(),
+  department: optionalNonBlankString.nullable(),
+  officeLocation: optionalNonBlankString.nullable(),
+  employeeType: optionalNonBlankString.nullable(),
+  companyName: optionalNonBlankString.nullable(),
+  manager: optionalNonBlankString.nullable(),
+  phoneNumber: optionalNonBlankString.nullable(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

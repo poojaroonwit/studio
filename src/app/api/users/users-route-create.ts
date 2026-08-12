@@ -3,6 +3,7 @@ import type { Session } from 'next-auth';
 import { clearUserValidationCache } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { expandPermissionSet } from '@/lib/permission-aliases';
+import { getPool } from '@/lib/db';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 import { readRequestJsonResult } from '@/lib/request-json';
@@ -89,6 +90,7 @@ async function createUser(input: CreateUserInput, session: Session) {
       return targetUserGroupId;
     }
 
+    const userTeamId = await resolveUserTeamIdForNewUser(input);
     const newUser = await prisma.user.create({
       data: {
         name: input.name,
@@ -101,8 +103,14 @@ async function createUser(input: CreateUserInput, session: Session) {
         forcePasswordChange: input.forcePasswordChange,
         personalColor: input.personalColor,
         positionTitle: input.positionTitle,
+        department: input.department,
+        officeLocation: input.officeLocation,
+        employeeType: input.employeeType,
+        companyName: input.companyName,
+        manager: input.manager,
+        phoneNumber: input.phoneNumber,
         userGroupId: targetUserGroupId,
-        userTeamId: input.userTeamIds.length > 0 ? input.userTeamIds[0] : null,
+        userTeamId,
       },
     });
 
@@ -112,7 +120,7 @@ async function createUser(input: CreateUserInput, session: Session) {
     });
     const userToReturn = {
       ...newUser,
-      teams: input.userTeamIds || [],
+      teams: userTeamId ? [userTeamId] : [],
       modulePermissions: expandPermissionSet(userGroup?.permissions || []),
     };
 
@@ -127,7 +135,7 @@ async function createUser(input: CreateUserInput, session: Session) {
         targetUserId: userToReturn.id,
         role: userToReturn.role,
         permissions: userToReturn.modulePermissions,
-        groups: input.userTeamIds,
+        groups: userToReturn.teams,
       }
     );
     await dispatchWebhooks.userCreated(newUser);
@@ -136,4 +144,110 @@ async function createUser(input: CreateUserInput, session: Session) {
   } catch (error: unknown) {
     return handleCreateUserError(error, input.email, session);
   }
+}
+
+async function resolveUserTeamIdForNewUser(input: CreateUserInput) {
+  if (input.userTeamIds.length > 0) {
+    return input.userTeamIds[0];
+  }
+
+  const matchedTeam = await findAutomaticUserTeam(input);
+  return matchedTeam?.id ?? null;
+}
+
+type UserTeamCandidate = {
+  id: string;
+  assignmentConditions: unknown;
+};
+
+async function findAutomaticUserTeam(input: CreateUserInput): Promise<UserTeamCandidate | null> {
+  const pool = await getPool().connect();
+
+  try {
+    const result = await pool.query<UserTeamCandidate>(`
+      SELECT
+        id,
+        assignment_conditions as "assignmentConditions"
+      FROM "UserTeam"
+      WHERE "is_active" = true
+        AND assignment_mode = 'automatic'
+      ORDER BY name ASC
+    `);
+
+    const userValues = {
+      department: normalizeEmployeeValue(input.department),
+      officeLocation: normalizeEmployeeValue(input.officeLocation),
+      positionTitle: normalizeEmployeeValue(input.positionTitle),
+      employeeType: normalizeEmployeeValue(input.employeeType),
+      companyName: normalizeEmployeeValue(input.companyName),
+      manager: normalizeEmployeeValue(input.manager),
+    };
+
+    for (const team of result.rows) {
+      const conditions = normalizeTeamConditions(team.assignmentConditions);
+
+      const hasDepartmentMatch = !conditions.department.length
+        || conditions.department.includes(userValues.department);
+      const hasOfficeLocationMatch = !conditions.officeLocation.length
+        || conditions.officeLocation.includes(userValues.officeLocation);
+      const hasPositionMatch = !conditions.positionTitle.length
+        || conditions.positionTitle.includes(userValues.positionTitle);
+      const hasEmployeeTypeMatch = !conditions.employeeType.length
+        || conditions.employeeType.includes(userValues.employeeType);
+      const hasCompanyNameMatch = !conditions.companyName.length
+        || conditions.companyName.includes(userValues.companyName);
+      const hasManagerMatch = !conditions.manager.length
+        || conditions.manager.includes(userValues.manager);
+
+      if (
+        hasDepartmentMatch
+        && hasOfficeLocationMatch
+        && hasPositionMatch
+        && hasEmployeeTypeMatch
+        && hasCompanyNameMatch
+        && hasManagerMatch
+      ) {
+        return team;
+      }
+    }
+
+    return null;
+  } finally {
+    pool.release();
+  }
+}
+
+function normalizeTeamConditions(raw: unknown) {
+  const parsed = typeof raw === 'string' ? safeParseTeamConditions(raw) : raw;
+  return {
+    department: extractConditionValues(parsed && typeof parsed === 'object' && 'department' in parsed ? parsed.department : undefined),
+    officeLocation: extractConditionValues(parsed && typeof parsed === 'object' && 'officeLocation' in parsed ? parsed.officeLocation : undefined),
+    positionTitle: extractConditionValues(parsed && typeof parsed === 'object' && 'positionTitle' in parsed ? parsed.positionTitle : undefined),
+    employeeType: extractConditionValues(parsed && typeof parsed === 'object' && 'employeeType' in parsed ? parsed.employeeType : undefined),
+    companyName: extractConditionValues(parsed && typeof parsed === 'object' && 'companyName' in parsed ? parsed.companyName : undefined),
+    manager: extractConditionValues(parsed && typeof parsed === 'object' && 'manager' in parsed ? parsed.manager : undefined),
+  };
+}
+
+function safeParseTeamConditions(raw: string) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function extractConditionValues(raw: unknown) {
+  if (!Array.isArray(raw)) {
+    return [] as string[];
+  }
+
+  return raw
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
+function normalizeEmployeeValue(value: unknown) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }

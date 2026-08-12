@@ -107,6 +107,9 @@ export interface PayrollAccess {
   isAdmin: boolean;
   actorCompanyId: string | null;
   actorEmployeeId: string | null;
+  actorUserRole: string | null;
+  actorJobTitle: string | null;
+  actorDepartment: string | null;
 }
 
 export interface PayrollWorkspacePayload {

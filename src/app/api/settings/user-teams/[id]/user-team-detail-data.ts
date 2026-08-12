@@ -12,13 +12,15 @@ export async function fetchUserTeamDetail(id: string) {
         ut.description,
         ut.color,
         ut."is_active" as "isActive",
+        ut.assignment_mode as "assignmentMode",
+        ut.assignment_conditions as "assignmentConditions",
         ut."createdAt",
         ut."updatedAt",
         COUNT(u.id) as member_count
       FROM "UserTeam" ut
       LEFT JOIN "User" u ON ut.id = u."userTeamId"
       WHERE ut.id = $1
-      GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut."createdAt", ut."updatedAt"
+      GROUP BY ut.id, ut.name, ut.description, ut.color, ut."is_active", ut.assignment_mode, ut.assignment_conditions, ut."createdAt", ut."updatedAt"
     `, [id]);
 
     return result.rows[0] ?? null;
@@ -37,8 +39,8 @@ export async function updateUserTeam(id: string, input: UserTeamUpdateInput) {
     }
 
     const result = await client.query(
-      'UPDATE "UserTeam" SET name = $1, description = $2, color = $3, "is_active" = $4, "updatedAt" = NOW() WHERE id = $5 RETURNING *',
-      [input.name, input.description, input.color, input.isActive ?? true, id]
+      'UPDATE "UserTeam" SET name = $1, description = $2, color = $3, "is_active" = $4, "assignment_mode" = $5, "assignment_conditions" = $6, "updatedAt" = NOW() WHERE id = $7 RETURNING *',
+      [input.name, input.description, input.color, input.isActive ?? true, input.assignmentMode, JSON.stringify(input.assignmentConditions), id]
     );
 
     return result.rows[0];

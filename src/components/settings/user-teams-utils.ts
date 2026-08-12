@@ -7,6 +7,8 @@ type TeamFormSource = Pick<UserTeam, 'name'> & {
   description?: string | null;
   color?: string | null;
   isActive?: boolean | null;
+  assignmentMode?: 'manual' | 'automatic';
+  assignmentConditions?: UserTeam['assignmentConditions'];
 };
 
 export function buildUserTeamsListViewState<T extends Pick<UserTeam, 'name' | 'description'>>({
@@ -84,6 +86,8 @@ export function buildTeamFormValues(team?: TeamFormSource | null): TeamFormValue
     description: team?.description || '',
     color: team?.color || '#3B82F6',
     isActive: team?.isActive ?? true,
+    assignmentMode: team?.assignmentMode || 'manual',
+    assignmentConditions: team?.assignmentConditions || {},
   };
 }
 

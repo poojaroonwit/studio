@@ -77,7 +77,7 @@ export function TeamsListSection({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-lg border">
         {filteredTeams.length === 0 ? (
           <div className="py-8 text-center">
             <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -101,6 +101,7 @@ export function TeamsListSection({
                 <TableRow>
                   <TableHead>Team Name</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Assignment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Members</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -126,6 +127,11 @@ export function TeamsListSection({
                       <span className="text-muted-foreground">
                         {team.description || "No description"}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={(team.assignmentMode || 'manual') === 'automatic' ? 'outline' : 'secondary'}>
+                        {team.assignmentMode || 'manual'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={team.isActive ? "default" : "secondary"}>

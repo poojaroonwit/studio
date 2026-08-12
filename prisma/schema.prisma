@@ -748,6 +748,10 @@ model UserTeam {
   color       String?  @default("#3B82F6")
   /// Whether team is active
   isActive    Boolean  @default(true) @map("is_active")
+  /// Team assignment mode: manual or automatic
+  assignmentMode       String   @default("manual") @map("assignment_mode")
+  /// Conditions used when assignmentMode is automatic
+  assignmentConditions Json     @default("{}") @map("assignment_conditions")
   /// Record creation timestamp
   createdAt   DateTime @default(now())
   /// Last update timestamp

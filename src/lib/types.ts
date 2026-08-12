@@ -319,12 +319,23 @@ export interface UserGroup { // This is now "Role" in the UI
   updatedAt?: string;
 }
 
+export interface UserTeamAssignmentCondition {
+  department?: string[];
+  officeLocation?: string[];
+  positionTitle?: string[];
+  employeeType?: string[];
+  companyName?: string[];
+  manager?: string[];
+}
+
 export interface UserTeam {
   id: string;
   name: string;
   description?: string | null;
   color?: string;
   isActive: boolean;
+  assignmentMode?: 'manual' | 'automatic';
+  assignmentConditions?: UserTeamAssignmentCondition;
   member_count?: number; // For API response
   createdAt?: string;
   updatedAt?: string;

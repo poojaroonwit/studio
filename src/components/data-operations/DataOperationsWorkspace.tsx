@@ -126,7 +126,7 @@ export function DataOperationsWorkspace() {
   const [activityView, setActivityView] = React.useState<ActivityView>('data');
   const model = DATA_OPERATION_MODELS.find((item) => item.id === modelId) ?? DATA_OPERATION_MODELS[0];
 
-  const resetFlow = React.useCallback((nextTab = tab) => {
+  const resetFlow = React.useCallback((nextTab: WorkspaceTab) => {
     setTab(nextTab);
     setStep(1);
     setFile(null);

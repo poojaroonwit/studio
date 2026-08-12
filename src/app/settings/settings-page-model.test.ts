@@ -8,10 +8,6 @@ describe('Admin Center settings model', () => {
   it('keeps the Figma category order and provides content for every tab', () => {
     expect(adminCenterTabs).toEqual([
       'HR Setup',
-      'People Lifecycle',
-      'Workforce',
-      'Payroll & Expenses',
-      'Performance & Learning',
       'User Accounts',
       'Roles & Permissions',
       'Branding',
@@ -83,10 +79,10 @@ describe('Admin Center settings model', () => {
     expect(getAdminCenterTabFromSlug('app-api')).toBe('Integrations & API');
   });
 
-  it('exposes workforce holiday configuration in Workforce', () => {
+  it('exposes workforce-related configuration in HR Setup', () => {
     expect(settingsItems.find(item => item.label === 'Holiday List')).toBeUndefined();
-    expect(settingsItems.find(item => item.label === 'Holiday Calendars')).toMatchObject({ tab: 'Workforce' });
-    expect(settingsItems.find(item => item.label === 'Leave Block List')).toMatchObject({ tab: 'Workforce' });
+    expect(settingsItems.find(item => item.label === 'Holiday Calendars')).toMatchObject({ tab: 'HR Setup' });
+    expect(settingsItems.find(item => item.label === 'Leave Block List')).toMatchObject({ tab: 'HR Setup' });
   });
 
   it('includes employee documents in HR Setup', () => {
@@ -107,17 +103,31 @@ describe('Admin Center settings model', () => {
     expect(rolePermissionItems.map(item => item.label)).toEqual(['Employee Account Role', 'User Teams']);
   });
 
-  it('merges appearance controls into Branding instead of exposing a separate menu item', () => {
+  it('splits Branding setup into dedicated preference entries', () => {
     expect(settingsItems.find(item => item.label === 'Appearance')).toBeUndefined();
-    expect(settingsItems.find(item => item.label === 'Branding')).toMatchObject({
-      href: '/settings/system-preferences?tab=branding',
-      tab: 'Branding',
-    });
-  });
-
-  it('merges evaluation theme controls into Branding instead of exposing a separate menu item', () => {
     expect(settingsItems.find(item => item.label === 'Evaluation Theme')).toBeUndefined();
-    expect(settingsItems.find(item => item.label === 'Branding')).toBeDefined();
+    expect(settingsItems.find(item => item.label === 'Branding')).toBeUndefined();
+
+    expect(settingsItems.find(item => item.label === 'Core Identity')).toMatchObject({
+      href: '/settings/system-preferences?tab=branding&focus=core-identity',
+      tab: 'Branding',
+      section: 'Branding Setup',
+    });
+    expect(settingsItems.find(item => item.label === 'Header Branding')).toMatchObject({
+      href: '/settings/system-preferences?tab=branding&focus=header-branding',
+      tab: 'Branding',
+      section: 'Branding Setup',
+    });
+    expect(settingsItems.find(item => item.label === 'Sign In')).toMatchObject({
+      href: '/settings/system-preferences?tab=branding&focus=sign-in',
+      tab: 'Branding',
+      section: 'Branding Setup',
+    });
+    expect(settingsItems.find(item => item.label === 'Navigation')).toMatchObject({
+      href: '/settings/system-preferences?tab=branding&focus=navigation',
+      tab: 'Branding',
+      section: 'Branding Setup',
+    });
   });
 
   it('provides a direct Leave Policies entry in HR Setup', () => {

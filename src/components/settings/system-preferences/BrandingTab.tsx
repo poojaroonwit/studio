@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Building2,
@@ -34,18 +35,36 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { title: "Core identity", description: "Set your primary brand and application identity." },
-  { title: "Sign-in", description: "Customize how your brand appears on the sign-in screen." },
+  { title: "Core Identity", description: "Set your primary brand and application identity." },
+  { title: "Header Branding", description: "Tune header behavior and appearance inside the shell." },
+  { title: "Sign In", description: "Customize how your brand appears on the sign-in screen." },
   { title: "Navigation", description: "Brand your navigation sidebar." },
   { title: "Review", description: "Review all branding before publishing." },
 ] as const;
 
+function getBrandingStepFromFocus(focus: string | null): number {
+  const normalized = focus?.toLowerCase() ?? "";
+
+  if (["core-identity", "core identity", "coreidentity", "core"].includes(normalized)) return 0;
+  if (["header-branding", "header branding", "headerbranding", "header"].includes(normalized)) return 1;
+  if (["sign-in", "sign in", "signin", "sign"].includes(normalized)) return 2;
+  if (["navigation", "nav"].includes(normalized)) return 3;
+  if (["review"].includes(normalized)) return 4;
+
+  return 0;
+}
+
 export function BrandingTab(props: BrandingTabProps) {
-  const [step, setStep] = React.useState(1);
+  const searchParams = useSearchParams();
+  const stepFromFocus = React.useMemo(() => getBrandingStepFromFocus(searchParams.get("focus")), [searchParams]);
+  const [step, setStep] = React.useState(stepFromFocus);
   const [usePrimaryLight, setUsePrimaryLight] = React.useState(!props.loginPageLogoLightModePreviewUrl);
   const [usePrimaryDark, setUsePrimaryDark] = React.useState(!props.loginPageLogoDarkModePreviewUrl);
 
   const goToStep = (nextStep: number) => setStep(Math.max(0, Math.min(STEPS.length - 1, nextStep)));
+  React.useEffect(() => {
+    setStep(stepFromFocus);
+  }, [stepFromFocus]);
 
   return (
     <div className="flex h-[calc(100vh-2rem)] min-h-0 max-h-full flex-col overflow-hidden">
@@ -57,7 +76,8 @@ export function BrandingTab(props: BrandingTabProps) {
         <ScrollArea className="min-h-0 border-l border-border">
           <div className="min-w-0 p-5 xl:p-6">
             {step === 0 && <CoreIdentityStep {...props} />}
-            {step === 1 && (
+            {step === 1 && <HeaderBrandingStep {...props} />}
+            {step === 2 && (
               <SignInStep
                 {...props}
                 usePrimaryDark={usePrimaryDark}
@@ -66,13 +86,13 @@ export function BrandingTab(props: BrandingTabProps) {
                 onUsePrimaryLightChange={setUsePrimaryLight}
               />
             )}
-            {step === 2 && <NavigationStep {...props} />}
-            {step === 3 && <ReviewStep {...props} onEditStep={goToStep} />}
+            {step === 3 && <NavigationStep {...props} />}
+            {step === 4 && <ReviewStep {...props} onEditStep={goToStep} />}
           </div>
         </ScrollArea>
 
         <aside className="hidden min-h-0 overflow-y-auto border-l border-border bg-muted/10 p-5 lg:block">
-          {step === 1 ? <SignInGuidance {...props} /> : <StepGuidance step={step} />}
+          {step === 2 ? <SignInGuidance {...props} /> : <StepGuidance step={step} />}
         </aside>
       </div>
 
@@ -105,13 +125,13 @@ function BrandingProgress({ currentStep }: { currentStep: number }) {
     <header className="flex shrink-0 items-end justify-between pb-4">
       <div>
         <h2 className="text-xl font-semibold tracking-tight">Branding setup</h2>
-        <p className="mt-1 text-sm text-muted-foreground">3 of 4 steps complete</p>
+        <p className="mt-1 text-sm text-muted-foreground">{`${STEPS.length - 1} of ${STEPS.length} steps complete`}</p>
       </div>
-      <div className="mb-1 flex gap-1.5" aria-label="3 of 4 branding steps complete">
+      <div className="mb-1 flex gap-1.5" aria-label={`${STEPS.length - 1} of ${STEPS.length} branding steps complete`}>
         {STEPS.map((item, index) => (
           <span
             key={item.title}
-            className={cn("h-1 w-12 rounded-full", index < 3 ? "bg-primary" : "bg-muted-foreground/35")}
+            className={cn("h-1 w-12 rounded-full", index < STEPS.length - 1 ? "bg-primary" : "bg-muted-foreground/35")}
           />
         ))}
       </div>
@@ -168,7 +188,7 @@ function SignInStep({
   return (
     <section>
       <div className="mb-6">
-        <h3 className="text-xl font-semibold">Sign-in branding</h3>
+        <h3 className="text-xl font-semibold">Sign In branding</h3>
         <p className="mt-1 text-sm text-muted-foreground">Preview how your brand will appear on the sign-in screen in both light and dark modes.</p>
       </div>
       <div className="grid gap-5 md:grid-cols-2">
@@ -314,17 +334,30 @@ function SignInGuidance(props: BrandingTabProps) {
 function CoreIdentityStep(props: BrandingTabProps) {
   return (
     <section className="space-y-6">
-      <div><h3 className="text-xl font-semibold">Core identity</h3><p className="mt-1 text-sm text-muted-foreground">Set the master logo and core application treatments used across your workspace.</p></div>
+      <div><h3 className="text-xl font-semibold">Core Identity</h3><p className="mt-1 text-sm text-muted-foreground">Set the master logo and core application treatments used across your workspace.</p></div>
       <div className="rounded-md border border-border p-5">
         <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
           <div><h4 className="text-sm font-semibold">Primary logo</h4><p className="mt-1 text-xs leading-5 text-muted-foreground">Used as the fallback throughout the application.</p></div>
           <BrandingLogoUploadTile id="guided-primary-logo" previewUrl={props.logoPreviewUrl} alt="Primary company logo" canEdit={props.canEdit} onChange={props.handleLogoFileChange} onRemove={() => props.removeSelectedLogo(true)} emptyText="Upload primary logo" />
         </div>
       </div>
-      <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Header appearance</summary><div className="border-t border-border px-4"><HeaderBrandingSection {...props} /></div></details>
       <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Splash screen</summary><div className="border-t border-border px-4"><SplashScreenSection {...props} /></div></details>
       <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Application drawer style</summary><div className="border-t border-border px-4"><AppearanceDrawerStyleSection canEdit={props.canEdit} drawerStyle={props.drawerStyle} setDrawerStyle={props.setDrawerStyle} /></div></details>
       <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Evaluation experience</summary><div className="border-t border-border px-4"><EvaluateSettingsContent {...props} /></div></details>
+    </section>
+  );
+}
+
+function HeaderBrandingStep(props: BrandingTabProps) {
+  return (
+    <section className="space-y-6">
+      <div>
+        <h3 className="text-xl font-semibold">Header branding</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Fine-tune logo placement, header title, and drawer shell behavior.</p>
+      </div>
+      <div className="rounded-md border border-border p-5">
+        <HeaderBrandingSection {...props} />
+      </div>
     </section>
   );
 }
@@ -353,9 +386,10 @@ function NavigationStep(props: BrandingTabProps) {
 
 function ReviewStep(props: BrandingTabProps & { onEditStep: (step: number) => void }) {
   const items = [
-    ["Core identity", props.logoPreviewUrl ? "Primary logo ready" : "Primary logo uses fallback", 0, Building2],
-    ["Sign-in", "Light and dark previews configured", 1, Monitor],
-    ["Navigation", "Four responsive logo placements available", 2, Navigation],
+    ["Core Identity", props.logoPreviewUrl ? "Primary logo ready" : "Primary logo uses fallback", 0, Building2],
+    ["Header Branding", "Header style and shell tokens configured", 1, ImageUp],
+    ["Sign In", "Light and dark previews configured", 2, Monitor],
+    ["Navigation", "Four responsive logo placements available", 3, Navigation],
   ] as const;
   return (
     <section>
@@ -376,8 +410,9 @@ function ReviewStep(props: BrandingTabProps & { onEditStep: (step: number) => vo
 
 function StepGuidance({ step }: { step: number }) {
   const guidance = [
-    ["Core identity checklist", "Use a transparent SVG or PNG with generous internal padding.", ImageUp],
-    ["Sign-in preview", "Preview light and dark modes before continuing.", Monitor],
+    ["Core Identity checklist", "Use a transparent SVG or PNG with generous internal padding.", ImageUp],
+    ["Header branding", "Keep desktop and mobile header treatments visually consistent.", PanelsTopLeft],
+    ["Sign In preview", "Preview light and dark modes before continuing.", Monitor],
     ["Navigation fit", "Keep collapsed marks square and expanded logos horizontal.", Navigation],
     ["Publishing", "Review each surface and save when everything looks right.", CheckCircle2],
   ] as const;

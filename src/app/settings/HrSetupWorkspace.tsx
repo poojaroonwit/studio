@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import type { PlatformSetupFeatureStatus } from '@/lib/admin-platform-setup';
+import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -213,8 +214,9 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
   };
 
   return (
-    <div className="grid min-h-[650px] overflow-hidden rounded-lg bg-card dark:bg-[#101821] lg:grid-cols-[330px_minmax(0,1fr)]">
-      <aside className="border-b border-border dark:border-[#293441] bg-card dark:bg-[#0e161f] lg:border-b-0 lg:border-r">
+    <div className="grid min-h-[650px] overflow-hidden rounded-lg bg-card dark:bg-[#101821] lg:grid-cols-[268px_minmax(0,1fr)]">
+      <aside className="max-h-[38dvh] w-full shrink-0 overflow-y-auto border-b border-[#d9dde5] bg-[#fbfbfc] px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950 lg:max-h-none lg:w-[268px] lg:border-b-0 lg:border-r">
+        <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a909b] dark:text-zinc-500">Configuration</p>
         <div className="flex items-center gap-3 border-b border-border dark:border-[#293441] px-4 py-3.5">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-foreground dark:text-[#e5ebf2]">Launch checklist</p>
@@ -223,7 +225,7 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
             </p>
           </div>
         </div>
-        <div className="max-h-[600px] overflow-y-auto">
+          <div className="space-y-0">
           {hrSetupMilestones.map((milestone, index) => {
             const milestoneItems = getHrSetupItemsByLabels(items, milestone.itemLabels);
             const isActive = milestoneItems.some(item => item.label === selectedItem.label);
@@ -236,11 +238,16 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
                   type="button"
                   onClick={() => toggleMilestone(index)}
                   aria-expanded={isExpanded}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2]"
+                  className={cn(
+                    'flex w-full items-center gap-3 px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2]',
+                    isActive
+                      ? 'bg-[#eaf1fa] text-[#245b9e] dark:bg-blue-950/60 dark:text-blue-200'
+                      : 'text-[#3d424b] hover:bg-[#eef1f5] dark:text-zinc-300 dark:hover:bg-zinc-900',
+                  )}
                 >
                   <MilestoneNumber number={index + 1} complete={complete} active={isActive} />
                   <div className="min-w-0 flex-1"><h2 className="truncate text-xs font-semibold text-foreground dark:text-[#dfe6ee]">{index + 1}. {milestone.label}</h2><p className={`mt-0.5 text-[10px] ${complete ? 'text-success dark:text-[#58d07a]' : isActive ? 'text-info dark:text-[#6caeff]' : 'text-muted-foreground dark:text-[#758397]'}`}>{complete ? 'Complete' : isActive ? 'In progress' : `${readyCount} of ${milestoneItems.length} ready`}</p></div>
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform dark:text-[#8592a2] ${isExpanded ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform dark:text-[#8592a2]', isExpanded ? 'rotate-180' : '')} />
                 </button>
                 {isExpanded && (
                   <div className="pb-2">
@@ -254,7 +261,7 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
           })}
         </div>
         <div className="border-t border-border dark:border-[#293441] p-4">
-          <div className="flex items-start gap-2.5"><BookOpen className="mt-0.5 h-4 w-4 text-info dark:text-[#6caeff]" /><div><p className="text-[11px] font-semibold text-foreground/80 dark:text-[#c9d3de]">Need context?</p><Link href="/settings/overview" className="mt-1 inline-flex items-center gap-1 text-[10px] text-info dark:text-[#65a8f4] hover:text-info dark:hover:text-[#9dceff]">Review Admin Center <ArrowRight className="h-3 w-3" /></Link></div></div>
+          <div className="flex items-start gap-2.5"><BookOpen className="mt-0.5 h-4 w-4 text-info dark:text-[#6caeff]" /><div><Link href="/settings/overview" className="inline-flex items-center gap-1 text-[10px] text-info dark:text-[#65a8f4] hover:text-info dark:hover:text-[#9dceff]">Review Admin Center <ArrowRight className="h-3 w-3" /></Link></div></div>
         </div>
       </aside>
       <ConfigurationWorkbench item={selectedItem} readiness={getHrSetupReadiness(selectedItem, statuses)} />
@@ -270,10 +277,29 @@ function MilestoneNumber({ number, complete, active }: { number: number; complet
 function ChecklistItem({ item, readiness, active, onClick }: { item: SettingsPageItem; readiness: HrSetupReadiness; active: boolean; onClick: () => void }) {
   const Icon = setupIcons[item.label] ?? Settings2;
   return (
-    <button type="button" onClick={onClick} className={`group flex min-h-[48px] w-full items-center gap-2.5 border-l-2 px-4 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#4b91e2] ${active ? 'border-l-[#3c8cff] bg-info/10 dark:bg-[#16263a]' : 'border-l-transparent hover:bg-muted dark:hover:bg-[#151e28]'}`}>
-      <ReadinessIcon readiness={readiness} />
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'group flex min-h-10 w-full items-center gap-2.5 rounded-[4px] px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2]',
+        active
+          ? 'bg-[#eaf1fa] text-[#245b9e] dark:bg-blue-950/60 dark:text-blue-200'
+          : 'text-[#3d424b] hover:bg-[#eef1f5] dark:text-zinc-300 dark:hover:bg-zinc-900',
+      )}
+    >
+      <span
+        className={cn(
+          'grid h-7 w-7 shrink-0 place-items-center rounded-[4px] border transition-colors',
+          active
+            ? 'border-[#cbdaf0] bg-white/70 text-[#2f6db2] dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300'
+            : 'border-[#e1e6ed] bg-white text-[#69778b] group-hover:text-[#315f9f] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
+        )}
+      >
+        <ReadinessIcon readiness={readiness} />
+      </span>
       <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-info dark:text-[#87bfff]' : 'text-muted-foreground dark:text-[#8795a7]'}`} strokeWidth={1.7} />
       <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground dark:text-[#d4dce6]">{item.label}</span>
+      <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', active ? 'text-[#2f6db2] dark:text-blue-300' : 'text-[#a1a7b0]')} />
     </button>
   );
 }

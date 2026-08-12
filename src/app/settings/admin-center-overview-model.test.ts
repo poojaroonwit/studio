@@ -53,8 +53,8 @@ describe('Admin Center overview model', () => {
       ...companyInfo,
       href: '/settings/policy-configuration?area=people-lifecycle',
       label: 'Employee Lifecycle Policies',
-      tab: 'People Lifecycle',
-    })).toBe('/settings?adminTab=people-lifecycle&config=policy-configuration&configArea=people-lifecycle');
+      tab: 'HR Setup',
+    })).toBe('/settings?adminTab=hr-setup&config=policy-configuration&configArea=people-lifecycle');
   });
 
   it('keeps destinations outside the settings workspace unchanged', () => {

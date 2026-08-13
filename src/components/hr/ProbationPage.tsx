@@ -311,9 +311,13 @@ export function ProbationPage() {
               ) : (
                 <HrisEmptyState
                   icon={UserIcon}
-                  title="No probation records match"
-                  description="Try another view or clear your search and filters."
-                  action={<Button variant="outline" size="sm" onClick={() => { setActiveView('all'); setQuery(''); setPosition('all'); setLocation('all'); }}>Clear filters</Button>}
+                  title={employees.length ? "No probation records match" : "No unresolved probation reviews"}
+                  description={employees.length
+                    ? "Try another view or clear your search and filters."
+                    : "Employees appear here after they have a hire date and remain until HR records a final probation decision."}
+                  action={employees.length
+                    ? <Button variant="outline" size="sm" onClick={() => { setActiveView('all'); setQuery(''); setPosition('all'); setLocation('all'); }}>Clear filters</Button>
+                    : <Button asChild variant="outline" size="sm"><Link href="/settings/policy-configuration?area=people-lifecycle">Review probation policy</Link></Button>}
                 />
               )}
             </div>

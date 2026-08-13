@@ -16,7 +16,7 @@ import {
 import { DetailsFieldRow } from './PositionDetailsFieldRowPrimitives';
 
 export interface PositionDetailsFieldsProps {
-  availableRecruiters: Array<{ id: string; name: string }>;
+  availableRecruiters: Array<{ id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }>;
   form: UseFormReturn<EditPositionFormValues>;
   grades: Grade[];
   isEditMode: boolean;

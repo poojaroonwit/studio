@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PositionLevel } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface PositionLevelsListProps {
   levels: PositionLevel[];
@@ -68,9 +69,9 @@ function PositionLevelRow({
     <Card
       ref={innerRef}
       {...draggableProps}
-      className={!level.isActive ? 'opacity-60' : ''}
+      className={cn('overflow-hidden !bg-card', !level.isActive && 'opacity-60')}
     >
-      <CardContent className="p-4">
+      <CardContent className="bg-card p-4 dark:bg-[#151e29]">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div {...dragHandleProps}>

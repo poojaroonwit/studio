@@ -29,6 +29,15 @@ describe('payroll contracts', () => {
     }).success).toBe(false);
   });
 
+  it('accepts an explicit payslip release transition', () => {
+    expect(payrollActionSchema.parse({
+      action: 'release_payslips',
+      runId: '00000000-0000-4000-8000-000000000001',
+      expectedVersion: 3,
+      reason: 'Payroll owner confirmed employee release',
+    }).action).toBe('release_payslips');
+  });
+
   it('accepts a scoped payroll-profile assignment', () => {
     expect(payrollActionSchema.parse({
       action: 'assign_payroll_profile',

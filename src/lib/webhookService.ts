@@ -1,6 +1,7 @@
 import prisma from './prisma';
 import type { Webhook } from '@prisma/client';
 import type { WebhookData } from './webhook/webhook-dispatcher-types';
+import { isDemoInstallation } from './installation-environment';
 import {
   sendServiceWebhook,
   type WebhookDeliveryResult,
@@ -18,6 +19,7 @@ export type { WebhookDeliveryResult };
 export class WebhookService {
   static async sendWebhooks(event: string, data: WebhookData): Promise<void> {
     try {
+      if (await isDemoInstallation()) return;
       const webhooks = await prisma.webhook.findMany({
         where: {
           is_active: true,

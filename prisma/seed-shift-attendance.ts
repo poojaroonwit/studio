@@ -1,6 +1,58 @@
 import prisma from '../src/lib/prisma';
 
-async function main() {
+export async function seedShiftAttendanceDemoData() {
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "hr_departments"
+      (id, name, code, division, department, section, unit_type, sort_order,
+       description, is_active, created_at, updated_at)
+    VALUES
+      (gen_random_uuid(), 'Product Design', 'ATT-DEMO-DESIGN', 'Product', 'Product Design', 'Design', 'department', 10, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Customer Success', 'ATT-DEMO-CS', 'Commercial', 'Customer Success', 'Customer Success', 'department', 20, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Software Engineering', 'ATT-DEMO-ENG', 'Technology', 'Engineering', 'Software Engineering', 'department', 30, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Marketing', 'ATT-DEMO-MKT', 'Commercial', 'Marketing', 'Marketing', 'department', 40, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Sales', 'ATT-DEMO-SALES', 'Commercial', 'Sales', 'Sales', 'department', 50, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Operations', 'ATT-DEMO-OPS', 'Operations', 'Operations', 'Operations', 'department', 60, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'Finance', 'ATT-DEMO-FIN', 'Corporate', 'Finance', 'Finance', 'department', 70, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+      (gen_random_uuid(), 'IT Support', 'ATT-DEMO-IT', 'Technology', 'IT', 'IT Support', 'department', 80, 'Sample department for attendance demonstrations.', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT (code) DO UPDATE
+      SET name = EXCLUDED.name, updated_at = CURRENT_TIMESTAMP
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    WITH demo(employee_number, first_name, last_name, email, job_title, department_code, sort_order) AS (
+      VALUES
+        ('DEMO-ATT-001', 'Maya', 'Chen', 'attendance-demo-01@example.test', 'Product Designer', 'ATT-DEMO-DESIGN', 1),
+        ('DEMO-ATT-002', 'Lina', 'Patel', 'attendance-demo-02@example.test', 'Customer Success Manager', 'ATT-DEMO-CS', 2),
+        ('DEMO-ATT-003', 'Daniel', 'Wong', 'attendance-demo-03@example.test', 'Software Engineer', 'ATT-DEMO-ENG', 3),
+        ('DEMO-ATT-004', 'Tanya', 'Lee', 'attendance-demo-04@example.test', 'Marketing Specialist', 'ATT-DEMO-MKT', 4),
+        ('DEMO-ATT-005', 'Anucha', 'Prom', 'attendance-demo-05@example.test', 'Sales Executive', 'ATT-DEMO-SALES', 5),
+        ('DEMO-ATT-006', 'Arun', 'Sombat', 'attendance-demo-06@example.test', 'Account Executive', 'ATT-DEMO-SALES', 6),
+        ('DEMO-ATT-007', 'Narin', 'Chai', 'attendance-demo-07@example.test', 'Operations Analyst', 'ATT-DEMO-OPS', 7),
+        ('DEMO-ATT-008', 'Krittaya', 'Sae', 'attendance-demo-08@example.test', 'Customer Success Specialist', 'ATT-DEMO-CS', 8),
+        ('DEMO-ATT-009', 'Ben', 'Thompson', 'attendance-demo-09@example.test', 'Engineering Manager', 'ATT-DEMO-ENG', 9),
+        ('DEMO-ATT-010', 'Ploy', 'Rattanakorn', 'attendance-demo-10@example.test', 'Financial Analyst', 'ATT-DEMO-FIN', 10),
+        ('DEMO-ATT-011', 'Jirawat', 'K.', 'attendance-demo-11@example.test', 'IT Support Specialist', 'ATT-DEMO-IT', 11),
+        ('DEMO-ATT-012', 'Sofia', 'Martinez', 'attendance-demo-12@example.test', 'People Operations Partner', 'ATT-DEMO-OPS', 12)
+    )
+    INSERT INTO "hr_employees"
+      (id, employee_number, first_name, last_name, email, department_id, job_title,
+       employment_type, status, hire_date, location, profile_completion, version,
+       created_at, updated_at)
+    SELECT gen_random_uuid(), demo.employee_number, demo.first_name, demo.last_name,
+           demo.email, department.id, demo.job_title, 'full_time', 'active',
+           CURRENT_DATE - (180 + demo.sort_order), 'Bangkok HQ', 80, 1,
+           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM demo
+    JOIN "hr_departments" department ON department.code = demo.department_code
+    ON CONFLICT (employee_number) DO UPDATE
+      SET first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
+          department_id = EXCLUDED.department_id,
+          job_title = EXCLUDED.job_title,
+          status = 'active',
+          updated_at = CURRENT_TIMESTAMP
+  `);
+
   await prisma.$executeRawUnsafe(`
     INSERT INTO "hr_work_schedules"
       (id, name, weekly_hours, timezone, is_active, schedule_type,
@@ -74,7 +126,7 @@ async function main() {
       SELECT id, row_number() OVER (ORDER BY employee_number) AS employee_order
       FROM "hr_employees"
       WHERE status IN ('active', 'onboarding')
-      ORDER BY employee_number
+      ORDER BY CASE WHEN email LIKE 'attendance-demo-%@example.test' THEN 0 ELSE 1 END, employee_number
       LIMIT 12
     ),
     workdays AS (
@@ -125,7 +177,7 @@ async function main() {
       SELECT id, row_number() OVER (ORDER BY employee_number) AS employee_order
       FROM "hr_employees"
       WHERE status IN ('active', 'onboarding')
-      ORDER BY employee_number
+      ORDER BY CASE WHEN email LIKE 'attendance-demo-%@example.test' THEN 0 ELSE 1 END, employee_number
       LIMIT 8
     ),
     days AS (
@@ -161,7 +213,11 @@ async function main() {
            CASE WHEN days.work_date = CURRENT_DATE AND team.employee_order % 3 = 0 THEN 0 ELSE 480 END,
            CASE WHEN days.work_date = CURRENT_DATE AND team.employee_order % 3 = 0 THEN 0 ELSE 480 END,
            CASE WHEN team.employee_order % 5 = 0 THEN 42 ELSE 0 END,
-           CASE WHEN team.employee_order % 4 = 0 THEN 'open' ELSE 'clear' END,
+           CASE
+             WHEN days.work_date = CURRENT_DATE AND team.employee_order % 3 = 0 THEN 'open'
+             WHEN team.employee_order % 4 = 0 OR team.employee_order % 5 = 0 THEN 'open'
+             ELSE 'clear'
+           END,
            'open', 'Asia/Bangkok', 'shift-attendance-v1',
            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM team CROSS JOIN days
@@ -179,6 +235,40 @@ async function main() {
       AND NOT EXISTS (
         SELECT 1 FROM "hr_attendance_exceptions" ae
         WHERE ae.attendance_record_id = ar.id AND ae.code = 'LATE_ARRIVAL'
+      )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "hr_attendance_exceptions"
+      (id, attendance_record_id, code, severity, status, explanation, created_at, updated_at)
+    SELECT gen_random_uuid(), ar.id, 'MISSING_CHECK_OUT', 'critical', 'open',
+           'A check-out was not recorded for the scheduled shift.',
+           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM "hr_attendance_records" ar
+    JOIN "hr_employees" employee ON employee.id = ar.employee_id
+    WHERE employee.email LIKE 'attendance-demo-%@example.test'
+      AND ar.work_date = CURRENT_DATE
+      AND ar.clock_in IS NOT NULL
+      AND ar.clock_out IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM "hr_attendance_exceptions" ae
+        WHERE ae.attendance_record_id = ar.id AND ae.code = 'MISSING_CHECK_OUT'
+      )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "hr_attendance_exceptions"
+      (id, attendance_record_id, code, severity, status, explanation, created_at, updated_at)
+    SELECT gen_random_uuid(), ar.id, 'OVERTIME_VARIANCE', 'warning', 'open',
+           'Recorded time exceeds the planned shift and requires review.',
+           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM "hr_attendance_records" ar
+    JOIN "hr_employees" employee ON employee.id = ar.employee_id
+    WHERE employee.email LIKE 'attendance-demo-%@example.test'
+      AND ar.overtime_minutes > 0
+      AND NOT EXISTS (
+        SELECT 1 FROM "hr_attendance_exceptions" ae
+        WHERE ae.attendance_record_id = ar.id AND ae.code = 'OVERTIME_VARIANCE'
       )
   `);
 
@@ -241,7 +331,7 @@ async function main() {
   `);
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-shift-attendance.ts')) seedShiftAttendanceDemoData()
   .catch(error => {
     console.error(error);
     process.exit(1);

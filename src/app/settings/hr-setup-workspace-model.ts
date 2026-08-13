@@ -23,9 +23,9 @@ export const hrSetupFeatureByLabel: Partial<Record<string, PlatformSetupFeatureI
 
 export const hrSetupMapColumns = [
   { label: 'Organization', itemLabels: ['Company Info', 'Branch', 'Department'] },
-  { label: 'People structure', itemLabels: ['Designation', 'Grades', 'Position Levels', 'Headcount Types'] },
-  { label: 'Policies & operations', itemLabels: ['Leave Policies', 'Policy Documents', 'Employee Documents', 'Onboarding Checklist'] },
-  { label: 'Talent lifecycle', itemLabels: ['Recruitment Stages', 'Applicant Sources', 'Evaluation Configuration'] },
+  { label: 'People structure', itemLabels: ['Designation', 'Grades', 'Position Levels', 'Headcount Types', 'Employee Lifecycle Policies', 'Journey Configuration', 'Onboarding Templates', 'Employee Document Templates'] },
+  { label: 'Policies & operations', itemLabels: ['Leave Policies', 'Policy Documents', 'Employee Documents', 'Onboarding Checklist', 'Workforce Rules', 'Leave & Absence Policies', 'Leave Policy Assignments', 'Holiday Calendars', 'Leave Block List', 'Payroll & Expense Policies', 'Compensation Approval Routes', 'Payroll Approval Routes'] },
+  { label: 'Talent lifecycle', itemLabels: ['Recruitment Stages', 'Applicant Sources', 'Evaluation Configuration', 'Performance & Learning Policies', 'Learning Taxonomy'] },
 ] as const;
 
 export const hrSetupMilestones = [
@@ -33,6 +33,10 @@ export const hrSetupMilestones = [
   { label: 'Workforce structure', itemLabels: ['Designation', 'Grades', 'Position Levels', 'Headcount Types'] },
   { label: 'Policies & time', itemLabels: ['Leave Policies', 'Policy Documents', 'Employee Documents', 'Onboarding Checklist'] },
   { label: 'Hiring workflow', itemLabels: ['Recruitment Stages', 'Applicant Sources', 'Evaluation Configuration'] },
+  { label: 'People lifecycle', itemLabels: ['Employee Lifecycle Policies', 'Journey Configuration', 'Onboarding Templates', 'Employee Document Templates'] },
+  { label: 'Workforce', itemLabels: ['Workforce Rules', 'Leave & Absence Policies', 'Leave Policy Assignments', 'Holiday Calendars', 'Leave Block List'] },
+  { label: 'Payroll & expenses', itemLabels: ['Payroll & Expense Policies', 'Compensation Approval Routes', 'Payroll Approval Routes'] },
+  { label: 'Performance & learning', itemLabels: ['Performance & Learning Policies', 'Learning Taxonomy'] },
 ] as const;
 
 export function getUniqueHrSetupItems(items: SettingsPageItem[]) {

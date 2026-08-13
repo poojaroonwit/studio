@@ -2,23 +2,29 @@ import type { CustomFieldValue, Position, UserProfile } from "@/lib/types";
 import { getJsonArray, isJsonObject } from "../../../lib/response-json";
 
 export function normalizeArrayPayload<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
+  return Array.isArray(value) ? (value as T[]) : [];
 }
 
-export function normalizeRecruiterOptions(value: unknown): Pick<UserProfile, "id" | "name">[] {
+export function normalizeRecruiterOptions(
+  value: unknown,
+): Pick<UserProfile, "id" | "name" | "avatarUrl" | "personalColor">[] {
   return getRecruiterPayloadItems(value)
     .filter(isJsonObject)
     .filter((user) => typeof user.id === "string")
     .map((user) => ({
       id: user.id as string,
       name: getRecruiterDisplayName(user),
+      avatarUrl:
+        typeof user.avatarUrl === "string" ? user.avatarUrl : undefined,
+      personalColor:
+        typeof user.personalColor === "string" ? user.personalColor : undefined,
     }));
 }
 
 export function updatePositionCustomField(
   position: Position | null,
   fieldCode: string,
-  value: CustomFieldValue
+  value: CustomFieldValue,
 ) {
   if (!position) return position;
 
@@ -36,7 +42,7 @@ function getRecruiterPayloadItems(value: unknown) {
     return value;
   }
 
-  return isJsonObject(value) ? getJsonArray(value, "users") ?? [] : [];
+  return isJsonObject(value) ? (getJsonArray(value, "users") ?? []) : [];
 }
 
 function getRecruiterDisplayName(user: Record<string, unknown>) {

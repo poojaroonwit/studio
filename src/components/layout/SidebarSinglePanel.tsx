@@ -286,6 +286,7 @@ export function buildFigmaSidebarSections(
     client: "OTHER",
     people: "WORKFORCE",
     workforce: "WORKFORCE",
+    performance: "WORKFORCE",
     leaves: "WORKFORCE",
     "data-and-analytics": "OTHER",
     learning: "PEOPLE",
@@ -302,6 +303,7 @@ export function buildFigmaSidebarSections(
     recruitment: t("sidebar.group.recruitment", "Recruit"),
     people: t("sidebar.group.people", "Employee"),
     workforce: t("sidebar.group.workforce", "Employee"),
+    performance: t("sidebar.group.people", "Employee"),
   };
   const resolveSectionLabel = (sectionId: (typeof sectionOrder)[number]) => {
     const canonicalKey = `sidebar.section.${sectionId.toLowerCase()}`;

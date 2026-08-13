@@ -37,6 +37,10 @@ import { useDropdownOptions } from "@/hooks/use-dropdown-options";
 import { cn } from "@/lib/utils";
 import { defaultDropdownOptions } from "@/lib/dropdown-option-catalog";
 import {
+  offboardingDateLabel,
+  offboardingDaysRemaining,
+} from "@/components/hr/offboarding-date-utils";
+import {
   EMPLOYEE_JOURNEY_CONFIGURATION_KEY,
   buildOffboardingChecklist,
   defaultEmployeeJourneyConfiguration,
@@ -131,19 +135,8 @@ function initials(employee?: EmployeeRecord) {
     .toUpperCase();
 }
 
-function dateLabel(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function daysRemaining(value: string) {
-  return Math.ceil(
-    (new Date(`${value}T23:59:59`).getTime() - Date.now()) / 86400000,
-  );
-}
+const dateLabel = offboardingDateLabel;
+const daysRemaining = offboardingDaysRemaining;
 
 function normalizedStatus(value?: string | null): ExitTask["status"] {
   const status = (value || "").toLowerCase();
@@ -274,6 +267,7 @@ function progressFor(row: ExitCase) {
 function riskFor(row: ExitCase) {
   const days = daysRemaining(row.lastWorkingDate);
   const blocked = workflowTasks(row).some((task) => task.status === "blocked");
+  if (days === null) return { label: "Date required", color: "bg-red-500" };
   if (blocked || days < 0) return { label: "At risk", color: "bg-red-500" };
   if (days <= 14) return { label: "Attention", color: "bg-amber-400" };
   if (row.status === "completed")
@@ -696,10 +690,14 @@ function ExitRegister({
               <span
                 className={cn(
                   "text-sm",
-                  days <= 3 && "font-semibold text-amber-500",
+                  days !== null && days <= 3 && "font-semibold text-amber-500",
                 )}
               >
-                {days < 0 ? `${Math.abs(days)} overdue` : `${days} days`}
+                {days === null
+                  ? "Date required"
+                  : days < 0
+                    ? `${Math.abs(days)} overdue`
+                    : `${days} days`}
               </span>
               <span>
                 <span className="block h-1.5 overflow-hidden rounded-full bg-muted">
@@ -897,7 +895,9 @@ function ExitDrawer({
                 />
                 <SummaryMetric
                   icon={CalendarDaysIcon}
-                  value={`${Math.max(0, daysRemaining(row.lastWorkingDate))} days`}
+                  value={daysRemaining(row.lastWorkingDate) === null
+                    ? "Date required"
+                    : `${Math.max(0, daysRemaining(row.lastWorkingDate) as number)} days`}
                   label={`Final day ${dateLabel(row.lastWorkingDate)}`}
                 />
                 <SummaryMetric

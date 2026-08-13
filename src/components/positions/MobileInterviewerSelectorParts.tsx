@@ -3,7 +3,7 @@
 import React from 'react';
 import { Check, Mail, Search, User } from 'lucide-react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ export interface InterviewerUser {
   name: string;
   email: string;
   role: string;
+  avatarUrl?: string | null;
 }
 
 export function filterInterviewers(users: InterviewerUser[], searchTerm: string): InterviewerUser[] {
@@ -155,6 +156,7 @@ function InterviewerRow({
       />
 
       <Avatar className="h-10 w-10 flex-shrink-0">
+        {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.name} /> : null}
         <AvatarFallback className="bg-primary/10 text-primary text-sm">
           {getInterviewerInitials(user.name)}
         </AvatarFallback>

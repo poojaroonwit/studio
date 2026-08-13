@@ -31,7 +31,7 @@ export function usePositionsPageDataState({
   const [isTableLoading, setIsTableLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [total, setTotal] = useState(0);
-  const [availableHiringManagers, setAvailableHiringManagers] = useState<{ id: string; name: string }[]>([]);
+  const [availableHiringManagers, setAvailableHiringManagers] = useState<{ id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }[]>([]);
   const [headcountData, setHeadcountData] = useState<PositionHeadcountData>({});
   const [vacantFromOpenPositions, setVacantFromOpenPositions] = useState({ vacant: 0, totalOpen: 0 });
 

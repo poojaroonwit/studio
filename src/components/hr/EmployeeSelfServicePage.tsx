@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from 'next/navigation';
+
 import { AttendanceView } from '@/components/ess/AttendanceView';
 import { DocumentsView } from '@/components/ess/DocumentsView';
 import { EmployeeProfileView } from '@/components/ess/EmployeeProfileView';
@@ -11,6 +13,8 @@ import { PerformanceView } from '@/components/ess/PerformanceView';
 import { OvertimeView } from '@/components/shift/views/OvertimeView';
 import { RequestsView } from '@/components/shift/views/RequestsView';
 import { useEssData } from '@/components/ess/use-ess-data';
+import { essAttendancePreviewData } from '@/components/ess/ess-attendance-preview-data';
+import { essLeavePreviewData } from '@/components/ess/ess-leave-preview-data';
 
 export type { EssView };
 
@@ -22,9 +26,20 @@ export function EmployeeSelfServicePage({
   attendanceMode?: 'history' | 'check-in';
 }) {
   const state = useEssData(view);
+  const searchParams = useSearchParams();
+  const preview = searchParams.get('preview');
+  const previewData = process.env.NODE_ENV !== 'production'
+    ? view === 'leave' && preview === 'leave'
+      ? essLeavePreviewData
+      : view === 'attendance' && preview === 'attendance'
+        ? essAttendancePreviewData
+        : null
+    : null;
+  const data = previewData || state.data;
+  const previewMutate = async () => true;
 
-  if (state.loading) return <EssLoadingState />;
-  if (!state.data) {
+  if (state.loading && !previewData) return <EssLoadingState />;
+  if (!data) {
     const message = state.error || 'Employee self-service is not available for this account.';
     const isMissingEmployee = message.toLowerCase().includes('no employee record');
 
@@ -49,15 +64,15 @@ export function EmployeeSelfServicePage({
   }
 
   const content = {
-    profile: <EmployeeProfileView data={state.data} submitting={state.submitting} mutate={state.mutate} />,
-    leave: <LeaveRequestView data={state.data} submitting={state.submitting} mutate={state.mutate} />,
-    attendance: <AttendanceView mode={attendanceMode} data={state.data} submitting={state.submitting} mutate={state.mutate} />,
+    profile: <EmployeeProfileView data={data} submitting={state.submitting} mutate={state.mutate} />,
+    leave: <LeaveRequestView data={data} submitting={state.submitting} mutate={previewData ? previewMutate : state.mutate} />,
+    attendance: <AttendanceView mode={attendanceMode} data={data} submitting={state.submitting} mutate={previewData ? previewMutate : state.mutate} />,
     'shift-requests': <RequestsView mode="shift" employeeSelfService />,
     'attendance-corrections': <RequestsView mode="attendance" employeeSelfService />,
     overtime: <OvertimeView employeeSelfService />,
-    documents: <DocumentsView data={state.data} submitting={state.submitting} mutate={state.mutate} upload={state.upload} />,
-    performance: <PerformanceView data={state.data} submitting={state.submitting} mutate={state.mutate} />,
-    team: <MyTeamView data={state.data} team={state.team} submitting={state.submitting} mutate={state.mutate} />,
+    documents: <DocumentsView data={data} submitting={state.submitting} mutate={state.mutate} upload={state.upload} />,
+    performance: <PerformanceView data={data} submitting={state.submitting} mutate={state.mutate} />,
+    team: <MyTeamView data={data} team={state.team} submitting={state.submitting} mutate={state.mutate} />,
   }[view];
 
   // My Profile owns the same full-height chrome as Employee Detail through
@@ -67,9 +82,9 @@ export function EmployeeSelfServicePage({
   return (
     <EssShell
       view={view}
-      employee={state.data.employee}
+      employee={data.employee}
       backgroundLoading={state.backgroundLoading}
-      error={state.error}
+      error={previewData ? null : state.error}
       onRetry={() => void state.load(true)}
     >
       {content}

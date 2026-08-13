@@ -20,6 +20,7 @@ import {
   PlusIcon,
   PlayIcon,
   TrashIcon,
+  UserPlusIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 
@@ -258,6 +259,7 @@ function EmployeeDirectoryTable({
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [employmentFilter, setEmploymentFilter] = React.useState('all');
   const [locationFilter, setLocationFilter] = React.useState('all');
+  const [accountFilter, setAccountFilter] = React.useState('all');
   const [contractFilter, setContractFilter] = React.useState('all');
   const [page, setPage] = React.useState(1);
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
@@ -302,17 +304,19 @@ function EmployeeDirectoryTable({
       const matchesStatus = statusFilter === 'all' || record.status === statusFilter;
       const matchesEmployment = employmentFilter === 'all' || record.employmentType === employmentFilter;
       const matchesLocation = locationFilter === 'all' || record.location === locationFilter;
+      const accountState = !record.accountUserId ? 'missing' : record.accountIsActive === false ? 'disabled' : 'active';
+      const matchesAccount = accountFilter === 'all' || accountState === accountFilter;
       const contractState = getContractExpiry(record).state;
       const matchesContract = contractFilter === 'all'
         || (contractFilter === 'attention' && ['due', 'expired', 'missing_end_date'].includes(contractState))
         || contractState === contractFilter;
-      return matchesQuery && matchesStatus && matchesEmployment && matchesLocation && matchesContract;
+      return matchesQuery && matchesStatus && matchesEmployment && matchesLocation && matchesAccount && matchesContract;
     });
-  }, [contractFilter, employmentFilter, locationFilter, query, resource.records, statusFilter]);
+  }, [accountFilter, contractFilter, employmentFilter, locationFilter, query, resource.records, statusFilter]);
 
   React.useEffect(() => {
     setPage(1);
-  }, [contractFilter, employmentFilter, locationFilter, query, statusFilter]);
+  }, [accountFilter, contractFilter, employmentFilter, locationFilter, query, statusFilter]);
 
   const contractSummary = React.useMemo(() => resource.records.reduce((summary, employee) => {
     const state = getContractExpiry(employee).state;
@@ -327,7 +331,7 @@ function EmployeeDirectoryTable({
   const visibleEmployees = filteredEmployees.slice((safePage - 1) * employeePageSize, safePage * employeePageSize);
   const start = filteredEmployees.length === 0 ? 0 : (safePage - 1) * employeePageSize + 1;
   const end = Math.min(filteredEmployees.length, safePage * employeePageSize);
-  const activeFilters = [statusFilter, employmentFilter, locationFilter, contractFilter].filter(value => value !== 'all').length;
+  const activeFilters = [statusFilter, employmentFilter, locationFilter, accountFilter, contractFilter].filter(value => value !== 'all').length;
   const visibleEmployeeIds = visibleEmployees.map(employee => employee.id);
   const allVisibleSelected = visibleEmployeeIds.length > 0 && visibleEmployeeIds.every(id => selectedEmployeeIds.has(id));
   const selectedEmployees = resource.records.filter(employee => selectedEmployeeIds.has(employee.id));
@@ -336,6 +340,7 @@ function EmployeeDirectoryTable({
     statusFilter !== 'all' ? { key: 'status', label: `Status: ${employeeText(statusFilter)}`, clear: () => setStatusFilter('all') } : null,
     employmentFilter !== 'all' ? { key: 'employment', label: `Type: ${employeeText(employmentFilter)}`, clear: () => setEmploymentFilter('all') } : null,
     locationFilter !== 'all' ? { key: 'location', label: `Location: ${locationFilter}`, clear: () => setLocationFilter('all') } : null,
+    accountFilter !== 'all' ? { key: 'account', label: `Account: ${employeeText(accountFilter)}`, clear: () => setAccountFilter('all') } : null,
     contractFilter !== 'all' ? { key: 'contract', label: `Contract: ${employeeText(contractFilter)}`, clear: () => setContractFilter('all') } : null,
   ].filter((item): item is { key: string; label: string; clear: () => void } => Boolean(item));
 
@@ -391,6 +396,30 @@ function EmployeeDirectoryTable({
     }
   }
 
+  async function createSelectedEmployeeAccounts() {
+    const employees = selectedEmployees.filter(employee => !employee.accountUserId);
+    if (employees.length === 0 || isBulkUpdating) return;
+    setIsBulkUpdating(true);
+    setBulkError(null);
+    try {
+      const results = await Promise.allSettled(employees.map(async employee => {
+        const response = await fetch(`/api/hr/employees/${encodeURIComponent(employee.id)}/system-account`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        const payload = await response.json().catch(() => ({})) as { message?: string };
+        if (!response.ok) throw new Error(payload.message || `Unable to create an account for ${employeeName(employee)}.`);
+      }));
+      const failures = results.filter(result => result.status === 'rejected').length;
+      setBulkError(failures
+        ? `${employees.length - failures} account${employees.length - failures === 1 ? '' : 's'} created; ${failures} failed. Open the affected employee profiles for details.`
+        : `${employees.length} employee account${employees.length === 1 ? '' : 's'} created and invitations queued.`);
+      await onEmployeeCreated();
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  }
+
   async function runEmployeeImport() {
     if (isImporting) return;
     if (importMode === 'excel' && !importFile) return;
@@ -425,8 +454,10 @@ function EmployeeDirectoryTable({
             <div className="min-w-0">
               <p className="text-xs font-semibold tracking-[0.04em] text-primary">People <span className="px-1.5 text-muted-foreground/60">›</span> Employee records</p>
               <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-[-0.035em] text-foreground">Employee directory</h1>
-              <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
-                {isThaiLocale ? `${filteredEmployees.length} พนักงาน` : `${filteredEmployees.length} employee${filteredEmployees.length === 1 ? '' : 's'}`}
+              <p role="status" aria-live="polite" className="mt-1.5 text-sm leading-5 text-muted-foreground">
+                {isLoading
+                  ? (isThaiLocale ? 'กำลังโหลดพนักงาน…' : 'Loading employees…')
+                  : isThaiLocale ? `${filteredEmployees.length} พนักงาน` : `${filteredEmployees.length} employee${filteredEmployees.length === 1 ? '' : 's'}`}
                 <span aria-hidden="true" className="mx-1 text-border">|</span>
                 {isThaiLocale ? 'ข้อมูล ณ ปัจจุบัน' : 'Data as of today'}
               </p>
@@ -477,6 +508,15 @@ function EmployeeDirectoryTable({
                       </select>
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="employee-account-filter">Platform account</Label>
+                      <select id="employee-account-filter" value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)} className="h-9 w-full rounded-[8px] border border-input bg-background px-3 text-sm text-foreground">
+                        <option value="all">All account states</option>
+                        <option value="missing">No account</option>
+                        <option value="active">Active</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="employee-contract-filter">Contract end</Label>
                       <select id="employee-contract-filter" value={contractFilter} onChange={(event) => setContractFilter(event.target.value)} className="h-9 w-full rounded-[8px] border border-input bg-background px-3 text-sm text-foreground">
                         <option value="all">All</option>
@@ -490,6 +530,7 @@ function EmployeeDirectoryTable({
                       setStatusFilter('all');
                       setEmploymentFilter('all');
                       setLocationFilter('all');
+                      setAccountFilter('all');
                       setContractFilter('all');
                     }}>
                       Reset filters
@@ -532,7 +573,7 @@ function EmployeeDirectoryTable({
 
           {activeFilterItems.length > 0 && <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="Active employee filters">
             {activeFilterItems.map(item => <button key={item.key} type="button" onClick={item.clear} className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-muted/45 px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"><span>{item.label}</span><XCircleIcon className="h-4 w-4 text-muted-foreground" /></button>)}
-            <button type="button" onClick={() => { setStatusFilter('all'); setEmploymentFilter('all'); setLocationFilter('all'); setContractFilter('all'); }} className="h-8 px-2 text-xs font-semibold text-primary hover:underline">Clear all</button>
+            <button type="button" onClick={() => { setStatusFilter('all'); setEmploymentFilter('all'); setLocationFilter('all'); setAccountFilter('all'); setContractFilter('all'); }} className="h-8 px-2 text-xs font-semibold text-primary hover:underline">Clear all</button>
           </div>}
 
           <div className="mt-7 flex flex-col border-y border-border/80 lg:flex-row lg:items-center lg:justify-between">
@@ -554,6 +595,15 @@ function EmployeeDirectoryTable({
               <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </button>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border bg-muted/25 px-5 py-2">
+            <p className="text-xs text-muted-foreground">Contract alerts use each employee&apos;s notice period and are de-duplicated daily.</p>
+            <div className="flex items-center gap-3">
+              <span role="status" aria-live="polite" className="text-xs text-muted-foreground">{contractAlertMessage}</span>
+              <Button type="button" size="sm" variant="outline" disabled={isSendingContractAlerts} onClick={() => void sendContractAlerts()}>
+                {isSendingContractAlerts ? 'Creating alerts…' : 'Create contract alerts'}
+              </Button>
+            </div>
+          </div>
 
           {error && (
             <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border/80 px-2 text-sm text-muted-foreground">
@@ -565,11 +615,6 @@ function EmployeeDirectoryTable({
             </div>
           )}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border bg-muted/25 px-5 py-2">
-            <p className="text-xs text-muted-foreground">Alerts use each employee's configured notice period and are de-duplicated daily.</p>
-            <div className="flex items-center gap-3"><span className="text-xs text-muted-foreground">{contractAlertMessage}</span><Button type="button" size="sm" variant="outline" disabled={isSendingContractAlerts} onClick={() => void sendContractAlerts()}>{isSendingContractAlerts ? 'Creating alerts…' : 'Create contract alerts'}</Button></div>
-          </div>
-
           {selectedEmployeeIds.size > 0 && (
             <div className="flex min-h-14 flex-wrap items-center gap-2 border-y border-primary/20 bg-primary/5 px-5 py-2">
               <span className="min-w-40 border-r border-border pr-5 text-sm font-semibold text-foreground">{selectedEmployeeIds.size} employee{selectedEmployeeIds.size === 1 ? '' : 's'} selected</span>
@@ -578,6 +623,11 @@ function EmployeeDirectoryTable({
                 <Button asChild type="button" variant="ghost" size="sm" className="gap-2"><Link href={`/people/${selectedEmployee.id}`}><PencilSquareIcon className="h-4 w-4" />Edit</Link></Button>
               </>}
               <Button type="button" variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive" disabled={isBulkUpdating} onClick={() => void updateSelectedEmployeeStatus('inactive')}><NoSymbolIcon className="h-4 w-4" />Deactivate</Button>
+              {selectedEmployees.some(employee => !employee.accountUserId) ? (
+                <Button type="button" variant="ghost" size="sm" className="gap-2" disabled={isBulkUpdating} onClick={() => void createSelectedEmployeeAccounts()}>
+                  <UserPlusIcon className="h-4 w-4" />Create accounts
+                </Button>
+              ) : null}
               <span aria-hidden="true" className="mx-1 h-7 w-px bg-border" />
               <Label htmlFor="employee-bulk-status" className="text-xs text-muted-foreground">Set status</Label>
               <select id="employee-bulk-status" value={bulkStatus} onChange={event => setBulkStatus(event.target.value)} disabled={isBulkUpdating} className="h-8 rounded-md border border-input bg-background px-2 text-sm capitalize">
@@ -589,10 +639,11 @@ function EmployeeDirectoryTable({
               <Button type="button" variant="ghost" size="sm" disabled={isBulkUpdating} onClick={() => setSelectedEmployeeIds(new Set())} className="ml-auto">Clear</Button>
             </div>
           )}
-          {bulkError && <div className="border-b border-destructive/20 bg-destructive/5 px-5 py-2 text-sm text-destructive">{bulkError}</div>}
+          {bulkError && <div role="status" aria-live="polite" className="border-b border-primary/20 bg-primary/5 px-5 py-2 text-sm text-foreground">{bulkError}</div>}
 
           <div className="flex-1 overflow-x-auto">
             <table className="min-w-full table-fixed text-left text-sm">
+              <caption className="sr-only">Employee directory with account, employment, onboarding, location, and contract status.</caption>
               <thead className="sticky top-0 z-10 border-b border-border bg-muted text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 <tr>
                   <th className="w-12 px-4 py-3">

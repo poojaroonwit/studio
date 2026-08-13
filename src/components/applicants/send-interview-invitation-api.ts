@@ -25,6 +25,8 @@ export interface Interviewer {
   userName: string;
   userEmail: string;
   positionTitle?: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }
 
 export interface User {

@@ -112,7 +112,10 @@ export async function GET() {
           probationPeriodDays: effectivePeriodDays,
           evaluationFrequencyDays: effectiveFrequencyDays,
         });
-        if (!schedule?.isOnProbation) return null;
+        // Keep unresolved, overdue probation records visible until HR records a
+        // final decision. Hiding them after the calculated end date makes the
+        // profile and review roster disagree and removes the recovery path.
+        if (!schedule || (!schedule.isOnProbation && schedule.daysRemaining >= 0)) return null;
 
         return {
           ...row,

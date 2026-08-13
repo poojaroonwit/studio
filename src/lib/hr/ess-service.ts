@@ -366,14 +366,17 @@ async function getEssSlices(employeeId: string) {
       employeeId,
     ),
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `SELECT id, request_id, policy_id, start_date, end_date, days, reason, status,
-              request_unit, half_day_period, requested_hours, emergency_contact,
-              handover_information, acting_employee_id, attachments, approver_comments,
-              submitted_at, withdrawn_at, cancelled_at, version, decided_at, created_at,
-              request_group_id, segment_index
-       FROM "hr_leave_requests"
-       WHERE "employee_id" = $1::uuid
-       ORDER BY "created_at" DESC
+      `SELECT lr.id, lr.request_id, lr.policy_id, lr.start_date, lr.end_date, lr.days, lr.reason, lr.status,
+              lr.request_unit, lr.half_day_period, lr.requested_hours, lr.emergency_contact,
+              lr.handover_information, lr.acting_employee_id, lr.attachments, lr.approver_comments,
+              lr.submitted_at, lr.withdrawn_at, lr.cancelled_at, lr.version, lr.decided_at, lr.created_at,
+              lr.request_group_id, lr.segment_index,
+              NULLIF(TRIM(CONCAT_WS(' ', acting.preferred_name, acting.first_name, acting.last_name)), '') AS acting_employee_name,
+              acting.job_title AS acting_employee_job_title
+       FROM "hr_leave_requests" lr
+       LEFT JOIN "hr_employees" acting ON acting.id = lr.acting_employee_id
+       WHERE lr."employee_id" = $1::uuid
+       ORDER BY lr."created_at" DESC
        LIMIT 30`,
       employeeId,
     ),

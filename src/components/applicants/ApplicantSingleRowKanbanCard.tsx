@@ -6,7 +6,6 @@ import {
   EnvelopeIcon as Mail,
   EyeIcon as Eye,
   FlagIcon as Target,
-  PencilIcon as Pencil,
   PhoneIcon as Phone,
   UserIcon as User,
 } from '@heroicons/react/24/outline';
@@ -157,14 +156,6 @@ function SingleRowKanbanActions({
       >
         <Eye className="w-4 h-4" />
         View Details
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => {}}
-        className="flex items-center gap-2"
-      >
-        <Pencil className="w-4 h-4" />
-        Edit
       </Button>
     </div>
   );

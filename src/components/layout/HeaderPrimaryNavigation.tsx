@@ -36,8 +36,8 @@ const megaMenuCategories = [
   },
   {
     label: "People",
-    description: "Employee records, organization, and lifecycle",
-    groupIds: ["people"],
+    description: "Employee records, organization, performance, and growth",
+    groupIds: ["people", "performance"],
   },
   {
     label: "ESS",

@@ -33,9 +33,9 @@ export function EmployeeProfileScaffold({
             {children}
           </div>
         </section>
-        <aside className="flex min-h-[360px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-lg lg:min-h-0">
+        <aside className="flex min-h-[360px] flex-col overflow-hidden lg:min-h-0">
           {sidebarNavigation}
-          <div className="flex-1 overflow-y-auto p-5">{sidebar}</div>
+          <div className="flex-1 overflow-y-auto">{sidebar}</div>
         </aside>
       </div>
     </main>

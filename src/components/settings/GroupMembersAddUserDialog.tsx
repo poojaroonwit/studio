@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Check, Loader2, Search, UserPlus } from 'lucide-react';
 import {
-  getGroupMemberInitials,
   type GroupMemberUser,
 } from './group-members-drawer-utils';
 
@@ -102,11 +101,7 @@ export function GroupMembersAddUserDialog({
                           className={isAlreadyMember ? 'opacity-60 cursor-not-allowed' : ''}
                         >
                           <div className="flex items-center gap-2 w-full">
-                            <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                              <AvatarFallback className="text-xs rounded-full">
-                                {getGroupMemberInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatarCompact user={user} size="xs" />
                             <div className="flex-1 min-w-0">
                               <div className="font-medium truncate">{user.name}</div>
                               <div className="text-xs text-muted-foreground truncate">{user.email}</div>

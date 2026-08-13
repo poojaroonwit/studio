@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HrisEmptyState, HrisMetric, HrisSurface } from '@/components/hris/HrisWorkspacePrimitives';
 import { hasPermission } from '@/lib/permissions';
+import { HrEmployeeSearchSelect } from './HrEmployeeSearchSelect';
 
 type Row = Record<string, unknown> & { id: string; version?: number };
 
@@ -269,7 +270,7 @@ export function AssetInventoryWorkspace({ employeeId, employeeName }: AssetInven
 
       <Dialog open={assignDialog} onOpenChange={setAssignDialog}><DialogContent><DialogHeader><DialogTitle>Assign equipment</DialogTitle><DialogDescription>Create a custody record with an optional expected return date.</DialogDescription></DialogHeader><div className="space-y-4 py-2">
         <Field label="Available asset"><select value={assignmentForm.assetId} onChange={event => setAssignmentForm(current => ({ ...current, assetId: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select equipment</option>{availableAssets.map(asset => <option key={asset.id} value={asset.id}>{text(asset.assetTag)} · {text(asset.name)}</option>)}</select></Field>
-        {!embedded && <Field label="Employee"><select value={assignmentForm.employeeId} onChange={event => setAssignmentForm(current => ({ ...current, employeeId: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select employee</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employeeLabel(employee)} · {text(employee.employeeNumber, text(employee.email, ''))}</option>)}</select></Field>}
+        {!embedded && <Field label="Employee"><HrEmployeeSearchSelect value={assignmentForm.employeeId} onValueChange={employeeId => setAssignmentForm(current => ({ ...current, employeeId }))} /></Field>}
         <Field label="Expected return date"><Input type="date" value={assignmentForm.expectedReturnAt} onChange={event => setAssignmentForm(current => ({ ...current, expectedReturnAt: event.target.value }))} /></Field>
         <Field label="Custody notes"><Input value={assignmentForm.notes} onChange={event => setAssignmentForm(current => ({ ...current, notes: event.target.value }))} placeholder="Accessories, condition, or handover notes" /></Field>
       </div><DialogFooter><Button variant="outline" onClick={() => setAssignDialog(false)}>Cancel</Button><Button disabled={saving || !assignmentForm.assetId || !assignmentForm.employeeId} onClick={() => void assignAsset()}>{saving ? 'Assigning…' : 'Assign equipment'}</Button></DialogFooter></DialogContent></Dialog>

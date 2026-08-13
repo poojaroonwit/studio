@@ -52,14 +52,14 @@ function ExpertiseTestingTab() {
         {APPLICANT_EVALUATION_TESTING_SKILLS.map((skill) => (
           <div key={skill.name} className="text-center">
             <div className="relative w-24 h-24 mx-auto mb-2">
-              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
+              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-border bg-muted">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-gray-700">{skill.score}</div>
-                  <div className="text-xs text-gray-500">/{skill.maxScore}</div>
+                  <div className="text-xl font-bold text-foreground">{skill.score}</div>
+                  <div className="text-xs text-muted-foreground">/{skill.maxScore}</div>
                 </div>
               </div>
             </div>
-            <div className="text-sm font-medium text-gray-700">{skill.name}</div>
+            <div className="text-sm font-medium text-foreground">{skill.name}</div>
           </div>
         ))}
       </div>

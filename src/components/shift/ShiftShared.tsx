@@ -220,37 +220,80 @@ export function DetailDrawer({
   open,
   onClose,
   children,
+  variant = 'edge',
 }: {
   title: string;
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  variant?: 'edge' | 'floating' | 'inline';
 }) {
   const { contentZIndex, overlayZIndex } = useDynamicZIndex('shift-detail-drawer', 'drawer');
 
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose, open]);
+
   if (!open) return null;
+
+  const floating = variant === 'floating';
+  const inline = variant === 'inline';
+
+  if (inline) {
+    return (
+      <aside className="flex min-h-[690px] w-full flex-col overflow-hidden rounded-lg border border-slate-300 bg-white shadow-xl dark:border-zinc-700 dark:bg-[#0b1623]" role="dialog" aria-label={title}>
+        <div className="flex min-h-12 items-center justify-between border-b border-slate-200 px-4 dark:border-zinc-700">
+          <h2 className="font-semibold text-slate-950 dark:text-zinc-50">{title}</h2>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close detail"><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+      </aside>
+    );
+  }
 
   return (
     <div
-      className="fixed inset-0 flex justify-end bg-slate-950/25"
+      data-state="open"
+      className={cn(
+        'fixed inset-0 flex justify-end',
+        floating
+          ? 'bg-slate-950/70 p-3 backdrop-blur-[1.5px] sm:p-4 lg:p-6'
+          : 'bg-slate-950/25',
+      )}
       style={{ zIndex: overlayZIndex }}
       role="presentation"
-      onMouseDown={event => {
-      if (event.currentTarget === event.target) onClose();
-    }}
+      onClick={event => {
+        if (event.currentTarget === event.target) onClose();
+      }}
     >
       <aside
-        className="h-full w-full max-w-lg overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+        className={cn(
+          'flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl dark:bg-zinc-950',
+          floating
+            ? 'max-w-[386px] rounded-xl border border-slate-300 dark:border-zinc-700'
+            : 'max-w-lg overflow-y-auto border-l border-slate-200 dark:border-zinc-800',
+        )}
         style={{ zIndex: contentZIndex }}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        onClick={event => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex min-h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
           <h2 className="font-semibold text-slate-950 dark:text-zinc-50">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close detail"><X className="h-4 w-4" /></Button>
         </div>
-        <div className="p-4 sm:p-5">{children}</div>
+        <div className={cn('p-4 sm:p-5', floating && 'min-h-0 flex-1 overflow-y-auto')}>{children}</div>
       </aside>
     </div>
   );

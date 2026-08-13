@@ -9,6 +9,7 @@ import { clearUserValidationCache } from '@/lib/auth';
 import { ADMIN_DEFAULT_PERMISSIONS } from '@/lib/default-role-permissions';
 import {
   firstAdminSetupSchema,
+  getInstallationSetupState,
   isPlatformSetupRequired,
 } from '@/lib/platform-installation';
 import prisma from '@/lib/prisma';
@@ -29,7 +30,8 @@ async function applySetupRateLimit(request: NextRequest) {
 
 export async function GET() {
   try {
-    return NextResponse.json({ setupRequired: await isPlatformSetupRequired() });
+    const [setupRequired, state] = await Promise.all([isPlatformSetupRequired(), getInstallationSetupState()]);
+    return NextResponse.json({ setupRequired, ...state });
   } catch (error) {
     console.error('Failed to check platform installation:', error);
     return NextResponse.json({ message: 'Unable to check platform setup.' }, { status: 503 });
@@ -105,6 +107,11 @@ export async function POST(request: NextRequest) {
         where: { key: 'platformInstalledAt' },
         update: { value: new Date().toISOString() },
         create: { key: 'platformInstalledAt', value: new Date().toISOString() },
+      });
+      await tx.systemSetting.upsert({
+        where: { key: 'platformInstalledByUserId' },
+        update: { value: createdAdmin.id },
+        create: { key: 'platformInstalledByUserId', value: createdAdmin.id },
       });
       return createdAdmin;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

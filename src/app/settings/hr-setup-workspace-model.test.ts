@@ -51,4 +51,17 @@ describe('HR Setup workspace model', () => {
     expect(hrSetupMapColumns.find(item => item.label === 'Policies & operations')?.itemLabels)
       .toContain('Employee Documents');
   });
+
+  it('includes all merged HR domains in the shared HR Setup sidebar', () => {
+    expect(hrSetupMilestones.find(item => item.label === 'People lifecycle')?.itemLabels)
+      .toContain('Employee Lifecycle Policies');
+    expect(hrSetupMilestones.find(item => item.label === 'Workforce')?.itemLabels)
+      .toContain('Workforce Rules');
+    expect(hrSetupMilestones.find(item => item.label === 'Workforce')?.itemLabels)
+      .toContain('Leave Policy Assignments');
+    expect(hrSetupMilestones.find(item => item.label === 'Payroll & expenses')?.itemLabels)
+      .toContain('Payroll & Expense Policies');
+    expect(hrSetupMilestones.find(item => item.label === 'Performance & learning')?.itemLabels)
+      .toContain('Performance & Learning Policies');
+  });
 });

@@ -4,18 +4,17 @@ import * as React from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
-  Banknote,
   CalendarCheck,
   CalendarClock,
+  CalendarDays,
   Check,
   ChevronRight,
-  CircleDollarSign,
   Clock3,
-  FileClock,
   History,
   Layers3,
   ListChecks,
   Loader2,
+  LogOut,
   Plus,
   RefreshCw,
   Scale,
@@ -55,6 +54,10 @@ import {
   hrisStatusTone,
 } from '@/components/hris/HrisWorkspacePrimitives';
 import { cn } from '@/lib/utils';
+import { LeaveAllocationGuidedFlow } from '@/components/leaves/LeaveAllocationGuidedFlow';
+import { LeaveDecisionQueueReference } from '@/components/leaves/LeaveDecisionQueueReference';
+import { AssignmentRulesCommandCenter } from '@/components/leaves/AssignmentRulesCommandCenter';
+import { LeaveEncashmentDecisionLedger } from '@/components/leaves/LeaveEncashmentDecisionLedger';
 
 export type LeaveWorkspaceView = 'requests' | 'encashment' | 'control' | 'assignments' | 'allocation';
 type Row = Record<string, unknown>;
@@ -75,14 +78,14 @@ interface LeaveWorkspaceData {
 
 export const pageCopy: Record<LeaveWorkspaceView, { eyebrow: string; title: string; description: string }> = {
   requests: {
-    eyebrow: 'Leaves · Employee & manager',
+    eyebrow: '',
     title: 'Time away, without the guesswork',
-    description: 'Review balances, request activity, approval ageing, and upcoming absence from one policy-aware workspace.',
+    description: 'Act on pending requests, protect coverage, and keep your team moving.',
   },
   encashment: {
     eyebrow: 'Leaves · Encashment',
-    title: 'Convert eligible leave safely',
-    description: 'Reserve eligible units, complete HR review, and hand approved units to Payroll without calculating payment here.',
+    title: 'Leave encashment',
+    description: 'Review requests, verify eligibility and estimated payroll impact, and approve for payment.',
   },
   control: {
     eyebrow: 'Leaves · Operations',
@@ -91,13 +94,13 @@ export const pageCopy: Record<LeaveWorkspaceView, { eyebrow: string; title: stri
   },
   assignments: {
     eyebrow: 'Leaves · Eligibility',
-    title: 'Put the right policy on the right people',
-    description: 'Preview effective-dated eligibility rules, inspect conflicts, then apply assignments with a clear population impact.',
+    title: 'Assignment rules',
+    description: 'Find, review, and manage effective-dated assignment rules and their population impact.',
   },
   allocation: {
-    eyebrow: 'Leaves · Balance ledger',
-    title: 'Allocate once. Trace forever.',
-    description: 'Preview allocation and accrual runs, reconcile balances, and make controlled adjustments backed by ledger entries.',
+    eyebrow: '',
+    title: 'Leave allocation',
+    description: 'Create plans, review employee impact, and track completed balance updates.',
   },
 };
 
@@ -201,9 +204,13 @@ function NativeSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return <select {...props} className={cn('min-h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50', props.className)} />;
 }
 
-function useLeavesData() {
-  const [data, setData] = React.useState<LeaveWorkspaceData | null>(null);
-  const [loading, setLoading] = React.useState(true);
+function useLeavesData(view: LeaveWorkspaceView) {
+  const initialData = view === 'encashment' ? {
+    metrics: {}, requests: [], balances: [], policies: [], employees: [], assignments: [],
+    encashments: [], ledger: [], periods: [], exceptions: [], allocationRuns: [],
+  } satisfies LeaveWorkspaceData : null;
+  const [data, setData] = React.useState<LeaveWorkspaceData | null>(initialData);
+  const [loading, setLoading] = React.useState(view !== 'encashment');
   const [error, setError] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -211,7 +218,7 @@ function useLeavesData() {
     if (!background) setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/hr/leaves', { cache: 'no-store' });
+      const response = await fetch(`/api/hr/leaves?view=${view}`, { cache: 'no-store' });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || 'Failed to load Leaves.');
       setData(payload.data);
@@ -220,9 +227,9 @@ function useLeavesData() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [view]);
 
-  React.useEffect(() => { void load(); }, [load]);
+  React.useEffect(() => { void load(view === 'encashment'); }, [load, view]);
 
   const act = React.useCallback(async (body: Row, successMessage: string) => {
     setSubmitting(true);
@@ -249,13 +256,28 @@ function useLeavesData() {
 }
 
 export function LeaveWorkspacePage({ view, canManage }: { view: LeaveWorkspaceView; canManage: boolean }) {
-  const state = useLeavesData();
+  const state = useLeavesData(view);
   const copy = pageCopy[view];
 
   return (
-    <main className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.06),transparent_32rem)]">
-      <div className="mx-auto w-full max-w-[1560px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-        {state.loading && <LoadingState />}
+    <main className={cn('min-h-full', view === 'allocation' ? 'bg-background' : 'bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.06),transparent_32rem)]')}>
+      <div className={cn('mx-auto w-full max-w-[1560px] px-4 sm:px-6 lg:px-8', view === 'allocation' ? 'py-4' : 'py-5 lg:py-7')}>
+        <HrisWorkspaceHeader
+          eyebrow={view === 'assignments' ? '' : copy.eyebrow}
+          title={copy.title}
+          description={copy.description}
+          compact={view === 'requests' || view === 'allocation' || view === 'assignments'}
+          action={view === 'requests' ? (
+            <div><Button asChild size="sm" className="h-8">
+              <Link href="/ess/leave"><CalendarDays className="mr-2 h-4 w-4" />Request leave</Link>
+            </Button></div>
+          ) : view === 'allocation' ? (
+            <Button asChild variant="ghost" size="sm"><Link href="/workforce/leave/control-panel"><LogOut className="mr-2 h-4 w-4" />Leave control panel</Link></Button>
+          ) : undefined}
+        />
+        <div className="mt-5">
+        {state.loading && view === 'requests' && <LeaveDecisionQueueReference data={{ requests: [], balances: [] }} canManage={canManage} submitting={state.submitting} act={state.act} />}
+        {state.loading && view !== 'requests' && <LoadingState />}
         {!state.loading && state.error && (
           <Surface><div role="alert" className="flex min-h-56 flex-col items-center justify-center p-8 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -266,23 +288,14 @@ export function LeaveWorkspacePage({ view, canManage }: { view: LeaveWorkspaceVi
         )}
         {!state.loading && state.data && (
           <div className="space-y-5">
-            <HrisWorkspaceHeader
-              eyebrow={copy.eyebrow}
-              title={copy.title}
-              description={copy.description}
-              action={view === 'requests' ? (
-                <Button asChild>
-                  <Link href="/ess/leave">Request leave</Link>
-                </Button>
-              ) : undefined}
-            />
-            {view === 'requests' && <RequestsView data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
+            {view === 'requests' && <LeaveDecisionQueueReference data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
             {view === 'encashment' && <EncashmentView data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
             {view === 'control' && <ControlView data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
-            {view === 'assignments' && <AssignmentView data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
-            {view === 'allocation' && <AllocationView data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
+            {view === 'assignments' && <AssignmentRulesCommandCenter data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
+            {view === 'allocation' && <LeaveAllocationGuidedFlow data={state.data} canManage={canManage} submitting={state.submitting} act={state.act} />}
           </div>
         )}
+        </div>
       </div>
     </main>
   );
@@ -371,7 +384,6 @@ function EncashmentView({ data, canManage, submitting, act }: ViewProps) {
   React.useEffect(() => { if (!form.balanceId && eligibleBalances[0]?.id) setForm(current => ({ ...current, balanceId: String(eligibleBalances[0].id) })); }, [eligibleBalances, form.balanceId]);
   const selected = eligibleBalances.find(balance => balance.id === form.balanceId);
   const max = selected ? Math.max(0, Math.min(number(selected.available) - number(selected.minimum_retained_balance), number(selected.maximum_encashment_units) || Number.POSITIVE_INFINITY)) : 0;
-  const pending = data.encashments.filter(item => !['paid', 'rejected', 'cancelled', 'withdrawn', 'reversed'].includes(text(item.status, '')));
   const submit = async () => {
     if (!selected) return;
     const result = await act({
@@ -385,13 +397,6 @@ function EncashmentView({ data, canManage, submitting, act }: ViewProps) {
     }
   };
   return <div className="space-y-4">
-    <Surface className="grid overflow-hidden sm:grid-cols-2 xl:grid-cols-4">
-      <Metric label="Encashable balances" value={eligibleBalances.length} helper="Policy-eligible employee balances" icon={CircleDollarSign} />
-      <Metric label="Available to encash" value={formatUnits(eligibleBalances.reduce((sum, balance) => sum + Math.max(0, number(balance.available) - number(balance.minimum_retained_balance)), 0))} helper="After protected minimums" icon={Scale} />
-      <Metric label="Pending workflow" value={pending.length} helper="Reserved through payroll review" icon={FileClock} urgent={pending.length > 0} />
-      <Metric label="Paid requests" value={data.encashments.filter(item => item.status === 'paid').length} helper="Completed payroll handoffs" icon={Banknote} />
-    </Surface>
-    <div className="space-y-4">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -412,26 +417,8 @@ function EncashmentView({ data, canManage, submitting, act }: ViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Surface className="min-w-0 overflow-hidden">
-        <SectionHeader title="Encashment workflow" description="Eligibility, HR decision, Payroll handoff, and payment completion."
-          action={<Button onClick={() => setDialogOpen(true)} disabled={!eligibleBalances.length}><Plus className="mr-2 h-4 w-4" />New encashment request</Button>} />
-        <ResponsiveRecords rows={data.encashments} empty={{ title: 'No encashment requests', description: 'Eligible employees can request encashment when a policy window is open.' }} columns={[
-          { key: 'employee', label: 'Employee', render: row => <div><p className="font-medium">{person(row)}</p><p className="mt-0.5 text-xs text-muted-foreground">{text(row.request_id)}</p></div> },
-          { key: 'units', label: 'Units', render: row => <div><p>{formatUnits(row.requested_units)}</p><p className="mt-0.5 text-xs text-muted-foreground">{text(row.policy_name)}</p></div> },
-          { key: 'status', label: 'Leave status', render: row => <StatusBadge value={row.status} /> },
-          { key: 'payroll_status', label: 'Payroll', render: row => <StatusBadge value={row.payroll_status} /> },
-          { key: 'actions', label: '', align: 'right', render: row => canManage ? <EncashmentActions row={row} submitting={submitting} act={act} /> : null },
-        ]} />
-      </Surface>
-    </div>
+      <LeaveEncashmentDecisionLedger rows={data.encashments} canManage={canManage} submitting={submitting} onNewRequest={() => setDialogOpen(true)} act={act} />
   </div>;
-}
-
-function EncashmentActions({ row, submitting, act }: { row: Row; submitting: boolean; act: ViewProps['act'] }) {
-  const status = text(row.status, '');
-  const decision = status === 'pending_hr_validation' ? 'approved' : status === 'approved' ? 'sent_to_payroll' : status === 'sent_to_payroll' || status === 'processing' ? 'paid' : null;
-  if (!decision) return null;
-  return <Button size="sm" variant="outline" disabled={submitting} onClick={() => void act({ action: 'encashment_decision', id: row.id, decision, expectedVersion: row.version, comment: null }, `Encashment marked ${labelize(decision).toLowerCase()}.`)}>{decision === 'approved' ? 'Approve units' : decision === 'sent_to_payroll' ? 'Send to Payroll' : 'Mark paid'}</Button>;
 }
 
 function ControlView({ data, canManage, submitting, act }: ViewProps) {
@@ -562,7 +549,7 @@ function AssignmentView({ data, canManage, submitting, act }: ViewProps) {
   </div>;
 }
 
-function AllocationView({ data, canManage, submitting, act }: ViewProps) {
+export function LegacyAllocationView({ data, canManage, submitting, act }: ViewProps) {
   const createPolicyOption = '__create_new_policy__';
   const year = new Date().getFullYear();
   const [form, setForm] = React.useState({ policyId: '', year: String(year), runType: 'annual_entitlement' });

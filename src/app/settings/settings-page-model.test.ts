@@ -139,6 +139,15 @@ describe('Admin Center settings model', () => {
     });
   });
 
+  it('provides a direct Leave Policy Assignments entry in HR Setup', () => {
+    expect(settingsItems.find(item => item.label === 'Leave Policy Assignments')).toMatchObject({
+      href: '/settings/leave-policy-assignments',
+      tab: 'HR Setup',
+      section: 'Leave',
+      permissionIds: ['HR_WORKFORCE_VIEW', 'HR_WORKFORCE_MANAGE'],
+    });
+  });
+
   it('provides Policy Documents inside HR Setup', () => {
     expect(settingsItems.find(item => item.label === 'Policy Documents')).toMatchObject({
       href: '/policy-documents',
@@ -187,7 +196,7 @@ describe('Admin Center settings model', () => {
 
   it('provides canonical cost center and project administration', () => {
     expect(settingsItems.find(item => item.label === 'Cost Centers & Projects')).toMatchObject({
-      href: '/settings/financial-dimensions',
+      href: '/settings/projects',
       tab: 'HR Setup',
       section: 'Organization',
       permissionId: 'SYSTEM_SETTINGS_VIEW',

@@ -29,6 +29,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
 import type { PerformanceWorkspaceData } from '@/lib/performance/performance-contracts';
 import { useDropdownOptions } from '@/hooks/use-dropdown-options';
 import { defaultDropdownOptions } from '@/lib/dropdown-option-catalog';
@@ -369,7 +370,7 @@ function EmployeeSelect({ label: labelText, value, onChange, data, excludeSelect
     <Field label={labelText}>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-11 bg-white dark:bg-slate-900"><SelectValue /></SelectTrigger>
-        <SelectContent>{options.map(employee => <SelectItem key={employee.id} value={employee.id}>{employee.name} · {employee.employeeNumber}</SelectItem>)}</SelectContent>
+        <SelectContent>{options.map(employee => <SelectItem key={employee.id} value={employee.id}><EmployeeOption name={employee.name} avatarUrl={employee.profilePhotoUrl} detail={employee.employeeNumber} /></SelectItem>)}</SelectContent>
       </Select>
     </Field>
   );

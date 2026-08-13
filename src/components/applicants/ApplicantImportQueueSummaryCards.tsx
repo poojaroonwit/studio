@@ -77,7 +77,7 @@ export function ApplicantImportQueueSummaryCards({ summary }: ApplicantImportQue
             <span className="pb-1 text-sm text-muted-foreground">resumes in view</span>
           </div>
           <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-border/70">
-            <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${completionRate}%` }} />
+            <div className="h-full origin-left rounded-full bg-emerald-500 transition-transform duration-500" style={{ transform: `scaleX(${completionRate / 100})` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{completionRate}% converted into candidate profiles</p>
         </div>

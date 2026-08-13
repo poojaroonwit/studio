@@ -66,7 +66,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { cn } from '../../lib/utils';
 import { HrSetupWorkspace } from './HrSetupWorkspace';
 import { RolesPermissionsWorkspace } from './RolesPermissionsWorkspace';
-import { ManageUsersPageContent } from './users/page';
+import { ManageUsersPageContent } from './users/ManageUsersPageContent';
 import { AuditControlsWorkspace } from '../../components/audit-controls/AuditControlsWorkspace';
 
 export function SettingsPageView({
@@ -228,6 +228,7 @@ function InlineAdminCenterConfig({
   flush?: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const embeddedHref = useMemo(() => buildEmbeddedSettingsHref(item.href), [item.href]);
   const ItemIcon = getSettingsItemIcon(item.label);
@@ -239,6 +240,12 @@ function InlineAdminCenterConfig({
 
   useEffect(() => {
     setIsLoading(true);
+    setLoadFailed(false);
+    const timeoutId = window.setTimeout(() => {
+      setIsLoading(false);
+      setLoadFailed(true);
+    }, 8000);
+    return () => window.clearTimeout(timeoutId);
   }, [embeddedHref]);
 
   const openFieldCreationForm = () => {
@@ -345,6 +352,19 @@ function InlineAdminCenterConfig({
 
       <div className="relative min-h-0 flex-1 bg-[#f5f6f9] dark:bg-zinc-950">
         {isLoading && <InlineAdminCenterConfigSkeleton />}
+        {loadFailed && (
+          <div className="absolute inset-0 z-20 grid place-items-center bg-[#f5f6f9] p-6 dark:bg-zinc-950" role="alert">
+            <div className="max-w-md text-center">
+              <h3 className="text-base font-semibold">Configuration took too long to load</h3>
+              <p className="mt-2 text-sm text-muted-foreground">Check the service connection, then retry this configuration.</p>
+              <Button className="mt-4" onClick={() => {
+                setLoadFailed(false);
+                setIsLoading(true);
+                if (iframeRef.current) iframeRef.current.src = embeddedHref;
+              }}>Retry</Button>
+            </div>
+          </div>
+        )}
         <iframe
           ref={iframeRef}
           key={embeddedHref}
@@ -354,7 +374,10 @@ function InlineAdminCenterConfig({
             "absolute inset-0 block h-full w-full border-0 bg-background transition-opacity",
             isLoading ? "opacity-0" : "opacity-100",
           )}
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => {
+            setLoadFailed(false);
+            setIsLoading(false);
+          }}
         />
       </div>
     </section>
@@ -491,6 +514,7 @@ const settingsItemIcons: Record<string, SettingsItemIcon> = {
   'Employee Document Templates': Files,
   'Workforce Rules': CalendarDays,
   'Leave & Absence Policies': CalendarDays,
+  'Leave Policy Assignments': UsersRound,
   'Holiday Calendars': CalendarDays,
   'Payroll & Expense Policies': CircleDollarSign,
   'Performance & Learning Policies': BadgeCheck,

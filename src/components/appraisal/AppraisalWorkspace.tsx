@@ -10,6 +10,7 @@ import {
   FileClock,
   FilePlus2,
   History,
+  Info,
   LayoutDashboard,
   MessageSquareText,
   RefreshCw,
@@ -30,6 +31,7 @@ import type { AppraisalWorkspaceData } from '@/lib/appraisal/appraisal-contracts
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { cn } from '@/lib/utils';
 import { AppraisalActionSheet, type AppraisalActionMode } from './AppraisalActionSheet';
+import { AppraisalReviewDesk } from './AppraisalReviewDesk';
 import {
   AppraisalOverview,
   AuditHistoryView,
@@ -42,6 +44,7 @@ import {
   TemplatesView,
 } from './AppraisalViews';
 import { AppraisalError, AppraisalLoading } from './appraisal-ui';
+import { APPRAISAL_REVIEW_DESK_PREVIEW_DATA } from './appraisal-review-desk-preview';
 
 const tabDefinitions = [
   { value: 'overview', label: 'Overview', labelKey: 'appraisal.workspace.tabs.overview', icon: LayoutDashboard },
@@ -60,18 +63,26 @@ async function responseMessage(response: Response, fallback: string) {
   return payload?.message || fallback;
 }
 
-export function AppraisalWorkspace() {
+export function AppraisalWorkspace({
+  embedded = false,
+  employee = null,
+}: {
+  embedded?: boolean;
+  employee?: { id: string; name: string; employeeNumber?: string | null } | null;
+} = {}) {
   const { t } = useLocalization();
+  const Root = embedded ? 'section' : 'main';
   const searchParams = useSearchParams();
   const tabs = React.useMemo(() => tabDefinitions.map(tab => ({ ...tab, label: t(tab.labelKey, tab.label) })), [t]);
-  const requestedTab = searchParams.get('tab');
-  const [data, setData] = React.useState<AppraisalWorkspaceData | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const requestedTab = searchParams.get(embedded ? 'appraisalTab' : 'tab');
+  const previewMode = searchParams.get('preview') === '1';
+  const [data, setData] = React.useState<AppraisalWorkspaceData | null>(previewMode ? APPRAISAL_REVIEW_DESK_PREVIEW_DATA : null);
+  const [loading, setLoading] = React.useState(!previewMode);
   const [backgroundLoading, setBackgroundLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [offline, setOffline] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<string>(requestedTab && tabs.some(tab => tab.value === requestedTab) ? requestedTab : 'overview');
+  const [activeTab, setActiveTab] = React.useState<string>(requestedTab && tabs.some(tab => tab.value === requestedTab) ? requestedTab : 'team');
   const [actionMode, setActionMode] = React.useState<AppraisalActionMode | null>(null);
   const [actionRecord, setActionRecord] = React.useState<Record<string, unknown> | null>(null);
 
@@ -87,6 +98,12 @@ export function AppraisalWorkspace() {
   }, []);
 
   const load = React.useCallback(async (background = false) => {
+    if (previewMode) {
+      setData(APPRAISAL_REVIEW_DESK_PREVIEW_DATA);
+      setLoading(false);
+      setBackgroundLoading(false);
+      return;
+    }
     background ? setBackgroundLoading(true) : setLoading(true);
     setError(null);
     try {
@@ -105,7 +122,7 @@ export function AppraisalWorkspace() {
       setLoading(false);
       setBackgroundLoading(false);
     }
-  }, [t]);
+  }, [previewMode, t]);
 
   React.useEffect(() => {
     void load(false);
@@ -171,11 +188,11 @@ export function AppraisalWorkspace() {
   if (loading) return <AppraisalLoading />;
   if (!data) {
     return (
-      <main className="min-h-full w-full bg-background px-4 py-8 dark:bg-slate-950">
+      <Root className="min-h-full w-full bg-background px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl">
           <AppraisalError message={error || t('appraisal.workspace.unavailable', 'Appraisal is currently unavailable.')} onRetry={() => void load(false)} />
         </div>
-      </main>
+      </Root>
     );
   }
 
@@ -186,9 +203,54 @@ export function AppraisalWorkspace() {
     return true;
   });
   const safeTab = visibleTabs.some(tab => tab.value === activeTab) ? activeTab : 'overview';
+  const primaryTabs = visibleTabs.filter(tab => ['overview', 'my-reviews', 'feedback', 'team'].includes(tab.value));
+  const secondaryTabs = visibleTabs.filter(tab => !['overview', 'my-reviews', 'feedback', 'team'].includes(tab.value));
+  const currentCycle = data.cycles[0];
+
+  if (embedded && employee) {
+    return (
+      <Root className="min-h-full w-full bg-background text-foreground">
+        {offline ? (
+          <div role="status" className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+            <WifiOff className="h-4 w-4" aria-hidden />
+            {t('appraisal.workspace.offlineMessage', 'You are offline. Existing appraisal data remains visible; write actions are paused.')}
+          </div>
+        ) : null}
+        {error ? <AppraisalError message={error} onRetry={() => void load(true)} /> : null}
+        <header className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-slate-600">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">{employee.name}&apos;s appraisal</h2>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>{formatWorkspaceDate(currentCycle?.startDate)} – {formatWorkspaceDate(currentCycle?.endDate)}</span>
+            <Button variant="outline" size="sm" className="rounded border-slate-700 bg-transparent" onClick={() => void load(true)} disabled={backgroundLoading}>
+              <RefreshCw className={cn('mr-2 h-3.5 w-3.5', backgroundLoading && 'animate-spin')} />{t('appraisal.workspace.refresh', 'Refresh')}
+            </Button>
+          </div>
+        </header>
+
+        <AppraisalReviewDesk data={data} onAction={openAction} employee={employee} showDirectory={false} />
+
+        <footer className="border-t border-border px-5 py-4 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" />{t('appraisal.workspace.footer.permissions', 'Company, hierarchy, record, field, reviewer, and release-stage permissions are enforced by the API.')}</p>
+        </footer>
+
+        <AppraisalActionSheet
+          mode={actionMode}
+          record={actionRecord}
+          data={data}
+          saving={saving}
+          onClose={() => { setActionMode(null); setActionRecord(null); void load(true); }}
+          onSubmit={submitAction}
+          onAutosave={autosaveAction}
+        />
+      </Root>
+    );
+  }
 
   return (
-    <main className="min-h-full w-full bg-background text-foreground">
+    <Root className="min-h-full w-full bg-background text-foreground">
       <div className="w-full">
         {offline ? (
           <div role="status" className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
@@ -203,39 +265,27 @@ export function AppraisalWorkspace() {
           </div>
         ) : null}
 
-        <div className="grid min-h-full items-stretch border-y border-border lg:grid-cols-[280px_minmax(0,1fr)]">
-          <AppraisalScopeSidebar data={data} activeTab={safeTab} onOpenTab={setActiveTab} />
-
-          <div className="min-w-0 lg:border-l lg:border-border">
+        <div className="min-h-full border-y border-border">
+          <div className="min-w-0">
             <div className="relative overflow-hidden border-b border-border bg-background">
-              <div className="px-5 py-5 sm:px-6">
-                <HrisWorkspaceHeader
-                  eyebrow={t('appraisal.workspace.eyebrow', 'Workforce · Appraisal')}
-                  title={t('appraisal.workspace.title', 'Appraisal management')}
-                  description={t(
-                    'appraisal.workspace.description',
-                    'Formal review cycles, structured assessments, calibration, approvals, release, acknowledgment, and traceable history. Connected to Goal, Performance, Learning, and employee records.',
-                  )}
-                  action={<>
-                    <Badge variant="outline" className="min-h-7 rounded-full capitalize">{data.permissions.role}</Badge>
-                    <span className="inline-flex min-h-7 items-center gap-1.5 text-xs font-semibold text-slate-500"><ShieldCheck className="h-3.5 w-3.5" />{t('appraisal.workspace.eyebrowBadge', 'Confidential formal review')}</span>
-                    <Button variant="outline" className="min-h-11" onClick={() => void load(true)} disabled={backgroundLoading}>
-                      <RefreshCw className={cn('mr-2 h-4 w-4', backgroundLoading && 'animate-spin')} />{t('appraisal.workspace.refresh', 'Refresh')}
-                    </Button>
-                    {data.permissions.canManage ? (
-                      <Button className="min-h-11 bg-[#263f73] text-white hover:bg-[#1f345f]" onClick={() => openAction('create-cycle')}>
-                        <FilePlus2 className="mr-2 h-4 w-4" />{t('appraisal.workspace.newCycle', 'New cycle')}
-                      </Button>
-                    ) : null}
-                  </>}
-                />
+              <div className="flex flex-col gap-4 px-5 pb-4 pt-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-slate-600">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
+                  <h1 className="mt-3 flex items-center gap-2 text-xl font-semibold tracking-tight text-foreground">Review desk <Info className="h-4 w-4 text-muted-foreground" aria-hidden /></h1>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <span>Review period: {formatWorkspaceDate(currentCycle?.startDate)} – {formatWorkspaceDate(currentCycle?.endDate)}</span>
+                  <Button variant="outline" size="sm" className="rounded border-slate-700 bg-transparent" onClick={() => void load(true)} disabled={backgroundLoading}>
+                    <RefreshCw className={cn('mr-2 h-3.5 w-3.5', backgroundLoading && 'animate-spin')} />{t('appraisal.workspace.refresh', 'Refresh')}
+                  </Button>
+                </div>
               </div>
             </div>
 
             <Tabs value={safeTab} onValueChange={setActiveTab} className="space-y-0">
               <nav aria-label={t('appraisal.workspace.navAria', 'Appraisal sections')} className="-mt-px overflow-x-auto border-b border-border bg-background px-5">
                 <TabsList className="h-auto min-w-max justify-start gap-5 bg-transparent p-0">
-                  {visibleTabs.map(tab => {
+                  {primaryTabs.map(tab => {
                     const Icon = tab.icon;
                     const count = tab.value === 'feedback'
                       ? data.reviewerAssignments.filter(item => item.status !== 'submitted').length
@@ -254,6 +304,17 @@ export function AppraisalWorkspace() {
                       </TabsTrigger>
                     );
                   })}
+                  {secondaryTabs.length ? (
+                    <select
+                      aria-label="More appraisal sections"
+                      value={secondaryTabs.some(tab => tab.value === safeTab) ? safeTab : ''}
+                      onChange={event => event.target.value && setActiveTab(event.target.value)}
+                      className="min-h-10 border-0 bg-transparent px-1 text-xs font-semibold text-slate-500 outline-none dark:text-slate-400"
+                    >
+                      <option value="">More</option>
+                      {secondaryTabs.map(tab => <option key={tab.value} value={tab.value}>{tab.label}</option>)}
+                    </select>
+                  ) : null}
                 </TabsList>
               </nav>
 
@@ -285,7 +346,7 @@ export function AppraisalWorkspace() {
         onSubmit={submitAction}
         onAutosave={autosaveAction}
       />
-    </main>
+    </Root>
   );
 }
 
@@ -383,4 +444,10 @@ function initials(name: string) {
 
 function labelValue(value: unknown, fallback: string) {
   return String(value || fallback).replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function formatWorkspaceDate(value: unknown) {
+  const date = value ? new Date(String(value)) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'Not configured';
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 }

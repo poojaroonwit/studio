@@ -6,7 +6,7 @@ import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { BroadcastBanner } from '@/components/layout/BroadcastBanner';
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { GlobalConnectivityBanner } from '@/components/layout/GlobalConnectivityBanner';
-import { HrHelpWidget } from '@/components/privacy-support/HrHelpWidget';
+import { DemoEnvironmentBanner } from '@/components/layout/DemoEnvironmentBanner';
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { Header } from './Header';
 import type { AppLayoutContextualLogos } from './app-layout-settings';
@@ -43,6 +43,7 @@ export function AppLayoutShell({
       </a>
       <div className="h-screen flex flex-col overflow-hidden bg-[hsl(var(--app-page-background))]" data-testid="app-layout">
         <ImpersonationBanner />
+        <DemoEnvironmentBanner />
         <BroadcastBanner />
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -62,7 +63,6 @@ export function AppLayoutShell({
           </div>
         </div>
       </div>
-      <HrHelpWidget appLogoUrl={appLogoUrl} currentAppName={currentAppName} />
     </>
   );
 }

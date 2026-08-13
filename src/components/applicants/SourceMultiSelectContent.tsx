@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { ApplicantSource } from '@/lib/types';
+import { ApplicantSourceOption } from './ApplicantSourceOption';
 import {
   SOURCE_SELECT_ALL_ID,
   SOURCE_UNASSIGNED_ID,
@@ -151,12 +152,7 @@ function SourceOptionButton({
     >
       <div className="flex items-center">
         <Check className={cn("mr-2 h-3 w-3", isSelected ? "opacity-100" : "opacity-0")} />
-        <div className="flex flex-col">
-          <span className="text-sm">{label}</span>
-          {description && (
-            <span className="text-xs text-muted-foreground">{description}</span>
-          )}
-        </div>
+        <ApplicantSourceOption name={label} description={description} />
       </div>
     </button>
   );

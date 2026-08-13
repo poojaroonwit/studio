@@ -43,21 +43,23 @@ export function HrisWorkspaceHeader({
   description,
   action,
   leading,
+  compact = false,
 }: {
   eyebrow?: string;
   title: string;
   description: string;
   action?: React.ReactNode;
   leading?: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <header className="flex flex-col gap-4 pb-1 pt-1 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex min-w-0 items-start gap-4">
+    <header className={cn('flex flex-col pb-1 pt-1 sm:flex-row sm:items-end sm:justify-between', compact ? 'gap-2' : 'gap-4')}>
+      <div className={cn('flex min-w-0 items-start', compact ? 'gap-2' : 'gap-4')}>
         {leading}
         <div className="min-w-0 max-w-3xl">
           {eyebrow && <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>}
-          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-foreground sm:text-3xl">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+          <h1 className={cn('font-semibold tracking-[-0.025em] text-foreground', compact ? 'mt-0 text-xl sm:text-2xl' : 'mt-2 text-2xl sm:text-3xl')}>{title}</h1>
+          <p className={cn('max-w-2xl text-sm text-muted-foreground', compact ? 'mt-1 leading-5' : 'mt-2 leading-6')}>{description}</p>
         </div>
       </div>
       {action && <div className="flex shrink-0 flex-wrap gap-2">{action}</div>}

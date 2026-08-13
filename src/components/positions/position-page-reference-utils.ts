@@ -45,8 +45,8 @@ export function normalizeHiringManagers(data: unknown) {
   if (!Array.isArray(users)) return [];
 
   return users
-    .filter((user): user is { id: string; name: string } => (
+    .filter((user): user is { id: string; name: string; avatarUrl?: string | null; personalColor?: string | null } => (
       typeof user?.id === 'string' && typeof user?.name === 'string'
     ))
-    .map(user => ({ id: user.id, name: user.name }));
+    .map(user => ({ id: user.id, name: user.name, avatarUrl: user.avatarUrl, personalColor: user.personalColor }));
 }

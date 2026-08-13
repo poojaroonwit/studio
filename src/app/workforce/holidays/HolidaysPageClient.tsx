@@ -5,10 +5,13 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   CalendarDaysIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DocumentArrowDownIcon,
+  EllipsisVerticalIcon,
   ListBulletIcon,
+  MagnifyingGlassIcon,
   PencilSquareIcon,
   PlusIcon,
   TrashIcon,
@@ -37,6 +40,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { SortableTableHead, type SortDirection, sortRowsByColumn, type SortValueResolverMap } from '@/components/ui/sortable-table';
@@ -60,8 +70,15 @@ type ViewMode = 'table' | 'calendar';
 
 const apiPath = '/api/hr/attendance?view=holidays';
 const holidayCsvHeaders = ['name', 'holidayDate', 'location', 'isPaid'] as const;
-const monthNames = Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat('en', { month: 'short' }).format(new Date(2026, index, 1)));
+const monthNames = Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2026, index, 1)));
 const weekdayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const quarters = [
+  { label: 'Q1', range: 'Jan – Mar', months: [0, 1, 2] },
+  { label: 'Q2', range: 'Apr – Jun', months: [3, 4, 5] },
+  { label: 'Q3', range: 'Jul – Sep', months: [6, 7, 8] },
+  { label: 'Q4', range: 'Oct – Dec', months: [9, 10, 11] },
+] as const;
+const monthAccentNames = ['blue', 'blue', 'emerald', 'amber', 'blue', 'violet', 'emerald', 'blue', 'blue', 'amber', 'amber', 'emerald'] as const;
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -445,18 +462,55 @@ export function HolidaysPageClient() {
     appKitLoad && appKitLoad.environment === 'production' ? appKitLoad : null;
 
   return (
-    <main className="min-h-full px-4 py-5 text-foreground sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5">
-        <section className="p-1">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-full bg-background px-[18px] py-4 text-foreground dark:bg-[#101821] min-[900px]:pr-[52px]">
+      <div className="mx-auto flex max-w-7xl flex-col gap-0">
+        <section className="border-b border-border/80 pb-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Workforce</p>
-              <h1 className="mt-2 text-2xl font-bold tracking-normal text-foreground sm:text-3xl">Holidays</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                Maintain the holiday list and switch to a yearly calendar to add holidays directly from a date.
+              <p className="text-[12px] font-semibold text-[#3b82f6]">Calendar Command Center</p>
+              <h1 className="mt-1 text-[24px] font-bold leading-7 tracking-tight text-foreground">Holidays</h1>
+              <p className="mt-1 max-w-xl text-[13px] leading-5 text-muted-foreground">
+                Plan, manage, and maintain company holidays for the year.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" className="h-9 px-4 text-[14px]" onClick={() => openAddDialog()}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Add holiday
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="h-9 min-w-36 justify-between px-4 text-[14px]">
+                    Actions
+                    <EllipsisVerticalIcon className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onSelect={exportHolidays} disabled={isLoading || filteredHolidays.length === 0}>
+                    <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={downloadTemplate}>
+                    <DocumentArrowDownIcon className="mr-2 h-4 w-4" />
+                    Download template
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => importInputRef.current?.click()} disabled={isImporting}>
+                    <ArrowUpTrayIcon className="mr-2 h-4 w-4" />
+                    {isImporting ? 'Importing…' : 'Import CSV'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => void loadHolidaysFromAppKit('development')} disabled={isLoadingAppKit}>
+                    {loadingForDevelopment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowDownTrayIcon className="mr-2 h-4 w-4" />}
+                    {loadingForDevelopment ? `${loadingForDevelopment.percent}% · ${loadingForDevelopment.message}` : 'Load development holidays'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => void loadHolidaysFromAppKit('production')} disabled={isLoadingAppKit}>
+                    {loadingForProduction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowDownTrayIcon className="mr-2 h-4 w-4" />}
+                    {loadingForProduction ? `${loadingForProduction.percent}% · ${loadingForProduction.message}` : 'Load live holidays'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="hidden">
               <Button type="button" variant="outline" size="sm" onClick={exportHolidays} disabled={isLoading || filteredHolidays.length === 0}>
                 <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
                 Export CSV
@@ -514,10 +568,48 @@ export function HolidaysPageClient() {
               </Button>
             </div>
           </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="flex h-10 w-fit shrink-0 items-center rounded-[7px] border border-border bg-background">
+              <Button type="button" variant="ghost" size="icon" className="h-10 w-12 rounded-r-none border-r border-border" aria-label="Previous year" onClick={() => setYear(current => current - 1)}>
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+              <div className="relative h-10 min-w-28">
+                <select
+                  aria-label="Calendar year"
+                  value={year}
+                  onChange={(event) => setYear(Number(event.target.value))}
+                  className="h-10 min-w-28 appearance-none bg-transparent px-5 pr-9 text-center text-[14px] font-bold text-foreground outline-none"
+                >
+                  {Array.from({ length: 16 }, (_, index) => 2020 + index).map(optionYear => (
+                    <option key={optionYear} value={optionYear}>{optionYear}</option>
+                  ))}
+                </select>
+                <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              <Button type="button" variant="ghost" size="icon" className="h-10 w-12 rounded-l-none border-l border-border" aria-label="Next year" onClick={() => setYear(current => current + 1)}>
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="relative w-full min-[700px]:ml-9 min-[700px]:w-72">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search holidays" className="h-10 pl-9 text-[14px]" />
+            </div>
+            <div className="inline-flex w-fit rounded-[7px] border border-border bg-background p-0.5 min-[700px]:ml-1">
+              <button type="button" className={cn('inline-flex h-9 items-center gap-2 rounded-[6px] px-4 text-[14px] font-semibold transition', viewMode === 'calendar' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')} onClick={() => setViewMode('calendar')}>
+                <CalendarDaysIcon className="h-4 w-4" />
+                Calendar
+              </button>
+              <button type="button" className={cn('inline-flex h-9 items-center gap-2 rounded-[6px] px-4 text-[14px] font-semibold transition', viewMode === 'table' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')} onClick={() => setViewMode('table')}>
+                <ListBulletIcon className="h-4 w-4" />
+                Table
+              </button>
+            </div>
+          </div>
         </section>
 
         <section>
-          <div className="flex flex-col gap-3 py-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="hidden">
             <div className="inline-flex rounded-[8px] bg-muted p-1">
               <button
                 type="button"
@@ -567,7 +659,7 @@ export function HolidaysPageClient() {
               onBulkPaid={updateHolidayPaidStatus}
             />
           ) : (
-            <YearCalendar year={year} holidayMap={holidayMap} onDateClick={openAddDialog} />
+            <YearCalendar year={year} holidayMap={holidayMap} onDateClick={openAddDialog} onHolidayClick={openEditDialog} />
           )}
         </section>
       </div>
@@ -746,45 +838,106 @@ function YearCalendar({
   year,
   holidayMap,
   onDateClick,
+  onHolidayClick,
 }: {
   year: number;
   holidayMap: Map<string, HolidayRecord[]>;
   onDateClick: (date: Date) => void;
+  onHolidayClick: (holiday: HolidayRecord) => void;
 }) {
+  const today = new Date();
+  const todayKey = toDateInputValue(today);
+  const accentClasses = {
+    blue: { day: 'bg-blue-600 text-white', dot: 'bg-blue-500' },
+    amber: { day: 'bg-amber-500 text-slate-950', dot: 'bg-amber-500' },
+    emerald: { day: 'bg-emerald-500 text-slate-950', dot: 'bg-emerald-500' },
+    violet: { day: 'bg-violet-500 text-white', dot: 'bg-violet-500' },
+  } as const;
+
   return (
-    <div className="grid gap-4 py-4 md:grid-cols-2 xl:grid-cols-3">
-      {monthNames.map((monthName, monthIndex) => (
-        <div key={monthName} className="p-3">
-          <h3 className="mb-3 text-sm font-bold text-foreground">{monthName}</h3>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-muted-foreground">
-            {weekdayNames.map((weekday, index) => <div key={`${weekday}-${index}`}>{weekday}</div>)}
-          </div>
-          <div className="mt-1 grid grid-cols-7 gap-1">
-            {createCalendarCells(year, monthIndex).map((date, index) => {
-              if (!date) return <div key={`empty-${index}`} className="aspect-square" />;
-              const dateKey = toDateInputValue(date);
-              const dayHolidays = holidayMap.get(dateKey) || [];
-              return (
-                <button
-                  key={dateKey}
-                  type="button"
-                  onClick={() => onDateClick(date)}
-                  className={cn(
-                    'flex aspect-square min-h-9 flex-col items-center justify-center rounded-[7px] border text-xs transition hover:border-primary/50 hover:bg-primary/10',
-                    dayHolidays.length > 0
-                      ? 'border-primary/30 bg-primary/10 text-primary'
-                      : 'border-transparent bg-muted text-foreground',
-                  )}
-                  title={dayHolidays.map(holiday => holiday.name).join(', ') || 'Add holiday'}
-                >
-                  <span className="font-semibold">{date.getDate()}</span>
-                  {dayHolidays.length > 0 && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <div className="overflow-x-auto border border-border/80 bg-transparent">
+      {quarters.map((quarter, quarterIndex) => {
+        return (
+          <section
+            key={quarter.label}
+            aria-labelledby={`quarter-${quarter.label}`}
+            className={cn(
+              'grid h-[145px] min-w-[900px] grid-cols-[80px_minmax(0,1fr)] overflow-hidden',
+              quarterIndex > 0 && 'border-t border-border/80',
+            )}
+          >
+            <div className="border-r border-border/80 px-3 py-2">
+              <h2 id={`quarter-${quarter.label}`} className="text-[16px] font-bold leading-5 tracking-tight text-foreground">{quarter.label}</h2>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{quarter.range}</p>
+            </div>
+
+            <div className="grid grid-cols-3">
+              {quarter.months.map((monthIndex, monthPosition) => {
+                const accent = accentClasses[monthAccentNames[monthIndex]];
+                const monthPrefix = `${year}-${String(monthIndex + 1).padStart(2, '0')}-`;
+                const isCurrentMonth = year === today.getFullYear() && monthIndex === today.getMonth();
+                const monthHolidays = Array.from(holidayMap.entries())
+                  .filter(([date]) => date.startsWith(monthPrefix))
+                  .flatMap(([, records]) => records)
+                  .sort((left, right) => normalizeDate(left.holidayDate).localeCompare(normalizeDate(right.holidayDate)));
+
+                return (
+                  <div key={monthNames[monthIndex]} className={cn('min-w-0 px-4 py-1.5', monthPosition > 0 && 'border-l border-border/60')}>
+                    <h3 className="mb-1 text-[13px] font-bold leading-4 text-foreground">{monthNames[monthIndex]}</h3>
+                    <div className="grid grid-cols-7 text-center text-[9px] font-semibold text-muted-foreground">
+                      {weekdayNames.map((weekday, index) => <div key={`${weekday}-${index}`}>{weekday}</div>)}
+                    </div>
+                    <div className="mt-0.5 grid grid-cols-7">
+                      {createCalendarCells(year, monthIndex).map((date, index) => {
+                        if (!date) return <div key={`empty-${index}`} className="h-[14px]" />;
+                        const dateKey = toDateInputValue(date);
+                        const dayHolidays = holidayMap.get(dateKey) || [];
+                        const isToday = dateKey === todayKey;
+                        return (
+                          <button
+                            key={dateKey}
+                            type="button"
+                            onClick={() => onDateClick(date)}
+                            className={cn(
+                              'mx-auto flex h-[14px] w-[14px] items-center justify-center rounded-full text-[10px] font-semibold leading-none text-foreground transition hover:bg-primary/15 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              dayHolidays.length > 0 && accent.day,
+                              isToday && dayHolidays.length === 0 && 'ring-1 ring-primary text-primary',
+                            )}
+                            title={dayHolidays.map(holiday => holiday.name).join(', ') || 'Add holiday'}
+                          >
+                            {date.getDate()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-0.5 flex min-h-[16px] gap-3 overflow-hidden">
+                      {isCurrentMonth && (
+                        <span className="flex min-w-0 items-center gap-1.5 text-left text-[10.5px] text-muted-foreground">
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                          <span className="truncate">Today ({monthNames[monthIndex].slice(0, 3)} {today.getDate()}, {year})</span>
+                        </span>
+                      )}
+                      {monthHolidays.slice(0, isCurrentMonth ? 1 : 2).map((holiday) => (
+                        <button
+                          key={holiday.id}
+                          type="button"
+                          onClick={() => onHolidayClick(holiday)}
+                          className="flex min-w-0 items-center gap-1.5 text-left text-[10.5px] text-muted-foreground transition hover:text-foreground"
+                          title={`Edit ${holiday.name || 'holiday'}`}
+                        >
+                          <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', accent.dot)} />
+                          <span className="shrink-0">{Number(normalizeDate(holiday.holidayDate).slice(8, 10))}</span>
+                          <span className="truncate">{holiday.name || 'Unnamed holiday'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

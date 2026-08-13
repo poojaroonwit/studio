@@ -45,5 +45,5 @@ export interface ApplicantsPageModalsProps {
   bulkNewRecruiterId: string | null;
   setBulkNewRecruiterId: React.Dispatch<React.SetStateAction<string | null>>;
   handleBulkAssignRecruiter: (applicantIds: string[], recruiterId: string | null) => Promise<void>;
-  availableRecruiter: Array<{ id: string; name: string }>;
+  availableRecruiter: Array<{ id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }>;
 }

@@ -9,6 +9,15 @@ export async function GET(request: NextRequest) {
     
     // Create a simple SSE stream without any database calls
     const encoder = new TextEncoder();
+    let keepaliveInterval: NodeJS.Timeout | undefined;
+
+    const stopKeepalive = () => {
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = undefined;
+      }
+    };
+
     const stream = new ReadableStream({
       start(controller) {
         // console.log('[MINIMAL SSE] Starting stream');
@@ -26,28 +35,25 @@ export async function GET(request: NextRequest) {
           console.error('[MINIMAL SSE] Error sending initial data:', error);
         }
         
-        // Send keepalive every 5 seconds
-        const keepaliveInterval = setInterval(() => {
+        // A comment frame keeps proxies from closing the idle stream without
+        // making clients parse a JSON event on every heartbeat.
+        keepaliveInterval = setInterval(() => {
           try {
-            const keepaliveData = JSON.stringify({
-              type: 'keepalive',
-              timestamp: new Date().toISOString()
-            });
-            controller.enqueue(encoder.encode(`data: ${keepaliveData}\n\n`));
+            controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
           } catch (error) {
             console.error('[MINIMAL SSE] Keepalive error:', error);
-            clearInterval(keepaliveInterval);
+            stopKeepalive();
           }
-        }, 5000);
+        }, 30000);
         
         // Cleanup on abort
         request.signal.addEventListener('abort', () => {
           // console.log('[MINIMAL SSE] Connection aborted');
-          clearInterval(keepaliveInterval);
-        });
+          stopKeepalive();
+        }, { once: true });
       },
       cancel() {
-        // console.log('[MINIMAL SSE] Stream cancelled');
+        stopKeepalive();
       }
     });
 

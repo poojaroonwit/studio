@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 
 import type { InterviewerUser } from './interviewer-tab-types';
 import {
@@ -202,6 +203,7 @@ function InterviewerUserOption({
     >
       <div className="flex items-center">
         <Check className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />
+        <UserAvatarCompact user={user} size="sm" className="mr-2" />
         <div className="flex flex-1 flex-col leading-tight">
           <span className="text-sm font-medium">{user.name}</span>
           <div className="flex items-center gap-2">

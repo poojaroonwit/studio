@@ -93,7 +93,7 @@ export function TreeViewTree({
       </div>
       <DragOverlay>
         {activeId ? (
-          <div className="p-3 bg-white border border-muted rounded-lg shadow-lg">
+          <div className="rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-lg">
             <span className="text-sm font-medium">
               {getTreeNodeNameById(data, activeId)}
             </span>

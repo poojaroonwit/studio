@@ -24,7 +24,9 @@ async function insertOnce(
   return rows[0].id;
 }
 
-async function main() {
+export async function seedPerformanceDemoData() {
+  const currentYear = new Date().getUTCFullYear();
+  const cycleName = `FY${currentYear} Growth & Impact`;
   const employees = await prisma.$queryRawUnsafe<Employee[]>(
     `SELECT id, email, user_id
      FROM "hr_employees"
@@ -54,13 +56,13 @@ async function main() {
   const cycleId = await insertOnce(
     'hr_performance_cycles',
     'name = $1',
-    ['FY2026 Growth & Impact'],
+    [cycleName],
     `INSERT INTO "hr_performance_cycles"
       (id, name, start_date, end_date, status, created_at, updated_at)
-     VALUES ($1::uuid, $2, DATE '2026-01-01', DATE '2026-12-31', 'active',
+     VALUES ($1::uuid, $2, date_trunc('year', CURRENT_DATE)::date, (date_trunc('year', CURRENT_DATE) + INTERVAL '1 year - 1 day')::date, 'active',
              CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      RETURNING id`,
-    [randomUUID(), 'FY2026 Growth & Impact'],
+    [randomUUID(), cycleName],
   );
 
   const reviewId = await insertOnce(
@@ -100,7 +102,7 @@ async function main() {
        due_date, key_results, comments, evidence, approval_status, version,
        created_at, updated_at)
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, 'in_progress', 72,
-             DATE '2026-10-31', $6::jsonb, '[]'::jsonb, '[]'::jsonb,
+             (date_trunc('year', CURRENT_DATE) + INTERVAL '10 months - 1 day')::date, $6::jsonb, '[]'::jsonb, '[]'::jsonb,
              'approved', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      RETURNING id`,
     [
@@ -125,7 +127,7 @@ async function main() {
        due_date, key_results, comments, evidence, approval_status, version,
        created_at, updated_at)
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, 'in_progress', 45,
-             DATE '2026-11-30', $6::jsonb, '[]'::jsonb, '[]'::jsonb,
+             (date_trunc('year', CURRENT_DATE) + INTERVAL '11 months - 1 day')::date, $6::jsonb, '[]'::jsonb, '[]'::jsonb,
              'approved', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      RETURNING id`,
     [
@@ -218,7 +220,7 @@ async function main() {
       (id, employee_id, owner_manager_id, title, plan_type, status, aspiration,
        target_date, version, approved_at, created_at, updated_at)
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4, 'skill_development',
-             'in_progress', $5, DATE '2026-11-30', 1,
+             'in_progress', $5, (date_trunc('year', CURRENT_DATE) + INTERVAL '11 months - 1 day')::date, 1,
              CURRENT_TIMESTAMP - INTERVAL '30 days',
              CURRENT_TIMESTAMP - INTERVAL '35 days', CURRENT_TIMESTAMP)
      RETURNING id`,
@@ -241,7 +243,7 @@ async function main() {
        created_at, updated_at)
      VALUES ($1::uuid, $2::uuid, $3, $4, 'stretch_assignment',
              'Workforce analytics', 'high', 'in_progress', 55,
-             DATE '2026-09-30', '[]'::jsonb, 1,
+             (date_trunc('year', CURRENT_DATE) + INTERVAL '9 months - 1 day')::date, '[]'::jsonb, 1,
              CURRENT_TIMESTAMP - INTERVAL '28 days', CURRENT_TIMESTAMP)
      RETURNING id`,
     [
@@ -291,7 +293,7 @@ async function main() {
   console.log('Performance workspace demo data is ready for Mika Stone and manager Nara Chan.');
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-performance.ts')) seedPerformanceDemoData()
   .catch(error => {
     console.error(error);
     process.exitCode = 1;

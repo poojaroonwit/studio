@@ -25,9 +25,9 @@ export function getRealtimeConnectionColor({
   isConnected,
   isReconnecting,
 }: Pick<UnifiedRealtimeStatusProps, 'isConnected' | 'isReconnecting'>) {
-  if (isReconnecting) return 'text-yellow-600';
-  if (isConnected) return 'text-green-600';
-  return 'text-red-600';
+  if (isReconnecting) return 'text-yellow-600 dark:text-yellow-300';
+  if (isConnected) return 'text-green-600 dark:text-green-300';
+  return 'text-red-600 dark:text-red-300';
 }
 
 export function getRealtimeConnectionLabel({
@@ -42,36 +42,36 @@ export function getRealtimeConnectionLabel({
 export function getRealtimeHealthIcon(connectionHealth: ConnectionHealth) {
   switch (connectionHealth) {
     case 'excellent':
-      return <SignalHigh className="h-4 w-4 text-green-600" />;
+      return <SignalHigh className="h-4 w-4 text-green-600 dark:text-green-300" />;
     case 'good':
-      return <SignalMedium className="h-4 w-4 text-yellow-600" />;
+      return <SignalMedium className="h-4 w-4 text-yellow-600 dark:text-yellow-300" />;
     case 'poor':
-      return <SignalLow className="h-4 w-4 text-red-600" />;
+      return <SignalLow className="h-4 w-4 text-red-600 dark:text-red-300" />;
     case 'disconnected':
-      return <XCircle className="h-4 w-4 text-red-600" />;
+      return <XCircle className="h-4 w-4 text-red-600 dark:text-red-300" />;
     default:
-      return <Activity className="h-4 w-4 text-gray-600" />;
+      return <Activity className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
 export function getRealtimeHealthColor(connectionHealth: ConnectionHealth) {
   switch (connectionHealth) {
     case 'excellent':
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-200';
     case 'good':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-200';
     case 'poor':
     case 'disconnected':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200';
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
+      return 'border-border bg-muted text-muted-foreground';
   }
 }
 
 export function getRealtimeErrorRateColor(errorRate: number) {
-  if (errorRate === 0) return 'text-green-600';
-  if (errorRate < 0.05) return 'text-yellow-600';
-  return 'text-red-600';
+  if (errorRate === 0) return 'text-green-600 dark:text-green-300';
+  if (errorRate < 0.05) return 'text-yellow-600 dark:text-yellow-300';
+  return 'text-red-600 dark:text-red-300';
 }
 
 export function formatRealtimeLastUpdate(date: Date | null) {
@@ -88,9 +88,9 @@ export function getRealtimeSummaryIcon({
   isConnected,
   isReconnecting,
 }: Pick<UnifiedRealtimeStatusProps, 'isConnected' | 'isReconnecting'>) {
-  if (isConnected) return <CheckCircle className="h-4 w-4 text-green-600" />;
-  if (isReconnecting) return <RefreshCw className="h-4 w-4 text-yellow-600 animate-spin" />;
-  return <AlertCircle className="h-4 w-4 text-red-600" />;
+  if (isConnected) return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-300" />;
+  if (isReconnecting) return <RefreshCw className="h-4 w-4 animate-spin text-yellow-600 dark:text-yellow-300" />;
+  return <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-300" />;
 }
 
 export function getRealtimeSummaryText({

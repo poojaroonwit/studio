@@ -113,10 +113,6 @@ describe('buildFigmaSidebarSections', () => {
       children: expect.arrayContaining([
         expect.objectContaining({ label: 'Overview', item: expect.objectContaining({ href: '/settings/overview' }) }),
         expect.objectContaining({ label: 'HR Setup', item: expect.objectContaining({ href: '/settings' }) }),
-        expect.objectContaining({ label: 'People Lifecycle', item: expect.objectContaining({ href: '/settings?adminTab=people-lifecycle' }) }),
-        expect.objectContaining({ label: 'Workforce', item: expect.objectContaining({ href: '/settings?adminTab=workforce' }) }),
-        expect.objectContaining({ label: 'Payroll & Expenses', item: expect.objectContaining({ href: '/settings?adminTab=payroll-expenses' }) }),
-        expect.objectContaining({ label: 'Performance & Learning', item: expect.objectContaining({ href: '/settings?adminTab=performance-learning' }) }),
         expect.objectContaining({ label: 'User Accounts', item: expect.objectContaining({ href: '/settings?adminTab=user-accounts' }) }),
         expect.objectContaining({ label: 'Roles & Permissions', item: expect.objectContaining({ href: '/settings?adminTab=roles-permissions' }) }),
         expect.objectContaining({ label: 'Preferences', item: expect.objectContaining({ href: '/settings?adminTab=branding' }) }),
@@ -131,6 +127,10 @@ describe('buildFigmaSidebarSections', () => {
     });
     if (adminCenter?.type === 'group') {
       expect(adminCenter.children.map(child => child.label)).not.toContain('Configuration');
+      expect(adminCenter.children.map(child => child.label)).not.toContain('People Lifecycle');
+      expect(adminCenter.children.map(child => child.label)).not.toContain('Workforce');
+      expect(adminCenter.children.map(child => child.label)).not.toContain('Payroll & Expenses');
+      expect(adminCenter.children.map(child => child.label)).not.toContain('Performance & Learning');
       expect(adminCenter.children.map(child => child.label)).not.toContain('Feature Flags');
       expect(adminCenter.children.map(child => child.label)).not.toContain('System Status');
     }

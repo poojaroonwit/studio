@@ -67,17 +67,17 @@ export function UnifiedRealtimeStatusCard(props: UnifiedRealtimeStatusProps) {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-600" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Last Update</span>
           </div>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             {formatRealtimeLastUpdate(lastUpdate)}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-gray-600" />
+            <Users className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Active Users</span>
           </div>
           <span className="text-sm font-medium">
@@ -97,7 +97,7 @@ export function UnifiedRealtimeStatusCard(props: UnifiedRealtimeStatusProps) {
         <div className="pt-2 border-t">
           <div className="flex items-center gap-2">
             {getRealtimeSummaryIcon({ isConnected, isReconnecting })}
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               {getRealtimeSummaryText({ connectedUsers, isConnected, isReconnecting, reconnectAttempts })}
             </span>
           </div>
@@ -118,25 +118,25 @@ function UnifiedRealtimeStatusDetails({
   return (
     <>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Total Connections</span>
+        <span className="text-sm text-muted-foreground">Total Connections</span>
         <span className="text-sm font-medium">{totalConnections}</span>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Messages Sent</span>
+          <span className="text-sm text-muted-foreground">Messages Sent</span>
           <span className="text-sm font-medium">{messageCount.toLocaleString()}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Errors</span>
+          <span className="text-sm text-muted-foreground">Errors</span>
           <span className={cn('text-sm font-medium', errorColor)}>
             {errorCount.toLocaleString()}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Error Rate</span>
+          <span className="text-sm text-muted-foreground">Error Rate</span>
           <span className={cn('text-sm font-medium', errorColor)}>
             {(errorRate * 100).toFixed(2)}%
           </span>

@@ -1,32 +1,48 @@
-import prisma from '@/lib/prisma';
-import { hasAnyPermission, isAdminUser, type SessionLikeUser } from '@/lib/permissions';
-import type { PayrollAccess } from './contracts';
+import prisma from "@/lib/prisma";
+import {
+  hasAnyPermission,
+  isAdminUser,
+  type SessionLikeUser,
+} from "@/lib/permissions";
+import type { PayrollAccess } from "./contracts";
 
-export async function getPayrollAccess(user: SessionLikeUser & { id?: string; email?: string | null }): Promise<PayrollAccess> {
+export async function getPayrollAccess(
+  user: SessionLikeUser & { id?: string; email?: string | null },
+): Promise<PayrollAccess> {
   const isAdmin = isAdminUser(user);
-  const canManage = isAdmin || hasAnyPermission(user, ['HR_PAYROLL_MANAGE']);
-  const canView = canManage || hasAnyPermission(user, ['HR_PAYROLL_VIEW']);
-  const employee = user.id ? await prisma.$queryRawUnsafe<Array<{
-    id: string;
-    company_id: string | null;
-    job_title: string | null;
-    department: string | null;
-  }>>(
-    `SELECT employee.id, employee.company_id, employee.job_title, department.name AS department
+  const requestedManage = hasAnyPermission(user, ["HR_PAYROLL_MANAGE"]);
+  const requestedView =
+    requestedManage || hasAnyPermission(user, ["HR_PAYROLL_VIEW"]);
+  const requestedApprove = hasAnyPermission(user, ["HR_PAYROLL_APPROVE"]);
+  const requestedExport = hasAnyPermission(user, ["HR_PAYROLL_EXPORT"]);
+  const employee = user.id
+    ? await prisma
+        .$queryRawUnsafe<
+          Array<{
+            id: string;
+            company_id: string | null;
+            job_title: string | null;
+            department: string | null;
+          }>
+        >(
+          `SELECT employee.id, employee.company_id, employee.job_title, department.name AS department
      FROM hr_employees employee
      LEFT JOIN hr_departments department ON department.id = employee.department_id
      WHERE user_id = $1::uuid OR lower(email) = lower($2)
      ORDER BY CASE WHEN user_id = $1::uuid THEN 0 ELSE 1 END LIMIT 1`,
-    user.id,
-    user.email || '',
-  ).catch(() => []) : [];
+          user.id,
+          user.email || "",
+        )
+        .catch(() => [])
+    : [];
 
+  const hasCompanyScope = Boolean(employee[0]?.company_id);
   return {
     isAdmin,
-    canView,
-    canManage,
-    canApprove: canManage,
-    canExport: canManage,
+    canView: isAdmin || (hasCompanyScope && requestedView),
+    canManage: isAdmin || (hasCompanyScope && requestedManage),
+    canApprove: isAdmin || (hasCompanyScope && requestedApprove),
+    canExport: isAdmin || (hasCompanyScope && requestedExport),
     actorCompanyId: isAdmin ? null : employee[0]?.company_id || null,
     actorEmployeeId: employee[0]?.id || null,
     actorUserRole: user.role || null,
@@ -36,6 +52,6 @@ export async function getPayrollAccess(user: SessionLikeUser & { id?: string; em
 }
 
 export function maskPayrollReference(value: unknown) {
-  const normalized = String(value || '').replace(/\s/g, '');
-  return normalized ? `•••• ${normalized.slice(-4)}` : 'Not provided';
+  const normalized = String(value || "").replace(/\s/g, "");
+  return normalized ? `•••• ${normalized.slice(-4)}` : "Not provided";
 }

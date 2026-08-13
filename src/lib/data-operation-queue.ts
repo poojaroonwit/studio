@@ -112,7 +112,10 @@ async function claimNextJob(settings: DataOperationQueueSettings): Promise<Claim
               j."input_mime_type" AS "inputMimeType", j."input_data" AS "inputData", j.parameters,
               j."requested_by_id" AS "requestedById", COALESCE(u.name, u.email) AS "requestedByName"
        FROM "data_operation_jobs" j JOIN "User" u ON u.id = j."requested_by_id"
-       WHERE j.status = 'pending' ORDER BY j."created_at" ASC FOR UPDATE OF j SKIP LOCKED LIMIT 1`
+       WHERE j.status = 'pending'
+         AND j.operation IN ('import', 'export')
+         AND j."entity_type" IN ('applicants', 'positions', 'system-transfer')
+       ORDER BY j."created_at" ASC FOR UPDATE OF j SKIP LOCKED LIMIT 1`
     );
     const job = result.rows[0] as ClaimedJob | undefined;
     if (!job) {

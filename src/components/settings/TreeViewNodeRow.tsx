@@ -59,7 +59,7 @@ export function TreeNodeRow({
     <div
       className={cn(
         "flex items-center gap-2 py-1.5 px-3 rounded-lg hover:bg-muted/20 cursor-pointer group border border-transparent hover:border-muted/30 transition-all duration-200",
-        isFolder ? "bg-white/50" : "bg-gray-100"
+        isFolder ? "bg-card/50" : "bg-muted"
       )}
       style={{ marginLeft: `${level * 20}px` }}
       onClick={() => {

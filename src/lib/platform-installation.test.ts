@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { firstAdminSetupSchema } from './platform-installation';
+import { firstAdminSetupSchema, installationEnvironmentSchema } from './platform-installation';
 
 describe('first admin setup input', () => {
   it('normalizes a valid first admin account', () => {
@@ -24,5 +24,20 @@ describe('first admin setup input', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('installation environment input', () => {
+  it('accepts production without demo options', () => {
+    expect(installationEnvironmentSchema.parse({ environment: 'production' })).toEqual({ environment: 'production' });
+  });
+
+  it('accepts the maximum realistic demo profile', () => {
+    expect(installationEnvironmentSchema.parse({ environment: 'demo', employeeCount: 1000, historyMonths: 24 }))
+      .toMatchObject({ employeeCount: 1000, historyMonths: 24 });
+  });
+
+  it('rejects demo profiles beyond the supported limits', () => {
+    expect(installationEnvironmentSchema.safeParse({ environment: 'demo', employeeCount: 1001, historyMonths: 25 }).success).toBe(false);
   });
 });

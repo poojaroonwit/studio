@@ -13,6 +13,19 @@ const DEFAULT_COPY: SignInHeroCopy = {
 };
 
 export function getSignInHeroCopy(settings?: SystemSetting[]): SignInHeroCopy {
+  const compactCopy = {
+    eyebrow: settings?.find(setting => String(setting.key) === 'loginHeroEyebrow')?.value?.trim(),
+    title: settings?.find(setting => String(setting.key) === 'loginHeroTitle')?.value?.trim(),
+    description: settings?.find(setting => String(setting.key) === 'loginHeroDescription')?.value?.trim(),
+  };
+  if (compactCopy.eyebrow || compactCopy.title || compactCopy.description) {
+    return {
+      eyebrow: compactCopy.eyebrow || DEFAULT_COPY.eyebrow,
+      title: compactCopy.title || DEFAULT_COPY.title,
+      description: compactCopy.description || DEFAULT_COPY.description,
+    };
+  }
+
   const rawConfig = settings?.find(setting => String(setting.key) === 'appkitLocalizationConfig')?.value;
   if (!rawConfig) return DEFAULT_COPY;
 

@@ -289,6 +289,15 @@ export const sidebarConfigData = [
         permissionId: "HR_PEOPLE_VIEW"
       },
       {
+        label: "Assets",
+        icon: "ComputerDesktop",
+        href: "/people/assets",
+        exact: true,
+        description: "Track equipment inventory, employee custody, returns, and reuse",
+        section: "People records",
+        permissionId: "HR_PEOPLE_VIEW"
+      },
+      {
         label: "Service Desk",
         icon: "MessageSquare",
         href: "/service-desk",
@@ -328,10 +337,18 @@ export const sidebarConfigData = [
         permissionId: "HR_WORKFORCE_VIEW"
       },
       {
-        label: "Shift Requests",
+        label: "Attendance Requests",
         icon: "CalendarDays",
         href: "/workforce/attendance?view=requests",
-        description: "Review shift changes, swaps, and attendance requests",
+        description: "Review and decide employee attendance corrections",
+        section: "Time",
+        permissionId: "HR_WORKFORCE_VIEW"
+      },
+      {
+        label: "Shift Requests",
+        icon: "CalendarDays",
+        href: "/workforce/leave?type=shift-request",
+        description: "Review schedule changes, swaps, and open-shift requests",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
       },
@@ -351,20 +368,19 @@ export const sidebarConfigData = [
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
       },
+    ],
+  },
+  {
+    id: "performance",
+    label: "Performance",
+    icon: "BarChart3",
+    items: [
       {
         label: "Performance",
         icon: "BarChart3",
         href: "/workforce/performance",
-        description: "Manage team performance, check-ins, development, and insights",
-        section: "Growth",
-        permissionId: "HR_PERFORMANCE_VIEW"
-      },
-      {
-        label: "Appraisal",
-        icon: "ClipboardCheck",
-        href: "/workforce/appraisal",
-        description: "Manage appraisal cycles, reviews, feedback, and results",
-        section: "Growth",
+        exact: true,
+        description: "Manage goals, check-ins, development, and performance insights",
         permissionId: "HR_PERFORMANCE_VIEW"
       },
     ],
@@ -749,38 +765,6 @@ export const sidebarConfigData = [
         section: "Configuration",
       },
       {
-        label: "People Lifecycle",
-        icon: "Users",
-        href: "/settings?adminTab=people-lifecycle",
-        description: "Configure onboarding, probation, contracts, offboarding, assets, and documents",
-        section: "People Operations",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
-        label: "Workforce",
-        icon: "CalendarDays",
-        href: "/settings?adminTab=workforce",
-        description: "Configure attendance, schedules, overtime, leave, and holiday rules",
-        section: "People Operations",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
-        label: "Payroll & Expenses",
-        icon: "Banknotes",
-        href: "/settings?adminTab=payroll-expenses",
-        description: "Configure payroll cadence, compensation approvals, expenses, and travel",
-        section: "People Operations",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
-        label: "Performance & Learning",
-        icon: "AcademicCap",
-        href: "/settings?adminTab=performance-learning",
-        description: "Configure performance reviews, goals, learning, and certification rules",
-        section: "People Operations",
-        permissionId: "SYSTEM_SETTINGS_VIEW"
-      },
-      {
         label: "User Accounts",
         icon: "Identification",
         href: "/settings?adminTab=user-accounts",
@@ -883,14 +867,6 @@ export const sidebarConfigData = [
         description: "Review employee conduct, account, and attendance signals",
         section: "Operations",
         permissionId: "HR_PEOPLE_MANAGE"
-      },
-      {
-        label: "Asset Inventory",
-        icon: "ComputerDesktop",
-        href: "/people/assets",
-        description: "Track company equipment, employee custody, and returns",
-        section: "Operations",
-        permissionId: "HR_PEOPLE_VIEW"
       },
     ],
   },

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,19 +20,26 @@ import {
   Loader2,
   MessageCircle,
   MessageCircleMore,
+  Plus,
   UserRound,
   X,
 } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useLocalization } from '@/contexts/LocalizationContext';
 import { supportCreateSchema } from '@/lib/service-desk-contract';
 import { useServiceDeskCategories } from '@/hooks/use-service-desk-categories';
 import { cn } from '@/lib/utils';
+import { hasPermission } from '@/lib/permissions';
 import {
   buildHrWidgetSubject,
   hasEnoughHrWidgetMessageDetail,
 } from './hr-help-widget-utils';
-import { useDraggableWidgetLauncher } from './use-draggable-widget-launcher';
 
 type CreateResponse = {
   id?: string;
@@ -41,6 +49,12 @@ type CreateResponse = {
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string; citations?: string[] };
 type AiResponse = { answer?: string; message?: string; citations?: string[]; requiresHuman?: boolean };
+type HrHelpOpenDetail = {
+  created?: CreateResponse;
+  category?: string;
+  message?: string;
+  humanRequested?: boolean;
+};
 
 export function HrHelpWidget({
   appLogoUrl: _appLogoUrl,
@@ -50,6 +64,7 @@ export function HrHelpWidget({
   currentAppName?: string;
 }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { t } = useLocalization();
   const categories = useServiceDeskCategories();
   const [open, setOpen] = useState(false);
@@ -61,18 +76,45 @@ export function HrHelpWidget({
   const [created, setCreated] = useState<CreateResponse | null>(null);
   const [humanRequested, setHumanRequested] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const {
-    dragging: launcherDragging,
-    launcherHandlers,
-    launcherRef,
-    position: launcherPosition,
-  } = useDraggableWidgetLauncher(open);
   useEffect(() => {
     if (category && !categories.some(option => option.key === category)) {
       setCategory('');
       setChatStarted(false);
     }
   }, [categories, category]);
+
+  useEffect(() => {
+    function openFromProductContext(event: Event) {
+      const detail = (event as CustomEvent<HrHelpOpenDetail>).detail;
+      setError('');
+      setOpen(true);
+      if (!detail) return;
+      if (detail.created?.id) {
+        setCreated(detail.created);
+        setCategory('');
+        setChatStarted(false);
+        setMessage('');
+        setHumanRequested(false);
+        setChatMessages([]);
+        return;
+      }
+
+      const requestedCategory = categories.find(option => option.key === detail.category)
+        || categories.find(option => option.key === 'account_access')
+        || categories[0];
+      if (requestedCategory) {
+        setCategory(requestedCategory.key);
+        setChatStarted(true);
+      }
+      setMessage(detail.message || '');
+      setHumanRequested(detail.humanRequested ?? true);
+      setCreated(null);
+      setChatMessages([]);
+    }
+
+    window.addEventListener('hr-help:open', openFromProductContext);
+    return () => window.removeEventListener('hr-help:open', openFromProductContext);
+  }, [categories]);
 
   function resetConversation() {
     setCategory('');
@@ -221,43 +263,32 @@ export function HrHelpWidget({
   const selectedCategory = categories.find(option => option.key === category) || null;
   const SelectedCategoryIcon = selectedCategory ? getCategoryIcon(selectedCategory.key) : MessageCircle;
   const isConversationView = chatStarted && !created;
+  const canAddCategory = hasPermission(session?.user, 'SYSTEM_SETTINGS_EDIT');
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
         <button
-          ref={launcherRef}
           type="button"
           aria-label={t('serviceDesk.widget.talkWithHr', 'Talk with HR')}
           aria-haspopup="dialog"
-          aria-description={t('serviceDesk.widget.moveHint', 'Drag to move. You can also hold Alt and use the arrow keys.')}
-          title={t('serviceDesk.widget.moveHint', 'Drag to move. You can also hold Alt and use the arrow keys.')}
-          {...launcherHandlers}
-          style={launcherPosition ? { left: launcherPosition.x, top: launcherPosition.y } : undefined}
-          className={cn(
-            'group no-print fixed z-[110] flex h-12 w-[166px] touch-none select-none items-center justify-center gap-2.5 rounded-full border-0 bg-primary px-3 text-primary-foreground shadow-[0_12px_28px_hsl(var(--primary)/.3),0_3px_8px_rgba(2,6,23,.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            launcherPosition ? null : 'bottom-20 right-4 md:bottom-7 md:right-7',
-            launcherDragging
-              ? 'cursor-grabbing shadow-[0_18px_40px_hsl(var(--primary)/.36),0_5px_12px_rgba(2,6,23,.18)]'
-              : 'cursor-grab transition duration-300 hover:-translate-y-1 hover:bg-primary/90 hover:shadow-[0_18px_40px_hsl(var(--primary)/.36),0_5px_12px_rgba(2,6,23,.18)]',
-          )}
+          className="group no-print inline-flex h-9 items-center justify-center gap-2 rounded-md border-0 bg-transparent px-2.5 text-sm font-medium text-white/90 shadow-none transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
         >
-          <MessageCircleMore className="!h-[20px] !w-[20px] shrink-0 transition-transform duration-300 group-hover:scale-105" strokeWidth={2} aria-hidden="true" />
-          <span className="whitespace-nowrap text-[16px] font-semibold tracking-[-0.015em]">
+          <MessageCircleMore className="h-[18px] w-[18px] shrink-0" strokeWidth={2} aria-hidden="true" />
+          <span className="hidden whitespace-nowrap sm:inline">
             {t('serviceDesk.widget.talkWithHr', 'Talk with HR')}
           </span>
         </button>
-      </PopoverTrigger>
+      </SheetTrigger>
 
-      <PopoverContent
-        role="dialog"
-        aria-label={t('serviceDesk.widget.title', 'Chat with HR')}
-        align="end"
-        side="top"
-        sideOffset={isConversationView ? 15 : 12}
-        popoverId="hr-help-widget"
-        className={`w-[min(360px,calc(100vw-24px))] overflow-hidden rounded-[20px] border-slate-200 p-0 shadow-[0_20px_52px_rgba(15,23,42,.24)] ${isConversationView ? 'dark:border-slate-200' : 'dark:border-zinc-800'}`}
+      <SheetContent
+        side="right"
+        hideCloseButton
+        sheetId="hr-help-widget"
+        className={`!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-xl border-slate-200 bg-background p-0 shadow-2xl sm:!max-w-[420px] ${isConversationView ? 'dark:border-slate-200' : 'dark:border-zinc-800'}`}
       >
+        <SheetTitle className="sr-only">{t('serviceDesk.widget.title', 'Chat with HR')}</SheetTitle>
+        <SheetDescription className="sr-only">{t('serviceDesk.widget.intro', "We're here to help. Choose a topic to get started.")}</SheetDescription>
         <div className={`bg-primary text-primary-foreground ${isConversationView ? 'px-[18px] pb-[12px] pt-[14px]' : 'px-[22px] pb-[26px] pt-[22px]'}`}>
           <div className="flex items-center justify-between gap-4">
             <Image src="/brand/hrive-wordmark-transparent.png" alt="hrive" width={84} height={25} className={`h-auto ${isConversationView ? 'w-[72px]' : 'w-[84px]'}`} />
@@ -294,10 +325,24 @@ export function HrHelpWidget({
         ) : !chatStarted ? (
           <div className="bg-white dark:bg-zinc-900">
             {categories.length === 0 ? (
-              <div className="mx-7 mb-7 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center dark:border-zinc-700">
+              <div className="mx-7 mb-7 mt-6 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center dark:border-zinc-700">
                 <MessageCircle className="mx-auto h-5 w-5 text-slate-400" aria-hidden="true" />
                 <p className="mt-2 text-sm font-medium">{t('serviceDesk.widget.noTopics', 'Chat is unavailable right now')}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">{t('serviceDesk.widget.noTopicsHint', 'Ask an administrator to configure an active HR category.')}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {canAddCategory
+                    ? t('serviceDesk.widget.noTopicsAdminHint', 'Add a category to make Talk with HR available to employees.')
+                    : t('serviceDesk.widget.noTopicsHint', 'Ask an administrator to configure an active HR category.')}
+                </p>
+                {canAddCategory && (
+                  <Link
+                    href="/settings/service-desk"
+                    onClick={() => setOpen(false)}
+                    className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    {t('serviceDesk.widget.addCategory', 'Add category')}
+                  </Link>
+                )}
               </div>
             ) : (
             <div className="max-h-[240px] divide-y divide-slate-200 overflow-y-auto px-[22px] sm:max-h-[320px] dark:divide-zinc-700" aria-label={t('serviceDesk.widget.topic', 'What is this about?')}>
@@ -405,8 +450,8 @@ export function HrHelpWidget({
             </div>
           </form>
         )}
-      </PopoverContent>
-    </Popover>
+      </SheetContent>
+    </Sheet>
   );
 }
 

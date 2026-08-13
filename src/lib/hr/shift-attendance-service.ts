@@ -417,9 +417,11 @@ async function listRequests(actor: ShiftAttendanceActor) {
       throw error;
     }),
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `SELECT er.*, e.employee_number, e.first_name, e.last_name, e.preferred_name
+      `SELECT er.*, e.employee_number, e.first_name, e.last_name, e.preferred_name,
+              e.job_title, e.profile_photo_url, d.name AS department_name
        FROM "hr_ess_requests" er
        JOIN "hr_employees" e ON e.id = er.requester_employee_id
+       LEFT JOIN "hr_departments" d ON d.id = e.department_id
        WHERE er.request_type = 'attendance_correction' ${scope.clause}
        ORDER BY er.created_at DESC LIMIT 100`,
       ...scope.params,
@@ -506,8 +508,17 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
   const scope = employeeScopeSql(actor);
 
   const timesheets = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-    `SELECT ts.*, e.employee_number, e.first_name, e.last_name, e.preferred_name,
-            e.job_title, d.name AS department_name,
+    `SELECT ts.id, ts.timesheet_number, e.id AS employee_id,
+            COALESCE(ts.period_start, $${scope.params.length + 1}::date) AS period_start,
+            COALESCE(ts.period_end, $${scope.params.length + 2}::date) AS period_end,
+            COALESCE(ts.status, 'not_started') AS status,
+            COALESCE(ts.total_minutes, 0)::int AS total_minutes,
+            COALESCE(ts.billable_minutes, 0)::int AS billable_minutes,
+            COALESCE(ts.attendance_minutes, 0)::int AS attendance_minutes,
+            COALESCE(ts.difference_minutes, 0)::int AS difference_minutes,
+            COALESCE(ts.version, 0)::int AS version,
+            e.employee_number, e.first_name, e.last_name, e.preferred_name,
+            e.job_title, e.profile_photo_url, d.name AS department_name,
             COALESCE(
               jsonb_agg(
                 jsonb_build_object(
@@ -520,16 +531,31 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
                 ) ORDER BY te.work_date, te.start_at NULLS LAST, te.created_at
               ) FILTER (WHERE te.id IS NOT NULL),
               '[]'::jsonb
-            ) AS entries
-     FROM "hr_timesheets" ts
-     JOIN "hr_employees" e ON e.id = ts.employee_id
+            ) AS entries,
+            COALESCE((
+              SELECT jsonb_agg(
+                jsonb_build_object(
+                  'workDate', ar.work_date,
+                  'workedMinutes', COALESCE(ar.worked_minutes, ar.hours_worked * 60, 0),
+                  'status', ar.status,
+                  'clockIn', ar.clock_in,
+                  'clockOut', ar.clock_out
+                ) ORDER BY ar.work_date
+              )
+              FROM "hr_attendance_records" ar
+              WHERE ar.employee_id = e.id
+                AND ar.work_date::date BETWEEN $${scope.params.length + 1}::date AND $${scope.params.length + 2}::date
+            ), '[]'::jsonb) AS attendance
+     FROM "hr_employees" e
      LEFT JOIN "hr_departments" d ON d.id = e.department_id
-     LEFT JOIN "hr_timesheet_entries" te ON te.timesheet_id = ts.id
-     WHERE ts.period_start = $${scope.params.length + 1}::date
+     LEFT JOIN "hr_timesheets" ts ON ts.employee_id = e.id
+       AND ts.period_start = $${scope.params.length + 1}::date
        AND ts.period_end = $${scope.params.length + 2}::date
+     LEFT JOIN "hr_timesheet_entries" te ON te.timesheet_id = ts.id
+     WHERE e.status = 'active'
        ${scope.clause}
-     GROUP BY ts.id, e.employee_number, e.first_name, e.last_name, e.preferred_name,
-              e.job_title, d.name
+     GROUP BY ts.id, e.id, e.employee_number, e.first_name, e.last_name, e.preferred_name,
+              e.job_title, e.profile_photo_url, d.name
      ORDER BY e.first_name, e.last_name`,
     ...scope.params,
     start,
@@ -551,9 +577,24 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
       )
     : [];
 
+  const projects = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+    `SELECT DISTINCT te.project
+     FROM "hr_timesheet_entries" te
+     JOIN "hr_timesheets" ts ON ts.id = te.timesheet_id
+     JOIN "hr_employees" e ON e.id = ts.employee_id
+     WHERE te.project IS NOT NULL AND BTRIM(te.project) <> ''
+       ${scope.clause}
+     ORDER BY te.project`,
+    ...scope.params,
+  ).catch(error => {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  });
+
   return {
     view: 'timesheet',
     range: { start, end },
+    selfEmployeeId: employee?.id || null,
     metrics: {
       totalMinutes: timesheets.reduce((sum, row) => sum + Number(row.total_minutes || 0), 0),
       billableMinutes: timesheets.reduce((sum, row) => sum + Number(row.billable_minutes || 0), 0),
@@ -562,6 +603,7 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
     },
     timesheets,
     attendance,
+    projects,
   };
 }
 

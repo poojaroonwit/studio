@@ -9,11 +9,15 @@ export interface PositionFilterGrade {
 export interface PositionFilterHiringManager {
   id: string;
   name: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }
 
 export interface PositionFilterRecruiter {
   id: string;
   name: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }
 
 export interface PositionFiltersProps {

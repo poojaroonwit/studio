@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { readRequestJsonObject } from '@/lib/request-json';
+import { DEMO_EXTERNAL_ACTION_ERROR, isDemoInstallation } from '@/lib/installation-environment';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -24,6 +25,7 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (await isDemoInstallation()) return NextResponse.json({ error: DEMO_EXTERNAL_ACTION_ERROR }, { status: 403 });
 
     const { id } = await params;
     const body = await readRequestJsonObject(request);

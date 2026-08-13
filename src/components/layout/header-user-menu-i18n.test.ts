@@ -10,6 +10,6 @@ describe("getHeaderUserMenuLabels", () => {
   it("defaults to English for missing and unsupported locales", () => {
     expect(getHeaderUserMenuLabels().signOut).toBe("Sign Out");
     expect(getHeaderUserMenuLabels("en-US").appearance).toBe("Appearance");
-    expect(getHeaderUserMenuLabels("ja-JP").settings).toBe("Settings");
+    expect(getHeaderUserMenuLabels("ja-JP").settings).toBe("Admin Center");
   });
 });

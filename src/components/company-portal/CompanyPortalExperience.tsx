@@ -67,13 +67,19 @@ export function CompanyPortalExperience({
   ));
   const [isEditing, setIsEditing] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
   const loadPortal = React.useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+    setIsLoading(true);
+    setLoadError(null);
     try {
       const response = await fetch(apiPath, {
         credentials: 'include',
         cache: 'no-store',
+        signal: controller.signal,
       });
 
       if (response.status === 401) {
@@ -104,8 +110,13 @@ export function CompanyPortalExperience({
       }
     } catch (error) {
       console.error(error);
-      toast.error('Company portal configuration could not be loaded.');
+      const message = error instanceof DOMException && error.name === 'AbortError'
+        ? 'The employee portal took too long to respond.'
+        : 'Company portal configuration could not be loaded.';
+      setLoadError(message);
+      toast.error(message);
     } finally {
+      window.clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }, [apiPath, createDefaultState, startInEditMode]);
@@ -223,6 +234,14 @@ export function CompanyPortalExperience({
             <div className="h-28 bg-slate-200" />
             <div className="h-28 bg-slate-200" />
             <div className="h-28 bg-slate-200" />
+          </div>
+        </div>
+      ) : loadError ? (
+        <div className="grid min-h-[60vh] place-items-center px-6 py-12" role="alert">
+          <div className="max-w-md text-center">
+            <h1 className="text-xl font-semibold text-slate-950">Employee portal unavailable</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{loadError}</p>
+            <Button className="mt-5" onClick={() => void loadPortal()}>Retry</Button>
           </div>
         </div>
       ) : (

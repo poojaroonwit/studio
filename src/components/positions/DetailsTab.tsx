@@ -20,7 +20,7 @@ interface DetailsTabProps {
   isLoadingLevels: boolean;
   positionLevels: Array<{ id: string; name: string; color?: string }>;
   grades: Grade[];
-  availableRecruiters: Array<{ id: string; name: string }>;
+  availableRecruiters: Array<{ id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }>;
   form: UseFormReturn<EditPositionFormValues>;
   isMobile: boolean;
   onEdit: () => void;

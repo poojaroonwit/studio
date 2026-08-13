@@ -69,7 +69,7 @@ export function EnhancedSseFooterActions({
 }) {
   return (
     <div className="flex items-center justify-between pt-4 border-t">
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-muted-foreground">
         {isConnecting ? (
           <span className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4 animate-spin" />

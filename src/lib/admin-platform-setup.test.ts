@@ -10,7 +10,9 @@ import {
 
 describe('admin platform setup', () => {
   it('provides a settings destination for every onboarding item', () => {
-    expect(platformSetupFeatures.every(feature => feature.href?.startsWith('/settings'))).toBe(true);
+    expect(platformSetupFeatures.every(feature => (
+      feature.href?.startsWith('/settings') || feature.href === '/workforce/holidays'
+    ))).toBe(true);
   });
 
   it('marks only features with their required defaults as ready', () => {

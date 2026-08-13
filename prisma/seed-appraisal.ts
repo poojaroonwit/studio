@@ -6,8 +6,9 @@ type Row = Record<string, unknown>;
 
 const TEMPLATE_NAME = 'Balanced Contribution Review';
 const RATING_MODEL_NAME = 'Five-Level Contribution Scale';
-const ACTIVE_CYCLE_NAME = '2026 Annual Contribution Review';
-const RELEASED_CYCLE_NAME = '2025 Annual Contribution Review';
+const CURRENT_YEAR = new Date().getUTCFullYear();
+const ACTIVE_CYCLE_NAME = `${CURRENT_YEAR} Annual Contribution Review`;
+const RELEASED_CYCLE_NAME = `${CURRENT_YEAR - 1} Annual Contribution Review`;
 
 async function first<T extends Row>(sql: string, ...params: unknown[]) {
   const rows = await prisma.$queryRawUnsafe<T[]>(sql, ...params);
@@ -269,12 +270,12 @@ async function seedReviews(cycle: Row, templateVersionId: unknown, ratingModelId
   }
 }
 
-async function main() {
+export async function seedAppraisalDemoData() {
   const templateVersion = await seedTemplate();
   const ratingModel = await seedRatingModel();
   if (!templateVersion || !ratingModel) throw new Error('Unable to seed appraisal configuration.');
-  const active = await seedCycle(ACTIVE_CYCLE_NAME, 2026, 'self_assessment', templateVersion.id, ratingModel.id);
-  const historical = await seedCycle(RELEASED_CYCLE_NAME, 2025, 'released', templateVersion.id, ratingModel.id);
+  const active = await seedCycle(ACTIVE_CYCLE_NAME, CURRENT_YEAR, 'self_assessment', templateVersion.id, ratingModel.id);
+  const historical = await seedCycle(RELEASED_CYCLE_NAME, CURRENT_YEAR - 1, 'released', templateVersion.id, ratingModel.id);
   await seedReviews(active, templateVersion.id, ratingModel.id, false);
   await seedReviews(historical, templateVersion.id, ratingModel.id, true);
   console.log('Appraisal seed completed:', {
@@ -284,7 +285,7 @@ async function main() {
   });
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-appraisal.ts')) seedAppraisalDemoData()
   .catch(error => {
     console.error('Appraisal seed failed:', error);
     process.exitCode = 1;

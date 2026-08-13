@@ -5,6 +5,8 @@ export interface Interviewer {
   userEmail: string;
   userRole: string;
   positionTitle?: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
   createdAt: string;
 }
 
@@ -14,4 +16,6 @@ export interface InterviewerUser {
   email: string;
   role: string;
   positionTitle?: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }

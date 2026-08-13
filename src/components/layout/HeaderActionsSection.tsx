@@ -6,6 +6,7 @@ import { ArrowLeftOnRectangleIcon as LogIn } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
 import { NotificationIcon } from "@/components/ui/notification-icon";
+import { HrHelpWidget } from "@/components/privacy-support/HrHelpWidget";
 import { useLocalization } from '@/contexts/LocalizationContext';
 
 import { HeaderExpandableSearch } from "./HeaderExpandableSearch";
@@ -84,6 +85,9 @@ function HeaderLoadedActions({
     <>
       <div className="flex items-center gap-1.5">
         <NotificationIcon />
+        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-white/20" />
+        <HrHelpWidget />
+        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-white/20" />
         {isMobile ? (
           <HeaderMobileUserDrawer {...userMenuProps} />
         ) : (

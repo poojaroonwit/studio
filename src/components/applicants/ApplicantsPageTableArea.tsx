@@ -19,6 +19,7 @@ export function ApplicantsPageTableArea(props: ApplicantsPageTableAreaProps) {
     pageSize,
     total,
     totalPages,
+    displayedApplicants,
   } = props;
   const isMobile = useIsMobile();
 
@@ -34,14 +35,21 @@ export function ApplicantsPageTableArea(props: ApplicantsPageTableAreaProps) {
     onRefresh: handleRefresh,
     enabled: isMobile,
   });
+  // A successful page payload can arrive before the separate count query.
+  // Never announce an empty result while visible rows are already rendered.
+  const visibleRecordFloor = displayedApplicants.length > 0
+    ? ((Math.max(1, page) - 1) * Math.max(1, pageSize)) + displayedApplicants.length
+    : 0;
+  const effectiveTotal = Math.max(total, visibleRecordFloor);
+  const effectiveTotalPages = Math.max(totalPages, Math.ceil(effectiveTotal / Math.max(1, pageSize)), 1);
   const paginationState = getApplicantTablePaginationState({
     isAiSearchActive,
     aiMatchedApplicantIds,
     aiRecordCount,
-    total,
+    total: effectiveTotal,
     page,
     pageSize,
-    totalPages,
+    totalPages: effectiveTotalPages,
   });
 
   return (

@@ -42,4 +42,16 @@ describe('calculateProbationSchedule', () => {
       evaluationFrequencyDays: 30,
     });
   });
+
+  it('retains an overdue schedule so unresolved decisions can be surfaced', () => {
+    expect(calculateProbationSchedule({
+      hireDate: '2026-02-03',
+      probationPeriodDays: 90,
+      now: new Date('2026-08-13'),
+    })).toMatchObject({
+      isOnProbation: false,
+      daysRemaining: -101,
+      progressPercent: 100,
+    });
+  });
 });

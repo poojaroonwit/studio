@@ -621,8 +621,8 @@ export async function mutateAppraisalWorkspace(user: SessionUser, input: Apprais
           title: 'Appraisal action reminder',
           message: `${String(review.cycleName || 'Your appraisal')} has an action waiting for completion.`,
           href: status.includes('manager') || status === 'awaiting_peer_review'
-            ? `/workforce/appraisal?tab=${status === 'awaiting_peer_review' ? 'feedback' : 'team'}&review=${reviewId}`
-            : `/workforce/appraisal?tab=my-reviews&review=${reviewId}`,
+            ? `/workforce/performance?tab=appraisal&appraisalTab=${status === 'awaiting_peer_review' ? 'feedback' : 'team'}&review=${reviewId}`
+            : `/workforce/performance?tab=appraisal&appraisalTab=my-reviews&review=${reviewId}`,
         }, user.id);
         if (delivered) reviewSent += 1;
       }
@@ -940,7 +940,7 @@ export async function mutateAppraisalWorkspace(user: SessionUser, input: Apprais
       type: 'appraisal_manager_review_required',
       title: 'Manager assessment ready',
       message: `${String(review.employeeName)} submitted their self-assessment.`,
-      href: `/workforce/appraisal?tab=team&review=${input.reviewId}`,
+      href: `/workforce/performance?tab=appraisal&appraisalTab=team&review=${input.reviewId}`,
     }, user.id);
     return { submitted: true };
   }
@@ -1052,7 +1052,7 @@ export async function mutateAppraisalWorkspace(user: SessionUser, input: Apprais
       type: 'appraisal_peer_review_requested',
       title: 'Appraisal feedback requested',
       message: `You have been assigned a ${input.reviewerRole.replace(/_/g, ' ')} review.`,
-      href: `/workforce/appraisal?tab=feedback`,
+      href: `/workforce/performance?tab=appraisal&appraisalTab=feedback`,
     }, user.id);
     return { assigned: true };
   }
@@ -1288,7 +1288,7 @@ export async function mutateAppraisalWorkspace(user: SessionUser, input: Apprais
       type: 'appraisal_released',
       title: 'Your appraisal is ready',
       message: `${String(review.cycleName)} has been released. Review and acknowledge receipt.`,
-      href: `/workforce/appraisal?tab=my-reviews&review=${input.reviewId}`,
+      href: `/workforce/performance?tab=appraisal&appraisalTab=my-reviews&review=${input.reviewId}`,
     }, user.id);
     return { released: true };
   }

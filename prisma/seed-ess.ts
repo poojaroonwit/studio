@@ -1,6 +1,6 @@
 import prisma from '../src/lib/prisma';
 
-async function main() {
+export async function seedEssDemoData() {
   await prisma.$executeRawUnsafe(`
     UPDATE "hr_employees" e
     SET "user_id" = u.id
@@ -127,19 +127,19 @@ async function main() {
     INSERT INTO "hr_employee_documents"
       ("employee_id", "title", "type", "category", "status", "issue_date",
        "confidentiality_level", "requires_acknowledgment")
-    SELECT e.id, 'Employee handbook 2026', 'policy_acknowledgment', 'policy_acknowledgment',
+    SELECT e.id, 'Employee handbook ' || EXTRACT(YEAR FROM CURRENT_DATE)::int, 'policy_acknowledgment', 'policy_acknowledgment',
            'complete', CURRENT_DATE - 10, 'employee', true
     FROM "hr_employees" e
     WHERE e.email = 'ari.patel@example.com'
       AND NOT EXISTS (
         SELECT 1 FROM "hr_employee_documents" d
-        WHERE d.employee_id = e.id AND d.title = 'Employee handbook 2026'
+        WHERE d.employee_id = e.id AND d.title = 'Employee handbook ' || EXTRACT(YEAR FROM CURRENT_DATE)::int
       )
   `);
 
   await prisma.$executeRawUnsafe(`
     INSERT INTO "hr_performance_cycles" ("name", "start_date", "end_date", "status")
-    VALUES ('2026 Mid-year Review', '2026-07-01', '2026-08-31', 'active')
+    VALUES (EXTRACT(YEAR FROM CURRENT_DATE)::int || ' Mid-year Review', date_trunc('year', CURRENT_DATE)::date + INTERVAL '6 months', date_trunc('year', CURRENT_DATE)::date + INTERVAL '8 months - 1 day', 'active')
     ON CONFLICT ("name") DO NOTHING
   `);
 
@@ -148,7 +148,7 @@ async function main() {
     SELECT c.id, e.id, e.manager_id, 'in_progress'
     FROM "hr_performance_cycles" c
     CROSS JOIN "hr_employees" e
-    WHERE c.name = '2026 Mid-year Review' AND e.email = 'ari.patel@example.com'
+    WHERE c.name = EXTRACT(YEAR FROM CURRENT_DATE)::int || ' Mid-year Review' AND e.email = 'ari.patel@example.com'
     ON CONFLICT ("cycle_id", "employee_id") DO NOTHING
   `);
 
@@ -156,7 +156,7 @@ async function main() {
     INSERT INTO "hr_performance_goals"
       ("employee_id", "review_id", "title", "description", "status", "progress", "due_date", "key_results")
     SELECT e.id, r.id, 'Improve employee portal accessibility',
-           'Raise WCAG coverage across employee-facing workflows.', 'active', 55, '2026-08-31',
+           'Raise WCAG coverage across employee-facing workflows.', 'active', 55, date_trunc('year', CURRENT_DATE)::date + INTERVAL '8 months - 1 day',
            '[{"title":"Resolve critical accessibility findings"},{"title":"Add keyboard workflow tests"}]'::jsonb
     FROM "hr_employees" e
     JOIN "hr_performance_reviews" r ON r.employee_id = e.id
@@ -170,7 +170,7 @@ async function main() {
   console.log('ESS demo data seeded.');
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-ess.ts')) seedEssDemoData()
   .catch(error => {
     console.error(error);
     process.exit(1);

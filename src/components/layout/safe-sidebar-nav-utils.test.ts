@@ -170,6 +170,7 @@ describe('safe-sidebar-nav-utils', () => {
       'Clients',
       'People',
       'Workforce',
+      'Performance',
       'Leave',
       'Data & Analytics',
       'Learning',
@@ -196,16 +197,15 @@ describe('safe-sidebar-nav-utils', () => {
       '/privacy-support/releases',
     ]);
     expect(sidebarConfigData.find(group => group.label === 'People')?.items.map(item => item.href)).toContain('/service-desk');
-    expect(sidebarConfigData.find(group => group.label === 'People')?.items.map(item => item.href)).not.toContain('/people/assets');
+    expect(sidebarConfigData.find(group => group.label === 'People')?.items.map(item => item.href)).toContain('/people/assets');
     expect(sidebarConfigData.find(group => group.label === 'Operations Tools')?.items).toEqual([
       expect.objectContaining({ label: 'Employee Fault Detection', href: '/fault-detection' }),
-      expect.objectContaining({ label: 'Asset Inventory', href: '/people/assets', section: 'Operations' }),
     ]);
     expect(
       sidebarConfigData.find(group => group.label === 'Workforce')?.items[0],
     ).toMatchObject({
-      label: 'Roster',
-      href: '/workforce/attendance?view=roster',
+      label: 'Attendance',
+      href: '/workforce/attendance?view=attendance',
       permissionId: 'HR_WORKFORCE_VIEW',
     });
     expect(
@@ -226,7 +226,7 @@ describe('safe-sidebar-nav-utils', () => {
     ).toEqual(['/data-operations?mode=import', '/data-operations?mode=export']);
     expect(
       sidebarConfigData.find(group => group.label === 'Admin Center')?.items[0],
-    ).toMatchObject({ label: 'HR Setup', href: '/settings' });
+    ).toMatchObject({ label: 'Overview', href: '/settings/overview' });
   });
 
   it('gets the first navigation href for a group', () => {

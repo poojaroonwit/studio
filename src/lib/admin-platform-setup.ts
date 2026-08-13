@@ -137,7 +137,7 @@ export const platformSetupFeatures: PlatformSetupFeatureDefinition[] = [
     title: 'Holiday calendar',
     description: 'Paid holidays used by leave and attendance calculations.',
     endpoint: '/api/hr/attendance/import-appkit-holidays',
-    href: '/settings/coming-soon/holiday-list',
+    href: '/workforce/holidays',
     requiredCount: 1,
     optional: true,
   },

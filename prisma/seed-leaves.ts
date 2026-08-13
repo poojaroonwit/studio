@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import prisma from '../src/lib/prisma';
 
-async function main() {
+export async function seedLeaveDemoData() {
   const policies = [
     { name: 'Thailand Annual Leave', leaveType: 'annual', allowance: 12, accrual: 1, encashable: true, retained: 3, maximum: 5 },
     { name: 'Medical Leave & Recovery', leaveType: 'sick', allowance: 30, accrual: null, encashable: false, retained: 0, maximum: null },
@@ -107,7 +107,7 @@ async function main() {
   console.log(`Leaves seed completed for ${employees.length} active employee(s).`);
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-leaves.ts')) seedLeaveDemoData()
   .catch(error => {
     console.error(error);
     process.exitCode = 1;

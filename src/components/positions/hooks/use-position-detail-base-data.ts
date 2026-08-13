@@ -32,7 +32,7 @@ export function usePositionDetailBaseData({
   const [grades, setGrades] = useState<Grade[]>([]);
   const [headcountsTotal, setHeadcountsTotal] = useState(0);
   const [recruitmentStages, setRecruitmentStages] = useState<RecruitmentStage[]>([]);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, "id" | "name">[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, "id" | "name" | "avatarUrl" | "personalColor">[]>([]);
   const [availableSources, setAvailableSources] = useState<ApplicantSource[]>([]);
 
   const fetchPosition = useCallback(async () => {

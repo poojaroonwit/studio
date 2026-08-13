@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/mobile-select';
 import { Switch } from '@/components/ui/switch';
+import { RecruiterAvatar } from '@/components/ui/recruiter-avatar';
 
 import {
   PositionGradeDisplay,
@@ -131,7 +132,7 @@ export function PositionRecruiterFieldRow({
                 <SelectItem value="none">Unassigned</SelectItem>
                 {availableRecruiters.map(recruiter => (
                   <SelectItem key={recruiter.id} value={recruiter.id}>
-                    {recruiter.name}
+                    <span className="flex items-center gap-2.5"><RecruiterAvatar user={recruiter} size="xs" showBorder={false} /><span>{recruiter.name}</span></span>
                   </SelectItem>
                 ))}
               </SelectContent>

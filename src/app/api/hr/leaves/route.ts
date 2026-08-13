@@ -12,6 +12,7 @@ import {
   decideEncashment,
   decideRequest,
   getEmployeeEncashmentWorkspace,
+  getLeaveRequestWorkspace,
   getLeaveWorkspace,
   leaveWorkspaceActionSchema,
   previewAllocation,
@@ -27,7 +28,7 @@ export const runtime = 'nodejs';
 const VIEW_PERMISSIONS = ['HR_WORKFORCE_VIEW', 'HR_WORKFORCE_MANAGE'] as PlatformModuleId[];
 const MANAGE_PERMISSIONS = ['HR_WORKFORCE_MANAGE'] as PlatformModuleId[];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ message: 'Unauthorized: User session required.' }, { status: 401 });
   if (!hasAnyPermission(session.user, VIEW_PERMISSIONS)) {
@@ -37,7 +38,8 @@ export async function GET() {
       return NextResponse.json({ message: error instanceof Error ? error.message : 'No employee Leaves access is available.' }, { status: 403 });
     }
   }
-  return NextResponse.json({ data: await getLeaveWorkspace() });
+  const view = request.nextUrl.searchParams.get('view');
+  return NextResponse.json({ data: view === 'requests' ? await getLeaveRequestWorkspace() : await getLeaveWorkspace() });
 }
 
 async function ownsEmployeeRecord(userId: string, employeeId: string) {

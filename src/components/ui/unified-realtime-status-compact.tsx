@@ -27,7 +27,7 @@ export function UnifiedRealtimeStatusCompact({
       {isConnected && (
         <div className="flex items-center gap-1">
           {getRealtimeHealthIcon(connectionHealth)}
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-muted-foreground">
             {connectedUsers} users
           </span>
         </div>

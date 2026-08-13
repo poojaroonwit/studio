@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/sheet';
 import { useDropdownOptions } from '@/hooks/use-dropdown-options';
 import { defaultDropdownOptions } from '@/lib/dropdown-option-catalog';
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
 import { Textarea } from '@/components/ui/textarea';
 import { useLocalization } from '@/contexts/LocalizationContext';
 import type { AppraisalWorkspaceData } from '@/lib/appraisal/appraisal-contracts';
@@ -766,7 +767,7 @@ function ReviewerFields({ form, update, data }: FieldsProps & { data: AppraisalW
       <Field label={t('appraisal.actionSheet.fields.reviewer.label', 'Reviewer')}>
         <Select value={String(form.reviewerId)} onValueChange={value => update('reviewerId', value)}>
           <SelectTrigger className="h-11"><SelectValue placeholder={t('appraisal.actionSheet.placeholders.selectReviewer', 'Select an employee')} /></SelectTrigger>
-          <SelectContent>{candidates.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
+          <SelectContent>{candidates.map(item => <SelectItem key={item.id} value={item.id}><EmployeeOption name={item.name} /></SelectItem>)}</SelectContent>
         </Select>
       </Field>
       <Field label={t('appraisal.actionSheet.fields.reviewerRole.label', 'Reviewer role')}>

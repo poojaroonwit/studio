@@ -35,7 +35,7 @@ export function EnhancedSseEndpointCard({
           {getEnhancedSseStatusIcon(endpoint)}
           <div>
             <h4 className="font-medium">{endpoint.name}</h4>
-            <p className="text-sm text-gray-600">{endpoint.url}</p>
+            <p className="text-sm text-muted-foreground">{endpoint.url}</p>
           </div>
         </div>
         <EndpointActions
@@ -89,10 +89,10 @@ function EndpointActions({
 function EndpointStats({ endpoint }: { endpoint: EnhancedSSEEndpointStatus }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-      <div><span className="text-gray-600">Priority:</span><span className="ml-2 font-medium">{endpoint.priority}</span></div>
-      <div><span className="text-gray-600">Attempts:</span><span className="ml-2 font-medium">{endpoint.connectionAttempts}</span></div>
-      <div><span className="text-gray-600">Retries:</span><span className="ml-2 font-medium">{endpoint.retryCount}/{endpoint.maxRetries}</span></div>
-      <div><span className="text-gray-600">Status:</span><span className="ml-2 font-medium">{endpoint.isConnected ? 'Active' : 'Inactive'}</span></div>
+      <div><span className="text-muted-foreground">Priority:</span><span className="ml-2 font-medium">{endpoint.priority}</span></div>
+      <div><span className="text-muted-foreground">Attempts:</span><span className="ml-2 font-medium">{endpoint.connectionAttempts}</span></div>
+      <div><span className="text-muted-foreground">Retries:</span><span className="ml-2 font-medium">{endpoint.retryCount}/{endpoint.maxRetries}</span></div>
+      <div><span className="text-muted-foreground">Status:</span><span className="ml-2 font-medium">{endpoint.isConnected ? 'Active' : 'Inactive'}</span></div>
     </div>
   );
 }
@@ -103,16 +103,16 @@ function EndpointError({ endpoint }: { endpoint: EnhancedSSEEndpointStatus }) {
   }
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-      <div className="flex items-center gap-2 text-red-800">
+    <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/40">
+      <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
         <AlertTriangle className="h-4 w-4" />
         <span className="font-medium">Last Error:</span>
       </div>
-      <p className="text-sm text-red-700 mt-1">
+      <p className="mt-1 text-sm text-red-700 dark:text-red-300">
         {formatEnhancedSseError(endpoint.lastError)}
       </p>
       {endpoint.lastErrorTime && (
-        <p className="text-xs text-red-600 mt-1">
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
           {new Date(endpoint.lastErrorTime).toLocaleString()}
         </p>
       )}
@@ -126,12 +126,12 @@ function EndpointConnectedInfo({ endpoint }: { endpoint: EnhancedSSEEndpointStat
   }
 
   return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-      <div className="flex items-center gap-2 text-green-800">
+    <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/40">
+      <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
         <CheckCircle className="h-4 w-4" />
         <span className="font-medium">Connection Active</span>
       </div>
-      <p className="text-sm text-green-700 mt-1">
+      <p className="mt-1 text-sm text-green-700 dark:text-green-300">
         Connected since {new Date().toLocaleString()}
       </p>
     </div>

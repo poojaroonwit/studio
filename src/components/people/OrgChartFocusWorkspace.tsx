@@ -37,6 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HrEmployeeProfilePage } from '@/components/hr/HrEmployeeProfilePage';
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { DepartmentUnit } from './department-hierarchy-utils';
@@ -116,7 +117,7 @@ export function OrgChartFocusWorkspace({
   const [department, setDepartment] = React.useState('all');
   const [selectedId, setSelectedId] = React.useState<string | null>(() => defaultFocusEmployeeId(employees));
   const [inspectorTab, setInspectorTab] = React.useState<InspectorTab>('reporting');
-  const [inspectorOpen, setInspectorOpen] = React.useState(true);
+  const [inspectorOpen, setInspectorOpen] = React.useState(false);
   const [zoom, setZoom] = React.useState(1);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [dragOverId, setDragOverId] = React.useState<string | null>(null);
@@ -622,7 +623,7 @@ function ChangeManagerDialog({ employee, employees, value, isSaving, onValueChan
               <SelectTrigger id="org-chart-manager-select"><SelectValue placeholder="Select manager" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No manager — top level</SelectItem>
-                {employees.filter(candidate => candidate.id !== employee.id).map(candidate => <SelectItem key={candidate.id} value={candidate.id}>{employeeName(candidate)} — {employeeRole(candidate)}</SelectItem>)}
+                {employees.filter(candidate => candidate.id !== employee.id).map(candidate => <SelectItem key={candidate.id} value={candidate.id}><EmployeeOption name={employeeName(candidate)} avatarUrl={candidate.avatarUrl} detail={employeeRole(candidate)} /></SelectItem>)}
               </SelectContent>
             </Select>
             <p className="text-xs leading-5 text-muted-foreground">The org chart updates immediately after saving.</p>

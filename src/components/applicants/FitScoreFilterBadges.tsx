@@ -28,17 +28,17 @@ export function FitScoreFilterBadges({
   const getGradeColor = (letter: string) => {
     switch (letter) {
       case 'A':
-        return 'bg-blue-900 hover:bg-blue-800 text-white border-blue-900';
+        return 'border-blue-900 bg-blue-900 text-white hover:bg-blue-800 dark:border-blue-400 dark:bg-blue-400 dark:text-blue-950 dark:hover:bg-blue-300';
       case 'B':
-        return 'bg-blue-700 hover:bg-blue-600 text-white border-blue-700';
+        return 'border-blue-700 bg-blue-700 text-white hover:bg-blue-600 dark:border-blue-500 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-400';
       case 'C':
-        return 'bg-blue-500 hover:bg-blue-400 text-white border-blue-500';
+        return 'border-blue-500 bg-blue-500 text-white hover:bg-blue-400 dark:border-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500';
       case 'D':
-        return 'bg-blue-300 hover:bg-blue-200 text-blue-900 border-blue-300';
+        return 'border-blue-300 bg-blue-300 text-blue-900 hover:bg-blue-200 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-200 dark:hover:bg-blue-900';
       case 'E':
-        return 'bg-blue-100 hover:bg-blue-50 text-blue-800 border-blue-200';
+        return 'border-blue-200 bg-blue-100 text-blue-800 hover:bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-200 dark:hover:bg-blue-950';
       default:
-        return 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300';
+        return 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground';
     }
   };
 
@@ -66,7 +66,7 @@ export function FitScoreFilterBadges({
                 "cursor-pointer transition-all duration-200 hover:scale-105 relative text-xs px-2 py-1",
                 isSelected 
                   ? getGradeColor(grade.letter)
-                  : "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+                  : "hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
               )}
               onClick={() => {
                 if (filterMode === 'single') {
@@ -87,7 +87,7 @@ export function FitScoreFilterBadges({
                   "ml-1 text-xs px-1 py-0.5 h-4 min-w-4 flex items-center justify-center",
                   isSelected
                     ? "bg-white/20 text-white border-white/30"
-                    : "bg-blue-100 text-blue-700 border-blue-200"
+                    : "border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
                 )}
               >
                 {count}
@@ -102,8 +102,8 @@ export function FitScoreFilterBadges({
           className={cn(
             "cursor-pointer transition-all duration-200 hover:scale-105 relative text-xs px-2 py-1",
             selectedGrades.has('no-score')
-              ? "bg-gray-700 hover:bg-gray-600 text-white border-gray-700"
-              : "hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
+              ? "border-gray-700 bg-gray-700 text-white hover:bg-gray-600 dark:border-gray-300 dark:bg-gray-300 dark:text-gray-950 dark:hover:bg-gray-200"
+              : "hover:border-border hover:bg-muted hover:text-foreground"
           )}
           onClick={() => {
             if (filterMode === 'single') {
@@ -124,7 +124,7 @@ export function FitScoreFilterBadges({
               "ml-1 text-xs px-1 py-0.5 h-4 min-w-4 flex items-center justify-center",
               selectedGrades.has('no-score')
                 ? "bg-white/20 text-white border-white/30"
-                : "bg-gray-100 text-gray-700 border-gray-200"
+                : "border-border bg-muted text-muted-foreground"
             )}
           >
             {getCount('no-score')}

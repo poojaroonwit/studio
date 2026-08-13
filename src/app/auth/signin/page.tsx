@@ -7,22 +7,56 @@ import type { SystemSetting } from '@/lib/types';
 import { isPlatformSetupRequired } from '@/lib/platform-installation';
 
 export default async function SignInPage() {
-  let setupRequired = false;
-  try {
-    setupRequired = await isPlatformSetupRequired();
-  } catch (error) {
-    console.warn('[SIGNIN_PAGE] Platform setup check unavailable; continuing with sign-in defaults.', error);
+  const [setupResult, settingsResult] = await Promise.allSettled([
+    isPlatformSetupRequired(),
+    getPool().query<SystemSetting>(`
+      SELECT key, value, "updatedAt"
+      FROM "SystemSetting"
+      WHERE key LIKE 'login%'
+         OR key LIKE 'mobileHeader%'
+         OR key = ANY($1::text[])
+      UNION ALL
+      SELECT hero.key,
+             localization.value::jsonb #>> ARRAY[
+               'config',
+               'translations',
+               COALESCE(
+                 localization.value::jsonb #>> '{config,defaultLanguage}',
+                 localization.value::jsonb #>> '{config,fallbackLanguage}',
+                 'en'
+               ),
+               hero.translation_key
+             ] AS value,
+             localization."updatedAt"
+      FROM "SystemSetting" localization
+      CROSS JOIN (VALUES
+        ('loginHeroEyebrow', 'auth.login.hero.eyebrow'),
+        ('loginHeroTitle', 'auth.login.hero.title'),
+        ('loginHeroDescription', 'auth.login.hero.description')
+      ) AS hero(key, translation_key)
+      WHERE localization.key = 'appkitLocalizationConfig'
+    `, [[
+      'appLogoDataUrl',
+      'appName',
+      'appThemePreference',
+      'organizationName',
+      'primaryGradient',
+      'primaryGradientEnd',
+      'primaryGradientStart',
+      'rightClickProtectionEnabled',
+      'showLogoOnly',
+    ]]),
+  ]);
+
+  const setupRequired = setupResult.status === 'fulfilled' && setupResult.value;
+  if (setupResult.status === 'rejected') {
+    console.warn('[SIGNIN_PAGE] Platform setup check unavailable; continuing with sign-in defaults.', setupResult.reason);
   }
   if (setupRequired) redirect('/setup');
 
-  // Fetch system settings from the database on the server
-  let settings: SystemSetting[] = [];
-  try {
-    const result = await getPool().query('SELECT key, value, "updatedAt" FROM "SystemSetting"');
-    settings = result.rows;
-  } catch (e) {
-    console.warn('[SIGNIN_PAGE] Settings unavailable; rendering with client-side defaults.', e);
-    // fallback: empty settings, client will handle fallback
+  const settings = settingsResult.status === 'fulfilled' ? settingsResult.value.rows : [];
+  if (settingsResult.status === 'rejected') {
+    console.warn('[SIGNIN_PAGE] Settings unavailable; rendering with client-side defaults.', settingsResult.reason);
   }
 
   return (

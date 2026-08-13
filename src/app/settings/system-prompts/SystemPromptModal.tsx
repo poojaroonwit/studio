@@ -102,7 +102,7 @@ export function SystemPromptModal({
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-input accent-primary"
             />
             <Label htmlFor="isActive">Active</Label>
           </div>

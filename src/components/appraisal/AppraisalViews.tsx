@@ -31,6 +31,7 @@ import type { AppraisalWorkspaceData } from '@/lib/appraisal/appraisal-contracts
 import { cn } from '@/lib/utils';
 import { useLocalization } from '@/contexts/LocalizationContext';
 import type { AppraisalActionMode } from './AppraisalActionSheet';
+import { AppraisalReviewDesk } from './AppraisalReviewDesk';
 import {
   AppraisalEmpty,
   AppraisalMetric,
@@ -249,40 +250,8 @@ export function FeedbackRequestsView({ data, onAction }: { data: AppraisalWorksp
   );
 }
 
-export function TeamAppraisalsView({ data, onAction, onRemind, reminding }: { data: AppraisalWorkspaceData; onAction: OpenAction; onRemind: (reviews: Row[]) => Promise<boolean>; reminding: boolean }) {
-  const { t } = useLocalization();
-  const [query, setQuery] = React.useState('');
-  const [status, setStatus] = React.useState('all');
-  const rows = data.teamReviews.filter(row => {
-    const matchesText = `${String(row.employeeName)} ${String(row.department)} ${String(row.employeeNumber)}`.toLowerCase().includes(query.toLowerCase());
-    return matchesText && (status === 'all' || String(row.status) === status);
-  });
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-center">
-        <div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" /><Input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('appraisal.teamSearch.placeholder', 'Search employee, number, or department')} className="h-11 pl-9" /></div>
-        <select aria-label={t('appraisal.teamSearch.statusFilterLabel', 'Filter review status')} value={status} onChange={event => setStatus(event.target.value)} className="min-h-11 border border-input bg-background px-3 text-sm">
-          <option value="all">{t('appraisal.teamSearch.statusAll', 'All stages')}</option>
-          {[...new Set(data.teamReviews.map(row => String(row.status)))].map(value => <option key={value} value={value}>{label(value)}</option>)}
-        </select>
-        <Button type="button" variant="outline" className="min-h-11" disabled={reminding || rows.length === 0} onClick={() => void onRemind(rows)}><BellRing className="mr-2 h-4 w-4" />{reminding ? t('appraisal.team.reminding', 'Sending...') : `${t('appraisal.team.remind', 'Remind')} ${rows.length}`}</Button>
-      </div>
-
-      {rows.length ? (
-        <>
-          <div className="hidden overflow-x-auto border-y border-slate-200 dark:border-slate-800 lg:block">
-            <table className="w-full min-w-[980px] border-collapse text-left text-sm">
-            <thead><tr className="bg-slate-50 text-[11px] uppercase tracking-[0.1em] text-slate-500 dark:bg-slate-900/50">{[t('appraisal.team.columns.employee', 'Employee'), t('appraisal.team.columns.reviewStage', 'Review stage'), t('appraisal.team.columns.self', 'Self'), t('appraisal.team.columns.manager', 'Manager'), t('appraisal.team.columns.due', 'Due'), t('appraisal.team.columns.proposed', 'Proposed'), t('appraisal.team.columns.progress', 'Progress'), t('appraisal.team.columns.action', 'Action')].map(column => <th key={column} className="px-3 py-3 font-bold">{column}</th>)}</tr></thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {rows.map(row => <TeamRow key={String(row.id)} row={row} onAction={onAction} />)}
-              </tbody>
-            </table>
-          </div>
-          <div className="grid gap-3 lg:hidden">{rows.map(row => <TeamCard key={String(row.id)} row={row} onAction={onAction} />)}</div>
-        </>
-      ) : <AppraisalEmpty title={t('appraisal.team.noMatchesTitle', 'No team reviews match')} description={t('appraisal.team.noMatchesDescription', 'Adjust the search or stage filter. Only employees inside your authorized hierarchy or HR scope are queried.')} />}
-    </div>
-  );
+export function TeamAppraisalsView({ data, onAction }: { data: AppraisalWorkspaceData; onAction: OpenAction; onRemind: (reviews: Row[]) => Promise<boolean>; reminding: boolean }) {
+  return <AppraisalReviewDesk data={data} onAction={onAction} />;
 }
 
 function TeamRow({ row, onAction }: { row: Row; onAction: OpenAction }) {

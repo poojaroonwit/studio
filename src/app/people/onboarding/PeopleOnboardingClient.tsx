@@ -221,7 +221,7 @@ export function PeopleOnboardingClient() {
   const [error, setError] = React.useState<string | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [drawerOpen, setDrawerOpen] = React.useState(true);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [activeFilter, setActiveFilter] = React.useState<JourneyFilter>('all');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [startDateFilter, setStartDateFilter] = React.useState('all');
@@ -235,22 +235,30 @@ export function PeopleOnboardingClient() {
     setIsLoading(true);
     setError(null);
     try {
-      const responses = await Promise.all([
+      const criticalResponses = await Promise.all([
         fetch('/api/hr/onboarding', { credentials: 'include', cache: 'no-store' }),
-        fetch('/api/hr/onboarding?view=tasks', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/hr/employees', { credentials: 'include', cache: 'no-store' }),
+      ]);
+      if (!criticalResponses[0].ok) throw new Error('Unable to load onboarding journeys.');
+      const criticalPayloads = await Promise.all(criticalResponses.map(async response => response.ok ? response.json() as Promise<ResourceResponse> : {}));
+      const nextCases = records(criticalPayloads[0]);
+      setCases(nextCases);
+      setEmployees(records(criticalPayloads[1]));
+      setSelectedCaseId(current => current && nextCases.some(item => item.id === current) ? current : nextCases[0]?.id || null);
+      setIsLoading(false);
+
+      void Promise.all([
+        fetch('/api/hr/onboarding?view=tasks', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/hr/learning', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/hr/learning?view=courses', { credentials: 'include', cache: 'no-store' }),
-      ]);
-      if (!responses[0].ok) throw new Error('Unable to load onboarding journeys.');
-      const payloads = await Promise.all(responses.map(async response => response.ok ? response.json() as Promise<ResourceResponse> : {}));
-      const nextCases = records(payloads[0]);
-      setCases(nextCases);
-      setTasks(records(payloads[1]));
-      setEmployees(records(payloads[2]));
-      setEnrollments(records(payloads[3]));
-      setCourses(records(payloads[4]));
-      setSelectedCaseId(current => current && nextCases.some(item => item.id === current) ? current : nextCases[0]?.id || null);
+      ]).then(async responses => {
+        const payloads = await Promise.all(responses.map(async response => response.ok ? response.json() as Promise<ResourceResponse> : {}));
+        setTasks(records(payloads[0]));
+        setEnrollments(records(payloads[1]));
+        setCourses(records(payloads[2]));
+      }).catch(() => {
+        // The journey list remains usable when enrichment services are unavailable.
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load onboarding journeys.');
     } finally {
@@ -807,7 +815,7 @@ function JourneyStageDetails({ row, stage, canManage, onBack, onTaskUpdated }: {
 
       <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/35">
         <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-slate-500">Stage readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{stage.value}%</p></div><p className="text-right text-xs text-slate-500">{completed} of {stage.tasks.length}<br />tasks completed</p></div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full rounded-full bg-[#155bd7] transition-[width]" style={{ width: `${stage.value}%` }} /></div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full origin-left rounded-full bg-[#155bd7] transition-transform" style={{ transform: `scaleX(${stage.value / 100})` }} /></div>
       </div>
 
       <div className="mt-6 flex items-center justify-between">

@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { LogLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 
 import type { LogUserOption } from './application-logs-page-types';
 
@@ -135,7 +136,8 @@ export function ApplicationLogsUserFilter({
                 {filteredUsersForDropdown.map((user) => (
                   <CommandItem key={user.id} value={user.name} onSelect={() => selectUser(user.id)}>
                     <Check className={cn('mr-2 h-4 w-4', actingUserIdFilter === user.id ? 'opacity-100' : 'opacity-0')} />
-                    {user.name}
+                    <UserAvatarCompact user={user} size="xs" />
+                    <span className="ml-2">{user.name}</span>
                   </CommandItem>
                 ))}
               </ScrollArea>

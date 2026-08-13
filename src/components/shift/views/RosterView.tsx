@@ -2,15 +2,26 @@
 
 import * as React from 'react';
 import {
+  AlertTriangle,
+  CalendarDays,
   CalendarRange,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
+  Clock3,
+  Columns3,
+  Ellipsis,
+  Filter,
   LayoutGrid,
   List,
+  MapPin,
+  PanelTop,
   Plus,
-  RefreshCw,
   Search,
   Send,
+  Trash2,
   TriangleAlert,
   Users,
 } from 'lucide-react';
@@ -29,14 +40,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
-  DateNavigator,
+  DetailDrawer,
   EmployeeAvatar,
   EmptyState,
   ErrorState,
   LoadingState,
-  MetricRail,
   PermissionBanner,
-  ShiftPageHeader,
   ShiftStatusBadge,
 } from '../ShiftShared';
 import {
@@ -51,7 +60,7 @@ import {
 } from '../shift-types';
 import { useShiftAttendance } from '../use-shift-attendance';
 
-type RosterLayout = 'calendar' | 'agenda' | 'coverage';
+type RosterLayout = 'employees' | 'calendar' | 'list';
 
 function startOfWeek(value = new Date()) {
   const date = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
@@ -70,7 +79,10 @@ function weekDays(start: string) {
 
 export function RosterView() {
   const [start, setStart] = React.useState(() => startOfWeek());
-  const [layout, setLayout] = React.useState<RosterLayout>('calendar');
+  const [layout, setLayout] = React.useState<RosterLayout>('employees');
+  const [selectedAssignmentId, setSelectedAssignmentId] = React.useState<string | null>(null);
+  const [department, setDepartment] = React.useState('');
+  const [searchText, setSearchText] = React.useState('');
   const [showAssignment, setShowAssignment] = React.useState(false);
   const [employeeQuery, setEmployeeQuery] = React.useState('');
   const openAssignment = React.useCallback(() => {
@@ -97,38 +109,22 @@ export function RosterView() {
   const metrics = (state.data.metrics || {}) as Record<string, unknown>;
   const activePeriod = periods[0];
   const days = weekDays(start);
+  const visibleAssignments = assignments.filter(row => {
+    const matchesSearch = !searchText.trim() || employeeName(row).toLowerCase().includes(searchText.trim().toLowerCase()) || stringValue(row.job_title, '').toLowerCase().includes(searchText.trim().toLowerCase());
+    const matchesDepartment = !department || stringValue(row.department_name, '') === department;
+    return matchesSearch && matchesDepartment;
+  });
+  const selectedAssignment = selectedAssignmentId ? assignments.find(row => String(row.id) === selectedAssignmentId) || null : null;
+  const departments = Array.from(new Set(assignments.map(row => stringValue(row.department_name, '')).filter(Boolean))).sort();
 
   return (
     <Workspace>
-      <ShiftPageHeader
-        eyebrow="Shift · Roster"
-        title="Roster planning"
-        description="Plan coverage, resolve scheduling conflicts, and publish one reliable schedule to employees."
-        actions={(
-          <>
-            <Button variant="outline" size="sm" onClick={() => state.reload()} disabled={state.refreshing}>
-              <RefreshCw className={cn('mr-2 h-4 w-4', state.refreshing && 'animate-spin')} />Refresh
-            </Button>
-            {state.capabilities.canManageWorkforce && (
-              <Button size="sm" onClick={openAssignment}>
-                <Plus className="mr-2 h-4 w-4" />Assign shift
-              </Button>
-            )}
-          </>
-        )}
-      />
+      <RosterHeader start={start} days={days} onStartChange={setStart} department={department} onDepartmentChange={setDepartment} departments={departments} searchText={searchText} onSearchChange={setSearchText} activePeriod={activePeriod} saving={state.saving} canManage={state.capabilities.canManageWorkforce} onPublish={body => state.mutate(body, 'Roster published and affected employees queued for notification.')} />
 
       <PermissionBanner scope={state.capabilities.dataScope} />
       {state.error && <InlineError message={state.error} />}
 
-      <MetricRail items={[
-        { label: 'Scheduled people', value: numberValue(metrics.scheduledEmployees), detail: 'This week' },
-        { label: 'Assignments', value: numberValue(metrics.assignments), detail: `${numberValue(metrics.published)} published` },
-        { label: 'Open shifts', value: numberValue(metrics.openShifts), detail: 'Coverage needed', alert: numberValue(metrics.openShifts) > 0 },
-        { label: 'Conflicts', value: numberValue(metrics.conflicts), detail: 'Resolve before publish', alert: numberValue(metrics.conflicts) > 0 },
-        { label: 'Scheduled hours', value: numberValue(metrics.scheduledHours).toFixed(1), detail: 'Total planned' },
-        { label: 'Roster state', value: activePeriod ? stringValue(activePeriod.status).replace(/_/g, ' ') : 'Unscoped', detail: activePeriod ? stringValue(activePeriod.name) : 'No period configured' },
-      ]} />
+      <RosterSummary metrics={metrics} activePeriod={activePeriod} />
 
       <Dialog
         open={showAssignment}
@@ -160,26 +156,14 @@ export function RosterView() {
         )}
       </Dialog>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center lg:justify-between dark:border-zinc-800">
-          <div className="flex flex-wrap items-center gap-2">
-            <DateNavigator
-              value={start}
-              onChange={value => setStart(startOfWeek(new Date(`${value}T00:00:00Z`)))}
-              label={`${formatDate(days[0], { month: 'short', day: 'numeric' })} – ${formatDate(days[6], { month: 'short', day: 'numeric', year: 'numeric' })}`}
-              stepDays={7}
-            />
-            <div className="inline-flex rounded-md border border-slate-200 p-0.5 dark:border-zinc-800" aria-label="Roster layout">
-              <LayoutButton active={layout === 'calendar'} onClick={() => setLayout('calendar')} icon={LayoutGrid}>Calendar</LayoutButton>
-              <LayoutButton active={layout === 'agenda'} onClick={() => setLayout('agenda')} icon={List}>Agenda</LayoutButton>
-              <LayoutButton active={layout === 'coverage'} onClick={() => setLayout('coverage')} icon={Users}>Coverage</LayoutButton>
-            </div>
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-[#071321]">
+        <div className="flex flex-col gap-2 border-b border-slate-200 p-2.5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+          <div className="inline-flex w-fit rounded-md border border-slate-200 p-0.5 dark:border-zinc-700" aria-label="Roster view">
+            <LayoutButton active={layout === 'employees'} onClick={() => setLayout('employees')} icon={Users}>Employees</LayoutButton>
+            <LayoutButton active={layout === 'calendar'} onClick={() => setLayout('calendar')} icon={CalendarDays}>Calendar</LayoutButton>
+            <LayoutButton active={layout === 'list'} onClick={() => setLayout('list')} icon={List}>List</LayoutButton>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {state.capabilities.canManageWorkforce && activePeriod && (
-              <PublishButton period={activePeriod} saving={state.saving} onPublish={body => state.mutate(body, 'Roster published and affected employees queued for notification.')} />
-            )}
-          </div>
+          <div className="flex items-center gap-2"><Button variant="outline" size="sm"><Filter className="mr-1.5 h-3.5 w-3.5" />Filters</Button>{state.capabilities.canManageWorkforce && <Button size="sm" onClick={openAssignment}><Plus className="mr-1.5 h-4 w-4" />Add shift</Button>}</div>
         </div>
 
         {assignments.length === 0 && openShifts.length === 0 ? (
@@ -188,17 +172,72 @@ export function RosterView() {
             description="Create the first assignment or copy a previous roster once a source week is available."
             action={state.capabilities.canManageWorkforce ? <Button size="sm" onClick={openAssignment}><Plus className="mr-2 h-4 w-4" />Assign shift</Button> : undefined}
           />
+        ) : layout === 'employees' ? (
+          <EmployeeGrid days={days} assignments={visibleAssignments} employees={employees} openShifts={openShifts} selectedId={selectedAssignmentId} onSelect={setSelectedAssignmentId} />
         ) : layout === 'calendar' ? (
-          <RosterCalendar days={days} assignments={assignments} openShifts={openShifts} />
-        ) : layout === 'agenda' ? (
-          <RosterAgenda days={days} assignments={assignments} />
+          <TimeCalendar days={days} assignments={visibleAssignments} openShifts={openShifts} selectedId={selectedAssignmentId} onSelect={setSelectedAssignmentId} />
         ) : (
-          <CoverageView days={days} assignments={assignments} openShifts={openShifts} />
+          <RosterList days={days} assignments={visibleAssignments} openShifts={openShifts} selectedId={selectedAssignmentId} onSelect={setSelectedAssignmentId} />
         )}
       </section>
+      <ShiftEditDrawer row={selectedAssignment} open={Boolean(selectedAssignment)} onClose={() => setSelectedAssignmentId(null)} />
     </Workspace>
   );
 }
+
+function RosterHeader({ start, days, onStartChange, department, onDepartmentChange, departments, searchText, onSearchChange, activePeriod, saving, canManage, onPublish }: { start: string; days: Date[]; onStartChange: (value: string) => void; department: string; onDepartmentChange: (value: string) => void; departments: string[]; searchText: string; onSearchChange: (value: string) => void; activePeriod?: ShiftRecord; saving: boolean; canManage: boolean; onPublish: (body: Record<string, unknown>) => Promise<unknown> }) {
+  const moveWeek = (amount: number) => { const next = new Date(`${start}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + amount * 7); onStartChange(next.toISOString().slice(0, 10)); };
+  return <header className="flex flex-col gap-3 border-b border-slate-200 pb-3 dark:border-zinc-800">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+      <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">Shift · Roster</p><h1 className="mt-0.5 text-xl font-bold tracking-tight">Roster planning</h1></div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex h-9 items-center rounded-md border border-slate-200 dark:border-zinc-700"><button type="button" onClick={() => moveWeek(-1)} className="grid h-9 w-9 place-items-center" aria-label="Previous week"><ChevronLeft className="h-4 w-4" /></button><span className="border-x border-slate-200 px-3 text-sm font-semibold tabular-nums dark:border-zinc-700">{formatDate(days[0], { month: 'short', day: 'numeric' })}–{formatDate(days[6], { month: 'short', day: 'numeric', year: 'numeric' })}</span><button type="button" onClick={() => moveWeek(1)} className="grid h-9 w-9 place-items-center" aria-label="Next week"><ChevronRight className="h-4 w-4" /></button></div>
+        <Button variant="outline" size="sm" onClick={() => onStartChange(startOfWeek(new Date()))}>Today</Button>
+        <select className="h-9 rounded-md border border-input bg-background px-3 text-sm"><option>Bangkok HQ</option></select>
+        <select value={department} onChange={event => onDepartmentChange(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm"><option value="">All departments</option>{departments.map(value => <option key={value}>{value}</option>)}</select>
+        <label className="relative"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" /><Input value={searchText} onChange={event => onSearchChange(event.target.value)} placeholder="Search employees" className="h-9 w-48 pl-9" /></label>
+        {canManage && activePeriod && <PublishButton period={activePeriod} saving={saving} onPublish={onPublish} />}
+      </div>
+    </div>
+  </header>;
+}
+
+function RosterSummary({ metrics, activePeriod }: { metrics: Record<string, unknown>; activePeriod?: ShiftRecord }) {
+  return <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500"><span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-zinc-200"><Clock3 className="h-3.5 w-3.5" />{activePeriod ? stringValue(activePeriod.status, 'Draft').replace(/_/g, ' ') : 'Draft'}</span><span>·</span><span>{numberValue(metrics.scheduledEmployees)} employees</span><span>·</span><span>{numberValue(metrics.assignments)} shifts</span><span>·</span><span className="font-semibold text-amber-600">{numberValue(metrics.openShifts)} open shifts</span><span>·</span><span className="font-semibold text-rose-500">{numberValue(metrics.conflicts)} conflict</span></div>;
+}
+
+function uniqueEmployeeRows(assignments: ShiftRecord[], employees: ShiftRecord[]) {
+  const source = assignments.length ? assignments : employees;
+  const seen = new Set<string>();
+  return source.filter(row => { const key = String(row.employee_id || row.id || employeeName(row)); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, 10);
+}
+
+function assignmentEmployeeKey(row: ShiftRecord) { return String(row.employee_id || row.id || employeeName(row)); }
+function employeeRowKey(row: ShiftRecord) { return String(row.employee_id || row.id || employeeName(row)); }
+
+function EmployeeGrid({ days, assignments, employees, openShifts, selectedId, onSelect }: { days: Date[]; assignments: ShiftRecord[]; employees: ShiftRecord[]; openShifts: ShiftRecord[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  const rows = uniqueEmployeeRows(assignments, employees);
+  return <div className="overflow-x-auto"><div className="min-w-[1120px] text-xs"><div className="grid grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-slate-200 dark:border-zinc-800"><div className="px-3 py-3 font-semibold uppercase tracking-wide text-slate-500">Employee</div>{days.map(day => <div key={dateKey(day)} className={cn('border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800', dateKey(day) === '2026-08-13' && 'bg-blue-950/30')}><p className="text-[10px] font-semibold uppercase text-slate-500">{day.toLocaleDateString(undefined, { weekday: 'short' })}</p><p className="mt-0.5 font-bold">{day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p></div>)}</div>
+    {rows.map(employee => <div key={employeeRowKey(employee)} className="grid min-h-70 grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-slate-100 dark:border-zinc-800"><div className="flex items-center gap-2.5 px-3 py-2"><EmployeeAvatar row={employee} /><div className="min-w-0 flex-1"><p className="truncate font-semibold">{employeeName(employee)}</p><p className="truncate text-[11px] text-slate-500">{stringValue(employee.job_title)}</p></div><span className="text-[11px] text-slate-500">40h</span></div>{days.map(day => { const assignment = assignments.find(item => assignmentDate(item) === dateKey(day) && assignmentEmployeeKey(item) === employeeRowKey(employee)); const weekend = [0, 6].includes(day.getDay()); return <div key={dateKey(day)} className={cn('border-l border-slate-100 p-1.5 dark:border-zinc-800', weekend && 'bg-slate-50/40 dark:bg-zinc-950/30')}>{assignment ? <button type="button" onClick={() => onSelect(String(assignment.id))} className={cn('h-full min-h-14 w-full rounded border px-2 py-1.5 text-left transition hover:border-blue-400', stringValue(assignment.work_location, '').toLowerCase().includes('remote') ? 'border-teal-700/70 bg-teal-950/45 text-teal-100' : 'border-blue-700/70 bg-blue-950/55 text-blue-100', selectedId === String(assignment.id) && 'ring-2 ring-blue-500')}><p className="font-semibold tabular-nums">{formatTime(assignment.start_at || assignment.start_time)}–{formatTime(assignment.end_at || assignment.end_time)}</p><p className="mt-1 truncate text-[10px] opacity-70">{stringValue(assignment.work_location || assignment.employee_location, 'Bangkok HQ')}</p></button> : <button type="button" className="grid h-full min-h-14 w-full place-items-center rounded border border-dashed border-transparent text-slate-600 hover:border-slate-600 hover:text-slate-400"><Plus className="h-3.5 w-3.5" /></button>}</div>; })}</div>)}
+    <div className="grid grid-cols-[220px_repeat(7,minmax(128px,1fr))] bg-amber-950/10"><div className="flex items-center gap-2 px-3 py-3 font-semibold"><Clock3 className="h-4 w-4 text-amber-500" />Open shifts <span className="rounded bg-amber-500 px-1.5 text-[10px] text-black">{openShifts.length}</span></div>{days.map(day => { const open = openShifts.find(row => dateKey(String(row.shift_date)) === dateKey(day)); return <div key={dateKey(day)} className="border-l border-zinc-800 p-1.5">{open && <button type="button" className="min-h-12 w-full rounded border border-dashed border-amber-600 bg-amber-950/30 px-2 text-left text-amber-300"><p className="font-semibold">{formatTime(open.start_at)}–{formatTime(open.end_at)}</p><p className="text-[10px]">Assign employee</p></button>}</div>; })}</div>
+  </div></div>;
+}
+
+function TimeCalendar({ days, assignments, openShifts, selectedId, onSelect }: { days: Date[]; assignments: ShiftRecord[]; openShifts: ShiftRecord[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  const times = Array.from({ length: 9 }, (_, index) => 6 + index * 2);
+  return <div className="grid min-h-[600px] grid-cols-[56px_repeat(7,minmax(132px,1fr))] overflow-x-auto text-xs"><div className="border-r border-zinc-800 pt-14">{times.map(time => <div key={time} className="h-16 border-t border-zinc-800 pr-2 pt-1 text-right text-[10px] text-slate-500">{String(time).padStart(2, '0')}:00</div>)}</div>{days.map(day => { const rows = assignments.filter(row => assignmentDate(row) === dateKey(day)).slice(0, 4); const openings = openShifts.filter(row => dateKey(String(row.shift_date)) === dateKey(day)).slice(0, 1); return <section key={dateKey(day)} className={cn('relative border-r border-zinc-800', dateKey(day) === '2026-08-13' && 'bg-blue-950/15')}><header className="h-14 border-b border-zinc-800 px-2 py-2 text-center"><p className="text-[10px] uppercase text-slate-500">{day.toLocaleDateString(undefined, { weekday: 'short' })}</p><p className="font-bold">{day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p></header><div className="relative h-[576px] bg-[repeating-linear-gradient(to_bottom,transparent_0,transparent_63px,rgba(100,116,139,.18)_64px)]">{rows.map((row, index) => { const startHour = parseHour(row.start_at || row.start_time, 9); const endHour = parseHour(row.end_at || row.end_time, 18); return <button key={String(row.id)} type="button" onClick={() => onSelect(String(row.id))} style={{ top: `${(startHour - 6) * 32 + index * 4}px`, height: `${Math.max(52, (endHour - startHour) * 32)}px` }} className={cn('absolute left-1 right-1 overflow-hidden rounded border border-blue-600 bg-blue-950/80 p-2 text-left text-blue-100', selectedId === String(row.id) && 'ring-2 ring-blue-400')}><p className="truncate font-semibold">{employeeName(row)}</p><p className="mt-1 tabular-nums opacity-75">{formatTime(row.start_at || row.start_time)}–{formatTime(row.end_at || row.end_time)}</p></button>; })}{openings.map(open => <div key={String(open.id)} className="absolute left-1 right-1 top-[192px] h-24 rounded border border-dashed border-amber-600 bg-amber-950/50 p-2 text-amber-300"><p className="font-semibold">Open shift</p><p>{formatTime(open.start_at)}–{formatTime(open.end_at)}</p></div>)}</div></section>; })}</div>;
+}
+
+function RosterList({ days, assignments, openShifts, selectedId, onSelect }: { days: Date[]; assignments: ShiftRecord[]; openShifts: ShiftRecord[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  return <div className="text-xs"><div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] border-b border-zinc-800 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500"><span>Employee</span><span>Role</span><span>Shift</span><span>Location</span><span>Hours</span><span>Status</span><span /></div>{days.map(day => { const rows = assignments.filter(row => assignmentDate(row) === dateKey(day)); const expanded = dateKey(day) === '2026-08-13'; return <section key={dateKey(day)}><header className={cn('flex items-center justify-between border-b border-zinc-800 px-3 py-2.5 font-semibold', expanded && 'bg-blue-950/30')}><span className="flex items-center gap-2"><ChevronDown className={cn('h-4 w-4', !expanded && '-rotate-90')} />{day.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span><span className="text-slate-500">Scheduled {rows.length}/14 · {rows.length * 8}h</span></header>{expanded && rows.slice(0, 9).map(row => <button type="button" key={String(row.id)} onClick={() => onSelect(String(row.id))} className={cn('grid w-full grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] items-center border-b border-zinc-800 px-3 py-2 text-left hover:bg-zinc-900/50', selectedId === String(row.id) && 'border-l-2 border-l-blue-500 bg-blue-950/25')}><span className="flex items-center gap-2"><EmployeeAvatar row={row} /><strong className="truncate">{employeeName(row)}</strong></span><span className="truncate text-slate-400">{stringValue(row.job_title)}</span><span>{formatTime(row.start_at || row.start_time)}–{formatTime(row.end_at || row.end_time)}</span><span className="truncate">{stringValue(row.work_location || row.employee_location, 'Bangkok HQ')}</span><span>8h</span><ShiftStatusBadge status={row.publication_status || row.status} /><Ellipsis className="h-4 w-4" /></button>)}</section>; })}{openShifts.length > 0 && <div className="border-t border-amber-800 bg-amber-950/15 px-3 py-3 font-semibold text-amber-300">Open shifts ({openShifts.length}) · Assign employees before publishing</div>}</div>;
+}
+
+function ShiftEditDrawer({ row, open, onClose }: { row: ShiftRecord | null; open: boolean; onClose: () => void }) {
+  const [note, setNote] = React.useState(''); React.useEffect(() => setNote(''), [row?.id]); if (!row) return null;
+  return <DetailDrawer title="Edit shift" open={open} onClose={onClose} variant="floating"><div className="flex items-center gap-3"><EmployeeAvatar row={row} /><div><p className="font-bold">{employeeName(row)}</p><p className="text-xs text-slate-500">{stringValue(row.job_title)}</p></div></div><p className="mt-5 flex items-center gap-2 text-sm font-semibold"><CalendarDays className="h-4 w-4" />{formatDate(row.logical_shift_date || row.shift_date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p><div className="mt-5 grid grid-cols-2 gap-3"><Field label="Start time"><Input type="time" defaultValue={formatTime(row.start_at || row.start_time)} /></Field><Field label="End time"><Input type="time" defaultValue={formatTime(row.end_at || row.end_time)} /></Field></div><div className="mt-4 grid gap-4"><Field label="Shift type"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option>Standard shift</option><option>Remote</option><option>Late shift</option></select></Field><Field label="Location"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option>{stringValue(row.work_location || row.employee_location, 'Bangkok HQ')}</option></select></Field><Field label="Break"><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option>60 min unpaid</option><option>30 min unpaid</option></select></Field><Field label="Notes"><Textarea value={note} onChange={event => setNote(event.target.value)} placeholder="Add a note for this shift" /></Field></div><label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" />Repeat this shift</label><div className="mt-6 flex items-center justify-between border-t border-zinc-800 pt-4"><Button variant="ghost" className="text-rose-500"><Trash2 className="mr-2 h-4 w-4" />Delete shift</Button><div className="flex gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={onClose}>Save</Button></div></div></DetailDrawer>;
+}
+
+function parseHour(value: unknown, fallback: number) { const raw = String(value || ''); if (/^\d{2}:\d{2}/.test(raw)) return Number(raw.slice(0, 2)) + Number(raw.slice(3, 5)) / 60; const date = new Date(raw); return Number.isNaN(date.getTime()) ? fallback : date.getHours() + date.getMinutes() / 60; }
 
 function Workspace({ children }: { children: React.ReactNode }) {
   return <main className="min-h-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100"><div className="mx-auto flex max-w-[1700px] flex-col gap-4">{children}</div></main>;

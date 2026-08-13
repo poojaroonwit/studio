@@ -49,10 +49,21 @@ export const assignPayrollProfileSchema = z.object({
 });
 
 export const payrollRunActionSchema = z.object({
-  action: z.enum(['collect_inputs', 'calculate', 'submit', 'approve', 'return', 'finalize', 'generate_outputs', 'mark_paid', 'reconcile', 'close', 'reverse']),
+  action: z.enum(['collect_inputs', 'calculate', 'submit', 'approve', 'return', 'finalize', 'generate_outputs', 'release_payslips', 'mark_paid', 'reconcile', 'close', 'reverse']),
   runId: z.string().uuid(),
   expectedVersion: z.number().int().positive(),
   reason: z.string().trim().min(2).max(2000),
+  paymentReference: z.string().trim().min(2).max(200).optional(),
+  evidenceReference: z.string().trim().min(2).max(500).optional(),
+});
+
+export const payrollGovernanceActionSchema = z.object({
+  action: z.enum(['resolve_exception', 'waive_exception', 'resolve_variance', 'waive_variance', 'reassign_approval']),
+  runId: z.string().uuid(),
+  expectedVersion: z.number().int().positive(),
+  itemId: z.string().uuid(),
+  reason: z.string().trim().min(2).max(2000),
+  approverUserId: z.string().uuid().optional(),
 });
 
 export const compensationChangeSchema = z.object({
@@ -93,6 +104,7 @@ export const payrollActionSchema = z.discriminatedUnion('action', [
   createPayrollGroupSchema,
   assignPayrollProfileSchema,
   payrollRunActionSchema,
+  payrollGovernanceActionSchema,
   compensationChangeSchema,
   benefitActionSchema,
 ]);

@@ -5,15 +5,15 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
+  AppWindow,
   Building2,
-  Check,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ImageUp,
   Loader2,
   Monitor,
   Navigation,
+  PanelsTopLeft,
+  RefreshCw,
   Save,
   Sparkles,
   Trash2,
@@ -34,14 +34,6 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-const STEPS = [
-  { title: "Core Identity", description: "Set your primary brand and application identity." },
-  { title: "Header Branding", description: "Tune header behavior and appearance inside the shell." },
-  { title: "Sign In", description: "Customize how your brand appears on the sign-in screen." },
-  { title: "Navigation", description: "Brand your navigation sidebar." },
-  { title: "Review", description: "Review all branding before publishing." },
-] as const;
-
 function getBrandingStepFromFocus(focus: string | null): number {
   const normalized = focus?.toLowerCase() ?? "";
 
@@ -49,35 +41,22 @@ function getBrandingStepFromFocus(focus: string | null): number {
   if (["header-branding", "header branding", "headerbranding", "header"].includes(normalized)) return 1;
   if (["sign-in", "sign in", "signin", "sign"].includes(normalized)) return 2;
   if (["navigation", "nav"].includes(normalized)) return 3;
-  if (["review"].includes(normalized)) return 4;
-
   return 0;
 }
 
 export function BrandingTab(props: BrandingTabProps) {
   const searchParams = useSearchParams();
   const stepFromFocus = React.useMemo(() => getBrandingStepFromFocus(searchParams.get("focus")), [searchParams]);
-  const [step, setStep] = React.useState(stepFromFocus);
   const [usePrimaryLight, setUsePrimaryLight] = React.useState(!props.loginPageLogoLightModePreviewUrl);
   const [usePrimaryDark, setUsePrimaryDark] = React.useState(!props.loginPageLogoDarkModePreviewUrl);
 
-  const goToStep = (nextStep: number) => setStep(Math.max(0, Math.min(STEPS.length - 1, nextStep)));
-  React.useEffect(() => {
-    setStep(stepFromFocus);
-  }, [stepFromFocus]);
-
   return (
     <div className="flex h-[calc(100vh-2rem)] min-h-0 max-h-full flex-col overflow-hidden">
-      <BrandingProgress currentStep={step} />
-
-      <div className="grid min-h-0 flex-1 overflow-hidden rounded-md border border-border bg-card lg:grid-cols-[175px_minmax(0,1fr)_225px]">
-        <BrandingStepRail currentStep={step} onStepChange={goToStep} />
-
-        <ScrollArea className="min-h-0 border-l border-border">
-          <div className="min-w-0 p-5 xl:p-6">
-            {step === 0 && <CoreIdentityStep {...props} />}
-            {step === 1 && <HeaderBrandingStep {...props} />}
-            {step === 2 && (
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="min-w-0 p-5 xl:p-6">
+            {stepFromFocus === 0 && <CoreIdentityStep {...props} />}
+            {stepFromFocus === 1 && <HeaderBrandingStep {...props} />}
+            {stepFromFocus === 2 && (
               <SignInStep
                 {...props}
                 usePrimaryDark={usePrimaryDark}
@@ -86,90 +65,17 @@ export function BrandingTab(props: BrandingTabProps) {
                 onUsePrimaryLightChange={setUsePrimaryLight}
               />
             )}
-            {step === 3 && <NavigationStep {...props} />}
-            {step === 4 && <ReviewStep {...props} onEditStep={goToStep} />}
-          </div>
-        </ScrollArea>
-
-        <aside className="hidden min-h-0 overflow-y-auto border-l border-border bg-muted/10 p-5 lg:block">
-          {step === 2 ? <SignInGuidance {...props} /> : <StepGuidance step={step} />}
-        </aside>
-      </div>
-
-      <div data-autosave-ignore className="flex shrink-0 items-center justify-between border-x border-b border-border bg-card px-4 py-3">
-        <Button variant="outline" onClick={() => goToStep(step - 1)} disabled={step === 0}>
-          <ChevronLeft className="mr-1.5 h-4 w-4" /> Back
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={props.onSave} disabled={!props.canEdit || props.saving}>
-            {props.saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
-            {props.saving ? "Saving" : "Save draft"}
-          </Button>
-          {step < STEPS.length - 1 ? (
-            <Button onClick={() => goToStep(step + 1)}>
-              Continue to {STEPS[step + 1].title} <ChevronRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={props.onSave} disabled={!props.canEdit || props.saving}>
-              <Check className="mr-1.5 h-4 w-4" /> Publish branding
-            </Button>
-          )}
+            {stepFromFocus === 3 && <NavigationStep {...props} />}
         </div>
+      </ScrollArea>
+
+      <div data-autosave-ignore className="flex shrink-0 justify-end border-t border-border bg-card px-5 py-3">
+        <Button onClick={props.onSave} disabled={!props.canEdit || props.saving}>
+          {props.saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
+          {props.saving ? "Saving" : "Save changes"}
+        </Button>
       </div>
     </div>
-  );
-}
-
-function BrandingProgress({ currentStep }: { currentStep: number }) {
-  return (
-    <header className="flex shrink-0 items-end justify-between pb-4">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Branding setup</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{`${STEPS.length - 1} of ${STEPS.length} steps complete`}</p>
-      </div>
-      <div className="mb-1 flex gap-1.5" aria-label={`${STEPS.length - 1} of ${STEPS.length} branding steps complete`}>
-        {STEPS.map((item, index) => (
-          <span
-            key={item.title}
-            className={cn("h-1 w-12 rounded-full", index < STEPS.length - 1 ? "bg-primary" : "bg-muted-foreground/35")}
-          />
-        ))}
-      </div>
-    </header>
-  );
-}
-
-function BrandingStepRail({ currentStep, onStepChange }: { currentStep: number; onStepChange: (step: number) => void }) {
-  return (
-    <nav data-autosave-ignore aria-label="Branding setup steps" className="bg-muted/5">
-      {STEPS.map((item, index) => {
-        const active = currentStep === index;
-        return (
-          <button
-            key={item.title}
-            type="button"
-            onClick={() => onStepChange(index)}
-            className={cn(
-              "relative flex w-full gap-3 border-b border-border px-4 py-5 text-left transition-colors hover:bg-muted/30",
-              active && "bg-primary/5",
-            )}
-          >
-            {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />}
-            <span className={cn(
-              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-              active ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50 text-muted-foreground",
-            )}>
-              {index === 0 ? <Check className="h-3.5 w-3.5" /> : index + 1}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-medium text-foreground">{item.title}</span>
-              {active && <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span>}
-            </span>
-            {index === 0 && !active && <CheckCircle2 className="ml-auto h-4 w-4 text-muted-foreground" />}
-          </button>
-        );
-      })}
-    </nav>
   );
 }
 
@@ -333,19 +239,96 @@ function SignInGuidance(props: BrandingTabProps) {
 
 function CoreIdentityStep(props: BrandingTabProps) {
   return (
-    <section className="space-y-6">
-      <div><h3 className="text-xl font-semibold">Core Identity</h3><p className="mt-1 text-sm text-muted-foreground">Set the master logo and core application treatments used across your workspace.</p></div>
-      <div className="rounded-md border border-border p-5">
-        <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
-          <div><h4 className="text-sm font-semibold">Primary logo</h4><p className="mt-1 text-xs leading-5 text-muted-foreground">Used as the fallback throughout the application.</p></div>
-          <BrandingLogoUploadTile id="guided-primary-logo" previewUrl={props.logoPreviewUrl} alt="Primary company logo" canEdit={props.canEdit} onChange={props.handleLogoFileChange} onRemove={() => props.removeSelectedLogo(true)} emptyText="Upload primary logo" />
-        </div>
+    <section className="space-y-4 pb-3">
+      <div>
+        <h3 className="text-xl font-semibold">Core Identity</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your brand identity and how it appears across the application.</p>
       </div>
-      <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Splash screen</summary><div className="border-t border-border px-4"><SplashScreenSection {...props} /></div></details>
-      <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Application drawer style</summary><div className="border-t border-border px-4"><AppearanceDrawerStyleSection canEdit={props.canEdit} drawerStyle={props.drawerStyle} setDrawerStyle={props.setDrawerStyle} /></div></details>
-      <details className="rounded-md border border-border"><summary data-autosave-ignore className="cursor-pointer px-4 py-3 text-sm font-medium">Evaluation experience</summary><div className="border-t border-border px-4"><EvaluateSettingsContent {...props} /></div></details>
+
+      <div className="rounded-md border border-border">
+        <div className="grid items-center gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_350px]">
+          <div className="flex min-w-0 items-center gap-4">
+            <BrandLogo logoUrl={props.logoPreviewUrl} className="h-20 w-20 shrink-0 rounded-md border border-border bg-muted/20 p-3" />
+            <div className="min-w-0 flex-1">
+              <h4 className="text-base font-semibold">Core Identity</h4>
+              <p className="mt-1 truncate text-sm text-muted-foreground">logo-primary.svg&nbsp;&nbsp;•&nbsp;&nbsp;Primary application asset</p>
+            </div>
+            <Input id="core-identity-logo" type="file" accept="image/*" className="hidden" onChange={props.handleLogoFileChange} disabled={!props.canEdit} />
+            <div data-autosave-ignore className="flex shrink-0 items-center gap-2">
+              <label htmlFor="core-identity-logo" className={cn("cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10", !props.canEdit && "pointer-events-none opacity-50")}>Replace</label>
+              <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => props.removeSelectedLogo(true)} disabled={!props.canEdit}>Remove</Button>
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Header preview</p>
+            <div className="flex h-14 items-center gap-3 rounded-md border border-border bg-background px-4">
+              <Building2 className="h-7 w-7 text-teal-400" />
+              <span className="text-lg font-semibold">hrive<span className="text-primary">.</span></span>
+              <span className="ml-auto text-xs text-muted-foreground">Application header</span>
+            </div>
+          </div>
+        </div>
+
+        <BrandProfileSection
+          icon={RefreshCw}
+          title="Loading experience"
+          description="Configure the application loading screen."
+          preview={<SplashPreview logoUrl={props.splashLogoPreviewUrl || props.logoPreviewUrl} color={props.splashBackgroundColor} />}
+        >
+          <SplashScreenSection {...props} />
+        </BrandProfileSection>
+
+        <BrandProfileSection
+          icon={AppWindow}
+          title="Application surfaces"
+          description="Customize key application surfaces and branding fallbacks."
+          preview={<DrawerPreview logoUrl={props.logoPreviewUrl} />}
+        >
+          <AppearanceDrawerStyleSection canEdit={props.canEdit} drawerStyle={props.drawerStyle} setDrawerStyle={props.setDrawerStyle} />
+        </BrandProfileSection>
+
+        <BrandProfileSection
+          icon={PanelsTopLeft}
+          title="Evaluation experience"
+          description="Customize the evaluation and review experience."
+          preview={<EvaluationPreview />}
+        >
+          <EvaluateSettingsContent {...props} />
+        </BrandProfileSection>
+      </div>
     </section>
   );
+}
+
+function BrandProfileSection({ icon: Icon, title, description, children, preview }: {
+  icon: typeof Building2;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  preview: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-4 border-t border-border p-4 lg:grid-cols-[240px_minmax(0,1fr)_250px]">
+      <div>
+        <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" /><h4 className="text-base font-semibold">{title}</h4></div>
+        <p className="mt-2 max-w-[230px] text-sm leading-5 text-muted-foreground">{description}</p>
+      </div>
+      <div className="min-w-0 [&_section]:space-y-3 [&_section]:py-0 [&_section>div:first-child]:hidden [&_section_.grid]:gap-3 [&_section_.space-y-6]:space-y-3">{children}</div>
+      <div className="min-w-0"><p className="mb-2 text-xs font-medium text-muted-foreground">Preview</p>{preview}</div>
+    </div>
+  );
+}
+
+function SplashPreview({ logoUrl, color }: { logoUrl: string | null; color: string }) {
+  return <div className="grid h-32 place-items-center rounded-md border border-border" style={{ backgroundColor: color }}><div className="text-center"><BrandLogo logoUrl={logoUrl} className="mx-auto h-12 w-16" /><RefreshCw className="mx-auto mt-3 h-4 w-4 animate-spin text-primary" /></div></div>;
+}
+
+function DrawerPreview({ logoUrl }: { logoUrl: string | null }) {
+  return <div className="rounded-md border border-border bg-background p-3"><div className="flex items-center gap-2 border-b border-border pb-3"><BrandLogo logoUrl={logoUrl} className="h-6 w-7" /><span className="text-sm font-semibold">hrive<span className="text-primary">.</span></span></div><div className="space-y-2 pt-3 text-xs text-muted-foreground"><p className="text-foreground">Home</p><p>My team</p><p>Analytics</p></div></div>;
+}
+
+function EvaluationPreview() {
+  return <div className="flex items-center gap-3 rounded-md border border-border bg-background p-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-primary"><PanelsTopLeft className="h-4 w-4" /></span><div><p className="text-xs font-medium">Performance review</p><p className="mt-1 text-[11px] text-muted-foreground">Share feedback and complete reviews.</p></div></div>;
 }
 
 function HeaderBrandingStep(props: BrandingTabProps) {

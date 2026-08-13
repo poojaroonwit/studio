@@ -188,6 +188,7 @@ export function useUsersPageController() {
     roleFilter,
     selectedUser,
     selectedUserIds,
+    refreshUsers: () => fetchUsers(getCurrentFilters(), currentPage, USERS_PAGE_SIZE),
     setActiveTab,
     setEmailFilter,
     setIsUserModalOpen,

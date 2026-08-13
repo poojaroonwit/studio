@@ -40,6 +40,13 @@ function getNotificationApiErrorMessage(status: number, errorData: unknown) {
   return `API error: ${status} - Unknown error`;
 }
 
+function isTransientFetchError(error: unknown) {
+  return (
+    (error instanceof TypeError && /failed to fetch|networkerror|load failed/i.test(error.message))
+    || (error instanceof DOMException && error.name === 'AbortError')
+  );
+}
+
 export function useNotificationContextState(hasSessionUser: boolean): NotificationContextType {
   const { success: showToast } = useToastManager({ deduplicationWindowMs: 2000 });
   const [notifications, setNotifications] = useState<NotificationContextItem[]>([]);
@@ -60,7 +67,12 @@ export function useNotificationContextState(hasSessionUser: boolean): Notificati
         setUnreadCount(countUnreadNotifications(sanitizedNotifications));
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Navigation, iframe reloads, and dev-server recompiles can interrupt this
+      // background request. Notifications are best-effort, so do not promote an
+      // expected transport interruption into Next.js' development error overlay.
+      if (!isTransientFetchError(error)) {
+        console.error('Error fetching notifications:', error);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,6 @@
 import nodemailer, { type SendMailOptions, type Transporter } from 'nodemailer';
 import { getSystemSetting } from './systemSettings';
+import { DEMO_EXTERNAL_ACTION_ERROR, isDemoInstallation } from './installation-environment';
 
 export const EMAIL_PROVIDERS = [
   'smtp',
@@ -247,6 +248,7 @@ async function sendApiEmail(config: EmailConfig, message: EmailMessage): Promise
 
 export async function sendEmailWithConfig(config: EmailConfig, message: EmailMessage): Promise<EmailSendResult> {
   try {
+    if (await isDemoInstallation()) return { success: false, error: DEMO_EXTERNAL_ACTION_ERROR };
     const validationError = validateEmailConfig(config);
     if (validationError) return { success: false, error: validationError };
 

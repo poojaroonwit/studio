@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, MagnifyingGlassIcon as Search, XMarkIcon as X } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import type { ApplicantSource } from '@/lib/types';
+import { ApplicantSourceOption } from './ApplicantSourceOption';
 
 interface SourceSingleSelectDropdownProps {
   value: string;
@@ -67,7 +68,7 @@ export function SourceSingleSelectDropdown({
                 <span className="text-muted-foreground">{placeholder}</span>
               ) : (
                 <Badge variant="secondary" className="text-xs">
-                  {selectedSource.name}
+                  <ApplicantSourceOption name={selectedSource.name} className="mr-1" />
                   <button
                     type="button"
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -122,12 +123,7 @@ export function SourceSingleSelectDropdown({
                     >
                       <div className="flex items-center">
                         <Check className={cn('mr-2 h-3 w-3', isSelected ? 'opacity-100' : 'opacity-0')} />
-                        <div className="flex flex-col">
-                          <span className="text-sm">{source.name}</span>
-                          {source.description && (
-                            <span className="text-xs text-muted-foreground">{source.description}</span>
-                          )}
-                        </div>
+                        <ApplicantSourceOption name={source.name} description={source.description} />
                       </div>
                     </button>
                   );

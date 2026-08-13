@@ -22,7 +22,7 @@ import { dateValue, statusLabel, stringValue } from './ess-types';
 
 const viewMeta: Record<EssView, { label: string; description: string }> = {
   profile: { label: 'My Profile', description: 'Personal details and employment information' },
-  leave: { label: 'Leave Request', description: 'Balances, requests, and time away' },
+  leave: { label: 'My Requests', description: 'Track your time away and manage leave requests' },
   attendance: { label: 'Attendance', description: 'Today, history, and corrections' },
   'shift-requests': { label: 'Shift Requests', description: 'Request schedule changes, swaps, or open shifts' },
   'attendance-corrections': { label: 'Corrections', description: 'Correct missing or inaccurate attendance records' },
@@ -51,7 +51,7 @@ export function EssShell({
   return (
     <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7">
       <div className="mx-auto max-w-[1440px] space-y-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className={cn('flex items-start justify-between gap-4', view === 'leave' && 'sr-only')}>
           <div>
             <h1 className="text-[clamp(1.35rem,2vw,1.75rem)] font-semibold tracking-tight">{current.label}</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">{current.description}</p>

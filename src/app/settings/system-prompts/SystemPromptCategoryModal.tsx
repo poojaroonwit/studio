@@ -78,7 +78,7 @@ export function SystemPromptCategoryModal({
               id="categoryIsActive"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-input accent-primary"
             />
             <Label htmlFor="categoryIsActive">Active</Label>
           </div>

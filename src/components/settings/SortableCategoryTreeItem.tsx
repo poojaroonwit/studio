@@ -43,7 +43,7 @@ export function SortableItem({
       style={style}
       className={getCategoryTreeItemContainerClassName(isDragging)}
     >
-      <div className="flex items-center gap-2 py-1.5 px-3 rounded-full hover:bg-muted/20 cursor-pointer group bg-white/50 border border-transparent hover:border-muted/30 transition-all duration-200">
+      <div className="group flex cursor-pointer items-center gap-2 rounded-full border border-transparent bg-card/50 px-3 py-1.5 transition-all duration-200 hover:border-border hover:bg-muted/20">
         <div
           className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
           {...attributes}

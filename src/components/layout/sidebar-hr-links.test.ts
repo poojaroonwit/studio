@@ -53,7 +53,7 @@ describe('HR sidebar links', () => {
       .find(group => group.label === 'Learning');
     expect(learning?.items.slice(0, 2).map(item => [item.label, item.href])).toEqual([
       ['My Learning', '/learning'],
-      ['My Onboarding', '/ess/onboarding'],
+      ['Courses', '/learning/courses'],
     ]);
   });
 
@@ -90,9 +90,9 @@ describe('HR sidebar links', () => {
   it('includes implemented operational workspaces that require direct navigation', () => {
     const groups = sidebarConfigData as Array<{ label: string; items: Array<{ label: string; href: string }> }>;
 
-    expect(groups.find(group => group.label === 'Workforce')?.items).toContainEqual(expect.objectContaining({
-      label: 'Appraisal',
-      href: '/workforce/appraisal',
+    expect(groups.find(group => group.label === 'Performance')?.items).toContainEqual(expect.objectContaining({
+      label: 'Performance',
+      href: '/workforce/performance',
     }));
     expect(groups.find(group => group.label === 'People')?.items).toContainEqual(expect.objectContaining({
       label: 'Offboarding',
@@ -111,18 +111,18 @@ describe('HR sidebar links', () => {
       'Org Chart',
       'Probation',
       'Offboarding',
+      'Contracts',
+      'Assets',
       'Service Desk',
-      'Contact',
     ]);
     expect(labelsFor('Workforce')).toEqual([
       'Attendance',
       'Timesheets',
       'Roster',
+      'Attendance Requests',
       'Shift Requests',
       'Overtime',
       'Transportation',
-      'Performance',
-      'Appraisal',
     ]);
     expect(labelsFor('Leave')).toEqual([
       'Leave Request',

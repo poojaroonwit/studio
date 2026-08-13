@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 
 import type { User } from './send-interview-invitation-api';
 import {
@@ -138,6 +139,7 @@ function AvailableUserRow({
           onSelectedUserIdsChange(setCheckedIdSelection(selectedUserIds, user.id, Boolean(checked)));
         }}
       />
+      <UserAvatarCompact user={user} size="sm" />
       <Label
         htmlFor={`add-user-${user.id}`}
         className="flex-1 cursor-pointer text-sm flex flex-col"

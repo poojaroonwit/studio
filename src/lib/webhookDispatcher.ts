@@ -6,6 +6,7 @@ import {
 } from './webhook/webhook-dispatcher-repository';
 import type { WebhookData, WebhookPayload, WebhookResult } from './webhook/webhook-dispatcher-types';
 import { sendWebhookDelivery } from './webhook/webhook-delivery';
+import { isDemoInstallation } from './installation-environment';
 import {
   createApplicantEventData,
   createCommentEventData,
@@ -32,7 +33,7 @@ export class WebhookDispatcher {
   }
 
   async dispatch(event: string, data: WebhookData): Promise<WebhookResult[]> {
-    if (this.isProcessing || !areWebhooksEnabled()) {
+    if (this.isProcessing || !areWebhooksEnabled() || await isDemoInstallation()) {
       return [];
     }
 

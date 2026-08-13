@@ -71,7 +71,7 @@ export function AutoCloseSummarySection({ summary }: { summary: AutoCloseSummary
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <AutoCloseSummaryMetric label="Total Processed" value={summary.totalProcessed} className="text-blue-600" />
           <AutoCloseSummaryMetric label="Positions Closed" value={summary.closedCount} className="text-green-600" />
-          <AutoCloseSummaryMetric label="No Action Needed" value={summary.noActionCount} className="text-gray-600" />
+          <AutoCloseSummaryMetric label="No Action Needed" value={summary.noActionCount} className="text-muted-foreground" />
           <AutoCloseSummaryMetric label="Errors" value={summary.errorCount} className="text-red-600" />
         </div>
       </AccordionContent>

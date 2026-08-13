@@ -2,6 +2,9 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The default dev script uses Turbopack. Declaring its config prevents Next
+  // from treating the webpack customization below as an accidental mismatch.
+  turbopack: {},
   experimental: {
     serverActions: {
       bodySizeLimit: '500mb',

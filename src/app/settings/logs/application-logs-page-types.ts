@@ -10,7 +10,7 @@ export interface ApplicationLogsFilters {
   end?: Date;
 }
 
-export type LogUserOption = Pick<UserProfile, 'id' | 'name'>;
+export type LogUserOption = Pick<UserProfile, 'id' | 'name' | 'avatarUrl' | 'personalColor'>;
 
 export interface ApplicationLogsPageState {
   logs: LogEntry[];

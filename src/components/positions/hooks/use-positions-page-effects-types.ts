@@ -46,7 +46,7 @@ export interface UsePositionsPageEffectsInput {
   setIsLoading: (value: boolean) => void;
   setIsTableLoading: (value: boolean) => void;
   setIsSearching: (value: boolean) => void;
-  setAvailableHiringManagers: (managers: { id: string; name: string }[]) => void;
+  setAvailableHiringManagers: (managers: { id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }[]) => void;
   setVacantFromOpenPositions: (stats: { vacant: number; totalOpen: number }) => void;
   fetchPositions: FetchPositions;
   fetchAllDepartments: () => void;

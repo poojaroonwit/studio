@@ -181,8 +181,8 @@ export function RolesPermissionsWorkspace() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto p-4 xl:grid-cols-[300px_minmax(0,1fr)] xl:overflow-hidden">
-        <aside className="flex min-h-[460px] flex-col overflow-hidden rounded-[5px] border border-[#d9dde5] bg-white dark:border-zinc-800 dark:bg-zinc-900 xl:min-h-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-auto bg-white dark:bg-zinc-950 xl:grid-cols-[300px_minmax(0,1fr)] xl:overflow-hidden">
+        <aside className="flex min-h-[460px] flex-col overflow-hidden border-b border-[#d9dde5] bg-transparent dark:border-zinc-800 xl:min-h-0 xl:border-b-0 xl:border-r">
           <div className="border-b border-[#e5e8ec] p-4 dark:border-zinc-800"><p className="text-[13px] font-semibold">Permission groups</p><p className="mt-1 text-[10px] text-[#858c97]">Choose an area to configure.</p></div>
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
             {allPermissionGroups.map(group => (
@@ -195,7 +195,7 @@ export function RolesPermissionsWorkspace() {
           </div>
         </aside>
 
-        <main className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-[5px] border border-[#d9dde5] bg-white dark:border-zinc-800 dark:bg-zinc-900 xl:min-h-0">
+        <main className="flex min-h-[620px] min-w-0 flex-col overflow-hidden bg-transparent xl:min-h-0">
           {!selectedRole ? <EmptyRoleState /> : (
             <>
               <div className="shrink-0 border-b border-[#e0e3e8] px-4 pt-4 dark:border-zinc-800">
@@ -233,8 +233,8 @@ export function RolesPermissionsWorkspace() {
                       <p className="text-[11px] text-[#858c97]">{draftPermissions.length} of {PLATFORM_MODULES.length} enabled</p>
                     </div>
                   </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f8fa] p-4 dark:bg-zinc-950">
-                    <section className="overflow-hidden rounded-[5px] border border-[#dfe3e8] bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-transparent">
+                    <section className="overflow-hidden bg-transparent">
                       <div className="flex items-center gap-3 border-b border-[#e8eaee] px-4 py-3 dark:border-zinc-800"><Folder className="h-[18px] w-[18px] text-[#718096]" /><div><h3 className="text-[13px] font-semibold">{selectedPermissionGroup?.category}</h3><p className="mt-0.5 text-[10px] text-[#858c97]">{visiblePermissionGroup?.families.length ?? 0} matching capabilities</p></div></div>
                       <div className="px-4">
                         {(visiblePermissionGroup?.families ?? []).map(family => (
@@ -253,7 +253,7 @@ export function RolesPermissionsWorkspace() {
                       </div>
                     </section>
                   </div>
-                  <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#d7dce3] bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[#d7dce3] bg-transparent px-4 py-3 dark:border-zinc-800">
                     <div className={cn('flex items-center gap-2 text-xs', hasChanges ? 'text-amber-600' : 'text-[#858c97]')}><span className={cn('h-2 w-2 rounded-full', hasChanges ? 'bg-amber-500' : 'bg-zinc-500')} /><span>{isReadOnly ? 'Protected system role' : hasChanges ? 'Unsaved permission changes' : 'No unsaved changes'}</span></div>
                     <div className="flex gap-2"><Button variant="outline" size="sm" disabled={isSaving || !hasChanges || isReadOnly} onClick={() => setDraftPermissions(savedPermissions)}>Discard</Button><Button size="sm" disabled={isSaving || !hasChanges || isReadOnly} onClick={savePermissions}>{isSaving ? 'Saving…' : 'Save role'}</Button></div>
                   </div>

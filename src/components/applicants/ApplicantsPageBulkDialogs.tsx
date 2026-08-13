@@ -11,6 +11,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { RecruiterAvatar } from '@/components/ui/recruiter-avatar';
 import type { ApplicantsPageModalsProps } from './ApplicantsPageModalsTypes';
 import {
   getSelectedApplicantIds,
@@ -158,7 +159,7 @@ export function BulkRecruiterAssignmentDialog({
                 <SelectItem value="none">No Recruiter</SelectItem>
                 {availableRecruiter.map((recruiter) => (
                   <SelectItem key={recruiter.id} value={recruiter.id}>
-                    {recruiter.name}
+                    <span className="flex items-center gap-2.5"><RecruiterAvatar user={recruiter} size="xs" showBorder={false} /><span>{recruiter.name}</span></span>
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -4,6 +4,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { DEMO_EXTERNAL_ACTION_ERROR, isDemoInstallation } from '@/lib/installation-environment';
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +15,7 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (await isDemoInstallation()) return NextResponse.json({ error: DEMO_EXTERNAL_ACTION_ERROR }, { status: 403 });
 
     const resolvedParams = await params;
     const webhookId = resolvedParams.id;

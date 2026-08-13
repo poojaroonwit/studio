@@ -7,6 +7,15 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const encoder = new TextEncoder();
+    let interval: NodeJS.Timeout | undefined;
+
+    const stopKeepalive = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+    };
+
     const stream = new ReadableStream({
       start(controller) {
         // Immediate comment frame to flush through proxies
@@ -15,17 +24,20 @@ export async function GET(request: NextRequest) {
         } catch {}
 
         // Periodic lightweight keepalive
-        const interval = setInterval(() => {
+        interval = setInterval(() => {
           try {
             controller.enqueue(encoder.encode(`: keepalive ${Date.now()}\n\n`));
           } catch {
-            clearInterval(interval);
+            stopKeepalive();
           }
-        }, 15000);
+        }, 30000);
 
         request.signal.addEventListener('abort', () => {
-          clearInterval(interval);
-        });
+          stopKeepalive();
+        }, { once: true });
+      },
+      cancel() {
+        stopKeepalive();
       }
     });
 

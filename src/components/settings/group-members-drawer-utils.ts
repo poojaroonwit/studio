@@ -4,6 +4,8 @@ export interface GroupMemberUser {
   email: string;
   role: string;
   createdAt: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }
 
 export function getGroupMemberInitials(name: string) {

@@ -54,7 +54,7 @@ export function SortableCategory({
       className={getCategoryTreeCategoryContainerClassName(isDragging)}
     >
       <div
-        className="flex items-center gap-2 py-2 px-3 rounded-full hover:bg-muted/30 cursor-pointer group bg-white/50 border border-transparent hover:border-muted/30 transition-all duration-200"
+        className="group flex cursor-pointer items-center gap-2 rounded-full border border-transparent bg-card/50 px-3 py-2 transition-all duration-200 hover:border-border hover:bg-muted/30"
         onClick={onToggleExpanded}
         role="button"
         tabIndex={0}

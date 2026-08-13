@@ -49,8 +49,8 @@ type FormState = {
 const today = new Date().toISOString().slice(0, 10);
 const emptyForm: FormState = { companyId: '', code: '', name: '', description: '', relatedId: '', effectiveFrom: today, effectiveTo: '', status: 'active', billable: false, reason: '' };
 
-export function FinancialDimensionsClient({ canEdit }: { canEdit: boolean }) {
-  const [resource, setResource] = React.useState<Resource>('cost-centers');
+export function FinancialDimensionsClient({ canEdit, initialResource = 'cost-centers' }: { canEdit: boolean; initialResource?: Resource }) {
+  const [resource, setResource] = React.useState<Resource>(initialResource);
   const [companies, setCompanies] = React.useState<Company[]>([]);
   const [companyId, setCompanyId] = React.useState('');
   const [records, setRecords] = React.useState<MasterRecord[]>([]);

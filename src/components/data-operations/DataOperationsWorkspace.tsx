@@ -356,19 +356,19 @@ function ChooseDataStep({ selected, onSelect }: { selected: DataOperationModelId
               onClick={() => onSelect(model.id)}
               aria-pressed={active}
               className={cn(
-                'group flex min-h-36 flex-col items-start rounded-xl border p-5 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'group flex min-h-28 flex-col items-start rounded-xl border p-4 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active && 'border-primary bg-primary/[.04] ring-1 ring-primary/20',
               )}
             >
-              <span className={cn('grid h-9 w-9 place-items-center rounded-lg bg-muted text-muted-foreground', active && 'bg-primary/10 text-primary')}>
-                <Icon className="h-4.5 w-4.5" />
+              <span className={cn('grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground', active && 'bg-primary/10 text-primary')}>
+                <Icon className="h-4 w-4" />
               </span>
-              <span className="mt-4 flex w-full items-center justify-between gap-3">
+              <span className="mt-3 flex w-full items-center justify-between gap-3">
                 <span className="font-semibold">{model.name}</span>
-                {active && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                {active && <CheckCircle2 className="h-4.5 w-4.5 text-primary" />}
               </span>
               <span className="mt-1 text-sm leading-5 text-muted-foreground">{model.description}</span>
-              <span className="mt-3 text-xs font-medium text-muted-foreground">
+              <span className="mt-2 text-xs font-medium text-muted-foreground">
                 Import {model.importTypesLabel} · Export {model.exportFormatsLabel}
               </span>
             </button>

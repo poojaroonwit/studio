@@ -6,7 +6,6 @@ import { signIn } from 'next-auth/react';
 import {
   ArrowLeft,
   ArrowRight,
-  BriefcaseBusiness,
   Check,
   CheckCircle2,
   Eye,
@@ -32,8 +31,10 @@ import {
   type AiProvider,
 } from '@/components/settings/ai-api-keys-utils';
 import { getJsonErrorMessage, readJsonObject } from '@/lib/response-json';
+import { EnvironmentSetupStep, type InstallationEnvironment } from './EnvironmentSetupStep';
+import { SetupAside } from './SetupAside';
 
-type SetupStage = 'account' | 'ai' | 'tour' | 'complete';
+type SetupStage = 'account' | 'environment' | 'ai' | 'tour' | 'complete';
 
 type TourStep = {
   eyebrow: string;
@@ -73,9 +74,11 @@ const aiProviders: Array<{ value: AiProvider; label: string }> = [
   { value: 'deepseek', label: 'DeepSeek' },
 ];
 
-export default function PlatformSetupClient() {
+type EnvironmentJob = { id: string; status: string; progress: number; error?: string | null; result?: { stage?: string } | null };
+
+export default function PlatformSetupClient({ initialAdminCreated = false }: { initialAdminCreated?: boolean }) {
   const router = useRouter();
-  const [stage, setStage] = React.useState<SetupStage>('account');
+  const [stage, setStage] = React.useState<SetupStage>(initialAdminCreated ? 'environment' : 'account');
   const [tourIndex, setTourIndex] = React.useState(0);
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -90,8 +93,60 @@ export default function PlatformSetupClient() {
   const [aiConnectionStatus, setAiConnectionStatus] = React.useState<'idle' | 'saved' | 'verified'>('idle');
   const [aiMessage, setAiMessage] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(initialAdminCreated);
+  const [installationEnvironment, setInstallationEnvironment] = React.useState<InstallationEnvironment>('demo');
+  const [employeeCount, setEmployeeCount] = React.useState('1000');
+  const [historyMonths, setHistoryMonths] = React.useState('24');
+  const [isInitializingEnvironment, setIsInitializingEnvironment] = React.useState(false);
+  const [environmentJobId, setEnvironmentJobId] = React.useState<string | null>(null);
+  const [environmentProgress, setEnvironmentProgress] = React.useState(0);
+  const [environmentStage, setEnvironmentStage] = React.useState('Waiting to start');
   const [errorMessage, setErrorMessage] = React.useState('');
+
+  React.useEffect(() => {
+    if (!initialAdminCreated) return;
+    void fetch('/api/settings/installation-environment')
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload: { job?: EnvironmentJob | null } | null) => {
+        if (payload?.job && ['pending', 'processing'].includes(payload.job.status)) {
+          setEnvironmentJobId(payload.job.id);
+          setIsInitializingEnvironment(true);
+          setEnvironmentProgress(payload.job.progress || 0);
+          setEnvironmentStage(payload.job.result?.stage || 'Resuming demo initialization');
+        }
+      })
+      .catch(() => undefined);
+  }, [initialAdminCreated]);
+
+  React.useEffect(() => {
+    if (!environmentJobId || !isInitializingEnvironment) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/settings/installation-environment?jobId=${encodeURIComponent(environmentJobId)}`, { cache: 'no-store' });
+        const payload = await readJsonObject(response) as { job?: EnvironmentJob | null };
+        if (!response.ok || !payload.job) throw new Error(getJsonErrorMessage(payload, 'Unable to read initialization progress.'));
+        if (cancelled) return;
+        setEnvironmentProgress(payload.job.progress || 0);
+        setEnvironmentStage(payload.job.result?.stage || (payload.job.status === 'pending' ? 'Queued' : 'Preparing workspace'));
+        if (payload.job.status === 'completed') {
+          setIsInitializingEnvironment(false);
+          setStage('ai');
+          return;
+        }
+        if (payload.job.status === 'failed') {
+          setIsInitializingEnvironment(false);
+          setErrorMessage(payload.job.error || 'Demo initialization failed. You can retry safely.');
+          return;
+        }
+        window.setTimeout(poll, 1200);
+      } catch (error) {
+        if (!cancelled) window.setTimeout(poll, 2500);
+      }
+    };
+    void poll();
+    return () => { cancelled = true; };
+  }, [environmentJobId, isInitializingEnvironment]);
 
   const submitAdmin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -123,12 +178,47 @@ export default function PlatformSetupClient() {
       setEmail(normalizedEmail);
       setPassword('');
       setConfirmPassword('');
-      setStage('ai');
+      setStage('environment');
     } catch (error) {
       console.error('First administrator setup failed:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Unable to complete platform setup.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const saveInstallationEnvironment = async () => {
+    setErrorMessage('');
+    if (!isAuthenticated) {
+      setErrorMessage('Your administrator session is not active. Sign in before initializing this installation.');
+      return;
+    }
+    setIsInitializingEnvironment(true);
+    try {
+      const body = installationEnvironment === 'demo'
+        ? { environment: 'demo', employeeCount: Number(employeeCount), historyMonths: Number(historyMonths) }
+        : { environment: 'production' };
+      const response = await fetch('/api/settings/installation-environment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const payload = await readJsonObject(response);
+      if (!response.ok) throw new Error(getJsonErrorMessage(payload, 'Unable to initialize the installation environment.'));
+      if (installationEnvironment === 'production') {
+        setStage('ai');
+      } else {
+        const jobId = typeof payload.jobId === 'string' ? payload.jobId : null;
+        if (!jobId) throw new Error('The demo initialization job was not created.');
+        setEnvironmentJobId(jobId);
+        setEnvironmentProgress(typeof payload.progress === 'number' ? payload.progress : 0);
+        setEnvironmentStage('Queued');
+        return;
+      }
+    } catch (error) {
+      console.error('Installation environment setup failed:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to initialize the installation environment.');
+      setIsInitializingEnvironment(false);
+    } finally {
+      if (installationEnvironment === 'production') setIsInitializingEnvironment(false);
     }
   };
 
@@ -201,64 +291,28 @@ export default function PlatformSetupClient() {
   };
 
   const progress = stage === 'account'
-    ? 15
+    ? 12
+    : stage === 'environment'
+      ? 28
     : stage === 'ai'
-      ? 32
+      ? 44
     : stage === 'complete'
       ? 100
-      : 48 + Math.round(((tourIndex + 1) / tourSteps.length) * 40);
+      : 58 + Math.round(((tourIndex + 1) / tourSteps.length) * 30);
 
   return (
-    <main className="min-h-screen bg-[#f5f7fa] text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+    <main className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen lg:grid-cols-[minmax(320px,0.8fr)_minmax(560px,1.2fr)]">
-        <aside className="relative overflow-hidden bg-[#17345f] px-6 py-8 text-[#eef5ff] sm:px-10 lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-12">
-          <div className="pointer-events-none absolute -right-28 top-20 h-72 w-72 rounded-full border border-[#91b5e8]/20" />
-          <div className="pointer-events-none absolute -right-12 top-36 h-44 w-44 rounded-full border border-[#91b5e8]/15" />
-
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight">
-              <span className="grid h-8 w-8 place-items-center rounded-md bg-[#dceaff] text-[#17345f]">h</span>
-              hrive
-            </div>
-            <div className="mt-10 max-w-md lg:mt-24">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#abc8ef]">First-run setup</p>
-              <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">
-                Build the foundation for better hiring.
-              </h1>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-[#c8d9ef]">
-                Create the first administrator, connect an AI provider, take a quick product tour, and initialize your working defaults.
-              </p>
-            </div>
-          </div>
-
-          <div className="relative mt-10 grid gap-3 text-sm sm:grid-cols-3 lg:mt-16 lg:grid-cols-1">
-            {[
-              [ShieldCheck, 'Secure ownership', 'Only the first administrator can complete this setup.'],
-              [BriefcaseBusiness, 'Recruiting ready', 'Start with the workflows your team uses every day.'],
-              [Sparkles, 'Guided defaults', 'Initialize each platform feature after sign-in.'],
-            ].map(([Icon, title, description]) => {
-              const ItemIcon = Icon as React.ComponentType<{ className?: string }>;
-              return (
-                <div key={String(title)} className="flex items-start gap-3 border-t border-[#86a9d7]/20 pt-3">
-                  <ItemIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#bcd4f4]" />
-                  <div>
-                    <p className="font-semibold">{String(title)}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-[#b8cce7]">{String(description)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
+        <SetupAside />
 
         <section className="flex min-h-[640px] items-center justify-center px-4 py-10 sm:px-8 lg:px-14">
           <div className="w-full max-w-xl">
             <div className="mb-8 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-slate-700 dark:text-slate-200">
-                  {stage === 'account' ? 'Administrator account' : stage === 'ai' ? 'AI connection' : stage === 'tour' ? 'Activation preview' : 'Account ready'}
+                  {stage === 'account' ? 'Administrator account' : stage === 'environment' ? 'Installation environment' : stage === 'ai' ? 'AI connection' : stage === 'tour' ? 'Activation preview' : 'Account ready'}
                 </span>
-                <span className="text-slate-500">About 2 minutes for this phase</span>
+                <span className="text-muted-foreground">{stage === 'environment' && isInitializingEnvironment ? `${environmentProgress}% complete` : 'A few guided steps'}</span>
               </div>
               <Progress value={progress} className="h-1.5 bg-slate-200 dark:bg-slate-800" />
             </div>
@@ -326,7 +380,7 @@ export default function PlatformSetupClient() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                      className="absolute right-0 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -353,7 +407,7 @@ export default function PlatformSetupClient() {
 
                 <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
                   <p className="max-w-xs text-xs leading-5 text-slate-500">
-                    Setup closes permanently after this account is created.
+                    You will choose Demo or Production before setup closes.
                   </p>
                   <Button type="submit" disabled={isSubmitting} className="sm:min-w-44">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
@@ -363,6 +417,13 @@ export default function PlatformSetupClient() {
               </form>
             )}
 
+            {stage === 'environment' && <EnvironmentSetupStep
+              employeeCount={employeeCount} environment={installationEnvironment} errorMessage={errorMessage}
+              historyMonths={historyMonths} isAuthenticated={isAuthenticated} isInitializing={isInitializingEnvironment}
+              progress={environmentProgress} progressStage={environmentStage} onEmployeeCountChange={setEmployeeCount}
+              onEnvironmentChange={setInstallationEnvironment} onHistoryMonthsChange={setHistoryMonths} onSubmit={saveInstallationEnvironment}
+            />}
+
             {stage === 'ai' && (
               <form onSubmit={saveAiConnection} className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -370,7 +431,7 @@ export default function PlatformSetupClient() {
                     <KeyRound className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">Step 2 · Optional</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">Step 3 · Optional</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight">Connect your AI provider</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                       Add one key to activate matching, evaluation, and writing assistance. The key is encrypted by the existing platform key manager.
@@ -436,7 +497,7 @@ export default function PlatformSetupClient() {
                     <button
                       type="button"
                       onClick={() => setShowAiApiKey((current) => !current)}
-                      className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-ring dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                      className="absolute right-0 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       aria-label={showAiApiKey ? 'Hide API key' : 'Show API key'}
                     >
                       {showAiApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

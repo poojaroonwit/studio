@@ -2,10 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
 
 type SelectOption = {
   id: string;
   name: string;
+  avatarUrl?: string | null;
 };
 
 type JobAppliedSelectEditDialogProps = {
@@ -19,6 +21,7 @@ type JobAppliedSelectEditDialogProps = {
   open: boolean;
   placeholder: string;
   requireValue?: boolean;
+  showAvatars?: boolean;
   title: string;
   value: string;
   emptyOption?: {
@@ -39,6 +42,7 @@ export function JobAppliedSelectEditDialog({
   open,
   placeholder,
   requireValue = false,
+  showAvatars = false,
   title,
   value,
 }: JobAppliedSelectEditDialogProps) {
@@ -59,7 +63,7 @@ export function JobAppliedSelectEditDialog({
                 {emptyOption ? <SelectItem value={emptyOption.value}>{emptyOption.label}</SelectItem> : null}
                 {items.map(item => (
                   <SelectItem key={item.id} value={item.id}>
-                    {item.name}
+                    {showAvatars ? <EmployeeOption name={item.name} avatarUrl={item.avatarUrl} /> : item.name}
                   </SelectItem>
                 ))}
               </SelectContent>

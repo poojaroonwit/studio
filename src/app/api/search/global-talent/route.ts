@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
           ORDER BY g.updated_at DESC LIMIT 8`, [applicantSearch]),
       safeRows<HrisSearchRow>(client, canSearchPerformance,
         `SELECT c.id, 'appraisal' AS type, c.name AS title, c.review_type AS subtitle,
-                'Appraisal' AS domain, c.status, '/workforce/appraisal' AS "deepLink", NULL::text AS meta
+                'Appraisal' AS domain, c.status, '/workforce/performance?tab=appraisal' AS "deepLink", NULL::text AS meta
            FROM hr_performance_cycles c
           WHERE CONCAT_WS(' ', c.name, c.description, c.review_type, c.status) ILIKE $1
           ORDER BY c.updated_at DESC LIMIT 8`, [applicantSearch]),

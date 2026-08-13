@@ -20,7 +20,7 @@ interface JobAppliedEditDialogsProps {
   selectedSalary: string;
   availableStages: Array<{ id: string; name: string }>;
   availableSources: Array<{ id: string; name: string }>;
-  availableRecruiters: Array<{ id: string; name: string }>;
+  availableRecruiters: Array<{ id: string; name: string; avatarUrl?: string | null }>;
   onStatusOpenChange: (open: boolean) => void;
   onSourceOpenChange: (open: boolean) => void;
   onRecruiterOpenChange: (open: boolean) => void;
@@ -109,6 +109,7 @@ export function JobAppliedEditDialogs({
         onValueChange={value => onRecruiterChange(fromJobAppliedSelectValue(value))}
         open={isEditRecruiterOpen}
         placeholder="Select recruiter"
+        showAvatars
         title="Assign Recruiter"
         value={toJobAppliedSelectValue(selectedRecruiterId)}
       />

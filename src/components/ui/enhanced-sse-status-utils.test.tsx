@@ -38,8 +38,8 @@ describe('enhanced-sse-status-utils', () => {
     expect(formatEnhancedSseError('short')).toBe('short');
     expect(formatEnhancedSseError('x'.repeat(55))).toBe(`${'x'.repeat(50)}...`);
     expect(getEnhancedSseSummaryCardClassNames('blue')).toEqual({
-      backgroundClassName: 'bg-blue-50',
-      textClassName: 'text-blue-600',
+      backgroundClassName: 'bg-blue-50 dark:bg-blue-950/40',
+      textClassName: 'text-blue-600 dark:text-blue-300',
     });
   });
 });

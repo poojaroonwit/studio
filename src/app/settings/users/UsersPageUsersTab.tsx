@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { SortableTableHead, type SortDirection, sortRowsByColumn, type SortValueResolverMap } from '@/components/ui/sortable-table';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { UserProfile } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { UserAccountInspector } from './UserAccountInspector';
 import { UsersPageUsersFilters } from './UsersPageUsersFilters';
 import { UsersPageUserRow } from './UsersPageUsersRows';
@@ -74,7 +75,7 @@ export function UsersPageUsersTab(props: UsersPageUsersTabProps) {
   return (
     <div className="min-h-[620px] overflow-hidden rounded-md border border-border bg-background">
       <div className="min-w-0">
-        <div className="grid grid-cols-2 border-b border-border md:grid-cols-5">
+        <div className="flex flex-wrap items-center gap-x-1 border-b border-border px-2 pt-1">
           <StatusSummary label="All" value={counts.all} active={statusFilter === 'all'} icon={UsersRound} onClick={() => setStatusFilter('all')} />
           <StatusSummary label="Active" value={counts.active} active={statusFilter === 'active'} icon={CheckCircle2} tone="success" onClick={() => setStatusFilter('active')} />
           <StatusSummary label="Invited" value={counts.invited} active={statusFilter === 'invited'} icon={Clock3} tone="warning" onClick={() => setStatusFilter('invited')} />
@@ -155,9 +156,18 @@ function StatusSummary({ label, value, icon: Icon, active, tone = 'neutral', onC
 }) {
   const toneClass = { neutral: 'text-foreground', success: 'text-emerald-500', warning: 'text-amber-500', danger: 'text-red-500' }[tone];
   return (
-    <button type="button" onClick={onClick} className={`border-r border-border p-3 text-left transition-colors last:border-r-0 hover:bg-muted/30 ${active ? 'bg-primary/10 shadow-[inset_0_-2px_0_hsl(var(--primary))]' : ''}`}>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground"><span>{label}</span><Icon className={`h-3.5 w-3.5 ${toneClass}`} /></div>
-      <p className={`mt-1 text-lg font-semibold tabular-nums ${toneClass}`}>{value}</p>
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        'relative inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        active && 'border-primary bg-primary/5 text-foreground',
+      )}
+    >
+      <Icon className={cn('h-3.5 w-3.5 shrink-0', toneClass)} />
+      <span>{label}</span>
+      <span className={cn('min-w-4 text-center font-semibold tabular-nums', toneClass)}>{value}</span>
     </button>
   );
 }

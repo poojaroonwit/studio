@@ -32,7 +32,7 @@ export function ErrorBoundaryFallback({
   return (
     <div className="min-flex items-center justify-center bg-background p-4">
       <div className="max-w-md w-full space-y-4">
-        <Alert variant="destructive" className="border-red-200 bg-red-50">
+        <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Something went wrong</AlertTitle>
           <AlertDescription className="mt-2">
@@ -48,9 +48,9 @@ export function ErrorBoundaryFallback({
         </div>
 
         {process.env.NODE_ENV === 'development' && errorInfo && (
-          <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+          <div className="mt-4 rounded bg-muted p-3 text-xs text-muted-foreground">
             <p className="font-medium mb-2">Error Details (Development)</p>
-            <pre className="whitespace-pre-wrap text-gray-700">
+            <pre className="whitespace-pre-wrap text-foreground">
               {errorInfo.componentStack}
             </pre>
           </div>
@@ -69,10 +69,10 @@ function ErrorMessageBody({
   if (flags.isFilterErrorType) {
     return (
       <div className="space-y-2">
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-destructive">
           A data filtering error occurred. This is usually caused by unexpected data format.
         </p>
-        <p className="text-xs text-red-600">
+        <p className="text-xs text-destructive/90">
           Error: {error?.message}
         </p>
         <FilterErrorDetails error={error} />
@@ -94,10 +94,10 @@ function ErrorMessageBody({
         <p className="text-sm text-red-700">
           A date processing error occurred. This is usually caused by invalid date objects.
         </p>
-        <p className="text-xs text-red-600">
+        <p className="text-xs text-destructive/90">
           Error: {error?.message}
         </p>
-        <p className="text-xs text-blue-600">
+        <p className="text-xs text-info">
           This error has been automatically handled. The page should work normally now.
         </p>
       </div>
@@ -120,8 +120,8 @@ function FallbackMessage({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm text-red-700">{description}</p>
-      <p className="text-xs text-red-600">
+      <p className="text-sm text-destructive">{description}</p>
+      <p className="text-xs text-destructive/90">
         Error: {error?.message}
       </p>
     </div>
@@ -136,24 +136,24 @@ function FilterErrorDetails({ error }: { error?: Error }) {
   }
 
   return (
-    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
-      <p className="font-medium text-red-700 mb-2">Error Details</p>
+    <div className="mt-2 rounded border border-destructive/30 bg-destructive/10 p-2 text-xs">
+      <p className="mb-2 font-medium text-destructive">Error Details</p>
       <div className="space-y-1">
-        <p className="text-red-600 font-medium">Stack Trace (Relevant Lines):</p>
+        <p className="font-medium text-destructive/90">Stack Trace (Relevant Lines):</p>
         {relevantLines.map((line, index) => (
-          <pre key={index} className="text-red-500 font-mono text-xs whitespace-pre-wrap">
+          <pre key={index} className="whitespace-pre-wrap font-mono text-xs text-destructive/80">
             {line.trim()}
           </pre>
         ))}
-        <p className="text-red-600 mt-2">
+        <p className="mt-2 text-destructive/90">
           <strong>Root Cause:</strong> The error occurs when trying to call .filter() on a value that is not an array.
           This typically happens when API data is null, undefined, or has an unexpected structure.
         </p>
-        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-          <p className="text-yellow-700 text-xs font-medium mb-1">Suggested Fixes:</p>
-          <ul className="text-yellow-600 text-xs space-y-1">
-            <li>Use the safe filter utility: <code className="bg-yellow-100 px-1 rounded">reactSafeArray.filter()</code></li>
-            <li>Add defensive checks: <code className="bg-yellow-100 px-1 rounded">Array.isArray(data) ? data.filter(...) : []</code></li>
+        <div className="mt-2 rounded border border-warning/30 bg-warning/10 p-2">
+          <p className="mb-1 text-xs font-medium text-warning">Suggested Fixes:</p>
+          <ul className="space-y-1 text-xs text-warning/90">
+            <li>Use the safe filter utility: <code className="rounded bg-warning/15 px-1">reactSafeArray.filter()</code></li>
+            <li>Add defensive checks: <code className="rounded bg-warning/15 px-1">Array.isArray(data) ? data.filter(...) : []</code></li>
             <li>Use the useSafeFilter hook for React components</li>
             <li>Check API response structure and ensure data is properly initialized</li>
           </ul>

@@ -12,6 +12,7 @@ import {
 import { PositionSelectDropdown } from "@/components/applicants/PositionSelectDropdown";
 import { formatScoreWithGrade, getScoreBgColor, getScoreColor } from "@/lib/scoreUtils";
 import type { AddApplicantSectionProps } from "./AddApplicantModalSectionTypes";
+import { ApplicantSourceOption } from './ApplicantSourceOption';
 
 export function AddApplicantApplicationSection({ controller }: AddApplicantSectionProps) {
   const { availableSources, availableStages, form } = controller;
@@ -113,7 +114,7 @@ export function AddApplicantApplicationSection({ controller }: AddApplicantSecti
                 <SelectContent selectId="add-applicant-source-select">
                   <SelectItem value="none">Not specified</SelectItem>
                   {availableSources.filter(source => source.isActive).map(source => (
-                    <SelectItem key={source.id} value={source.id}>{source.name}</SelectItem>
+                    <SelectItem key={source.id} value={source.id}><ApplicantSourceOption name={source.name} description={source.description} /></SelectItem>
                   ))}
                 </SelectContent>
               </Select>

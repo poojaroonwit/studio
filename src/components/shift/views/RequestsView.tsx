@@ -39,6 +39,7 @@ import {
   type ShiftRecord,
 } from '../shift-types';
 import { useShiftAttendance } from '../use-shift-attendance';
+import { AttendanceRequestsReview } from './AttendanceRequestsReview';
 
 export function RequestsView({
   mode,
@@ -51,6 +52,32 @@ export function RequestsView({
   const state = useShiftAttendance('requests', query);
   const [requestDialogOpen, setRequestDialogOpen] = React.useState(false);
 
+  const designPreview = process.env.NODE_ENV !== 'production'
+    && typeof window !== 'undefined'
+    && window.location.hash === '#design-preview';
+
+  if (designPreview && mode === 'attendance' && !employeeSelfService) {
+    return (
+      <AttendanceRequestsReview
+        requests={[]}
+        capabilities={{
+          canViewWorkforce: true,
+          canManageWorkforce: true,
+          canViewPayroll: false,
+          canManagePayroll: false,
+          canSubmitOwnRecords: true,
+          canApproveTeamRecords: true,
+          dataScope: 'manager',
+        }}
+        refreshing={false}
+        saving={false}
+        error={null}
+        onRefresh={() => undefined}
+        onDecision={async () => ({ ok: true })}
+      />
+    );
+  }
+
   if (state.loading) return <Workspace><LoadingState label={`Loading ${mode} requests and approval history…`} /></Workspace>;
   if (state.error && !state.data) return <Workspace><ErrorState message={state.error} onRetry={state.reload} /></Workspace>;
   if (!state.data || !state.capabilities) return null;
@@ -59,6 +86,20 @@ export function RequestsView({
   const assignments = arrayValue(state.data.assignments);
   const colleagues = arrayValue(state.data.colleagues);
   const headerActions = <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => setRequestDialogOpen(true)}><Send className="mr-2 h-4 w-4" />{mode === 'shift' ? 'New shift request' : 'Request correction'}</Button><Button variant="outline" size="sm" onClick={() => state.reload()} disabled={state.refreshing}><RefreshCw className={cn('mr-2 h-4 w-4', state.refreshing && 'animate-spin')} />Refresh</Button></div>;
+
+  if (mode === 'attendance' && !employeeSelfService) {
+    return (
+      <AttendanceRequestsReview
+        requests={requests}
+        capabilities={state.capabilities}
+        refreshing={state.refreshing}
+        saving={state.saving}
+        error={state.error}
+        onRefresh={state.reload}
+        onDecision={(body, message) => state.mutate(body, message, { url: '/api/ess/requests', method: 'PATCH' })}
+      />
+    );
+  }
 
   return (
     <Workspace>

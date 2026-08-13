@@ -31,6 +31,6 @@ export function getAutoCloseActionIcon(action: AutoCloseResult['action']) {
     case 'error':
       return <AlertTriangle className="h-4 w-4 text-red-600" />;
     default:
-      return <Info className="h-4 w-4 text-gray-600" />;
+      return <Info className="h-4 w-4 text-muted-foreground" />;
   }
 }

@@ -26,4 +26,10 @@ describe('isFullPageWorkspacePath', () => {
   it('keeps policy document editors as full-page workspaces', () => {
     expect(isFullPageWorkspacePath('/policy-documents/new')).toBe(true);
   });
+
+  it('keeps public candidate journeys outside the authenticated app shell', () => {
+    expect(isFullPageWorkspacePath('/apply')).toBe(true);
+    expect(isFullPageWorkspacePath('/apply/software-engineer')).toBe(true);
+    expect(isFullPageWorkspacePath('/offer/example-token')).toBe(true);
+  });
 });

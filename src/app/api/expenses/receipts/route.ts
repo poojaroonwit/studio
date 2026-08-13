@@ -144,6 +144,13 @@ export async function GET(request: NextRequest) {
     const receipt = rows[0];
     if (!receipt) return NextResponse.json({ message: 'Receipt not found.' }, { status: 404 });
     await receiptAccess(session.user, receipt.claim_id);
+    if (receipt.storage_path.startsWith('demo://')) {
+      const content = `SYNTHETIC DEMO RECEIPT\nDemo Airways\nReceipt: DEMO-RCPT-0001\nAmount: THB 6,450.00\nNo real purchase or payment occurred.`;
+      const url = `data:text/plain;base64,${Buffer.from(content).toString('base64')}`;
+      return NextResponse.json({ data: { url, fileName: receipt.file_name, expiresInSeconds: 0 } }, {
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
+    }
     const url = await getSignedUrl(receipt.storage_path, 300);
     await logAudit('AUDIT', 'Expense receipt accessed', 'API:Expenses:Receipt', session.user.id, {
       receiptId,

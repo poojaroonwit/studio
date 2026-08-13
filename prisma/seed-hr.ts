@@ -1,6 +1,6 @@
 import prisma from '../src/lib/prisma';
 
-async function main() {
+export async function seedHrDemoData() {
   await prisma.$executeRawUnsafe(`
     INSERT INTO hr_departments (id, name, code, division, department, section, description, updated_at)
     VALUES
@@ -64,12 +64,12 @@ async function main() {
 
   await prisma.$executeRawUnsafe(`
     INSERT INTO hr_payroll_periods (id, name, start_date, end_date, pay_date, status, updated_at)
-    VALUES (gen_random_uuid(), 'July 2026 Payroll', '2026-07-01', '2026-07-31', '2026-07-31', 'open', NOW())
+    VALUES (gen_random_uuid(), to_char(CURRENT_DATE - INTERVAL '1 month', 'FMMonth YYYY') || ' Payroll', date_trunc('month', CURRENT_DATE - INTERVAL '1 month')::date, (date_trunc('month', CURRENT_DATE) - INTERVAL '1 day')::date, (date_trunc('month', CURRENT_DATE) - INTERVAL '1 day')::date, 'open', NOW())
     ON CONFLICT (name) DO NOTHING
   `);
 }
 
-main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/prisma/seed-hr.ts')) seedHrDemoData()
   .catch((error) => {
     console.error(error);
     process.exit(1);

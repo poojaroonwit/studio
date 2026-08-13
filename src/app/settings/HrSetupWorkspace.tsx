@@ -10,7 +10,6 @@ import {
   BookOpen,
   BriefcaseBusiness,
   Building2,
-  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -65,6 +64,8 @@ const setupIcons: Record<string, ComponentType<{ className?: string; strokeWidth
   'Position Levels': GitBranch,
   'Headcount Types': UsersRound,
   'Leave Policies': ShieldCheck,
+  'Leave & Absence Policies': ShieldCheck,
+  'Leave Policy Assignments': UsersRound,
   'Policy Documents': BookOpen,
   'Employee Documents': FileText,
   'Onboarding Checklist': ListChecks,
@@ -135,12 +136,12 @@ export function HrSetupWorkspace({
   }
 
   return (
-    <div className="min-h-full bg-background dark:bg-[#0b1118] text-foreground dark:text-[#e9eef5]">
-      <header className="border-b border-border dark:border-[#25303d] bg-card dark:bg-[#0f1720] px-4 py-4 sm:px-6 lg:px-7">
-        <div className="mx-auto flex max-w-[1500px] flex-col justify-between gap-4 md:flex-row md:items-center">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground dark:bg-[#0b1118] dark:text-[#e9eef5]">
+      <header className="border-b border-border bg-card px-4 py-2.5 dark:border-[#25303d] dark:bg-[#0f1720] sm:px-6 lg:px-7">
+        <div className="flex w-full flex-col justify-between gap-2.5 md:flex-row md:items-center">
           <div>
-            <h1 className="text-[22px] font-semibold tracking-[-0.025em] text-foreground dark:text-white">HR Setup</h1>
-            <p className="mt-1 text-[13px] text-muted-foreground dark:text-[#8c9aab]">Prepare your HR workspace for launch.</p>
+            <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground dark:text-white">HR Setup</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground dark:text-[#8c9aab]">Prepare your HR workspace for launch.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-md border border-border dark:border-[#344150] bg-background dark:bg-[#0b1118] p-0.5" aria-label="HR Setup view">
@@ -151,7 +152,7 @@ export function HrSetupWorkspace({
         </div>
       </header>
 
-      <main className="w-full">
+      <main className="min-h-0 w-full flex-1">
         {view === 'guided' ? (
           <GuidedSetupView
             items={uniqueItems}
@@ -177,18 +178,20 @@ export function HrSetupWorkspace({
 
 function ViewButton({ active, icon: Icon, onClick, children }: { active: boolean; icon: typeof ListChecks; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex h-8 items-center gap-1.5 rounded-[4px] px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2] ${active ? 'bg-[#286bd8] text-white' : 'text-muted-foreground dark:text-[#8f9cad] hover:bg-muted hover:text-foreground dark:hover:bg-[#17212c] dark:hover:text-white'}`}>
-      <Icon className="h-3.5 w-3.5" /> {children}
+    <button type="button" onClick={onClick} aria-pressed={active} className={`inline-flex h-7 items-center gap-1.5 rounded-[4px] px-2.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2] ${active ? 'bg-[#286bd8] text-white' : 'text-muted-foreground dark:text-[#8f9cad] hover:bg-muted hover:text-foreground dark:hover:bg-[#17212c] dark:hover:text-white'}`}>
+      <Icon className="h-3 w-3" /> {children}
     </button>
   );
 }
 
 function GuidedSetupView({ items, statuses, progress, progressLoading, selectedItem, onSelect }: { items: SettingsPageItem[]; statuses: PlatformSetupFeatureStatus[]; progress?: SetupStatusResponse['progress']; progressLoading: boolean; selectedItem: SettingsPageItem; onSelect: (item: SettingsPageItem) => void }) {
-  const [expandedMilestones, setExpandedMilestones] = useState(() => new Set([0, 1]));
+  const [expandedMilestones, setExpandedMilestones] = useState(() => new Set(hrSetupMilestones.map((_, index) => index)));
+  const [query, setQuery] = useState('');
+  const normalizedQuery = query.trim().toLocaleLowerCase();
 
   useEffect(() => {
     const activeMilestoneIndex = hrSetupMilestones.findIndex(milestone =>
-      milestone.itemLabels.includes(selectedItem.label),
+      (milestone.itemLabels as readonly string[]).includes(selectedItem.label),
     );
 
     if (activeMilestoneIndex >= 0) {
@@ -214,10 +217,24 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
   };
 
   return (
-    <div className="grid min-h-[650px] overflow-hidden rounded-lg bg-card dark:bg-[#101821] lg:grid-cols-[268px_minmax(0,1fr)]">
-      <aside className="max-h-[38dvh] w-full shrink-0 overflow-y-auto border-b border-[#d9dde5] bg-[#fbfbfc] px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950 lg:max-h-none lg:w-[268px] lg:border-b-0 lg:border-r">
-        <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a909b] dark:text-zinc-500">Configuration</p>
-        <div className="flex items-center gap-3 border-b border-border dark:border-[#293441] px-4 py-3.5">
+    <div className="grid h-full min-h-0 overflow-hidden bg-card dark:bg-[#101821] lg:grid-cols-[268px_minmax(0,1fr)]">
+      <aside className="flex max-h-[38dvh] w-full shrink-0 flex-col overflow-hidden border-b border-[#d9dde5] bg-[#fbfbfc] dark:border-zinc-800 dark:bg-zinc-950 lg:max-h-none lg:w-[268px] lg:border-b-0 lg:border-r">
+        <div className="shrink-0 px-3 pb-2 pt-3">
+          <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a909b] dark:text-zinc-500">Configuration</p>
+          <label htmlFor="hr-setup-navigation-search" className="sr-only">Search HR setup configuration</label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="hr-setup-navigation-search"
+              type="search"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder="Search configuration"
+              className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-900"
+            />
+          </div>
+        </div>
+        <div className="hidden">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-foreground dark:text-[#e5ebf2]">Launch checklist</p>
             <p className="mt-1 text-[11px] text-muted-foreground dark:text-[#748397]">
@@ -225,32 +242,27 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
             </p>
           </div>
         </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 [scrollbar-color:rgb(113_113_122)_transparent] [scrollbar-width:thin]">
           <div className="space-y-0">
           {hrSetupMilestones.map((milestone, index) => {
-            const milestoneItems = getHrSetupItemsByLabels(items, milestone.itemLabels);
-            const isActive = milestoneItems.some(item => item.label === selectedItem.label);
-            const readyCount = milestoneItems.filter(item => getHrSetupReadiness(item, statuses) === 'ready').length;
-            const complete = milestoneItems.length > 0 && readyCount === milestoneItems.length;
+            const milestoneItems = getHrSetupItemsByLabels(items, milestone.itemLabels).filter(item =>
+              !normalizedQuery || `${milestone.label} ${item.label} ${item.description}`.toLocaleLowerCase().includes(normalizedQuery),
+            );
+            if (milestoneItems.length === 0) return null;
             const isExpanded = expandedMilestones.has(index);
             return (
-              <section key={milestone.label} className="border-b border-border dark:border-[#27313d] last:border-b-0">
+              <section key={milestone.label} className="pb-3">
                 <button
                   type="button"
                   onClick={() => toggleMilestone(index)}
                   aria-expanded={isExpanded}
-                  className={cn(
-                    'flex w-full items-center gap-3 px-4 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b91e2]',
-                    isActive
-                      ? 'bg-[#eaf1fa] text-[#245b9e] dark:bg-blue-950/60 dark:text-blue-200'
-                      : 'text-[#3d424b] hover:bg-[#eef1f5] dark:text-zinc-300 dark:hover:bg-zinc-900',
-                  )}
+                  className="flex w-full items-center px-2 pb-1.5 text-left text-[11px] font-medium text-[#777c86] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-400"
                 >
-                  <MilestoneNumber number={index + 1} complete={complete} active={isActive} />
-                  <div className="min-w-0 flex-1"><h2 className="truncate text-xs font-semibold text-foreground dark:text-[#dfe6ee]">{index + 1}. {milestone.label}</h2><p className={`mt-0.5 text-[10px] ${complete ? 'text-success dark:text-[#58d07a]' : isActive ? 'text-info dark:text-[#6caeff]' : 'text-muted-foreground dark:text-[#758397]'}`}>{complete ? 'Complete' : isActive ? 'In progress' : `${readyCount} of ${milestoneItems.length} ready`}</p></div>
-                    <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform dark:text-[#8592a2]', isExpanded ? 'rotate-180' : '')} />
+                  <span className="min-w-0 flex-1 truncate">{milestone.label}</span>
+                  <ChevronDown className={cn('hidden h-3 w-3 transition-transform', isExpanded ? 'rotate-180' : '')} />
                 </button>
                 {isExpanded && (
-                  <div className="pb-2">
+                  <div className="space-y-0.5">
                     {milestoneItems.map(item => (
                       <ChecklistItem key={`${item.label}-${item.href}`} item={item} readiness={getHrSetupReadiness(item, statuses)} active={item.label === selectedItem.label} onClick={() => onSelect(item)} />
                     ))}
@@ -259,22 +271,24 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
               </section>
             );
           })}
+          {normalizedQuery && !hrSetupMilestones.some(milestone =>
+            getHrSetupItemsByLabels(items, milestone.itemLabels).some(item =>
+              `${milestone.label} ${item.label} ${item.description}`.toLocaleLowerCase().includes(normalizedQuery),
+            ),
+          ) && <p className="px-2 py-8 text-center text-xs text-muted-foreground">No configurations found.</p>}
+          </div>
         </div>
-        <div className="border-t border-border dark:border-[#293441] p-4">
+        <div className="hidden">
           <div className="flex items-start gap-2.5"><BookOpen className="mt-0.5 h-4 w-4 text-info dark:text-[#6caeff]" /><div><Link href="/settings/overview" className="inline-flex items-center gap-1 text-[10px] text-info dark:text-[#65a8f4] hover:text-info dark:hover:text-[#9dceff]">Review Admin Center <ArrowRight className="h-3 w-3" /></Link></div></div>
         </div>
       </aside>
-      <ConfigurationWorkbench item={selectedItem} readiness={getHrSetupReadiness(selectedItem, statuses)} />
+      <ConfigurationWorkbench item={selectedItem} />
     </div>
   );
 }
 
-function MilestoneNumber({ number, complete, active }: { number: number; complete: boolean; active: boolean }) {
-  if (complete) return <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#247a43] text-white"><Check className="h-4 w-4" /></span>;
-  return <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${active ? 'bg-[#286bd8] text-white' : 'bg-muted dark:bg-[#3a4655] text-foreground dark:text-[#d7dee7]'}`}>{number}</span>;
-}
-
 function ChecklistItem({ item, readiness, active, onClick }: { item: SettingsPageItem; readiness: HrSetupReadiness; active: boolean; onClick: () => void }) {
+  void readiness;
   const Icon = setupIcons[item.label] ?? Settings2;
   return (
     <button
@@ -295,35 +309,23 @@ function ChecklistItem({ item, readiness, active, onClick }: { item: SettingsPag
             : 'border-[#e1e6ed] bg-white text-[#69778b] group-hover:text-[#315f9f] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400',
         )}
       >
-        <ReadinessIcon readiness={readiness} />
+        <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
       </span>
-      <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-info dark:text-[#87bfff]' : 'text-muted-foreground dark:text-[#8795a7]'}`} strokeWidth={1.7} />
-      <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground dark:text-[#d4dce6]">{item.label}</span>
+      <span className="min-w-0 flex-1 truncate text-[12px] font-medium leading-5">{item.label}</span>
       <ChevronRight className={cn('h-3.5 w-3.5 shrink-0', active ? 'text-[#2f6db2] dark:text-blue-300' : 'text-[#a1a7b0]')} />
     </button>
   );
 }
 
-function ConfigurationWorkbench({ item, readiness }: { item: SettingsPageItem; readiness: HrSetupReadiness }) {
-  const Icon = setupIcons[item.label] ?? Settings2;
+function ConfigurationWorkbench({ item }: { item: SettingsPageItem }) {
   const embeddedHref = buildEmbeddedSettingsHref(item.href);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => setLoading(true), [embeddedHref]);
 
   return (
-    <section className="flex min-h-[650px] min-w-0 flex-col bg-card dark:bg-[#111a24]">
-      <div className="shrink-0 border-b border-border dark:border-[#293441] px-5 py-4">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-info/10 dark:bg-[#19365d] text-info dark:text-[#81b9fa]"><Icon className="h-5 w-5" strokeWidth={1.7} /></span>
-            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold text-foreground dark:text-white">{item.label}</h2><StatusLabel readiness={readiness} /></div><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground dark:text-[#8e9cad]">{item.description}</p></div>
-          </div>
-          <Link href={buildAdminCenterItemHref(item)} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border dark:border-[#38577a] px-3 text-[11px] font-semibold text-info dark:text-[#92c6ff] hover:bg-info/10 dark:hover:bg-[#172b42]">Open full page <ArrowRight className="h-3 w-3" /></Link>
-        </div>
-        {readiness === 'attention' && <div className="mt-3 flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[11px] text-warning dark:border-[#66512c] dark:bg-[#2b2315] dark:text-[#f0b84f]"><AlertTriangle className="h-3.5 w-3.5" />This configuration needs attention before workspace setup is complete.</div>}
-      </div>
-      <div className="relative min-h-[480px] flex-1 bg-background dark:bg-[#0b1118]">
+    <section className="flex min-h-0 min-w-0 flex-col bg-card dark:bg-[#111a24]">
+      <div className="relative min-h-0 flex-1 bg-background dark:bg-[#0b1118]">
         {loading && <ConfigurationWorkbenchSkeleton label={item.label} />}
         <iframe key={embeddedHref} src={embeddedHref} title={`${item.label} configuration`} onLoad={() => setLoading(false)} className={`absolute inset-0 h-full w-full border-0 bg-background transition-opacity ${loading ? 'opacity-0' : 'opacity-100'}`} />
       </div>
@@ -375,7 +377,7 @@ function SetupMapView({ items, statuses, selectedItem, onSelect, onConfigure }: 
     setDialogItem(item);
   };
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <label className="relative block w-full sm:max-w-[430px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground dark:text-[#8190a3]" />

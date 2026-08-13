@@ -83,10 +83,8 @@ interface AdminPortalOnboardingResponse {
 }
 
 function AdminPortalPanel({
-  isLoading,
   onNavigate,
 }: {
-  isLoading: boolean;
   onNavigate: (href: string) => void;
 }) {
   const [progressPayload, setProgressPayload] = useState<OnboardingProgressPayload>({
@@ -103,10 +101,15 @@ function AdminPortalPanel({
   const [isPanelDismissed, setIsPanelDismissed] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 6000);
     const loadAdminSnapshots = async () => {
       setIsLoadingProgress(true);
       try {
-        const response = await fetch('/api/settings/platform-setup/status', { cache: 'no-store' });
+        const response = await fetch('/api/settings/platform-setup/status', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
         if (!response.ok) {
           setProgressPayload({
             title: "Activate your workspace",
@@ -145,12 +148,33 @@ function AdminPortalPanel({
         });
       } catch (error) {
         console.error('Failed to load admin onboarding progress.', error);
+        setProgressPayload({
+          title: "Workspace setup needs attention",
+          subtitle: "Setup progress could not be loaded. Open HR Setup to review configuration and service connectivity.",
+          steps: [{
+            id: 'setup-recovery',
+            title: 'Review HR Setup',
+            description: 'Check required modules and retry the setup status service.',
+            href: '/settings',
+            required: true,
+            ready: false,
+            count: 0,
+            requiredCount: 1,
+            actionLabel: 'Open HR Setup',
+          }],
+          progress: { completed: 0, total: 1, percentage: 0 },
+        });
       } finally {
+        window.clearTimeout(timeoutId);
         setIsLoadingProgress(false);
       }
     };
 
     void loadAdminSnapshots();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   if (isPanelDismissed) return null;
@@ -159,7 +183,9 @@ function AdminPortalPanel({
     <section className="dashboard-card dashboard-full-panel onboarding-dashboard-panel" aria-labelledby="admin-portal-onboarding-title">
       <OnboardingProgress
         onNavigate={onNavigate}
-        isLoading={isLoading || isLoadingProgress}
+        // Platform setup has its own request lifecycle. A slower analytics
+        // request must not hold this independent journey in a skeleton state.
+        isLoading={isLoadingProgress}
         payload={progressPayload}
         onDismiss={() => setIsPanelDismissed(true)}
       />
@@ -175,9 +201,9 @@ function DashboardCommonAdminPanel({ isLoading, onNavigate }: {
   isLoading: boolean;
   onNavigate: NavigateHandler;
 }) {
+  void isLoading;
   return (
     <AdminPortalPanel
-      isLoading={isLoading}
       onNavigate={onNavigate}
     />
   );

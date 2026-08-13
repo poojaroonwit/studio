@@ -5,7 +5,7 @@ import type { Grade, Position } from '@/lib/types';
 import type { EditPositionFormValues } from './position-edit-form';
 
 export interface PositionDetailsRowOptions {
-  availableRecruiters: Array<{ id: string; name: string }>;
+  availableRecruiters: Array<{ id: string; name: string; avatarUrl?: string | null; personalColor?: string | null }>;
   form: UseFormReturn<EditPositionFormValues>;
   grades: Grade[];
   isEditMode: boolean;

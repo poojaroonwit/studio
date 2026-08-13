@@ -1,0 +1,114 @@
+   ▲ Next.js 15.5.9
+   - Local:        http://localhost:8022
+   - Network:      http://26.170.213.222:8022
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     · serverActions
+     · optimizePackageImports
+
+ ✓ Starting...
+ ✓ Compiled /instrumentation in 405ms (20 modules)
+ ✓ Ready in 2.7s
+ ✓ Compiled /middleware in 331ms (117 modules)
+ ○ Compiling /workforce/attendance ...
+ ✓ Compiled /workforce/attendance in 13.2s (4722 modules)
+ ✓ Compiled in 2.2s (2034 modules)
+ GET /workforce/attendance?view=requests 200 in 16009ms
+ ○ Compiling /api/broadcast/active ...
+ ✓ Compiled /api/broadcast/active in 4.1s (4853 modules)
+ GET /api/settings/system-settings?keys=appLogoDataUrl%2CappName%2CshowLogoOnly%2CsidebarLogoSize%2CcollapsedSidebarLogoSize%2CsidebarLogoCollapsedLightMode%2CsidebarLogoExpandedLightMode%2CsidebarLogoCollapsedDarkMode%2CsidebarLogoExpandedDarkMode%2CthemePreference%2CprimaryGradient%2CprimaryButtonShadowL%2CprimaryButtonShadowHoverL%2CprimaryButtonShadowD%2CprimaryButtonShadowHoverD%2CsidebarBackgroundType%2CsidebarBackgroundImageUrl%2CsidebarBackgroundImageFit%2CsidebarBackgroundImagePosition%2CsidebarNavigationMode%2CsidebarSecondaryGroupLabels%2CsidebarBgStartL%2CsidebarBgEndL%2CsidebarTextL%2CsidebarActiveBgStartL%2CsidebarActiveBgEndL%2CsidebarActiveTextL%2CsidebarHoverBgL%2CsidebarHoverTextL%2CsidebarBorderL%2CbuttonTextColorL%2CbuttonTextColorD%2CsidebarBgStartD%2CsidebarBgEndD%2CsidebarTextD%2CsidebarActiveBgStartD%2CsidebarActiveBgEndD%2CsidebarActiveTextD%2CsidebarHoverBgD%2CsidebarHoverTextD%2CsidebarBorderD%2CsidebarFontFamilyL%2CsidebarFontSizeL%2CsidebarFontWeightL%2CsidebarLineHeightL%2CsidebarLetterSpacingL%2CsidebarTextTransformL%2CsidebarFontFamilyD%2CsidebarFontSizeD%2CsidebarFontWeightD%2CsidebarLineHeightD%2CsidebarLetterSpacingD%2CsidebarTextTransformD%2CsidebarBorderWidthL%2CsidebarBorderStyleL%2CsidebarBorderRadiusL%2CsidebarShadowL%2CsidebarShadowHoverL%2CsidebarShadowActiveL%2CsidebarBorderWidthD%2CsidebarBorderStyleD%2CsidebarBorderRadiusD%2CsidebarShadowD%2CsidebarShadowHoverD%2CsidebarShadowActiveD%2CsidebarPaddingXL%2CsidebarPaddingYL%2CsidebarMarginL%2CsidebarGapL%2CsidebarWidthL%2CsidebarWidthCollapsedL%2CsidebarTransitionDurationL%2CsidebarTransitionTimingL%2CsidebarPaddingXD%2CsidebarPaddingYD%2CsidebarMarginD%2CsidebarGapD%2CsidebarWidthD%2CsidebarWidthCollapsedD%2CsidebarTransitionDurationD%2CsidebarTransitionTimingD%2CsidebarMenuItemBgL%2CsidebarMenuItemBgHoverL%2CsidebarMenuItemBgActiveL%2CsidebarMenuItemColorL%2CsidebarMenuItemColorHoverL%2CsidebarMenuItemColorActiveL%2CsidebarMenuItemBorderL%2CsidebarMenuItemBorderHoverL%2CsidebarMenuItemBorderActiveL%2CsidebarMenuItemBorderRadiusL%2CsidebarMenuItemPaddingXL%2CsidebarMenuItemPaddingYL%2CsidebarMenuItemMarginL%2CsidebarMenuItemFontWeightL%2CsidebarMenuItemFontWeightActiveL%2CsidebarMenuItemFontSizeL%2CsidebarMenuItemLineHeightL%2CsidebarMenuItemTransitionL%2CsidebarMenuItemBgD%2CsidebarMenuItemBgHoverD%2CsidebarMenuItemBgActiveD%2CsidebarMenuItemColorD%2CsidebarMenuItemColorHoverD%2CsidebarMenuItemColorActiveD%2CsidebarMenuItemBorderD%2CsidebarMenuItemBorderHoverD%2CsidebarMenuItemBorderActiveD%2CsidebarMenuItemBorderRadiusD%2CsidebarMenuItemPaddingXD%2CsidebarMenuItemPaddingYD%2CsidebarMenuItemMarginD%2CsidebarMenuItemFontWeightD%2CsidebarMenuItemFontWeightActiveD%2CsidebarMenuItemFontSizeD%2CsidebarMenuItemLineHeightD%2CsidebarMenuItemTransitionD%2CsidebarIconSizeL%2CsidebarIconColorL%2CsidebarIconColorHoverL%2CsidebarIconColorActiveL%2CsidebarIconMarginRightL%2CsidebarIconTransitionL%2CsidebarIconSizeD%2CsidebarIconColorD%2CsidebarIconColorHoverD%2CsidebarIconColorActiveD%2CsidebarIconMarginRightD%2CsidebarIconTransitionD%2CsidebarGroupLabelColorL%2CsidebarGroupLabelFontSizeL%2CsidebarGroupLabelFontWeightL%2CsidebarGroupLabelTextTransformL%2CsidebarGroupLabelLetterSpacingL%2CsidebarGroupLabelPaddingL%2CsidebarGroupLabelMarginL%2CsidebarGroupLabelColorD%2CsidebarGroupLabelFontSizeD%2CsidebarGroupLabelFontWeightD%2CsidebarGroupLabelTextTransformD%2CsidebarGroupLabelLetterSpacingD%2CsidebarGroupLabelPaddingD%2CsidebarGroupLabelMarginD 200 in 5060ms
+ ✓ Compiled /api/upload-queue/health in 431ms (4856 modules)
+ GET /api/user-preferences 200 in 5600ms
+ GET /api/broadcast/active 200 in 5512ms
+ GET /api/auth/session 200 in 5848ms
+ GET /api/settings/system-settings?keys=appName%2CappLogoDataUrl%2CappFaviconDataUrl%2CorganizationLogoDataUrl%2CappThemePreference%2CshowLogoOnly%2CsidebarLogoSize%2CsidebarLogoCollapsedLightMode%2CsidebarLogoExpandedLightMode%2CsidebarLogoCollapsedDarkMode%2CsidebarLogoExpandedDarkMode%2CloginPageLogoLightMode%2CloginPageLogoDarkMode%2CsplashBackgroundColor%2CsplashLogoDataUrl%2CsplashAnimationType%2CpwaEnabled%2CpwaThemeColor%2CpwaBackgroundColor%2CpwaAppleMobileWebAppTitle%2CpwaAppleMobileWebAppStatusBarStyle%2CrightClickProtectionEnabled%2CscreenCaptureProtectionEnabled 200 in 6002ms
+ ○ Compiling /api/realtime/notifications ...
+ GET /api/upload-queue/health 200 in 1502ms
+ ✓ Compiled /api/realtime/notifications in 1134ms (4883 modules)
+ GET /api/realtime/notifications?limit=50 200 in 1936ms
+ GET /api/settings/platform-setup/status 200 in 2179ms
+ GET /api/broadcast/active 200 in 2086ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 318ms
+ GET /api/hr/shift-attendance?view=requests 200 in 2888ms
+ GET /api/hr/shift-attendance?view=requests 200 in 1941ms
+ GET /api/settings/platform-setup/status 200 in 689ms
+ ○ Compiling /api/privacy-support/categories ...
+ ✓ Compiled /api/privacy-support/categories in 1122ms (4891 modules)
+ GET /workforce/attendance?view=requests 200 in 2910ms
+ GET /api/user-preferences 200 in 3002ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 194ms
+ GET /api/broadcast/active 200 in 3497ms
+ GET /api/privacy-support/categories 200 in 3681ms
+ GET /api/privacy-support/categories 200 in 3985ms
+ GET /api/broadcast/active 200 in 668ms
+ GET /api/upload-queue/health 200 in 356ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 257ms
+ GET /api/user-preferences 200 in 454ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 294ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 349ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 315ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 231ms
+ GET /api/upload-queue/health 200 in 685ms
+ GET /api/user-preferences 200 in 417ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 158ms
+ GET /api/broadcast/active 200 in 889ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 150ms
+ ✓ Compiled in 3.4s (4704 modules)
+ GET /workforce/attendance?view=requests 200 in 1690ms
+ GET /api/sse 200 in 89343ms
+ GET /workforce/attendance?view=requests&preview=design 200 in 643ms
+ ✓ Compiled /api/broadcast/active in 350ms (2687 modules)
+ ✓ Compiled (2850 modules)
+ GET /api/settings/system-settings?keys=appLogoDataUrl%2CappName%2CshowLogoOnly%2CsidebarLogoSize%2CcollapsedSidebarLogoSize%2CsidebarLogoCollapsedLightMode%2CsidebarLogoExpandedLightMode%2CsidebarLogoCollapsedDarkMode%2CsidebarLogoExpandedDarkMode%2CthemePreference%2CprimaryGradient%2CprimaryButtonShadowL%2CprimaryButtonShadowHoverL%2CprimaryButtonShadowD%2CprimaryButtonShadowHoverD%2CsidebarBackgroundType%2CsidebarBackgroundImageUrl%2CsidebarBackgroundImageFit%2CsidebarBackgroundImagePosition%2CsidebarNavigationMode%2CsidebarSecondaryGroupLabels%2CsidebarBgStartL%2CsidebarBgEndL%2CsidebarTextL%2CsidebarActiveBgStartL%2CsidebarActiveBgEndL%2CsidebarActiveTextL%2CsidebarHoverBgL%2CsidebarHoverTextL%2CsidebarBorderL%2CbuttonTextColorL%2CbuttonTextColorD%2CsidebarBgStartD%2CsidebarBgEndD%2CsidebarTextD%2CsidebarActiveBgStartD%2CsidebarActiveBgEndD%2CsidebarActiveTextD%2CsidebarHoverBgD%2CsidebarHoverTextD%2CsidebarBorderD%2CsidebarFontFamilyL%2CsidebarFontSizeL%2CsidebarFontWeightL%2CsidebarLineHeightL%2CsidebarLetterSpacingL%2CsidebarTextTransformL%2CsidebarFontFamilyD%2CsidebarFontSizeD%2CsidebarFontWeightD%2CsidebarLineHeightD%2CsidebarLetterSpacingD%2CsidebarTextTransformD%2CsidebarBorderWidthL%2CsidebarBorderStyleL%2CsidebarBorderRadiusL%2CsidebarShadowL%2CsidebarShadowHoverL%2CsidebarShadowActiveL%2CsidebarBorderWidthD%2CsidebarBorderStyleD%2CsidebarBorderRadiusD%2CsidebarShadowD%2CsidebarShadowHoverD%2CsidebarShadowActiveD%2CsidebarPaddingXL%2CsidebarPaddingYL%2CsidebarMarginL%2CsidebarGapL%2CsidebarWidthL%2CsidebarWidthCollapsedL%2CsidebarTransitionDurationL%2CsidebarTransitionTimingL%2CsidebarPaddingXD%2CsidebarPaddingYD%2CsidebarMarginD%2CsidebarGapD%2CsidebarWidthD%2CsidebarWidthCollapsedD%2CsidebarTransitionDurationD%2CsidebarTransitionTimingD%2CsidebarMenuItemBgL%2CsidebarMenuItemBgHoverL%2CsidebarMenuItemBgActiveL%2CsidebarMenuItemColorL%2CsidebarMenuItemColorHoverL%2CsidebarMenuItemColorActiveL%2CsidebarMenuItemBorderL%2CsidebarMenuItemBorderHoverL%2CsidebarMenuItemBorderActiveL%2CsidebarMenuItemBorderRadiusL%2CsidebarMenuItemPaddingXL%2CsidebarMenuItemPaddingYL%2CsidebarMenuItemMarginL%2CsidebarMenuItemFontWeightL%2CsidebarMenuItemFontWeightActiveL%2CsidebarMenuItemFontSizeL%2CsidebarMenuItemLineHeightL%2CsidebarMenuItemTransitionL%2CsidebarMenuItemBgD%2CsidebarMenuItemBgHoverD%2CsidebarMenuItemBgActiveD%2CsidebarMenuItemColorD%2CsidebarMenuItemColorHoverD%2CsidebarMenuItemColorActiveD%2CsidebarMenuItemBorderD%2CsidebarMenuItemBorderHoverD%2CsidebarMenuItemBorderActiveD%2CsidebarMenuItemBorderRadiusD%2CsidebarMenuItemPaddingXD%2CsidebarMenuItemPaddingYD%2CsidebarMenuItemMarginD%2CsidebarMenuItemFontWeightD%2CsidebarMenuItemFontWeightActiveD%2CsidebarMenuItemFontSizeD%2CsidebarMenuItemLineHeightD%2CsidebarMenuItemTransitionD%2CsidebarIconSizeL%2CsidebarIconColorL%2CsidebarIconColorHoverL%2CsidebarIconColorActiveL%2CsidebarIconMarginRightL%2CsidebarIconTransitionL%2CsidebarIconSizeD%2CsidebarIconColorD%2CsidebarIconColorHoverD%2CsidebarIconColorActiveD%2CsidebarIconMarginRightD%2CsidebarIconTransitionD%2CsidebarGroupLabelColorL%2CsidebarGroupLabelFontSizeL%2CsidebarGroupLabelFontWeightL%2CsidebarGroupLabelTextTransformL%2CsidebarGroupLabelLetterSpacingL%2CsidebarGroupLabelPaddingL%2CsidebarGroupLabelMarginL%2CsidebarGroupLabelColorD%2CsidebarGroupLabelFontSizeD%2CsidebarGroupLabelFontWeightD%2CsidebarGroupLabelTextTransformD%2CsidebarGroupLabelLetterSpacingD%2CsidebarGroupLabelPaddingD%2CsidebarGroupLabelMarginD 200 in 2948ms
+ GET /api/auth/session 200 in 3169ms
+ GET /api/user-preferences 200 in 3393ms
+ GET /api/settings/system-settings?keys=appName%2CappLogoDataUrl%2CappFaviconDataUrl%2CorganizationLogoDataUrl%2CappThemePreference%2CshowLogoOnly%2CsidebarLogoSize%2CsidebarLogoCollapsedLightMode%2CsidebarLogoExpandedLightMode%2CsidebarLogoCollapsedDarkMode%2CsidebarLogoExpandedDarkMode%2CloginPageLogoLightMode%2CloginPageLogoDarkMode%2CsplashBackgroundColor%2CsplashLogoDataUrl%2CsplashAnimationType%2CpwaEnabled%2CpwaThemeColor%2CpwaBackgroundColor%2CpwaAppleMobileWebAppTitle%2CpwaAppleMobileWebAppStatusBarStyle%2CrightClickProtectionEnabled%2CscreenCaptureProtectionEnabled 200 in 3491ms
+ ○ Compiling /api/settings/platform-setup/status ...
+ GET /api/broadcast/active 200 in 3733ms
+ ✓ Compiled /api/realtime/notifications in 3.3s (4887 modules)
+ ✓ Compiled (4914 modules)
+ GET /api/realtime/notifications?limit=50 200 in 1709ms
+ GET /api/upload-queue/health 200 in 2156ms
+ GET /api/settings/platform-setup/status 200 in 2164ms
+ GET /api/broadcast/active 200 in 1900ms
+ GET /api/hr/shift-attendance?view=requests 200 in 2383ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 295ms
+ GET /api/hr/shift-attendance?view=requests 200 in 695ms
+ GET /api/settings/platform-setup/status 200 in 714ms
+ ○ Compiling /api/privacy-support/categories ...
+ ✓ Compiled /api/privacy-support/categories in 508ms (2888 modules)
+ GET /workforce/attendance?view=requests&preview=design 200 in 1557ms
+ GET /api/user-preferences 200 in 1582ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 273ms
+ GET /api/privacy-support/categories 200 in 2208ms
+ GET /api/privacy-support/categories 200 in 2292ms
+ GET /api/broadcast/active 200 in 2279ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 275ms
+ GET /api/upload-queue/health 200 in 509ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 153ms
+ GET /api/user-preferences 200 in 446ms
+ GET /api/broadcast/active 200 in 1057ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 185ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 280ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 339ms
+ GET /api/upload-queue/health 200 in 483ms
+ GET /api/broadcast/active 200 in 810ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 174ms
+ GET /api/user-preferences 200 in 470ms
+ GET /api/settings/system-settings?keys=broadcastBannerActiveId,broadcastBannerOneTitle,broadcastBannerOneMessage,broadcastBannerOneTone,broadcastBannerTwoTitle,broadcastBannerTwoMessage,broadcastBannerTwoTone,broadcastBannerThreeTitle,broadcastBannerThreeMessage,broadcastBannerThreeTone 200 in 164ms
+ GET /workforce/attendance?view=requests&preview=design 200 in 198ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 820ms
+ GET /api/settings/system-settings?keys=drawerStyle 200 in 156ms
+ GET /api/upload-queue/health 200 in 1067ms
+ GET /api/upload-queue/health 200 in 306ms
+ ✓ Compiled in 869ms (4922 modules)
+ GET /workforce/attendance?view=requests&preview=design 200 in 774ms
+ ✓ Compiled in 1303ms (4866 modules)
+ GET /workforce/attendance?view=requests&preview=design 200 in 827ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 617ms (4674 modules)
+ ○ Compiling /_error ...
+ GET /api/sse 200 in 98580ms
+ GET /workforce/attendance?view=requests 404 in 3701ms
+ ✓ Compiled /_error in 2.6s (5018 modules)
+[?25h

@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import {
   type Interviewer,
   type User,
@@ -88,6 +89,7 @@ export function InterviewersSection({
                     checked={selectedInterviewerIds.has(interviewer.userId)}
                     onCheckedChange={() => onToggleInterviewer(interviewer.userId)}
                   />
+                  <UserAvatarCompact user={{ id: interviewer.userId, name: interviewer.userName }} size="xs" />
                   <Label htmlFor={`inv-${interviewer.userId}`} className="text-sm cursor-pointer flex-1">
                     {interviewer.userName} <span className="text-muted-foreground">({interviewer.userEmail})</span>
                   </Label>
@@ -142,6 +144,7 @@ function AddInterviewersPanel({
                 checked={selectedUserIds.has(user.id)}
                 onCheckedChange={(checked) => onSelectedUserIdsChange(toggleStringSet(selectedUserIds, user.id, Boolean(checked)))}
               />
+              <UserAvatarCompact user={user} size="xs" />
               <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer flex flex-col">
                 <span className="font-medium">{user.name}</span>
                 <span className="text-xs text-muted-foreground">

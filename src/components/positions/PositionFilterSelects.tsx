@@ -6,6 +6,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocalization } from '@/contexts/LocalizationContext';
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
+import { RecruiterAvatar } from '@/components/ui/recruiter-avatar';
 
 import type {
   PositionFilterGrade,
@@ -72,7 +74,7 @@ export function PositionHiringManagerFilter({
           <SelectItem value="all">{t("positions.filters.allHiringManagers", "All Hiring Managers")}</SelectItem>
           {availableHiringManagers.map((hiringManager) => (
             <SelectItem key={hiringManager.id} value={hiringManager.id}>
-              {hiringManager.name}
+              <EmployeeOption name={hiringManager.name} avatarUrl={hiringManager.avatarUrl} detail="Hiring manager" />
             </SelectItem>
           ))}
         </SelectContent>
@@ -108,7 +110,7 @@ export function PositionRecruiterFilter({
           <SelectItem value="unassigned">{t("positions.filters.unassignedRecruiter", "No Recruiter Assigned")}</SelectItem>
           {availableRecruiters.map((recruiter) => (
             <SelectItem key={recruiter.id} value={recruiter.id}>
-              {recruiter.name}
+              <span className="flex items-center gap-2.5"><RecruiterAvatar user={recruiter} size="xs" showBorder={false} /><span>{recruiter.name}</span></span>
             </SelectItem>
           ))}
         </SelectContent>

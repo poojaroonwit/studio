@@ -38,7 +38,7 @@ export function MobileSelectDialog({
         type="button"
         variant="outline"
         className={cn(
-          "w-full justify-between h-8 !rounded-lg border border-input bg-gray-100 dark:bg-gray-600 px-2.5 py-1.5 text-sm font-normal",
+          "h-8 w-full justify-between !rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm font-normal text-foreground",
           "hover:bg-accent hover:text-accent-foreground",
           disabled && "opacity-50 cursor-not-allowed",
         )}

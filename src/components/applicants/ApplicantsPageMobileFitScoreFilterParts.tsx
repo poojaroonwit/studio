@@ -18,7 +18,7 @@ export function getMobileFitScoreGradeColor(grade: string, isSelected: boolean) 
       case "E":
         return "bg-blue-300 text-white border-blue-300";
       case "no-score":
-        return "bg-gray-600 text-white border-gray-600";
+      return "border-gray-600 bg-gray-600 text-white dark:border-gray-300 dark:bg-gray-300 dark:text-gray-950";
       default:
         return "bg-primary text-white border-primary";
     }
@@ -36,7 +36,7 @@ export function getMobileFitScoreGradeColor(grade: string, isSelected: boolean) 
     case "E":
       return "bg-blue-300/10 text-blue-300 border-blue-300/30";
     case "no-score":
-      return "bg-gray-100 text-gray-600 border-gray-300";
+      return "border-border bg-muted text-muted-foreground";
     default:
       return "bg-muted text-foreground border-border";
   }

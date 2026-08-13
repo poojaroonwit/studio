@@ -23,6 +23,8 @@ export interface AvailableRoleUser {
   email: string;
   role: string;
   createdAt: string;
+  avatarUrl?: string | null;
+  personalColor?: string | null;
 }
 
 export function getValidRolePermissions(permissions: unknown): string[] {

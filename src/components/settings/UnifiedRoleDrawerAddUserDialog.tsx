@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -89,7 +89,6 @@ export function AddRoleUserDialog({
     </Dialog>
   );
 }
-
 function AddRoleUserSelect({
   selectedUserId,
   searchTerm,
@@ -136,7 +135,6 @@ function AddRoleUserSelect({
     </div>
   );
 }
-
 function AddRoleUserOptions({
   availableUsers,
   members,
@@ -176,11 +174,7 @@ function AddRoleUserOptions({
             className={isAlreadyMember ? 'opacity-60 cursor-not-allowed' : ''}
           >
             <div className="flex items-center gap-2 w-full">
-              <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                <AvatarFallback className="text-xs rounded-full">
-                  {getInitials(user.name)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatarCompact user={user} size="xs" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{user.name}</div>
                 <div className="text-xs text-muted-foreground truncate">{user.email}</div>
@@ -196,11 +190,3 @@ function AddRoleUserOptions({
   );
 }
 
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map(word => word.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}

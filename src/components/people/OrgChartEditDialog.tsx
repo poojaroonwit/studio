@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { DepartmentUnit } from './department-hierarchy-utils';
+import { EmployeeOption } from '@/components/hr/EmployeeOption';
 
 export interface OrgChartEmployee {
   id: string;
@@ -33,6 +34,7 @@ export interface OrgChartEmployee {
   location?: string | null;
   managerId?: string | null;
   departmentId?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface OrgChartPosition {
@@ -236,7 +238,7 @@ export function OrgChartEditDialog({
                     .filter(employee => employee.id !== target.employee.id)
                     .map(employee => (
                       <SelectItem key={employee.id} value={employee.id}>
-                        {[employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.email || 'Employee'}
+                        <EmployeeOption name={[employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.email || 'Employee'} avatarUrl={employee.avatarUrl} detail={employee.jobTitle || undefined} />
                       </SelectItem>
                     ))}
                 </SelectContent>

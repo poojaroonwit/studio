@@ -202,6 +202,48 @@ export async function getLeaveWorkspace() {
   return { metrics, requests, balances, policies, employees, assignments, encashments, ledger, periods, exceptions, allocationRuns };
 }
 
+export async function getLeaveRequestWorkspace() {
+  const [requests, balances] = await Promise.all([
+    safeQuery<Row>(`
+      SELECT lr.id, lr.request_id, lr.employee_id, lr.policy_id, lr.start_date, lr.end_date,
+             lr.days, lr.reason, lr.status, lr.request_unit, lr.approver_comments,
+             lr.submitted_at, lr.created_at, lr.version, lr.attendance_sync_status, lr.payroll_sync_status,
+             e.employee_number, e.first_name, e.last_name, e.location,
+             p.name AS policy_name, p.leave_type, p.payroll_impact
+      FROM "hr_leave_requests" lr
+      JOIN "hr_employees" e ON e.id = lr.employee_id
+      LEFT JOIN "hr_leave_policies" p ON p.id = lr.policy_id
+      ORDER BY COALESCE(lr.submitted_at, lr.created_at) DESC LIMIT 100
+    `),
+    safeQuery<Row>(`
+      SELECT b.id, b.employee_id, b.policy_id, b.year, b.allocated, b.accrued, b.used, b.pending,
+             b.reserved, b.carry_forward, b.expiring, b.version,
+             b.allocated + b.accrued + b.carry_forward - b.used - b.pending - b.reserved AS available,
+             e.employee_number, e.first_name, e.last_name,
+             p.name AS policy_name, p.leave_type, p.encashment_eligible, p.minimum_retained_balance,
+             p.maximum_encashment_units
+      FROM "hr_leave_balances" b
+      JOIN "hr_employees" e ON e.id = b.employee_id
+      JOIN "hr_leave_policies" p ON p.id = b.policy_id
+      ORDER BY e.first_name, e.last_name, p.name LIMIT 500
+    `),
+  ]);
+
+  return {
+    metrics: {},
+    requests,
+    balances,
+    policies: [],
+    employees: [],
+    assignments: [],
+    encashments: [],
+    ledger: [],
+    periods: [],
+    exceptions: [],
+    allocationRuns: [],
+  };
+}
+
 export async function getEmployeeEncashmentWorkspace(userId: string) {
   const employees = await safeQuery<Row>(`
     ${EMPLOYEE_SELECT}

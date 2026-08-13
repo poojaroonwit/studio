@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
@@ -48,6 +48,7 @@ import {
   type HrSetupView,
 } from './hr-setup-workspace-model';
 import type { SettingsPageItem } from './settings-page-model';
+import { HrSetupExampleDataControls } from './HrSetupExampleDataControls';
 
 interface SetupStatusResponse {
   features: PlatformSetupFeatureStatus[];
@@ -97,6 +98,21 @@ export function HrSetupWorkspace({
     if (requestedItem) setSelectedItem(requestedItem);
   }, [requestedItem]);
 
+  const loadSetupStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const response = await fetch('/api/settings/platform-setup/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Unable to load setup readiness');
+      const payload = await response.json() as SetupStatusResponse;
+      setStatuses(payload.features);
+      setProgress(payload.progress);
+    } catch {
+      setProgress(undefined);
+    } finally {
+      setStatusLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     void fetch('/api/settings/platform-setup/status', { cache: 'no-store' })
@@ -144,6 +160,7 @@ export function HrSetupWorkspace({
             <p className="mt-0.5 text-xs text-muted-foreground dark:text-[#8c9aab]">Prepare your HR workspace for launch.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <HrSetupExampleDataControls statuses={statuses} onApplied={loadSetupStatus} />
             <div className="flex rounded-md border border-border dark:border-[#344150] bg-background dark:bg-[#0b1118] p-0.5" aria-label="HR Setup view">
               <ViewButton active={view === 'guided'} icon={ListChecks} onClick={() => setView('guided')}>Guided</ViewButton>
               <ViewButton active={view === 'map'} icon={Network} onClick={() => setView('map')}>Map</ViewButton>

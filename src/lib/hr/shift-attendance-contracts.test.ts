@@ -26,6 +26,26 @@ describe('Shift & Attendance mutation contracts', () => {
     }).success).toBe(false);
   });
 
+  it('validates audited roster updates and cancellations', () => {
+    const assignmentId = '00000000-0000-0000-0000-000000000001';
+    expect(shiftAttendanceMutationSchema.safeParse({
+      action: 'update_assignment',
+      assignmentId,
+      shiftDate: '2026-08-14',
+      startTime: '09:00',
+      endTime: '18:00',
+      workLocation: 'Bangkok Office',
+      expectedVersion: 2,
+      reason: 'Coverage requirements changed',
+    }).success).toBe(true);
+    expect(shiftAttendanceMutationSchema.safeParse({
+      action: 'delete_assignment',
+      assignmentId,
+      expectedVersion: 2,
+      reason: '',
+    }).success).toBe(false);
+  });
+
   it('rejects overtime with an end before the start', () => {
     expect(shiftAttendanceMutationSchema.safeParse({
       action: 'create_overtime',

@@ -148,7 +148,7 @@ export function RequestsView({
 }
 
 function Workspace({ children }: { children: React.ReactNode }) {
-  return <main className="min-h-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100"><div className="mx-auto flex max-w-[1500px] flex-col gap-4">{children}</div></main>;
+  return <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100"><div className="flex w-full max-w-none flex-col gap-4">{children}</div></main>;
 }
 
 function InlineError({ message }: { message: string }) {
@@ -265,7 +265,7 @@ function AttendanceCorrectionForm({
   saving: boolean;
   onSave: (body: Record<string, unknown>) => Promise<unknown>;
 }) {
-  const [form, setForm] = React.useState({ workDate: '', clockIn: '', clockOut: '', breakMinutes: '0', reason: '', correctionType: 'missing_check_in' });
+  const [form, setForm] = React.useState({ workDate: '', clockIn: '', clockOut: '', breakMinutes: '0', reason: '', correctionType: 'missing_check_in', evidenceName: '', evidenceUrl: '' });
   const assignment = assignments.find(row => String(row.shift_date || '').slice(0, 10) === form.workDate);
   const submit = (saveAsDraft: boolean) => onSave({
     requestType: 'attendance_correction',
@@ -278,6 +278,7 @@ function AttendanceCorrectionForm({
       breakMinutes: Number(form.breakMinutes || 0),
     },
     originalValues: assignment ? { scheduledStart: assignment.start_time, scheduledEnd: assignment.end_time } : {},
+    supportingDocuments: form.evidenceUrl ? [{ name: form.evidenceName || 'Supporting evidence', url: form.evidenceUrl }] : [],
     saveAsDraft,
   });
   return (
@@ -297,6 +298,8 @@ function AttendanceCorrectionForm({
         <Field label="Requested check-out" id="requested-out"><Input id="requested-out" type="time" value={form.clockOut} onChange={event => setForm(value => ({ ...value, clockOut: event.target.value }))} /></Field>
         <Field label="Break minutes" id="requested-break"><Input id="requested-break" type="number" min="0" max="720" value={form.breakMinutes} onChange={event => setForm(value => ({ ...value, breakMinutes: event.target.value }))} /></Field>
         <div className="sm:col-span-2 xl:col-span-1"><Field label="Reason and evidence context" id="correction-reason"><Textarea id="correction-reason" value={form.reason} onChange={event => setForm(value => ({ ...value, reason: event.target.value }))} className="min-h-24" placeholder="Explain the issue and the evidence a reviewer should consider" /></Field></div>
+        <Field label="Evidence name (optional)" id="evidence-name"><Input id="evidence-name" value={form.evidenceName} onChange={event => setForm(value => ({ ...value, evidenceName: event.target.value }))} /></Field>
+        <Field label="Evidence URL (optional)" id="evidence-url"><Input id="evidence-url" type="url" value={form.evidenceUrl} onChange={event => setForm(value => ({ ...value, evidenceUrl: event.target.value }))} placeholder="https://…" /></Field>
       </div>
       <div className="mt-4 grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_auto_1fr] dark:border-zinc-800 dark:bg-zinc-900/60">
         <div><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Original</p><p className="mt-2 text-sm font-semibold">{assignment ? `${formatTime(assignment.start_time)}–${formatTime(assignment.end_time)} scheduled` : 'No shift found'}</p></div>

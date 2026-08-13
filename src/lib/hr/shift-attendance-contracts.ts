@@ -85,14 +85,35 @@ const optionalText = z.string().trim().max(2_000).optional().nullable();
 export const shiftAttendanceMutationSchema = z.union([
   z.object({
     action: z.literal('create_assignment'),
-    employeeIds: z.array(uuid).min(1).max(100),
+    employeeIds: z.array(uuid).min(1).max(100).refine(
+      employeeIds => new Set(employeeIds).size === employeeIds.length,
+      'Employee assignments must be unique.',
+    ),
     shiftDate: date,
     startTime: z.string().regex(/^\d{2}:\d{2}$/),
     endTime: z.string().regex(/^\d{2}:\d{2}$/),
     scheduleId: uuid.optional().nullable(),
     shiftDefinitionId: uuid.optional().nullable(),
+    openShiftId: uuid.optional().nullable(),
     workLocation: z.string().trim().min(1).max(120),
-    reason: optionalText,
+    reason: z.string().trim().min(3).max(2_000),
+  }),
+  z.object({
+    action: z.literal('update_assignment'),
+    assignmentId: uuid,
+    shiftDate: date,
+    startTime: z.string().regex(/^\d{2}:\d{2}$/),
+    endTime: z.string().regex(/^\d{2}:\d{2}$/),
+    shiftDefinitionId: uuid.optional().nullable(),
+    workLocation: z.string().trim().min(1).max(120),
+    reason: z.string().trim().min(3).max(2_000),
+    expectedVersion: z.coerce.number().int().positive(),
+  }),
+  z.object({
+    action: z.literal('delete_assignment'),
+    assignmentId: uuid,
+    reason: z.string().trim().min(3).max(2_000),
+    expectedVersion: z.coerce.number().int().positive(),
   }),
   z.object({
     action: z.literal('publish_roster'),
@@ -194,7 +215,7 @@ export const shiftAttendanceMutationSchema = z.union([
   z.object({
     action: z.literal('decide_overtime'),
     overtimeId: uuid,
-    decision: z.enum(['approve', 'reject', 'confirm_actual']),
+    decision: z.enum(['approve', 'reject', 'return_for_revision', 'confirm_actual']),
     approvedStartAt: dateTime.optional().nullable(),
     approvedEndAt: dateTime.optional().nullable(),
     confirmedMinutes: z.coerce.number().int().min(0).max(1_440).optional().nullable(),

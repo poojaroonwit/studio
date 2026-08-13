@@ -79,10 +79,23 @@ describe('hr resource registry', () => {
 
     expect(schema.safeParse({
       name: 'Certified People Manager',
+      issuer: 'People Institute',
+      verificationUrl: 'https://credentials.example.test/verify',
+      policyMetadata: { category: 'People Operations' },
       status: 'active',
       recordType: 'trusted',
       verificationStatus: 'verified',
     }).success).toBe(true);
+
+    expect(schema.safeParse({
+      name: 'Unverifiable certificate',
+      issuer: 'Unknown issuer',
+      verificationUrl: 'javascript:alert(1)',
+      policyMetadata: { category: 'Other' },
+      status: 'active',
+      recordType: 'trusted',
+      verificationStatus: 'verified',
+    }).success).toBe(false);
 
     expect(schema.safeParse({
       name: 'Certified People Manager',

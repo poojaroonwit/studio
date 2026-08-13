@@ -882,6 +882,13 @@ async function collectInputs(client: Db, run: Row, actorId: string) {
     `SELECT start_date, end_date FROM hr_payroll_periods WHERE id = $1::uuid LIMIT 1`,
     String(run.period_id),
   );
+  if (!period[0]) {
+    throw new PayrollServiceError(
+      "PERIOD_NOT_FOUND",
+      "Payroll inputs cannot be collected because this run has no payroll period. Select a valid period and try again.",
+      409,
+    );
+  }
   const start = String(period[0]?.start_date || "");
   const end = String(period[0]?.end_date || "");
 
@@ -2779,6 +2786,13 @@ export async function mutatePayroll(
   } catch (error) {
     if (error instanceof PayrollServiceError) throw error;
     console.error("[Payroll workspace] action failed", error);
+    if (input.action === "collect_inputs") {
+      throw new PayrollServiceError(
+        "INPUT_COLLECTION_FAILED",
+        "Payroll could not collect the inputs. Check the payroll period and approved input records, then try again.",
+        500,
+      );
+    }
     throw new PayrollServiceError(
       "ACTION_FAILED",
       "Payroll could not complete that action.",

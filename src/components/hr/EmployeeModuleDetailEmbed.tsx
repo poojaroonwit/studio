@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowTopRightOnSquareIcon, BookOpenIcon, CalendarDaysIcon, ChartBarIcon, ClockIcon, WalletIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, ArrowTopRightOnSquareIcon, BookOpenIcon, CalendarDaysIcon, ChartBarIcon, ClockIcon, Cog6ToothIcon, WalletIcon } from '@heroicons/react/24/outline';
 
 import { Button } from '@/components/ui/button';
 import { HrisEmptyState, HrisStatusBadge } from '@/components/hris/HrisWorkspacePrimitives';
@@ -10,14 +10,23 @@ import { HrisEmptyState, HrisStatusBadge } from '@/components/hris/HrisWorkspace
 type DetailModule = 'Onboarding' | 'Leave' | 'Attendance' | 'Learning' | 'Performance' | 'Payroll';
 type DetailItem = { id:string; module:string; title:string; status:string; occurredAt:string; details:Record<string,unknown> };
 
-const moduleMeta: Record<DetailModule, { path:string; description:string; icon:typeof CalendarDaysIcon; columns:Array<[string,string]> }> = {
-  Onboarding: { path:'/people/onboarding', description:'Journey progress, completed steps, and onboarding milestones for this employee.', icon:CalendarDaysIcon, columns:[['completedAt','Completed']] },
-  Leave: { path:'/workforce/leave', description:'Leave requests, dates, duration, and approval status for this employee.', icon:CalendarDaysIcon, columns:[['startDate','Start date'],['endDate','End date'],['units','Days']] },
-  Attendance: { path:'/workforce/attendance?view=attendance', description:'Daily attendance records, check-in, check-out, and exceptions for this employee.', icon:ClockIcon, columns:[['checkIn','Check in'],['checkOut','Check out']] },
-  Learning: { path:'/learning', description:'Course enrollments, progress, completion, and learning status for this employee.', icon:BookOpenIcon, columns:[['progress','Progress'],['completedAt','Completed']] },
-  Performance: { path:'/workforce/performance', description:'Performance cycles, review status, and released ratings for this employee.', icon:ChartBarIcon, columns:[['overallRating','Overall rating']] },
-  Payroll: { path:'/payroll', description:'Payroll periods, gross pay, net pay, and processing status for this employee.', icon:WalletIcon, columns:[['grossPay','Gross pay'],['netPay','Net pay']] },
+type ModuleMeta = { path:string; configPath:string; description:string; configuredBy:string; icon:typeof CalendarDaysIcon; recordParam:string; columns:Array<[string,string]> };
+
+const moduleMeta: Record<DetailModule, ModuleMeta> = {
+  Onboarding: { path:'/people/onboarding', configPath:'/settings?adminTab=hr-setup&config=onboarding', description:'Journey progress, completed steps, and onboarding milestones for this employee.', configuredBy:'Onboarding templates', icon:CalendarDaysIcon, recordParam:'onboardingId', columns:[['completedAt','Completed']] },
+  Leave: { path:'/workforce/leave', configPath:'/settings/leave-policies', description:'Requests follow the assigned leave policy, allowance, and approval rules.', configuredBy:'Leave policies', icon:CalendarDaysIcon, recordParam:'requestId', columns:[['startDate','Start date'],['endDate','End date'],['units','Days'],['decidedAt','Decision']] },
+  Attendance: { path:'/workforce/attendance?view=attendance', configPath:'/settings/policy-configuration?area=workforce', description:'Attendance is evaluated against the employee schedule and workforce thresholds.', configuredBy:'Schedules & workforce policy', icon:ClockIcon, recordParam:'recordId', columns:[['scheduleName','Schedule'],['checkIn','Check in'],['checkOut','Check out'],['lateMinutes','Late']] },
+  Learning: { path:'/learning', configPath:'/settings/policy-configuration?area=performance-learning', description:'Assignments reflect configured courses, due dates, and learning policy.', configuredBy:'Learning policy & taxonomy', icon:BookOpenIcon, recordParam:'enrollmentId', columns:[['progress','Progress'],['dueDate','Due'],['completedAt','Completed']] },
+  Performance: { path:'/workforce/performance', configPath:'/settings/policy-configuration?area=performance-learning', description:'Reviews follow their configured cycle, rating model, and acknowledgment workflow.', configuredBy:'Performance policy', icon:ChartBarIcon, recordParam:'reviewId', columns:[['overallRating','Overall rating'],['submittedAt','Submitted'],['acknowledgmentStatus','Acknowledgment']] },
+  Payroll: { path:'/payroll', configPath:'/settings/policy-configuration?area=payroll-expenses', description:'Results follow the payroll period, calculation inputs, and approval configuration.', configuredBy:'Payroll policy & approvals', icon:WalletIcon, recordParam:'runItemId', columns:[['grossPay','Gross pay'],['totalDeductions','Deductions'],['netPay','Net pay'],['variancePercent','Variance']] },
 };
+
+function appendParams(path:string, params:Record<string,string>){
+  const [pathname, query=''] = path.split('?');
+  const search = new URLSearchParams(query);
+  Object.entries(params).forEach(([key,value])=>search.set(key,value));
+  return `${pathname}?${search.toString()}`;
+}
 
 export function EmployeeModuleDetailEmbed({ employeeId, module }: { employeeId:string; module:DetailModule }) {
   const [items,setItems]=React.useState<DetailItem[]>([]);
@@ -25,8 +34,7 @@ export function EmployeeModuleDetailEmbed({ employeeId, module }: { employeeId:s
   const [error,setError]=React.useState('');
   const meta=moduleMeta[module];
   const Icon=meta.icon;
-  const separator=meta.path.includes('?')?'&':'?';
-  const sourceHref=`${meta.path}${separator}employeeId=${encodeURIComponent(employeeId)}`;
+  const sourceHref=appendParams(meta.path,{employeeId});
 
   React.useEffect(()=>{
     let active=true; setLoading(true); setError('');
@@ -41,9 +49,9 @@ export function EmployeeModuleDetailEmbed({ employeeId, module }: { employeeId:s
   const attention=items.filter(item=>['rejected','overdue','failed','absent','at_risk'].includes(String(item.status).toLowerCase())).length;
 
   return <section className="min-h-[560px] bg-background">
-    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-4"><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 text-primary"/><div><h2 className="text-base font-semibold">{module} details</h2><p className="mt-1 text-sm text-muted-foreground">{meta.description}</p></div></div><Button asChild variant="outline" size="sm"><Link href={sourceHref}>Open {module.toLowerCase()} workspace <ArrowTopRightOnSquareIcon className="ml-2 h-4 w-4"/></Link></Button></header>
+    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-4"><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 text-primary"/><div><h2 className="text-base font-semibold">{module} journey</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">{meta.description}</p><p className="mt-2 text-xs font-medium text-primary">Configured by: {meta.configuredBy}</p></div></div><div className="flex flex-wrap gap-2"><Button asChild variant="outline" size="sm"><Link href={meta.configPath}><Cog6ToothIcon className="mr-2 h-4 w-4"/>View configuration</Link></Button><Button asChild variant="outline" size="sm"><Link href={sourceHref}>Open workspace <ArrowTopRightOnSquareIcon className="ml-2 h-4 w-4"/></Link></Button></div></header>
     <div className="grid grid-cols-3 divide-x divide-border border-b border-border"><Metric label="Employee records" value={items.length}/><Metric label="Completed" value={completed}/><Metric label="Needs attention" value={attention} warning={attention>0}/></div>
-    {loading?<div className="m-5 h-64 animate-pulse bg-muted/35" aria-label={`Loading ${module} details`}/>:error?<div role="alert" className="m-5 border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">{error}</div>:items.length===0?<HrisEmptyState title={`No ${module.toLowerCase()} records`} description={`No ${module.toLowerCase()} activity is recorded for this employee yet.`}/>:<div className="overflow-x-auto"><div className="min-w-[720px]"><div className="grid border-b border-border bg-muted/25 px-5 py-2 text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground" style={{gridTemplateColumns:`minmax(210px,1.4fr) 120px 120px repeat(${meta.columns.length}, minmax(130px,1fr))`}}><span>Record</span><span>Date</span><span>Status</span>{meta.columns.map(([,label])=><span key={label}>{label}</span>)}</div>{items.map(item=><div key={item.id} className="grid items-center border-b border-border px-5 py-4 text-sm" style={{gridTemplateColumns:`minmax(210px,1.4fr) 120px 120px repeat(${meta.columns.length}, minmax(130px,1fr))`}}><span className="min-w-0"><strong className="block truncate">{item.title}</strong><span className="mt-1 block truncate text-xs text-muted-foreground">Employee-specific {module.toLowerCase()} record</span></span><span className="text-xs">{formatValue(item.occurredAt,'date')}</span><HrisStatusBadge value={item.status}/>{meta.columns.map(([key])=><span key={key} className="text-xs">{formatValue(item.details?.[key],key)}</span>)}</div>)}</div></div>}
+    {loading?<div className="m-5 h-64 animate-pulse bg-muted/35" aria-label={`Loading ${module} details`}/>:error?<div role="alert" className="m-5 border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">{error}</div>:items.length===0?<HrisEmptyState title={`No ${module.toLowerCase()} records`} description={`No ${module.toLowerCase()} activity is recorded for this employee yet.`}/>:<div className="overflow-x-auto"><div className="min-w-[820px]"><div className="grid border-b border-border bg-muted/25 px-5 py-2 text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground" style={{gridTemplateColumns:`minmax(210px,1.4fr) 110px 110px repeat(${meta.columns.length}, minmax(120px,1fr)) 36px`}}><span>Configured record</span><span>Date</span><span>Status</span>{meta.columns.map(([,label])=><span key={label}>{label}</span>)}<span className="sr-only">Open</span></div>{items.map(item=>{const recordHref=appendParams(meta.path,{employeeId,[meta.recordParam]:item.id});return <Link href={recordHref} key={item.id} className="grid items-center border-b border-border px-5 py-4 text-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary" style={{gridTemplateColumns:`minmax(210px,1.4fr) 110px 110px repeat(${meta.columns.length}, minmax(120px,1fr)) 36px`}}><span className="min-w-0"><strong className="block truncate">{item.title}</strong><span className="mt-1 block truncate text-xs text-muted-foreground">Open this {module.toLowerCase()} record</span></span><span className="text-xs">{formatValue(item.occurredAt,'date')}</span><HrisStatusBadge value={item.status}/>{meta.columns.map(([key])=><span key={key} className="truncate text-xs">{formatValue(item.details?.[key],key)}</span>)}<ArrowRightIcon className="h-4 w-4 text-muted-foreground"/></Link>})}</div></div>}
   </section>;
 }
 

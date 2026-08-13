@@ -57,7 +57,9 @@ export async function GET(request: Request, context: Context) {
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT request.id, 'Leave' AS module, COALESCE(policy.name, 'Leave request') AS title,
             request.status, request.created_at AS "occurredAt",
-        jsonb_build_object('startDate', request.start_date, 'endDate', request.end_date, 'units', request.days) AS details FROM hr_leave_requests request
+        jsonb_build_object('startDate', request.start_date, 'endDate', request.end_date, 'units', request.days,
+          'policyId', request.policy_id, 'policyVersion', request.policy_version, 'reason', request.reason,
+          'decidedAt', request.decided_at) AS details FROM hr_leave_requests request
         LEFT JOIN hr_leave_policies policy ON policy.id = request.policy_id
         WHERE request.employee_id = ${id}::uuid
           ORDER BY "occurredAt" DESC LIMIT 250`;
@@ -66,7 +68,12 @@ export async function GET(request: Request, context: Context) {
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT attendance.id, 'Attendance' AS module, 'Attendance record' AS title,
             attendance.status, attendance.work_date AS "occurredAt",
-        jsonb_build_object('checkIn', attendance.clock_in, 'checkOut', attendance.clock_out) AS details FROM hr_attendance_records attendance
+        jsonb_build_object('checkIn', attendance.clock_in, 'checkOut', attendance.clock_out,
+          'scheduleName', schedule.name, 'workLocation', attendance.work_location,
+          'lateMinutes', attendance.late_minutes, 'overtimeHours', attendance.overtime_hours) AS details
+        FROM hr_attendance_records attendance
+        LEFT JOIN hr_shift_assignments assignment ON assignment.id = attendance.assignment_id
+        LEFT JOIN hr_work_schedules schedule ON schedule.id = assignment.schedule_id
         WHERE attendance.employee_id = ${id}::uuid
           ORDER BY "occurredAt" DESC LIMIT 250`;
         break;
@@ -74,7 +81,8 @@ export async function GET(request: Request, context: Context) {
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT enrollment.id, 'Learning' AS module, course.title, enrollment.status,
             enrollment.created_at AS "occurredAt",
-        jsonb_build_object('progress', enrollment.progress, 'completedAt', enrollment.completed_at) AS details FROM hr_learning_enrollments enrollment
+        jsonb_build_object('progress', enrollment.progress, 'completedAt', enrollment.completed_at,
+          'dueDate', enrollment.due_date, 'startedAt', enrollment.started_at, 'courseId', enrollment.course_id) AS details FROM hr_learning_enrollments enrollment
         JOIN hr_learning_courses course ON course.id = enrollment.course_id
         WHERE enrollment.employee_id = ${id}::uuid
           ORDER BY "occurredAt" DESC LIMIT 250`;
@@ -82,7 +90,9 @@ export async function GET(request: Request, context: Context) {
       case 'Performance':
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT review.id, 'Performance' AS module, cycle.name AS title, review.status,
-            review.created_at AS "occurredAt", jsonb_build_object('overallRating', review.rating) AS details
+            review.created_at AS "occurredAt", jsonb_build_object('overallRating', review.rating,
+              'cycleId', review.cycle_id, 'submittedAt', review.submitted_at,
+              'releasedAt', review.released_at, 'acknowledgmentStatus', review.acknowledgment_status) AS details
         FROM hr_performance_reviews review
         JOIN hr_performance_cycles cycle ON cycle.id = review.cycle_id
         WHERE review.employee_id = ${id}::uuid
@@ -92,7 +102,10 @@ export async function GET(request: Request, context: Context) {
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT item.id, 'Payroll' AS module, period.name AS title, item.status,
             item.created_at AS "occurredAt",
-        jsonb_build_object('grossPay', item.gross_pay, 'netPay', item.net_pay) AS details FROM hr_payroll_run_items item
+        jsonb_build_object('grossPay', item.gross_pay, 'netPay', item.net_pay,
+          'payrollRunId', item.payroll_run_id, 'baseSalary', item.base_salary,
+          'totalDeductions', item.total_deductions, 'paymentDestination', item.payment_destination,
+          'variancePercent', item.variance_percent) AS details FROM hr_payroll_run_items item
         JOIN hr_payroll_runs run ON run.id = item.payroll_run_id
         JOIN hr_payroll_periods period ON period.id = run.period_id
         WHERE item.employee_id = ${id}::uuid

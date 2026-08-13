@@ -75,6 +75,24 @@
   }
 }
 
+/*
+ * Application pages use the full content rail. Keep this scoped to the
+ * authenticated app shell so public/auth flows and portalled overlays retain
+ * their intentionally constrained layouts.
+ */
+#main-content > div,
+#main-content > div > :is(main, section, article, div),
+#main-content main {
+  width: 100%;
+  max-width: none;
+}
+
+#main-content main > :is(div, section, article).mx-auto[class*='max-w-'],
+#main-content main > header > .mx-auto[class*='max-w-'] {
+  width: 100%;
+  max-width: none;
+}
+
 @layer components {
   /* Legacy detail views use a compact bespoke palette. Keep that visual language,
      but translate its neutral surfaces through the active application theme. */

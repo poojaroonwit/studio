@@ -28,6 +28,7 @@ import {
   employeeName,
   formatDate,
   formatDuration,
+  formatTime,
   numberValue,
   stringValue,
   type ShiftRecord,
@@ -211,7 +212,7 @@ export function TimesheetCommandCenter() {
             </div>
             <p className="order-6 hidden items-center gap-2 text-[11px] text-slate-500 2xl:flex">
               <Cloud className="h-3.5 w-3.5" />
-              Saved just now
+              {ownSheet?.updated_at ? `Updated ${formatDate(ownSheet.updated_at)} ${formatTime(ownSheet.updated_at)}` : 'No saved timesheet'}
             </p>
           </div>
         </div>
@@ -343,6 +344,9 @@ export function TimesheetCommandCenter() {
                   )
                 }
               />
+              {state.capabilities.canApproveTeamRecords && ['submitted', 'pending_approval'].includes(stringValue(selectedEmployee.status)) && (
+                <TimesheetDecisionBar sheet={selectedEmployee} saving={state.saving} onDecision={(body, message) => state.mutate(body, message)} />
+              )}
               {state.error && (
                 <div className="mt-3 border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/25 dark:text-rose-200">
                   {state.error}
@@ -364,6 +368,12 @@ export function TimesheetCommandCenter() {
                       if (result) setEntryOpen(false);
                     }}
                   />
+                </div>
+              )}
+              {selectedEmployeeId === selfEmployeeId && ['draft', 'returned'].includes(stringValue(ownSheet?.status)) && arrayValue(ownSheet?.entries).length > 0 && (
+                <div className="mt-3 rounded-md border border-slate-200 dark:border-zinc-800">
+                  <div className="border-b border-slate-200 px-3 py-2 text-xs font-bold dark:border-zinc-800">Editable entries</div>
+                  {arrayValue(ownSheet?.entries).map(entry => <div key={String(entry.id)} className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-0 dark:border-zinc-900"><span className="min-w-0 truncate">{formatDate(entry.work_date)} · {stringValue(entry.project)} · {formatDuration(entry.duration_minutes)}</span><Button variant="ghost" size="sm" className="text-rose-600" disabled={state.saving} onClick={() => void state.mutate({ action: 'delete_timesheet_entry', entryId: entry.id, expectedVersion: numberValue(entry.version) }, 'Timesheet entry deleted.')}>Delete</Button></div>)}
                 </div>
               )}
               <div className="mt-4">
@@ -423,8 +433,8 @@ export function TimesheetCommandCenter() {
                 )}
               </div>
               <div className="mt-4 flex h-11 items-center justify-between border-t border-slate-200 px-3 text-xs text-slate-500 dark:border-zinc-800">
-                <span>Notes (optional)</span>
-                <span>Auto-saved just now</span>
+                <span>{stringValue(selectedEmployee.status, 'draft').replace(/_/g, ' ')}</span>
+                <span>{selectedEmployee.updated_at ? `Updated ${formatDate(selectedEmployee.updated_at)} ${formatTime(selectedEmployee.updated_at)}` : 'Not saved'}</span>
               </div>
             </div>
           </div>
@@ -434,10 +444,16 @@ export function TimesheetCommandCenter() {
   );
 }
 
+function TimesheetDecisionBar({ sheet, saving, onDecision }: { sheet: ShiftRecord; saving: boolean; onDecision: (body: Record<string, unknown>, message: string) => Promise<unknown> }) {
+  const [comment, setComment] = React.useState('');
+  const decide = (decision: 'approve' | 'reject' | 'return') => onDecision({ action: 'decide_timesheet', timesheetId: sheet.id, decision, comment: comment || null, expectedVersion: numberValue(sheet.version) }, decision === 'approve' ? 'Timesheet approved.' : decision === 'reject' ? 'Timesheet rejected.' : 'Timesheet returned for changes.');
+  return <div className="mt-3 flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 sm:flex-row sm:items-center dark:border-blue-900 dark:bg-blue-950/20"><Input value={comment} onChange={event => setComment(event.target.value)} placeholder="Reviewer comment (required to return or reject)" className="flex-1" /><Button variant="outline" disabled={saving || comment.trim().length < 3} onClick={() => void decide('return')}>Return</Button><Button variant="outline" disabled={saving || comment.trim().length < 3} onClick={() => void decide('reject')}>Reject</Button><Button disabled={saving} onClick={() => void decide('approve')}>Approve</Button></div>;
+}
+
 function Page({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-full bg-transparent text-slate-950 dark:text-zinc-100">
-      <div className="mx-auto flex max-w-[1800px] flex-col gap-4">
+    <main className="min-h-full w-full bg-transparent text-slate-950 dark:text-zinc-100">
+      <div className="flex w-full max-w-none flex-col gap-4">
         {children}
       </div>
     </main>

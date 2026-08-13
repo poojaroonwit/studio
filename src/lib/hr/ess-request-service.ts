@@ -9,6 +9,7 @@ import {
   type EssRequestType,
 } from './ess-contracts';
 import { getEmployeeForUser } from './ess-service';
+import { calculateAttendance } from './attendance-calculation';
 
 type QueryClient = Prisma.TransactionClient | typeof prisma;
 
@@ -29,6 +30,7 @@ type CreateRequestInput = {
   values: Record<string, unknown>;
   originalValues: Record<string, unknown>;
   saveAsDraft: boolean;
+  supportingDocuments?: Array<{ name: string; url: string; size?: string }>;
 };
 
 type RequestRow = Record<string, unknown> & {
@@ -166,11 +168,11 @@ export async function createEssRequest(
       `INSERT INTO "hr_ess_requests"
         ("id", "request_id", "request_type", "requester_employee_id", "subject_employee_id",
          "company_id", "status", "current_step", "current_approver_user_id", "title", "reason",
-         "original_values", "requested_values", "submitted_at", "due_at",
+         "original_values", "requested_values", "supporting_documents", "submitted_at", "due_at",
          "created_at", "updated_at")
        VALUES
         ($1::uuid, $2, $3, $4::uuid, $4::uuid, $5::uuid, $6, $7, $8::uuid, $9, $10,
-         $11::jsonb, $12::jsonb,
+         $11::jsonb, $12::jsonb, $13::jsonb,
          CASE WHEN $6 = 'draft' THEN NULL ELSE CURRENT_TIMESTAMP END,
          CASE WHEN $6 = 'draft' THEN NULL ELSE CURRENT_TIMESTAMP + INTERVAL '5 days' END,
          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -187,6 +189,7 @@ export async function createEssRequest(
       input.reason,
       JSON.stringify(input.originalValues),
       JSON.stringify(input.values),
+      JSON.stringify(input.supportingDocuments || []),
     );
     if (managerUserId) {
       await tx.$executeRawUnsafe(
@@ -215,7 +218,11 @@ export async function createEssRequest(
   return row;
 }
 
-async function applyApprovedRequest(client: QueryClient, request: RequestRow & { requested_values?: unknown }) {
+async function applyApprovedRequest(
+  client: QueryClient,
+  request: RequestRow & { requested_values?: unknown },
+  actorUserId: string,
+) {
   const values = (request.requested_values || {}) as Record<string, unknown>;
 
   if (request.request_type === 'profile_change') {
@@ -291,7 +298,7 @@ async function applyApprovedRequest(client: QueryClient, request: RequestRow & {
   }
 
   if (request.request_type === 'attendance_correction') {
-    await client.$executeRawUnsafe(
+    const corrected = await client.$queryRawUnsafe<Array<{ id: string }>>(
       `INSERT INTO "hr_attendance_records"
         ("id", "employee_id", "work_date", "clock_in", "clock_out", "break_minutes",
          "hours_worked", "status", "source", "created_at", "updated_at")
@@ -310,7 +317,8 @@ async function applyApprovedRequest(client: QueryClient, request: RequestRow & {
          "hours_worked" = EXCLUDED."hours_worked",
          "source" = 'employee_correction',
          "version" = "hr_attendance_records"."version" + 1,
-         "updated_at" = CURRENT_TIMESTAMP`,
+         "updated_at" = CURRENT_TIMESTAMP
+       RETURNING id`,
       randomUUID(),
       request.requester_employee_id,
       values.workDate,
@@ -318,6 +326,104 @@ async function applyApprovedRequest(client: QueryClient, request: RequestRow & {
       values.clockOut || null,
       Number(values.breakMinutes || 0),
     );
+    const attendanceId = corrected[0]?.id;
+    if (attendanceId) {
+      const context = await client.$queryRawUnsafe<Array<Record<string, unknown>>>(
+        `SELECT ar.*, sa.start_at AS scheduled_start, sa.end_at AS scheduled_end,
+                COALESCE(sdv.grace_period_minutes, 5) AS late_tolerance,
+                COALESCE(sdv.early_departure_tolerance_minutes, 5) AS early_tolerance,
+                EXISTS (SELECT 1 FROM "hr_leave_requests" lr WHERE lr.employee_id = ar.employee_id
+                  AND lr.status = 'approved' AND ar.work_date::date BETWEEN lr.start_date::date AND lr.end_date::date) AS approved_leave,
+                EXISTS (SELECT 1 FROM "hr_holidays" h WHERE h.holiday_date::date = ar.work_date::date
+                  AND (h.location IS NULL OR h.location = ar.work_location)) AS public_holiday
+         FROM "hr_attendance_records" ar
+         LEFT JOIN "hr_shift_assignments" sa ON sa.id = ar.assignment_id
+         LEFT JOIN "hr_shift_definition_versions" sdv ON sdv.shift_definition_id = sa.shift_definition_id
+           AND sdv.version = sa.shift_definition_version
+         WHERE ar.id = $1::uuid`,
+        attendanceId,
+      );
+      const row = context[0];
+      if (row) {
+        const result = calculateAttendance({
+          logicalDate: String(row.work_date),
+          scheduledStart: row.scheduled_start ? new Date(String(row.scheduled_start)) : null,
+          scheduledEnd: row.scheduled_end ? new Date(String(row.scheduled_end)) : null,
+          clockIn: row.clock_in ? new Date(String(row.clock_in)) : null,
+          clockOut: row.clock_out ? new Date(String(row.clock_out)) : null,
+          breakMinutes: Number(row.break_minutes || 0),
+          approvedLeave: Boolean(row.approved_leave),
+          publicHoliday: Boolean(row.public_holiday),
+          lateToleranceMinutes: Number(row.late_tolerance || 5),
+          earlyDepartureToleranceMinutes: Number(row.early_tolerance || 5),
+          roundingMinutes: 1,
+          approvedOvertimeMinutes: Number(row.approved_overtime_minutes || 0),
+          workLocation: row.work_location ? String(row.work_location) : null,
+        });
+        await client.$executeRawUnsafe(
+          `UPDATE "hr_attendance_records" SET status = $2, scheduled_minutes = $3, worked_minutes = $4,
+             regular_minutes = $5, overtime_minutes = $6, late_minutes = $7, early_departure_minutes = $8,
+             paid_break_minutes = $9, unpaid_break_minutes = $10, holiday_minutes = $11,
+             exception_status = CASE WHEN cardinality($12::text[]) > 0 THEN 'open' ELSE 'clear' END,
+             calculation_version = $13, updated_at = CURRENT_TIMESTAMP WHERE id = $1::uuid`,
+          attendanceId, result.status, result.scheduledMinutes, result.workedMinutes, result.regularMinutes,
+          result.overtimeMinutes, result.lateMinutes, result.earlyDepartureMinutes, result.paidBreakMinutes,
+          result.unpaidBreakMinutes, result.holidayMinutes, result.exceptionCodes, result.calculationVersion,
+        );
+        await client.$executeRawUnsafe(
+          `UPDATE "hr_attendance_calculations"
+           SET is_current = FALSE
+           WHERE attendance_record_id = $1::uuid AND is_current = TRUE`,
+          attendanceId,
+        );
+        await client.$executeRawUnsafe(
+          `INSERT INTO "hr_attendance_calculations"
+            (id, attendance_record_id, calculation_version, input_snapshot, output_snapshot,
+             explanation, is_current, calculated_by_id, calculated_at)
+           VALUES ($1::uuid, $2::uuid, $3, $4::jsonb, $5::jsonb, $6::jsonb,
+                   TRUE, $7::uuid, CURRENT_TIMESTAMP)`,
+          randomUUID(), attendanceId, result.calculationVersion,
+          JSON.stringify({
+            logicalDate: String(row.work_date),
+            scheduledStart: row.scheduled_start || null,
+            scheduledEnd: row.scheduled_end || null,
+            clockIn: row.clock_in || null,
+            clockOut: row.clock_out || null,
+            breakMinutes: Number(row.break_minutes || 0),
+            approvedLeave: Boolean(row.approved_leave),
+            publicHoliday: Boolean(row.public_holiday),
+          }),
+          JSON.stringify(result), JSON.stringify(result.reasons), actorUserId,
+        );
+        await client.$executeRawUnsafe(
+          `DELETE FROM "hr_attendance_exceptions"
+           WHERE attendance_record_id = $1::uuid AND status = 'open'`,
+          attendanceId,
+        );
+        for (const code of result.exceptionCodes) {
+          await client.$executeRawUnsafe(
+            `INSERT INTO "hr_attendance_exceptions"
+              (id, attendance_record_id, code, severity, status, explanation, created_at, updated_at)
+             VALUES ($1::uuid, $2::uuid, $3, $4, 'open', $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            randomUUID(), attendanceId, code,
+            code.startsWith('MISSING_') ? 'blocked' : 'warning',
+            result.reasons.join(' ') || `Attendance calculation raised ${code}.`,
+          );
+        }
+        await client.$executeRawUnsafe(
+          `INSERT INTO "hr_attendance_events"
+            (id, attendance_record_id, employee_id, event_type, occurred_at,
+             logical_shift_date, source, idempotency_key, metadata, actor_user_id, created_at)
+           VALUES ($1::uuid, $2::uuid, $3::uuid, 'correction_applied', CURRENT_TIMESTAMP,
+                   $4::date, 'employee_correction', $5, $6::jsonb, $7::uuid, CURRENT_TIMESTAMP)
+           ON CONFLICT (employee_id, idempotency_key) DO NOTHING`,
+          randomUUID(), attendanceId, request.requester_employee_id, values.workDate,
+          `ess-correction:${request.id}:${request.version}`,
+          JSON.stringify({ requestId: request.id, requestNumber: request.request_id, correctedValues: values }),
+          actorUserId,
+        );
+      }
+    }
   }
 }
 
@@ -372,7 +478,7 @@ export async function actOnEssRequest({
     if (!transition.from.includes(request.status)) throw new Error('INVALID_TRANSITION');
     if (['reject', 'return_for_revision'].includes(action) && !comment?.trim()) throw new Error('COMMENT_REQUIRED');
 
-    if (action === 'approve') await applyApprovedRequest(tx, request);
+    if (action === 'approve') await applyApprovedRequest(tx, request, userId);
     const updated = await tx.$queryRawUnsafe<RequestRow[]>(
       `UPDATE "hr_ess_requests"
        SET "status" = $2,

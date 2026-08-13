@@ -65,6 +65,15 @@ import {
   overtimeRequestRisk as requestRisk,
 } from "./overtime-view-utils";
 
+function overtimeWeekStart(value = new Date()) {
+  const date = new Date(
+    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
+  );
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() - day + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export function OvertimeView({
   employeeSelfService = false,
 }: {
@@ -73,13 +82,14 @@ export function OvertimeView({
   const query = React.useMemo(() => new URLSearchParams(), []);
   const state = useShiftAttendance("overtime", query);
   const [requestDialogOpen, setRequestDialogOpen] = React.useState(false);
-  const [view, setView] = React.useState<"requests" | "capacity" | "overview">(
-    "requests",
-  );
+  const [view, setView] = React.useState<"requests" | "capacity">("requests");
   const [selectedId, setSelectedId] = React.useState<string | null>(
     "__first__",
   );
   const [searchText, setSearchText] = React.useState("");
+  const [weekStart, setWeekStart] = React.useState(() => overtimeWeekStart());
+  const [location, setLocation] = React.useState("");
+  const [department, setDepartment] = React.useState("");
 
   if (state.loading)
     return (
@@ -99,15 +109,31 @@ export function OvertimeView({
   const requests = serverRequests;
   const assignments = arrayValue(state.data.assignments);
   const metrics = (state.data.metrics || {}) as Record<string, unknown>;
+  const locations = Array.from(
+    new Set(
+      requests.map((row) => stringValue(row.work_location)).filter(Boolean),
+    ),
+  ).sort();
+  const departments = Array.from(
+    new Set(
+      requests.map((row) => stringValue(row.department_name)).filter(Boolean),
+    ),
+  ).sort();
+  const weekEnd = new Date(`${weekStart}T00:00:00Z`);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
   const visibleRequests = requests.filter(
     (row) =>
-      !searchText.trim() ||
-      employeeName(row)
-        .toLowerCase()
-        .includes(searchText.trim().toLowerCase()) ||
-      stringValue(row.business_reason, "")
-        .toLowerCase()
-        .includes(searchText.trim().toLowerCase()),
+      (!searchText.trim() ||
+        employeeName(row)
+          .toLowerCase()
+          .includes(searchText.trim().toLowerCase()) ||
+        stringValue(row.business_reason, "")
+          .toLowerCase()
+          .includes(searchText.trim().toLowerCase())) &&
+      (!location || stringValue(row.work_location) === location) &&
+      (!department || stringValue(row.department_name) === department) &&
+      new Date(String(row.work_date)) >= new Date(`${weekStart}T00:00:00Z`) &&
+      new Date(String(row.work_date)) < weekEnd,
   );
   const selected =
     selectedId === "__first__"
@@ -148,6 +174,14 @@ export function OvertimeView({
           onNew={() => setRequestDialogOpen(true)}
           view={view}
           onViewChange={setView}
+          weekStart={weekStart}
+          onWeekStartChange={setWeekStart}
+          location={location}
+          onLocationChange={setLocation}
+          locations={locations}
+          department={department}
+          onDepartmentChange={setDepartment}
+          departments={departments}
         />
       )}
       <PermissionBanner scope={state.capabilities.dataScope} />
@@ -203,31 +237,23 @@ export function OvertimeView({
               saving={state.saving}
               onDecision={(body, message) => state.mutate(body, message)}
             />
-          ) : view === "capacity" ? (
+          ) : (
             <CapacityPlanner
               requests={visibleRequests}
               onSelect={setSelectedId}
             />
-          ) : (
-            <OvertimeOverview
-              requests={visibleRequests}
-              metrics={metrics}
-              onReview={() => setView("requests")}
-            />
           )}
         </div>
-        {view !== "overview" && (
-          <RequestDrawer
-            row={selected}
-            open={Boolean(selected)}
-            canApprove={
-              !employeeSelfService && state.capabilities.canApproveTeamRecords
-            }
-            saving={state.saving}
-            onClose={() => setSelectedId(null)}
-            onDecision={(body, message) => state.mutate(body, message)}
-          />
-        )}
+        <RequestDrawer
+          row={selected}
+          open={Boolean(selected)}
+          canApprove={
+            !employeeSelfService && state.capabilities.canApproveTeamRecords
+          }
+          saving={state.saving}
+          onClose={() => setSelectedId(null)}
+          onDecision={(body, message) => state.mutate(body, message)}
+        />
       </div>
 
       <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
@@ -266,13 +292,36 @@ function OvertimeHeader({
   onNew,
   view,
   onViewChange,
+  weekStart,
+  onWeekStartChange,
+  location,
+  onLocationChange,
+  locations,
+  department,
+  onDepartmentChange,
+  departments,
 }: {
   searchText: string;
   onSearchChange: (value: string) => void;
   onNew: () => void;
-  view: "requests" | "capacity" | "overview";
-  onViewChange: (view: "requests" | "capacity" | "overview") => void;
+  view: "requests" | "capacity";
+  onViewChange: (view: "requests" | "capacity") => void;
+  weekStart: string;
+  onWeekStartChange: (value: string) => void;
+  location: string;
+  onLocationChange: (value: string) => void;
+  locations: string[];
+  department: string;
+  onDepartmentChange: (value: string) => void;
+  departments: string[];
 }) {
+  const moveWeek = (amount: number) => {
+    const date = new Date(`${weekStart}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + amount * 7);
+    onWeekStartChange(date.toISOString().slice(0, 10));
+  };
+  const end = new Date(`${weekStart}T00:00:00Z`);
+  end.setUTCDate(end.getUTCDate() + 6);
   return (
     <header className="flex flex-col gap-2 border-b border-slate-200 pb-2 xl:flex-row xl:items-end xl:justify-between dark:border-zinc-800">
       <div className="flex items-end gap-4">
@@ -300,41 +349,61 @@ function OvertimeHeader({
           >
             2
           </ViewButton>
-          <ViewButton
-            active={view === "overview"}
-            onClick={() => onViewChange("overview")}
-            icon={BarChart3}
-          >
-            3
-          </ViewButton>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex h-9 items-center rounded-md border border-zinc-700">
           <button
+            type="button"
+            onClick={() => moveWeek(-1)}
             className="grid h-9 w-9 place-items-center"
             aria-label="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="border-x border-zinc-700 px-3 text-sm font-semibold">
-            Aug 10–16, 2026
+            {formatDate(weekStart, { month: "short", day: "numeric" })}–
+            {formatDate(end, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </span>
           <button
+            type="button"
+            onClick={() => moveWeek(1)}
             className="grid h-9 w-9 place-items-center"
             aria-label="Next week"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onWeekStartChange(overtimeWeekStart())}
+        >
           Today
         </Button>
-        <select className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-          <option>Bangkok HQ</option>
+        <select
+          value={location}
+          onChange={(event) => onLocationChange(event.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All locations</option>
+          {locations.map((value) => (
+            <option key={value}>{value}</option>
+          ))}
         </select>
-        <select className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-          <option>All departments</option>
+        <select
+          value={department}
+          onChange={(event) => onDepartmentChange(event.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All departments</option>
+          {departments.map((value) => (
+            <option key={value}>{value}</option>
+          ))}
         </select>
         <label className="relative">
           <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
@@ -474,31 +543,86 @@ function RequestQueue({
     message: string,
   ) => Promise<unknown>;
 }) {
+  const [queue, setQueue] = React.useState<
+    "pending_approval" | "approved" | "rejected" | "all"
+  >("pending_approval");
+  const [newestFirst, setNewestFirst] = React.useState(true);
   const pending = requests.filter(
     (row) => stringValue(row.status) === "pending_approval",
   );
+  const displayed = requests
+    .filter((row) => queue === "all" || stringValue(row.status) === queue)
+    .sort(
+      (a, b) =>
+        (new Date(String(b.created_at)).getTime() -
+          new Date(String(a.created_at)).getTime()) *
+        (newestFirst ? 1 : -1),
+    );
   return (
     <section className="overflow-hidden rounded-md border border-zinc-700 bg-[#0b1623]">
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-zinc-700 px-4 py-2">
         <div className="inline-flex rounded-md bg-zinc-900 p-0.5">
-          <button className="rounded bg-blue-600 px-3 py-2 text-xs font-semibold text-white">
+          <button
+            type="button"
+            onClick={() => setQueue("pending_approval")}
+            className={cn(
+              "px-3 py-2 text-xs font-semibold",
+              queue === "pending_approval"
+                ? "rounded bg-blue-600 text-white"
+                : "text-slate-400",
+            )}
+          >
             Pending {pending.length}
           </button>
-          <button className="px-3 py-2 text-xs text-slate-400">Approved</button>
-          <button className="px-3 py-2 text-xs text-slate-400">Rejected</button>
-          <button className="px-3 py-2 text-xs text-slate-400">All</button>
+          <button
+            type="button"
+            onClick={() => setQueue("approved")}
+            className={cn(
+              "px-3 py-2 text-xs",
+              queue === "approved"
+                ? "rounded bg-blue-600 font-semibold text-white"
+                : "text-slate-400",
+            )}
+          >
+            Approved
+          </button>
+          <button
+            type="button"
+            onClick={() => setQueue("rejected")}
+            className={cn(
+              "px-3 py-2 text-xs",
+              queue === "rejected"
+                ? "rounded bg-blue-600 font-semibold text-white"
+                : "text-slate-400",
+            )}
+          >
+            Rejected
+          </button>
+          <button
+            type="button"
+            onClick={() => setQueue("all")}
+            className={cn(
+              "px-3 py-2 text-xs",
+              queue === "all"
+                ? "rounded bg-blue-600 font-semibold text-white"
+                : "text-slate-400",
+            )}
+          >
+            All
+          </button>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <ListFilter className="mr-1.5 h-4 w-4" />
-            Filters
-          </Button>
-          <Button variant="outline" size="sm">
-            Newest first <ChevronDown className="ml-3 h-4 w-4" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setNewestFirst((value) => !value)}
+          >
+            {newestFirst ? "Newest first" : "Oldest first"}{" "}
+            <ChevronDown className="ml-3 h-4 w-4" />
           </Button>
         </div>
       </div>
-      {requests.length === 0 ? (
+      {displayed.length === 0 ? (
         <EmptyState
           title="No overtime requests"
           description="Requests will appear here after employees submit overtime."
@@ -515,7 +639,7 @@ function RequestQueue({
               <span>Submitted</span>
               <span>Actions</span>
             </div>
-            {requests.map((row, rowIndex) => {
+            {displayed.map((row, rowIndex) => {
               const id = String(row.id);
               const risk = requestRisk(row);
               const estimatedCost = requestCost(row);
@@ -657,42 +781,32 @@ function CapacityPlanner({
   requests: ShiftRecord[];
   onSelect: (id: string) => void;
 }) {
-  const days = [
-    "Mon 10",
-    "Tue 11",
-    "Wed 12",
-    "Thu 13",
-    "Fri 14",
-    "Sat 15",
-    "Sun 16",
-  ];
+  const dates = Array.from(new Set(requests.map(row => String(row.work_date).slice(0, 10)))).sort();
   const employees = Array.from(
-    new Map(requests.map((row) => [employeeName(row), row])).values(),
-  ).slice(0, 9);
+    new Map(requests.map((row) => [String(row.employee_id), row])).values(),
+  );
   return (
     <section className="overflow-x-auto rounded-lg border border-zinc-800 bg-[#071321]">
       <div className="min-w-[1050px] text-xs">
-        <div className="grid grid-cols-[250px_repeat(7,1fr)] border-b border-zinc-800">
+        <div className="grid border-b border-zinc-800" style={{ gridTemplateColumns: `250px repeat(${Math.max(1, dates.length)}, minmax(110px, 1fr))` }}>
           <div className="px-3 py-3 font-semibold">Employees</div>
-          {days.map((day, index) => (
+          {dates.map((day) => {
+            const total = requests.filter(row => String(row.work_date).slice(0, 10) === day).reduce((sum, row) => sum + requestDuration(row), 0);
+            return (
             <div
               key={day}
-              className={cn(
-                "border-l border-zinc-800 px-3 py-2 text-center",
-                index === 3 && "bg-blue-950/30",
-              )}
+              className="border-l border-zinc-800 px-3 py-2 text-center"
             >
-              <p className="font-bold">{day}</p>
-              <p className="mt-1 text-blue-400">
-                {(index * 1.5 + 2).toFixed(1)}h
-              </p>
+              <p className="font-bold">{formatDate(day, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+              <p className="mt-1 text-blue-400">{formatDuration(total)}</p>
             </div>
-          ))}
+          );})}
         </div>
         {employees.map((employee, rowIndex) => (
           <div
             key={employeeName(employee)}
-            className="grid min-h-16 grid-cols-[250px_repeat(7,1fr)] border-b border-zinc-800"
+            className="grid min-h-16 border-b border-zinc-800"
+            style={{ gridTemplateColumns: `250px repeat(${Math.max(1, dates.length)}, minmax(110px, 1fr))` }}
           >
             <div className="flex items-center gap-2 px-3">
               <EmployeeAvatar row={employee} />
@@ -704,16 +818,12 @@ function CapacityPlanner({
                   {stringValue(employee.department_name)}
                 </p>
               </div>
-              <span className="text-[11px] text-slate-500">40h</span>
+              <span className="text-[11px] text-slate-500">{formatDuration(numberValue(employee.scheduled_minutes))}</span>
             </div>
-            {days.map((day, dayIndex) => {
-              const hours =
-                dayIndex === (rowIndex + 3) % 7
-                  ? Math.max(2, Math.round(requestDuration(employee) / 60))
-                  : (rowIndex + dayIndex) % 4 === 0
-                    ? 2
-                    : 0;
-              const risky = hours >= 4;
+            {dates.map((day) => {
+              const rows = requests.filter(row => String(row.employee_id) === String(employee.employee_id) && String(row.work_date).slice(0, 10) === day);
+              const minutes = rows.reduce((sum, row) => sum + requestDuration(row), 0);
+              const risky = minutes >= 240;
               return (
                 <button
                   type="button"
@@ -721,30 +831,19 @@ function CapacityPlanner({
                   onClick={() => onSelect(String(employee.id))}
                   className={cn(
                     "border-l border-zinc-800 text-center font-semibold",
-                    hours === 0
+                    minutes === 0
                       ? "text-slate-500"
                       : risky
                         ? "bg-rose-950/70 text-rose-300"
                         : "bg-teal-950/65 text-teal-200",
                   )}
                 >
-                  {hours}h
+                  {formatDuration(minutes)}
                 </button>
               );
             })}
           </div>
         ))}
-        <div className="grid grid-cols-[250px_repeat(7,1fr)] bg-zinc-950/50">
-          <div className="px-3 py-3 font-semibold">Department totals</div>
-          {days.map((day, index) => (
-            <div
-              key={day}
-              className="border-l border-zinc-800 px-3 py-3 text-center font-semibold"
-            >
-              {index + 4}h
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -955,12 +1054,22 @@ function RequestDrawer({
       <section className="border-t border-zinc-800 py-4">
         <h3 className="text-sm font-bold">Team capacity</h3>
         <div className="mt-3 h-2 overflow-hidden rounded bg-zinc-800">
-          <div className="h-full w-[73%] rounded bg-blue-600" />
+          <div
+            className="h-full rounded bg-blue-600"
+            style={{
+              width: `${Math.min(100, ((numberValue(row.scheduled_minutes) + requestDuration(row)) / Math.max(1, numberValue(row.weekly_limit_minutes) || 2880)) * 100)}%`,
+            }}
+          />
         </div>
         <div className="mt-2 flex justify-between text-xs text-slate-500">
-          <span>38h scheduled</span>
+          <span>{formatDuration(row.scheduled_minutes)} scheduled</span>
           <span>+{formatDuration(requestDuration(row))} requested</span>
-          <span>44h total</span>
+          <span>
+            {formatDuration(
+              numberValue(row.scheduled_minutes) + requestDuration(row),
+            )}{" "}
+            total
+          </span>
         </div>
       </section>
       <label className="block border-t border-zinc-800 pt-4 text-xs font-bold">
@@ -992,7 +1101,24 @@ function RequestDrawer({
           >
             Reject
           </Button>
-          <Button variant="outline">Request changes</Button>
+          <Button
+            variant="outline"
+            disabled={saving || note.trim().length < 3}
+            onClick={() =>
+              void onDecision(
+                {
+                  action: "decide_overtime",
+                  overtimeId: id,
+                  decision: "return_for_revision",
+                  comment: note,
+                  expectedVersion: numberValue(row.version),
+                },
+                "Overtime request returned for changes.",
+              )
+            }
+          >
+            Request changes
+          </Button>
           <Button
             disabled={saving}
             onClick={() =>
@@ -1019,7 +1145,15 @@ function RequestDrawer({
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
             <div>
               <p className="font-semibold">Submitted by {employeeName(row)}</p>
-              <p className="text-slate-500">Thu Aug 13, 2026 10:28</p>
+              <p className="text-slate-500">
+                {formatDate(row.created_at, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}{" "}
+                {formatTime(row.created_at)}
+              </p>
             </div>
             <span className="ml-auto text-slate-500">
               {stringValue(row.submitted_label, "32m ago")}
@@ -1076,10 +1210,8 @@ function PolicyLine({
 
 function Workspace({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
-        {children}
-      </div>
+    <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
+      <div className="flex w-full max-w-none flex-col gap-4">{children}</div>
     </main>
   );
 }

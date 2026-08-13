@@ -71,7 +71,7 @@ import {
 } from "./EmployeeSharedPersonProfile";
 import { EmployeeModuleTimeline } from "@/components/hris/EmployeeModuleTimeline";
 import { EmployeeModuleDetailEmbed } from "./EmployeeModuleDetailEmbed";
-import { HrisStatusBadge } from "@/components/hris/HrisWorkspacePrimitives";
+import { HrisEmptyState, HrisStatusBadge } from "@/components/hris/HrisWorkspacePrimitives";
 import { AssetInventoryWorkspace } from "./AssetInventoryWorkspace";
 import { EmployeeCases } from "./EmployeeCases";
 import { HrisOperationsWorkspace } from "./HrisOperationsWorkspace";
@@ -236,8 +236,12 @@ interface EmployeeOnboardingTask {
   id: string;
   title?: string | null;
   description?: string | null;
+  detailedInstructions?: string | null;
+  tags?: string[] | null;
   ownerRole?: string | null;
   dueDay?: number | null;
+  isRequired?: boolean | null;
+  employeeVisibility?: string | null;
   status?: string | null;
   completedAt?: string | null;
 }
@@ -781,8 +785,9 @@ export function HrEmployeeProfilePage({
         <AssetInventoryWorkspace employeeId={employeeId} employeeName={title} />
       ) : activeTab === "Probation" ? (
         <EmployeeProbation employee={employee} />
-      ) : activeTab === "Onboarding" ||
-        activeTab === "Leave" ||
+      ) : activeTab === "Onboarding" ? (
+        <EmployeeOnboardingJourney employee={employee} />
+      ) : activeTab === "Leave" ||
         activeTab === "Attendance" ||
         activeTab === "Learning" ||
         activeTab === "Performance" ||
@@ -3944,6 +3949,65 @@ function EmployeeOnboardingPanel({
       ) : null}
     </section>
   );
+}
+
+function EmployeeOnboardingJourney({ employee }: { employee: HrCrudRecord }) {
+  const onboarding = employee.onboarding && typeof employee.onboarding === "object"
+    ? employee.onboarding as Record<string, unknown>
+    : null;
+  const configuredTasks = Array.isArray(employee.onboardingTasks)
+    ? employee.onboardingTasks as EmployeeOnboardingTask[]
+    : [];
+  const visibleTasks = configuredTasks.filter(task => task.employeeVisibility !== "hidden");
+  const completed = visibleTasks.filter(task => task.status === "completed").length;
+  const progress = visibleTasks.length ? Math.round((completed / visibleTasks.length) * 100) : 0;
+  const templateName = String(onboarding?.templateName || "Onboarding journey");
+  const templateDescription = String(onboarding?.templateDescription || "This journey follows the checklist configured in HR Setup.");
+  const phases = [
+    { id: "before-start", label: "Before start", tasks: visibleTasks.filter(task => Number(task.dueDay || 0) <= 0) },
+    { id: "first-week", label: "First week", tasks: visibleTasks.filter(task => Number(task.dueDay || 0) > 0 && Number(task.dueDay || 0) <= 7) },
+    { id: "first-30-days", label: "First 30 days", tasks: visibleTasks.filter(task => Number(task.dueDay || 0) > 7) },
+  ];
+
+  if (!onboarding) {
+    return <HrisEmptyState title="No onboarding journey" description="Start onboarding from the onboarding workspace and select a published HR Setup template." />;
+  }
+
+  return (
+    <section className="min-h-[560px] bg-background">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-5">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Assigned HR Setup template</p>
+          <h2 className="mt-1 text-xl font-semibold">{templateName}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{templateDescription}</p>
+        </div>
+        <Button asChild variant="outline" size="sm"><Link href="/settings?adminTab=hr-setup&config=onboarding">View HR Setup</Link></Button>
+      </header>
+      <div className="grid gap-px border-b border-border bg-border sm:grid-cols-3">
+        <MetricCard label="Journey progress" value={`${progress}%`} />
+        <MetricCard label="Checklist" value={`${completed} of ${visibleTasks.length}`} />
+        <MetricCard label="Target date" value={formatValue(onboarding.targetDate)} />
+      </div>
+      <div className="space-y-6 p-5">
+        {phases.map(phase => phase.tasks.length ? (
+          <section key={phase.id} aria-labelledby={`journey-${phase.id}`}>
+            <div className="flex items-center justify-between gap-3"><h3 id={`journey-${phase.id}`} className="text-sm font-semibold">{phase.label}</h3><span className="text-xs text-muted-foreground">{phase.tasks.filter(task => task.status === "completed").length}/{phase.tasks.length} complete</span></div>
+            <div className="mt-3 overflow-hidden rounded-xl border border-border">
+              {phase.tasks.map(task => <div key={task.id} className="flex items-start gap-3 border-b border-border p-4 last:border-b-0">
+                <CheckCircleIcon className={cn("mt-0.5 h-5 w-5 shrink-0", task.status === "completed" ? "text-emerald-500" : "text-muted-foreground/40")} />
+                <div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><p className="text-sm font-semibold">{task.title || "Onboarding task"}</p><Badge variant={task.status === "completed" ? "success" : "secondary"} className="rounded-full capitalize">{task.status || "pending"}</Badge></div>{task.description ? <p className="mt-1 text-sm text-muted-foreground">{task.description}</p> : null}<p className="mt-2 text-xs text-muted-foreground">Owner: <span className="capitalize">{task.ownerRole || "employee"}</span> · Due day {Number(task.dueDay || 0)}{task.isRequired === false ? " · Optional" : " · Required"}</p></div>
+              </div>)}
+            </div>
+          </section>
+        ) : null)}
+        {!visibleTasks.length ? <HrisEmptyState title="Template has no visible steps" description="Add and publish checklist steps in HR Setup for this template." /> : null}
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return <div className="bg-background px-5 py-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
 }
 
 function OnboardingSummary({

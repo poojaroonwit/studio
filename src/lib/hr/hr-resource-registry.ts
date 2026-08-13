@@ -131,6 +131,7 @@ export const HR_RESOURCE_CONFIGS: Record<string, HrResourceConfig> = {
     softDelete: { column: 'status', value: 'archived' },
     fields: [
       { name: 'employeeId', column: 'employee_id', label: 'Employee ID', type: 'text', required: true },
+      { name: 'templateId', column: 'template_id', label: 'Template ID', type: 'text', required: true },
       { name: 'status', column: 'status', label: 'Status', type: 'select', options: ['not_started', 'in_progress', 'completed', 'archived'], required: true },
       { name: 'progress', column: 'progress', label: 'Progress', type: 'number', required: true },
       { name: 'startDate', column: 'start_date', label: 'Start date', type: 'date' },
@@ -704,6 +705,41 @@ export function buildHrResourceSchema(config: HrResourceConfig, partial = false)
         path: ['employeeId'],
         message: 'Employee ID is required',
       });
+    }
+    if (values.recordType === 'trusted') {
+      if (!values.issuer) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['issuer'],
+          message: 'Issuer is required for a trusted certificate',
+        });
+      }
+      if (!values.verificationUrl) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['verificationUrl'],
+          message: 'Official verification URL is required for a trusted certificate',
+        });
+      } else {
+        try {
+          const url = new URL(String(values.verificationUrl));
+          if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+        } catch {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['verificationUrl'],
+            message: 'Official verification URL must be a valid HTTP(S) URL',
+          });
+        }
+      }
+      const metadata = values.policyMetadata as Record<string, unknown> | undefined;
+      if (!metadata?.category) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['policyMetadata', 'category'],
+          message: 'Category is required for a trusted certificate',
+        });
+      }
     }
   });
 }

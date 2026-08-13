@@ -222,8 +222,8 @@ export function AttendanceRequestsReview({ requests, capabilities, refreshing, s
   };
 
   return (
-    <main className="min-h-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
-      <div className="mx-auto max-w-[1500px]">
+    <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
+      <div className="w-full max-w-none">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-zinc-800 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-zinc-50">Attendance Requests</h1>
@@ -324,7 +324,7 @@ function RequestDetail({ request, comment, onCommentChange, canDecide, saving, o
   const warnings = Array.isArray(request.policy_warnings) ? request.policy_warnings : [];
   const activity = arrayOfRecords(request.activity);
   const meta = statusMeta(request);
-  const attachment = arrayOfRecords(request.attachments)[0];
+  const attachment = arrayOfRecords(request.supporting_documents || request.attachments)[0];
   const duration = requested.clockIn && requested.clockOut ? Math.max(0, (new Date(String(requested.clockOut)).getTime() - new Date(String(requested.clockIn)).getTime()) / 3_600_000 - numberValue(requested.breakMinutes) / 60) : 0;
 
   return <div className="flex h-full min-h-0 flex-col">
@@ -346,9 +346,9 @@ function RequestDetail({ request, comment, onCommentChange, canDecide, saving, o
 
       <SectionLabel>Employee reason</SectionLabel><p className="text-sm leading-6 text-slate-700 dark:text-zinc-300">{stringValue(request.reason, 'No reason provided.')}</p>
       <SectionLabel>Attachment</SectionLabel>
-      {attachment ? <a href={stringValue(attachment.url, '#')} className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-slate-50 dark:border-zinc-800 dark:text-blue-400 dark:hover:bg-zinc-900"><Paperclip className="h-4 w-4" /><span>{stringValue(attachment.name, 'Supporting evidence')} <span className="font-normal text-slate-500">({stringValue(attachment.size, '')})</span></span></a> : <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400"><FileText className="h-4 w-4" />No attachment provided.</p>}
+      {attachment?.url ? <a href={stringValue(attachment.url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-slate-50 dark:border-zinc-800 dark:text-blue-400 dark:hover:bg-zinc-900"><Paperclip className="h-4 w-4" /><span>{stringValue(attachment.name, 'Supporting evidence')} <span className="font-normal text-slate-500">({stringValue(attachment.size, '')})</span></span></a> : <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400"><FileText className="h-4 w-4" />No attachment provided.</p>}
 
-      <SectionLabel>Policy check</SectionLabel><div className="space-y-2 text-sm"><PolicyLine ok text="Within the configured correction window" /><PolicyLine ok text="No overlapping attendance events detected" />{warnings.length ? warnings.map((warning, index) => <PolicyLine key={index} text={stringValue(warning)} />) : <PolicyLine ok text="No policy warnings" />}</div>
+      <SectionLabel>Policy check</SectionLabel><div className="space-y-2 text-sm">{warnings.length ? warnings.map((warning, index) => <PolicyLine key={index} text={stringValue(warning)} />) : <PolicyLine ok text="The server reported no policy warnings for this request." />}</div>
 
       <SectionLabel>Audit trail</SectionLabel>
       <ol className="space-y-3 border-l border-slate-200 pl-4 text-xs dark:border-zinc-800">{(activity.length ? activity : [{ action: 'Submitted request', createdAt: request.submitted_at || request.created_at }]).map((item, index) => <li key={String(item.id || index)} className="relative grid gap-0.5 before:absolute before:-left-[1.19rem] before:top-1 before:h-2 before:w-2 before:rounded-full before:bg-slate-400"><time className="text-slate-500">{formatDate(item.createdAt || item.created_at, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} {formatTime(item.createdAt || item.created_at)}</time><strong className="font-medium text-slate-700 dark:text-zinc-300">{stringValue(item.action, 'Submitted request')}</strong></li>)}</ol>

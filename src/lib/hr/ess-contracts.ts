@@ -49,6 +49,7 @@ export const essRequestCreateSchema = z.discriminatedUnion('requestType', [
       { message: 'Check-out must be after check-in.', path: ['clockOut'] },
     ),
     originalValues: z.record(z.string(), z.unknown()).default({}),
+    supportingDocuments: z.array(z.object({ name: z.string().min(1).max(200), url: z.string().url(), size: z.string().max(40).optional() })).max(10).default([]),
     saveAsDraft: z.boolean().default(false),
   }),
   z.object({

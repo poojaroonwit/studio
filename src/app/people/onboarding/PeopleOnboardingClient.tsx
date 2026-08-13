@@ -213,6 +213,7 @@ export function PeopleOnboardingClient() {
   const [cases, setCases] = React.useState<RecordItem[]>([]);
   const [employees, setEmployees] = React.useState<RecordItem[]>([]);
   const [tasks, setTasks] = React.useState<RecordItem[]>([]);
+  const [templates, setTemplates] = React.useState<RecordItem[]>([]);
   const [courses, setCourses] = React.useState<RecordItem[]>([]);
   const [enrollments, setEnrollments] = React.useState<RecordItem[]>([]);
   const [selectedCaseId, setSelectedCaseId] = React.useState<string | null>(null);
@@ -228,7 +229,7 @@ export function PeopleOnboardingClient() {
   const [departmentFilter, setDepartmentFilter] = React.useState('all');
   const [locationFilter, setLocationFilter] = React.useState('all');
   const [ownerFilter, setOwnerFilter] = React.useState('all');
-  const [form, setForm] = React.useState({ employeeId: '', startDate: '', targetDate: '' });
+  const [form, setForm] = React.useState({ employeeId: '', templateId: '', startDate: '', targetDate: '' });
   const canManageOnboarding = isAdminUser(session?.user) || (session?.user?.modulePermissions || []).includes('HR_PEOPLE_MANAGE');
 
   const load = React.useCallback(async () => {
@@ -238,12 +239,16 @@ export function PeopleOnboardingClient() {
       const criticalResponses = await Promise.all([
         fetch('/api/hr/onboarding', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/hr/employees', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/hr/onboarding?view=templates', { credentials: 'include', cache: 'no-store' }),
       ]);
       if (!criticalResponses[0].ok) throw new Error('Unable to load onboarding journeys.');
       const criticalPayloads = await Promise.all(criticalResponses.map(async response => response.ok ? response.json() as Promise<ResourceResponse> : {}));
       const nextCases = records(criticalPayloads[0]);
       setCases(nextCases);
       setEmployees(records(criticalPayloads[1]));
+      const nextTemplates = records(criticalPayloads[2]).filter(template => String(value(template, 'isActive', 'is_active')).toLowerCase() === 'true');
+      setTemplates(nextTemplates);
+      setForm(current => current.templateId || !nextTemplates[0] ? current : { ...current, templateId: nextTemplates[0].id });
       setSelectedCaseId(current => current && nextCases.some(item => item.id === current) ? current : nextCases[0]?.id || null);
       setIsLoading(false);
 
@@ -286,8 +291,10 @@ export function PeopleOnboardingClient() {
   }, [selectedEmployeeId]);
 
   const detailTasks = React.useMemo(
-    () => Array.isArray(employeeDetail?.onboardingTasks) ? employeeDetail.onboardingTasks as RecordItem[] : tasks,
-    [employeeDetail, tasks],
+    () => Array.isArray(employeeDetail?.onboardingTasks)
+      ? employeeDetail.onboardingTasks as RecordItem[]
+      : tasks.filter(task => String(value(task, 'templateId', 'template_id') || '') === String(value(selectedRow?.caseItem, 'templateId', 'template_id') || '')),
+    [employeeDetail, selectedRow?.caseItem, tasks],
   );
   const selectedEnrollments = enrollments.filter(item => value(item, 'employeeId', 'employee_id') === selectedEmployeeId);
   const selectedCourses = selectedEnrollments.map(item => courses.find(course => course.id === String(value(item, 'courseId', 'course_id')))).filter(Boolean);
@@ -334,18 +341,18 @@ export function PeopleOnboardingClient() {
   }, [activeFilter, departmentFilter, locationFilter, ownerFilter, rows, searchQuery, startDateFilter]);
 
   const submitOnboarding = async () => {
-    if (!form.employeeId) return;
+    if (!form.employeeId || !form.templateId) return;
     setIsSaving(true);
     try {
       const response = await fetch('/api/hr/onboarding', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeId: form.employeeId, status: 'not_started', progress: 0, startDate: form.startDate || undefined, targetDate: form.targetDate || undefined }),
+        body: JSON.stringify({ employeeId: form.employeeId, templateId: form.templateId, status: 'not_started', progress: 0, startDate: form.startDate || undefined, targetDate: form.targetDate || undefined }),
       });
       if (!response.ok) throw new Error('Unable to start onboarding.');
       setCreateOpen(false);
-      setForm({ employeeId: '', startDate: '', targetDate: '' });
+      setForm({ employeeId: '', templateId: templates[0]?.id || '', startDate: '', targetDate: '' });
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to start onboarding.');
@@ -413,6 +420,7 @@ export function PeopleOnboardingClient() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         form={form}
+        templates={templates}
         setForm={setForm}
         isSaving={isSaving}
         onSubmit={() => void submitOnboarding()}
@@ -874,11 +882,12 @@ function EmptyState({ canManage, onStart }: { canManage: boolean; onStart: () =>
   return <div className="mt-6 grid min-h-[420px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-700 dark:bg-zinc-900"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-[#155bd7] dark:bg-blue-950"><UserGroupIcon className="h-6 w-6" /></span><h2 className="mt-4 text-lg font-bold">No onboarding journeys yet</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Start the first employee journey to track readiness, owners, tasks, assets, and learning in one place.</p>{canManage && <Button type="button" onClick={onStart} className="mt-5 bg-[#155bd7] hover:bg-[#104dbb]"><PlusIcon className="mr-2 h-4 w-4" />Start onboarding</Button>}</div></div>;
 }
 
-function StartOnboardingDialog({ open, onOpenChange, form, setForm, isSaving, onSubmit }: {
+function StartOnboardingDialog({ open, onOpenChange, form, templates, setForm, isSaving, onSubmit }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  form: { employeeId: string; startDate: string; targetDate: string };
-  setForm: React.Dispatch<React.SetStateAction<{ employeeId: string; startDate: string; targetDate: string }>>;
+  form: { employeeId: string; templateId: string; startDate: string; targetDate: string };
+  templates: RecordItem[];
+  setForm: React.Dispatch<React.SetStateAction<{ employeeId: string; templateId: string; startDate: string; targetDate: string }>>;
   isSaving: boolean;
   onSubmit: () => void;
 }) {
@@ -888,9 +897,17 @@ function StartOnboardingDialog({ open, onOpenChange, form, setForm, isSaving, on
         <DialogHeader><DialogTitle>Start employee onboarding</DialogTitle><DialogDescription>Create the journey now; profile, checklist, and learning progress will update from their source records.</DialogDescription></DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2"><Label>Employee</Label><HrEmployeeSearchSelect value={form.employeeId} onValueChange={employeeId => setForm(current => ({ ...current, employeeId }))} disabled={isSaving} /></div>
+          <div className="grid gap-2">
+            <Label htmlFor="onboarding-template">Published checklist template</Label>
+            <select id="onboarding-template" value={form.templateId} onChange={event => setForm(current => ({ ...current, templateId: event.target.value }))} disabled={isSaving || !templates.length} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">{templates.length ? 'Select template' : 'No published templates available'}</option>
+              {templates.map(template => <option key={template.id} value={template.id}>{label(template.name, 'Untitled template')}</option>)}
+            </select>
+            {!templates.length && <p className="text-xs text-amber-600">Publish a checklist template in HR Setup before starting a journey.</p>}
+          </div>
           <div className="grid gap-4 sm:grid-cols-2"><div className="grid gap-2"><Label>Start date</Label><Input type="date" value={form.startDate} onChange={event => setForm(current => ({ ...current, startDate: event.target.value }))} /></div><div className="grid gap-2"><Label>Target date</Label><Input type="date" value={form.targetDate} onChange={event => setForm(current => ({ ...current, targetDate: event.target.value }))} /></div></div>
         </div>
-        <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="button" disabled={!form.employeeId || isSaving} onClick={onSubmit}>{isSaving ? 'Starting…' : 'Start onboarding'}</Button></DialogFooter>
+        <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="button" disabled={!form.employeeId || !form.templateId || isSaving} onClick={onSubmit}>{isSaving ? 'Starting…' : 'Start onboarding'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -43,6 +43,7 @@ type TrustPolicyMetadata = {
   geographicCoverage: string;
   policyOwner: string;
   nextReviewAt: string;
+  approvedOn: string;
   verificationRequirements: string[];
   policyChangeNote: string;
 };
@@ -116,6 +117,7 @@ function policyMetadata(record: TrustedRecord): TrustPolicyMetadata {
     geographicCoverage: stringValue(parsed.geographicCoverage, 'Global'),
     policyOwner: stringValue(parsed.policyOwner, 'Learning & Development'),
     nextReviewAt: stringValue(parsed.nextReviewAt),
+    approvedOn: stringValue(parsed.approvedOn),
     verificationRequirements: Array.isArray(parsed.verificationRequirements) ? parsed.verificationRequirements.map(item => stringValue(item)).filter(Boolean) : [],
     policyChangeNote: stringValue(parsed.policyChangeNote),
   };
@@ -153,10 +155,11 @@ function formatDate(input: unknown) {
 }
 
 function nextReviewDate(input: string) {
+  if (!input) return '';
   const date = new Date(input);
-  if (Number.isNaN(date.getTime())) return 'Schedule review';
+  if (Number.isNaN(date.getTime())) return '';
   date.setDate(date.getDate() + 90);
-  return formatDate(date.toISOString());
+  return date.toISOString();
 }
 
 function validityLabel(months: number | null) {
@@ -280,7 +283,7 @@ export function TrustedCertificatesWorkspace({
       credentialIdPattern: credential.policy.credentialIdPattern,
       geographicCoverage: credential.policy.geographicCoverage,
       policyOwner: credential.policy.policyOwner,
-      approvedOn: credential.verifiedAt ? credential.verifiedAt.slice(0, 10) : '',
+      approvedOn: (credential.policy.approvedOn || credential.verifiedAt).slice(0, 10),
       nextReviewAt: credential.policy.nextReviewAt ? credential.policy.nextReviewAt.slice(0, 10) : '',
       verificationRequirements: credential.policy.verificationRequirements.join('\n'),
       policyChangeNote: credential.policy.policyChangeNote,
@@ -305,6 +308,7 @@ export function TrustedCertificatesWorkspace({
         geographicCoverage: editForm.geographicCoverage.trim() || 'Global',
         policyOwner: editForm.policyOwner.trim(),
         nextReviewAt: editForm.nextReviewAt || null,
+        approvedOn: editForm.approvedOn || null,
         verificationRequirements: editForm.verificationRequirements.split('\n').map(item => item.trim()).filter(Boolean),
         policyChangeNote: editForm.policyChangeNote.trim(),
       },
@@ -328,6 +332,13 @@ export function TrustedCertificatesWorkspace({
     URL.revokeObjectURL(url);
   };
 
+  const reviewDue = React.useMemo(() => credentials.filter(item => {
+    if (/review|pending/.test(item.status)) return true;
+    if (!item.policy.nextReviewAt) return false;
+    const reviewAt = new Date(item.policy.nextReviewAt).getTime();
+    return Number.isFinite(reviewAt) && reviewAt <= Date.now();
+  }), [credentials]);
+
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-[#f8fafc] px-4 pb-10 pt-6 font-sans text-[#172033] dark:bg-[#09111d] dark:text-zinc-50 sm:px-7 lg:px-8">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -342,7 +353,7 @@ export function TrustedCertificatesWorkspace({
       {workspaceView === 'registry' && <div className="mt-7 flex flex-wrap items-stretch gap-y-4 text-sm">
         <div className="flex min-w-[215px] items-center gap-3 border-r border-[#334157] pr-8"><ShieldCheckIcon className="h-6 w-6" /><p><span className="block text-base font-bold">{credentials.length}</span><span className="text-[#6f7886] dark:text-zinc-300">Recognized credentials</span></p></div>
         <div className="flex min-w-[195px] items-center gap-3 border-r border-[#334157] px-8"><UserGroupIcon className="h-6 w-6" /><p><span className="block text-base font-bold">{issuers.length}</span><span className="text-[#6f7886] dark:text-zinc-300">Trusted issuers</span></p></div>
-        <div className="flex min-w-[210px] items-center gap-3 px-8"><ExclamationTriangleIcon className="h-6 w-6" /><p><span className="block text-base font-bold">{credentials.filter(item => /review|pending/.test(item.status)).length}</span><span className="text-[#6f7886] dark:text-zinc-300">Policies needing review</span></p></div>
+        <div className="flex min-w-[210px] items-center gap-3 px-8"><ExclamationTriangleIcon className="h-6 w-6" /><p><span className="block text-base font-bold">{reviewDue.length}</span><span className="text-[#6f7886] dark:text-zinc-300">Policies needing review</span></p></div>
       </div>}
 
       {workspaceView === 'issuers' && <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -361,6 +372,8 @@ export function TrustedCertificatesWorkspace({
           onSelectCredential={setSelectedCredentialId}
           onAdd={() => onAdd({ mode: 'credential', issuer: selectedIssuer?.name })}
           onEdit={() => openEditor(selectedCredential)}
+          reviewDueIds={new Set(reviewDue.map(item => item.id))}
+          onShowReview={() => { setWorkspaceView('registry'); setRegistryTab('review'); }}
         />
       ) : (
         <CredentialRegistry
@@ -378,6 +391,7 @@ export function TrustedCertificatesWorkspace({
           onEdit={openEditor}
           onArchive={credential => void archivePolicy(credential)}
           onExport={exportRegistry}
+          reviewDueIds={new Set(reviewDue.map(item => item.id))}
         />
       )}
 
@@ -407,14 +421,16 @@ export function TrustedCertificatesWorkspace({
   );
 }
 
-function IssuerNetwork({ issuers, selectedIssuer, selectedCredential, onSelectIssuer, onSelectCredential, onAdd, onEdit }: {
+function IssuerNetwork({ issuers, selectedIssuer, selectedCredential, reviewDueIds, onSelectIssuer, onSelectCredential, onAdd, onEdit, onShowReview }: {
   issuers: IssuerGroup[];
   selectedIssuer: IssuerGroup | null;
   selectedCredential: Credential | null;
+  reviewDueIds: Set<string>;
   onSelectIssuer: (name: string) => void;
   onSelectCredential: (id: string) => void;
   onAdd: () => void;
   onEdit: () => void;
+  onShowReview: () => void;
 }) {
   if (!issuers.length) return <div className="mt-5 border-y border-[#cbd3de] py-16 text-center dark:border-[#314056]"><p className="font-semibold">No issuers match these filters.</p><p className="mt-1 text-sm text-[#6f7c90]">Try another search or category.</p></div>;
   return <section className="mt-5 grid overflow-hidden rounded-[8px] border border-[#cbd3de] bg-white dark:border-[#314056] dark:bg-[#101a28] lg:grid-cols-[368px_minmax(0,1fr)]">
@@ -439,14 +455,15 @@ function IssuerNetwork({ issuers, selectedIssuer, selectedCredential, onSelectIs
   </section>;
 }
 
-function CredentialRegistry({ credentials, query, category, categories, tab, selected, onQueryChange, onCategoryChange, onSwitchView, onTabChange, onSelect, onEdit, onArchive, onExport }: {
+function CredentialRegistry({ credentials, query, category, categories, tab, selected, reviewDueIds, onQueryChange, onCategoryChange, onSwitchView, onTabChange, onSelect, onEdit, onArchive, onExport }: {
   credentials: Credential[]; query: string; category: string; tab: 'active' | 'review' | 'archived'; selected: Credential | null;
   categories: string[]; onQueryChange: (query: string) => void; onCategoryChange: (category: string) => void; onSwitchView: () => void;
+  reviewDueIds: Set<string>;
   onTabChange: (tab: 'active' | 'review' | 'archived') => void; onSelect: (id: string) => void; onEdit: (credential: Credential) => void; onArchive: (credential: Credential) => void; onExport: () => void;
 }) {
   const rows = credentials.filter(item => `${item.name} ${item.issuer}`.toLowerCase().includes(query.toLowerCase()))
     .filter(item => category === 'all' || item.category === category)
-    .filter(item => tab === 'active' ? !/review|pending|archive|expired/.test(item.status) : tab === 'review' ? /review|pending/.test(item.status) : /archive|expired/.test(item.status));
+    .filter(item => tab === 'active' ? !reviewDueIds.has(item.id) && !/archive|expired/.test(item.status) : tab === 'review' ? reviewDueIds.has(item.id) : /archive|expired/.test(item.status));
   const current = rows.find(item => item.id === selected?.id) || rows[0] || null;
   return <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(380px,1fr)]">
     <section className="min-w-0 overflow-hidden rounded-[8px] border border-[#cbd3de] bg-white dark:border-[#314056] dark:bg-[#101a28]"><div className="flex flex-wrap items-center gap-3 border-b border-[#d5dce5] p-4 dark:border-[#314056]"><label className="relative min-w-[260px] flex-1"><MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#788598]" /><span className="sr-only">Search credentials</span><Input value={query} onChange={event => onQueryChange(event.target.value)} placeholder="Search credentials, issuers, or categories" className="h-10 border-[#aeb9c7] bg-transparent pl-9 shadow-none dark:border-[#415069]" /></label><label className="relative"><FunnelIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#788598]" /><span className="sr-only">Filter by status</span><select value={tab} onChange={event => onTabChange(event.target.value as 'active' | 'review' | 'archived')} className="h-10 min-w-36 appearance-none rounded-md border border-[#aeb9c7] bg-transparent pl-9 pr-8 text-sm font-semibold dark:border-[#415069]"><option value="active">All status</option><option value="review">Review due</option><option value="archived">Archived</option></select></label><label className="relative"><FunnelIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#788598]" /><span className="sr-only">Filter by category</span><select value={category} onChange={event => onCategoryChange(event.target.value)} className="h-10 min-w-40 appearance-none rounded-md border border-[#aeb9c7] bg-transparent pl-9 pr-8 text-sm font-semibold dark:border-[#415069]"><option value="all">All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label><Button type="button" variant="ghost" onClick={onExport}><ArrowDownTrayIcon className="mr-2 h-4 w-4" />Export</Button></div><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d5dce5] px-4 dark:border-[#314056]"><nav className="flex gap-8">{(['active', 'review', 'archived'] as const).map(item => <button key={item} type="button" onClick={() => onTabChange(item)} className={cn('relative py-4 text-sm font-medium capitalize text-[#69778b]', tab === item && 'font-semibold text-[#172033] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#316be8] dark:text-white')}>{item === 'review' ? 'Review due' : item}</button>)}</nav><Button type="button" variant="outline" onClick={onSwitchView} className="h-9 border-[#607089] bg-transparent text-xs text-[#316be8] dark:border-[#415069]">Switch to issuer view <ChevronRightIcon className="ml-1 h-4 w-4" /></Button></div>{rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-[#d5dce5] text-xs text-[#69778b] dark:border-[#314056]"><tr><th className="px-4 py-3 font-medium">Credential</th><th className="px-4 py-3 font-medium">Category</th><th className="px-4 py-3 font-medium">Trusted issuer</th><th className="px-4 py-3 font-medium">Validity</th><th className="px-4 py-3 font-medium">Verification</th><th className="px-4 py-3 font-medium">Status</th></tr></thead><tbody className="divide-y divide-[#d9dfe7] dark:divide-[#29374a]">{rows.map(item => <tr key={item.id} onClick={() => onSelect(item.id)} className={cn('cursor-pointer hover:bg-[#f3f7fd] dark:hover:bg-[#152338]', current?.id === item.id && 'bg-[#eaf2ff] shadow-[inset_3px_0_0_#316be8] dark:bg-[#142744]')}><td className="px-4 py-4 font-semibold">{item.name}</td><td className="px-4 py-4">{item.category}</td><td className="px-4 py-4">{item.issuer}</td><td className="px-4 py-4">{validityLabel(item.validityMonths)}</td><td className="px-4 py-4">{item.verificationUrl ? 'Official portal' : 'Manual review'}</td><td className="px-4 py-4"><StatusBadge status={item.status} /></td></tr>)}</tbody></table></div> : <div className="px-6 py-16 text-center text-sm text-[#6f7c90]">No policies in this view.</div>}</section>

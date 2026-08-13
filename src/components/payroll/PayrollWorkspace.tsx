@@ -594,7 +594,7 @@ function payrollBlockerTasks(
       route: isCompensation
         ? `/payroll/compensation${employeeId ? `?employee=${employeeId}` : ""}`
         : employeeId
-          ? `/people/${employeeId}?tab=Payroll`
+          ? `/people/${employeeId}?tab=Overview&focus=${isBank ? "bank-details" : isTax ? "tax-details" : isGroup ? "payroll-group" : "payroll-profile"}`
           : "/people",
     };
   });

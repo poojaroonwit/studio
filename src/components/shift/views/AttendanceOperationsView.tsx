@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
@@ -64,6 +65,9 @@ export function AttendanceOperationsView() {
   const [queryText, setQueryText] = React.useState('');
   const [status, setStatus] = React.useState('');
   const [severity, setSeverity] = React.useState('');
+  const [department, setDepartment] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const [exceptionType, setExceptionType] = React.useState('');
   const [mode, setMode] = React.useState<AttendanceMode>('timeline');
   const [selectedRecordId, setSelectedRecordId] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
@@ -74,12 +78,12 @@ export function AttendanceOperationsView() {
     variance: false,
   });
   const query = React.useMemo(
-    () => new URLSearchParams({ date, query: queryText, status, page: String(page), pageSize: String(pageSize) }),
-    [date, page, pageSize, queryText, status],
+    () => new URLSearchParams({ date, query: queryText, status, department, location, exceptionType, page: String(page), pageSize: String(pageSize) }),
+    [date, department, exceptionType, location, page, pageSize, queryText, status],
   );
   const state = useShiftAttendance('attendance', query);
 
-  React.useEffect(() => setPage(1), [date, queryText, status, severity]);
+  React.useEffect(() => setPage(1), [date, queryText, status, severity, department, location, exceptionType]);
 
   if (state.loading) return <Workspace><LoadingState label="Calculating daily attendance and exceptions…" /></Workspace>;
   if (state.error && !state.data) return <Workspace><ErrorState message={state.error} onRetry={state.reload} /></Workspace>;
@@ -88,6 +92,8 @@ export function AttendanceOperationsView() {
   const allRecords = arrayValue(state.data.records);
   const periods = arrayValue(state.data.periods);
   const metrics = (state.data.metrics || {}) as Record<string, unknown>;
+  const facets = (state.data.facets || {}) as Record<string, unknown>;
+  const facetOptions = (value: unknown) => Array.isArray(value) ? value.map(item => [String(item), String(item).replace(/_/g, ' ')] as [string, string]) : [];
   const activePeriod = periods[0];
   const filteredRecords = severity
     ? allRecords.filter(row => resolveSeverity(row) === severity)
@@ -105,6 +111,7 @@ export function AttendanceOperationsView() {
   const pagination = (state.data.pagination || {}) as Record<string, unknown>;
   const hasMore = Boolean(pagination.hasMore);
   const exceptionCount = numberValue(metrics.exceptions);
+  const periodExceptionCount = activePeriod?.open_exception_count == null ? exceptionCount : numberValue(activePeriod.open_exception_count);
 
   return (
     <Workspace>
@@ -113,6 +120,7 @@ export function AttendanceOperationsView() {
         onDateChange={setDate}
         activePeriod={activePeriod}
         records={allRecords}
+        onExport={() => exportAllRows(query, date)}
       />
       <PermissionBanner scope={state.capabilities.dataScope} />
       {state.error && <InlineError message={state.error} />}
@@ -128,6 +136,15 @@ export function AttendanceOperationsView() {
           onStatusChange={setStatus}
           severity={severity}
           onSeverityChange={setSeverity}
+          department={department}
+          onDepartmentChange={setDepartment}
+          location={location}
+          onLocationChange={setLocation}
+          exceptionType={exceptionType}
+          onExceptionTypeChange={setExceptionType}
+          departments={facetOptions(facets.departments)}
+          locations={facetOptions(facets.locations)}
+          exceptionTypes={facetOptions(facets.exception_types)}
         />
 
         {filteredRecords.length === 0 ? (
@@ -156,7 +173,7 @@ export function AttendanceOperationsView() {
       </section>
 
       {activePeriod && state.capabilities.canManageWorkforce && (
-        <PeriodReadinessBar period={activePeriod} unresolved={exceptionCount} />
+        <PeriodReadinessBar period={activePeriod} unresolved={periodExceptionCount} saving={state.saving} canManagePayroll={state.capabilities.canManagePayroll} onAction={(body, message) => state.mutate(body, message)} />
       )}
 
       <AttendanceDrawer
@@ -165,7 +182,7 @@ export function AttendanceOperationsView() {
         open={Boolean(selectedRecord)}
         canManage={state.capabilities.canManageWorkforce}
         saving={state.saving}
-        unresolved={exceptionCount}
+        unresolved={periodExceptionCount}
         onClose={() => setSelectedRecordId(null)}
         onAction={async (body, message) => {
           const result = await state.mutate(body, message);
@@ -185,11 +202,13 @@ function CompactHeader({
   onDateChange,
   activePeriod,
   records,
+  onExport,
 }: {
   date: string;
   onDateChange: (value: string) => void;
   activePeriod?: ShiftRecord;
   records: ShiftRecord[];
+  onExport: () => Promise<void>;
 }) {
   const moveDate = (direction: number) => {
     const nextDate = new Date(`${date}T00:00:00.000Z`);
@@ -221,7 +240,7 @@ function CompactHeader({
           <span>{activePeriod ? `${formatDate(activePeriod.start_date, { month: 'short', day: 'numeric' })}–${formatDate(activePeriod.end_date, { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Current period'}</span>
           <ChevronDown className="h-4 w-4 text-slate-400" />
         </div>
-        <Button variant="ghost" size="sm" className="h-9" disabled={records.length === 0} onClick={() => exportRows(records, date)}>
+        <Button variant="ghost" size="sm" className="h-9" disabled={records.length === 0} onClick={() => void onExport()}>
           <ArrowDownToLine className="mr-2 h-4 w-4" />Export
         </Button>
       </div>
@@ -263,6 +282,15 @@ function AttendanceToolbar({
   onStatusChange,
   severity,
   onSeverityChange,
+  department,
+  onDepartmentChange,
+  location,
+  onLocationChange,
+  exceptionType,
+  onExceptionTypeChange,
+  departments,
+  locations,
+  exceptionTypes,
 }: {
   mode: AttendanceMode;
   onModeChange: (mode: AttendanceMode) => void;
@@ -272,22 +300,26 @@ function AttendanceToolbar({
   onStatusChange: (value: string) => void;
   severity: string;
   onSeverityChange: (value: string) => void;
+  department: string; onDepartmentChange: (value: string) => void;
+  location: string; onLocationChange: (value: string) => void;
+  exceptionType: string; onExceptionTypeChange: (value: string) => void;
+  departments: Array<[string, string]>; locations: Array<[string, string]>; exceptionTypes: Array<[string, string]>;
 }) {
   const listMode = mode === 'list';
   return (
     <div className="flex flex-col gap-2 border-b border-slate-200 p-3 xl:flex-row xl:items-center dark:border-zinc-800">
       <SearchField value={queryText} onChange={onQueryChange} placeholder={listMode ? 'Search exceptions' : 'Search by name or ID'} />
-      {!listMode && <SelectFilter value="" onChange={() => undefined} label="All departments" options={[]} />}
-      {!listMode && <SelectFilter value="" onChange={() => undefined} label="All locations" options={[]} />}
+      {!listMode && <SelectFilter value={department} onChange={onDepartmentChange} label="All departments" options={departments} />}
+      {!listMode && <SelectFilter value={location} onChange={onLocationChange} label="All locations" options={locations} />}
       {!listMode && <SelectFilter value={status} onChange={onStatusChange} label="All statuses" options={[
         ['present', 'Present'], ['checked_out', 'Checked out'], ['late', 'Late'], ['absent', 'Absent'], ['missing_record', 'Missing record'],
       ]} />}
       <SelectFilter value={severity} onChange={onSeverityChange} label="All severities" options={[
         ['critical', 'Critical'], ['high', 'High'], ['medium', 'Medium'],
       ]} />
-      {listMode && <SelectFilter value="" onChange={() => undefined} label="All exception types" options={[]} />}
+      {listMode && <SelectFilter value={exceptionType} onChange={onExceptionTypeChange} label="All exception types" options={exceptionTypes} />}
       {listMode && <SelectFilter value={status} onChange={onStatusChange} label="All review status" options={[["new", "New"], ["in_review", "In review"], ["on_hold", "On hold"]]} />}
-      {(status || severity) && <Button variant="ghost" size="sm" className="h-10 text-blue-600" onClick={() => { onStatusChange(''); onSeverityChange(''); }}>Clear</Button>}
+      {(status || severity || department || location || exceptionType) && <Button variant="ghost" size="sm" className="h-10 text-blue-600" onClick={() => { onStatusChange(''); onSeverityChange(''); onDepartmentChange(''); onLocationChange(''); onExceptionTypeChange(''); }}>Clear</Button>}
       <div className="ml-auto inline-flex h-10 min-w-56 rounded-md border border-slate-200 bg-slate-50 p-1 dark:border-zinc-800 dark:bg-zinc-900" aria-label="Attendance view">
         {(['timeline', 'list'] as AttendanceMode[]).map(value => (
           <button
@@ -301,7 +333,6 @@ function AttendanceToolbar({
           </button>
         ))}
       </div>
-      {!listMode && <Button variant="outline" size="sm" className="h-10 px-4"><Columns3 className="mr-2 h-4 w-4" />Columns</Button>}
     </div>
   );
 }
@@ -461,14 +492,21 @@ function DrawerMetric({ label, value, detail }: { label: string; value: string; 
 
 function TimelineEvent({ label, time, detail, complete }: { label: string; time: string; detail?: string; complete?: boolean }) { return <li className="relative grid grid-cols-[48px_1fr] gap-2 pb-4 text-xs last:pb-0 before:absolute before:-left-[1.47rem] before:top-0.5 before:h-3 before:w-3 before:rounded-full before:border before:border-rose-500 before:bg-white dark:before:bg-zinc-950"><span className={cn('font-semibold tabular-nums', complete && 'text-emerald-600 dark:text-emerald-400')}>{time}</span><div><p className="font-medium">{label}</p>{detail && <p className="mt-0.5 text-slate-500">{detail}</p>}</div></li>; }
 
-function ReadinessSteps({ unresolved }: { unresolved: number }) {
-  const steps = [{ label: 'Collect records', detail: 'Complete' }, { label: 'Resolve exceptions', detail: `${unresolved} remaining` }, { label: 'Close period', detail: 'Locked' }, { label: 'Export payroll', detail: 'Locked' }];
+function ReadinessSteps({ unresolved, status = 'open' }: { unresolved: number; status?: string }) {
+  const closed = ['closed', 'exported_to_payroll'].includes(status);
+  const steps = [{ label: 'Collect records', detail: 'Complete' }, { label: 'Resolve exceptions', detail: unresolved ? `${unresolved} remaining` : 'Complete' }, { label: 'Close period', detail: closed ? 'Complete' : unresolved ? 'Blocked' : 'Ready' }, { label: 'Export payroll', detail: status === 'exported_to_payroll' ? 'Complete' : closed ? 'Ready' : 'Waiting' }];
   return <div className="mt-4 grid grid-cols-4 gap-1">{steps.map((step, index) => <div key={step.label} className="relative text-center before:absolute before:left-0 before:right-0 before:top-3 before:h-px before:bg-slate-200 first:before:left-1/2 last:before:right-1/2 dark:before:bg-zinc-700"><span className={cn('relative z-10 mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold', index === 0 ? 'border-emerald-500 bg-emerald-500 text-white' : index === 1 ? 'border-blue-500 bg-blue-600 text-white ring-4 ring-blue-500/20' : 'border-slate-300 bg-white text-slate-500 dark:border-zinc-700 dark:bg-zinc-900')}>{index === 0 ? <Check className="h-3.5 w-3.5" /> : index + 1}</span><p className={cn('mt-2 text-[10px] font-medium leading-4', index === 1 && 'text-blue-600 dark:text-blue-400')}>{step.label}</p><p className="text-[10px] text-slate-500">{step.detail}</p></div>)}</div>;
 }
 
-function PeriodReadinessBar({ period, unresolved }: { period: ShiftRecord; unresolved: number }) {
+function PeriodReadinessBar({ period, unresolved, saving, canManagePayroll, onAction }: { period: ShiftRecord; unresolved: number; saving: boolean; canManagePayroll: boolean; onAction: (body: Record<string, unknown>, message: string) => Promise<unknown> }) {
   const status = stringValue(period.status);
-  return <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-[#071321]"><div className="flex items-center gap-3"><LockKeyhole className="h-5 w-5 text-blue-600" /><div><p className="text-sm font-semibold">Attendance period readiness</p><p className="text-xs text-slate-500">{formatDate(period.start_date)}–{formatDate(period.end_date)} · {status.replace(/_/g, ' ')}</p></div></div><div className="flex items-center gap-4"><span className="text-sm font-semibold text-amber-600 dark:text-amber-400">{unresolved} unresolved</span><Button size="sm" variant="outline" disabled><LockKeyhole className="mr-2 h-4 w-4" />Close period</Button></div></section>;
+  const [reason, setReason] = React.useState('');
+  const run = async (action: 'close_period' | 'reopen_period' | 'export_payroll') => {
+    const result = await onAction({ action, attendancePeriodId: period.id, reason, expectedVersion: numberValue(period.version) }, action === 'close_period' ? 'Attendance period closed.' : action === 'reopen_period' ? 'Attendance period reopened.' : 'Attendance exported to payroll.');
+    if (result) setReason('');
+  };
+  const closed = ['closed', 'exported_to_payroll'].includes(status);
+  return <section className="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-[#071321]"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-3"><LockKeyhole className="h-5 w-5 text-blue-600" /><div><p className="text-sm font-semibold">Attendance period readiness</p><p className="text-xs text-slate-500">{formatDate(period.start_date)}–{formatDate(period.end_date)} · {status.replace(/_/g, ' ')}</p></div></div><div className="flex flex-wrap items-center gap-2"><span className={cn('text-sm font-semibold', unresolved ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600')}>{unresolved} unresolved</span><Input className="h-9 min-w-56" value={reason} onChange={event => setReason(event.target.value)} placeholder="Reason for period action" />{closed ? <Button size="sm" variant="outline" disabled={saving || reason.trim().length < 3} onClick={() => void run('reopen_period')}>Reopen</Button> : <Button size="sm" variant="outline" disabled={saving || unresolved > 0 || reason.trim().length < 3} onClick={() => void run('close_period')}><LockKeyhole className="mr-2 h-4 w-4" />Close period</Button>}{status === 'closed' && canManagePayroll && <Button size="sm" disabled={saving || reason.trim().length < 3} onClick={() => void run('export_payroll')}><ArrowDownToLine className="mr-2 h-4 w-4" />Export payroll</Button>}</div></div><ReadinessSteps unresolved={unresolved} status={status} /></section>;
 }
 
 function EmployeeCell({ row }: { row: ShiftRecord }) { return <div className="flex min-w-0 items-center gap-2.5"><EmployeeAvatar row={row} /><div className="min-w-0"><p className="truncate font-semibold">{employeeName(row)}</p><p className="truncate text-[11px] text-slate-500">{stringValue(row.department_name)}</p></div></div>; }
@@ -539,4 +577,21 @@ function exportRows(rows: ShiftRecord[], date: string) {
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url; link.download = `attendance-${date}.csv`; link.click(); URL.revokeObjectURL(url);
+}
+
+async function exportAllRows(query: URLSearchParams, date: string) {
+  const rows: ShiftRecord[] = [];
+  let page = 1;
+  for (;;) {
+    const params = new URLSearchParams(query);
+    params.set('page', String(page));
+    params.set('pageSize', '100');
+    const response = await fetch(`/api/hr/shift-attendance?view=attendance&${params.toString()}`, { credentials: 'include', cache: 'no-store' });
+    if (!response.ok) throw new Error('Unable to export attendance records.');
+    const body = await response.json() as { data?: { records?: ShiftRecord[]; pagination?: { hasMore?: boolean } } };
+    rows.push(...(body.data?.records || []));
+    if (!body.data?.pagination?.hasMore) break;
+    page += 1;
+  }
+  exportRows(rows, date);
 }

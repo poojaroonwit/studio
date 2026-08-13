@@ -6,6 +6,14 @@ import { toast } from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { PayrollWorkspacePayload } from "@/lib/payroll/contracts";
 import { cn } from "@/lib/utils";
@@ -408,25 +416,14 @@ export function CompensationReviewWorkspace({
         title="Compensation"
         description="Use current packages and change requests loaded from the Payroll workspace service."
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            {canManage && (
-              <Button
-                onClick={() => openCreateForm()}
-                className="h-9 bg-blue-600 text-white hover:bg-blue-500"
-              >
-                New compensation change
-              </Button>
-            )}
-            {showCreateForm && (
-              <Button
-                variant="outline"
-                className="h-9 border-border bg-transparent"
-                onClick={() => setShowCreateForm(false)}
-              >
-                Close form
-              </Button>
-            )}
-          </div>
+          canManage ? (
+            <Button
+              onClick={() => openCreateForm()}
+              className="h-9 bg-blue-600 text-white hover:bg-blue-500"
+            >
+              New compensation change
+            </Button>
+          ) : null
         }
       />
 
@@ -484,15 +481,17 @@ export function CompensationReviewWorkspace({
         </div>
       </div>
 
-      {showCreateForm && (
-        <section className="border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#0a1422]">
-          <h3 className="text-sm font-semibold">Create compensation change</h3>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Create a draft first, then submit for approval.
-          </p>
+      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create compensation change</DialogTitle>
+            <DialogDescription>
+              Create a draft first, then submit it for approval.
+            </DialogDescription>
+          </DialogHeader>
           <form
             onSubmit={handleCreateChange}
-            className="mt-3 grid gap-3 md:grid-cols-2"
+            className="grid gap-4 sm:grid-cols-2"
           >
             <label className="grid gap-1.5 text-sm font-semibold">
               Employee
@@ -584,26 +583,25 @@ export function CompensationReviewWorkspace({
                 required
               />
             </label>
-            <div className="md:col-span-2 flex justify-end gap-2 pt-1">
+            <DialogFooter className="sm:col-span-2 pt-2">
               <Button
                 variant="outline"
-                className="h-10"
                 type="button"
                 onClick={() => setShowCreateForm(false)}
               >
                 Cancel
               </Button>
               <Button
-                className="h-10 bg-blue-600 text-white hover:bg-blue-500"
+                className="bg-blue-600 text-white hover:bg-blue-500"
                 disabled={changeCreateBusy}
                 type="submit"
               >
                 {changeCreateBusy ? "Saving…" : "Create draft"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
-        </section>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {tab === "packages" ? (
         <section className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0a1422]">

@@ -716,6 +716,9 @@ export function LearningPageClient({ view }: { view: LearningView }) {
                   geographicCoverage:
                     certificateForm.geographicCoverage.trim() || "Global",
                   policyOwner: certificateForm.policyOwner.trim(),
+                  approvedOn:
+                    certificateForm.approvedOn ||
+                    new Date().toISOString().slice(0, 10),
                   nextReviewAt: certificateForm.nextReviewAt || null,
                   verificationRequirements:
                     certificateForm.verificationRequirements

@@ -267,6 +267,9 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
   const date = searchParams.get('date') || dateKey(new Date());
   const status = searchParams.get('status');
   const query = searchParams.get('query')?.trim() || '';
+  const department = searchParams.get('department')?.trim() || '';
+  const location = searchParams.get('location')?.trim() || '';
+  const exceptionType = searchParams.get('exceptionType')?.trim() || '';
   const page = Math.max(1, Number(searchParams.get('page') || 1));
   const pageSize = Math.min(100, Math.max(10, Number(searchParams.get('pageSize') || 50)));
   const scope = employeeScopeSql(actor);
@@ -304,6 +307,12 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
          $${scope.params.length + 3} = ''
          OR concat_ws(' ', e.first_name, e.last_name, e.employee_number, d.name) ILIKE '%' || $${scope.params.length + 3} || '%'
        )
+       AND ($${scope.params.length + 4} = '' OR COALESCE(d.name, '') = $${scope.params.length + 4})
+       AND ($${scope.params.length + 5} = '' OR COALESCE(ar.work_location, e.location, '') = $${scope.params.length + 5})
+       AND ($${scope.params.length + 6} = '' OR EXISTS (
+         SELECT 1 FROM "hr_attendance_exceptions" aef
+         WHERE aef.attendance_record_id = ar.id AND aef.code = $${scope.params.length + 6}
+       ))
        ${scope.clause}
      GROUP BY ar.id, e.employee_number, e.first_name, e.last_name, e.preferred_name,
               e.job_title, e.location, e.profile_photo_url, d.name, sa.start_time,
@@ -311,11 +320,14 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
      ORDER BY
        CASE WHEN ar.exception_status <> 'clear' THEN 0 ELSE 1 END,
        e.first_name, e.last_name
-     LIMIT $${scope.params.length + 4} OFFSET $${scope.params.length + 5}`,
+     LIMIT $${scope.params.length + 7} OFFSET $${scope.params.length + 8}`,
     ...scope.params,
     date,
     status || '',
     query,
+    department,
+    location,
+    exceptionType,
     pageSize,
     (page - 1) * pageSize,
   ).catch(error => {
@@ -339,7 +351,7 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
     throw error;
   });
 
-  const [scheduledRows, leaveRows, periods] = await Promise.all([
+  const [scheduledRows, leaveRows, periods, facetRows] = await Promise.all([
     prisma.$queryRawUnsafe<{ count: number }[]>(
       `SELECT COUNT(DISTINCT sa.employee_id)::int AS count
        FROM "hr_shift_assignments" sa
@@ -360,16 +372,36 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
       date,
     ),
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `SELECT * FROM "hr_attendance_periods"
-       WHERE $1::date BETWEEN start_date AND end_date
-         AND ($2::uuid IS NULL OR company_id IS NULL OR company_id = $2::uuid)
-       ORDER BY start_date DESC LIMIT 5`,
+      `SELECT ap.*,
+              (SELECT COUNT(*)::int
+               FROM "hr_attendance_exceptions" ae
+               JOIN "hr_attendance_records" ar ON ar.id = ae.attendance_record_id
+               JOIN "hr_employees" e ON e.id = ar.employee_id
+               WHERE ae.status = 'open' AND ar.work_date::date BETWEEN ap.start_date AND ap.end_date
+                 AND (ap.company_id IS NULL OR e.company_id = ap.company_id)) AS open_exception_count
+       FROM "hr_attendance_periods" ap
+       WHERE $1::date BETWEEN ap.start_date AND ap.end_date
+         AND ($2::uuid IS NULL OR ap.company_id IS NULL OR ap.company_id = $2::uuid)
+       ORDER BY ap.start_date DESC LIMIT 5`,
       date,
       actor.companyId,
     ).catch(error => {
       if (isMissingRelationError(error)) return [];
       throw error;
     }),
+    prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+      `SELECT
+         ARRAY_REMOVE(ARRAY_AGG(DISTINCT d.name ORDER BY d.name), NULL) AS departments,
+         ARRAY_REMOVE(ARRAY_AGG(DISTINCT COALESCE(ar.work_location, e.location) ORDER BY COALESCE(ar.work_location, e.location)), NULL) AS locations,
+         ARRAY_REMOVE(ARRAY_AGG(DISTINCT ae.code ORDER BY ae.code), NULL) AS exception_types
+       FROM "hr_attendance_records" ar
+       JOIN "hr_employees" e ON e.id = ar.employee_id
+       LEFT JOIN "hr_departments" d ON d.id = e.department_id
+       LEFT JOIN "hr_attendance_exceptions" ae ON ae.attendance_record_id = ar.id
+       WHERE ar.work_date::date = $${scope.params.length + 1}::date ${scope.clause}`,
+      ...scope.params,
+      date,
+    ).catch(() => []),
   ]);
 
   const statusCount = (target: string) => records.filter(row => row.status === target).length;
@@ -395,6 +427,7 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
     },
     records,
     periods,
+    facets: facetRows[0] || { departments: [], locations: [], exception_types: [] },
   };
 }
 
@@ -459,7 +492,16 @@ async function listOvertime(actor: ShiftAttendanceActor) {
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT ot.*, e.employee_number, e.first_name, e.last_name, e.preferred_name,
               e.job_title, d.name AS department_name,
-              ar.clock_in AS actual_clock_in, ar.clock_out AS actual_clock_out
+              ar.clock_in AS actual_clock_in, ar.clock_out AS actual_clock_out,
+              (SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (COALESCE(sa.end_at,
+                 CASE WHEN sa.end_time::time <= sa.start_time::time
+                   THEN ((sa.shift_date::date + INTERVAL '1 day') + sa.end_time::time) AT TIME ZONE 'Asia/Bangkok'
+                   ELSE (sa.shift_date::date + sa.end_time::time) AT TIME ZONE 'Asia/Bangkok' END) -
+                 COALESCE(sa.start_at, (sa.shift_date::date + sa.start_time::time) AT TIME ZONE 'Asia/Bangkok'))) / 60), 0)::int
+               FROM "hr_shift_assignments" sa
+               WHERE sa.employee_id = ot.employee_id AND sa.status <> 'cancelled'
+                 AND date_trunc('week', sa.shift_date::date) = date_trunc('week', ot.work_date::date)) AS scheduled_minutes,
+              2880 AS weekly_limit_minutes
        FROM "hr_overtime_requests" ot
        JOIN "hr_employees" e ON e.id = ot.employee_id
        LEFT JOIN "hr_departments" d ON d.id = e.department_id
@@ -655,51 +697,108 @@ async function createAssignment(
 ) {
   requireWorkforceManage(actor);
   const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime);
-  const rows: Record<string, unknown>[] = [];
   for (const employeeId of input.employeeIds) {
     if (!await canAccessEmployee(actor, employeeId, false)) throw new Error('FORBIDDEN');
-    const conflicts = await prisma.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT id FROM "hr_shift_assignments"
-       WHERE employee_id = $1::uuid AND status <> 'cancelled'
-         AND COALESCE(start_at, (shift_date::date + start_time::time) AT TIME ZONE 'Asia/Bangkok') < $3
-         AND COALESCE(end_at,
-           CASE WHEN end_time::time <= start_time::time
-             THEN ((shift_date::date + INTERVAL '1 day') + end_time::time) AT TIME ZONE 'Asia/Bangkok'
-             ELSE (shift_date::date + end_time::time) AT TIME ZONE 'Asia/Bangkok' END
-         ) > $2
-       LIMIT 1`,
-      employeeId,
-      start,
-      end,
-    );
-    if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
-    const id = randomUUID();
-    const inserted = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `INSERT INTO "hr_shift_assignments"
-        (id, employee_id, schedule_id, shift_definition_id, shift_definition_version,
-         shift_date, logical_shift_date, start_time, end_time, start_at, end_at,
-         work_location, status, publication_status, change_reason, created_at, updated_at)
-       VALUES
-        ($1::uuid, $2::uuid, $3::uuid, $4::uuid,
-         (SELECT current_version FROM "hr_shift_definitions" WHERE id = $4::uuid),
-         $5::date, $5::date, $6, $7, $8, $9, $10, 'scheduled', 'draft', $11,
-         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING *`,
-      id,
-      employeeId,
-      input.scheduleId || null,
-      input.shiftDefinitionId || null,
-      input.shiftDate,
-      input.startTime,
-      input.endTime,
-      start,
-      end,
-      input.workLocation,
-      input.reason || null,
-    );
-    rows.push(inserted[0]);
   }
-  return rows;
+  return prisma.$transaction(async tx => {
+    const rosterPeriods = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM "hr_roster_periods"
+       WHERE $1::date BETWEEN start_date AND end_date
+         AND ($2::uuid IS NULL OR company_id IS NULL OR company_id = $2::uuid)
+         AND status NOT IN ('locked', 'archived')
+       ORDER BY company_id NULLS LAST, start_date DESC LIMIT 1
+       FOR UPDATE`,
+      input.shiftDate,
+      actor.companyId,
+    );
+    const rosterPeriodId = rosterPeriods[0]?.id;
+    if (!rosterPeriodId) throw new Error('NOT_FOUND');
+
+    if (input.openShiftId) {
+      const openShifts = await tx.$queryRawUnsafe<Array<{
+        headcount_assigned: number;
+        headcount_required: number;
+      }>>(
+        `SELECT headcount_assigned, headcount_required FROM "hr_open_shifts"
+         WHERE id = $1::uuid AND shift_date = $2::date AND status = 'open'
+         FOR UPDATE`,
+        input.openShiftId,
+        input.shiftDate,
+      );
+      const openShift = openShifts[0];
+      if (!openShift) throw new Error('NOT_FOUND');
+      if (Number(openShift.headcount_assigned || 0) + input.employeeIds.length > Number(openShift.headcount_required)) {
+        throw new Error('SHIFT_CONFLICT');
+      }
+    }
+
+    const rows: Record<string, unknown>[] = [];
+    for (const employeeId of input.employeeIds) {
+      const conflicts = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT id FROM "hr_shift_assignments"
+         WHERE employee_id = $1::uuid AND status <> 'cancelled'
+           AND COALESCE(start_at, (shift_date::date + start_time::time) AT TIME ZONE 'Asia/Bangkok') < $3
+           AND COALESCE(end_at,
+             CASE WHEN end_time::time <= start_time::time
+               THEN ((shift_date::date + INTERVAL '1 day') + end_time::time) AT TIME ZONE 'Asia/Bangkok'
+               ELSE (shift_date::date + end_time::time) AT TIME ZONE 'Asia/Bangkok' END
+           ) > $2
+         LIMIT 1
+         FOR UPDATE`,
+        employeeId,
+        start,
+        end,
+      );
+      if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
+      const id = randomUUID();
+      const inserted = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
+        `INSERT INTO "hr_shift_assignments"
+          (id, employee_id, roster_period_id, schedule_id, shift_definition_id, shift_definition_version,
+           shift_date, logical_shift_date, start_time, end_time, start_at, end_at,
+           work_location, status, publication_status, change_reason, created_at, updated_at)
+         VALUES
+          ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid,
+           (SELECT current_version FROM "hr_shift_definitions" WHERE id = $5::uuid),
+           $6::date, $6::date, $7, $8, $9, $10, $11, 'scheduled', 'draft', $12,
+           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING *`,
+        id,
+        employeeId,
+        rosterPeriodId,
+        input.scheduleId || null,
+        input.shiftDefinitionId || null,
+        input.shiftDate,
+        input.startTime,
+        input.endTime,
+        start,
+        end,
+        input.workLocation,
+        input.reason || null,
+      );
+      if (!inserted[0]) throw new Error('CONFLICT');
+      rows.push(inserted[0]);
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "hr_shift_assignment_history"
+         (id, assignment_id, version, previous_values, new_values, reason, actor_user_id, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, 1, '{}'::jsonb, $2::jsonb, $3, $4::uuid, CURRENT_TIMESTAMP)`,
+        id, JSON.stringify(inserted[0]), input.reason, actor.user.id,
+      );
+    }
+    if (input.openShiftId) {
+      const updated = await tx.$executeRawUnsafe(
+        `UPDATE "hr_open_shifts"
+         SET headcount_assigned = COALESCE(headcount_assigned, 0) + $2,
+             status = CASE WHEN COALESCE(headcount_assigned, 0) + $2 = headcount_required THEN 'filled' ELSE status END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1::uuid AND shift_date = $3::date AND status = 'open'`,
+        input.openShiftId,
+        input.employeeIds.length,
+        input.shiftDate,
+      );
+      if (updated !== 1) throw new Error('CONFLICT');
+    }
+    return rows;
+  });
 }
 
 async function publishRoster(
@@ -750,6 +849,73 @@ async function publishRoster(
       actor.user.id,
     );
     return { period: updated[0], assignments };
+  });
+}
+
+async function changeAssignment(
+  actor: ShiftAttendanceActor,
+  input: Extract<ShiftAttendanceMutation, { action: 'update_assignment' | 'delete_assignment' }>,
+) {
+  requireWorkforceManage(actor);
+  return prisma.$transaction(async tx => {
+    const rows = await tx.$queryRawUnsafe<Array<Record<string, unknown> & { employee_id: string; version: number; status: string }>>(
+      `SELECT * FROM "hr_shift_assignments" WHERE id = $1::uuid FOR UPDATE`,
+      input.assignmentId,
+    );
+    const assignment = rows[0];
+    if (!assignment) throw new Error('NOT_FOUND');
+    if (!await canAccessEmployee(actor, assignment.employee_id, false)) throw new Error('FORBIDDEN');
+    if (assignment.version !== input.expectedVersion) throw new Error('CONFLICT');
+    if (assignment.status === 'cancelled') throw new Error('INVALID_TRANSITION');
+
+    if (input.action === 'delete_assignment') {
+      const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
+        `UPDATE "hr_shift_assignments"
+         SET status = 'cancelled', publication_status = 'changed', change_reason = $2,
+             version = version + 1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1::uuid AND version = $3 RETURNING *`,
+        input.assignmentId, input.reason, input.expectedVersion,
+      );
+      if (!updated[0]) throw new Error('CONFLICT');
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "hr_shift_assignment_history" (id, assignment_id, version, previous_values, new_values, reason, actor_user_id, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6::uuid, CURRENT_TIMESTAMP)`,
+        input.assignmentId, input.expectedVersion, JSON.stringify(assignment), JSON.stringify(updated[0]), input.reason, actor.user.id,
+      );
+      return updated[0];
+    }
+
+    const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime);
+    const conflicts = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM "hr_shift_assignments"
+       WHERE employee_id = $1::uuid AND id <> $2::uuid AND status <> 'cancelled'
+         AND COALESCE(start_at, (shift_date::date + start_time::time) AT TIME ZONE 'Asia/Bangkok') < $4
+         AND COALESCE(end_at, CASE WHEN end_time::time <= start_time::time
+           THEN ((shift_date::date + INTERVAL '1 day') + end_time::time) AT TIME ZONE 'Asia/Bangkok'
+           ELSE (shift_date::date + end_time::time) AT TIME ZONE 'Asia/Bangkok' END) > $3
+       LIMIT 1`,
+      assignment.employee_id, input.assignmentId, start, end,
+    );
+    if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
+    const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
+      `UPDATE "hr_shift_assignments"
+       SET shift_definition_id = $2::uuid,
+           shift_definition_version = (SELECT current_version FROM "hr_shift_definitions" WHERE id = $2::uuid),
+           shift_date = $3::date, logical_shift_date = $3::date, start_time = $4, end_time = $5,
+           start_at = $6, end_at = $7, work_location = $8, change_reason = $9,
+           publication_status = CASE WHEN publication_status = 'published' THEN 'changed' ELSE publication_status END,
+           version = version + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid AND version = $10 RETURNING *`,
+      input.assignmentId, input.shiftDefinitionId || null, input.shiftDate, input.startTime,
+      input.endTime, start, end, input.workLocation, input.reason, input.expectedVersion,
+    );
+    if (!updated[0]) throw new Error('CONFLICT');
+    await tx.$executeRawUnsafe(
+      `INSERT INTO "hr_shift_assignment_history" (id, assignment_id, version, previous_values, new_values, reason, actor_user_id, created_at)
+       VALUES (gen_random_uuid(), $1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6::uuid, CURRENT_TIMESTAMP)`,
+      input.assignmentId, input.expectedVersion, JSON.stringify(assignment), JSON.stringify(updated[0]), input.reason, actor.user.id,
+    );
+    return updated[0];
   });
 }
 
@@ -1087,6 +1253,9 @@ async function decideShiftRequest(
     assignment_id: string | null;
     requested_assignment_id: string | null;
     request_type: string;
+    effective_start: Date;
+    effective_end: Date;
+    work_location: string | null;
     status: string;
     version: number;
   }>>(
@@ -1140,6 +1309,56 @@ async function decideShiftRequest(
           request.employee_id,
           input.comment || 'Approved shift swap',
         );
+      }
+      if (request.request_type !== 'shift_swap') {
+        const targetId = request.assignment_id || request.requested_assignment_id;
+        if (request.request_type !== 'availability_update' && !targetId) throw new Error('NOT_FOUND');
+        if (request.request_type === 'drop_shift') {
+          await tx.$executeRawUnsafe(
+            `UPDATE "hr_shift_assignments" SET status = 'cancelled', publication_status = 'changed',
+                    change_reason = $2, version = version + 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1::uuid AND employee_id = $3::uuid`,
+            targetId, input.comment || 'Approved drop-shift request', request.employee_id,
+          );
+        } else if (['cover_shift', 'open_shift'].includes(request.request_type)) {
+          await tx.$executeRawUnsafe(
+            `UPDATE "hr_shift_assignments" SET employee_id = $2::uuid, publication_status = 'changed',
+                    change_reason = $3, version = version + 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1::uuid`,
+            targetId, request.employee_id, input.comment || 'Approved shift coverage request',
+          );
+        } else if (request.request_type === 'work_location_change') {
+          if (!request.work_location) throw new Error('INVALID_TRANSITION');
+          await tx.$executeRawUnsafe(
+            `UPDATE "hr_shift_assignments" SET work_location = $2, publication_status = 'changed',
+                    change_reason = $3, version = version + 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1::uuid AND employee_id = $4::uuid`,
+            targetId, request.work_location, input.comment || 'Approved work-location change', request.employee_id,
+          );
+        } else if (['shift_change', 'temporary_schedule_change', 'rest_day_change'].includes(request.request_type)) {
+          await tx.$executeRawUnsafe(
+            `UPDATE "hr_shift_assignments"
+             SET shift_date = $2::date, logical_shift_date = $2::date,
+                 start_at = ($2::date + start_time::time) AT TIME ZONE 'Asia/Bangkok',
+                 end_at = CASE WHEN end_time::time <= start_time::time
+                   THEN (($2::date + INTERVAL '1 day') + end_time::time) AT TIME ZONE 'Asia/Bangkok'
+                   ELSE ($2::date + end_time::time) AT TIME ZONE 'Asia/Bangkok' END,
+                 work_location = COALESCE($3, work_location), publication_status = 'changed',
+                 change_reason = $4, version = version + 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1::uuid AND employee_id = $5::uuid`,
+            targetId, request.effective_start, request.work_location,
+            input.comment || 'Approved schedule change', request.employee_id,
+          );
+        } else if (request.request_type === 'availability_update') {
+          await tx.$executeRawUnsafe(
+            `INSERT INTO "hr_employee_availability"
+              (id, employee_id, available_from, available_to, availability_type, work_location, notes, created_at, updated_at)
+             VALUES (gen_random_uuid(), $1::uuid, $2::date, ($3::date + INTERVAL '1 day'),
+                     'available', $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            request.employee_id, request.effective_start, request.effective_end,
+            request.work_location, input.comment || 'Approved availability update',
+          );
+        }
       }
       const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
         `UPDATE "hr_shift_requests"
@@ -1235,6 +1454,8 @@ async function decideOvertime(
     requested_start_at: Date;
     requested_end_at: Date;
     requested_minutes: number;
+    break_minutes: number;
+    work_date: Date;
   }>>(
     `SELECT * FROM "hr_overtime_requests" WHERE id = $1::uuid LIMIT 1`,
     input.overtimeId,
@@ -1243,78 +1464,107 @@ async function decideOvertime(
   if (!request) throw new Error('NOT_FOUND');
   if (request.version !== input.expectedVersion) throw new Error('CONFLICT');
   if (!await canAccessEmployee(actor, request.employee_id, false)) throw new Error('FORBIDDEN');
-  if (input.decision === 'approve') {
-    if (request.status !== 'pending_approval') throw new Error('INVALID_TRANSITION');
-    const start = input.approvedStartAt ? new Date(input.approvedStartAt) : new Date(request.requested_start_at);
-    const end = input.approvedEndAt ? new Date(input.approvedEndAt) : new Date(request.requested_end_at);
-    const approvedMinutes = minutesBetween(start, end);
-    const updated = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `UPDATE "hr_overtime_requests"
-       SET status = 'approved', approved_start_at = $2, approved_end_at = $3,
-           approved_minutes = $4, approved_by_id = $5::uuid,
-           approved_at = CURRENT_TIMESTAMP, difference_reason = $6,
-           version = version + 1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1::uuid AND version = $7 RETURNING *`,
+  if (['reject', 'return_for_revision'].includes(input.decision) && !input.comment?.trim()) {
+    throw new Error('COMMENT_REQUIRED');
+  }
+
+  return prisma.$transaction(async tx => {
+    const lockedRows = await tx.$queryRawUnsafe<typeof rows>(
+      `SELECT * FROM "hr_overtime_requests" WHERE id = $1::uuid FOR UPDATE`,
       input.overtimeId,
-      start,
-      end,
-      approvedMinutes,
-      actor.user.id,
-      input.comment || null,
-      input.expectedVersion,
+    );
+    const locked = lockedRows[0];
+    if (!locked) throw new Error('NOT_FOUND');
+    if (locked.version !== input.expectedVersion) throw new Error('CONFLICT');
+
+    if (input.decision === 'approve') {
+      if (locked.status !== 'pending_approval') throw new Error('INVALID_TRANSITION');
+      const start = input.approvedStartAt ? new Date(input.approvedStartAt) : new Date(locked.requested_start_at);
+      const end = input.approvedEndAt ? new Date(input.approvedEndAt) : new Date(locked.requested_end_at);
+      if (end <= start) throw new Error('INVALID_TRANSITION');
+      const approvedMinutes = Math.max(0, minutesBetween(start, end) - Number(locked.break_minutes || 0));
+      const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
+        `UPDATE "hr_overtime_requests"
+         SET status = 'approved', approved_start_at = $2, approved_end_at = $3,
+             approved_minutes = $4, approved_by_id = $5::uuid,
+             approved_at = CURRENT_TIMESTAMP, difference_reason = $6,
+             version = version + 1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1::uuid AND version = $7 AND status = 'pending_approval' RETURNING *`,
+        input.overtimeId, start, end, approvedMinutes, actor.user.id,
+        input.comment || null, input.expectedVersion,
+      );
+      if (!updated[0]) throw new Error('CONFLICT');
+      return updated[0];
+    }
+
+    if (input.decision === 'reject' || input.decision === 'return_for_revision') {
+      const nextStatus = input.decision === 'reject' ? 'rejected' : 'returned_for_revision';
+      const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
+        `UPDATE "hr_overtime_requests"
+         SET status = $2, difference_reason = $3,
+             version = version + 1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1::uuid AND version = $4 AND status = 'pending_approval'
+         RETURNING *`,
+        input.overtimeId, nextStatus, input.comment, input.expectedVersion,
+      );
+      if (!updated[0]) throw new Error('CONFLICT');
+      return updated[0];
+    }
+
+    if (locked.status !== 'approved') throw new Error('INVALID_TRANSITION');
+    const confirmedMinutes = input.confirmedMinutes ?? locked.requested_minutes;
+    const updated = await tx.$queryRawUnsafe<Array<Record<string, unknown> & { eligible_minutes: number }>>(
+      `UPDATE "hr_overtime_requests"
+       SET status = 'confirmed', manager_confirmed_minutes = $2,
+           eligible_minutes = LEAST(COALESCE(approved_minutes, requested_minutes), $2),
+           difference_reason = $3, version = version + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid AND version = $4 AND status = 'approved' RETURNING *`,
+      input.overtimeId, confirmedMinutes, input.comment || null, input.expectedVersion,
     );
     if (!updated[0]) throw new Error('CONFLICT');
-    return updated[0];
-  }
-  if (input.decision === 'reject') {
-    const updated = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `UPDATE "hr_overtime_requests"
-       SET status = 'rejected', difference_reason = $2,
+    const attendance = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `UPDATE "hr_attendance_records"
+       SET overtime_minutes = $3,
+           overtime_hours = $3::numeric / 60,
            version = version + 1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1::uuid AND version = $3 AND status = 'pending_approval'
-       RETURNING *`,
-      input.overtimeId,
-      input.comment || null,
-      input.expectedVersion,
+       WHERE employee_id = $1::uuid AND work_date::date = $2::date
+       RETURNING id`,
+      locked.employee_id,
+      locked.work_date,
+      Number(updated[0].eligible_minutes),
     );
-    if (!updated[0]) throw new Error('CONFLICT');
+    if (!attendance[0]) throw new Error('NOT_FOUND');
     return updated[0];
-  }
-  if (request.status !== 'approved') throw new Error('INVALID_TRANSITION');
-  const updated = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-    `UPDATE "hr_overtime_requests"
-     SET status = 'confirmed', manager_confirmed_minutes = $2,
-         eligible_minutes = LEAST(COALESCE(approved_minutes, requested_minutes), $2),
-         difference_reason = $3, version = version + 1, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $1::uuid AND version = $4 RETURNING *`,
-    input.overtimeId,
-    input.confirmedMinutes ?? request.requested_minutes,
-    input.comment || null,
-    input.expectedVersion,
-  );
-  if (!updated[0]) throw new Error('CONFLICT');
-  return updated[0];
+  });
 }
 
 async function refreshTimesheetTotals(client: Prisma.TransactionClient, timesheetId: string) {
   await client.$executeRawUnsafe(
     `UPDATE "hr_timesheets" ts
-     SET total_minutes = COALESCE(s.total_minutes, 0),
-         billable_minutes = COALESCE(s.billable_minutes, 0),
-         attendance_minutes = COALESCE(a.attendance_minutes, 0),
-         difference_minutes = COALESCE(s.total_minutes, 0) - COALESCE(a.attendance_minutes, 0),
+     SET total_minutes = COALESCE((
+           SELECT SUM(te.duration_minutes)::int FROM "hr_timesheet_entries" te
+           WHERE te.timesheet_id = ts.id
+         ), 0),
+         billable_minutes = COALESCE((
+           SELECT SUM(te.duration_minutes) FILTER (WHERE te.billable)::int
+           FROM "hr_timesheet_entries" te WHERE te.timesheet_id = ts.id
+         ), 0),
+         attendance_minutes = COALESCE((
+           SELECT SUM(COALESCE(ar.worked_minutes, ar.hours_worked * 60, 0))::int
+           FROM "hr_attendance_records" ar
+           WHERE ar.employee_id = ts.employee_id
+             AND ar.work_date::date BETWEEN ts.period_start AND ts.period_end
+         ), 0),
+         difference_minutes = COALESCE((
+           SELECT SUM(te.duration_minutes)::int FROM "hr_timesheet_entries" te
+           WHERE te.timesheet_id = ts.id
+         ), 0) - COALESCE((
+           SELECT SUM(COALESCE(ar.worked_minutes, ar.hours_worked * 60, 0))::int
+           FROM "hr_attendance_records" ar
+           WHERE ar.employee_id = ts.employee_id
+             AND ar.work_date::date BETWEEN ts.period_start AND ts.period_end
+         ), 0),
          version = version + 1, updated_at = CURRENT_TIMESTAMP
-     FROM (
-       SELECT timesheet_id, SUM(duration_minutes)::int AS total_minutes,
-              SUM(duration_minutes) FILTER (WHERE billable)::int AS billable_minutes
-       FROM "hr_timesheet_entries" WHERE timesheet_id = $1::uuid GROUP BY timesheet_id
-     ) s
-     LEFT JOIN LATERAL (
-       SELECT COALESCE(SUM(ar.worked_minutes), SUM(ar.hours_worked * 60), 0)::int AS attendance_minutes
-       FROM "hr_attendance_records" ar
-       WHERE ar.employee_id = ts.employee_id
-         AND ar.work_date::date BETWEEN ts.period_start AND ts.period_end
-     ) a ON TRUE
      WHERE ts.id = $1::uuid`,
     timesheetId,
   );
@@ -1436,7 +1686,8 @@ async function deleteTimesheetEntry(
       `DELETE FROM "hr_timesheet_entries" te
        USING "hr_timesheets" ts
        WHERE te.id = $1::uuid AND te.version = $2
-         AND ts.id = te.timesheet_id AND ts.employee_id = $3::uuid AND ts.status = 'draft'
+         AND ts.id = te.timesheet_id AND ts.employee_id = $3::uuid
+         AND ts.status IN ('draft', 'returned')
        RETURNING te.timesheet_id`,
       input.entryId,
       input.expectedVersion,
@@ -1514,6 +1765,7 @@ export async function mutateShiftAttendance(
   input: ShiftAttendanceMutation,
 ) {
   if (input.action === 'create_assignment') return createAssignment(actor, input);
+  if (input.action === 'update_assignment' || input.action === 'delete_assignment') return changeAssignment(actor, input);
   if (input.action === 'publish_roster') return publishRoster(actor, input);
   if (input.action === 'recalculate_attendance') return recalculateRecord(actor, input.attendanceRecordId);
   if (input.action === 'review_attendance') return reviewAttendance(actor, input);

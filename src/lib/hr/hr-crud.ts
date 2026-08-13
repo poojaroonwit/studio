@@ -383,7 +383,7 @@ export async function getHrCrudRecord(moduleKey: HrModuleKey, id: string, view?:
         id,
       ),
       prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-        `SELECT eo.id, eo.status, eo.progress, eo.start_date AS "startDate",
+        `SELECT eo.id, eo.template_id AS "templateId", eo.status, eo.progress, eo.start_date AS "startDate",
                 eo.target_date AS "targetDate", eo.completed_at AS "completedAt",
                 template.name AS "templateName", template.description AS "templateDescription"
          FROM "hr_employee_onboarding" eo
@@ -394,7 +394,9 @@ export async function getHrCrudRecord(moduleKey: HrModuleKey, id: string, view?:
         id,
       ).catch(() => []),
       prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-        `SELECT task.id, task.title, task.description, task.owner_role AS "ownerRole",
+        `SELECT task.id, task.title, task.description, task.detailed_instructions AS "detailedInstructions",
+                task.tags, task.owner_role AS "ownerRole", task.is_required AS "isRequired",
+                task.employee_visibility AS "employeeVisibility",
                 task.due_day AS "dueDay", task.sort_order AS "sortOrder",
                 COALESCE(progress.status, 'pending') AS status,
                 progress.completed_at AS "completedAt"

@@ -1,5 +1,0 @@
-
-> hri@1.2.6 dev
-> powershell -ExecutionPolicy Bypass -Command "$env:NEXT_TELEMETRY_DISABLED='1'; next dev -p 8021"
-
-[?25h

@@ -55,7 +55,11 @@ export function AppLayoutShell({
               currentAppName={currentAppName}
             />
             <GlobalConnectivityBanner />
-            <main id="main-content" tabIndex={-1} className="relative flex-1 overflow-y-auto bg-[hsl(var(--app-page-background))] text-foreground focus:outline-none">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="relative flex-1 overflow-y-auto bg-[hsl(var(--app-page-background))] pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground focus:outline-none md:pb-0"
+            >
               <div className="w-full mx-auto h-full flex flex-col">
                 {children}
               </div>

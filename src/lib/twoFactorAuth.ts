@@ -56,7 +56,7 @@ export function generateEmailOtp(): string {
 export async function sendEmailOtp(email: string, otp: string, userName: string): Promise<boolean> {
   const subject = 'Your hrive Verification Code';
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="font-family: 'DM Sans', sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #333;">Verification Code</h2>
       <p>Hello ${userName},</p>
       <p>Your verification code for hrive is:</p>

@@ -1,6 +1,6 @@
 export const DEFAULT_INTERVIEW_INVITATION_SUBJECT = 'Interview Invitation: {{ApplicantName}} - {{positionTitle}}';
 
-export const DEFAULT_INTERVIEW_INVITATION_TEMPLATE = `<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+export const DEFAULT_INTERVIEW_INVITATION_TEMPLATE = `<div style="font-family: 'DM Sans', sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
   <div style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); padding: 32px; text-align: center; border-radius: 8px 8px 0 0;">
     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Interview Invitation</h1>
   </div>

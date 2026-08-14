@@ -50,7 +50,7 @@ export async function POST(
   const result = await sendEmail(
     user.email,
     'Set up multi-factor authentication',
-    `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.6">
+    `<div style="font-family:'DM Sans',sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.6">
       <h1 style="font-size:24px;margin-bottom:12px">Protect your account with MFA</h1>
       <p>Hello ${safeName},</p>
       <p>An administrator has asked you to set up multi-factor authentication for your account.</p>

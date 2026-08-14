@@ -61,7 +61,7 @@ export function buildSeedTemplateHtml(title: string, description: string, detail
   <meta charset="UTF-8">
   <title>${escapedTitle}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,sans-serif;color:#111827;">
+  <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:'DM Sans',sans-serif;color:#111827;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:20px 12px;">
     <tr>
       <td align="center">

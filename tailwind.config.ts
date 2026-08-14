@@ -244,13 +244,13 @@ export default {
   			macos: '20px',
   			'macos-lg': '40px',
   		},
-  				fontFamily: {
+		fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'dm-sans': ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'dm-sans': ['var(--font-dm-sans)', '"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', '"IBM Plex Sans Thai"', 'var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
 			'thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'english': ['var(--font-dm-sans)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': ['"DM Sans"', '"IBM Plex Sans Thai"', 'var(--font-dm-sans)', 'var(--font-ibm-plex-sans-thai)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'english': ['var(--font-dm-sans)', '"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['var(--font-dm-sans)', '"DM Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
 			'mono': ['SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Consolas', 'Courier New', 'monospace'],
 		},
   		padding: {

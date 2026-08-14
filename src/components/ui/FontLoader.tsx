@@ -10,7 +10,7 @@ interface FontLoaderProps {
 
 export function FontLoader({ 
   children, 
-  fonts = ['Inter', 'IBM Plex Sans Thai'],
+  fonts = ['DM Sans', 'IBM Plex Sans Thai'],
   timeout = 3000 
 }: FontLoaderProps) {
   const [fontsLoaded, setFontsLoaded] = useState(false);

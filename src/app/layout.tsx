@@ -36,7 +36,7 @@ const dmSans = DM_Sans({
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-dm-sans',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
+  fallback: ['sans-serif'],
   adjustFontFallback: true,
   preload: true,
 });
@@ -46,7 +46,7 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-ibm-plex-sans-thai',
-  fallback: ['system-ui', '-apple-system', 'Tahoma', 'Arial', 'sans-serif'],
+  fallback: ['sans-serif'],
   adjustFontFallback: true,
   preload: true,
 });

@@ -159,4 +159,4 @@ function TemplateNotice({ children }: { children: string }) {
   );
 }
 
-const previewPlaceholder = `<!doctype html><html><body style="margin:0;padding:48px;font-family:Arial,sans-serif;color:#71717a;text-align:center">Select an email template to preview it here.</body></html>`;
+const previewPlaceholder = `<!doctype html><html><body style="margin:0;padding:48px;font-family:'DM Sans',sans-serif;color:#71717a;text-align:center">Select an email template to preview it here.</body></html>`;

@@ -9,11 +9,10 @@ interface FontPreloaderProps {
 }
 
 export function FontPreloader({ 
-  criticalFonts = ['inter', 'ibm-plex-sans-thai'],
+  criticalFonts = ['dm-sans', 'ibm-plex-sans-thai'],
   detectLanguage = true 
 }: FontPreloaderProps = {}) {
   const [shouldPreloadThai, setShouldPreloadThai] = useState(true);
-  const [shouldPreloadInter, setShouldPreloadInter] = useState(true);
 
   useEffect(() => {
     if (!detectLanguage) return;
@@ -25,9 +24,7 @@ export function FontPreloader({
     // If language detection is enabled, conditionally preload fonts
     if (isThai) {
       setShouldPreloadThai(true);
-      setShouldPreloadInter(false);
     } else {
-      setShouldPreloadInter(true);
       // Still preload Thai font but with lower priority
       setShouldPreloadThai(true);
     }
@@ -45,8 +42,8 @@ export function FontPreloader({
           __html: `
             // Font loading optimization script
             (function() {
-              // Track only Inter and IBM Plex Sans Thai
-              const fontsToLoad = ['Inter', 'IBM Plex Sans Thai'];
+              // Track only DM Sans and IBM Plex Sans Thai
+            const fontsToLoad = ['DM Sans', 'IBM Plex Sans Thai'];
               
               // Check font availability and add loaded class
               if ('fonts' in document) {

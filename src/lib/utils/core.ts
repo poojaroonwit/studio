@@ -29,7 +29,7 @@ export function getFontClass(text: string, defaultClass: string = 'font-sans'): 
   if (containsThaiText(text)) {
     return 'font-ibm-plex-sans-thai';
   }
-  return 'font-inter';
+  return 'font-english';
 }
 
 /**
@@ -37,9 +37,9 @@ export function getFontClass(text: string, defaultClass: string = 'font-sans'): 
  */
 export function getFontFamily(text: string): string {
   if (containsThaiText(text)) {
-    return 'var(--font-family-primary)';
+    return 'var(--font-ibm-plex-sans-thai), sans-serif';
   }
-  return 'var(--font-family-secondary)';
+  return 'var(--font-dm-sans), "DM Sans", sans-serif';
 }
 
 /**

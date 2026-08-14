@@ -66,7 +66,7 @@ export default function PolicyDocumentEditorPage() {
     setExternalLinks(document.externalLinks || []);
   }
 
-  const previewDocument = useMemo(() => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>body{font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:40px;color:#172033;line-height:1.7}img{max-width:100%}h1,h2,h3{line-height:1.2}</style></head><body><h1>${escapeHtml(title)}</h1>${content}</body></html>`, [content, title]);
+  const previewDocument = useMemo(() => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>body{font-family:'DM Sans',sans-serif;max-width:760px;margin:0 auto;padding:40px;color:#172033;line-height:1.7}img{max-width:100%}h1,h2,h3{line-height:1.2}</style></head><body><h1>${escapeHtml(title)}</h1>${content}</body></html>`, [content, title]);
 
   async function save() {
     setSaving(true);

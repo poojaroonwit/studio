@@ -29,7 +29,7 @@ export async function sendEmployeePasswordSetupEmail(
     invitation.deliveryEmail,
     'Set up your employee platform password',
     `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.6">
+      <div style="font-family:'DM Sans',sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.6">
         <h1 style="font-size:24px;margin-bottom:12px">Welcome to the employee platform</h1>
         <p>Hello ${employeeName},</p>
         <p>Your employee account is ready. Your sign-in email is:</p>

@@ -222,7 +222,7 @@ function generateDocument(template: DocumentTemplate, data: EssDashboard, compan
   if (!printWindow) return;
   printWindow.opener = null;
   const confidentialityLabel = template.isConfidential ? '<div class="confidentiality">CONFIDENTIAL</div>' : '';
-  printWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(template.name)}</title><style>body{font-family:Georgia,serif;color:#172033;max-width:760px;margin:56px auto;padding:0 36px;line-height:1.65}h1,h2,h3{font-family:Arial,sans-serif;color:#14213d}p{margin:0 0 1em}.confidentiality{margin-bottom:24px;border:1px solid #991b1b;padding:6px 10px;color:#991b1b;font:700 11px Arial,sans-serif;letter-spacing:.16em;text-align:center}@media print{body{margin:28px auto}}</style></head><body>${confidentialityLabel}${content}<script>window.onload=()=>window.print()<\/script></body></html>`);
+  printWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(template.name)}</title><style>body{font-family:'DM Sans',sans-serif;color:#172033;max-width:760px;margin:56px auto;padding:0 36px;line-height:1.65}h1,h2,h3{font-family:'DM Sans',sans-serif;color:#14213d}p{margin:0 0 1em}.confidentiality{margin-bottom:24px;border:1px solid #991b1b;padding:6px 10px;color:#991b1b;font:700 11px 'DM Sans',sans-serif;letter-spacing:.16em;text-align:center}@media print{body{margin:28px auto}}</style></head><body>${confidentialityLabel}${content}<script>window.onload=()=>window.print()<\/script></body></html>`);
   printWindow.document.close();
 }
 

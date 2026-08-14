@@ -82,7 +82,7 @@ function buildCorporateDocumentTemplate() {
 <head>
   <meta charset="UTF-8">
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#111827;">
+  <body style="margin:0;padding:0;background:#f3f4f6;font-family:'DM Sans',sans-serif;color:#111827;">
   <div style="padding:20px 12px;">
     <table role="presentation" width="700" cellspacing="0" cellpadding="0" style="max-width:700px;width:100%;margin:0 auto;background:#ffffff;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;">
       <tr>

@@ -10,7 +10,7 @@ function buildLockoutAlertHtml({
   failedAttempts,
 }: Pick<LockoutAlertOptions, 'now' | 'email' | 'failedAttempts'>) {
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px;">
+    <div style="font-family: 'DM Sans', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px;">
       <h2 style="color: #d73a49; border-bottom: 2px solid #d73a49; padding-bottom: 10px;">Security Alert: Account Locked</h2>
       <p>An account has been <strong>permanently locked</strong> due to too many failed login attempts.</p>
       <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 20px 0;">

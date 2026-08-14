@@ -1,6 +1,6 @@
 export const DEFAULT_INTERVIEW_INVITATION_SUBJECT = 'Interview Invitation: {{ApplicantName}} - {{positionTitle}}';
 
-export const DEFAULT_INTERVIEW_INVITATION_TEMPLATE = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+export const DEFAULT_INTERVIEW_INVITATION_TEMPLATE = `<div style="font-family: 'DM Sans', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #333; margin-bottom: 20px;">Interview Invitation</h2>
   
   <p>Dear {{interviewerName}},</p>

@@ -6,7 +6,7 @@ export function buildGenerativeAIPdfHtml(generatedContent: string) {
       <meta charset="utf-8">
       <title>Generated Content</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+        body { font-family: var(--font-dm-sans), "DM Sans", sans-serif; line-height: 1.6; margin: 40px; }
         h1, h2, h3 { color: #333; }
         ul, ol { margin: 10px 0; }
         li { margin: 5px 0; }
@@ -57,7 +57,7 @@ export function buildGenerativeAIWordHtml(generatedContent: string) {
       </xml>
       <![endif]-->
       <style>
-        body { font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif; line-height: 1.6; font-size: 11pt; }
+        body { font-family: var(--font-dm-sans), "DM Sans", "IBM Plex Sans Thai", sans-serif; line-height: 1.6; font-size: 11pt; }
         h1, h2, h3 { color: #333; font-weight: 600; }
         h1 { font-size: 18pt; margin: 20px 0 10px 0; }
         h2 { font-size: 16pt; margin: 18px 0 8px 0; }

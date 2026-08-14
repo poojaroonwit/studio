@@ -46,7 +46,7 @@ export function DesktopSignInView(props: DesktopSignInViewProps) {
       className="relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden"
       style={{
         ...loginPageStyle,
-        fontFamily: 'var(--font-inter), sans-serif',
+        fontFamily: 'var(--font-dm-sans), "DM Sans", sans-serif',
       }}
     >
       <div className="absolute inset-0 z-0 pointer-events-none bg-[linear-gradient(110deg,rgba(248,250,252,0.06),rgba(15,23,42,0.08))]" />

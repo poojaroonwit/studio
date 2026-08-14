@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
             const subject = `[SECURITY ALERT] Screenshot Attempt Detected: ${userName}`;
             const html = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px;">
+                <div style="font-family: 'DM Sans', sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px;">
                     <h2 style="color: #d73a49; border-bottom: 2px solid #d73a49; padding-bottom: 10px;">Security Alert: Screenshot Attempt</h2>
                     <p>A screenshot attempt was detected on the platform.</p>
                     

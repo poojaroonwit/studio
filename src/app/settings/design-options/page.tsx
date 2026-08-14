@@ -38,8 +38,8 @@ export default function AdminDesignOptionsPage() {
   return (
     <main className="min-h-full bg-[#f3f1eb] text-[#20231f] dark:bg-[#111411] dark:text-[#edf0ea]">
       <style jsx global>{`
-        .admin-options { font-family: "Aptos", "Segoe UI", sans-serif; }
-        .admin-options .editorial { font-family: Georgia, "Times New Roman", serif; }
+        .admin-options { font-family: "DM Sans", sans-serif; }
+        .admin-options .editorial { font-family: "DM Sans", sans-serif; }
         @keyframes option-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
         .admin-options .option-in { animation: option-in .42s cubic-bezier(.22,1,.36,1) both; }
         @media (prefers-reduced-motion: reduce) { .admin-options .option-in { animation: none } }

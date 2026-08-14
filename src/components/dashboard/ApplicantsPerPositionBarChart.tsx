@@ -121,7 +121,7 @@ export function ApplicantsPerPositionBarChart({ data }: { data: ApplicantsPerPos
               ctx.save();
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
-              ctx.font = '12px Inter, sans-serif';
+              ctx.font = '12px DM Sans, var(--font-dm-sans), sans-serif';
               ctx.fillStyle = '#374151';
 
               if (value && typeof value === 'number' && value > 0) {

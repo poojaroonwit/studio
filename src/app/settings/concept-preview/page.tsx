@@ -75,7 +75,7 @@ export default function AdminConceptPreviewPage() {
   return (
     <main className="admin-existing min-h-full bg-[#f5f6f3] text-[#232721] dark:bg-[#0e1210] dark:text-[#edf1eb]">
       <style jsx global>{`
-        .admin-existing { font-family: "Aptos", "Segoe UI", sans-serif; }
+        .admin-existing { font-family: "DM Sans", sans-serif; }
         @keyframes admin-enter { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
         .admin-existing .admin-enter { animation: admin-enter .45s cubic-bezier(.22,1,.36,1) both; }
         @media (prefers-reduced-motion: reduce) { .admin-existing .admin-enter { animation: none } }

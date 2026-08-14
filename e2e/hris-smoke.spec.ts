@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-async function expectValidApplicationRoute(page: Parameters<Parameters<typeof test>[1]>[0]['page'], path: string) {
+async function expectValidApplicationRoute(page: Page, path: string) {
   const response = await page.goto(path);
 
   expect(response, `${path} should return a browser response`).not.toBeNull();

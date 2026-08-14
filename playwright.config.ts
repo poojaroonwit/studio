@@ -31,9 +31,13 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev',
+        command: `npx next dev -p ${port}`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        env: {
+          NEXT_TELEMETRY_DISABLED: '1',
+          ...process.env,
+        },
       },
 });

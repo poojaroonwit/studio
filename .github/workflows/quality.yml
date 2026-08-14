@@ -15,6 +15,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
@@ -30,6 +31,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium --project=mobile-chromium

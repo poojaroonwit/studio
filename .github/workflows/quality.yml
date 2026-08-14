@@ -15,7 +15,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=critical
       - run: npm run type-check
       - run: npm run lint
       - run: npm run test:run
@@ -23,16 +25,17 @@ jobs:
 
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=chromium
+      - run: npm run test:e2e -- --project=chromium --project=mobile-chromium
         env:
           DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/unused
           NEXTAUTH_SECRET: ci-only-not-for-production

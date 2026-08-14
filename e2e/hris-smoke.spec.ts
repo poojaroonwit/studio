@@ -1,18 +1,31 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function expectValidApplicationRoute(page: Page, path: string) {
+  const response = await page.goto(path);
+
+  expect(response, `${path} should return a browser response`).not.toBeNull();
+  expect(response!.status(), `${path} should not resolve to an error or missing page`).toBeLessThan(400);
+  await expect(page.locator('body')).toBeVisible();
+}
 
 test.describe('HRIS protected surfaces', () => {
   test('operations workspace is a valid application route', async ({ page }) => {
-    const response = await page.goto('/people/operations');
-
-    expect(response?.status()).toBeLessThan(500);
-    await expect(page.locator('body')).toBeVisible();
+    await expectValidApplicationRoute(page, '/people/hris-operations');
   });
 
   test('engagement workspace is a valid application route', async ({ page }) => {
-    const response = await page.goto('/workforce/engagement');
+    await expectValidApplicationRoute(page, '/workforce/engagement');
+  });
 
-    expect(response?.status()).toBeLessThan(500);
-    await expect(page.locator('body')).toBeVisible();
+  test('sign-in surface fits the configured viewport', async ({ page }) => {
+    await expectValidApplicationRoute(page, '/auth/signin');
+
+    const viewport = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+
+    expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth + 1);
   });
 
   test('HR API requires an authenticated session', async ({ request }) => {

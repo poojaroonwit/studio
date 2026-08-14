@@ -23,11 +23,6 @@ start_main_application() {
     exec npm run start
 }
 
-if [ "${SKIP_MIGRATIONS:-false}" = "true" ]; then
-    echo "SKIP_MIGRATIONS=true - skipping database schema sync"
-    start_main_application
-fi
-
 if [ -z "${DATABASE_URL:-}" ]; then
     echo "ERROR: DATABASE_URL environment variable is not set"
     exit 1
@@ -75,39 +70,35 @@ has_required_tables() {
         table_exists "employee_advances"
 }
 
-sync_schema_with_prisma() {
+deploy_checked_in_migrations() {
     echo "Ensuring required PostgreSQL extensions..."
     npx prisma db execute --schema=prisma/schema.prisma \
-      --file=scripts/ensure-postgresql-extensions.sql || \
-      echo "Warning: extension bootstrap failed; attempting schema sync anyway."
+      --file=scripts/ensure-postgresql-extensions.sql || {
+        echo "ERROR: PostgreSQL extension bootstrap failed"
+        exit 1
+      }
 
-    echo "Deduplicating service desk knowledge documents by (category_id, file_name)..."
-    npx prisma db execute --schema=prisma/schema.prisma \
-      --file=scripts/dedupe-service-desk-knowledge-documents.sql || \
-      echo "Warning: duplicate cleanup failed; schema sync may still fail if duplicates remain."
-
-    echo "Applying non-destructive schema changes from prisma/schema.prisma..."
-    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-        echo "Database schema is up to date"
-        echo "Backfilling legacy position organization links..."
-        npx prisma db execute --schema=prisma/schema.prisma --file=scripts/backfill-position-organization-units.sql || \
-          echo "Warning: position organization backfill failed; unresolved positions will remain blocked from headcount requests."
-        npx tsx scripts/report-unresolved-position-organization-links.ts || \
-          echo "Warning: unresolved position organization report failed."
+    echo "Applying checked-in Prisma migrations..."
+    if npx prisma migrate deploy --schema=prisma/schema.prisma; then
+        echo "Checked-in database migrations applied successfully"
         return 0
     fi
 
-    echo "ERROR: safe schema sync failed; existing data was not reset"
+    echo "ERROR: Prisma migrate deploy failed; the application will not start with an uncertain schema"
     exit 1
 }
 
 prepare_database() {
     wait_for_database
 
-    sync_schema_with_prisma
+    if [ "${SKIP_MIGRATIONS:-false}" = "true" ]; then
+        echo "SKIP_MIGRATIONS=true - leaving schema changes to the deployment pipeline"
+    else
+        deploy_checked_in_migrations
+    fi
 
     if ! has_required_tables; then
-        echo "Required tables are missing after schema sync"
+        echo "ERROR: required tables are missing. Apply the checked-in migrations before starting the application."
         exit 1
     fi
 }
@@ -124,7 +115,8 @@ seed_database() {
         return 0
     fi
 
-    echo "Seed failed, continuing without seed data"
+    echo "ERROR: database seed was explicitly requested but failed"
+    exit 1
 }
 
 prepare_database

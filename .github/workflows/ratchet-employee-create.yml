@@ -1,0 +1,71 @@
+name: Ratchet employee creation
+
+on:
+  push:
+    branches: [fix/full-stabilization]
+
+permissions:
+  contents: write
+
+jobs:
+  ratchet:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/full-stabilization
+      - name: Extract pure completion rules from dialog
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          path = Path('src/components/hr/EmployeeCreateFromApplicantDialog.tsx')
+          text = path.read_text()
+          text = text.replace(
+          '''import {
+            directSteps,
+            HorizontalFieldRow,
+            initialEmployeeDetails,
+            structuredEmployeeFields,
+            type CreationSource,
+            type DirectStep,
+          } from "./employee-create-form-config";''',
+          '''import {
+            calculateDirectStepCompletion,
+            directSteps,
+            getApplicantInitials,
+            hasRequiredDirectEmployeeDetails,
+            HorizontalFieldRow,
+            initialEmployeeDetails,
+            structuredEmployeeFields,
+            type CreationSource,
+            type DirectStep,
+          } from "./employee-create-form-config";''')
+          start = text.index('  const completion = React.useMemo(() => {')
+          end = text.index('\n\n  const chooseDirect = () => {', start)
+          text = text[:start] + '''  const completion = React.useMemo(
+            () => calculateDirectStepCompletion(details),
+            [details],
+          );
+          const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);''' + text[end:]
+          marker = '\nfunction getApplicantInitials(name: string) {'
+          if marker in text:
+              text = text[:text.index(marker)] + '\n'
+          path.write_text(text)
+
+          baseline_path = Path('scripts/frontend-line-budget-baseline.json')
+          baseline = json.loads(baseline_path.read_text())
+          baseline.pop('src/components/hr/EmployeeCreateFromApplicantDialog.tsx', None)
+          baseline_path.write_text(json.dumps(baseline, indent=2) + '\n')
+          PY
+          test $(wc -l < src/components/hr/EmployeeCreateFromApplicantDialog.tsx) -le 500
+      - name: Commit ratchet
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/hr/EmployeeCreateFromApplicantDialog.tsx scripts/frontend-line-budget-baseline.json
+          git commit -m "refactor: remove employee creation architecture exception"
+          git push origin HEAD:fix/full-stabilization

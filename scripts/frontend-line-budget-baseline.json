@@ -49,7 +49,6 @@
   "src/app/settings/SettingsPageView.tsx": 647,
   "src/app/settings/settings-page-model.ts": 853,
   "src/app/settings/leave-block-list/LeaveBlockListClient.tsx": 537,
-  "src/app/settings/HrSetupWorkspace.tsx": 524,
   "src/components/positions/PositionDetailPageView.tsx": 570,
   "src/components/settings/system-settings-tabs/OrganizationTabParts.tsx": 609,
   "src/lib/performance/performance-service.ts": 1099,

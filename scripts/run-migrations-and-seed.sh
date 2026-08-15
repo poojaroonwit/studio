@@ -76,12 +76,9 @@ adopt_baseline_if_needed() {
         return 0
     fi
 
-    print_warning "Existing Studio schema has no squashed baseline record; checking for drift before adoption."
-    if ! npx prisma migrate diff \
-      --from-schema-datasource "$PRISMA_SCHEMA" \
-      --to-schema-datamodel "$PRISMA_SCHEMA" \
-      --exit-code; then
-        print_error "Existing database differs from prisma/schema.prisma. Refusing to hide drift."
+    print_warning "Existing Studio schema has no squashed baseline record; checking Prisma-managed drift before adoption."
+    if ! node scripts/check-prisma-schema-drift.cjs; then
+        print_error "Existing database differs from the Prisma-managed schema. Refusing to hide drift."
         exit 1
     fi
 
@@ -106,13 +103,10 @@ print_info "Deploying committed Prisma migrations..."
 npx prisma migrate deploy --schema="$PRISMA_SCHEMA"
 print_success "Migrations applied successfully"
 
-print_info "Verifying migration status and schema drift..."
+print_info "Verifying migration status and Prisma-managed schema drift..."
 npx prisma migrate status --schema="$PRISMA_SCHEMA"
-npx prisma migrate diff \
-  --from-schema-datasource "$PRISMA_SCHEMA" \
-  --to-schema-datamodel "$PRISMA_SCHEMA" \
-  --exit-code
-print_success "Database matches prisma/schema.prisma"
+node scripts/check-prisma-schema-drift.cjs
+print_success "Database matches the Prisma-managed schema and documented raw SQL invariants are preserved"
 
 print_info "Generating Prisma client..."
 npx prisma generate --schema="$PRISMA_SCHEMA"

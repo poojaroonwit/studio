@@ -25,7 +25,6 @@
     "fix:capitalization": "node scripts/fix-applicant-capitalization.js",
     "fix:capitalization:dry-run": "node scripts/fix-applicant-capitalization.js --dry-run",
     "schema:validate": "prisma validate --schema=prisma/schema.prisma",
-    "schema:push": "prisma db push --schema=prisma/schema.prisma",
     "schema:drift": "node scripts/check-prisma-schema-drift.cjs",
     "migrate:status": "prisma migrate status --schema=prisma/schema.prisma",
     "migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",

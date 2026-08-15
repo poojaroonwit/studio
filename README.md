@@ -104,7 +104,7 @@ npm run test:run     # Run tests
 Database:
 
 ```bash
-npx prisma db push --schema=prisma/schema.prisma
+npx prisma migrate dev --schema=prisma/schema.prisma
 npx prisma db seed
 npx prisma studio
 ```

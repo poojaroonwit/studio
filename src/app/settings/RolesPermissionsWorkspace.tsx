@@ -46,6 +46,8 @@ export function RolesPermissionsWorkspace() {
   toastRef.current = toast;
   const [roles, setRoles] = useState<UserGroup[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
+  const selectedRoleIdRef = useRef(selectedRoleId);
+  selectedRoleIdRef.current = selectedRoleId;
   const [draftPermissions, setDraftPermissions] = useState<PlatformModuleId[]>([]);
   const [permissionSearch, setPermissionSearch] = useState('');
   const [selectedPermissionGroupId, setSelectedPermissionGroupId] = useState('HR Operations');
@@ -76,22 +78,22 @@ export function RolesPermissionsWorkspace() {
 
     setRoles(result.roles);
     const preferredRole = result.roles.find(role => role.id === preferredRoleId);
-    const currentRole = result.roles.find(role => role.id === selectedRoleId);
+    const currentRole = result.roles.find(role => role.id === selectedRoleIdRef.current);
     const nextRole = preferredRole ?? currentRole ?? result.roles.find(role => /hr manager/i.test(role.name)) ?? result.roles[0];
     if (nextRole) {
       setSelectedRoleId(nextRole.id);
       setDraftPermissions(nextRole.permissions ?? []);
     }
-  }, [selectedRoleId]);
+  }, []);
 
-  useEffect(() => { void loadRoles(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadRoles(); }, [loadRoles]);
 
   useEffect(() => {
     if (!selectedRole) return;
     setDraftPermissions(selectedRole.permissions ?? []);
     setPermissionSearch('');
     setTab('permissions');
-  }, [selectedRoleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedRole]);
 
   useEffect(() => {
     if (tab !== 'members' || !selectedRole) return;

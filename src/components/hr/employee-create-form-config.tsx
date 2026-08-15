@@ -101,3 +101,12 @@ export function HorizontalFieldRow({
     </div>
   );
 }
+
+export function getApplicantInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "A";
+}

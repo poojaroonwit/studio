@@ -1,6 +1,5 @@
 {
   "src/swagger/index.ts": 1245,
-  "src/components/onboarding/AdminPlatformSetupOnboarding.tsx": 612,
   "src/components/company-portal/CompanyPortalRenderer.tsx": 565,
   "src/components/company-portal/CompanyPortalEditor.tsx": 1570,
   "src/components/company-portal/CompanyPortalCmsDialog.tsx": 573,

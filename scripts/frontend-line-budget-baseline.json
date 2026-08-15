@@ -20,7 +20,7 @@
   "src/components/hr/OffboardingPage.tsx": 1249,
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4329,
-  "src/components/hr/EmployeeCreateFromApplicantDialog.tsx": 567,
+  "src/components/hr/EmployeeCreateFromApplicantDialog.tsx": 512,
   "src/app/job-offers/JobOffersPageClient.tsx": 586,
   "src/components/performance/PerformanceWorkspace.tsx": 626,
   "src/components/performance/PerformanceViews.tsx": 551,

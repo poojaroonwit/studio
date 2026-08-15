@@ -1,0 +1,38 @@
+name: Repair package lock
+
+on:
+  push:
+    branches: [fix/full-stabilization]
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lock:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/full-stabilization
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Use repository npm version
+        run: npm install --global npm@11.6.2
+      - name: Regenerate package lock
+        run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Commit repaired lock
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/repair-lock.yml
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes were required."
+            exit 0
+          fi
+          git commit -m "fix: synchronize npm lockfile"
+          git push origin HEAD:fix/full-stabilization

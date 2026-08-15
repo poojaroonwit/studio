@@ -41,7 +41,6 @@
   "src/app/hiring/headcount-requests/HeadcountRequestsClient.tsx": 1373,
   "src/lib/expenses/service.ts": 908,
   "src/app/learning/LearningPageClient.tsx": 6732,
-  "src/app/learning/CareerExplorer.tsx": 503,
   "src/app/setup/PlatformSetupClient.tsx": 629,
   "src/app/settings/field-management/page.tsx": 605,
   "src/app/settings/branches/BranchConfigClient.tsx": 559,

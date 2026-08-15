@@ -1,0 +1,46 @@
+name: Apply remaining production dependency fixes
+
+on:
+  push:
+    branches: [fix/full-stabilization]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/full-stabilization
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --global npm@11.6.2
+      - name: Update remaining vulnerable dependency roots
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          delete pkg.dependencies['file-type'];
+          pkg.dependencies.uuid = '11.1.1';
+          pkg.overrides.postcss = '8.5.25';
+          pkg.overrides.sharp = '$sharp';
+          pkg.overrides.uuid = '$uuid';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Verify deterministic install
+        run: npm ci --ignore-scripts --legacy-peer-deps
+      - name: Require no high or critical production advisories
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit dependency fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "security: clear remaining high production advisories"
+          git push origin HEAD:fix/full-stabilization

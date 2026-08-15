@@ -1,0 +1,71 @@
+name: Remove runtime bypasses
+
+on:
+  push:
+    branches: [fix/full-stabilization]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/full-stabilization
+      - name: Remove unsafe schema/build paths and hook suppressions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          pkg_path = Path('package.json')
+          pkg = json.loads(pkg_path.read_text())
+          pkg['scripts'].pop('schema:push', None)
+          pkg_path.write_text(json.dumps(pkg, indent=2) + '\n')
+
+          next_path = Path('next.config.js')
+          text = next_path.read_text()
+          start = text.index("  typescript: {")
+          end = text.index("\n\n  // Force Node.js runtime", start)
+          text = text[:start] + text[end:]
+          next_path.write_text(text)
+
+          gitlab = Path('.gitlab-ci.yml')
+          text = gitlab.read_text().replace(
+              '    - npx prisma db push --force-reset --skip-generate\n    - npm run audit:verify-database',
+              '    - npx prisma db execute --schema=prisma/schema.prisma --file=scripts/ensure-postgresql-extensions.sql\n    - npx prisma migrate deploy --schema=prisma/schema.prisma\n    - npm run audit:verify-database',
+          )
+          gitlab.write_text(text)
+
+          roles = Path('src/app/settings/RolesPermissionsWorkspace.tsx')
+          text = roles.read_text()
+          text = text.replace(
+              "  const [selectedRoleId, setSelectedRoleId] = useState('');",
+              "  const [selectedRoleId, setSelectedRoleId] = useState('');\n  const selectedRoleIdRef = useRef(selectedRoleId);\n  selectedRoleIdRef.current = selectedRoleId;",
+          )
+          text = text.replace('result.roles.find(role => role.id === selectedRoleId);', 'result.roles.find(role => role.id === selectedRoleIdRef.current);')
+          text = text.replace('  }, [selectedRoleId]);', '  }, []);', 1)
+          text = text.replace('  useEffect(() => { void loadRoles(); }, []); // eslint-disable-line react-hooks/exhaustive-deps', '  useEffect(() => { void loadRoles(); }, [loadRoles]);')
+          text = text.replace("  }, [selectedRoleId]); // eslint-disable-line react-hooks/exhaustive-deps", "  }, [selectedRole]);")
+          roles.write_text(text)
+
+          for filename in ['README.md', 'docs/development/Development Guide.md', 'docs/development/Troubleshooting.md']:
+              p = Path(filename)
+              if not p.exists(): continue
+              t = p.read_text()
+              t = t.replace('npx prisma db push --schema=prisma/schema.prisma', 'npx prisma migrate dev --schema=prisma/schema.prisma')
+              t = t.replace('npx prisma db push --force-reset --accept-data-loss', 'npx prisma migrate reset --force --schema=prisma/schema.prisma')
+              t = t.replace('npx prisma db push', 'npx prisma migrate dev --schema=prisma/schema.prisma')
+              p.write_text(t)
+          PY
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json next.config.js .gitlab-ci.yml src/app/settings/RolesPermissionsWorkspace.tsx README.md docs/development
+          git commit -m "fix: remove unsafe schema and build bypasses"
+          git push origin HEAD:fix/full-stabilization

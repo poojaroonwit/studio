@@ -14,12 +14,13 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Dependencies are installed strictly from the committed lockfile.
+# Dependencies are installed strictly from the committed lockfile and the
+# repository's explicit peer-resolution policy.
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 COPY prisma ./prisma
 RUN npm config set maxsockets 10 && \
-    npm ci --no-audit --no-fund
+    npm ci
 
 # Runtime dependencies retain the Prisma CLI because migrations are deployed
 # by entrypoint.sh before the standalone Next.js server starts.
@@ -30,6 +31,7 @@ RUN npm prune --omit=dev && \
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
+COPY --from=deps /app/.npmrc ./.npmrc
 COPY --from=deps /app/prisma ./prisma
 COPY . ./
 

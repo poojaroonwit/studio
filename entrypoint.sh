@@ -92,28 +92,13 @@ migration_is_recorded() {
 }
 
 database_matches_schema() {
-    DRIFT_OUTPUT=$(mktemp)
-
-    if npx prisma migrate diff \
-      --from-schema-datasource "$PRISMA_SCHEMA" \
-      --to-schema-datamodel "$PRISMA_SCHEMA" \
-      --exit-code >"$DRIFT_OUTPUT" 2>&1; then
-        rm -f "$DRIFT_OUTPUT"
+    echo "Checking Prisma-managed schema drift while preserving documented raw SQL indexes..."
+    if node scripts/check-prisma-schema-drift.cjs; then
         return 0
-    else
-        DRIFT_EXIT=$?
     fi
 
-    echo "Database/schema comparison output:"
-    cat "$DRIFT_OUTPUT"
-    rm -f "$DRIFT_OUTPUT"
-
-    if [ "$DRIFT_EXIT" -eq 2 ]; then
-        echo "ERROR: Existing database differs from prisma/schema.prisma."
-        echo "Refusing to mark the baseline as applied because doing so would hide schema drift."
-    else
-        echo "ERROR: Prisma could not compare the existing database with prisma/schema.prisma."
-    fi
+    echo "ERROR: Existing database differs from the Prisma-managed schema."
+    echo "Refusing to mark the baseline as applied because doing so would hide schema drift."
     return 1
 }
 

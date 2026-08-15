@@ -1,7 +1,9 @@
 -- Restore business invariants that existed in historical SQL migrations but
 -- cannot be represented by the Prisma datamodel (CHECK constraints, expression
--- indexes, and immutable-record triggers). Existing installations keep their
--- current constraints; fresh baseline databases gain the same protections.
+-- indexes, and immutable-record triggers). Existing installations can contain
+-- legacy rows written before these invariants existed, so CHECK constraints are
+-- added NOT VALID: PostgreSQL enforces them for new/updated rows immediately
+-- without rewriting or rejecting historical records during deployment.
 
 CREATE OR REPLACE FUNCTION reject_audit_record_mutation() RETURNS trigger AS $$
 BEGIN
@@ -36,68 +38,68 @@ FOR EACH ROW EXECUTE FUNCTION reject_locked_period_evidence_mutation();
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_events_level_check') THEN
     ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_level_check"
-      CHECK ("level" IN ('INFO','WARN','ERROR','AUDIT'));
+      CHECK ("level" IN ('INFO','WARN','ERROR','AUDIT')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_events_outcome_check') THEN
     ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_outcome_check"
-      CHECK ("outcome" IN ('success','failure','denied','partial','unknown'));
+      CHECK ("outcome" IN ('success','failure','denied','partial','unknown')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_archive_outbox_status_check') THEN
     ALTER TABLE "audit_archive_outbox" ADD CONSTRAINT "audit_archive_outbox_status_check"
-      CHECK ("status" IN ('pending','delivering','delivered','failed'));
+      CHECK ("status" IN ('pending','delivering','delivered','failed')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_legal_holds_status_check') THEN
     ALTER TABLE "audit_legal_holds" ADD CONSTRAINT "audit_legal_holds_status_check"
-      CHECK ("status" IN ('active','released','expired'));
+      CHECK ("status" IN ('active','released','expired')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_retention_mode_check') THEN
     ALTER TABLE "audit_retention_executions" ADD CONSTRAINT "audit_retention_mode_check"
-      CHECK ("mode" IN ('dry_run','execute'));
+      CHECK ("mode" IN ('dry_run','execute')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_retention_status_check') THEN
     ALTER TABLE "audit_retention_executions" ADD CONSTRAINT "audit_retention_status_check"
-      CHECK ("status" IN ('queued','awaiting_approval','running','completed','failed','cancelled'));
+      CHECK ("status" IN ('queued','awaiting_approval','running','completed','failed','cancelled')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_retention_execution_item_status_check') THEN
     ALTER TABLE "audit_retention_execution_items" ADD CONSTRAINT "audit_retention_execution_item_status_check"
-      CHECK ("status" IN ('pending','held','deleted','anonymized','failed'));
+      CHECK ("status" IN ('pending','held','deleted','anonymized','failed')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_access_campaign_status_check') THEN
     ALTER TABLE "audit_access_review_campaigns" ADD CONSTRAINT "audit_access_campaign_status_check"
-      CHECK ("status" IN ('draft','active','completed','cancelled'));
+      CHECK ("status" IN ('draft','active','completed','cancelled')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_access_review_decision_check') THEN
     ALTER TABLE "audit_access_review_items" ADD CONSTRAINT "audit_access_review_decision_check"
-      CHECK ("decision" IN ('pending','approve','revoke','modify','exception'));
+      CHECK ("decision" IN ('pending','approve','revoke','modify','exception')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_period_dates_check') THEN
     ALTER TABLE "audit_periods" ADD CONSTRAINT "audit_period_dates_check"
-      CHECK ("ends_at" >= "starts_at");
+      CHECK ("ends_at" >= "starts_at") NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_period_status_check') THEN
     ALTER TABLE "audit_periods" ADD CONSTRAINT "audit_period_status_check"
-      CHECK ("status" IN ('open','fieldwork','locked','archived'));
+      CHECK ("status" IN ('open','fieldwork','locked','archived')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_exception_severity_check') THEN
     ALTER TABLE "audit_exceptions" ADD CONSTRAINT "audit_exception_severity_check"
-      CHECK ("severity" IN ('critical','high','medium','low'));
+      CHECK ("severity" IN ('critical','high','medium','low')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_exception_status_check') THEN
     ALTER TABLE "audit_exceptions" ADD CONSTRAINT "audit_exception_status_check"
-      CHECK ("status" IN ('open','investigating','remediated','accepted','closed'));
+      CHECK ("status" IN ('open','investigating','remediated','accepted','closed')) NOT VALID;
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hr_cost_centers_dates_ck') THEN
     ALTER TABLE hr_cost_centers ADD CONSTRAINT hr_cost_centers_dates_ck
-      CHECK (effective_to IS NULL OR effective_to >= effective_from);
+      CHECK (effective_to IS NULL OR effective_to >= effective_from) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hr_projects_status_ck') THEN
     ALTER TABLE hr_projects ADD CONSTRAINT hr_projects_status_ck
-      CHECK (status IN ('draft', 'active', 'on_hold', 'closed', 'archived'));
+      CHECK (status IN ('draft', 'active', 'on_hold', 'closed', 'archived')) NOT VALID;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'hr_projects_dates_ck') THEN
     ALTER TABLE hr_projects ADD CONSTRAINT hr_projects_dates_ck
-      CHECK (effective_to IS NULL OR effective_to >= effective_from);
+      CHECK (effective_to IS NULL OR effective_to >= effective_from) NOT VALID;
   END IF;
 END $$;
 

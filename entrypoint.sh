@@ -3,6 +3,7 @@
 set -u
 
 BASELINE_MIGRATION="00000000000000_baseline"
+BUSINESS_CONSTRAINTS_MIGRATION="20260815073000_restore_business_constraints"
 PRISMA_SCHEMA="prisma/schema.prisma"
 
 case "${NODE_ENV:-production}" in
@@ -91,6 +92,37 @@ migration_is_recorded() {
     [ "$RECORDED" -gt 0 ] 2>/dev/null
 }
 
+migration_has_unresolved_failure() {
+    MIGRATION_NAME=$1
+
+    if ! table_exists "_prisma_migrations"; then
+        return 1
+    fi
+
+    FAILED=$(psql "$DATABASE_URL" -Atc \
+      "SELECT COUNT(*) FROM \"_prisma_migrations\" WHERE migration_name = '${MIGRATION_NAME}' AND finished_at IS NULL AND rolled_back_at IS NULL AND logs IS NOT NULL;" \
+      2>/dev/null || echo "0")
+    [ "$FAILED" -gt 0 ] 2>/dev/null
+}
+
+recover_known_failed_business_constraints_migration() {
+    if ! migration_has_unresolved_failure "$BUSINESS_CONSTRAINTS_MIGRATION"; then
+        return 0
+    fi
+
+    echo "Detected the known failed ${BUSINESS_CONSTRAINTS_MIGRATION} migration."
+    echo "The original migration rejected legacy rows while adding CHECK constraints."
+    echo "Marking only this failed attempt as rolled back so the idempotent NOT VALID migration can retry..."
+
+    if ! npx prisma migrate resolve --rolled-back "$BUSINESS_CONSTRAINTS_MIGRATION" --schema="$PRISMA_SCHEMA"; then
+        echo "ERROR: Unable to resolve the known failed business constraints migration"
+        return 1
+    fi
+
+    echo "Known failed business constraints migration marked rolled back; safe retry enabled"
+    return 0
+}
+
 database_matches_schema() {
     echo "Checking Prisma-managed schema drift while preserving documented raw SQL indexes..."
     if node scripts/check-prisma-schema-drift.cjs; then
@@ -145,6 +177,10 @@ apply_prisma_migrations() {
     fi
 
     if ! adopt_baseline_for_existing_database; then
+        return 1
+    fi
+
+    if ! recover_known_failed_business_constraints_migration; then
         return 1
     fi
 

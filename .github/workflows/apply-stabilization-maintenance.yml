@@ -1,0 +1,103 @@
+name: Apply stabilization maintenance
+
+on:
+  push:
+    branches: [fix/full-stabilization]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/full-stabilization
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Apply deterministic maintenance edits
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          package = Path('package.json')
+          text = package.read_text()
+          text = text.replace(
+              '"schema:drift": "prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code"',
+              '"schema:drift": "node scripts/check-prisma-schema-drift.cjs"',
+          )
+          package.write_text(text)
+
+          entrypoint = Path('entrypoint.sh')
+          text = entrypoint.read_text()
+          replacement = '''database_matches_schema() {
+              echo "Checking Prisma-managed schema drift while preserving documented raw SQL indexes..."
+              if node scripts/check-prisma-schema-drift.cjs; then
+                  return 0
+              fi
+              echo "ERROR: Existing database differs from the Prisma-managed schema."
+              echo "Refusing to mark the baseline as applied because doing so would hide schema drift."
+              return 1
+          }
+
+          adopt_baseline_for_existing_database() {'''
+          text, count = re.subn(
+              r'database_matches_schema\(\) \{.*?\n\}\n\nadopt_baseline_for_existing_database\(\) \{',
+              replacement,
+              text,
+              flags=re.S,
+          )
+          if count != 1:
+              raise SystemExit(f'entrypoint drift function replacement count={count}')
+          entrypoint.write_text(text)
+
+          manual = Path('scripts/run-migrations-and-seed.sh')
+          text = manual.read_text()
+          text = re.sub(
+              r'npx prisma migrate diff \\\n\s+--from-schema-datasource "\$PRISMA_SCHEMA" \\\n\s+--to-schema-datamodel "\$PRISMA_SCHEMA" \\\n\s+--exit-code',
+              'npm run schema:drift',
+              text,
+          )
+          manual.write_text(text)
+
+          quality = Path('.github/workflows/quality.yml')
+          text = quality.read_text()
+          text = text.replace('uses: actions/checkout@v4', 'uses: actions/checkout@v5')
+          text = text.replace('uses: actions/setup-node@v4', 'uses: actions/setup-node@v5')
+          text = re.sub(
+              r'      - name: Verify migration result matches schema\n        run: >-\n          npx prisma migrate diff\n          --from-schema-datasource prisma/schema.prisma\n          --to-schema-datamodel prisma/schema.prisma\n          --exit-code',
+              '      - name: Verify Prisma-managed schema drift\n        run: npm run schema:drift',
+              text,
+          )
+          # Pin the npm CLI consistently in each job immediately after setup-node.
+          text = text.replace(
+              '          cache: npm\n      - run: npm ci',
+              '          cache: npm\n      - run: npm install --global npm@11.6.2\n      - run: npm ci',
+          )
+          text = text.replace(
+              '          cache: npm\n      - run: npm ci --ignore-scripts',
+              '          cache: npm\n      - run: npm install --global npm@11.6.2\n      - run: npm ci --ignore-scripts',
+          )
+          quality.write_text(text)
+
+          for workflow in Path('.github/workflows').glob('*.yml'):
+              if workflow.name == 'apply-stabilization-maintenance.yml':
+                  continue
+              text = workflow.read_text()
+              text = text.replace('actions/checkout@v4', 'actions/checkout@v5')
+              text = text.replace('actions/setup-node@v4', 'actions/setup-node@v5')
+              workflow.write_text(text)
+          PY
+      - name: Remove temporary workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-stabilization-maintenance.yml
+          git add package.json entrypoint.sh scripts/run-migrations-and-seed.sh .github/workflows
+          git commit -m "ci: align schema drift and workflow toolchain"
+          git push origin HEAD:fix/full-stabilization

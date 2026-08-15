@@ -37,7 +37,7 @@ export function useHeaderNavigationCategories(): HeaderNavigationCategory[] {
     [session?.user?.modulePermissions],
   );
 
-  const groups = React.useMemo(() => {
+  const groups = React.useMemo<SidebarNavGroup[]>(() => {
     if (status === "loading") return [];
 
     return buildFilteredSidebarGroups(
@@ -59,9 +59,10 @@ export function useHeaderNavigationCategories(): HeaderNavigationCategory[] {
   return React.useMemo(
     () => MEGA_MENU_CATEGORIES
       .map(category => {
-        const categoryGroups = category.groupIds
-          .map(groupId => groups.find(group => group.id === groupId))
-          .filter((group): group is SidebarNavGroup => Boolean(group));
+        const categoryGroups = category.groupIds.flatMap(groupId => {
+          const group = groups.find(candidate => candidate.id === groupId);
+          return group ? [group] : [];
+        });
 
         return {
           label: category.label,

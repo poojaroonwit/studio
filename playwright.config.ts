@@ -31,7 +31,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: 'npm run dev',
+        // Do not route browser tests through `npm run dev`: the local developer
+        // script historically used PowerShell and made Linux CI unable to start.
+        command: `npx next dev -p ${port} --turbo`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

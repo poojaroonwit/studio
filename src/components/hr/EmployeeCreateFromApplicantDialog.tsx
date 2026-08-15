@@ -38,7 +38,10 @@ import { cn } from "@/lib/utils";
 import { HrEmployeeSearchSelect } from "./HrEmployeeSearchSelect";
 import { HrResourceSearchSelect } from "./HrResourceSearchSelect";
 import {
+  calculateDirectStepCompletion,
   directSteps,
+  getApplicantInitials,
+  hasRequiredDirectEmployeeDetails,
   HorizontalFieldRow,
   initialEmployeeDetails,
   structuredEmployeeFields,
@@ -90,23 +93,11 @@ export function EmployeeCreateFromApplicantDialog({
     setDraftSavedAt(null);
   }, [open]);
 
-  const completion = React.useMemo(() => {
-    const filled = (keys: string[]) => Math.round((keys.filter(key => details[key]?.trim()).length / keys.length) * 100);
-    const structuredChanged = structuredEmployeeFields.filter(([key, , fallback]) => details[key]?.trim() !== fallback).length;
-    const core = filled(["employeeNumber", "firstName", "lastName", "email", "employmentType", "status"]);
-    const work = filled(["jobTitle", "departmentId", "managerId", "location", "positionId", "companyId", "businessUnit"]);
-    const personal = filled(["phone", "preferredName", "legalName", "workPhone", "profilePhotoUrl", "emergencyName", "emergencyRelationship", "emergencyPhone"]);
-    const complianceBase = filled(["endDate", "probationPeriodDays", "probationEvaluationFrequencyDays"]);
-    const compliance = Math.round((complianceBase + (structuredChanged / structuredEmployeeFields.length) * 100) / 2);
-    return { core, work, personal, compliance, review: Math.round((core + work + personal + compliance) / 4) };
-  }, [details]);
-
-  const directRequirementsMet = Boolean(
-    details.employeeNumber.trim() && details.firstName.trim() && details.lastName.trim() &&
-    details.email.trim() && details.employmentType && details.status &&
-    (details.employmentType !== "subcontract" || details.clientId.trim()) &&
-    (details.employmentType === "full_time" || details.endDate),
-  );
+  const completion = React.useMemo(
+  () => calculateDirectStepCompletion(details),
+  [details],
+);
+const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
 
   const chooseDirect = () => {
     setDetails({ ...initialEmployeeDetails(), employmentType: "", status: "" });
@@ -502,11 +493,3 @@ export function EmployeeCreateFromApplicantDialog({
   );
 }
 
-function getApplicantInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("") || "A";
-}

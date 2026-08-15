@@ -10,26 +10,67 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
+      - run: npm run check:architecture
       - run: npm run type-check
       - run: npm run lint
       - run: npm run test:run
       - run: npm run build
 
+  database-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: studio
+          POSTGRES_PASSWORD: studio
+          POSTGRES_DB: studio_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U studio -d studio_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DATABASE_URL: postgresql://studio:studio@127.0.0.1:5432/studio_ci
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --global npm@11.6.2
+      - run: npm ci --ignore-scripts
+      - name: Validate Prisma schema
+        run: npx prisma validate --schema=prisma/schema.prisma
+      - name: Enable required PostgreSQL extensions
+        run: npx prisma db execute --schema=prisma/schema.prisma --file=scripts/ensure-postgresql-extensions.sql
+      - name: Deploy migrations to clean database
+        run: npx prisma migrate deploy --schema=prisma/schema.prisma
+      - name: Verify migration status
+        run: npx prisma migrate status --schema=prisma/schema.prisma
+      - name: Verify Prisma-managed schema drift
+        run: node scripts/check-prisma-schema-drift.cjs
+
   browser-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium
@@ -43,3 +84,12 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+
+  container-build:
+    needs: [application, database-schema]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build production container
+        run: docker build --tag studio-ci:${{ github.sha }} .

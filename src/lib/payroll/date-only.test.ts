@@ -17,5 +17,6 @@ describe("toSqlDate", () => {
 
   it("rejects invalid values instead of sending them to raw SQL", () => {
     expect(() => toSqlDate("not-a-date")).toThrow("invalid date");
+    expect(() => toSqlDate(new Date(Number.NaN))).toThrow("invalid date");
   });
 });

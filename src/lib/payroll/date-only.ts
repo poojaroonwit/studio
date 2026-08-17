@@ -5,7 +5,7 @@ import { PayrollServiceError } from "./service-foundation";
  * PostgreSQL raw-query `::date` parameters expect. Prisma returns PostgreSQL
  * DATE values as JavaScript Date objects, so String(date) is not safe here.
  */
-export function toSqlDate(value: unknown) {
+export function toSqlDate(value: unknown): string {
   if (value instanceof Date) {
     if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
   }

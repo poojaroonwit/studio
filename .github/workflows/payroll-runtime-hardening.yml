@@ -1,0 +1,153 @@
+name: Payroll runtime hardening
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/payroll-runtime-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Patch date boundaries and migration drift gate
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly 1 occurrence, found {count}")
+              return text.replace(old, new, 1)
+
+          helper = Path('src/lib/payroll/date-only.ts')
+          helper.write_text('''import { PayrollServiceError } from "./service-foundation";\n\n/**\n * Convert a database or API date value to the canonical YYYY-MM-DD text that\n * PostgreSQL raw-query `::date` parameters expect. Prisma returns PostgreSQL\n * DATE values as JavaScript Date objects, so String(date) is not safe here.\n */\nexport function toSqlDate(value: unknown) {\n  if (value instanceof Date) {\n    if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);\n  }\n\n  if (typeof value === "string") {\n    const dateOnly = value.match(/^\\d{4}-\\d{2}-\\d{2}/)?.[0];\n    if (dateOnly) return dateOnly;\n\n    const parsed = new Date(value);\n    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);\n  }\n\n  throw new PayrollServiceError(\n    "INVALID_PAYROLL_PERIOD",\n    "The selected payroll period contains an invalid date.",\n    409,\n  );\n}\n''', encoding='utf-8')
+
+          test = Path('src/lib/payroll/date-only.test.ts')
+          test.write_text('''import { describe, expect, it } from "vitest";\n\nimport { toSqlDate } from "./date-only";\n\ndescribe("toSqlDate", () => {\n  it("serializes Prisma Date values as PostgreSQL date text", () => {\n    expect(toSqlDate(new Date("2026-08-12T00:00:00.000Z"))).toBe("2026-08-12");\n  });\n\n  it("preserves canonical date strings", () => {\n    expect(toSqlDate("2026-08-12")).toBe("2026-08-12");\n  });\n\n  it("normalizes timestamp strings", () => {\n    expect(toSqlDate("2026-08-12T08:30:00.000Z")).toBe("2026-08-12");\n  });\n\n  it("rejects invalid values instead of sending them to raw SQL", () => {\n    expect(() => toSqlDate("not-a-date")).toThrow("invalid date");\n  });\n});\n''', encoding='utf-8')
+
+          collector_path = Path('src/lib/payroll/collect-inputs.ts')
+          collector = collector_path.read_text(encoding='utf-8')
+          collector = replace_once(
+              collector,
+              'import { PayrollServiceError } from "./service-foundation";\n',
+              'import { PayrollServiceError } from "./service-foundation";\nimport { toSqlDate } from "./date-only";\n',
+              'collector import',
+          )
+          collector, removed = re.subn(
+              r'\nfunction dateOnly\(value: unknown\) \{.*?\n\}\n\nasync function collectInputs',
+              '\nasync function collectInputs',
+              collector,
+              count=1,
+              flags=re.S,
+          )
+          if removed != 1:
+              raise SystemExit(f'collector dateOnly removal: expected 1 occurrence, found {removed}')
+          collector = collector.replace('dateOnly(period[0].start_date)', 'toSqlDate(period[0].start_date)')
+          collector = collector.replace('dateOnly(period[0].end_date)', 'toSqlDate(period[0].end_date)')
+          if 'dateOnly(' in collector:
+              raise SystemExit('collector still contains local dateOnly calls')
+          collector_path.write_text(collector, encoding='utf-8')
+
+          service_path = Path('src/lib/payroll/service.ts')
+          service = service_path.read_text(encoding='utf-8')
+          service = replace_once(
+              service,
+              'import { maskPayrollReference } from "./permissions";\n',
+              'import { maskPayrollReference } from "./permissions";\nimport { toSqlDate } from "./date-only";\n',
+              'service date helper import',
+          )
+
+          service = replace_once(
+              service,
+              '      String(context[0].start_date).slice(0, 10),\n      String(context[0].end_date).slice(0, 10),\n      String(context[0].pay_date).slice(0, 10),',
+              '      toSqlDate(context[0].start_date),\n      toSqlDate(context[0].end_date),\n      toSqlDate(context[0].pay_date),',
+              'createRun period validation',
+          )
+          service = replace_once(
+              service,
+              '  const start = String(period[0]?.start_date || "");\n  const end = String(period[0]?.end_date || "");',
+              '  const start = toSqlDate(period[0]?.start_date);\n  const end = toSqlDate(period[0]?.end_date);',
+              'legacy collect input dates',
+          )
+          service = replace_once(
+              service,
+              '    String(period.start_date),\n    String(period.end_date),\n    companyId,',
+              '    toSqlDate(period.start_date),\n    toSqlDate(period.end_date),\n    companyId,',
+              'employee eligibility dates',
+          )
+          service = replace_once(
+              service,
+              '      employee.id,\n      period.start_date,\n      period.end_date,\n    );',
+              '      employee.id,\n      toSqlDate(period.start_date),\n      toSqlDate(period.end_date),\n    );',
+              'benefit enrollment dates',
+          )
+          service = replace_once(
+              service,
+              '    const periodStart = new Date(String(period.start_date));\n    const periodEnd = new Date(String(period.end_date));',
+              '    const periodStart = new Date(`${toSqlDate(period.start_date)}T00:00:00.000Z`);\n    const periodEnd = new Date(`${toSqlDate(period.end_date)}T00:00:00.000Z`);',
+              'calculation date arithmetic',
+          )
+          service = replace_once(
+              service,
+              '      statutoryRules.effectiveFrom <= String(period.pay_date).slice(0, 10);',
+              '      statutoryRules.effectiveFrom <= toSqlDate(period.pay_date);',
+              'statutory effective date',
+          )
+          service = replace_once(
+              service,
+              '        period.pay_date,\n        statutoryRules.employeeSocialSecurityRate,',
+              '        toSqlDate(period.pay_date),\n        statutoryRules.employeeSocialSecurityRate,',
+              'statutory YTD date',
+          )
+          service = replace_once(
+              service,
+              '            startDate: String(period.start_date).slice(0, 10),\n            endDate: String(period.end_date).slice(0, 10),\n            payDate: String(period.pay_date).slice(0, 10),',
+              '            startDate: toSqlDate(period.start_date),\n            endDate: toSqlDate(period.end_date),\n            payDate: toSqlDate(period.pay_date),',
+              'Thai payroll period dates',
+          )
+          service = replace_once(
+              service,
+              '      periodStart: String(period.start_date).slice(0, 10),\n      periodEnd: String(period.end_date).slice(0, 10),',
+              '      periodStart: toSqlDate(period.start_date),\n      periodEnd: toSqlDate(period.end_date),',
+              'calculation engine period dates',
+          )
+
+          suspicious = re.findall(r'String\([^\n]*(?:start_date|end_date|pay_date)[^\n]*\)\.slice\(0, 10\)', service)
+          if suspicious:
+              raise SystemExit(f'unsafe payroll date serialization remains: {suspicious}')
+          service_path.write_text(service, encoding='utf-8')
+
+          entry_path = Path('entrypoint.sh')
+          entry = entry_path.read_text(encoding='utf-8')
+          entry = replace_once(
+              entry,
+              '    echo "Prisma migrations deployed successfully"\n\n    echo "Backfilling legacy position organization links..."',
+              '    echo "Prisma migrations deployed successfully"\n\n    echo "Verifying deployed database schema matches prisma/schema.prisma..."\n    if ! database_matches_schema; then\n        echo "ERROR: Prisma migrations completed but Prisma-managed schema drift remains"\n        return 1\n    fi\n    echo "Database schema verification passed"\n\n    echo "Backfilling legacy position organization links..."',
+              'post-migration schema drift gate',
+          )
+          entry_path.write_text(entry, encoding='utf-8')
+
+          workflow = Path('.github/workflows/payroll-runtime-hardening.yml')
+          workflow.unlink()
+          PY
+
+      - name: Commit hardening changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/payroll/date-only.ts src/lib/payroll/date-only.test.ts src/lib/payroll/collect-inputs.ts src/lib/payroll/service.ts entrypoint.sh .github/workflows/payroll-runtime-hardening.yml
+          git commit -m "Harden payroll date handling and schema drift checks"
+          git push origin HEAD:dev

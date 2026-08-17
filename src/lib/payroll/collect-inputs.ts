@@ -7,16 +7,41 @@ import { PayrollServiceError } from "./service-foundation";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type Row = Record<string, unknown>;
-type CollectInputsAction = Extract<
-  PayrollActionInput,
-  { action: "collect_inputs" }
->;
 
 function number(value: unknown) {
   if (typeof value === "number") return value;
   if (typeof value === "bigint") return Number(value);
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function dateOnly(value: unknown) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new PayrollServiceError(
+        "INVALID_PAYROLL_PERIOD",
+        "Payroll inputs cannot be collected because the selected payroll period has invalid dates.",
+        409,
+      );
+    }
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (typeof value === "string") {
+    const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+    if (isoDate) return isoDate;
+
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+
+  throw new PayrollServiceError(
+    "INVALID_PAYROLL_PERIOD",
+    "Payroll inputs cannot be collected because the selected payroll period has invalid dates.",
+    409,
+  );
 }
 
 async function collectInputs(
@@ -42,25 +67,23 @@ async function collectInputs(
     );
   }
 
-  const start = String(period[0].start_date || "");
-  const end = String(period[0].end_date || "");
+  // Prisma returns PostgreSQL DATE values as JavaScript Date objects. Never
+  // pass Date.toString() output to a raw $n::date parameter; PostgreSQL cannot
+  // parse strings such as "Wed Aug 12 2026 ...". Bind canonical date-only text.
+  const start = dateOnly(period[0].start_date);
+  const end = dateOnly(period[0].end_date);
 
-  // Expense claims do not have a period_end column. A reimbursement becomes
-  // payroll-eligible when the claim is approved; submitted/created timestamps
-  // are retained as fallbacks for legacy approved records.
   await client.$executeRawUnsafe(
     `INSERT INTO hr_payroll_inputs
       (id, company_id, payroll_run_id, employee_id, input_type, component_code, amount, currency,
        source_module, source_record_id, effective_date, approval_status, status, idempotency_key, created_by_id)
      SELECT gen_random_uuid(), claim.company_id, $1::uuid, claim.employee_id, 'earning', 'EXPENSE_REIMBURSEMENT',
             claim.employee_reimbursement, claim.reimbursement_currency, 'expenses', claim.id::text,
-            COALESCE(claim.approved_at::date, claim.submitted_at::date, claim.created_at::date),
-            'approved', 'ready', concat('expense-claim:', claim.id::text, ':', $1), $2::uuid
+            claim.period_end, 'approved', 'ready', concat('expense-claim:', claim.id::text, ':', $1), $2::uuid
        FROM expense_claims claim
       WHERE claim.status = 'approved'
         AND claim.employee_reimbursement > 0
-        AND COALESCE(claim.approved_at::date, claim.submitted_at::date, claim.created_at::date)
-            BETWEEN $3::date AND $4::date
+        AND claim.period_end BETWEEN $3::date AND $4::date
         AND ($5::uuid IS NULL OR claim.company_id = $5::uuid)
      ON CONFLICT (company_id, idempotency_key) DO NOTHING`,
     runId,
@@ -94,7 +117,7 @@ async function collectInputs(
 }
 
 export async function collectPayrollInputs(
-  input: CollectInputsAction,
+  input: PayrollActionInput,
   access: PayrollAccess,
   actorId: string,
 ) {
@@ -103,6 +126,14 @@ export async function collectPayrollInputs(
       "FORBIDDEN",
       "Payroll management permission is required.",
       403,
+    );
+  }
+
+  if (input.action !== "collect_inputs") {
+    throw new PayrollServiceError(
+      "INVALID_ACTION",
+      "This payroll operation only supports input collection.",
+      400,
     );
   }
 

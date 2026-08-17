@@ -19,7 +19,7 @@ interface TimelineRow {
   details: Record<string, unknown>;
 }
 
-const timelineModules = ['Onboarding', 'Leave', 'Attendance', 'Learning', 'Performance', 'Payroll'] as const;
+const timelineModules = ['Timeline', 'Onboarding', 'Leave', 'Attendance', 'Learning', 'Performance', 'Payroll'] as const;
 type TimelineModule = (typeof timelineModules)[number];
 
 export async function GET(request: Request, context: Context) {
@@ -44,6 +44,85 @@ export async function GET(request: Request, context: Context) {
   try {
     let rows: TimelineRow[];
     switch (requestedModule as TimelineModule) {
+      case 'Timeline':
+        rows = await prisma.$queryRaw<TimelineRow[]>`
+          SELECT employee.id,
+            'Timeline' AS module,
+            'Joined company' AS title,
+            employee.status,
+            COALESCE(employee.hire_date, employee.created_at) AS "occurredAt",
+            jsonb_build_object(
+              'kind', 'hire',
+              'employeeNumber', employee.employee_number,
+              'jobTitle', employee.job_title,
+              'employmentType', employee.employment_type,
+              'location', employee.location
+            ) AS details
+          FROM hr_employees employee
+          WHERE employee.id = ${id}::uuid
+
+          UNION ALL
+
+          SELECT event.id,
+            'Timeline' AS module,
+            initcap(replace(event.event_type, '_', ' ')) AS title,
+            event.status,
+            event.effective_date::timestamptz AS "occurredAt",
+            jsonb_build_object(
+              'kind', 'employment_event',
+              'reason', event.reason,
+              'previousValues', event.previous_values,
+              'proposedValues', event.proposed_values,
+              'requestId', event.request_id,
+              'approvedAt', event.approved_at,
+              'appliedAt', event.applied_at
+            ) AS details
+          FROM hr_employment_events event
+          WHERE event.employee_id = ${id}::uuid
+
+          UNION ALL
+
+          SELECT request.id,
+            'Timeline' AS module,
+            'Profile change · ' || initcap(replace(request.field, '_', ' ')) AS title,
+            request.status,
+            COALESCE(request.submitted_at, request.created_at) AS "occurredAt",
+            jsonb_build_object(
+              'kind', 'profile_change',
+              'field', request.field,
+              'currentValue', request.current_value,
+              'requestedValue', request.requested_value,
+              'originalValues', request.original_values,
+              'requestedValues', request.requested_values,
+              'reason', request.reason,
+              'requestId', request.request_id,
+              'decidedAt', request.decided_at
+            ) AS details
+          FROM hr_employee_profile_change_requests request
+          WHERE request.employee_id = ${id}::uuid
+
+          UNION ALL
+
+          SELECT document.id,
+            'Timeline' AS module,
+            document.title,
+            document.status,
+            document.created_at AS "occurredAt",
+            jsonb_build_object(
+              'kind', 'document',
+              'type', document.type,
+              'category', document.category,
+              'issueDate', document.issue_date,
+              'expiresAt', document.expires_at,
+              'acknowledgedAt', document.acknowledged_at,
+              'version', document.version_number
+            ) AS details
+          FROM hr_employee_documents document
+          WHERE document.employee_id = ${id}::uuid
+
+          ORDER BY "occurredAt" DESC
+          LIMIT 250`;
+        break;
       case 'Onboarding':
         rows = await prisma.$queryRaw<TimelineRow[]>`
           SELECT onboarding.id, 'Onboarding' AS module, COALESCE(template.name, 'Employee onboarding') AS title,

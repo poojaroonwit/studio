@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { auth } from '@/auth';
 import { payrollActionSchema, payrollResources, type PayrollResource } from '@/lib/payroll/contracts';
+import { collectPayrollInputs } from '@/lib/payroll/collect-inputs';
 import { getPayrollAccess } from '@/lib/payroll/permissions';
 import { getPayrollWorkspace, mutatePayroll, PayrollServiceError } from '@/lib/payroll/service';
 
@@ -45,7 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: { code: 'VALIDATION_FAILED', message: 'Invalid payroll action.', details: parsed.error.flatten() } }, { status: 422 });
   }
   try {
-    const data = await mutatePayroll(parsed.data, resolved.access, resolved.session.user.id);
+    const data = parsed.data.action === 'collect_inputs'
+      ? await collectPayrollInputs(parsed.data, resolved.access, resolved.session.user.id)
+      : await mutatePayroll(parsed.data, resolved.access, resolved.session.user.id);
     return NextResponse.json({ data });
   } catch (error) {
     return responseError(error);

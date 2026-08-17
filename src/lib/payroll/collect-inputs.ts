@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/auditLog";
 import prisma from "@/lib/prisma";
 import type { PayrollAccess, PayrollActionInput } from "./contracts";
 import { PayrollServiceError } from "./service-foundation";
+import { toSqlDate } from "./date-only";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type Row = Record<string, unknown>;
@@ -13,35 +14,6 @@ function number(value: unknown) {
   if (typeof value === "bigint") return Number(value);
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function dateOnly(value: unknown) {
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) {
-      throw new PayrollServiceError(
-        "INVALID_PAYROLL_PERIOD",
-        "Payroll inputs cannot be collected because the selected payroll period has invalid dates.",
-        409,
-      );
-    }
-    return value.toISOString().slice(0, 10);
-  }
-
-  if (typeof value === "string") {
-    const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-    if (isoDate) return isoDate;
-
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toISOString().slice(0, 10);
-    }
-  }
-
-  throw new PayrollServiceError(
-    "INVALID_PAYROLL_PERIOD",
-    "Payroll inputs cannot be collected because the selected payroll period has invalid dates.",
-    409,
-  );
 }
 
 async function collectInputs(
@@ -70,8 +42,8 @@ async function collectInputs(
   // Prisma returns PostgreSQL DATE values as JavaScript Date objects. Never
   // pass Date.toString() output to a raw $n::date parameter; PostgreSQL cannot
   // parse strings such as "Wed Aug 12 2026 ...". Bind canonical date-only text.
-  const start = dateOnly(period[0].start_date);
-  const end = dateOnly(period[0].end_date);
+  const start = toSqlDate(period[0].start_date);
+  const end = toSqlDate(period[0].end_date);
 
   await client.$executeRawUnsafe(
     `INSERT INTO hr_payroll_inputs

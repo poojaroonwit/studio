@@ -17,6 +17,7 @@ import {
   getPayrollOperationsConfig,
 } from "../payroll-approval-route-config";
 import { maskPayrollReference } from "./permissions";
+import { toSqlDate } from "./date-only";
 import {
   amountPerPayrollPeriod,
   benefitEnrollmentTransitionAllowed,
@@ -700,9 +701,9 @@ async function createRun(
     );
   if (
     !payrollPeriodDatesAreValid(
-      String(context[0].start_date).slice(0, 10),
-      String(context[0].end_date).slice(0, 10),
-      String(context[0].pay_date).slice(0, 10),
+      toSqlDate(context[0].start_date),
+      toSqlDate(context[0].end_date),
+      toSqlDate(context[0].pay_date),
     )
   )
     throw new PayrollServiceError(
@@ -889,8 +890,8 @@ async function collectInputs(client: Db, run: Row, actorId: string) {
       409,
     );
   }
-  const start = String(period[0]?.start_date || "");
-  const end = String(period[0]?.end_date || "");
+  const start = toSqlDate(period[0]?.start_date);
+  const end = toSqlDate(period[0]?.end_date);
 
   await client.$executeRawUnsafe(
     `INSERT INTO hr_payroll_inputs
@@ -984,8 +985,8 @@ async function calculateRun(client: Db, run: Row) {
        AND (employee.hire_date IS NULL OR employee.hire_date::date <= $2::date)
        AND (employee.end_date IS NULL OR employee.end_date::date >= $1::date)
      ORDER BY employee.employee_number`,
-    String(period.start_date),
-    String(period.end_date),
+    toSqlDate(period.start_date),
+    toSqlDate(period.end_date),
     companyId,
     run.payroll_group_id || null,
   );
@@ -1032,8 +1033,8 @@ async function calculateRun(client: Db, run: Row) {
          AND (enrollment.effective_from IS NULL OR enrollment.effective_from <= $3::date)
          AND (enrollment.effective_to IS NULL OR enrollment.effective_to >= $2::date)`,
       employee.id,
-      period.start_date,
-      period.end_date,
+      toSqlDate(period.start_date),
+      toSqlDate(period.end_date),
     );
     const previous = await client.$queryRawUnsafe<Row[]>(
       `SELECT item.net_pay FROM hr_payroll_run_items item JOIN hr_payroll_runs previous_run ON previous_run.id = item.payroll_run_id
@@ -1044,8 +1045,8 @@ async function calculateRun(client: Db, run: Row) {
       employee.id,
       runId,
     );
-    const periodStart = new Date(String(period.start_date));
-    const periodEnd = new Date(String(period.end_date));
+    const periodStart = new Date(`${toSqlDate(period.start_date)}T00:00:00.000Z`);
+    const periodEnd = new Date(`${toSqlDate(period.end_date)}T00:00:00.000Z`);
     const effectiveStart =
       employee.hire_date && new Date(String(employee.hire_date)) > periodStart
         ? new Date(String(employee.hire_date))
@@ -1088,7 +1089,7 @@ async function calculateRun(client: Db, run: Row) {
       statutoryRules.enabled &&
       statutoryRules.legalVersion !== "CONFIGURE_ME" &&
       Boolean(statutoryRules.reviewerName && statutoryRules.reviewedAt) &&
-      statutoryRules.effectiveFrom <= String(period.pay_date).slice(0, 10);
+      statutoryRules.effectiveFrom <= toSqlDate(period.pay_date);
     const approvedEarnings = inputs
       .filter((row) => row.input_type === "earning")
       .map(asLine);
@@ -1153,7 +1154,7 @@ async function calculateRun(client: Db, run: Row) {
             AND EXTRACT(YEAR FROM prior_period.pay_date) = EXTRACT(YEAR FROM $3::date)`,
         employee.id,
         runId,
-        period.pay_date,
+        toSqlDate(period.pay_date),
         statutoryRules.employeeSocialSecurityRate,
       );
       const statutoryEarnings = {
@@ -1174,9 +1175,9 @@ async function calculateRun(client: Db, run: Row) {
         {
           employeeId: String(employee.id),
           period: {
-            startDate: String(period.start_date).slice(0, 10),
-            endDate: String(period.end_date).slice(0, 10),
-            payDate: String(period.pay_date).slice(0, 10),
+            startDate: toSqlDate(period.start_date),
+            endDate: toSqlDate(period.end_date),
+            payDate: toSqlDate(period.pay_date),
             periodsPerYear: periodsPerYearForFrequency(period.pay_frequency),
             completedPeriods: Math.min(
               periodsPerYearForFrequency(period.pay_frequency) - 1,
@@ -1255,8 +1256,8 @@ async function calculateRun(client: Db, run: Row) {
     const result = calculatePayroll({
       employeeId: String(employee.id),
       currency: String(employee.payment_currency || employee.currency || "THB"),
-      periodStart: String(period.start_date).slice(0, 10),
-      periodEnd: String(period.end_date).slice(0, 10),
+      periodStart: toSqlDate(period.start_date),
+      periodEnd: toSqlDate(period.end_date),
       calculationVersion: nextVersion,
       baseSalary: periodicBaseSalary,
       payableDays,

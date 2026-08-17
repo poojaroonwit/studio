@@ -192,6 +192,13 @@ apply_prisma_migrations() {
 
     echo "Prisma migrations deployed successfully"
 
+    echo "Verifying deployed database schema matches prisma/schema.prisma..."
+    if ! database_matches_schema; then
+        echo "ERROR: Prisma migrations completed but Prisma-managed schema drift remains"
+        return 1
+    fi
+    echo "Database schema verification passed"
+
     echo "Backfilling legacy position organization links..."
     npx prisma db execute --schema="$PRISMA_SCHEMA" --file=scripts/backfill-position-organization-units.sql || \
       echo "Warning: position organization backfill failed; unresolved positions will remain blocked from headcount requests."

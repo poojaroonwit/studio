@@ -17,7 +17,10 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // CI uses the system Chrome shipped on GitHub-hosted runners. Disabling
+    // Playwright video there avoids its separate FFmpeg binary dependency while
+    // retaining traces and screenshots for failure diagnostics.
+    video: process.env.CI ? 'off' : 'retain-on-failure',
   },
   projects: [
     {

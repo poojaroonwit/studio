@@ -51,6 +51,17 @@ export async function getPayrollAccess(
   };
 }
 
+/**
+ * Settlement evidence is more sensitive than ordinary payroll viewing because it
+ * can contain bank confirmations, account references, and finance-operation
+ * metadata. View-only payroll access therefore does not grant evidence access.
+ */
+export function canAccessPayrollSettlementEvidence(
+  access: Pick<PayrollAccess, "canManage" | "canApprove" | "canExport">,
+) {
+  return access.canManage || access.canApprove || access.canExport;
+}
+
 export function maskPayrollReference(value: unknown) {
   const normalized = String(value || "").replace(/\s/g, "");
   return normalized ? `•••• ${normalized.slice(-4)}` : "Not provided";

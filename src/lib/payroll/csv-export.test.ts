@@ -8,11 +8,15 @@ describe("payroll CSV export", () => {
   });
 
   it.each(["=2+2", "+SUM(A1:A2)", "-10+20", "@cmd"])(
-    "neutralises spreadsheet formula prefixes: %s",
+    "neutralises spreadsheet formula prefixes in text: %s",
     (value) => {
       expect(payrollCsvCell(value)).toBe(`"'${value}"`);
     },
   );
+
+  it("preserves legitimate negative numeric adjustments", () => {
+    expect(payrollCsvCell(-1250.5)).toBe('"-1250.5"');
+  });
 
   it("uses CRLF rows and keeps null values empty", () => {
     expect(

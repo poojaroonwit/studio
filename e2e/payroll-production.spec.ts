@@ -1,4 +1,10 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Page,
+  type Response,
+  type Route,
+} from "@playwright/test";
 
 const runId = "11111111-1111-4111-8111-111111111111";
 const periodId = "22222222-2222-4222-8222-222222222222";
@@ -238,13 +244,40 @@ function waitForRunMutation(page: Page) {
   );
 }
 
-function waitForRunRefresh(page: Page) {
-  return page.waitForResponse(
-    (response) =>
+function observeRunWorkspaceRefreshes(page: Page) {
+  let refreshCount = 0;
+  let lastRefreshAt = 0;
+  const listener = (response: Response) => {
+    if (
       new URL(response.url()).pathname === "/api/payroll/workspace/runs" &&
       response.request().method() === "GET" &&
-      response.ok(),
-  );
+      response.ok()
+    ) {
+      refreshCount += 1;
+      lastRefreshAt = Date.now();
+    }
+  };
+
+  page.on("response", listener);
+
+  return {
+    async settle() {
+      // The mutation must be followed by an authoritative workspace read.
+      await expect.poll(() => refreshCount, { timeout: 5_000 }).toBeGreaterThan(0);
+      // PayrollWorkspace currently performs an additional Next router refresh
+      // after its own data reload. Wait for a quiet window so that refresh cannot
+      // replace the next action button while the following click is in progress.
+      await expect
+        .poll(() => (lastRefreshAt ? Date.now() - lastRefreshAt : 0), {
+          timeout: 5_000,
+          intervals: [100, 150, 200, 250],
+        })
+        .toBeGreaterThanOrEqual(750);
+    },
+    stop() {
+      page.off("response", listener);
+    },
+  };
 }
 
 test.describe("Payroll production surfaces", () => {
@@ -467,11 +500,15 @@ test.describe("Payroll run lifecycle", () => {
 
     const clickAction = async (label: RegExp) => {
       const button = await expectAction(page, label);
+      const refreshes = observeRunWorkspaceRefreshes(page);
       const mutation = waitForRunMutation(page);
-      const refresh = waitForRunRefresh(page);
-      await button.click();
-      await mutation;
-      await refresh;
+      try {
+        await button.click();
+        await mutation;
+        await refreshes.settle();
+      } finally {
+        refreshes.stop();
+      }
     };
 
     await clickAction(/Collect Inputs/i);
@@ -487,18 +524,22 @@ test.describe("Payroll run lifecycle", () => {
       expect(dialog.message()).toContain("payment confirmation reference");
       await dialog.accept("BANK-CONF-2026-08");
     });
+    const markPaidRefreshes = observeRunWorkspaceRefreshes(page);
     const markPaidMutation = waitForRunMutation(page);
-    const markPaidRefresh = waitForRunRefresh(page);
     const chooserPromise = page.waitForEvent("filechooser");
-    await page.getByRole("button", { name: /Mark Paid/i }).click();
-    const chooser = await chooserPromise;
-    await chooser.setFiles({
-      name: "bank-confirmation.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
-    });
-    await markPaidMutation;
-    await markPaidRefresh;
+    try {
+      await page.getByRole("button", { name: /Mark Paid/i }).click();
+      const chooser = await chooserPromise;
+      await chooser.setFiles({
+        name: "bank-confirmation.pdf",
+        mimeType: "application/pdf",
+        buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
+      });
+      await markPaidMutation;
+      await markPaidRefreshes.settle();
+    } finally {
+      markPaidRefreshes.stop();
+    }
 
     await clickAction(/Reconcile/i);
     await clickAction(/^Close$/i);

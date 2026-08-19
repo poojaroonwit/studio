@@ -55,9 +55,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { ids, action, reason } = parsed.value;
-  let rows;
   try {
-    rows = await prisma.$transaction(
+    const rows = await prisma.$transaction(
       async (tx) => {
         const currentRows = await tx.headcount.findMany({
           where: { id: { in: ids } },
@@ -119,24 +118,24 @@ export async function POST(request: NextRequest) {
       },
       { isolationLevel: "Serializable" },
     );
+
+    if (action === "approve") {
+      const positionIds = Array.from(new Set(rows.map((row) => row.positionId)));
+      await Promise.all(
+        positionIds.map((positionId) =>
+          runHeadcountCreationEffects(positionId, session.user),
+        ),
+      );
+    }
+
+    return NextResponse.json({
+      action,
+      updatedIds: ids,
+      count: ids.length,
+    });
   } catch (error) {
     return batchWriteErrorResponse(error);
   }
-
-  if (action === "approve") {
-    const positionIds = Array.from(new Set(rows.map((row) => row.positionId)));
-    await Promise.all(
-      positionIds.map((positionId) =>
-        runHeadcountCreationEffects(positionId, session.user),
-      ),
-    );
-  }
-
-  return NextResponse.json({
-    action,
-    updatedIds: ids,
-    count: ids.length,
-  });
 }
 
 function batchWriteErrorResponse(error: unknown) {

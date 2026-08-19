@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.PORT ?? 8021);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const ciChromeChannel = process.env.CI ? 'chrome' : undefined;
 
 export default defineConfig({
   testDir: './e2e',
@@ -21,7 +22,10 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      // GitHub-hosted Ubuntu runners already ship Chrome. Use that system
+      // browser in CI so the production gate does not depend on downloading a
+      // separate Playwright Chromium binary before every run.
+      use: { ...devices['Desktop Chrome'], channel: ciChromeChannel },
     },
     {
       name: 'mobile-chromium',

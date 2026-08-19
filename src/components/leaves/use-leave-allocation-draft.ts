@@ -15,13 +15,19 @@ function errorMessage(payload: unknown, fallback: string) {
   return typeof message === "string" && message.trim() ? message : fallback;
 }
 
-export function useLeaveAllocationDraft() {
+export function useLeaveAllocationDraft(enabled = true) {
   const [draft, setDraft] = React.useState<LeaveAllocationDraftState | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(enabled);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
   const load = React.useCallback(async () => {
+    if (!enabled) {
+      setDraft(null);
+      setLoading(false);
+      setError("");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -45,7 +51,7 @@ export function useLeaveAllocationDraft() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   React.useEffect(() => {
     void load();

@@ -145,9 +145,7 @@ function workspacePayload(
   };
 }
 
-function compensationPayload(
-  changes: Array<Record<string, unknown>> = [],
-) {
+function compensationPayload(changes: Array<Record<string, unknown>> = []) {
   return {
     ...workspacePayload("compensation"),
     summary: {
@@ -213,10 +211,31 @@ async function selectPayrollRun(page: Page) {
 
 async function expectAction(page: Page, label: RegExp) {
   const button = page.getByRole("button", { name: label });
-  if (!(await button.isVisible().catch(() => false))) {
-    await selectPayrollRun(page);
+
+  // A payroll mutation refreshes the drawer in place. Give the next action time
+  // to settle before deciding the run needs to be re-selected; otherwise a
+  // transient render can make the test click the table behind an open sheet.
+  try {
+    await expect(button).toBeVisible({ timeout: 5_000 });
+    return button;
+  } catch {
+    const openOverlay = page.locator('[role="dialog"][data-state="open"]');
+    if ((await openOverlay.count()) === 0) {
+      await selectPayrollRun(page);
+    }
   }
-  await expect(page.getByRole("button", { name: label })).toBeVisible();
+
+  await expect(button).toBeVisible({ timeout: 5_000 });
+  return button;
+}
+
+function waitForRunMutation(page: Page) {
+  return page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/payroll/workspace/runs" &&
+      response.request().method() === "POST" &&
+      response.ok(),
+  );
 }
 
 test.describe("Payroll production surfaces", () => {
@@ -355,9 +374,7 @@ test.describe("Compensation production journey", () => {
     await expect(
       page.getByRole("button", { name: /Submit for approval/i }),
     ).toBeVisible();
-    await page
-      .getByRole("button", { name: /Submit for approval/i })
-      .click();
+    await page.getByRole("button", { name: /Submit for approval/i }).click();
     await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
     await page.getByRole("button", { name: "Approve" }).click();
 
@@ -368,6 +385,8 @@ test.describe("Compensation production journey", () => {
 
 test.describe("Payroll run lifecycle", () => {
   test("draft → paid → reconciled → closed has no dead end", async ({ page }) => {
+    test.setTimeout(60_000);
+
     let status = "draft";
     let version = 1;
     let unreleasedPayslips = 1;
@@ -438,22 +457,18 @@ test.describe("Payroll run lifecycle", () => {
     await selectPayrollRun(page);
 
     const clickAction = async (label: RegExp) => {
-      await expectAction(page, label);
-      await page.getByRole("button", { name: label }).click();
+      const button = await expectAction(page, label);
+      const mutation = waitForRunMutation(page);
+      await button.click();
+      await mutation;
     };
 
     await clickAction(/Collect Inputs/i);
-    await expectAction(page, /Calculate/i);
     await clickAction(/Calculate/i);
-    await expectAction(page, /Submit/i);
     await clickAction(/Submit/i);
-    await expectAction(page, /Approve/i);
     await clickAction(/Approve/i);
-    await expectAction(page, /Finalize/i);
     await clickAction(/Finalize/i);
-    await expectAction(page, /Generate Outputs/i);
     await clickAction(/Generate Outputs/i);
-    await expectAction(page, /Release Payslips/i);
     await clickAction(/Release Payslips/i);
     await expectAction(page, /Mark Paid/i);
 
@@ -461,6 +476,7 @@ test.describe("Payroll run lifecycle", () => {
       expect(dialog.message()).toContain("payment confirmation reference");
       await dialog.accept("BANK-CONF-2026-08");
     });
+    const markPaidMutation = waitForRunMutation(page);
     const chooserPromise = page.waitForEvent("filechooser");
     await page.getByRole("button", { name: /Mark Paid/i }).click();
     const chooser = await chooserPromise;
@@ -469,10 +485,9 @@ test.describe("Payroll run lifecycle", () => {
       mimeType: "application/pdf",
       buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
     });
+    await markPaidMutation;
 
-    await expectAction(page, /Reconcile/i);
     await clickAction(/Reconcile/i);
-    await expectAction(page, /Close/i);
     await clickAction(/Close/i);
 
     await expect(page.getByText("closed", { exact: true }).first()).toBeVisible();

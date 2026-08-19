@@ -1,5 +1,11 @@
+import { PayrollSettlementBoundary } from '@/components/payroll/PayrollSettlementBoundary';
 import { PayrollWorkspace } from '@/components/payroll/PayrollWorkspace';
 
 export default function PayrollRunsPage() {
-  return <PayrollWorkspace resource="runs" />;
+  return (
+    <>
+      <PayrollSettlementBoundary />
+      <PayrollWorkspace resource="runs" />
+    </>
+  );
 }

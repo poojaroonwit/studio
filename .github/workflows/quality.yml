@@ -93,3 +93,24 @@ jobs:
       - uses: actions/checkout@v5
       - name: Build production container
         run: docker build --tag studio-ci:${{ github.sha }} .
+
+  payroll-production-gate:
+    name: Payroll production gate
+    if: ${{ always() }}
+    needs: [application, database-schema, browser-smoke, container-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every production quality lane
+        env:
+          APPLICATION_RESULT: ${{ needs.application.result }}
+          DATABASE_RESULT: ${{ needs.database-schema.result }}
+          BROWSER_RESULT: ${{ needs.browser-smoke.result }}
+          CONTAINER_RESULT: ${{ needs.container-build.result }}
+        run: |
+          printf 'application=%s\ndatabase-schema=%s\nbrowser-smoke=%s\ncontainer-build=%s\n' \
+            "$APPLICATION_RESULT" "$DATABASE_RESULT" "$BROWSER_RESULT" "$CONTAINER_RESULT"
+          test "$APPLICATION_RESULT" = "success"
+          test "$DATABASE_RESULT" = "success"
+          test "$BROWSER_RESULT" = "success"
+          test "$CONTAINER_RESULT" = "success"

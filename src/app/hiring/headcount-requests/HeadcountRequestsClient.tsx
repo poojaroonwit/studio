@@ -434,21 +434,42 @@ export function HeadcountRequestsClient() {
   async function handleBulkRequestAction(action: "approve" | "reject") {
     const ids = Array.from(selectedIds);
     if (!ids.length || bulkLoading) return;
-    const reason = action === 'reject' ? window.prompt('Rejection reason for the selected requests:')?.trim() : undefined;
-    if (action === 'reject' && !reason) return;
+    const reason = action === "reject"
+      ? window.prompt("Rejection reason for the selected requests:")?.trim()
+      : undefined;
+    if (action === "reject" && !reason) return;
+
     setBulkLoading(true);
-    const results = await Promise.allSettled(ids.map(async id => {
-      const response = await fetch('/api/hiring/headcount-requests', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action, reason }) });
-      if (!response.ok) throw new Error('Update failed');
-      return (await response.json() as { data: HeadcountRequestItem }).data;
-    }));
-    const updated = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
-    const updatedById = new Map(updated.map(item => [item.id, item]));
-    setRequests(previous => previous.map(item => updatedById.get(item.id) || item));
-    const failed = ids.filter((_, index) => results[index].status === 'rejected');
-    setSelectedIds(new Set(failed));
-    failed.length ? toast.error(`${updated.length} updated; ${failed.length} failed.`) : toast.success(`${updated.length} requests ${action === 'approve' ? 'approved' : 'rejected'}.`);
-    setBulkLoading(false);
+    try {
+      const response = await fetch("/api/hiring/headcount-requests/bulk-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, action, reason }),
+      });
+      const payload = await response.json().catch(() => ({})) as {
+        message?: string;
+        count?: number;
+      };
+      if (!response.ok) {
+        throw new Error(
+          payload.message || `Failed to ${action} selected requests`,
+        );
+      }
+
+      await loadRequests();
+      setSelectedIds(new Set());
+      toast.success(
+        `${payload.count ?? ids.length} requests ${action === "approve" ? "approved" : "rejected"}.`,
+      );
+    } catch (actionError) {
+      toast.error(
+        actionError instanceof Error
+          ? actionError.message
+          : `Failed to ${action} selected requests`,
+      );
+    } finally {
+      setBulkLoading(false);
+    }
   }
 
   return (

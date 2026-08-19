@@ -123,6 +123,12 @@ export function parseLeaveAllocationDraftRun(
     acknowledged: Boolean(input.acknowledged),
     exceptionDecisions,
     ...(summary ? { summary } : {}),
-    savedAt: String(row.updated_at || row.created_at || row.createdAt || ""),
+    savedAt: String(
+      row.updated_at ||
+        row.started_at ||
+        row.created_at ||
+        row.createdAt ||
+        "",
+    ),
   };
 }

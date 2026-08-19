@@ -5,6 +5,9 @@ const periodId = "22222222-2222-4222-8222-222222222222";
 const groupId = "33333333-3333-4333-8333-333333333333";
 const ownerId = "44444444-4444-4444-8444-444444444444";
 const companyId = "55555555-5555-4555-8555-555555555555";
+const employeeId = "77777777-7777-4777-8777-777777777777";
+const packageId = "88888888-8888-4888-8888-888888888888";
+const changeId = "99999999-9999-4999-8999-999999999999";
 
 const access = {
   canView: true,
@@ -142,6 +145,50 @@ function workspacePayload(
   };
 }
 
+function compensationPayload(
+  changes: Array<Record<string, unknown>> = [],
+) {
+  return {
+    ...workspacePayload("compensation"),
+    summary: {
+      activePackages: 1,
+      totalPackages: 1,
+      pendingChanges: changes.filter(
+        (change) => change.status === "pending_approval",
+      ).length,
+      annualBase: 600_000,
+    },
+    records: [
+      {
+        id: packageId,
+        employee_id: employeeId,
+        employee_name: "Narin Payroll",
+        employee_number: "EMP-001",
+        job_title: "Payroll Specialist",
+        base_salary: 50_000,
+        currency: "THB",
+        pay_frequency: "monthly",
+        components: [],
+        effective_from: "2026-01-01",
+        effective_to: null,
+        status: "approved",
+        version: 1,
+      },
+    ],
+    secondary: changes,
+    employees: [
+      {
+        id: employeeId,
+        employee_number: "EMP-001",
+        name: "Narin Payroll",
+        employee_name: "Narin Payroll",
+        currency: "THB",
+        base_salary: 50_000,
+      },
+    ],
+  };
+}
+
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({
     status,
@@ -218,6 +265,104 @@ test.describe("Payroll production surfaces", () => {
 
     expect(registerRequested).toBe(true);
     expect(file.suggestedFilename()).toBe("payroll-register.csv");
+  });
+});
+
+test.describe("Compensation production journey", () => {
+  test("employee deep link opens once and Cancel does not reopen the dialog", async ({
+    page,
+  }) => {
+    await page.route("**/api/payroll/workspace/compensation", async (route) => {
+      await fulfillJson(route, { data: compensationPayload() });
+    });
+
+    await page.goto(`/payroll/compensation?employee=${employeeId}`);
+    const dialog = page.getByRole("dialog", {
+      name: /Create compensation change/i,
+    });
+
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/payroll\/compensation$/);
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    await page.waitForTimeout(100);
+    await expect(dialog).toBeHidden();
+  });
+
+  test("create → submit → approve persists through payroll mutations", async ({
+    page,
+  }) => {
+    let changes: Array<Record<string, unknown>> = [];
+    const actions: string[] = [];
+
+    await page.route("**/api/payroll/workspace/compensation", async (route) => {
+      if (route.request().method() === "GET") {
+        await fulfillJson(route, { data: compensationPayload(changes) });
+        return;
+      }
+
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      const action = String(body.action || "");
+      actions.push(action);
+
+      if (action === "create_change") {
+        expect(body.employeeId).toBe(employeeId);
+        expect(body.proposedAmount).toBe(55_000);
+        changes = [
+          {
+            id: changeId,
+            employee_id: employeeId,
+            current_amount: 50_000,
+            proposed_amount: 55_000,
+            effective_date: String(body.effectiveDate),
+            budget_impact: 5_000,
+            currency: "THB",
+            status: "draft",
+            reason: String(body.reason),
+            version: 1,
+            employee_name: "Narin Payroll",
+            employee_number: "EMP-001",
+            change_type: String(body.changeType),
+          },
+        ];
+      } else if (action === "submit_change") {
+        expect(body.id).toBe(changeId);
+        expect(body.expectedVersion).toBe(1);
+        changes = [{ ...changes[0], status: "pending_approval", version: 2 }];
+      } else if (action === "approve_change") {
+        expect(body.id).toBe(changeId);
+        expect(body.expectedVersion).toBe(2);
+        changes = [{ ...changes[0], status: "approved", version: 3 }];
+      }
+
+      await fulfillJson(route, { data: changes[0] || {} });
+    });
+
+    await page.goto("/payroll/compensation");
+    await page
+      .getByRole("button", { name: "New compensation change" })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: /Create compensation change/i,
+    });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel("Proposed amount").fill("55000");
+    await dialog.getByLabel("Reason").fill("Annual compensation review");
+    await dialog.getByRole("button", { name: "Create draft" }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole("button", { name: "Changes" }).click();
+    await expect(
+      page.getByRole("button", { name: /Submit for approval/i }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: /Submit for approval/i })
+      .click();
+    await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
+    await page.getByRole("button", { name: "Approve" }).click();
+
+    await expect(page.getByText("approved", { exact: true }).first()).toBeVisible();
+    expect(actions).toEqual(["create_change", "submit_change", "approve_change"]);
   });
 });
 
@@ -330,7 +475,7 @@ test.describe("Payroll run lifecycle", () => {
     await expectAction(page, /Close/i);
     await clickAction(/Close/i);
 
-    await expect(page.getByText("closed", { exact: true })).toBeVisible();
+    await expect(page.getByText("closed", { exact: true }).first()).toBeVisible();
     expect(actions).toEqual([
       "collect_inputs",
       "calculate",

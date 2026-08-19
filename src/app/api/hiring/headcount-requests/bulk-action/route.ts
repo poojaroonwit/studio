@@ -18,6 +18,15 @@ import { parseHeadcountBulkActionInput } from "../headcount-bulk-utils";
 
 export const dynamic = "force-dynamic";
 
+class BatchValidationError extends Error {
+  constructor(
+    readonly status: number,
+    readonly payload: Record<string, unknown>,
+  ) {
+    super(String(payload.message || "Invalid headcount batch."));
+  }
+}
+
 function canManageHeadcountRequests(
   user: Parameters<typeof hasPermission>[0],
 ) {
@@ -46,67 +55,70 @@ export async function POST(request: NextRequest) {
   }
 
   const { ids, action, reason } = parsed.value;
-  const rows = await prisma.headcount.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      status: true,
-      positionId: true,
-      customFields: true,
-    },
-  });
-  const byId = new Map(rows.map((row) => [row.id, row]));
-  const missingIds = ids.filter((id) => !byId.has(id));
-  if (missingIds.length) {
-    return NextResponse.json(
-      {
-        message: "One or more headcount requests no longer exist.",
-        missingIds,
-      },
-      { status: 404 },
-    );
-  }
-
-  const invalid = ids.flatMap((id) => {
-    const row = byId.get(id)!;
-    const message = getHeadcountRequestActionTransitionError(row.status, action);
-    return message ? [{ id, message }] : [];
-  });
-  if (invalid.length) {
-    return NextResponse.json(
-      {
-        message:
-          "The batch was not changed because one or more requests cannot make this transition.",
-        invalid,
-      },
-      { status: 409 },
-    );
-  }
-
+  let rows;
   try {
-    await prisma.$transaction(async (tx) => {
-      for (const id of ids) {
-        const row = byId.get(id)!;
-        if (action === "approve") {
-          await assertPositionHeadcountCapacity(
-            tx,
-            row.positionId,
-            row.status === "rejected" ? 1 : 0,
-          );
-        }
-        await tx.headcount.update({
-          where: { id },
-          data: {
-            status: getHeadcountRequestActionStatus(action),
-            customFields: mergeHeadcountRequestActionFields(
-              row.customFields,
-              { id, action, reason },
-              session.user,
-            ),
+    rows = await prisma.$transaction(
+      async (tx) => {
+        const currentRows = await tx.headcount.findMany({
+          where: { id: { in: ids } },
+          select: {
+            id: true,
+            status: true,
+            positionId: true,
+            customFields: true,
           },
         });
-      }
-    });
+        const byId = new Map(currentRows.map((row) => [row.id, row]));
+        const missingIds = ids.filter((id) => !byId.has(id));
+        if (missingIds.length) {
+          throw new BatchValidationError(404, {
+            message: "One or more headcount requests no longer exist.",
+            missingIds,
+          });
+        }
+
+        const invalid = ids.flatMap((id) => {
+          const row = byId.get(id)!;
+          const message = getHeadcountRequestActionTransitionError(
+            row.status,
+            action,
+          );
+          return message ? [{ id, message }] : [];
+        });
+        if (invalid.length) {
+          throw new BatchValidationError(409, {
+            message:
+              "The batch was not changed because one or more requests cannot make this transition.",
+            invalid,
+          });
+        }
+
+        for (const id of ids) {
+          const row = byId.get(id)!;
+          if (action === "approve") {
+            await assertPositionHeadcountCapacity(
+              tx,
+              row.positionId,
+              row.status === "rejected" ? 1 : 0,
+            );
+          }
+          await tx.headcount.update({
+            where: { id },
+            data: {
+              status: getHeadcountRequestActionStatus(action),
+              customFields: mergeHeadcountRequestActionFields(
+                row.customFields,
+                { id, action, reason },
+                session.user,
+              ),
+            },
+          });
+        }
+
+        return currentRows;
+      },
+      { isolationLevel: "Serializable" },
+    );
   } catch (error) {
     return batchWriteErrorResponse(error);
   }
@@ -128,6 +140,9 @@ export async function POST(request: NextRequest) {
 }
 
 function batchWriteErrorResponse(error: unknown) {
+  if (error instanceof BatchValidationError) {
+    return NextResponse.json(error.payload, { status: error.status });
+  }
   if (error instanceof HeadcountAllocationError) {
     return NextResponse.json(
       {
@@ -147,6 +162,21 @@ function batchWriteErrorResponse(error: unknown) {
     return NextResponse.json(
       { message: error.message, code: "POSITION_ORGANIZATION_INVALID" },
       { status: 400 },
+    );
+  }
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2034"
+  ) {
+    return NextResponse.json(
+      {
+        message:
+          "One or more headcount requests changed while the batch was being applied. Refresh and try again.",
+        code: "HEADCOUNT_BATCH_CONFLICT",
+      },
+      { status: 409 },
     );
   }
   console.error("[HeadcountRequests] Bulk action failed:", error);

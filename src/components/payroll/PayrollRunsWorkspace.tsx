@@ -3,16 +3,9 @@
 import * as React from "react";
 import { toast } from "react-hot-toast";
 
+import { downloadControlledPayrollExport } from "@/lib/payroll/client-export";
 import { PayrollSettlementBoundary } from "./PayrollSettlementBoundary";
 import { PayrollWorkspace } from "./PayrollWorkspace";
-
-function downloadName(response: Response) {
-  const disposition = response.headers.get("content-disposition") || "";
-  return (
-    disposition.match(/filename="?([^";]+)"?/i)?.[1] ||
-    "payroll-register.csv"
-  );
-}
 
 /**
  * Keeps the Payroll Runs register on the same controlled export boundary as
@@ -32,28 +25,10 @@ export function PayrollRunsWorkspace() {
     setExporting(true);
 
     try {
-      const response = await fetch("/api/payroll/v1/reports/register", {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(
-          payload?.error?.message || "Payroll register export failed.",
-        );
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = downloadName(response);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-
+      await downloadControlledPayrollExport(
+        "/api/payroll/v1/reports/register",
+        "payroll-register.csv",
+      );
       toast.success("Payroll register exported and audit logged.");
     } catch (caught) {
       toast.error(

@@ -238,6 +238,15 @@ function waitForRunMutation(page: Page) {
   );
 }
 
+function waitForRunRefresh(page: Page) {
+  return page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/payroll/workspace/runs" &&
+      response.request().method() === "GET" &&
+      response.ok(),
+  );
+}
+
 test.describe("Payroll production surfaces", () => {
   const surfaces = [
     ["/payroll", "Payroll"],
@@ -459,8 +468,10 @@ test.describe("Payroll run lifecycle", () => {
     const clickAction = async (label: RegExp) => {
       const button = await expectAction(page, label);
       const mutation = waitForRunMutation(page);
+      const refresh = waitForRunRefresh(page);
       await button.click();
       await mutation;
+      await refresh;
     };
 
     await clickAction(/Collect Inputs/i);
@@ -477,6 +488,7 @@ test.describe("Payroll run lifecycle", () => {
       await dialog.accept("BANK-CONF-2026-08");
     });
     const markPaidMutation = waitForRunMutation(page);
+    const markPaidRefresh = waitForRunRefresh(page);
     const chooserPromise = page.waitForEvent("filechooser");
     await page.getByRole("button", { name: /Mark Paid/i }).click();
     const chooser = await chooserPromise;
@@ -486,9 +498,10 @@ test.describe("Payroll run lifecycle", () => {
       buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
     });
     await markPaidMutation;
+    await markPaidRefresh;
 
     await clickAction(/Reconcile/i);
-    await clickAction(/Close/i);
+    await clickAction(/^Close$/i);
 
     await expect(page.getByText("closed", { exact: true }).first()).toBeVisible();
     expect(actions).toEqual([

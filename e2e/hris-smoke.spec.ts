@@ -40,6 +40,18 @@ test.describe('HRIS protected surfaces', () => {
     });
   });
 
+  test('headcount bulk actions require an authenticated session', async ({ request }) => {
+    const response = await request.post('/api/hiring/headcount-requests/bulk-action', {
+      data: {
+        ids: ['00000000-0000-0000-0000-000000000000'],
+        action: 'approve',
+      },
+    });
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ message: 'Unauthorized' });
+  });
+
   test('payroll preview requires an authenticated session', async ({ request }) => {
     const response = await request.post('/api/payroll/v1/calculate-preview', {
       data: {

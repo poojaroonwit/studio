@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 import type { PayrollWorkspacePayload } from "@/lib/payroll/contracts";
@@ -24,11 +24,12 @@ function payrollErrorMessage(payload: unknown, fallback: string) {
 /**
  * Compensation keeps its own lightweight workspace boundary so an employee
  * deep-link can be consumed once. The child sees ?employee= on its first
- * mounted render and opens the requested change form; this wrapper removes the
- * query after the effect flush so closing the dialog does not immediately
- * reopen it.
+ * mounted render and opens the requested change form; this wrapper then removes
+ * the query through the Next router so useSearchParams observes the consumed
+ * state and closing the dialog cannot immediately reopen it.
  */
 export function PayrollCompensationWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [data, setData] = React.useState<PayrollWorkspacePayload | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -80,9 +81,9 @@ export function PayrollCompensationWorkspace() {
       params.delete("employee");
       const query = params.toString();
       const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
-      window.history.replaceState(window.history.state, "", nextUrl);
+      router.replace(nextUrl, { scroll: false });
     });
-  }, [data, searchParams]);
+  }, [data, router, searchParams]);
 
   const mutate = React.useCallback(
     async (body: Row, key: string) => {

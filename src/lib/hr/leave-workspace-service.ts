@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 
 import prisma from '../prisma';
+import { resolveAllocationEffectiveDate } from './leave-allocation-draft';
 import { availableLeaveBalance, prorateEntitlement } from './leave-domain';
 
 export const leaveWorkspaceActionSchema = z.discriminatedUnion('action', [
@@ -53,12 +54,14 @@ export const leaveWorkspaceActionSchema = z.discriminatedUnion('action', [
     policyId: z.string().uuid(),
     year: z.coerce.number().int().min(2000).max(2200),
     runType: z.enum(['annual_entitlement', 'monthly_accrual', 'prorated_allocation', 'carry_forward']),
+    effectiveDate: z.string().min(1).optional(),
   }),
   z.object({
     action: z.literal('allocation_run'),
     policyId: z.string().uuid(),
     year: z.coerce.number().int().min(2000).max(2200),
     runType: z.enum(['annual_entitlement', 'monthly_accrual', 'prorated_allocation', 'carry_forward']),
+    effectiveDate: z.string().min(1).optional(),
     employeeIds: z.array(z.string().uuid()).min(1).max(2000),
     idempotencyKey: z.string().min(8).max(200),
   }),
@@ -368,6 +371,7 @@ export async function applyPolicyAssignment(
 }
 
 export async function previewAllocation(input: Extract<z.infer<typeof leaveWorkspaceActionSchema>, { action: 'allocation_preview' }>) {
+  const effectiveDate = resolveAllocationEffectiveDate(input.year, input.effectiveDate);
   const policyRows = await safeQuery<Row>(`SELECT * FROM "hr_leave_policies" WHERE id = $1::uuid AND is_active = true LIMIT 1`, input.policyId);
   const policy = policyRows[0];
   if (!policy) throw new Error('The selected leave policy is not active.');
@@ -378,10 +382,11 @@ export async function previewAllocation(input: Extract<z.infer<typeof leaveWorks
     JOIN "hr_employees" e ON e.id = a.employee_id
     LEFT JOIN "hr_leave_balances" b ON b.employee_id = e.id AND b.policy_id = a.policy_id AND b.year = $2
     WHERE a.policy_id = $1::uuid AND a.status = 'active' AND e.status = 'active'
-      AND a.effective_from <= make_date($2, 12, 31)
-      AND (a.effective_to IS NULL OR a.effective_to >= make_date($2, 1, 1))
+      AND a.effective_from <= $3::date
+      AND (a.effective_to IS NULL OR a.effective_to >= $3::date)
+      AND (e.hire_date IS NULL OR e.hire_date <= $3::date)
     ORDER BY e.first_name, e.last_name
-  `, input.policyId, input.year);
+  `, input.policyId, input.year, effectiveDate);
   const annualAllowance = Number(policy.annual_allowance || 0);
   const accrualRate = Number(policy.accrual_rate || annualAllowance / 12);
   return {
@@ -409,6 +414,7 @@ export async function previewAllocation(input: Extract<z.infer<typeof leaveWorks
     }),
     year: input.year,
     runType: input.runType,
+    effectiveDate,
   };
 }
 
@@ -416,7 +422,8 @@ export async function runAllocation(
   input: Extract<z.infer<typeof leaveWorkspaceActionSchema>, { action: 'allocation_run' }>,
   actorId: string,
 ) {
-  const preview = await previewAllocation({ ...input, action: 'allocation_preview' });
+  const effectiveDate = resolveAllocationEffectiveDate(input.year, input.effectiveDate);
+  const preview = await previewAllocation({ ...input, action: 'allocation_preview', effectiveDate });
   const selected = preview.employees.filter(employee => input.employeeIds.includes(String(employee.id)));
   const runUuid = randomUUID();
   const runId = `LAR-${runUuid.replace(/-/g, '').slice(0, 10).toUpperCase()}`;
@@ -430,7 +437,7 @@ export async function runAllocation(
       VALUES ($1::uuid, $2, $3, $4, $5::uuid, 'processing', $6, $7::jsonb, '{}'::jsonb,
               $8::uuid, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `, runUuid, runId, input.runType, input.year, input.policyId, input.idempotencyKey,
-    JSON.stringify({ employeeIds: input.employeeIds }), actorId);
+    JSON.stringify({ employeeIds: input.employeeIds, effectiveDate }), actorId);
     let processed = 0;
     for (const employee of selected) {
       const balanceId = String(employee.balance_id || randomUUID());
@@ -459,12 +466,12 @@ export async function runAllocation(
         INSERT INTO "hr_leave_balance_ledger"
           (id, employee_id, policy_id, balance_id, transaction_type, units, balance_before,
            balance_after, effective_date, source_type, source_id, idempotency_key, actor_id, metadata, created_at)
-        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, make_date($9, 1, 1),
+        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, $9::date,
                 'allocation_run', $10::uuid, $11, $12::uuid, $13::jsonb, CURRENT_TIMESTAMP)
         ON CONFLICT (idempotency_key) DO NOTHING
       `, randomUUID(), employee.id, input.policyId, balanceRows[0]?.id || balanceId, input.runType,
-      Number(employee.units), after - Number(employee.units), after, input.year, runUuid,
-      `${input.idempotencyKey}:${employee.id}`, actorId, JSON.stringify({ runId }));
+      Number(employee.units), after - Number(employee.units), after, effectiveDate, runUuid,
+      `${input.idempotencyKey}:${employee.id}`, actorId, JSON.stringify({ runId, effectiveDate }));
       processed += 1;
     }
     const summary = { processed, skipped: input.employeeIds.length - processed, units: selected.reduce((sum, employee) => sum + Number(employee.units), 0) };

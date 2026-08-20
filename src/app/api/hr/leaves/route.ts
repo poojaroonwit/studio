@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
+import { deleteLeaveAllocationDraft } from '@/lib/hr/leave-allocation-draft-store';
 import { hasAnyPermission } from '@/lib/permissions';
 import type { PlatformModuleId } from '@/lib/types';
 import prisma from '@/lib/prisma';
@@ -39,7 +40,18 @@ export async function GET(request: NextRequest) {
     }
   }
   const view = request.nextUrl.searchParams.get('view');
-  return NextResponse.json({ data: view === 'requests' ? await getLeaveRequestWorkspace() : await getLeaveWorkspace() });
+  if (view === 'requests') {
+    return NextResponse.json({ data: await getLeaveRequestWorkspace() });
+  }
+  const data = await getLeaveWorkspace();
+  return NextResponse.json({
+    data: {
+      ...data,
+      allocationRuns: data.allocationRuns.filter(
+        row => String(row.status || '') !== 'draft',
+      ),
+    },
+  });
 }
 
 async function ownsEmployeeRecord(userId: string, employeeId: string) {
@@ -91,6 +103,18 @@ export async function POST(request: NextRequest) {
         break;
       case 'allocation_run':
         data = await runAllocation(input, session.user.id);
+        if (data && !(data as { duplicate?: boolean }).duplicate) {
+          try {
+            await deleteLeaveAllocationDraft(session.user.id);
+          } catch (draftCleanupError) {
+            console.warn(
+              '[Leaves API] Allocation completed but draft cleanup failed:',
+              draftCleanupError instanceof Error
+                ? draftCleanupError.message
+                : draftCleanupError,
+            );
+          }
+        }
         break;
       case 'balance_adjustment':
         data = await adjustBalance(input, session.user.id);

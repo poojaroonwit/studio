@@ -101,5 +101,10 @@ export function useLeaveAllocationDraft(enabled = true) {
     }
   }, []);
 
-  return { draft, loading, saving, error, load, save, remove };
+  const clear = React.useCallback(() => {
+    setDraft(null);
+    setError("");
+  }, []);
+
+  return { draft, loading, saving, error, load, save, remove, clear };
 }

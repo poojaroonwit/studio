@@ -52,6 +52,15 @@ test.describe('HRIS protected surfaces', () => {
     await expect(response.json()).resolves.toMatchObject({ message: 'Unauthorized' });
   });
 
+  test('leave allocation draft API requires an authenticated session', async ({ request }) => {
+    const response = await request.get('/api/hr/leaves/allocation-draft');
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      message: 'Unauthorized: User session required.',
+    });
+  });
+
   test('payroll preview requires an authenticated session', async ({ request }) => {
     const response = await request.post('/api/payroll/v1/calculate-preview', {
       data: {

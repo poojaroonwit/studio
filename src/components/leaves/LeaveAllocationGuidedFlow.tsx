@@ -32,6 +32,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { resolveAllocationEffectiveDate } from "@/lib/hr/leave-allocation-draft";
 import { cn } from "@/lib/utils";
 import {
   allocationEmployeeName as employeeName,
@@ -41,6 +42,7 @@ import {
   allocationValue as value,
   displayAllocationDays as displayDays,
 } from "./leave-allocation-utils";
+import { useLeaveAllocationDraft } from "./use-leave-allocation-draft";
 
 type Row = Record<string, unknown>;
 
@@ -60,6 +62,7 @@ interface PreviewResult {
   policy: Row;
   year: number;
   runType: string;
+  effectiveDate?: string;
 }
 
 type ImpactRow = Row & {
@@ -71,23 +74,6 @@ type ImpactRow = Row & {
 };
 
 type ExceptionDecision = "include" | "exclude";
-
-type AllocationDraft = {
-  form: {
-    policyId: string;
-    year: string;
-    runType: string;
-    effectiveDate: string;
-    scope: string;
-  };
-  currentStep: number;
-  furthestStep: number;
-  acknowledged: boolean;
-  exceptionDecisions: Record<string, ExceptionDecision>;
-  preview?: PreviewResult | null;
-  summary?: { population: number; included: number; units: number };
-  savedAt: string;
-};
 
 type AllocationPlan = {
   id: string;
@@ -210,11 +196,16 @@ export function LeaveAllocationGuidedFlow({
   act,
 }: LeaveAllocationGuidedFlowProps) {
   const year = new Date().getFullYear();
+  const {
+    draft: savedDraft,
+    saving: savingDraft,
+    error: draftError,
+    save: persistDraft,
+    remove: removeDraft,
+    clear: clearDraft,
+  } = useLeaveAllocationDraft(canManage);
   const [workspaceMode, setWorkspaceMode] = React.useState<"plans" | "flow">(
     "plans",
-  );
-  const [savedDraft, setSavedDraft] = React.useState<AllocationDraft | null>(
-    null,
   );
   const [selectedPlan, setSelectedPlan] = React.useState<AllocationPlan | null>(
     null,
@@ -225,7 +216,7 @@ export function LeaveAllocationGuidedFlow({
     policyId: "",
     year: String(year),
     runType: "annual_entitlement",
-    effectiveDate: `${year}-08-15`,
+    effectiveDate: resolveAllocationEffectiveDate(year),
     scope: "all_eligible",
   });
   const [preview, setPreview] = React.useState<PreviewResult | null>(null);
@@ -253,19 +244,13 @@ export function LeaveAllocationGuidedFlow({
   }, [data.policies, form.policyId]);
 
   React.useEffect(() => {
-    const stored = window.localStorage.getItem("leave-allocation-draft");
-    if (!stored) return;
-    try {
-      setSavedDraft(JSON.parse(stored) as AllocationDraft);
-    } catch {
-      window.localStorage.removeItem("leave-allocation-draft");
-    }
-  }, []);
+    if (draftError) toast.error(draftError);
+  }, [draftError]);
 
   const sourceRows = preview?.employees ?? [];
   const normalizedRows = React.useMemo<ImpactRow[]>(
     () =>
-      sourceRows.map((row, index) => {
+      sourceRows.map((row) => {
         const current =
           row.current !== undefined
             ? numeric(row.current)
@@ -347,31 +332,33 @@ export function LeaveAllocationGuidedFlow({
   );
   const selectedException =
     selectedExceptionIndex >= 0 ? normalizedRows[selectedExceptionIndex] : null;
-  const runPlans = data.allocationRuns.map((run, index): AllocationPlan => {
-    const summary = objectValue(run.summary);
-    const runPolicy = data.policies.find(
-      (policy) => String(policy.id) === String(run.policy_id),
-    );
-    return {
-      id: value(run.id, `allocation-run-${index}`),
-      name: `${value(run.run_type, "Annual entitlement").replaceAll("_", " ")} · ${value(run.period_year, String(year))}`,
-      policy: value(runPolicy?.name, "Annual Leave"),
-      cycle: `Jan 1 – Dec 31, ${value(run.period_year, String(year))}`,
-      status:
-        value(run.status, "completed") === "completed"
-          ? "completed"
-          : "scheduled",
-      population: numeric(summary.processed),
-      units: numeric(summary.units),
-      updated: value(run.completed_at ?? run.created_at, "Recently"),
-      owner: "HR Operations",
-      step: 4,
-      source: "run",
-    };
-  });
+  const runPlans = data.allocationRuns
+    .filter((run) => value(run.status, "") !== "draft")
+    .map((run, index): AllocationPlan => {
+      const summary = objectValue(run.summary);
+      const runPolicy = data.policies.find(
+        (policy) => String(policy.id) === String(run.policy_id),
+      );
+      return {
+        id: value(run.id, `allocation-run-${index}`),
+        name: `${value(run.run_type, "Annual entitlement").replaceAll("_", " ")} · ${value(run.period_year, String(year))}`,
+        policy: value(runPolicy?.name, "Annual Leave"),
+        cycle: `Jan 1 – Dec 31, ${value(run.period_year, String(year))}`,
+        status:
+          value(run.status, "completed") === "completed"
+            ? "completed"
+            : "scheduled",
+        population: numeric(summary.processed),
+        units: numeric(summary.units),
+        updated: value(run.completed_at ?? run.created_at, "Recently"),
+        owner: "HR Operations",
+        step: 4,
+        source: "run",
+      };
+    });
   const savedDraftPlan: AllocationPlan | null = savedDraft
     ? {
-        id: "saved-device-draft",
+        id: savedDraft.id || "saved-allocation-draft",
         name: `${value(data.policies.find((policy) => String(policy.id) === savedDraft.form.policyId)?.name, "Annual Leave")} allocation`,
         policy: value(
           data.policies.find(
@@ -381,10 +368,12 @@ export function LeaveAllocationGuidedFlow({
         ),
         cycle: `Jan 1 – Dec 31, ${savedDraft.form.year}`,
         status: "draft",
-        population: savedDraft.summary?.population ?? displayPopulation,
-        units: savedDraft.summary?.units ?? displayTotalImpact,
-        updated: new Date(savedDraft.savedAt).toLocaleString(),
-        owner: "Admin",
+        population: savedDraft.summary?.population ?? 0,
+        units: savedDraft.summary?.units ?? 0,
+        updated: savedDraft.savedAt
+          ? new Date(savedDraft.savedAt).toLocaleString()
+          : "Recently",
+        owner: "You",
         step: savedDraft.currentStep,
         source: "saved",
       }
@@ -395,7 +384,7 @@ export function LeaveAllocationGuidedFlow({
     if (
       savedDraft &&
       !window.confirm(
-        "Starting a new allocation will replace the current device draft when you save. Continue?",
+        "Starting a new allocation will replace your saved allocation draft when you save. Continue?",
       )
     )
       return;
@@ -403,7 +392,7 @@ export function LeaveAllocationGuidedFlow({
       policyId: data.policies[0]?.id ? String(data.policies[0].id) : "",
       year: String(year),
       runType: "annual_entitlement",
-      effectiveDate: `${year}-08-15`,
+      effectiveDate: resolveAllocationEffectiveDate(year),
       scope: "all_eligible",
     });
     setCurrentStep(1);
@@ -423,16 +412,13 @@ export function LeaveAllocationGuidedFlow({
     }
     if (plan.source === "saved" && savedDraft) {
       setForm(savedDraft.form);
-      const canResumeReview = Boolean(savedDraft.preview?.employees?.length);
-      setPreview(savedDraft.preview ?? null);
-      setCurrentStep(canResumeReview ? Math.min(savedDraft.currentStep, 3) : 2);
-      setFurthestStep(
-        canResumeReview ? Math.min(savedDraft.furthestStep, 3) : 2,
-      );
-      setAcknowledged(savedDraft.acknowledged);
-      setExceptionDecisions(savedDraft.exceptionDecisions);
-      if (!canResumeReview)
-        toast("Refresh the impact review to resume this older draft safely.");
+      setPreview(null);
+      setCurrentStep(2);
+      setFurthestStep(2);
+      setAcknowledged(false);
+      setExceptionDecisions({});
+      setExecutionConfirmed(false);
+      toast("Refresh the impact review to resume this draft safely.");
     } else {
       setCurrentStep(Math.min(plan.step, 3));
       setFurthestStep(Math.min(plan.step, 3));
@@ -447,6 +433,7 @@ export function LeaveAllocationGuidedFlow({
         policyId: form.policyId,
         year: Number(form.year),
         runType: form.runType,
+        effectiveDate: form.effectiveDate,
       },
       "Allocation preview is ready.",
     )) as PreviewResult | null;
@@ -474,35 +461,28 @@ export function LeaveAllocationGuidedFlow({
     await loadPreview(4);
   };
 
-  const saveDraft = () => {
-    const draft: AllocationDraft = {
-      form,
-      currentStep,
-      furthestStep,
-      acknowledged,
-      exceptionDecisions,
-      preview:
-        currentStep >= 3
-          ? {
-              employees: normalizedRows,
-              policy: selectedPolicy ?? {},
-              year: Number(form.year),
-              runType: form.runType,
-            }
-          : null,
-      summary: {
-        population: displayPopulation,
-        included: displayIncluded,
-        units: displayTotalImpact,
-      },
-      savedAt: new Date().toISOString(),
-    };
-    window.localStorage.setItem(
-      "leave-allocation-draft",
-      JSON.stringify(draft),
-    );
-    setSavedDraft(draft);
-    toast.success("Allocation draft saved on this device.");
+  const saveDraft = async (returnToPlans = false) => {
+    try {
+      resolveAllocationEffectiveDate(Number(form.year), form.effectiveDate);
+      await persistDraft({
+        form,
+        currentStep,
+        furthestStep,
+        acknowledged,
+        exceptionDecisions,
+        summary: {
+          population: displayPopulation,
+          included: displayIncluded,
+          units: displayTotalImpact,
+        },
+      });
+      toast.success("Allocation draft saved to your account.");
+      if (returnToPlans) setWorkspaceMode("plans");
+    } catch (caught) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to save allocation draft.",
+      );
+    }
   };
 
   const resolveException = (decision: ExceptionDecision) => {
@@ -529,20 +509,25 @@ export function LeaveAllocationGuidedFlow({
         policyId: form.policyId,
         year: Number(form.year),
         runType: form.runType,
+        effectiveDate: form.effectiveDate,
         employeeIds: preview.employees
           .filter(
             (employee, index) =>
               exceptionDecisions[impactRowId(employee, index)] !== "exclude",
           )
           .map((employee) => employee.id),
-        idempotencyKey: `${form.runType}:${form.policyId}:${form.year}:${new Date().toISOString().slice(0, 7)}`,
+        idempotencyKey: `${form.runType}:${form.policyId}:${form.year}:${form.effectiveDate}`,
       },
       "Allocation run completed.",
     );
     if (result) {
       setCompleted(true);
-      window.localStorage.removeItem("leave-allocation-draft");
-      setSavedDraft(null);
+      try {
+        await removeDraft();
+      } catch {
+        clearDraft();
+        toast("Allocation completed. Saved draft cleanup can be retried later.");
+      }
     }
   };
 
@@ -566,13 +551,11 @@ export function LeaveAllocationGuidedFlow({
         <Button
           variant="ghost"
           className="-ml-3 text-muted-foreground"
-          onClick={() => {
-            saveDraft();
-            setWorkspaceMode("plans");
-          }}
+          disabled={savingDraft}
+          onClick={() => void saveDraft(true)}
         >
           <Save className="mr-2 h-4 w-4" />
-          Save & return to plans
+          {savingDraft ? "Saving…" : "Save & return to plans"}
         </Button>
         <span className="text-xs text-muted-foreground">
           Draft plan · changes are not applied until execution
@@ -667,12 +650,18 @@ export function LeaveAllocationGuidedFlow({
               <Input
                 type="number"
                 value={form.year}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextYearText = event.target.value;
+                  const nextYear = Number(nextYearText);
                   setForm((current) => ({
                     ...current,
-                    year: event.target.value,
-                  }))
-                }
+                    year: nextYearText,
+                    effectiveDate:
+                      Number.isInteger(nextYear) && nextYear >= 2000 && nextYear <= 2200
+                        ? resolveAllocationEffectiveDate(nextYear)
+                        : current.effectiveDate,
+                  }));
+                }}
               />
             </label>
             <label className="space-y-1.5">
@@ -695,8 +684,15 @@ export function LeaveAllocationGuidedFlow({
             <Button
               disabled={!form.policyId || !form.year || !form.effectiveDate}
               onClick={() => {
-                setCurrentStep(2);
-                setFurthestStep((current) => Math.max(current, 2));
+                try {
+                  resolveAllocationEffectiveDate(Number(form.year), form.effectiveDate);
+                  setCurrentStep(2);
+                  setFurthestStep((current) => Math.max(current, 2));
+                } catch (caught) {
+                  toast.error(
+                    caught instanceof Error ? caught.message : "Invalid effective date.",
+                  );
+                }
               }}
             >
               Review population
@@ -866,7 +862,7 @@ export function LeaveAllocationGuidedFlow({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/70">
-                  {filteredRows.slice(0, 10).map((row, index) => {
+                  {filteredRows.slice(0, 10).map((row) => {
                     const rowId = impactRowId(row, normalizedRows.indexOf(row));
                     const decision = exceptionDecisions[rowId];
                     const excludedByDecision = decision === "exclude";
@@ -897,10 +893,10 @@ export function LeaveAllocationGuidedFlow({
                         </td>
                         <td className="px-4 py-2 text-muted-foreground">
                           {row.status === "prorated"
-                            ? "Prorated · joined Apr 10"
+                            ? "Prorated by effective date"
                             : row.status === "excluded" || excludedByDecision
                               ? "Excluded from this run"
-                              : "Full year"}
+                              : "Eligible on effective date"}
                         </td>
                         <td
                           className={cn(
@@ -981,14 +977,14 @@ export function LeaveAllocationGuidedFlow({
                 {[
                   [
                     "Policy & cycle",
-                    "Annual Leave is active for the selected cycle.",
+                    "The selected policy is active for the allocation date.",
                   ],
                   [
                     "Population",
                     `${displayIncluded} employees populated successfully.`,
                   ],
                   ["Eligibility rules", "No blocking rule errors found."],
-                  ["Proration", "Proration calculated for eligible joiners."],
+                  ["Proration", "Proration calculated to the effective date."],
                   ["Balance limits", "Min and max limits evaluated."],
                 ].map(([title, description]) => (
                   <div key={title} className="flex gap-3 py-2.5">
@@ -1312,7 +1308,7 @@ export function LeaveAllocationGuidedFlow({
                 +{displayDays(displayTotalImpact)} days total
               </span>
               <span className="text-xs text-muted-foreground">
-                As of Aug 13, 2026
+                As of {form.effectiveDate}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1320,9 +1316,13 @@ export function LeaveAllocationGuidedFlow({
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to population
               </Button>
-              <Button variant="outline" onClick={saveDraft}>
+              <Button
+                variant="outline"
+                disabled={savingDraft}
+                onClick={() => void saveDraft(false)}
+              >
                 <Save className="mr-2 h-4 w-4" />
-                Save draft
+                {savingDraft ? "Saving…" : "Save draft"}
               </Button>
               <Button
                 disabled={

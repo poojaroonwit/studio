@@ -16,6 +16,12 @@ const allowedDropIndexes = new Set([
   'JobMatch_applicant_id_fitScore_idx',
 ]);
 
+// These small support tables are intentionally maintained as raw SQL and are
+// accessed only through repository-owned typed raw-query boundaries.
+const allowedDropTables = new Set([
+  'hr_leave_allocation_drafts',
+]);
+
 function fail(message, details = '') {
   console.error(`ERROR: ${message}`);
   if (details.trim()) console.error(details.trim());
@@ -65,11 +71,18 @@ const unexpected = [];
 const allowed = [];
 
 for (const statement of statements) {
-  const match = statement.match(/^DROP INDEX\s+"([^"]+)"$/i);
-  if (match && allowedDropIndexes.has(match[1])) {
-    allowed.push(match[1]);
+  const indexMatch = statement.match(/^DROP INDEX\s+"([^"]+)"$/i);
+  if (indexMatch && allowedDropIndexes.has(indexMatch[1])) {
+    allowed.push(`index:${indexMatch[1]}`);
     continue;
   }
+
+  const tableMatch = statement.match(/^DROP TABLE\s+"([^"]+)"$/i);
+  if (tableMatch && allowedDropTables.has(tableMatch[1])) {
+    allowed.push(`table:${tableMatch[1]}`);
+    continue;
+  }
+
   unexpected.push(statement);
 }
 
@@ -81,5 +94,5 @@ if (unexpected.length > 0) {
 }
 
 console.log(
-  `Database matches the Prisma-managed schema; ignored ${allowed.length} documented raw-SQL index difference${allowed.length === 1 ? '' : 's'}: ${allowed.join(', ') || 'none'}.`,
+  `Database matches the Prisma-managed schema; ignored ${allowed.length} documented raw-SQL difference${allowed.length === 1 ? '' : 's'}: ${allowed.join(', ') || 'none'}.`,
 );

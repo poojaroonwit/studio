@@ -25,4 +25,13 @@ describe("Learning route ownership", () => {
     expect(source).not.toContain("LearningPageClient");
     expect(source).toContain("TrustedCertificatesPageClient");
   });
+
+  it("keeps Achievements out of the legacy LearningPageClient", async () => {
+    const source = await routeSource(
+      "src/app/learning/achievements/page.tsx",
+    );
+
+    expect(source).not.toContain("LearningPageClient");
+    expect(source).toContain("AchievementsPageClient");
+  });
 });

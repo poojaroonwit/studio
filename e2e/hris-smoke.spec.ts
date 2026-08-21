@@ -29,6 +29,13 @@ test.describe('HRIS protected surfaces', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
+  test('achievements is a valid dedicated Learning route', async ({ page }) => {
+    const response = await page.goto('/learning/achievements');
+
+    expect(response?.status()).toBeLessThan(500);
+    await expect(page.locator('body')).toBeVisible();
+  });
+
   test('HR API requires an authenticated session', async ({ request }) => {
     const response = await request.get('/api/hr/v1/assignments?pageSize=1');
 

@@ -520,26 +520,24 @@ test.describe("Payroll run lifecycle", () => {
     await clickAction(/Release Payslips/i);
     await expectAction(page, /Mark Paid/i);
 
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain("payment confirmation reference");
-      await dialog.accept("BANK-CONF-2026-08");
+    await page.getByRole("button", { name: /Mark Paid/i }).click();
+    const settlementDialog = page.getByRole("dialog", {
+      name: /Confirm payroll payment/i,
     });
-    const markPaidRefreshes = observeRunWorkspaceRefreshes(page);
+    await expect(settlementDialog).toBeVisible();
+    await settlementDialog
+      .getByLabel(/Bank \/ payment confirmation reference/i)
+      .fill("BANK-CONF-2026-08");
+    await settlementDialog.locator('input[type="file"]').setInputFiles({
+      name: "bank-confirmation.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
+    });
+
     const markPaidMutation = waitForRunMutation(page);
-    const chooserPromise = page.waitForEvent("filechooser");
-    try {
-      await page.getByRole("button", { name: /Mark Paid/i }).click();
-      const chooser = await chooserPromise;
-      await chooser.setFiles({
-        name: "bank-confirmation.pdf",
-        mimeType: "application/pdf",
-        buffer: Buffer.from("%PDF-1.4\n% payroll settlement evidence"),
-      });
-      await markPaidMutation;
-      await markPaidRefreshes.settle();
-    } finally {
-      markPaidRefreshes.stop();
-    }
+    await settlementDialog.getByRole("button", { name: /Confirm paid/i }).click();
+    await markPaidMutation;
+    await page.waitForLoadState("domcontentloaded");
 
     await clickAction(/Reconcile/i);
     await clickAction(/^Close$/i);

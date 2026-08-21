@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Info } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import { downloadControlledPayrollExport } from "@/lib/payroll/client-export";
@@ -15,11 +16,24 @@ type Row = Record<string, unknown>;
 
 type RunsWorkspaceResponse = {
   data?: {
+    access?: { canManage?: boolean };
     records?: Row[];
   };
   error?: { message?: string };
   message?: string;
 };
+
+const managementActionLabels = new Set([
+  "Collect Inputs",
+  "Calculate",
+  "Submit",
+  "Finalize",
+  "Release Payslips",
+  "Mark Paid",
+  "Record Recovery",
+  "Reconcile",
+  "Close",
+]);
 
 function responseMessage(payload: RunsWorkspaceResponse | null, fallback: string) {
   return payload?.error?.message || payload?.message || fallback;
@@ -27,17 +41,64 @@ function responseMessage(payload: RunsWorkspaceResponse | null, fallback: string
 
 /**
  * Compatibility boundary around the legacy Runs view. Controlled register
- * export and payment confirmation are intercepted here so sensitive payroll
- * actions use explicit, auditable production UX while the historical Runs
- * register is decomposed incrementally.
+ * export, management-action visibility, and payment confirmation are enforced
+ * here so sensitive payroll actions use explicit production UX while the
+ * historical Runs register is decomposed incrementally.
  */
 export function PayrollRunsWorkspace() {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const [canManage, setCanManage] = React.useState<boolean | null>(null);
   const [exporting, setExporting] = React.useState(false);
   const [resolvingSettlement, setResolvingSettlement] = React.useState(false);
   const [settlementRun, setSettlementRun] =
     React.useState<PayrollSettlementRun | null>(null);
   const [settlementBusy, setSettlementBusy] = React.useState(false);
   const [settlementError, setSettlementError] = React.useState("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/payroll/workspace/runs", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | RunsWorkspaceResponse
+          | null;
+        if (!response.ok) {
+          throw new Error(
+            responseMessage(payload, "Unable to verify payroll management access."),
+          );
+        }
+        if (!cancelled) setCanManage(Boolean(payload?.data?.access?.canManage));
+      } catch {
+        if (!cancelled) setCanManage(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const root = rootRef.current;
+    if (!root || canManage === null) return;
+
+    const syncManagementActions = () => {
+      for (const button of root.querySelectorAll<HTMLButtonElement>("button")) {
+        const label = button.textContent?.trim() || "";
+        if (!managementActionLabels.has(label)) continue;
+        button.hidden = !canManage;
+        button.setAttribute("aria-hidden", canManage ? "false" : "true");
+      }
+    };
+
+    syncManagementActions();
+    const observer = new MutationObserver(syncManagementActions);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [canManage]);
 
   const exportRegister = React.useCallback(async () => {
     if (exporting) return;
@@ -62,6 +123,10 @@ export function PayrollRunsWorkspace() {
 
   const openSettlement = React.useCallback(
     async (button: HTMLButtonElement) => {
+      if (canManage === false) {
+        toast.error("Payroll management permission required.");
+        return;
+      }
       if (resolvingSettlement || settlementBusy) return;
       setResolvingSettlement(true);
       setSettlementError("");
@@ -79,8 +144,12 @@ export function PayrollRunsWorkspace() {
             responseMessage(payload, "Unable to resolve the selected payroll run."),
           );
         }
+        if (!payload?.data?.access?.canManage) {
+          setCanManage(false);
+          throw new Error("Payroll management permission required.");
+        }
 
-        const records = payload?.data?.records || [];
+        const records = payload.data.records || [];
         const drawerText =
           button.closest('[role="dialog"]')?.textContent ||
           button.closest("aside")?.textContent ||
@@ -117,7 +186,7 @@ export function PayrollRunsWorkspace() {
         setResolvingSettlement(false);
       }
     },
-    [resolvingSettlement, settlementBusy],
+    [canManage, resolvingSettlement, settlementBusy],
   );
 
   const confirmSettlement = React.useCallback(
@@ -207,24 +276,45 @@ export function PayrollRunsWorkspace() {
         (label === "Export" || label === "ส่งออก");
       const isPaymentConfirmation =
         label === "Mark Paid" || label === "Record Recovery";
+      const isUnauthorizedManagementAction =
+        canManage === false && managementActionLabels.has(label);
 
-      if (!isRunsRegisterExport && !isPaymentConfirmation) return;
+      if (
+        !isRunsRegisterExport &&
+        !isPaymentConfirmation &&
+        !isUnauthorizedManagementAction
+      )
+        return;
 
       event.preventDefault();
       event.stopPropagation();
 
+      if (isUnauthorizedManagementAction) {
+        toast.error("Payroll management permission required.");
+        return;
+      }
       if (isRunsRegisterExport) {
         void exportRegister();
         return;
       }
       void openSettlement(button);
     },
-    [exportRegister, openSettlement],
+    [canManage, exportRegister, openSettlement],
   );
 
   return (
-    <div onClickCapture={interceptLegacyRunsActions}>
+    <div ref={rootRef} onClickCapture={interceptLegacyRunsActions}>
       <PayrollSettlementBoundary />
+      {canManage === false ? (
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <p>
+            Read-only payroll access. You can review run details and history;
+            payroll-management transitions are hidden. Approval and export
+            actions remain governed by their separate permissions.
+          </p>
+        </div>
+      ) : null}
       <PayrollWorkspace resource="runs" />
       <PayrollSettlementConfirmationDialog
         run={settlementRun}

@@ -4,21 +4,40 @@ import * as React from "react";
 import { toast } from "react-hot-toast";
 
 import { downloadControlledPayrollExport } from "@/lib/payroll/client-export";
+import {
+  PayrollSettlementConfirmationDialog,
+  type PayrollSettlementRun,
+} from "./PayrollSettlementConfirmationDialog";
 import { PayrollSettlementBoundary } from "./PayrollSettlementBoundary";
 import { PayrollWorkspace } from "./PayrollWorkspace";
 
+type Row = Record<string, unknown>;
+
+type RunsWorkspaceResponse = {
+  data?: {
+    records?: Row[];
+  };
+  error?: { message?: string };
+  message?: string;
+};
+
+function responseMessage(payload: RunsWorkspaceResponse | null, fallback: string) {
+  return payload?.error?.message || payload?.message || fallback;
+}
+
 /**
- * Keeps the Payroll Runs register on the same controlled export boundary as
- * Payroll Reports. PayrollWorkspace still contains the historical in-browser
- * register export implementation, so this wrapper intercepts only that single
- * Download/Export action before its legacy handler can run and replaces it
- * with the authenticated, company-scoped, audit-logged server export.
- *
- * This compatibility bridge can be removed once the Runs register is split
- * out of PayrollWorkspace into its own component.
+ * Compatibility boundary around the legacy Runs view. Controlled register
+ * export and payment confirmation are intercepted here so sensitive payroll
+ * actions use explicit, auditable production UX while the historical Runs
+ * register is decomposed incrementally.
  */
 export function PayrollRunsWorkspace() {
   const [exporting, setExporting] = React.useState(false);
+  const [resolvingSettlement, setResolvingSettlement] = React.useState(false);
+  const [settlementRun, setSettlementRun] =
+    React.useState<PayrollSettlementRun | null>(null);
+  const [settlementBusy, setSettlementBusy] = React.useState(false);
+  const [settlementError, setSettlementError] = React.useState("");
 
   const exportRegister = React.useCallback(async () => {
     if (exporting) return;
@@ -41,32 +60,185 @@ export function PayrollRunsWorkspace() {
     }
   }, [exporting]);
 
-  const interceptLegacyRegisterExport = React.useCallback(
+  const openSettlement = React.useCallback(
+    async (button: HTMLButtonElement) => {
+      if (resolvingSettlement || settlementBusy) return;
+      setResolvingSettlement(true);
+      setSettlementError("");
+
+      try {
+        const response = await fetch("/api/payroll/workspace/runs", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | RunsWorkspaceResponse
+          | null;
+        if (!response.ok) {
+          throw new Error(
+            responseMessage(payload, "Unable to resolve the selected payroll run."),
+          );
+        }
+
+        const records = payload?.data?.records || [];
+        const drawerText =
+          button.closest('[role="dialog"]')?.textContent ||
+          button.closest("aside")?.textContent ||
+          "";
+        const selected = records.find((row) =>
+          drawerText.includes(String(row.id || "")),
+        );
+
+        if (!selected) {
+          throw new Error(
+            "The selected payroll run changed. Close the run details, refresh, and select it again.",
+          );
+        }
+        if (String(selected.status) !== "payment_processing") {
+          throw new Error(
+            "This payroll run is no longer waiting for payment confirmation. Refresh the run before continuing.",
+          );
+        }
+
+        setSettlementRun({
+          id: String(selected.id),
+          version: Number(selected.version),
+          runType: String(selected.run_type || "regular"),
+          periodName: String(selected.period_name || "Payroll run"),
+          netTotal: Number(selected.net_total || 0),
+        });
+      } catch (caught) {
+        toast.error(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to open payment confirmation.",
+        );
+      } finally {
+        setResolvingSettlement(false);
+      }
+    },
+    [resolvingSettlement, settlementBusy],
+  );
+
+  const confirmSettlement = React.useCallback(
+    async (paymentReference: string, evidence: File | null) => {
+      if (!settlementRun || settlementBusy) return;
+      setSettlementBusy(true);
+      setSettlementError("");
+
+      try {
+        let evidenceReference: string | undefined;
+        if (evidence) {
+          const formData = new FormData();
+          formData.append("file", evidence);
+          const evidenceResponse = await fetch(
+            `/api/payroll/v1/runs/${settlementRun.id}/payment-evidence`,
+            { method: "POST", credentials: "include", body: formData },
+          );
+          const evidencePayload = (await evidenceResponse
+            .json()
+            .catch(() => null)) as
+            | { evidenceReference?: string; message?: string }
+            | null;
+          if (!evidenceResponse.ok) {
+            throw new Error(
+              evidencePayload?.message || "Payment evidence upload failed.",
+            );
+          }
+          evidenceReference = evidencePayload?.evidenceReference;
+        }
+
+        const response = await fetch("/api/payroll/workspace/runs", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "mark_paid",
+            runId: settlementRun.id,
+            expectedVersion: settlementRun.version,
+            reason:
+              settlementRun.runType === "reversal"
+                ? "Recovery settlement confirmed in Payroll Runs"
+                : "External payment settlement confirmed in Payroll Runs",
+            paymentReference,
+            evidenceReference,
+          }),
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | RunsWorkspaceResponse
+          | null;
+        if (!response.ok) {
+          throw new Error(
+            responseMessage(payload, "Payroll payment confirmation failed."),
+          );
+        }
+
+        toast.success(
+          settlementRun.runType === "reversal"
+            ? "Recovery settlement recorded. Reconcile the run next."
+            : "Payment recorded. Reconcile the payroll run next.",
+        );
+        setSettlementRun(null);
+        window.location.reload();
+      } catch (caught) {
+        setSettlementError(
+          caught instanceof Error
+            ? caught.message
+            : "Payroll payment confirmation failed.",
+        );
+      } finally {
+        setSettlementBusy(false);
+      }
+    },
+    [settlementBusy, settlementRun],
+  );
+
+  const interceptLegacyRunsActions = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
 
       const button = target.closest("button");
-      if (!button) return;
+      if (!(button instanceof HTMLButtonElement)) return;
 
       const label = button.textContent?.trim() || "";
       const isRunsRegisterExport =
         Boolean(button.querySelector("svg.lucide-download")) &&
         (label === "Export" || label === "ส่งออก");
+      const isPaymentConfirmation =
+        label === "Mark Paid" || label === "Record Recovery";
 
-      if (!isRunsRegisterExport) return;
+      if (!isRunsRegisterExport && !isPaymentConfirmation) return;
 
       event.preventDefault();
       event.stopPropagation();
-      void exportRegister();
+
+      if (isRunsRegisterExport) {
+        void exportRegister();
+        return;
+      }
+      void openSettlement(button);
     },
-    [exportRegister],
+    [exportRegister, openSettlement],
   );
 
   return (
-    <div onClickCapture={interceptLegacyRegisterExport}>
+    <div onClickCapture={interceptLegacyRunsActions}>
       <PayrollSettlementBoundary />
       <PayrollWorkspace resource="runs" />
+      <PayrollSettlementConfirmationDialog
+        run={settlementRun}
+        open={Boolean(settlementRun)}
+        busy={settlementBusy || resolvingSettlement}
+        error={settlementError}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSettlementRun(null);
+            setSettlementError("");
+          }
+        }}
+        onConfirm={confirmSettlement}
+      />
     </div>
   );
 }

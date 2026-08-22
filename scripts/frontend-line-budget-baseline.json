@@ -4,7 +4,6 @@
   "src/components/leaves/LeaveWorkspacePage.tsx": 636,
   "src/components/leaves/LeaveAllocationGuidedFlow.tsx": 1670,
   "src/components/leaves/AssignmentRulesCommandCenter.tsx": 808,
-  "src/components/appraisal/AppraisalViews.tsx": 562,
   "src/components/appraisal/AppraisalActionSheet.tsx": 934,
   "src/components/data-operations/DataOperationsWorkspace.tsx": 722,
   "src/components/ess/LeaveRequestView.tsx": 1145,
@@ -40,8 +39,6 @@
   "src/app/settings/payroll-approval-routes/PayrollApprovalRoutesClient.tsx": 1175,
   "src/app/settings/SettingsPageView.tsx": 647,
   "src/app/settings/settings-page-model.ts": 853,
-  "src/components/positions/PositionDetailPageView.tsx": 570,
-  "src/components/settings/system-settings-tabs/OrganizationTabParts.tsx": 609,
   "src/lib/performance/performance-service.ts": 1099,
   "src/lib/payroll/service.ts": 2802,
   "src/lib/survey/survey-service.ts": 1344

@@ -33,6 +33,7 @@ describe('OrgChartFocusModel', () => {
       employee({ id: 'report-a', managerId: 'manager-a' }),
       employee({ id: 'report-b', managerId: 'manager-a' }),
       employee({ id: 'report-c', managerId: 'manager-b' }),
+      employee({ id: 'report-d', managerId: 'manager-a' }),
     ];
 
     expect(defaultFocusEmployeeId(employees)).toBe('manager-a');

@@ -1,7 +1,6 @@
 {
   "src/swagger/index.ts": 1245,
   "src/components/company-portal/CompanyPortalEditor.tsx": 1570,
-  "src/components/leaves/LeaveWorkspacePage.tsx": 636,
   "src/components/leaves/LeaveAllocationGuidedFlow.tsx": 1670,
   "src/components/leaves/AssignmentRulesCommandCenter.tsx": 808,
   "src/components/appraisal/AppraisalActionSheet.tsx": 934,

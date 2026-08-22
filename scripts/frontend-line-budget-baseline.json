@@ -9,7 +9,6 @@
   "src/components/ess/LeaveRequestView.tsx": 1145,
   "src/app/workforce/holidays/HolidaysPageClient.tsx": 943,
   "src/components/layout/SidebarNavConfig.ts": 934,
-  "src/app/people/org-chart/page.tsx": 716,
   "src/app/people/onboarding/PeopleOnboardingClient.tsx": 914,
   "src/components/hr/ProbationPage.tsx": 702,
   "src/components/hr/OffboardingPage.tsx": 1249,

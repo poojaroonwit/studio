@@ -18,7 +18,6 @@
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4385,
   "src/app/job-offers/JobOffersPageClient.tsx": 586,
-  "src/components/performance/PerformanceWorkspace.tsx": 626,
   "src/swagger/paths/applicants.ts": 722,
   "src/components/people/OrgChartFocusWorkspace.tsx": 677,
   "src/components/people/DepartmentHierarchyPage.tsx": 798,

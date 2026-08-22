@@ -127,7 +127,7 @@ export function BroadcastComposerFields({
           <select
             value={form.placement}
             onChange={(event) => setForm(current => ({ ...current, placement: event.target.value }))}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus-within:ring-ring/20"
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
           >
             <option value="top">Top banner</option>
             <option value="dashboard">Dashboard banner</option>

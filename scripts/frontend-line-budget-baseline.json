@@ -23,7 +23,6 @@
   "src/components/payroll/PayrollWorkspace.tsx": 5146,
   "src/components/payroll/CompensationReviewWorkspace.tsx": 898,
   "src/components/payroll/BenefitsCommandCenter.tsx": 1528,
-  "src/components/privacy-support/ServiceDeskPage.tsx": 629,
   "src/lib/appraisal/appraisal-service.ts": 1367,
   "src/components/shift/views/TimesheetCommandCenter.tsx": 1828,
   "src/components/shift/views/RosterView.tsx": 1711,

@@ -9,6 +9,7 @@ import {
   ClockIcon,
   EllipsisVerticalIcon,
   MapPinIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { CheckCircleIcon as SolidCheckCircleIcon } from "@heroicons/react/20/solid";
 
@@ -253,7 +254,9 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 bg-white text-[#12213d]">
-                  <DropdownMenuItem onSelect={startEditingAll}>Edit position</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={startEditingAll}>
+                    <PencilSquareIcon className="mr-2 h-4 w-4" />Edit position
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => contentProps.onTabChange("existing-employees")}>Existing employees</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => router.push("/positions")}>Return to Job Openings</DropdownMenuItem>

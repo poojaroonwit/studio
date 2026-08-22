@@ -231,7 +231,7 @@ export function ServiceDeskTicketList({
             <Loader2 className="h-4 w-4 animate-spin" />{t('serviceDesk.loading', 'Loading tickets…')}
           </div>
         )}
-        {!loading && filtered.length === 0 && !isHistoryMode && (
+        {!loading && filtered.length === 0 && (
           <div className="p-6 text-sm">
             <p className="font-medium">{query || statusFilter !== 'all' ? t('serviceDesk.noMatches', 'No tickets match these filters.') : t('serviceDesk.empty', 'No support tickets yet.')}</p>
             <p className="mt-1 leading-5 text-muted-foreground">{query || statusFilter !== 'all' ? t('serviceDesk.adjustFilters', 'Try another search or status.') : t('serviceDesk.emptyHint', 'Start a private conversation when you need help from the People team.')}</p>

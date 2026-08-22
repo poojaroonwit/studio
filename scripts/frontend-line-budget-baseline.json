@@ -1,4 +1,5 @@
 {
+
   "src/swagger/index.ts": 1245,
   "src/components/company-portal/CompanyPortalEditor.tsx": 1570,
   "src/components/leaves/LeaveWorkspacePage.tsx": 636,
@@ -16,14 +17,12 @@
   "src/components/hr/OffboardingPage.tsx": 1249,
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4385,
-  "src/components/performance/PerformanceWorkspace.tsx": 626,
   "src/swagger/paths/applicants.ts": 722,
   "src/components/people/OrgChartFocusWorkspace.tsx": 677,
   "src/components/people/DepartmentHierarchyPage.tsx": 798,
   "src/components/payroll/PayrollWorkspace.tsx": 5146,
   "src/components/payroll/CompensationReviewWorkspace.tsx": 898,
   "src/components/payroll/BenefitsCommandCenter.tsx": 1528,
-  "src/components/privacy-support/ServiceDeskPage.tsx": 629,
   "src/lib/appraisal/appraisal-service.ts": 1367,
   "src/components/shift/views/TimesheetCommandCenter.tsx": 1828,
   "src/components/shift/views/RosterView.tsx": 1711,
@@ -34,7 +33,6 @@
   "src/app/hiring/headcount-requests/HeadcountRequestsClient.tsx": 1373,
   "src/lib/expenses/service.ts": 908,
   "src/app/learning/LearningPageClient.tsx": 6735,
-  "src/app/settings/field-management/page.tsx": 605,
   "src/app/settings/payroll-approval-routes/PayrollApprovalRoutesClient.tsx": 1175,
   "src/app/settings/settings-page-model.ts": 853,
   "src/lib/performance/performance-service.ts": 1099,

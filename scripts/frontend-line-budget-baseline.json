@@ -1,5 +1,4 @@
 {
-
   "src/swagger/index.ts": 1245,
   "src/components/company-portal/CompanyPortalEditor.tsx": 1570,
   "src/components/leaves/LeaveWorkspacePage.tsx": 636,
@@ -34,10 +33,8 @@
   "src/app/hiring/headcount-requests/HeadcountRequestsClient.tsx": 1373,
   "src/lib/expenses/service.ts": 908,
   "src/app/learning/LearningPageClient.tsx": 6735,
-  "src/app/setup/PlatformSetupClient.tsx": 629,
   "src/app/settings/field-management/page.tsx": 605,
   "src/app/settings/payroll-approval-routes/PayrollApprovalRoutesClient.tsx": 1175,
-  "src/app/settings/SettingsPageView.tsx": 647,
   "src/app/settings/settings-page-model.ts": 853,
   "src/lib/performance/performance-service.ts": 1099,
   "src/lib/payroll/service.ts": 2802,

@@ -11,7 +11,6 @@
   "src/components/layout/SidebarNavConfig.ts": 934,
   "src/app/people/org-chart/page.tsx": 716,
   "src/app/people/onboarding/PeopleOnboardingClient.tsx": 914,
-  "src/components/hr/ProbationPage.tsx": 702,
   "src/components/hr/OffboardingPage.tsx": 1249,
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4385,

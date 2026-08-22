@@ -8,7 +8,6 @@
   "src/components/appraisal/AppraisalActionSheet.tsx": 934,
   "src/components/data-operations/DataOperationsWorkspace.tsx": 722,
   "src/components/ess/LeaveRequestView.tsx": 1145,
-  "src/app/broadcast/BroadcastPage.tsx": 690,
   "src/app/workforce/holidays/HolidaysPageClient.tsx": 943,
   "src/components/layout/SidebarNavConfig.ts": 934,
   "src/app/people/org-chart/page.tsx": 716,

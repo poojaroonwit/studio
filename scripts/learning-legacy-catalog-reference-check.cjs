@@ -33,6 +33,15 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
+if (candidateRanges.length === 0) {
+  assert(
+    source.includes('from "./LegacyCourseCatalog"'),
+    'Inline legacy catalog declarations are gone but LearningPageClient does not import LegacyCourseCatalog',
+  );
+  console.log('Legacy Learning catalog reference check passed: fallback subtree is extracted.');
+  process.exit(0);
+}
+
 assert(
   candidateRanges.length === candidateNames.size,
   `Expected ${candidateNames.size} legacy catalog declarations, found ${candidateRanges.length}`,
@@ -58,15 +67,20 @@ function visit(node) {
 
 visit(sourceFile);
 
+const legacyRefs = externalReferences.filter((ref) => ref.name === 'LegacyCourseCatalog');
+const privateChildRefs = externalReferences.filter((ref) => ref.name !== 'LegacyCourseCatalog');
+
 assert(
-  externalReferences.length === 0,
-  `Legacy catalog still has external references: ${externalReferences
+  legacyRefs.length === 1,
+  `Expected exactly one live LegacyCourseCatalog fallback reference, found ${legacyRefs.length}`,
+);
+assert(
+  privateChildRefs.length === 0,
+  `Legacy CourseGrid/CourseList must remain private to the fallback subtree: ${privateChildRefs
     .map((ref) => `${ref.name}@${ref.line}`)
     .join(', ')}`,
 );
 
 console.log(
-  `Legacy Learning catalog is isolated: ${candidateRanges
-    .map((range) => range.name)
-    .join(', ')} have no references outside their legacy subtree.`,
+  `Legacy Learning fallback is safe to extract: one live LegacyCourseCatalog reference at line ${legacyRefs[0].line}; CourseGrid and CourseList have no external references.`,
 );

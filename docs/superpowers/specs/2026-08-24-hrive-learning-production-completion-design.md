@@ -15,11 +15,12 @@ The work is intentionally broader than a UI refactor. It must close dead-end lea
 
 1. **One source of truth per workflow.** People Onboarding owns onboarding. Learning must not retain a second hidden onboarding implementation.
 2. **Learner and manager journeys are distinct.** View-only employees should never discover management permissions through avoidable 403 errors.
-3. **Atomic business actions.** Creating a course with initial curriculum and assigning a path must succeed or fail as one logical action.
-4. **Course progress is version-bound.** A lesson/block mutation is valid only when that content belongs to the employee's enrolled course version.
-5. **Auditability over convenience.** Assignment batches, reviews, overrides, and changes-requested decisions must retain actor/source/reason context.
-6. **Preserve proven subsystems.** Course Player, Course Studio, AI generation, Career Explorer, Achievements, Trusted Certificates, and existing progress tables are evolved rather than rewritten.
-7. **Architecture budgets are constraints, not baselines to raise.** New controllers/components stay under repository default budgets and the remaining `LearningPageClient` monolith is retired.
+3. **Self-service data is least-privilege.** Learner pages use APIs that return only published catalog data plus the linked employee's own Learning state; they do not reuse workforce-wide HR CRUD reads.
+4. **Atomic business actions.** Creating a course with initial curriculum and assigning a path must succeed or fail as one logical action.
+5. **Course progress is version-bound.** A lesson/block mutation is valid only when that content belongs to the employee's enrolled course version.
+6. **Auditability over convenience.** Assignment batches, reviews, overrides, and changes-requested decisions must retain actor/source/reason context.
+7. **Preserve proven subsystems.** Course Player, Course Studio, AI generation, Career Explorer, Achievements, Trusted Certificates, and existing progress tables are evolved rather than rewritten.
+8. **Architecture budgets are constraints, not baselines to raise.** New controllers/components stay under repository default budgets and the remaining `LearningPageClient` monolith is retired.
 
 ## 3. Current-state audit
 
@@ -64,9 +65,11 @@ Current course creation first inserts the course through generic HR CRUD and the
 
 Enrollment ownership is checked, but heartbeat / quiz / assignment operations do not consistently prove that the supplied lesson or block belongs to the `course_version_id` attached to that enrollment before writing progress/submissions.
 
-### 3.6 Capability mismatch
+### 3.6 Capability and data-scope mismatch
 
-Generic Learning GET is permission-gated by `HR_LEARNING_VIEW`, while POST/PATCH/DELETE require `HR_LEARNING_MANAGE`. The current shared controller does not carry a capability model, so learner-facing routes can render management affordances that later fail with 403.
+Generic Learning GET is permission-gated by `HR_LEARNING_VIEW` and returns module-level Learning records, while POST/PATCH/DELETE require `HR_LEARNING_MANAGE`. The current shared controller does not carry a capability model, so learner-facing routes can render management affordances that later fail with 403.
+
+Learner-facing Home/Catalog also should not depend on a workforce-wide generic HR endpoint. They need a dedicated self-service contract that returns only the linked employee's enrollments/progress plus safe published catalog data.
 
 ### 3.7 Duplicate onboarding implementation
 
@@ -97,13 +100,14 @@ Add a Learning Management workspace under Learning navigation:
 
 The exact navigation can be tabs within one route shell if that better matches the existing Hrive navigation primitives, but each view must have a direct URL and independent loading/error state.
 
-## 5. Capability contract
+## 5. Capability and self-service contract
 
 Introduce a small server-returned Learning capability object used by every Learning controller:
 
 ```ts
 interface LearningCapabilities {
-  canViewLearning: boolean;
+  canUseLearningSelfService: boolean;
+  canViewLearningManagement: boolean;
   canManageLearning: boolean;
   canReviewAssignments: boolean;
   canOverrideCompletion: boolean;
@@ -113,10 +117,13 @@ interface LearningCapabilities {
 
 Rules:
 
-- Employees with Learning view access can browse available published courses, view their own Learning state, start/continue courses, submit learner work, see path progress, achievements, and certificates.
-- `HR_LEARNING_MANAGE` enables course/path/certificate administration, assigning learning, reviewing assignment submissions, audited override completion, and reports.
+- An authenticated user with a linked employee record can use Learning self-service for published catalog data and their own enrollments/progress.
+- Learner self-service does **not** imply access to other employees' enrollments or manager reports.
+- `HR_LEARNING_VIEW` / existing module-access conventions can continue to control broad Learning management visibility where used by the application shell.
+- `HR_LEARNING_MANAGE` enables course/path/certificate administration, assigning learning, reviewing assignment submissions, audited override completion, and management reports.
 - Manager-only UI is not rendered for learner-only users.
 - APIs still enforce permissions server-side regardless of UI capability state.
+- If the product's existing app-registration/module-entitlement layer intentionally disables Learning for a user, that entitlement remains authoritative; linked-employee self-service bypasses broad HR data permissions, not application entitlement.
 
 ## 6. Learner journeys
 
@@ -144,6 +151,8 @@ Course Catalog supports:
 - course cards with duration, category, requirement, personal state
 - learner CTA: View / Start / Continue
 - manager CTA only when capability permits: Create, AI Create, Edit in Studio, Assign, Archive
+
+The learner catalog API returns only active/published courses and the linked employee's personal enrollment state. Draft course visibility remains a manager/studio concern.
 
 ### 6.3 Course completion
 
@@ -209,6 +218,8 @@ Within one database transaction:
 
 If curriculum insert fails, the course row is rolled back.
 
+If a new cover upload was created specifically for this failed creation attempt, perform best-effort cleanup of the unreferenced object. Storage cleanup failure is logged but does not convert a correctly rolled-back database transaction into a false success.
+
 Existing Course Studio save/publish remains for later revisions.
 
 AI course generation must call the same atomic creation service for persistence after generation.
@@ -232,7 +243,7 @@ Assignment API accepts one employee + one or more course IDs + source metadata +
 
 Inside one transaction:
 
-1. validate target employee
+1. validate target employee and manager company scope
 2. validate every course is active/published and assignable
 3. create/find the assignment batch by idempotency key
 4. upsert every employee/course enrollment without resetting completed progress
@@ -244,6 +255,8 @@ Any validation/write failure rolls back the whole assignment.
 The existing unique `(employee_id, course_id)` enrollment rule remains.
 
 Repeated idempotency key returns the authoritative existing batch/result without duplicating enrollments.
+
+The batch stores a snapshot of the course IDs at assignment time. Later edits to a Learning Path do not retroactively alter historical assignment batches.
 
 ### 7.3 Assignment review queue
 
@@ -264,7 +277,7 @@ Actions:
 
 Request changes requires feedback. Approve may include optional feedback.
 
-Review is concurrency-safe enough to reject acting on a submission that changed after the manager loaded it; use `updated_at` or an explicit version if a migration is justified during implementation.
+Review is concurrency-safe enough to reject acting on a submission that changed after the manager loaded it; use `updated_at` as an expected-value precondition or add an explicit version only if implementation proves timestamp concurrency is insufficient.
 
 ### 7.4 Completion override
 
@@ -328,7 +341,7 @@ No progress row, quiz attempt, submission, or enrollment current lesson may be w
 
 ### 8.2 Assignment review integrity
 
-Review service must prove the submission belongs to a valid Learning enrollment and content block. A manager review cannot approve an arbitrary cross-course block/submission relation.
+Review service must prove the submission belongs to a valid Learning enrollment and content block for that enrollment's course version. A manager review cannot approve an arbitrary cross-course block/submission relation.
 
 ### 8.3 Company scope
 
@@ -341,9 +354,20 @@ Manager operational data is company-scoped through employees:
 - enrollment override
 - reports
 
-Where the authenticated user context exposes a company scope, queries must restrict employee/enrollment rows to that company. Admin behavior can continue to use existing admin bypass conventions.
+Reuse an existing HR actor/company-scope helper if one already covers this product area. Otherwise resolve manager company scope through the linked employee/company model and preserve existing admin bypass conventions. Do not introduce a second, inconsistent company-scoping rule only for Learning.
 
-### 8.4 Generic CRUD boundary
+### 8.4 Self-service data boundary
+
+Add dedicated learner-safe reads rather than widening generic HR CRUD:
+
+- own enrollments/progress only
+- published/active course catalog only
+- own path-derived state only
+- own certificate state where appropriate
+
+The learner routes must not call an endpoint that can return arbitrary other employees' Learning enrollment rows.
+
+### 8.5 Generic CRUD boundary
 
 Generic HR CRUD can remain the backing primitive for simple catalog/certificate/path records where safe, but critical state transitions move to specialized Learning services:
 
@@ -401,19 +425,40 @@ Existing large `CourseExperience.tsx` is in scope for production-quality audit a
 
 Exact paths may be adjusted to match current routing conventions, but contracts must be explicit and specialized.
 
+### `GET /api/learning/me`
+
+Learner-safe context:
+
+- capabilities
+- linked employee identity needed by Learning UI
+- own enrollments/progress summary
+- own due/required/continue state
+- own path-derived state as needed by Home/Paths
+
+Must not return arbitrary workforce Learning rows.
+
+### `GET /api/learning/catalog`
+
+Published/active course catalog plus optional current learner enrollment state. No drafts unless a manager/studio-specific request path is used.
+
 ### `POST /api/learning/studio/courses`
+
 Atomic course + initial curriculum creation.
 
 ### `POST /api/learning/assignments`
+
 Atomic course/path assignment batch.
 
 ### `GET /api/learning/manage`
-Returns capabilities plus manager assignment overview as needed by management shell.
+
+Returns capabilities plus manager assignment overview as needed by management shell; company-scoped through employees.
 
 ### `GET /api/learning/studio/report`
+
 Keep existing endpoint but add supported query filters and company scope.
 
 ### `POST /api/learning/studio/actions`
+
 Keep specialized actions, harden contract:
 
 - `review_assignment`
@@ -422,6 +467,7 @@ Keep specialized actions, harden contract:
 Request-changes feedback is mandatory when `approved=false`.
 
 ### Learner progress endpoints
+
 Keep `/api/learning/progress`, but all actions route through version-bound validation.
 
 ## 11. Notifications and audit
@@ -446,6 +492,7 @@ Existing application audit logging should also be used at API boundaries where c
 - Reload authoritative server state after successful mutations.
 - Disable duplicate submits while saving and use idempotency for assignment creation.
 - Destructive archive/delete actions require confirmation.
+- If an employee is authenticated but has no linked employee record, Learning self-service shows a clear account-linking error rather than an empty catalog/progress shell.
 
 ## 13. Data migration
 
@@ -458,6 +505,8 @@ No destructive migration is required.
 Existing enrollments remain valid. Historical enrollments without assignment-batch metadata are treated as legacy/manual assignments.
 
 If implementation discovers an existing suitable assignment/audit table that already provides all required idempotency/source semantics, prefer reusing it and document the deviation rather than adding a duplicate model.
+
+No course-company migration is part of this change.
 
 ## 14. TDD and regression strategy
 
@@ -478,6 +527,8 @@ Add RED→GREEN coverage for:
 11. completion override requires reason and records audit context
 12. company-scoped report/review excludes out-of-scope employee data
 13. atomic course creation rolls back course when curriculum persistence fails
+14. learner self-service endpoint never returns another employee's enrollment
+15. catalog endpoint excludes draft/inactive courses for learner use
 
 ### Structural regressions
 
@@ -491,6 +542,7 @@ Extend permanent Learning decomposition checks to assert:
 - manager review/report routes exist
 - extracted active Course Catalog remains outside the old controller
 - `LearningPageClient` is deleted or has no active route imports
+- learner routes use the self-service/catalog boundary instead of workforce-wide generic Learning reads
 
 ### Browser journeys
 
@@ -533,20 +585,23 @@ A CI infrastructure stall may only be treated as an exception if it is clearly n
 - Inventing a new LMS content format when the current version/section/lesson/block model is already adequate.
 - Introducing course-level company ownership in this change; courses remain shared unless a separate multi-tenant catalog requirement is approved later.
 - Removing legacy data solely to make the UI cleaner.
+- Broadening generic HR CRUD so ordinary learner self-service can read workforce-wide Learning data.
 
 ## 17. Acceptance criteria
 
 The project is complete when:
 
 1. learner routes have truthful learner-first UX and no inaccessible management CTAs
-2. Courses, Paths, Certificates, and Learning Home have dedicated controllers
-3. `LearningPageClient` is no longer an active route dependency and preferably deleted
-4. Learning onboarding duplicate code is removed
-5. course + initial curriculum creation is atomic
-6. path/multi-course assignment is atomic, idempotent, and auditable
-7. learner progress mutations are bound to the enrollment's course version
-8. assignment changes-requested → resubmit → approve is usable end-to-end
-9. manager completion override is explicit, reasoned, audited, and scoped
-10. Learning Management exposes assignment review and reports
-11. manager operational data respects employee company scope
-12. all permanent Learning regression and normal production gates pass on the exact merge head
+2. learner Home/Catalog use least-privilege self-service APIs and cannot read other employees' enrollments
+3. Courses, Paths, Certificates, and Learning Home have dedicated controllers
+4. `LearningPageClient` is no longer an active route dependency and preferably deleted
+5. Learning onboarding duplicate code is removed
+6. course + initial curriculum creation is atomic
+7. path/multi-course assignment is atomic, idempotent, and auditable
+8. learner progress mutations are bound to the enrollment's course version
+9. assignment changes-requested → resubmit → approve is usable end-to-end
+10. manager completion override is explicit, reasoned, audited, and scoped
+11. Learning Management exposes assignment review and reports
+12. manager operational data respects employee company scope
+13. published learner catalog excludes drafts/inactive courses
+14. all permanent Learning regression and normal production gates pass on the exact merge head

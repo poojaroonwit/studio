@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import {
   AlertTriangle,
@@ -25,7 +24,6 @@ import {
   TriangleAlert,
   Users,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -60,9 +58,7 @@ import {
 } from "../shift-types";
 import { useShiftAttendance } from '../use-shift-attendance';
 import { RosterSetupDialog } from './RosterSetupDialog';
-
 type RosterLayout = "employees" | "calendar" | "list";
-
 function startOfWeek(value = new Date()) {
   const date = new Date(
     Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
@@ -71,7 +67,6 @@ function startOfWeek(value = new Date()) {
   date.setUTCDate(date.getUTCDate() - day + 1);
   return date.toISOString().slice(0, 10);
 }
-
 function weekDays(start: string) {
   return Array.from({ length: 7 }, (_, index) => {
     const value = new Date(`${start}T00:00:00.000Z`);
@@ -79,7 +74,6 @@ function weekDays(start: string) {
     return value;
   });
 }
-
 export function RosterView() {
   const [start, setStart] = React.useState(() => startOfWeek());
   const [layout, setLayout] = React.useState<RosterLayout>("employees");
@@ -118,7 +112,6 @@ export function RosterView() {
     return params;
   }, [employeeQuery, start]);
   const state = useShiftAttendance("roster", query);
-
   if (state.loading)
     return (
       <Workspace>

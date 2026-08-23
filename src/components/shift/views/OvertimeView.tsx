@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import {
   AlertTriangle,
@@ -22,7 +21,6 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,7 +63,6 @@ import {
   overtimeRequestDuration as requestDuration,
   overtimeRequestRisk as requestRisk,
 } from "./overtime-view-utils";
-
 function overtimeWeekStart(value = new Date()) {
   const date = new Date(
     Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
@@ -74,7 +71,6 @@ function overtimeWeekStart(value = new Date()) {
   date.setUTCDate(date.getUTCDate() - day + 1);
   return date.toISOString().slice(0, 10);
 }
-
 export function OvertimeView({
   employeeSelfService = false,
 }: {
@@ -92,7 +88,6 @@ export function OvertimeView({
   const [weekStart, setWeekStart] = React.useState(() => overtimeWeekStart());
   const [location, setLocation] = React.useState("");
   const [department, setDepartment] = React.useState("");
-
   if (state.loading)
     return (
       <Workspace>
@@ -106,7 +101,6 @@ export function OvertimeView({
       </Workspace>
     );
   if (!state.data || !state.capabilities) return null;
-
   const serverRequests = arrayValue(state.data.requests);
   const requests = serverRequests;
   const assignments = arrayValue(state.data.assignments);
@@ -162,7 +156,6 @@ export function OvertimeView({
       </Button>
     </div>
   );
-
   return (
     <Workspace>
       {employeeSelfService ? (
@@ -260,7 +253,6 @@ export function OvertimeView({
           onDecision={(body, message) => state.mutate(body, message)}
         />
       </div>
-
       <Dialog open={requestDialogOpen} onOpenChange={open => { setRequestDialogOpen(open); if (!open) setEditingRequest(null); }}>
         <DialogContent className="max-h-[92dvh] max-w-3xl gap-0 overflow-hidden p-0">
           <DialogHeader className="sr-only">
@@ -293,7 +285,6 @@ export function OvertimeView({
     </Workspace>
   );
 }
-
 function OvertimeHeader({
   searchText,
   onSearchChange,
@@ -430,7 +421,6 @@ function OvertimeHeader({
     </header>
   );
 }
-
 function OvertimeSummary({
   metrics,
   requests,
@@ -480,7 +470,6 @@ function OvertimeSummary({
     </section>
   );
 }
-
 function SummaryMetric({
   icon: Icon,
   label,
@@ -506,7 +495,6 @@ function SummaryMetric({
     </div>
   );
 }
-
 function ViewButton({
   active,
   onClick,
@@ -858,7 +846,6 @@ function CapacityPlanner({
     </section>
   );
 }
-
 function OvertimeOverview({
   requests,
   metrics,

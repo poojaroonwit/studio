@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 import {
   ArrowLeft,
@@ -15,7 +14,6 @@ import {
   Send,
   SlidersHorizontal,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,9 +43,7 @@ import {
   sheetBillableMinutes,
   sheetTotalMinutes,
 } from "./timesheet-command-center-utils";
-
 type WorkspaceView = "matrix" | "timeline" | "project";
-
 export function TimesheetCommandCenter({ employeeSelfService = false }: { employeeSelfService?: boolean } = {}) {
   const [week, setWeek] = React.useState(() => mondayFor());
   const [view, setView] = React.useState<WorkspaceView>("matrix");
@@ -66,7 +62,6 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
     [employeeSelfService, week],
   );
   const state = useShiftAttendance("timesheet", searchParams);
-
   const rawResources = arrayValue(state.data?.timesheets);
   const selfEmployeeId = stringValue(state.data?.selfEmployeeId);
   React.useEffect(() => {
@@ -79,7 +74,6 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
         selfEmployeeId || stringValue(rawResources[0].employee_id),
       );
   }, [rawResources, selectedEmployeeId, selfEmployeeId]);
-
   if (state.loading)
     return (
       <Page>

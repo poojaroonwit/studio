@@ -23,14 +23,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/codemods/complete-time-contracts-and-corrections.mjs
+      - run: node scripts/codemods/repair-time-integration-gates.mjs
+      - run: npx prisma validate --schema=prisma/schema.prisma
       - run: npx vitest run src/lib/hr/attendance-correction.test.ts src/lib/hr/shift-request-workflow.test.ts src/lib/hr/overtime-request-workflow.test.ts src/lib/hr/roster-copy.test.ts src/lib/hr/shift-notification-recipients.test.ts src/lib/hr/time-policy-config.test.ts src/lib/payroll/attendance-inputs.test.ts
       - run: npm run type-check
-      - run: npx eslint src/lib/hr/attendance-correction.ts src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts --max-warnings=0
+      - run: npx eslint src/lib/hr/attendance-correction.ts src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts src/lib/hr/shift-attendance-service.ts src/components/shift/views/ReportsView.tsx --max-warnings=0
       - name: Commit verified integration
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts
+          git add prisma/schema.prisma src/components/shift/views/ReportsView.tsx src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts src/lib/hr/shift-attendance-service.ts
           if git diff --cached --quiet; then
             echo "No integration changes to commit."
           else

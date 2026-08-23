@@ -1,10 +1,19 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-const path = 'src/components/shift/views/RosterView.tsx';
-let source = await readFile(path, 'utf8');
-source = source.replace(
+const rosterPath = 'src/components/shift/views/RosterView.tsx';
+let roster = await readFile(rosterPath, 'utf8');
+roster = roster.replace(
   'import { useShiftAttendance } from "../use-shift-attendance";',
   "import { useShiftAttendance } from '../use-shift-attendance';",
 );
-await writeFile(path, source, 'utf8');
-console.log('Normalized Time codemod anchors.');
+await writeFile(rosterPath, roster, 'utf8');
+
+const codemodPath = 'scripts/codemods/complete-time-remaining.mjs';
+let codemod = await readFile(codemodPath, 'utf8');
+codemod = codemod.replace(
+  'new Date(\\`${start}T00:00:00Z\\`)',
+  'new Date(\\`\\${start}T00:00:00Z\\`)',
+);
+await writeFile(codemodPath, codemod, 'utf8');
+
+console.log('Normalized Time codemod anchors and literals.');

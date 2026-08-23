@@ -1,5 +1,5 @@
 import { readFile, readdir } from "node:fs/promises";
-import { extname, join, relative, resolve } from "node:path";
+import { basename, extname, join, relative, resolve } from "node:path";
 
 const root = process.cwd();
 const sourceRoot = resolve(root, "src");
@@ -33,6 +33,18 @@ function collectStringLiterals(source) {
 }
 
 const files = await collectFiles(sourceRoot);
+const rootEntries = await readdir(root, { withFileTypes: true });
+const rootFiles = rootEntries
+  .filter((entry) => entry.isFile())
+  .map((entry) => resolve(root, entry.name));
+const forbiddenArtifactPattern = /^(?:temp_.*|.*\.(?:bak|old))$/i;
+
+for (const file of [...rootFiles, ...files]) {
+  if (forbiddenArtifactPattern.test(basename(file))) {
+    failures.push(`${relativePath(file)}: temporary or backup artifact must not be committed`);
+  }
+}
+
 const codeFiles = files.filter((file) =>
   [".ts", ".tsx"].includes(extname(file)),
 );

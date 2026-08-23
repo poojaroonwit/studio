@@ -1,0 +1,51 @@
+name: Hrive Time architecture finalize
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: ${{ github.head_ref == 'feat/hrive-time-e2e-completion' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/hrive-time-e2e-completion
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/codemods/finalize-time-architecture.mjs
+      - run: npm run check:architecture
+      - run: node scripts/time-e2e-regression-checks.cjs
+      - run: npm run type-check
+      - run: >-
+          npx eslint
+          src/lib/hr/time-workspace-data.ts
+          src/lib/hr/shift-attendance-service.ts
+          src/components/shift/views/OvertimeView.tsx
+          src/components/shift/views/RosterView.tsx
+          src/components/shift/views/TimesheetCommandCenter.tsx
+          --max-warnings=0
+      - name: Commit verified architecture extraction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/lib/hr/shift-attendance-service.ts \
+            src/components/shift/views/OvertimeView.tsx \
+            src/components/shift/views/RosterView.tsx \
+            src/components/shift/views/TimesheetCommandCenter.tsx
+          if git diff --cached --quiet; then
+            echo "No architecture changes to commit."
+          else
+            git commit -m "refactor: keep Time completion within architecture budgets [time-architecture-bot]"
+            git push origin HEAD:feat/hrive-time-e2e-completion
+          fi

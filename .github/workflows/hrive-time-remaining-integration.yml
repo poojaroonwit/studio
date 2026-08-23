@@ -22,6 +22,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: node scripts/codemods/normalize-time-codemod-anchors.mjs
       - run: node scripts/codemods/complete-time-remaining.mjs
       - run: DATABASE_URL=postgresql://unused:unused@127.0.0.1:5432/unused npx prisma validate --schema=prisma/schema.prisma
       - run: node scripts/time-e2e-regression-checks.cjs

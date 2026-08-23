@@ -98,7 +98,7 @@ Add a Learning Management workspace under Learning navigation:
 - `/learning/manage/reviews` → pending assignment review queue
 - `/learning/manage/reports` → Learning reports and CSV export
 
-The exact navigation can be tabs within one route shell if that better matches the existing Hrive navigation primitives, but each view must have a direct URL and independent loading/error state.
+Each manager view has its own direct URL and independent loading/error state. A shared management shell may provide tabs/navigation without collapsing the route boundaries.
 
 ## 5. Capability and self-service contract
 
@@ -189,6 +189,7 @@ A path assignment must be represented as one manager action even though courses 
 
 Keep the dedicated Achievements and Trusted Certificates implementations. Employee Certificates moves to its own controller while preserving:
 
+- employee sees their own credentials through the self-service boundary
 - add employee credential when capability permits
 - verification workflow
 - validity / expiration
@@ -277,7 +278,7 @@ Actions:
 
 Request changes requires feedback. Approve may include optional feedback.
 
-Review is concurrency-safe enough to reject acting on a submission that changed after the manager loaded it; use `updated_at` as an expected-value precondition or add an explicit version only if implementation proves timestamp concurrency is insufficient.
+Every review mutation carries `expectedUpdatedAt` from the loaded submission. The service updates only when the current `updated_at` matches that expected value; otherwise it returns a conflict and the UI reloads the authoritative submission. No new review-version column is introduced for this change.
 
 ### 7.4 Completion override
 
@@ -363,7 +364,7 @@ Add dedicated learner-safe reads rather than widening generic HR CRUD:
 - own enrollments/progress only
 - published/active course catalog only
 - own path-derived state only
-- own certificate state where appropriate
+- own certificate state
 
 The learner routes must not call an endpoint that can return arbitrary other employees' Learning enrollment rows.
 
@@ -423,7 +424,7 @@ Existing large `CourseExperience.tsx` is in scope for production-quality audit a
 
 ## 10. API design
 
-Exact paths may be adjusted to match current routing conventions, but contracts must be explicit and specialized.
+The following paths are the implementation contract for this change.
 
 ### `GET /api/learning/me`
 
@@ -434,12 +435,13 @@ Learner-safe context:
 - own enrollments/progress summary
 - own due/required/continue state
 - own path-derived state as needed by Home/Paths
+- own employee certificate state needed by Learning Home/Certificates
 
 Must not return arbitrary workforce Learning rows.
 
 ### `GET /api/learning/catalog`
 
-Published/active course catalog plus optional current learner enrollment state. No drafts unless a manager/studio-specific request path is used.
+Published/active course catalog plus current learner enrollment state when a linked employee exists. It never returns draft/inactive courses to learner requests.
 
 ### `POST /api/learning/studio/courses`
 
@@ -455,14 +457,14 @@ Returns capabilities plus manager assignment overview as needed by management sh
 
 ### `GET /api/learning/studio/report`
 
-Keep existing endpoint but add supported query filters and company scope.
+Keep the existing endpoint and add supported query filters plus company scope.
 
 ### `POST /api/learning/studio/actions`
 
-Keep specialized actions, harden contract:
+Keep specialized actions and harden the contract:
 
-- `review_assignment`
-- `override_completion`
+- `review_assignment` with `submissionId`, `approved`, optional/required feedback per decision, and `expectedUpdatedAt`
+- `override_completion` with `enrollmentId` and required reason
 
 Request-changes feedback is mandatory when `approved=false`.
 
@@ -506,7 +508,7 @@ Existing enrollments remain valid. Historical enrollments without assignment-bat
 
 If implementation discovers an existing suitable assignment/audit table that already provides all required idempotency/source semantics, prefer reusing it and document the deviation rather than adding a duplicate model.
 
-No course-company migration is part of this change.
+No course-company migration or assignment-review version-column migration is part of this change.
 
 ## 14. TDD and regression strategy
 
@@ -523,7 +525,7 @@ Add RED→GREEN coverage for:
 7. repeated assignment idempotency key does not duplicate work
 8. completed enrollments are not reset by re-assignment
 9. request-changes review requires feedback
-10. stale assignment review is rejected
+10. stale assignment review using `expectedUpdatedAt` is rejected
 11. completion override requires reason and records audit context
 12. company-scoped report/review excludes out-of-scope employee data
 13. atomic course creation rolls back course when curriculum persistence fails
@@ -604,4 +606,5 @@ The project is complete when:
 11. Learning Management exposes assignment review and reports
 12. manager operational data respects employee company scope
 13. published learner catalog excludes drafts/inactive courses
-14. all permanent Learning regression and normal production gates pass on the exact merge head
+14. stale assignment reviews are conflict-safe through `expectedUpdatedAt`
+15. all permanent Learning regression and normal production gates pass on the exact merge head

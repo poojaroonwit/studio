@@ -18,8 +18,9 @@ jobs:
       - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run check:architecture
+      - run: node scripts/frontend-architecture-regression-checks.cjs
       - run: npm run type-check
-      - run: npm run lint
+      - run: npm run lint:strict
       - run: npm run test:run
       - run: npm run build
 

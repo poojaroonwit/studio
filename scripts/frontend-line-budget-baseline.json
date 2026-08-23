@@ -12,7 +12,6 @@
   "src/components/hr/OffboardingPage.tsx": 1249,
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4385,
-  "src/swagger/paths/applicants.ts": 722,
   "src/components/people/DepartmentHierarchyPage.tsx": 798,
   "src/components/payroll/PayrollWorkspace.tsx": 5146,
   "src/components/payroll/CompensationReviewWorkspace.tsx": 898,

@@ -49,6 +49,28 @@ export function parseTimePolicyConfig(value: unknown): TimePolicyConfig {
   };
 }
 
+export function timezoneOffsetMinutesForDate(timeZone: string, logicalDate: string) {
+  const sample = new Date(`${logicalDate}T12:00:00.000Z`);
+  if (Number.isNaN(sample.valueOf())) return 420;
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(sample);
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find(part => part.type === type)?.value || 0);
+    const representedUtc = Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second'));
+    return Math.round((representedUtc - sample.getTime()) / 60_000);
+  } catch {
+    return 420;
+  }
+}
+
 export async function getTimePolicyConfig(): Promise<TimePolicyConfig> {
   const setting = await prisma.systemSetting.findUnique({
     where: { key: 'workforceRulesConfiguration' },

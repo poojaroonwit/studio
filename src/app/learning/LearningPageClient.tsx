@@ -59,6 +59,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
+  displayLearningValue as text,
+  formatLearningDate as formatDate,
+  isActiveLearningCourse as isCourseActive,
+  isTrustedLearningCertificate as isTrustedCertificate,
+  learningBooleanValue as booleanValue,
+  learningCourseColor as courseColor,
+  learningDaysUntil as daysUntil,
+  learningNumberValue as numberValue,
+  learningRecordValue as recordValue,
+  learningRecordsFromResponse as getRecords,
+  learningStringArrayValue as stringArrayValue,
+  normalizeLearningStatus as normalizeStatus,
+  withoutEmptyLearningValues as withoutEmptyValues,
+} from "@/lib/learning/record-utils";
+import {
   certificateFormDefault,
   courseFormDefault,
   learningAssignmentDefault,
@@ -226,100 +241,6 @@ const learningJourneyCopy: Record<
     nextHref: "/learning",
   },
 };
-
-function text(value: unknown, fallback = "—") {
-  if (value === null || value === undefined || value === "") return fallback;
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value))
-    return value.slice(0, 10);
-  return String(value).replace(/_/g, " ");
-}
-
-function numberValue(value: unknown) {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function booleanValue(primary: unknown, secondary?: unknown) {
-  const value = primary ?? secondary;
-  return value === true || value === "true" || value === 1;
-}
-
-function isCourseActive(course: LearningRecord) {
-  const value = recordValue(course, "isActive", "is_active");
-  return value === undefined ? true : booleanValue(value);
-}
-
-function withoutEmptyValues<T extends object>(values: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => value !== ""),
-  ) as Partial<T>;
-}
-
-function recordValue(record: LearningRecord, camel: string, snake?: string) {
-  return record[camel] ?? (snake ? record[snake] : undefined);
-}
-
-function stringArrayValue(value: unknown) {
-  if (Array.isArray(value))
-    return value.filter((item): item is string => typeof item === "string");
-  if (typeof value !== "string") return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function getRecords(payload: LearningResponse) {
-  return payload.resource?.records || payload.records || [];
-}
-
-function normalizeStatus(status: unknown) {
-  return String(status || "active").toLowerCase();
-}
-
-function isTrustedCertificate(certificate: LearningRecord) {
-  return recordValue(certificate, "recordType", "record_type") === "trusted";
-}
-
-function formatDate(value: unknown) {
-  if (!value) return "No date";
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return text(value);
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function daysUntil(value: unknown) {
-  if (!value) return null;
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return null;
-  return Math.ceil((date.getTime() - Date.now()) / 86_400_000);
-}
-
-function courseColor(category: unknown) {
-  const value = String(category || "").toLowerCase();
-  if (value.includes("compliance") || value.includes("security"))
-    return "bg-emerald-600";
-  if (value.includes("lead") || value.includes("manager"))
-    return "bg-amber-600";
-  if (value.includes("customer") || value.includes("service"))
-    return "bg-rose-600";
-  if (value.includes("technical") || value.includes("data"))
-    return "bg-sky-600";
-  return "bg-indigo-600";
-}
 
 export function LearningPageClient({ view }: { view: LearningView }) {
   const [courses, setCourses] = React.useState<LearningRecord[]>([]);

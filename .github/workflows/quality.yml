@@ -18,8 +18,21 @@ jobs:
       - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run check:architecture
+      - run: node scripts/frontend-architecture-regression-checks.cjs
       - run: npm run type-check
       - run: npm run lint
+      - name: Strict lint refactor-owned modules
+        run: >-
+          npx eslint
+          src/lib/learning/record-utils.ts
+          src/lib/learning/record-utils.test.ts
+          src/lib/payroll/workspace-model.ts
+          src/lib/payroll/workspace-model.test.ts
+          src/lib/hr/employee-profile-model.ts
+          src/lib/hr/employee-profile-model.test.ts
+          src/lib/leaves/leave-allocation-draft.ts
+          src/lib/leaves/leave-allocation-draft.test.ts
+          --max-warnings=0
       - run: npm run test:run
       - run: npm run build
 

@@ -95,7 +95,6 @@ owner = replaceOnce(owner,
 'owner policy imports');
 owner = owner.replace('async function assertShiftRequestTargets(', 'export async function validateOwnedShiftRequestTargets(');
 owner = owner.replaceAll('await assertShiftRequestTargets(employee.id,', 'await validateOwnedShiftRequestTargets(employee.id,');
-owner = owner.replace("if (action === 'resubmit_shift_request') return status === 'returned_for_revision' ? submissionStatus : null;", "if (action === 'resubmit_shift_request') return ['returned_for_revision', 'withdrawn'].includes(status) ? submissionStatus : null;");
 if (!owner.includes('const rosterPolicy = await getTimePolicyConfig();')) {
   owner = owner.replace(
 "  return prisma.$transaction(async tx => {\n    let periods = await tx.$queryRawUnsafe<{ id: string }[]>(",
@@ -280,7 +279,13 @@ await write(correctionPath, correction);
 // --- Overtime UI lifecycle/edit ---
 const overtimePath = 'src/components/shift/views/OvertimeView.tsx';
 let overtime = await read(overtimePath);
-overtime = replaceOnce(overtime, "import { useShiftAttendance } from '../use-shift-attendance';", "import { useShiftAttendance } from '../use-shift-attendance';\nimport { OvertimeOwnerActions } from './TimeRequestOwnerActions';", 'overtime owner import');
+if (!overtime.includes('OvertimeOwnerActions')) {
+  if (overtime.includes('import { useShiftAttendance } from "../use-shift-attendance";')) {
+    overtime = overtime.replace('import { useShiftAttendance } from "../use-shift-attendance";', 'import { useShiftAttendance } from "../use-shift-attendance";\nimport { OvertimeOwnerActions } from "./TimeRequestOwnerActions";');
+  } else {
+    overtime = replaceOnce(overtime, "import { useShiftAttendance } from '../use-shift-attendance';", "import { useShiftAttendance } from '../use-shift-attendance';\nimport { OvertimeOwnerActions } from './TimeRequestOwnerActions';", 'overtime owner import');
+  }
+}
 overtime = overtime.replace('  const query = React.useMemo(() => new URLSearchParams(), []);', "  const query = React.useMemo(() => new URLSearchParams(employeeSelfService ? { scope: 'self' } : {}), [employeeSelfService]);");
 overtime = overtime.replace('  const [requestDialogOpen, setRequestDialogOpen] = React.useState(false);', '  const [requestDialogOpen, setRequestDialogOpen] = React.useState(false);\n  const [editingRequest, setEditingRequest] = React.useState<ShiftRecord | null>(null);');
 overtime = overtime.replaceAll('onClick={() => setRequestDialogOpen(true)}', 'onClick={() => { setEditingRequest(null); setRequestDialogOpen(true); }}');

@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import ts from "typescript";
 
+// This codemod is intentionally deterministic so CI can verify the exact split.
 const root = process.cwd();
 const sourcePath = resolve(root, "src/app/learning/LearningPageClient.tsx");
 const legacyPath = resolve(root, "src/app/learning/LegacyCourseCatalog.tsx");

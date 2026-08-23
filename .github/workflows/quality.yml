@@ -23,7 +23,7 @@ jobs:
       - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: node scripts/codemods/refactor-learning-record-utils.mjs
-      - run: npx vitest run src/lib/learning/record-utils.test.ts src/lib/payroll/workspace-model.test.ts
+      - run: npx vitest run src/lib/learning/record-utils.test.ts src/lib/payroll/workspace-model.test.ts src/lib/hr/employee-profile-model.test.ts
       - run: npm run type-check
       - run: npm run check:architecture
       - name: Commit deterministic refactor

@@ -28,6 +28,8 @@ jobs:
           npx eslint
           src/app/learning/LearningPageClient.tsx
           src/app/learning/LearningOverview.tsx
+          src/app/learning/LegacyCourseCatalog.tsx
+          src/app/learning/LearningUiPrimitives.tsx
           src/lib/learning/record-utils.ts
           src/lib/learning/record-utils.test.ts
           src/lib/payroll/workspace-model.ts

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { HrCrudRecord } from "./hr-crud";
 import {
@@ -61,7 +61,11 @@ describe("employee profile model", () => {
   });
 
   it("derives account and employee display state", () => {
-    const unlinked = { firstName: "Jane", lastName: "Doe" } as HrCrudRecord;
+    const unlinked = {
+      id: "employee-1",
+      firstName: "Jane",
+      lastName: "Doe",
+    } as HrCrudRecord;
     expect(accountLinkStatus(unlinked)).toBe("No matching account");
     expect(accountAccessStatus(unlinked)).toBe("Unlinked");
     expect(employeeDisplayName(unlinked)).toBe("Jane Doe");
@@ -79,6 +83,7 @@ describe("employee profile model", () => {
 
   it("maps employee data into the existing edit-form shape", () => {
     const employee = {
+      id: "employee-1",
       employeeNumber: "E001",
       firstName: "Jane",
       lastName: "Doe",
@@ -93,7 +98,7 @@ describe("employee profile model", () => {
         email: "jane.personal@example.com",
       },
       skills: ["SQL"],
-    } as unknown as HrCrudRecord;
+    } as HrCrudRecord;
 
     const form = employeeEditForm(employee);
     expect(form.employeeNumber).toBe("E001");

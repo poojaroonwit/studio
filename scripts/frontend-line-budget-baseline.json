@@ -19,7 +19,6 @@
   "src/components/shift/views/TimesheetCommandCenter.tsx": 1828,
   "src/components/shift/views/RosterView.tsx": 1711,
   "src/components/shift/views/OvertimeView.tsx": 1768,
-  "src/lib/hr/hr-resource-registry.ts": 758,
   "src/lib/hr/shift-attendance-service.ts": 1783,
   "src/lib/hr/ess-service.ts": 1561,
   "src/app/hiring/headcount-requests/HeadcountRequestsClient.tsx": 1373,

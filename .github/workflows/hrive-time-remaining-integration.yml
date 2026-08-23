@@ -72,6 +72,5 @@ jobs:
             echo "No generated Time completion changes to commit."
           else
             git commit -m "feat: wire remaining Time end-to-end journeys [time-remaining-bot]"
-            git pull --rebase origin feat/hrive-time-e2e-completion
             git push origin HEAD:feat/hrive-time-e2e-completion
           fi

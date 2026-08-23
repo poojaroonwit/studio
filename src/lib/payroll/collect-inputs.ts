@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import type { PayrollAccess, PayrollActionInput } from "./contracts";
 import { PayrollServiceError } from "./service-foundation";
 import { toSqlDate } from "./date-only";
+import { collectAttendanceExportInputs } from "./attendance-inputs";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type Row = Record<string, unknown>;
@@ -44,6 +45,8 @@ async function collectInputs(
   // parse strings such as "Wed Aug 12 2026 ...". Bind canonical date-only text.
   const start = toSqlDate(period[0].start_date);
   const end = toSqlDate(period[0].end_date);
+
+  await collectAttendanceExportInputs(client as Prisma.TransactionClient, { runId, companyId, start, end, actorId });
 
   await client.$executeRawUnsafe(
     `INSERT INTO hr_payroll_inputs

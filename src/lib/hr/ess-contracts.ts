@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { ATTENDANCE_CORRECTION_TYPES } from './attendance-correction';
+
 export const ESS_REQUEST_STATUSES = [
   'draft',
   'submitted',
@@ -25,6 +27,10 @@ export const ESS_REQUEST_TYPES = [
 export type EssRequestType = (typeof ESS_REQUEST_TYPES)[number];
 
 const dateTimeValue = z.string().datetime({ offset: true }).or(z.string().datetime());
+const evidenceUrl = z.string().min(1).max(2048).refine(
+  value => value.startsWith('/') || /^https?:\/\//i.test(value),
+  'Evidence must be a secure application path or URL.',
+);
 
 export const essRequestCreateSchema = z.discriminatedUnion('requestType', [
   z.object({
@@ -41,15 +47,27 @@ export const essRequestCreateSchema = z.discriminatedUnion('requestType', [
     reason: z.string().min(3).max(2000),
     values: z.object({
       workDate: z.string().date(),
-      clockIn: dateTimeValue.nullish(),
-      clockOut: dateTimeValue.nullish(),
-      breakMinutes: z.coerce.number().int().min(0).max(720).default(0),
+      correctionType: z.enum(ATTENDANCE_CORRECTION_TYPES),
+      attendanceRecordId: z.string().uuid().optional().nullable(),
+      assignmentId: z.string().uuid().optional().nullable(),
+      clockIn: dateTimeValue.optional().nullable(),
+      clockOut: dateTimeValue.optional().nullable(),
+      breakMinutes: z.coerce.number().int().min(0).max(720).optional().nullable(),
+      workLocation: z.string().trim().max(120).optional().nullable(),
+      requestedStatus: z.enum([
+        'scheduled', 'present', 'late', 'absent', 'on_leave', 'working_remotely',
+        'off_site', 'on_break', 'checked_out', 'missing_record', 'exception',
+      ]).optional().nullable(),
     }).refine(
       value => !value.clockIn || !value.clockOut || new Date(value.clockOut) > new Date(value.clockIn),
       { message: 'Check-out must be after check-in.', path: ['clockOut'] },
     ),
     originalValues: z.record(z.string(), z.unknown()).default({}),
-    supportingDocuments: z.array(z.object({ name: z.string().min(1).max(200), url: z.string().url(), size: z.string().max(40).optional() })).max(10).default([]),
+    supportingDocuments: z.array(z.object({
+      name: z.string().min(1).max(200),
+      url: z.string().min(1).max(2048).refine(value => value.startsWith('/') || /^https?:\/\//i.test(value), 'Evidence must be a secure application path or URL.'),
+      size: z.string().max(40).optional(),
+    })).max(10).default([]),
     saveAsDraft: z.boolean().default(false),
   }),
   z.object({

@@ -5,6 +5,10 @@ import { logAudit } from '@/lib/auditLog';
 import { hasAnyPermission } from '@/lib/permissions';
 import { essRequestActionSchema, essRequestCreateSchema } from '@/lib/hr/ess-contracts';
 import {
+  attendanceCorrectionUpdateSchema,
+  updateOwnAttendanceCorrection,
+} from '@/lib/hr/attendance-correction-request-update';
+import {
   actOnEssRequest,
   createEssRequest,
   listManagerEssApprovals,
@@ -50,6 +54,24 @@ export async function POST(request: NextRequest) {
       status: data.status,
     });
     return NextResponse.json({ data }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });
+  const parsed = attendanceCorrectionUpdateSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ message: 'Please correct the attendance correction fields.', errors: parsed.error.flatten() }, { status: 400 });
+  }
+  try {
+    const data = await updateOwnAttendanceCorrection({ userId: session.user.id, email: session.user.email, input: parsed.data });
+    await logAudit('AUDIT', 'ESS attendance correction updated.', 'API:ESS:AttendanceCorrection:Update', session.user.id, {
+      requestId: parsed.data.id,
+    });
+    return NextResponse.json({ data });
   } catch (error) {
     return errorResponse(error);
   }

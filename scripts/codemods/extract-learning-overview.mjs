@@ -34,6 +34,10 @@ const functionSource = source
 
 const targetSource = `import Image from "next/image";\nimport Link from "next/link";\nimport {\n  ArrowRightIcon,\n  BookmarkIcon,\n  CheckIcon,\n  ChevronRightIcon,\n  ClockIcon,\n  MapPinIcon,\n  QueueListIcon,\n  SparklesIcon,\n} from "@heroicons/react/24/outline";\nimport { FireIcon as FireIconSolid } from "@heroicons/react/24/solid";\nimport { UsersRound as CourseUsersIcon } from "lucide-react";\n\nimport { Button } from "@/components/ui/button";\nimport { cn } from "@/lib/utils";\nimport {\n  displayLearningValue as text,\n  isActiveLearningCourse as isCourseActive,\n  learningNumberValue as numberValue,\n  learningRecordValue as recordValue,\n  normalizeLearningStatus as normalizeStatus,\n} from "@/lib/learning/record-utils";\nimport type { LearningRecord } from "./learning-workspace-model";\n\n${functionSource}\n`;
 
+// Remove using AST offsets from the unmodified source first. Adding imports before
+// this step would shift those offsets and could cut into adjacent JSX/components.
+source = `${source.slice(0, overview.getFullStart())}${source.slice(overview.getEnd())}`;
+
 const importAnchor = 'import { TrustedCertificatesWorkspace } from "./TrustedCertificatesWorkspace";\n';
 const overviewImport = 'import { LearningOverview } from "./LearningOverview";\n';
 if (!source.includes(overviewImport.trim())) {
@@ -42,8 +46,6 @@ if (!source.includes(overviewImport.trim())) {
   }
   source = source.replace(importAnchor, `${importAnchor}${overviewImport}`);
 }
-
-source = `${source.slice(0, overview.getFullStart())}${source.slice(overview.getEnd())}`;
 
 await writeFile(targetPath, targetSource, "utf8");
 await writeFile(sourcePath, source, "utf8");

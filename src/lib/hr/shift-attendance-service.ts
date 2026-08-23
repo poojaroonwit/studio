@@ -3,6 +3,9 @@ import type { Prisma } from '@prisma/client';
 
 import { calculateAttendance, resolveShiftWindow } from './attendance-calculation';
 import type { ShiftAttendanceMutation, ShiftView } from './shift-attendance-contracts';
+import { getTimePolicyConfig, timezoneOffsetMinutesForDate } from './time-policy-config';
+import { copyRosterWeek, mutateOwnedOvertime, mutateOwnedShiftRequest, validateOwnedShiftRequestTargets } from './time-owner-actions';
+import { mutateTimeSetup } from './time-setup-actions';
 import { hasAnyPermission, isAdminUser } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 
@@ -430,12 +433,13 @@ async function listAttendance(actor: ShiftAttendanceActor, searchParams: URLSear
     facets: facetRows[0] || { departments: [], locations: [], exception_types: [] },
   };
 }
-
-async function listRequests(actor: ShiftAttendanceActor) {
+async function listRequests(actor: ShiftAttendanceActor, searchParams: URLSearchParams) {
   const employee = actor.employee;
   if (!employee && !actor.canViewWorkforce) throw new Error('NO_EMPLOYEE');
-  const scope = employeeScopeSql(actor, 'e');
-  const [shiftRequests, attendanceRequests, assignments, colleagues] = await Promise.all([
+  const scope = searchParams.get('scope') === 'self' && employee
+    ? { clause: 'AND e.id = $1::uuid', params: [employee.id] }
+    : employeeScopeSql(actor, 'e');
+  const [shiftRequests, attendanceRequests, assignments, colleagues, eligibleSwapAssignments, openShifts] = await Promise.all([
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT sr.*, e.employee_number, e.first_name, e.last_name, e.preferred_name,
               swap.first_name AS swap_first_name, swap.last_name AS swap_last_name
@@ -480,14 +484,41 @@ async function listRequests(actor: ShiftAttendanceActor) {
           actor.companyId,
         )
       : Promise.resolve([]),
+    employee
+      ? prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+          `SELECT sa.*, e.employee_number, e.first_name, e.last_name, e.preferred_name, e.job_title,
+                  ws.name AS schedule_name
+           FROM "hr_shift_assignments" sa
+           JOIN "hr_employees" e ON e.id = sa.employee_id
+           LEFT JOIN "hr_work_schedules" ws ON ws.id = sa.schedule_id
+           WHERE sa.employee_id <> $1::uuid AND e.status = 'active' AND sa.status <> 'cancelled'
+             AND sa.shift_date::date >= CURRENT_DATE - INTERVAL '7 days'
+             AND sa.shift_date::date <= CURRENT_DATE + INTERVAL '60 days'
+             AND ($2::uuid IS NULL OR e.company_id = $2::uuid)
+           ORDER BY sa.shift_date, sa.start_time LIMIT 500`,
+          employee.id, actor.companyId)
+      : Promise.resolve([]),
+    prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+      `SELECT os.* FROM "hr_open_shifts" os
+       LEFT JOIN "hr_roster_periods" rp ON rp.id = os.roster_period_id
+       WHERE os.status = 'open' AND COALESCE(os.headcount_assigned, 0) < os.headcount_required
+         AND os.shift_date >= CURRENT_DATE - INTERVAL '7 days'
+         AND os.shift_date <= CURRENT_DATE + INTERVAL '60 days'
+         AND ($1::uuid IS NULL OR rp.company_id IS NULL OR rp.company_id = $1::uuid)
+       ORDER BY os.shift_date, os.start_at LIMIT 200`, actor.companyId).catch(error => {
+         if (isMissingRelationError(error)) return [];
+         throw error;
+       }),
   ]);
-  return { view: 'requests', shiftRequests, attendanceRequests, assignments, colleagues };
+  return { view: 'requests', shiftRequests, attendanceRequests, assignments, colleagues, eligibleSwapAssignments, openShifts };
 }
-
-async function listOvertime(actor: ShiftAttendanceActor) {
+async function listOvertime(actor: ShiftAttendanceActor, searchParams: URLSearchParams) {
   const employee = actor.employee;
   if (!employee && !actor.canViewWorkforce) throw new Error('NO_EMPLOYEE');
-  const scope = employeeScopeSql(actor);
+  const scope = searchParams.get('scope') === 'self' && employee
+    ? { clause: 'AND e.id = $1::uuid', params: [employee.id] }
+    : employeeScopeSql(actor);
+  const policy = await getTimePolicyConfig();
   const [requests, assignments] = await Promise.all([
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT ot.*, e.employee_number, e.first_name, e.last_name, e.preferred_name,
@@ -501,7 +532,7 @@ async function listOvertime(actor: ShiftAttendanceActor) {
                FROM "hr_shift_assignments" sa
                WHERE sa.employee_id = ot.employee_id AND sa.status <> 'cancelled'
                  AND date_trunc('week', sa.shift_date::date) = date_trunc('week', ot.work_date::date)) AS scheduled_minutes,
-              2880 AS weekly_limit_minutes
+              0 AS weekly_limit_minutes
        FROM "hr_overtime_requests" ot
        JOIN "hr_employees" e ON e.id = ot.employee_id
        LEFT JOIN "hr_departments" d ON d.id = e.department_id
@@ -532,11 +563,10 @@ async function listOvertime(actor: ShiftAttendanceActor) {
       actualMinutes: requests.reduce((sum, row) => sum + Number(row.manager_confirmed_minutes || row.eligible_minutes || 0), 0),
       payrollReady: requests.filter(row => row.status === 'confirmed').length,
     },
-    requests,
+    requests: requests.map(row => ({ ...row, weekly_limit_minutes: Math.round(policy.standardWeeklyHours * 60) })),
     assignments,
   };
 }
-
 async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSearchParams) {
   const employee = actor.employee;
   if (!employee && !actor.canViewWorkforce) throw new Error('NO_EMPLOYEE');
@@ -547,7 +577,9 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
   const endDate = new Date(`${start}T00:00:00.000Z`);
   endDate.setUTCDate(endDate.getUTCDate() + 6);
   const end = dateKey(endDate);
-  const scope = employeeScopeSql(actor);
+  const scope = searchParams.get('scope') === 'self' && employee
+    ? { clause: 'AND e.id = $1::uuid', params: [employee.id] }
+    : employeeScopeSql(actor);
 
   const timesheets = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
     `SELECT ts.id, ts.timesheet_number, e.id AS employee_id,
@@ -649,6 +681,7 @@ async function listTimesheets(actor: ShiftAttendanceActor, searchParams: URLSear
   };
 }
 
+
 async function listReports(actor: ShiftAttendanceActor, searchParams: URLSearchParams) {
   requireWorkforceView(actor);
   const end = searchParams.get('end') || dateKey(new Date());
@@ -685,18 +718,22 @@ export async function getShiftAttendanceData(
 ) {
   if (view === 'roster') return listRoster(actor, searchParams);
   if (view === 'attendance') return listAttendance(actor, searchParams);
-  if (view === 'requests') return listRequests(actor);
-  if (view === 'overtime') return listOvertime(actor);
+  if (view === 'requests') return listRequests(actor, searchParams);
+  if (view === 'overtime') return listOvertime(actor, searchParams);
   if (view === 'timesheet') return listTimesheets(actor, searchParams);
   return listReports(actor, searchParams);
 }
-
 async function createAssignment(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'create_assignment' }>,
 ) {
   requireWorkforceManage(actor);
-  const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime);
+  const policy = await getTimePolicyConfig();
+  const offset = timezoneOffsetMinutesForDate(policy.timezone, input.shiftDate);
+  const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime, offset);
+  const restMs = policy.minimumShiftRestHours * 60 * 60_000;
+  const restStart = new Date(start.getTime() - restMs);
+  const restEnd = new Date(end.getTime() + restMs);
   for (const employeeId of input.employeeIds) {
     if (!await canAccessEmployee(actor, employeeId, false)) throw new Error('FORBIDDEN');
   }
@@ -746,8 +783,8 @@ async function createAssignment(
          LIMIT 1
          FOR UPDATE`,
         employeeId,
-        start,
-        end,
+        restStart,
+        restEnd,
       );
       if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
       const id = randomUUID();
@@ -801,6 +838,7 @@ async function createAssignment(
   });
 }
 
+
 async function publishRoster(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'publish_roster' }>,
@@ -848,10 +886,9 @@ async function publishRoster(
       input.rosterPeriodId,
       actor.user.id,
     );
-    return { period: updated[0], assignments };
+    return { period: updated[0], assignments, employeeIds: [...new Set(assignments.map(row => String(row.employee_id)).filter(Boolean))] };
   });
 }
-
 async function changeAssignment(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'update_assignment' | 'delete_assignment' }>,
@@ -885,7 +922,12 @@ async function changeAssignment(
       return updated[0];
     }
 
-    const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime);
+    const policy = await getTimePolicyConfig();
+    const offset = timezoneOffsetMinutesForDate(policy.timezone, input.shiftDate);
+    const { start, end } = resolveShiftWindow(input.shiftDate, input.startTime, input.endTime, offset);
+    const restMs = policy.minimumShiftRestHours * 60 * 60_000;
+    const restStart = new Date(start.getTime() - restMs);
+    const restEnd = new Date(end.getTime() + restMs);
     const conflicts = await tx.$queryRawUnsafe<{ id: string }[]>(
       `SELECT id FROM "hr_shift_assignments"
        WHERE employee_id = $1::uuid AND id <> $2::uuid AND status <> 'cancelled'
@@ -894,7 +936,7 @@ async function changeAssignment(
            THEN ((shift_date::date + INTERVAL '1 day') + end_time::time) AT TIME ZONE 'Asia/Bangkok'
            ELSE (shift_date::date + end_time::time) AT TIME ZONE 'Asia/Bangkok' END) > $3
        LIMIT 1`,
-      assignment.employee_id, input.assignmentId, start, end,
+      assignment.employee_id, input.assignmentId, restStart, restEnd,
     );
     if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
     const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
@@ -918,12 +960,12 @@ async function changeAssignment(
     return updated[0];
   });
 }
-
 async function recalculateRecord(actor: ShiftAttendanceActor, attendanceRecordId: string) {
   requireWorkforceManage(actor);
+  const policy = await getTimePolicyConfig();
   const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
     `SELECT ar.*, sa.start_at, sa.end_at, sa.start_time, sa.end_time, sa.shift_date,
-            COALESCE(sdv.grace_period_minutes, 5) AS grace_period_minutes,
+            sdv.grace_period_minutes AS grace_period_minutes,
             COALESCE(sdv.early_departure_tolerance_minutes, 5) AS early_departure_tolerance_minutes,
             EXISTS (
               SELECT 1 FROM "hr_leave_requests" lr
@@ -976,7 +1018,7 @@ async function recalculateRecord(actor: ShiftAttendanceActor, attendanceRecordId
     breakMinutes: Number(row.break_minutes || 0),
     approvedLeave: Boolean(row.approved_leave),
     publicHoliday: Boolean(row.public_holiday),
-    lateToleranceMinutes: Number(row.grace_period_minutes || 5),
+    lateToleranceMinutes: Number(row.grace_period_minutes ?? policy.lateGraceMinutes),
     earlyDepartureToleranceMinutes: Number(row.early_departure_tolerance_minutes || 5),
     roundingMinutes: 1,
     approvedOvertimeMinutes: Number(row.approved_overtime_minutes || 0),
@@ -1048,6 +1090,7 @@ async function recalculateRecord(actor: ShiftAttendanceActor, attendanceRecordId
     return { record: updated[0], calculation: output };
   });
 }
+
 
 async function reviewAttendance(
   actor: ShiftAttendanceActor,
@@ -1194,7 +1237,6 @@ async function transitionAttendancePeriod(
     return exports[0];
   });
 }
-
 async function createShiftRequest(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'create_shift_request' }>,
@@ -1202,6 +1244,7 @@ async function createShiftRequest(
   const employee = requireEmployee(actor);
   const warnings: string[] = [];
   if (input.effectiveEnd < input.effectiveStart) throw new Error('INVALID_DATE_RANGE');
+  await validateOwnedShiftRequestTargets(employee.id, input);
   if (input.assignmentId) {
     const assignments = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT * FROM "hr_shift_assignments" WHERE id = $1::uuid AND employee_id = $2::uuid LIMIT 1`,
@@ -1220,10 +1263,10 @@ async function createShiftRequest(
   const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
     `INSERT INTO "hr_shift_requests"
       (id, request_id, employee_id, request_type, assignment_id, requested_assignment_id,
-       swap_employee_id, effective_start, effective_end, work_location, reason,
+       open_shift_id, swap_employee_id, effective_start, effective_end, work_location, reason,
        policy_warnings, status, created_at, updated_at)
-     VALUES ($1::uuid, $2, $3::uuid, $4, $5::uuid, $6::uuid, $7::uuid,
-             $8::date, $9::date, $10, $11, $12::jsonb, $13,
+     VALUES ($1::uuid, $2, $3::uuid, $4, $5::uuid, $6::uuid, $7::uuid, $8::uuid,
+             $9::date, $10::date, $11, $12, $13::jsonb, $14,
              CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      RETURNING *`,
     id,
@@ -1232,6 +1275,7 @@ async function createShiftRequest(
     input.requestType,
     input.assignmentId || null,
     input.requestedAssignmentId || null,
+    input.openShiftId || null,
     input.swapEmployeeId || null,
     input.effectiveStart,
     input.effectiveEnd,
@@ -1242,7 +1286,6 @@ async function createShiftRequest(
   );
   return rows[0];
 }
-
 async function decideShiftRequest(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'decide_shift_request' }>,
@@ -1252,6 +1295,7 @@ async function decideShiftRequest(
     swap_employee_id: string | null;
     assignment_id: string | null;
     requested_assignment_id: string | null;
+    open_shift_id: string | null;
     request_type: string;
     effective_start: Date;
     effective_end: Date;
@@ -1310,7 +1354,35 @@ async function decideShiftRequest(
           input.comment || 'Approved shift swap',
         );
       }
-      if (request.request_type !== 'shift_swap') {
+      if (request.request_type === 'open_shift') {
+        if (!request.open_shift_id) throw new Error('NOT_FOUND');
+        const openRows = await tx.$queryRawUnsafe<Array<{ id: string; roster_period_id: string | null; shift_definition_id: string | null; shift_date: Date; start_at: Date; end_at: Date; work_location: string | null; headcount_required: number; headcount_assigned: number }>>(
+          `SELECT * FROM "hr_open_shifts" WHERE id = $1::uuid AND status = 'open' FOR UPDATE`, request.open_shift_id);
+        const open = openRows[0];
+        if (!open || Number(open.headcount_assigned || 0) >= Number(open.headcount_required || 0)) throw new Error('SHIFT_CONFLICT');
+        const policy = await getTimePolicyConfig();
+        const restMs = policy.minimumShiftRestHours * 60 * 60_000;
+        const conflicts = await tx.$queryRawUnsafe<{ id: string }[]>(
+          `SELECT id FROM "hr_shift_assignments" WHERE employee_id = $1::uuid AND status <> 'cancelled'
+             AND COALESCE(end_at, start_at) > $2 AND COALESCE(start_at, end_at) < $3 LIMIT 1`,
+          request.employee_id, new Date(open.start_at.getTime() - restMs), new Date(open.end_at.getTime() + restMs));
+        if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "hr_shift_assignments"
+            (id, employee_id, roster_period_id, shift_definition_id, shift_definition_version,
+             shift_date, logical_shift_date, start_time, end_time, start_at, end_at, work_location,
+             status, publication_status, change_reason, created_at, updated_at)
+           SELECT gen_random_uuid(), $2::uuid, os.roster_period_id, os.shift_definition_id, sd.current_version,
+                  os.shift_date, os.shift_date,
+                  to_char(os.start_at AT TIME ZONE $3, 'HH24:MI'), to_char(os.end_at AT TIME ZONE $3, 'HH24:MI'),
+                  os.start_at, os.end_at, os.work_location, 'scheduled', 'changed', $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+           FROM "hr_open_shifts" os LEFT JOIN "hr_shift_definitions" sd ON sd.id = os.shift_definition_id
+           WHERE os.id = $1::uuid`, request.open_shift_id, request.employee_id, policy.timezone, input.comment || 'Approved open-shift request');
+        await tx.$executeRawUnsafe(
+          `UPDATE "hr_open_shifts" SET headcount_assigned = headcount_assigned + 1,
+             status = CASE WHEN headcount_assigned + 1 >= headcount_required THEN 'filled' ELSE 'open' END,
+             updated_at = CURRENT_TIMESTAMP WHERE id = $1::uuid`, request.open_shift_id);
+      } else if (request.request_type !== 'shift_swap') {
         const targetId = request.assignment_id || request.requested_assignment_id;
         if (request.request_type !== 'availability_update' && !targetId) throw new Error('NOT_FOUND');
         if (request.request_type === 'drop_shift') {
@@ -1320,7 +1392,7 @@ async function decideShiftRequest(
              WHERE id = $1::uuid AND employee_id = $3::uuid`,
             targetId, input.comment || 'Approved drop-shift request', request.employee_id,
           );
-        } else if (['cover_shift', 'open_shift'].includes(request.request_type)) {
+        } else if (request.request_type === 'cover_shift') {
           await tx.$executeRawUnsafe(
             `UPDATE "hr_shift_assignments" SET employee_id = $2::uuid, publication_status = 'changed',
                     change_reason = $3, version = version + 1, updated_at = CURRENT_TIMESTAMP
@@ -1386,15 +1458,16 @@ async function decideShiftRequest(
   if (!updated[0]) throw new Error('CONFLICT');
   return updated[0];
 }
-
 async function createOvertime(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'create_overtime' }>,
 ) {
   const employee = requireEmployee(actor);
+  const policy = await getTimePolicyConfig();
   const startAt = new Date(input.startAt);
   const endAt = new Date(input.endAt);
-  const requestedMinutes = Math.max(0, minutesBetween(startAt, endAt) - input.breakMinutes);
+  const rawMinutes = Math.max(0, minutesBetween(startAt, endAt) - input.breakMinutes);
+  const requestedMinutes = Math.max(0, Math.round(rawMinutes / policy.overtimeRoundingMinutes) * policy.overtimeRoundingMinutes);
   const warnings: string[] = [];
   if (requestedMinutes < 30) warnings.push('Overtime below 30 minutes may be ineligible under company policy.');
   if (requestedMinutes > 240) warnings.push('Overtime above four hours requires HR review.');
@@ -1438,15 +1511,22 @@ async function createOvertime(
     input.workLocation || null,
     input.compensationMethod,
     JSON.stringify(warnings),
-    input.saveAsDraft ? 'draft' : 'pending_approval',
+    input.saveAsDraft ? 'draft' : policy.overtimeApprovalRequired ? 'pending_approval' : 'approved',
   );
+  if (rows[0] && !input.saveAsDraft && !policy.overtimeApprovalRequired) {
+    const approved = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+      `UPDATE "hr_overtime_requests" SET approved_start_at = requested_start_at, approved_end_at = requested_end_at,
+         approved_minutes = requested_minutes, approved_at = CURRENT_TIMESTAMP, version = version + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid RETURNING *`, id);
+    return approved[0];
+  }
   return rows[0];
 }
-
 async function decideOvertime(
   actor: ShiftAttendanceActor,
   input: Extract<ShiftAttendanceMutation, { action: 'decide_overtime' }>,
 ) {
+  const policy = await getTimePolicyConfig();
   const rows = await prisma.$queryRawUnsafe<Array<Record<string, unknown> & {
     employee_id: string;
     status: string;
@@ -1482,7 +1562,8 @@ async function decideOvertime(
       const start = input.approvedStartAt ? new Date(input.approvedStartAt) : new Date(locked.requested_start_at);
       const end = input.approvedEndAt ? new Date(input.approvedEndAt) : new Date(locked.requested_end_at);
       if (end <= start) throw new Error('INVALID_TRANSITION');
-      const approvedMinutes = Math.max(0, minutesBetween(start, end) - Number(locked.break_minutes || 0));
+      const rawApprovedMinutes = Math.max(0, minutesBetween(start, end) - Number(locked.break_minutes || 0));
+      const approvedMinutes = Math.max(0, Math.round(rawApprovedMinutes / policy.overtimeRoundingMinutes) * policy.overtimeRoundingMinutes);
       const updated = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
         `UPDATE "hr_overtime_requests"
          SET status = 'approved', approved_start_at = $2, approved_end_at = $3,
@@ -1537,6 +1618,7 @@ async function decideOvertime(
     return updated[0];
   });
 }
+
 
 async function refreshTimesheetTotals(client: Prisma.TransactionClient, timesheetId: string) {
   await client.$executeRawUnsafe(
@@ -1759,7 +1841,6 @@ async function decideTimesheet(
   if (!rows[0]) throw new Error('CONFLICT');
   return rows[0];
 }
-
 export async function mutateShiftAttendance(
   actor: ShiftAttendanceActor,
   input: ShiftAttendanceMutation,
@@ -1767,6 +1848,8 @@ export async function mutateShiftAttendance(
   if (input.action === 'create_assignment') return createAssignment(actor, input);
   if (input.action === 'update_assignment' || input.action === 'delete_assignment') return changeAssignment(actor, input);
   if (input.action === 'publish_roster') return publishRoster(actor, input);
+  if (input.action === 'copy_roster') return copyRosterWeek(actor, input);
+  if (['create_roster_period','create_shift_definition','create_work_schedule','create_open_shift'].includes(input.action)) return mutateTimeSetup(actor, input as never);
   if (input.action === 'recalculate_attendance') return recalculateRecord(actor, input.attendanceRecordId);
   if (input.action === 'review_attendance') return reviewAttendance(actor, input);
   if (input.action === 'close_period' || input.action === 'reopen_period' || input.action === 'export_payroll') {
@@ -1774,11 +1857,14 @@ export async function mutateShiftAttendance(
   }
   if (input.action === 'create_shift_request') return createShiftRequest(actor, input);
   if (input.action === 'decide_shift_request') return decideShiftRequest(actor, input);
+  if (['update_shift_request','submit_shift_request','withdraw_shift_request','cancel_shift_request','resubmit_shift_request'].includes(input.action)) return mutateOwnedShiftRequest(actor, input as never);
   if (input.action === 'create_overtime') return createOvertime(actor, input);
   if (input.action === 'decide_overtime') return decideOvertime(actor, input);
+  if (['update_overtime','submit_overtime','withdraw_overtime','cancel_overtime','resubmit_overtime'].includes(input.action)) return mutateOwnedOvertime(actor, input as never);
   if (input.action === 'save_timesheet_entry') return saveTimesheetEntry(actor, input);
   if (input.action === 'delete_timesheet_entry') return deleteTimesheetEntry(actor, input);
   if (input.action === 'submit_timesheet') return submitTimesheet(actor, input);
   if (input.action === 'decide_timesheet') return decideTimesheet(actor, input);
   throw new Error('INVALID_TRANSITION');
 }
+

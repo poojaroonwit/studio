@@ -51,7 +51,7 @@ export async function collectAttendanceExportInputs(
        (id, company_id, payroll_run_id, employee_id, input_type, component_code, amount, units,
         currency, source_module, source_record_id, effective_date, approval_status, status,
         idempotency_key, created_by_id)
-     SELECT gen_random_uuid(), row.company_id, $1::uuid, row.employee_id, 'time', row.component_code,
+     SELECT gen_random_uuid(), COALESCE(row.company_id, employee.company_id), $1::uuid, row.employee_id, 'time', row.component_code,
             0, row.units, 'THB', 'attendance', concat(row.export_id::text, ':', row.attendance_record_id),
             row.work_date, 'approved', 'ready',
             concat('attendance-export:', row.export_id::text, ':', row.attendance_record_id, ':', row.component_code, ':', $1),

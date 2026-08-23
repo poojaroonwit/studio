@@ -52,27 +52,31 @@ function localIso(workDate: string, time: string) {
 }
 
 export function AttendanceCorrectionRequestForm({
+  initialRequest,
   saving,
   onSave,
 }: {
+  initialRequest?: EssRow | null;
   saving: boolean;
   onSave: (body: Record<string, unknown>) => Promise<unknown>;
 }) {
+  const initialValues = initialRequest?.requested_values && typeof initialRequest.requested_values === 'object' ? initialRequest.requested_values as Record<string, unknown> : {};
+  const initialDocuments = Array.isArray(initialRequest?.supporting_documents) ? initialRequest.supporting_documents : [];
   const [dashboard, setDashboard] = React.useState<EssDashboard | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [evidence, setEvidence] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [form, setForm] = React.useState<FormState>({
-    correctionType: 'missing_check_in',
-    workDate: '',
-    clockIn: '',
-    clockOut: '',
-    breakMinutes: '0',
-    requestedStatus: 'present',
-    workLocation: 'remote',
-    assignmentId: '',
-    reason: '',
+    correctionType: stringValue(initialValues.correctionType, 'missing_check_in'),
+    workDate: dateKey(initialValues.workDate),
+    clockIn: inputTime(initialValues.clockIn),
+    clockOut: inputTime(initialValues.clockOut),
+    breakMinutes: String(initialValues.breakMinutes ?? 0),
+    requestedStatus: stringValue(initialValues.requestedStatus, 'present'),
+    workLocation: stringValue(initialValues.workLocation, 'remote'),
+    assignmentId: stringValue(initialValues.assignmentId, ''),
+    reason: stringValue(initialRequest?.reason, ''),
   });
 
   React.useEffect(() => {
@@ -98,7 +102,7 @@ export function AttendanceCorrectionRequestForm({
   const dayAssignments = dashboard?.shifts.filter(row => dateKey(row.shift_date) === form.workDate) || [];
 
   React.useEffect(() => {
-    if (!currentRecord) return;
+    if (!currentRecord || initialRequest) return;
     setForm(previous => ({
       ...previous,
       clockIn: inputTime(currentRecord.clock_in),
@@ -108,7 +112,7 @@ export function AttendanceCorrectionRequestForm({
       workLocation: stringValue(currentRecord.work_location, 'remote'),
       assignmentId: stringValue(currentRecord.assignment_id, ''),
     }));
-  }, [currentRecord?.id, form.workDate]);
+  }, [currentRecord, form.workDate, initialRequest]);
 
   const uploadEvidence = async () => {
     if (!evidence) return [];
@@ -132,7 +136,7 @@ export function AttendanceCorrectionRequestForm({
   };
 
   const submit = async (saveAsDraft: boolean) => {
-    const supportingDocuments = await uploadEvidence();
+    const supportingDocuments = evidence ? await uploadEvidence() : initialDocuments;
     const values: Record<string, unknown> = {
       workDate: form.workDate,
       correctionType: form.correctionType,
@@ -147,7 +151,7 @@ export function AttendanceCorrectionRequestForm({
     if (form.correctionType === 'incorrect_shift_assignment') values.assignmentId = form.assignmentId || null;
 
     return onSave({
-      requestType: 'attendance_correction',
+      ...(initialRequest?.id ? { id: initialRequest.id, expectedVersion: Number(initialRequest.version || 1) } : { requestType: 'attendance_correction', saveAsDraft }),
       title: `${form.correctionType.replace(/_/g, ' ')} · ${form.workDate}`,
       reason: form.reason,
       values,
@@ -161,7 +165,6 @@ export function AttendanceCorrectionRequestForm({
         workLocation: currentRecord.work_location || null,
       } : {},
       supportingDocuments,
-      saveAsDraft,
     });
   };
 
@@ -172,7 +175,7 @@ export function AttendanceCorrectionRequestForm({
   return (
     <section className="rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="border-b border-slate-200 p-4 dark:border-zinc-800">
-        <h2 className="font-bold">Request attendance correction</h2>
+        <h2 className="font-bold">{initialRequest ? 'Edit attendance correction' : 'Request attendance correction'}</h2>
         <p className="mt-1 text-sm text-slate-500">Only the field you correct will replace the authoritative attendance value after approval.</p>
       </div>
       <div className="space-y-4 p-4">
@@ -198,8 +201,8 @@ export function AttendanceCorrectionRequestForm({
         <div className="space-y-1.5"><Label htmlFor="time-correction-evidence">Supporting evidence <span className="font-normal text-slate-500">· optional</span></Label><label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-slate-300 px-3 py-3 text-sm dark:border-zinc-700"><FileUp className="h-4 w-4" /><span className="min-w-0 flex-1 truncate">{evidence?.name || 'Upload PDF or image evidence'}</span><input id="time-correction-evidence" className="sr-only" type="file" accept="application/pdf,image/*" onChange={event => setEvidence(event.target.files?.[0] || null)} /></label></div>
       </div>
       <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <Button variant="outline" disabled={busy || !form.workDate || form.reason.trim().length < 3} onClick={() => void submit(true)}>Save draft</Button>
-        <Button disabled={busy || !form.workDate || form.reason.trim().length < 3} onClick={() => void submit(false)}><Send className="mr-2 h-4 w-4" />{uploading ? 'Uploading…' : 'Submit correction'}</Button>
+        {!initialRequest && <Button variant="outline" disabled={busy || !form.workDate || form.reason.trim().length < 3} onClick={() => void submit(true)}>Save draft</Button>}
+        <Button disabled={busy || !form.workDate || form.reason.trim().length < 3} onClick={() => void submit(false)}><Send className="mr-2 h-4 w-4" />{uploading ? 'Uploading…' : initialRequest ? 'Save changes' : 'Submit correction'}</Button>
       </div>
     </section>
   );

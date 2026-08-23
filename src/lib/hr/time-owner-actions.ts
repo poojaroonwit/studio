@@ -1,7 +1,9 @@
 import { randomUUID } from 'crypto';
 
 import prisma from '@/lib/prisma';
+import { resolveShiftWindow } from './attendance-calculation';
 import { overtimeOwnerTransition, type OvertimeOwnerAction } from './overtime-request-workflow';
+import { getTimePolicyConfig, timezoneOffsetMinutesForDate } from './time-policy-config';
 import { rosterCopyTargetDate } from './roster-copy';
 import {
   shiftRequestOwnerTransition,
@@ -84,7 +86,7 @@ async function assertOwnedAssignment(employeeId: string, assignmentId: string | 
   if (!rows[0]) throw new Error('FORBIDDEN');
 }
 
-async function assertShiftRequestTargets(employeeId: string, input: {
+export async function validateOwnedShiftRequestTargets(employeeId: string, input: {
   requestType: ShiftRequestType;
   assignmentId?: string | null;
   requestedAssignmentId?: string | null;
@@ -160,7 +162,7 @@ export async function mutateOwnedShiftRequest(
     if (input.action === 'update_shift_request') {
       if (input.effectiveEnd < input.effectiveStart) throw new Error('INVALID_DATE_RANGE');
       if (!shiftRequestOwnerTransition(request.status, input.action, input.requestType)) throw new Error('INVALID_TRANSITION');
-      await assertShiftRequestTargets(employee.id, input);
+      await validateOwnedShiftRequestTargets(employee.id, input);
       const rows = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
         `UPDATE "hr_shift_requests"
          SET request_type = $2, assignment_id = $3::uuid, requested_assignment_id = $4::uuid,
@@ -188,7 +190,7 @@ export async function mutateOwnedShiftRequest(
     const next = shiftRequestOwnerTransition(request.status, input.action, request.request_type);
     if (!next) throw new Error('INVALID_TRANSITION');
     if (input.action === 'submit_shift_request' || input.action === 'resubmit_shift_request') {
-      await assertShiftRequestTargets(employee.id, {
+      await validateOwnedShiftRequestTargets(employee.id, {
         requestType: request.request_type,
         assignmentId: request.assignment_id,
         requestedAssignmentId: request.requested_assignment_id,
@@ -300,6 +302,7 @@ export async function copyRosterWeek(actor: TimeActionActor, input: CopyRosterIn
   sourceEnd.setUTCDate(sourceEnd.getUTCDate() + 7);
   targetEnd.setUTCDate(targetEnd.getUTCDate() + 6);
 
+  const rosterPolicy = await getTimePolicyConfig();
   return prisma.$transaction(async tx => {
     let periods = await tx.$queryRawUnsafe<{ id: string }[]>(
       `SELECT id FROM "hr_roster_periods"
@@ -350,18 +353,16 @@ export async function copyRosterWeek(actor: TimeActionActor, input: CopyRosterIn
       );
       if (conflicts[0]) throw new Error('SHIFT_CONFLICT');
       const id = randomUUID();
+      const offset = timezoneOffsetMinutesForDate(rosterPolicy.timezone, targetDate);
+      const window = resolveShiftWindow(targetDate, row.start_time, row.end_time, offset);
       const rows = await tx.$queryRawUnsafe<Record<string, unknown>[]>(
         `INSERT INTO "hr_shift_assignments"
           (id, employee_id, roster_period_id, schedule_id, shift_definition_id, shift_definition_version,
            shift_date, logical_shift_date, start_time, end_time, start_at, end_at,
            work_location, status, publication_status, change_reason, created_at, updated_at)
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6,
-                 $7::date, $7::date, $8, $9,
-                 ($7::date + $8::time) AT TIME ZONE 'Asia/Bangkok',
-                 CASE WHEN $9::time <= $8::time
-                   THEN (($7::date + INTERVAL '1 day') + $9::time) AT TIME ZONE 'Asia/Bangkok'
-                   ELSE ($7::date + $9::time) AT TIME ZONE 'Asia/Bangkok' END,
-                 $10, 'scheduled', 'draft', $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                 $7::date, $7::date, $8, $9, $10, $11,
+                 $12, 'scheduled', 'draft', $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING *`,
         id,
         row.employee_id,
@@ -372,6 +373,8 @@ export async function copyRosterWeek(actor: TimeActionActor, input: CopyRosterIn
         targetDate,
         row.start_time,
         row.end_time,
+        window.start,
+        window.end,
         row.work_location || null,
         input.reason,
       );

@@ -24,6 +24,7 @@ jobs:
       - run: npm ci
       - run: node scripts/codemods/normalize-time-codemod-anchors.mjs
       - run: node scripts/codemods/complete-time-remaining.mjs
+      - run: node scripts/codemods/finalize-time-generated-types.mjs
       - run: DATABASE_URL=postgresql://unused:unused@127.0.0.1:5432/unused npx prisma validate --schema=prisma/schema.prisma
       - run: node scripts/time-e2e-regression-checks.cjs
       - run: npx vitest run src/lib/hr/attendance-correction.test.ts src/lib/hr/shift-request-workflow.test.ts src/lib/hr/overtime-request-workflow.test.ts src/lib/hr/roster-copy.test.ts src/lib/hr/shift-notification-recipients.test.ts src/lib/hr/time-policy-config.test.ts src/lib/payroll/attendance-inputs.test.ts

@@ -30,6 +30,7 @@ jobs:
           src/app/learning/LearningOverview.tsx
           src/app/learning/LegacyCourseCatalog.tsx
           src/app/learning/LearningUiPrimitives.tsx
+          src/app/learning/LearningJourneyHeader.tsx
           src/lib/learning/record-utils.ts
           src/lib/learning/record-utils.test.ts
           src/lib/payroll/workspace-model.ts

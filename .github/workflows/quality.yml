@@ -6,41 +6,6 @@ on:
     branches: [main, master, uat, dev]
 
 jobs:
-  time-contract-integration:
-    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/hrive-time-e2e-completion' }}
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: feat/hrive-time-e2e-completion
-          fetch-depth: 0
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: node scripts/codemods/complete-time-contracts-and-corrections.mjs
-      - run: node scripts/codemods/repair-time-integration-gates.mjs
-      - run: DATABASE_URL=postgresql://unused:unused@127.0.0.1:5432/unused npx prisma validate --schema=prisma/schema.prisma
-      - run: npx vitest run src/lib/hr/attendance-correction.test.ts src/lib/hr/shift-request-workflow.test.ts src/lib/hr/overtime-request-workflow.test.ts src/lib/hr/roster-copy.test.ts src/lib/hr/shift-notification-recipients.test.ts src/lib/hr/time-policy-config.test.ts src/lib/payroll/attendance-inputs.test.ts
-      - run: npm run type-check
-      - run: npx eslint src/lib/hr/attendance-correction.ts src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts src/lib/hr/shift-attendance-service.ts src/components/shift/views/ReportsView.tsx --max-warnings=0
-      - name: Commit verified integration
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prisma/schema.prisma src/components/shift/views/ReportsView.tsx src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts src/lib/hr/shift-attendance-service.ts
-          if git diff --cached --quiet; then
-            echo "No integration changes to commit."
-          else
-            git commit -m "feat: integrate Time correction and lifecycle contracts [time-contract-bot]"
-            git pull --rebase origin feat/hrive-time-e2e-completion
-            git push origin HEAD:feat/hrive-time-e2e-completion
-          fi
-
   application:
     runs-on: ubuntu-latest
     timeout-minutes: 30

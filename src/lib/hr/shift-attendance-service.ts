@@ -1779,5 +1779,6 @@ export async function mutateShiftAttendance(
   if (input.action === 'save_timesheet_entry') return saveTimesheetEntry(actor, input);
   if (input.action === 'delete_timesheet_entry') return deleteTimesheetEntry(actor, input);
   if (input.action === 'submit_timesheet') return submitTimesheet(actor, input);
-  return decideTimesheet(actor, input);
+  if (input.action === 'decide_timesheet') return decideTimesheet(actor, input);
+  throw new Error('INVALID_TRANSITION');
 }

@@ -24,6 +24,16 @@ function csvCell(value: unknown) {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
+type ReportTotals = {
+  records: number;
+  present: number;
+  late: number;
+  absent: number;
+  exceptions: number;
+  workedMinutes: number;
+  overtimeMinutes: number;
+};
+
 function exportRows(rows: ShiftRecord[], start: string, end: string) {
   const header = ['Date', 'Records', 'Present', 'Late', 'Absent', 'Exceptions', 'Worked hours', 'Overtime hours'];
   const body = rows.map(row => [
@@ -57,7 +67,7 @@ export function ReportsView() {
   if (!state.data || !state.capabilities) return null;
 
   const rows = arrayValue(state.data.daily);
-  const totals = rows.reduce((summary, row) => ({
+  const totals = rows.reduce<ReportTotals>((summary, row) => ({
     records: summary.records + numberValue(row.records),
     present: summary.present + numberValue(row.present),
     late: summary.late + numberValue(row.late),

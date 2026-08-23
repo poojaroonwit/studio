@@ -1,0 +1,75 @@
+name: Hrive Time remaining integration
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: ${{ github.head_ref == 'feat/hrive-time-e2e-completion' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/hrive-time-e2e-completion
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/codemods/complete-time-remaining.mjs
+      - run: DATABASE_URL=postgresql://unused:unused@127.0.0.1:5432/unused npx prisma validate --schema=prisma/schema.prisma
+      - run: node scripts/time-e2e-regression-checks.cjs
+      - run: npx vitest run src/lib/hr/attendance-correction.test.ts src/lib/hr/shift-request-workflow.test.ts src/lib/hr/overtime-request-workflow.test.ts src/lib/hr/roster-copy.test.ts src/lib/hr/shift-notification-recipients.test.ts src/lib/hr/time-policy-config.test.ts src/lib/payroll/attendance-inputs.test.ts
+      - run: npm run type-check
+      - run: >-
+          npx eslint
+          src/lib/hr/time-owner-actions.ts
+          src/lib/hr/time-setup-actions.ts
+          src/lib/hr/time-policy-config.ts
+          src/lib/hr/shift-attendance-service.ts
+          src/lib/payroll/collect-inputs.ts
+          src/lib/payroll/attendance-inputs.ts
+          src/app/api/hr/shift-attendance/route.ts
+          src/app/api/ess/requests/route.ts
+          src/lib/hr/attendance-correction-request-update.ts
+          src/components/shift/use-shift-attendance.ts
+          src/components/shift/views/RequestsView.tsx
+          src/components/shift/views/ShiftRequestComposer.tsx
+          src/components/shift/views/TimeRequestOwnerActions.tsx
+          src/components/shift/views/AttendanceCorrectionRequestForm.tsx
+          src/components/shift/views/OvertimeView.tsx
+          src/components/shift/views/TimesheetCommandCenter.tsx
+          src/components/shift/views/RosterView.tsx
+          src/components/shift/views/RosterSetupDialog.tsx
+          src/components/hr/EmployeeSelfServicePage.tsx
+          --max-warnings=0
+      - name: Commit verified Time completion
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/lib/hr/shift-attendance-contracts.ts \
+            src/lib/hr/time-owner-actions.ts \
+            src/lib/hr/shift-attendance-service.ts \
+            src/lib/payroll/collect-inputs.ts \
+            src/lib/payroll/attendance-inputs.ts \
+            src/app/api/hr/shift-attendance/route.ts \
+            src/components/shift/views/RequestsView.tsx \
+            src/components/shift/views/AttendanceCorrectionRequestForm.tsx \
+            src/components/shift/views/OvertimeView.tsx \
+            src/components/shift/views/TimesheetCommandCenter.tsx \
+            src/components/shift/views/RosterView.tsx \
+            src/components/hr/EmployeeSelfServicePage.tsx
+          if git diff --cached --quiet; then
+            echo "No generated Time completion changes to commit."
+          else
+            git commit -m "feat: wire remaining Time end-to-end journeys [time-remaining-bot]"
+            git pull --rebase origin feat/hrive-time-e2e-completion
+            git push origin HEAD:feat/hrive-time-e2e-completion
+          fi

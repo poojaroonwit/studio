@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import ts from "typescript";
 
+// Deterministic extraction: CI verifies the exact transformation before push.
 const root = process.cwd();
 const sourcePath = resolve(root, "src/app/learning/LearningPageClient.tsx");
 const targetPath = resolve(root, "src/app/learning/LearningJourneyHeader.tsx");

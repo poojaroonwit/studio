@@ -19,11 +19,17 @@ jobs:
       - run: npm ci
       - run: npm run check:architecture
       - run: node scripts/frontend-architecture-regression-checks.cjs
+      - run: node scripts/learning-component-decomposition-regression-checks.cjs
+      - run: node scripts/learning-legacy-catalog-reference-check.cjs
       - run: npm run type-check
       - run: npm run lint
       - name: Strict lint refactor-owned modules
         run: >-
           npx eslint
+          src/app/learning/LearningPageClient.tsx
+          src/app/learning/LearningOverview.tsx
+          src/app/learning/LegacyCourseCatalog.tsx
+          src/app/learning/LearningUiPrimitives.tsx
           src/lib/learning/record-utils.ts
           src/lib/learning/record-utils.test.ts
           src/lib/payroll/workspace-model.ts

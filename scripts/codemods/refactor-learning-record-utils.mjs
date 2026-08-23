@@ -1,7 +1,40 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import ts from "typescript";
 
 const root = process.cwd();
+
+function removeTopLevelDeclarations(source, fileName, declarationNames) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const removals = [];
+
+  for (const statement of sourceFile.statements) {
+    let name = null;
+    if (ts.isFunctionDeclaration(statement) && statement.name) {
+      name = statement.name.text;
+    } else if (ts.isInterfaceDeclaration(statement)) {
+      name = statement.name.text;
+    } else if (ts.isTypeAliasDeclaration(statement)) {
+      name = statement.name.text;
+    }
+
+    if (name && declarationNames.has(name)) {
+      removals.push({ start: statement.getFullStart(), end: statement.getEnd() });
+    }
+  }
+
+  for (const removal of removals.sort((a, b) => b.start - a.start)) {
+    source = `${source.slice(0, removal.start)}${source.slice(removal.end)}`;
+  }
+
+  return source;
+}
 
 async function refactorLearning() {
   const target = resolve(root, "src/app/learning/LearningPageClient.tsx");
@@ -64,5 +97,45 @@ async function refactorPayroll() {
   console.log("Payroll workspace rules are wired to src/lib/payroll/workspace-model.ts");
 }
 
+async function refactorEmployeeProfile() {
+  const target = resolve(root, "src/components/hr/HrEmployeeProfilePage.tsx");
+  let source = await readFile(target, "utf8");
+
+  const importAnchor = 'import type { HrCrudRecord } from "@/lib/hr/hr-crud";\n';
+  const helperImport = `import {\n  accountAccessStatus,\n  accountLinkStatus,\n  compactValue,\n  employeeDisplayName,\n  employeeEditForm,\n  employeeRecordReference,\n  employmentTenure,\n  formatLabel,\n  formatValue,\n  jsonItems,\n  normalizedHttpUrl,\n  objectEntries,\n  readableJsonValue,\n  type EmployeeEditForm,\n} from "@/lib/hr/employee-profile-model";\n`;
+
+  if (!source.includes('from "@/lib/hr/employee-profile-model"')) {
+    if (!source.includes(importAnchor)) {
+      throw new Error("Employee profile refactor: HrCrudRecord import anchor not found");
+    }
+    source = source.replace(importAnchor, `${importAnchor}${helperImport}`);
+  }
+
+  source = removeTopLevelDeclarations(
+    source,
+    target,
+    new Set([
+      "EmployeeEditForm",
+      "employeeRecordReference",
+      "formatLabel",
+      "formatValue",
+      "compactValue",
+      "employmentTenure",
+      "jsonItems",
+      "objectEntries",
+      "readableJsonValue",
+      "normalizedHttpUrl",
+      "accountLinkStatus",
+      "accountAccessStatus",
+      "employeeDisplayName",
+      "employeeEditForm",
+    ]),
+  );
+
+  await writeFile(target, source, "utf8");
+  console.log("Employee profile helpers are wired to src/lib/hr/employee-profile-model.ts");
+}
+
 await refactorLearning();
 await refactorPayroll();
+await refactorEmployeeProfile();

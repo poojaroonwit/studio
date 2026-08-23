@@ -24,7 +24,7 @@ jobs:
       - run: npm ci
       - run: node scripts/codemods/complete-time-contracts-and-corrections.mjs
       - run: node scripts/codemods/repair-time-integration-gates.mjs
-      - run: npx prisma validate --schema=prisma/schema.prisma
+      - run: DATABASE_URL=postgresql://unused:unused@127.0.0.1:5432/unused npx prisma validate --schema=prisma/schema.prisma
       - run: npx vitest run src/lib/hr/attendance-correction.test.ts src/lib/hr/shift-request-workflow.test.ts src/lib/hr/overtime-request-workflow.test.ts src/lib/hr/roster-copy.test.ts src/lib/hr/shift-notification-recipients.test.ts src/lib/hr/time-policy-config.test.ts src/lib/payroll/attendance-inputs.test.ts
       - run: npm run type-check
       - run: npx eslint src/lib/hr/attendance-correction.ts src/lib/hr/ess-contracts.ts src/lib/hr/ess-request-service.ts src/lib/hr/shift-attendance-contracts.ts src/lib/hr/shift-attendance-service.ts src/components/shift/views/ReportsView.tsx --max-warnings=0

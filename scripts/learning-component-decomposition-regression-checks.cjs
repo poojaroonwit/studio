@@ -5,6 +5,7 @@ const root = process.cwd();
 const learningClientPath = path.join(root, 'src/app/learning/LearningPageClient.tsx');
 const learningOverviewPath = path.join(root, 'src/app/learning/LearningOverview.tsx');
 const legacyCatalogPath = path.join(root, 'src/app/learning/LegacyCourseCatalog.tsx');
+const journeyHeaderPath = path.join(root, 'src/app/learning/LearningJourneyHeader.tsx');
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -44,6 +45,27 @@ assert(
 assert(
   !learningClient.includes('function CourseList('),
   'LearningPageClient must not keep the legacy CourseList implementation inline',
+);
+
+assert(
+  fs.existsSync(journeyHeaderPath),
+  'LearningJourneyHeader must be extracted to src/app/learning/LearningJourneyHeader.tsx',
+);
+assert(
+  learningClient.includes('from "./LearningJourneyHeader"'),
+  'LearningPageClient must import the extracted LearningJourneyHeader component',
+);
+assert(
+  !learningClient.includes('function LearningJourneyHeader('),
+  'LearningPageClient must not keep an inline LearningJourneyHeader implementation',
+);
+assert(
+  !learningClient.includes('const learningJourneyStops ='),
+  'Learning journey stops must live with the extracted LearningJourneyHeader',
+);
+assert(
+  !learningClient.includes('const learningJourneyCopy:'),
+  'Learning journey copy must live with the extracted LearningJourneyHeader',
 );
 
 console.log('Learning component decomposition regression checks passed.');

@@ -1,4 +1,4 @@
-export function coerceHrFieldValue(field: { type: string }, value: unknown) {
+export function coerceHrFieldValue<T extends { type: string }>(field: T, value: unknown) {
   if (value === undefined || value === null || value === '') return null;
   if (field.type === 'number') return Number(value);
   if (field.type === 'json' || field.type === 'jsonValue') return JSON.stringify(value);

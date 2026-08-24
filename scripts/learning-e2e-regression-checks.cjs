@@ -33,7 +33,9 @@ assert(assignment.includes('idempotencyKey'), 'Learning assignment API must acce
 assert(assignment.includes('learning-assignment-service'), 'Learning assignment API must use the atomic assignment service.');
 
 const pathClient = read('src/app/learning/LearningPathsPageClient.tsx');
-assert(pathClient.includes('/api/learning/assignments'), 'Learning Paths must assign through the atomic batch endpoint.');
+const assignmentDialog = read('src/app/learning/LearningAssignmentDialog.tsx');
+assert(pathClient.includes('LearningAssignmentDialog'), 'Learning Paths must delegate assignment to the atomic assignment dialog.');
+assert(assignmentDialog.includes('/api/learning/assignments'), 'Learning assignment dialog must use the atomic batch endpoint.');
 assert(!pathClient.includes('Promise.all(assigning.courseIds'), 'Learning Paths must not fan out one enrollment request per course.');
 assert(!pathClient.includes('courseIds.map(async'), 'Learning Paths must not fan out one enrollment request per course.');
 

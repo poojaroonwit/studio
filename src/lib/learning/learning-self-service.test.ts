@@ -68,9 +68,9 @@ describe('Learning learner-safe reads', () => {
     expect(context.certificates).toEqual([expect.objectContaining({ name: 'First Aid' })]);
     expect(context.paths).toEqual([expect.objectContaining({ id: 'path-1', assignedCourseCount: 1, totalCourseCount: 2 })]);
 
-    const queries = vi.mocked(db.query).mock.calls.map(call => call[0]);
-    expect(queries.filter(sql => sql.includes('hr_learning_enrollments'))).toHaveLength(1);
-    expect(queries.filter(sql => sql.includes('hr_certifications'))).toHaveLength(1);
+    const queries = vi.mocked(db.query).mock.calls.map((call: [string, unknown[]?]) => call[0]);
+    expect(queries.filter((sql: string) => sql.includes('hr_learning_enrollments'))).toHaveLength(1);
+    expect(queries.filter((sql: string) => sql.includes('hr_certifications'))).toHaveLength(1);
   });
 
   it('returns an explicit unavailable context without querying workforce data when no employee is linked', async () => {
@@ -86,7 +86,7 @@ describe('Learning learner-safe reads', () => {
     const catalog = await getLearningCatalog(EMPLOYEE_ID, db);
 
     expect(catalog).toEqual([expect.objectContaining({ id: COURSE_ID, status: 'in_progress', progress: 45 })]);
-    const sql = vi.mocked(db.query).mock.calls[0][0];
+    const sql = vi.mocked(db.query).mock.calls[0][0] as string;
     expect(sql).toContain("c.status = 'published'");
     expect(sql).toContain('c.is_active = true');
   });
@@ -95,7 +95,7 @@ describe('Learning learner-safe reads', () => {
     const db = executor();
     await getLearningCatalog(EMPLOYEE_ID, db);
 
-    const [sql, values] = vi.mocked(db.query).mock.calls[0];
+    const [sql, values] = vi.mocked(db.query).mock.calls[0] as [string, unknown[]?];
     expect(sql).toContain('e.employee_id = $1::uuid');
     expect(values).toEqual([EMPLOYEE_ID]);
   });

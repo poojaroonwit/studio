@@ -14,6 +14,7 @@ import type { EssRow } from './ess-types';
 import { dateValue, statusLabel, stringValue } from './ess-types';
 
 type EditableType = 'profile_change' | 'document_request';
+type OwnerAction = 'submit' | 'withdraw' | 'revise' | 'resubmit' | 'cancel';
 type EditableDraft = {
   id: string;
   requestType: EditableType;
@@ -27,14 +28,14 @@ function objectValue(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function ownerActions(request: EssRow) {
+function ownerActions(request: EssRow): OwnerAction[] {
   const status = String(request.status || '');
-  if (status === 'draft') return ['submit'] as const;
-  if (status === 'pending_approval' || status === 'submitted') return ['withdraw'] as const;
-  if (status === 'returned_for_revision') return ['revise', 'resubmit', 'withdraw'] as const;
-  if (status === 'withdrawn') return ['resubmit'] as const;
-  if (status === 'approved' || status === 'processing') return ['cancel'] as const;
-  return [] as const;
+  if (status === 'draft') return ['submit'];
+  if (status === 'pending_approval' || status === 'submitted') return ['withdraw'];
+  if (status === 'returned_for_revision') return ['revise', 'resubmit', 'withdraw'];
+  if (status === 'withdrawn') return ['resubmit'];
+  if (status === 'approved' || status === 'processing') return ['cancel'];
+  return [];
 }
 
 export function EssRequestCenter() {

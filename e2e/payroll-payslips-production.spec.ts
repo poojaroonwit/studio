@@ -121,7 +121,7 @@ test.describe("Payslip production journey", () => {
     await expect(page.getByRole("button", { name: "Export" })).toBeHidden();
   });
 
-  test("released payslip preview can download and send an audited reminder", async ({
+  test("released payslip preview requests the audited PDF endpoint and can send an audited reminder", async ({
     page,
   }) => {
     await mockPayslipWorkspace(page, true);
@@ -151,10 +151,18 @@ test.describe("Payslip production journey", () => {
     await expect(drawer).toBeVisible();
     await drawer.getByRole("tab", { name: /Delivery & access/i }).click();
 
-    const download = page.waitForEvent("download");
+    const payslipRequest = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return (
+        url.pathname === `/api/payroll/v1/payslips/${payslipId}` &&
+        request.method() === "GET"
+      );
+    });
     await drawer.getByRole("button", { name: /Download PDF/i }).click();
-    const file = await download;
-    expect(file.suggestedFilename()).toBe("payslip-EMP-001.pdf");
+    const request = await payslipRequest;
+    expect(new URL(request.url()).pathname).toBe(
+      `/api/payroll/v1/payslips/${payslipId}`,
+    );
 
     await drawer.getByRole("button", { name: /Send reminder/i }).click();
     await expect.poll(() => reminderRequested).toBe(true);

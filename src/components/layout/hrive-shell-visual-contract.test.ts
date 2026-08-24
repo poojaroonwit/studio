@@ -39,13 +39,12 @@ describe('Hrive desktop shell visual contract', () => {
 
   it('uses light utility controls for search, HR help, and the desktop user trigger', () => {
     const search = source('src/components/layout/HeaderExpandableSearch.tsx');
-    const help = source('src/components/privacy-support/HrHelpWidget.tsx');
     const userMenu = source('src/components/layout/HeaderDesktopUserMenuAccount.tsx');
     const actions = source('src/components/layout/HeaderActionsSection.tsx');
 
     expect(search).toContain('text-slate-500');
     expect(search).toContain('bg-white');
-    expect(help).toContain('text-slate-600');
+    expect(actions).toContain('[&_button]:!text-slate-600');
     expect(userMenu).toContain('text-slate-700');
     expect(actions).toContain('bg-slate-200');
   });

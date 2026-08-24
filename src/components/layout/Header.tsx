@@ -109,12 +109,9 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky z-50 flex h-16 shrink-0 items-center justify-between border-b border-slate-700/80 bg-[#111827] bg-clip-padding bg-cover bg-center px-3 text-white shadow-none transition-[background-color,border-color] duration-300 sm:px-4 lg:px-8",
+          "sticky z-50 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 bg-clip-padding bg-cover bg-center px-3 text-slate-700 shadow-none backdrop-blur-xl transition-[background-color,border-color] duration-300 supports-[backdrop-filter]:bg-white/90 sm:px-4 lg:px-8 dark:border-zinc-800 dark:bg-zinc-950/95 dark:text-zinc-100",
           (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) ? "top-8" : "top-0"
         )}
-        style={{
-          color: "white",
-        }}
       >
         {isMobile ? (
           <HeaderBrandSection
@@ -132,7 +129,7 @@ export function Header({
             <Link
               href="/dashboard"
               aria-label={`${currentAppName} — hrive — ${initialPageTitle}`}
-              className="flex h-11 min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="flex h-11 min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <HeaderBrandLockup
                 appLogoUrl={appLogoUrl}

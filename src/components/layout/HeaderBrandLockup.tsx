@@ -37,11 +37,11 @@ export function HeaderBrandLockup({
           fill
           unoptimized
           sizes={compact ? "28px" : "32px"}
-          className={cn("object-contain", isDefaultCompanyLogo && "p-0.5 brightness-0 invert")}
+          className={cn("object-contain", isDefaultCompanyLogo && "p-0.5 dark:brightness-0 dark:invert")}
         />
       </span>
 
-      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-slate-500/80" />
+      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
 
       <Image
         src="/brand/hrive-wordmark-transparent.png"

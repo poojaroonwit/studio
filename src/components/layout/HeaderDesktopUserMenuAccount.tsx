@@ -35,7 +35,7 @@ export const HeaderDesktopUserMenuTrigger = React.forwardRef<
       ref={ref}
       type="button"
       className={cn(
-        "group flex h-9 max-w-[190px] items-center gap-2 rounded-full px-1.5 text-left text-slate-100 transition-colors duration-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70",
+        "group flex h-9 max-w-[190px] items-center gap-2 rounded-full px-1.5 text-left text-slate-700 transition-colors duration-200 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 dark:text-zinc-200 dark:hover:bg-zinc-800",
         className,
       )}
       aria-label={labels.openUserMenu}
@@ -51,14 +51,14 @@ export const HeaderDesktopUserMenuTrigger = React.forwardRef<
         />
       </div>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[11px] font-semibold leading-4 text-slate-100">
+        <span className="truncate text-[11px] font-semibold leading-4 text-slate-800 dark:text-zinc-100">
           {user.name}
         </span>
-        <span className="truncate text-[9px] font-medium leading-3 text-slate-400">
+        <span className="truncate text-[9px] font-medium leading-3 text-slate-500 dark:text-zinc-400">
           {user.role || labels.userFallback}
         </span>
       </span>
-      <ChevronDownIcon className="h-3 w-3 shrink-0 text-slate-400 transition-transform group-data-[state=open]:rotate-180" />
+      <ChevronDownIcon className="h-3 w-3 shrink-0 text-slate-400 transition-transform group-data-[state=open]:rotate-180 dark:text-zinc-500" />
     </button>
   );
 });

@@ -64,8 +64,8 @@ export function HeaderMegaMenuCategory({
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
           className={cn(
-            "relative flex items-center gap-1.5 px-2 text-sm font-normal leading-6 tracking-[-0.01em] text-slate-300 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400 xl:px-3",
-            isActive && "font-medium text-white after:absolute after:inset-x-2.5 after:bottom-0 after:h-[3px] after:bg-[#4d7fff]",
+            "relative flex items-center gap-1.5 px-2 text-sm font-normal leading-6 tracking-[-0.01em] text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 xl:px-3 dark:text-zinc-300 dark:hover:text-white",
+            isActive && "font-medium text-blue-700 after:absolute after:inset-x-2.5 after:bottom-0 after:h-[3px] after:bg-blue-600 dark:text-blue-300 dark:after:bg-blue-400",
           )}
         >
           {CategoryIcon ? (
@@ -104,7 +104,7 @@ export function HeaderMegaMenuCategory({
             return (
               <section key={group.id} className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 px-2">
-                  <GroupIcon className="h-4 w-4 shrink-0 stroke-[1.7] text-[#4d7fff]" />
+                  <GroupIcon className="h-4 w-4 shrink-0 stroke-[1.7] text-blue-600 dark:text-blue-400" />
                   <h2 className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">
                     {group.label}
                   </h2>

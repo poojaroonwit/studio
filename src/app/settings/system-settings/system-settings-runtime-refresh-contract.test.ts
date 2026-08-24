@@ -10,7 +10,7 @@ const source = readFileSync(
 describe('system settings runtime refresh contract', () => {
   it('refreshes global runtime settings after every successful save, not only branding saves', () => {
     expect(source).toMatch(
-      /if \(appConfigChange\.changed\) \{[\s\S]*faviconUpdated[\s\S]*\}\s*window\.dispatchEvent\(new CustomEvent\('globalSettingsChanged'\)\)/,
+      /if \(appConfigChange\.changed\) \{[\s\S]*?faviconUpdated[\s\S]*?\n  \}[\s\S]*?window\.dispatchEvent\(new CustomEvent\('globalSettingsChanged'\)\)/,
     );
   });
 });

@@ -25,12 +25,12 @@ function dependencies(options?: { companyId?: string | null; stale?: boolean }) 
     if (sql.includes('UPDATE hr_learning_assignment_submissions')) {
       return options?.stale ? { rows: [], rowCount: 0 } : { rows: [{ id: '33333333-3333-4333-8333-333333333333', status: 'approved' }], rowCount: 1 };
     }
-    if (sql.includes('FROM hr_learning_enrollments e') && sql.includes('emp.company_id')) return { rows: [{ employee_id: '77777777-7777-4777-8777-777777777777', company_id: options?.companyId ?? COMPANY_ID }], rowCount: 1 };
-    if (sql.includes('UPDATE hr_learning_enrollments')) return { rows: [{ id: '44444444-4444-4444-8444-444444444444', status: 'completed' }], rowCount: 1 };
-    if (sql.includes('INSERT INTO hr_learning_activity_events')) return { rows: [], rowCount: 1 };
     if (sql.includes('count(*)::int assigned')) return { rows: [{ assigned: 2, completed: 1, overdue: 0, in_progress: 1, not_started: 0, active_seconds: 100 }], rowCount: 1 };
     if (sql.includes('course_title') && sql.includes('FROM hr_learning_enrollments e')) return { rows: [], rowCount: 0 };
     if (sql.includes('block_title') && sql.includes('FROM hr_learning_assignment_submissions s')) return { rows: [], rowCount: 0 };
+    if (sql.includes('FROM hr_learning_enrollments e') && sql.includes('emp.company_id')) return { rows: [{ employee_id: '77777777-7777-4777-8777-777777777777', company_id: options?.companyId ?? COMPANY_ID }], rowCount: 1 };
+    if (sql.includes('UPDATE hr_learning_enrollments')) return { rows: [{ id: '44444444-4444-4444-8444-444444444444', status: 'completed' }], rowCount: 1 };
+    if (sql.includes('INSERT INTO hr_learning_activity_events')) return { rows: [], rowCount: 1 };
     throw new Error(`Unexpected SQL: ${sql}`);
   });
   const deps = {

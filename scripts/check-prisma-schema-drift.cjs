@@ -84,6 +84,12 @@ for (const statement of statements) {
     continue;
   }
 
+  const rawConstraintMatch = statement.match(/^ALTER TABLE\s+"([^"]+)"\s+DROP CONSTRAINT\s+"([^"]+)"$/i);
+  if (rawConstraintMatch && allowedDropTables.has(rawConstraintMatch[1])) {
+    allowed.push(`constraint:${rawConstraintMatch[1]}.${rawConstraintMatch[2]}`);
+    continue;
+  }
+
   unexpected.push(statement);
 }
 

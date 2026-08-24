@@ -20,6 +20,7 @@ const allowedDropIndexes = new Set([
 // accessed only through repository-owned typed raw-query boundaries.
 const allowedDropTables = new Set([
   'hr_leave_allocation_drafts',
+  'hr_learning_assignment_batches',
 ]);
 
 function fail(message, details = '') {
@@ -80,6 +81,12 @@ for (const statement of statements) {
   const tableMatch = statement.match(/^DROP TABLE\s+"([^"]+)"$/i);
   if (tableMatch && allowedDropTables.has(tableMatch[1])) {
     allowed.push(`table:${tableMatch[1]}`);
+    continue;
+  }
+
+  const rawConstraintMatch = statement.match(/^ALTER TABLE\s+"([^"]+)"\s+DROP CONSTRAINT\s+"([^"]+)"$/i);
+  if (rawConstraintMatch && allowedDropTables.has(rawConstraintMatch[1])) {
+    allowed.push(`constraint:${rawConstraintMatch[1]}.${rawConstraintMatch[2]}`);
     continue;
   }
 

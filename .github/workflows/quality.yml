@@ -21,13 +21,34 @@ jobs:
       - run: node scripts/frontend-architecture-regression-checks.cjs
       - run: node scripts/learning-component-decomposition-regression-checks.cjs
       - run: node scripts/learning-legacy-catalog-reference-check.cjs
+      - run: node scripts/learning-e2e-regression-checks.cjs
       - run: node scripts/time-e2e-regression-checks.cjs
       - run: npm run type-check
       - run: npm run lint
       - name: Strict lint refactor-owned modules
         run: >-
           npx eslint
-          src/app/learning/LearningPageClient.tsx
+          src/app/learning/LearningHomePageClient.tsx
+          src/app/learning/CourseCatalogPageClient.tsx
+          src/app/learning/CourseCatalog.tsx
+          src/app/learning/CourseCreateDialog.tsx
+          src/app/learning/LearningAssignmentDialog.tsx
+          src/app/learning/LearningPathsPageClient.tsx
+          src/app/learning/LearningPathsView.tsx
+          src/app/learning/LearningPathDialog.tsx
+          src/app/learning/EmployeeCertificatesPageClient.tsx
+          src/app/learning/EmployeeCertificateDialog.tsx
+          src/app/learning/LearningManagementPageClient.tsx
+          src/app/learning/LearningReviewQueue.tsx
+          src/app/learning/LearningReportsView.tsx
+          src/app/learning/courses/[id]/LearningAssignmentBlock.tsx
+          src/app/learning/courses/[id]/learning-assignment-view-model.ts
+          src/lib/learning/learning-access.ts
+          src/lib/learning/learning-integrity.ts
+          src/lib/learning/learning-self-service.ts
+          src/lib/learning/learning-assignment-service.ts
+          src/lib/learning/learning-course-authoring.ts
+          src/lib/learning/learning-management-service.ts
           src/app/learning/LearningOverview.tsx
           src/app/learning/LegacyCourseCatalog.tsx
           src/app/learning/LearningUiPrimitives.tsx

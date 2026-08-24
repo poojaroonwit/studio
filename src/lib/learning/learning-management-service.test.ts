@@ -33,7 +33,10 @@ function dependencies(options?: { companyId?: string | null; stale?: boolean }) 
     if (sql.includes('block_title') && sql.includes('FROM hr_learning_assignment_submissions s')) return { rows: [], rowCount: 0 };
     throw new Error(`Unexpected SQL: ${sql}`);
   });
-  const deps: LearningManagementDependencies = { query, completeBlock: vi.fn(async () => ({ id: 'progress' })) };
+  const deps = {
+    query,
+    completeBlock: vi.fn(async () => ({ id: 'progress' })),
+  } as unknown as LearningManagementDependencies;
   return { deps, query };
 }
 

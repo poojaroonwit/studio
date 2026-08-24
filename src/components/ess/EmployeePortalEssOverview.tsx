@@ -79,6 +79,7 @@ export function EmployeePortalEssOverview() {
   const attendanceStatus = attendance?.clock_in && !attendance?.clock_out ? 'Checked in' : attendance?.clock_out ? 'Completed' : 'Not checked in';
   const performanceActions = data.performance.filter(item => ['not_started', 'in_progress', 'returned_for_revision', 'completed'].includes(String(item.status))).length;
   const acknowledgmentCount = data.documents.filter(item => item.requires_acknowledgment && !item.acknowledged_at).length;
+  const requestActions = data.requests.filter(item => ['draft', 'returned_for_revision'].includes(String(item.status))).length;
 
   return (
     <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-4 py-6" aria-labelledby="ess-overview-title">
@@ -114,6 +115,7 @@ export function EmployeePortalEssOverview() {
             <div><h2 id="employee-services-title" className="text-sm font-semibold">Employee services</h2><p className="mt-0.5 text-xs text-muted-foreground">Complete employee-owned journeys without entering HR or finance workspaces.</p></div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <ServiceLink icon={FileCheck2} label="My requests" description={requestActions ? `${requestActions} need your action` : 'Approvals and revisions'} href="/ess/requests" />
             <ServiceLink icon={UserPlus} label="My onboarding" description={`${data.metrics.latestOnboardingProgress}% complete`} href="/ess/onboarding" />
             <ServiceLink icon={FileCheck2} label="My benefits" description="Coverage and applications" href="/ess/benefits" />
             <ServiceLink icon={Banknote} label="Expenses" description="Claims and reimbursement" href="/ess/expenses" />

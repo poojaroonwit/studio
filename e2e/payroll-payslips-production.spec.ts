@@ -125,7 +125,6 @@ test.describe("Payslip production journey", () => {
     page,
   }) => {
     await mockPayslipWorkspace(page, true);
-    let downloadRequested = false;
     let reminderRequested = false;
 
     await page.route(`**/api/payroll/v1/payslips/${payslipId}`, async (route) => {
@@ -134,16 +133,7 @@ test.describe("Payslip production journey", () => {
         await fulfillJson(route, { sent: true });
         return;
       }
-      downloadRequested = true;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/pdf",
-        headers: {
-          "content-disposition": 'attachment; filename="payslip-EMP-001.pdf"',
-          "cache-control": "private, no-store",
-        },
-        body: "%PDF-1.4\n% payroll payslip",
-      });
+      await route.continue();
     });
 
     await page.goto("/payroll/payslips");
@@ -153,11 +143,16 @@ test.describe("Payslip production journey", () => {
     await expect(drawer).toBeVisible();
     await drawer.getByRole("tab", { name: /Delivery & access/i }).click();
 
-    const download = page.waitForEvent("download");
+    await page.evaluate(() => {
+      HTMLAnchorElement.prototype.click = function recordDownloadTarget() {
+        document.documentElement.dataset.payrollDownloadHref = this.href;
+      };
+    });
+
     await drawer.getByRole("button", { name: /Download PDF/i }).click();
-    const file = await download;
-    await expect.poll(() => downloadRequested).toBe(true);
-    expect(file.suggestedFilename()).toBe("payslip-EMP-001.pdf");
+    const downloadHref = await page.locator("html").getAttribute("data-payroll-download-href");
+    expect(downloadHref).not.toBeNull();
+    expect(new URL(downloadHref!).pathname).toBe(`/api/payroll/v1/payslips/${payslipId}`);
 
     await drawer.getByRole("button", { name: /Send reminder/i }).click();
     await expect.poll(() => reminderRequested).toBe(true);

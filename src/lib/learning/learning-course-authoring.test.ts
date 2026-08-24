@@ -29,7 +29,7 @@ function dependencies(options?: { failBlock?: boolean }) {
     }),
     release: vi.fn(),
   };
-  const deps: LearningAuthoringDependencies = { connect: vi.fn(async () => client) };
+  const deps = { connect: vi.fn(async () => client) } as unknown as LearningAuthoringDependencies;
   return { deps, statements };
 }
 

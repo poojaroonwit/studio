@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { employeeForUser, getCourseDetail, startCourse } from '@/lib/learning/learning-service';
+import { employeeForUser } from '@/lib/learning/learning-access';
+import { getCourseDetail, startCourse } from '@/lib/learning/learning-service';
 import { hasAnyPermission } from '@/lib/permissions';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {

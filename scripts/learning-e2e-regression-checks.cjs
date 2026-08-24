@@ -18,11 +18,18 @@ for (const required of [
   'src/app/learning/manage/reports/page.tsx',
 ]) assert(exists(required), `${required} must exist`);
 
-const progress = read('src/app/api/learning/progress/route.ts');
-assert(progress.includes('learning-integrity'), 'Learning progress route must use the version-bound integrity helper.');
+const learningService = read('src/lib/learning/learning-service.ts');
+assert(learningService.includes('learning-integrity'), 'Learning service must use the version-bound integrity helper.');
+for (const mutation of ['recordHeartbeat', 'completeBlock', 'submitQuiz', 'submitAssignment']) {
+  const start = learningService.indexOf(`export async function ${mutation}`);
+  assert(start >= 0, `${mutation} must exist`);
+  const next = learningService.indexOf('export async function ', start + 1);
+  const body = learningService.slice(start, next >= 0 ? next : undefined);
+  assert(body.includes('assertEnrollmentContentAccess'), `${mutation} must validate enrollment/version content access.`);
+}
 
 const assignment = read('src/app/api/learning/assignments/route.ts');
-assert(assignment.includes('idempotency'), 'Learning assignment API must accept/use an idempotency key.');
+assert(assignment.includes('idempotencyKey'), 'Learning assignment API must accept/use an idempotency key.');
 assert(assignment.includes('learning-assignment-service'), 'Learning assignment API must use the atomic assignment service.');
 
 const pathClient = read('src/app/learning/LearningPathsPageClient.tsx');

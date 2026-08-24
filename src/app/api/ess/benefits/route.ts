@@ -111,10 +111,11 @@ export async function PATCH(request: Request) {
 
   const current = await prisma.employeeBenefitEnrollment.findFirst({
     where: { id: parsed.data.id, employeeId: access.employee.id },
-    include: { benefitPlan: true },
   });
   if (!current) return NextResponse.json({ error: 'Benefit application not found.' }, { status: 404 });
   if (current.version !== parsed.data.expectedVersion) return NextResponse.json({ error: 'This benefit application changed. Refresh before trying again.' }, { status: 409 });
+  const plan = await prisma.benefitPlan.findUnique({ where: { id: current.benefitPlanId } });
+  const benefitName = plan?.name || 'Benefit plan';
 
   let nextStatus: string;
   try {
@@ -128,7 +129,7 @@ export async function PATCH(request: Request) {
     data: { status: nextStatus, version: { increment: 1 } },
   });
   if (changed.count !== 1) return NextResponse.json({ error: 'This benefit application changed. Refresh before trying again.' }, { status: 409 });
-  const enrollment = await prisma.employeeBenefitEnrollment.findUnique({ where: { id: current.id }, include: { benefitPlan: true } });
+  const enrollment = await prisma.employeeBenefitEnrollment.findUnique({ where: { id: current.id } });
 
   await logAudit('AUDIT', `Employee benefit action: ${parsed.data.action}.`, 'API:ESS:Benefits:Action', access.session.user.id, {
     enrollmentId: current.id,
@@ -139,7 +140,7 @@ export async function PATCH(request: Request) {
     await notifyManager(
       access.employee.manager_id,
       nextStatus === 'pending_termination' ? 'Benefit termination needs review' : 'Benefit application needs review',
-      `${current.benefitPlan.name} is awaiting your decision.`,
+      `${benefitName} is awaiting your decision.`,
       current.id,
       access.session.user.id,
     );

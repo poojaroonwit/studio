@@ -20,6 +20,7 @@ const allowedDropIndexes = new Set([
 // accessed only through repository-owned typed raw-query boundaries.
 const allowedDropTables = new Set([
   'hr_leave_allocation_drafts',
+  'hr_learning_assignment_batches',
 ]);
 
 function fail(message, details = '') {

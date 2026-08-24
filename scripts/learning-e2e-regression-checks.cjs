@@ -34,7 +34,8 @@ assert(assignment.includes('learning-assignment-service'), 'Learning assignment 
 
 const pathClient = read('src/app/learning/LearningPathsPageClient.tsx');
 assert(pathClient.includes('/api/learning/assignments'), 'Learning Paths must assign through the atomic batch endpoint.');
-assert(!pathClient.includes('/api/hr/learning'), 'Learning Paths must not fan out generic HR enrollment POSTs.');
+assert(!pathClient.includes('Promise.all(assigning.courseIds'), 'Learning Paths must not fan out one enrollment request per course.');
+assert(!pathClient.includes('courseIds.map(async'), 'Learning Paths must not fan out one enrollment request per course.');
 
 const courseDialog = read('src/app/learning/CourseCreateDialog.tsx');
 assert(courseDialog.includes('/api/learning/studio/courses'), 'Course creation must use the atomic course authoring endpoint.');

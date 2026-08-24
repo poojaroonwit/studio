@@ -31,7 +31,7 @@ function deps(options?: { employeeCompany?: string | null; courseCount?: number;
       }
       if (sql.includes('INSERT INTO hr_learning_enrollments')) {
         expect(sql).toContain("status=CASE WHEN hr_learning_enrollments.status='completed' THEN hr_learning_enrollments.status ELSE hr_learning_enrollments.status END");
-        expect(sql).not.toContain("progress=0");
+        expect(sql).not.toContain('progress=0');
         return { rows: [{ id: 'enrollment' }], rowCount: 1 };
       }
       if (sql.includes('INSERT INTO hr_learning_activity_events')) return { rows: [], rowCount: 1 };
@@ -39,10 +39,10 @@ function deps(options?: { employeeCompany?: string | null; courseCount?: number;
     }),
     release: vi.fn(),
   };
-  const dependencies: LearningAssignmentDependencies = {
+  const dependencies = {
     connect: vi.fn(async () => client),
     notify: vi.fn(async () => undefined),
-  };
+  } as unknown as LearningAssignmentDependencies;
   return { dependencies, client, statements };
 }
 

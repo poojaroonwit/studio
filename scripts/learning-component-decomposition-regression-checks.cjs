@@ -2,70 +2,48 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = process.cwd();
-const learningClientPath = path.join(root, 'src/app/learning/LearningPageClient.tsx');
-const learningOverviewPath = path.join(root, 'src/app/learning/LearningOverview.tsx');
-const legacyCatalogPath = path.join(root, 'src/app/learning/LegacyCourseCatalog.tsx');
-const journeyHeaderPath = path.join(root, 'src/app/learning/LearningJourneyHeader.tsx');
+const p = (...parts) => path.join(root, ...parts);
+const read = (...parts) => fs.readFileSync(p(...parts), 'utf8');
+const exists = (...parts) => fs.existsSync(p(...parts));
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-const assert = (condition, message) => {
-  if (!condition) throw new Error(message);
-};
+const routeFiles = [
+  ['src/app/learning/page.tsx', 'LearningHomePageClient'],
+  ['src/app/learning/courses/page.tsx', 'CourseCatalogPageClient'],
+  ['src/app/learning/paths/page.tsx', 'LearningPathsPageClient'],
+  ['src/app/learning/certificates/page.tsx', 'EmployeeCertificatesPageClient'],
+];
 
-const learningClient = fs.readFileSync(learningClientPath, 'utf8');
+for (const [file, controller] of routeFiles) {
+  assert(exists(file), `${file} must exist`);
+  const source = read(file);
+  assert(source.includes(controller), `${file} must use ${controller}`);
+  assert(!source.includes('LearningPageClient'), `${file} must not reference LearningPageClient`);
+}
 
-assert(
-  fs.existsSync(learningOverviewPath),
-  'LearningOverview must be extracted to src/app/learning/LearningOverview.tsx',
-);
-assert(
-  learningClient.includes('from "./LearningOverview"'),
-  'LearningPageClient must import the extracted LearningOverview component',
-);
-assert(
-  !learningClient.includes('function LearningOverview('),
-  'LearningPageClient must not keep an inline LearningOverview implementation',
-);
-
-assert(
-  fs.existsSync(legacyCatalogPath),
-  'LegacyCourseCatalog must be extracted to src/app/learning/LegacyCourseCatalog.tsx',
-);
-assert(
-  learningClient.includes('from "./LegacyCourseCatalog"'),
-  'LearningPageClient must import the extracted LegacyCourseCatalog component',
-);
-assert(
-  !learningClient.includes('function LegacyCourseCatalog('),
-  'LearningPageClient must not keep an inline LegacyCourseCatalog implementation',
-);
-assert(
-  !learningClient.includes('function CourseGrid('),
-  'LearningPageClient must not keep the legacy CourseGrid implementation inline',
-);
-assert(
-  !learningClient.includes('function CourseList('),
-  'LearningPageClient must not keep the legacy CourseList implementation inline',
-);
+for (const file of [
+  'src/app/learning/LearningHomePageClient.tsx',
+  'src/app/learning/CourseCatalogPageClient.tsx',
+  'src/app/learning/CourseCatalog.tsx',
+  'src/app/learning/LearningPathsPageClient.tsx',
+  'src/app/learning/LearningPathsView.tsx',
+  'src/app/learning/EmployeeCertificatesPageClient.tsx',
+  'src/app/learning/LearningManagementPageClient.tsx',
+  'src/app/learning/LearningReviewQueue.tsx',
+  'src/app/learning/LearningReportsView.tsx',
+]) assert(exists(file), `${file} must exist`);
 
 assert(
-  fs.existsSync(journeyHeaderPath),
-  'LearningJourneyHeader must be extracted to src/app/learning/LearningJourneyHeader.tsx',
+  !exists('src/app/learning/LearningPageClient.tsx'),
+  'LearningPageClient.tsx must be retired after dedicated route controllers are active',
 );
-assert(
-  learningClient.includes('from "./LearningJourneyHeader"'),
-  'LearningPageClient must import the extracted LearningJourneyHeader component',
-);
-assert(
-  !learningClient.includes('function LearningJourneyHeader('),
-  'LearningPageClient must not keep an inline LearningJourneyHeader implementation',
-);
-assert(
-  !learningClient.includes('const learningJourneyStops ='),
-  'Learning journey stops must live with the extracted LearningJourneyHeader',
-);
-assert(
-  !learningClient.includes('const learningJourneyCopy:'),
-  'Learning journey copy must live with the extracted LearningJourneyHeader',
-);
+
+const onboarding = read('src/app/learning/onboarding/page.tsx');
+assert(onboarding.includes("redirect('/people/onboarding')"), 'Learning onboarding must redirect to People Onboarding');
+assert(!onboarding.includes('LearningPageClient'), 'Learning onboarding must not own a Learning controller');
+
+const model = read('src/app/learning/learning-workspace-model.ts');
+assert(!model.includes('OnboardingForm'), 'Learning workspace model must not keep duplicate onboarding form state');
+assert(!model.includes('onboardingFormDefault'), 'Learning workspace model must not keep duplicate onboarding defaults');
 
 console.log('Learning component decomposition regression checks passed.');

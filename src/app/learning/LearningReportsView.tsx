@@ -13,6 +13,7 @@ type SubmissionRow = Record<string, unknown> & { id?: string; employee_name?: st
 type Summary = { assigned?: number; not_started?: number; in_progress?: number; completed?: number; overdue?: number; active_seconds?: number };
 type Report = { summary: Summary; rows: ReportRow[]; submissions: SubmissionRow[] };
 type CatalogCourse = { id: string; title: string };
+type CatalogResponse = { data?: CatalogCourse[]; message?: string };
 
 function csvCell(value: unknown) { const text = value == null ? '' : String(value); return `"${text.replaceAll('"', '""')}"`; }
 function date(value: unknown) { if (!value) return '—'; const parsed = new Date(String(value)); return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString(); }
@@ -44,7 +45,16 @@ export function LearningReportsView() {
   }, [employeeId, courseId, status, dueFrom, dueTo, completedFrom, completedTo]);
 
   React.useEffect(() => {
-    void fetch('/api/learning/catalog', { credentials: 'include', cache: 'no-store' }).then(async response => response.ok ? response.json() as Promise<{ data?: CatalogCourse[] }> : {}).then(payload => setCourses(payload.data || [])).catch(() => setCourses([]));
+    void (async () => {
+      try {
+        const response = await fetch('/api/learning/catalog', { credentials: 'include', cache: 'no-store' });
+        if (!response.ok) { setCourses([]); return; }
+        const payload = await response.json() as CatalogResponse;
+        setCourses(payload.data || []);
+      } catch {
+        setCourses([]);
+      }
+    })();
   }, []);
   React.useEffect(() => { void load(); }, [load]);
 

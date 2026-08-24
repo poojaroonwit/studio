@@ -18,21 +18,24 @@ describe('Hrive desktop shell visual contract', () => {
     expect(primaryItem).toContain('after:bg-blue-600');
   });
 
-  it('renders the secondary navigation as a light tab row', () => {
+  it('renders the secondary navigation as a transparent borderless tab row', () => {
     const secondary = source('src/components/layout/HeaderSecondaryNavigation.tsx');
 
-    expect(secondary).toContain('bg-white/90');
-    expect(secondary).toContain('border-slate-200/80');
+    expect(secondary).toContain('relative z-40 shrink-0 bg-transparent');
+    expect(secondary).not.toContain('border-b border-slate-200/80 bg-white/90');
+    expect(secondary).not.toContain('groupIndex > 0 && "border-l');
+    expect(secondary).not.toContain('items-stretch border-l border-slate-200 bg-white');
     expect(secondary).toContain('text-slate-600');
     expect(secondary).toContain('after:bg-blue-600');
     expect(secondary).not.toContain('bg-[#182235]');
   });
 
-  it('places page content in a rounded white canvas over a soft cool gradient', () => {
+  it('places page content in a clipped rounded white canvas over a soft cool gradient', () => {
     const shell = source('src/components/layout/AppLayoutShell.tsx');
 
     expect(shell).toContain('bg-[radial-gradient(');
     expect(shell).toContain('lg:rounded-[24px]');
+    expect(shell).toContain('lg:overflow-hidden');
     expect(shell).toContain('lg:border-slate-200/80');
     expect(shell).toContain('lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)]');
   });

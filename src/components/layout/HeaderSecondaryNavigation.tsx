@@ -85,7 +85,7 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
   if (!activeCategory) return null;
 
   return (
-    <div className="relative z-40 shrink-0 border-b border-white/10 bg-[#182235]/80 pl-3 pr-0 text-white shadow-sm backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[#182235]/70 sm:pl-4 lg:pl-8">
+    <div className="relative z-40 shrink-0 border-b border-slate-200/80 bg-white/90 pl-3 pr-0 text-slate-700 shadow-sm backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/80 sm:pl-4 lg:pl-8 dark:border-zinc-800 dark:bg-zinc-950/90 dark:text-zinc-100">
       <div className="flex h-12 min-w-0 items-stretch">
         <div
           ref={scrollContainerRef}
@@ -98,7 +98,7 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
                 key={`${activeCategory.label}-${group.id}`}
                 className={cn(
                   "flex shrink-0 items-stretch",
-                  groupIndex > 0 && "border-l border-white/15",
+                  groupIndex > 0 && "border-l border-slate-200 dark:border-zinc-800",
                 )}
               >
                 {group.items.map(item => {
@@ -109,8 +109,8 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "relative flex shrink-0 items-center px-3 text-sm font-normal tracking-[-0.01em] text-slate-300 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400 sm:px-4",
-                        active && "font-semibold text-white after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-[#4d7fff]",
+                        "relative flex shrink-0 items-center px-3 text-sm font-normal tracking-[-0.01em] text-slate-600 transition-colors duration-150 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:px-4 dark:text-zinc-300 dark:hover:text-white",
+                        active && "font-semibold text-blue-700 after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-blue-600 dark:text-blue-300 dark:after:bg-blue-400",
                       )}
                     >
                       {item.label}
@@ -122,13 +122,13 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
           </nav>
         </div>
         {scrollState.hasOverflow ? (
-          <div className="order-last ml-auto flex shrink-0 items-stretch border-l border-white/10 bg-[#182235] shadow-[-12px_0_18px_-14px_rgba(0,0,0,0.9)]">
+          <div className="order-last ml-auto flex shrink-0 items-stretch border-l border-slate-200 bg-white shadow-[-12px_0_18px_-14px_rgba(15,23,42,0.22)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[-12px_0_18px_-14px_rgba(0,0,0,0.9)]">
             <button
               type="button"
               aria-label={`Show previous ${activeCategory.label} navigation items`}
               disabled={!scrollState.canScrollLeft}
               onClick={() => scrollMenu(-1)}
-              className="grid w-10 place-items-center rounded-none text-slate-200 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400 disabled:cursor-default disabled:text-slate-600 disabled:hover:bg-transparent"
+              className="grid w-10 place-items-center rounded-none text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white dark:disabled:text-zinc-700"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -137,7 +137,7 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
               aria-label={`Show next ${activeCategory.label} navigation items`}
               disabled={!scrollState.canScrollRight}
               onClick={() => scrollMenu(1)}
-              className="grid w-10 place-items-center rounded-none border-l border-white/10 text-slate-200 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400 disabled:cursor-default disabled:text-slate-600 disabled:hover:bg-transparent"
+              className="grid w-10 place-items-center rounded-none border-l border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white dark:disabled:text-zinc-700"
             >
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>

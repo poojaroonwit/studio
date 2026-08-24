@@ -85,9 +85,11 @@ function HeaderLoadedActions({
     <>
       <div className="flex items-center gap-1.5">
         <NotificationIcon />
-        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-white/20" />
-        <HrHelpWidget />
-        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-white/20" />
+        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
+        <div className="[&_button]:!text-slate-600 [&_button]:hover:!bg-slate-100 [&_button]:hover:!text-slate-950 dark:[&_button]:!text-zinc-300 dark:[&_button]:hover:!bg-zinc-800 dark:[&_button]:hover:!text-white">
+          <HrHelpWidget />
+        </div>
+        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
         {isMobile ? (
           <HeaderMobileUserDrawer {...userMenuProps} />
         ) : (

@@ -30,7 +30,7 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
     },
     token: `${baseUrl}/api/auth/oauth2/token`,
     userinfo: `${baseUrl}/api/auth/oauth2/userinfo`,
-    checks: ['pkce', 'state'] as const,
+    checks: ['pkce', 'state'] as Array<'pkce' | 'state'>,
     client: { token_endpoint_auth_method: 'none' as const },
     profile(profile: Record<string, unknown>) {
       const sub = typeof profile.sub === 'string' ? profile.sub : '';

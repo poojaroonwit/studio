@@ -36,14 +36,29 @@ describe('Outborn Account human-auth boundary', () => {
     expect(callbackSource).not.toContain('getResolvedAzureAdSettings');
   });
 
-  it('does not expose local password or Hrive 2FA account routes', () => {
+  it('does not expose local password, MFA, or direct token-mint auth routes', () => {
     const legacyRoutes = [
       'src/app/api/auth/change-password/route.ts',
       'src/app/api/auth/setup-password/route.ts',
       'src/app/api/auth/2fa',
+      'src/app/api/v1/auth/login/route.ts',
     ];
 
     for (const path of legacyRoutes) {
+      expect(existsSync(resolve(process.cwd(), path))).toBe(false);
+    }
+  });
+
+  it('does not ship product-owned password or MFA sign-in components', () => {
+    const legacyComponents = [
+      'src/components/auth/CredentialsSignInForm.tsx',
+      'src/components/auth/AzureAdSignInButton.tsx',
+      'src/components/auth/ChangePasswordModal.tsx',
+      'src/components/auth/TwoFactorSetup.tsx',
+      'src/components/auth/TwoFactorVerify.tsx',
+    ];
+
+    for (const path of legacyComponents) {
       expect(existsSync(resolve(process.cwd(), path))).toBe(false);
     }
   });

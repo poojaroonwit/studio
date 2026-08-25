@@ -1,45 +1,22 @@
 /**
  * Hrive authentication configuration.
  *
- * Outborn Account is the canonical human identity provider. Azure AD and local
- * credentials remain explicit legacy/emergency compatibility paths only.
+ * Outborn Account is the canonical and only human identity provider. Hrive
+ * keeps product-specific authorization in its own session, but it does not
+ * authenticate passwords or install a second enterprise identity provider.
  */
 
 import NextAuth from 'next-auth';
-import AzureAD from 'next-auth/providers/azure-ad';
 
-import { getResolvedAzureAdSettings } from '@/lib/auth-azure-ad-settings';
 import { buildAuthCallbacks } from '@/lib/auth-callbacks';
-import { buildCredentialsProvider } from '@/lib/auth-credentials-provider';
 import { buildAuthEvents } from '@/lib/auth-events';
 import { getConfiguredOutbornAccountProvider } from '@/lib/auth-outborn-account-provider';
 
 const getAuthConfig = async () => {
   const outbornAccountProvider = getConfiguredOutbornAccountProvider();
-  const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true';
-  const azureAdSettings = legacyAzureEnabled ? await getResolvedAzureAdSettings() : null;
-
-  const providers = [
-    ...(outbornAccountProvider ? [outbornAccountProvider] : []),
-    ...(legacyAzureEnabled && azureAdSettings?.isConfigured ? [
-      AzureAD({
-        clientId: azureAdSettings.clientId!,
-        clientSecret: azureAdSettings.clientSecret!,
-        issuer: `https://login.microsoftonline.com/${azureAdSettings.tenantId}/v2.0`,
-        authorization: {
-          params: {
-            scope: 'openid profile email',
-            response_mode: 'query',
-          },
-        },
-        checks: ['pkce', 'state'],
-      }),
-    ] : []),
-    buildCredentialsProvider(),
-  ];
 
   return {
-    providers,
+    providers: outbornAccountProvider ? [outbornAccountProvider] : [],
     trustHost: true,
     session: {
       strategy: 'jwt' as const,

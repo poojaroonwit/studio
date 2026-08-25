@@ -63,6 +63,22 @@ describe('Outborn Account human-auth boundary', () => {
     }
   });
 
+  it('does not ship legacy credential or Azure human-auth engines', () => {
+    const legacyAuthModules = [
+      'src/lib/auth-credentials-provider.ts',
+      'src/lib/authUtils.ts',
+      'src/lib/auth-azure-ad-signin.ts',
+      'src/lib/auth-azure-ad-signin-types.ts',
+      'src/lib/auth-azure-ad-signin-utils.ts',
+      'src/lib/auth-azure-ad-user-operations.ts',
+      'src/lib/auth-azure-ad-user-operation-utils.ts',
+    ];
+
+    for (const path of legacyAuthModules) {
+      expect(existsSync(resolve(process.cwd(), path))).toBe(false);
+    }
+  });
+
   it('routes account security through the Outborn Account boundary', () => {
     const headerSource = source('src/components/layout/Header.tsx');
     const modalSource = source('src/components/layout/HeaderProfileModals.tsx');

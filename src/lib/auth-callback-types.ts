@@ -16,6 +16,10 @@ export type MutableAuthToken = JWT & Record<string, unknown> & {
   impersonatedRole?: string;
   impersonatedName?: string;
   adminId?: string;
+  outbornAccountAccessToken?: string;
+  outbornAccountAccessTokenExpiresAt?: number;
+  outbornAccountRefreshToken?: string;
+  outbornAccountTokenError?: string;
   exp?: number;
 };
 

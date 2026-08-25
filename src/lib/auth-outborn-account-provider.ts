@@ -26,7 +26,7 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
     clientSecret: '',
     authorization: {
       url: `${baseUrl}/api/auth/oauth2/authorize`,
-      params: { scope: 'openid profile email organizations' },
+      params: { scope: 'openid profile email offline_access organizations' },
     },
     token: `${baseUrl}/api/auth/oauth2/token`,
     userinfo: `${baseUrl}/api/auth/oauth2/userinfo`,

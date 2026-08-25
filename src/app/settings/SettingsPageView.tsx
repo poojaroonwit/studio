@@ -20,6 +20,7 @@ import { cn } from '../../lib/utils';
 import { HrSetupWorkspace } from './HrSetupWorkspace';
 import { RolesPermissionsWorkspace } from './RolesPermissionsWorkspace';
 import { ManageUsersPageContent } from './users/ManageUsersPageContent';
+import { BillingWorkspace } from './billing/BillingWorkspace';
 import { AuditControlsWorkspace } from '../../components/audit-controls/AuditControlsWorkspace';
 import {
   buildSettingsSections,
@@ -89,7 +90,7 @@ export function SettingsPageView({
   }, [activeTab, requestedConfigItem]);
 
   useEffect(() => {
-    if (isLoading || visibleItems.length === 0) return;
+    if (isLoading || visibleItems.length === 0 || activeTab === 'Billing') return;
 
     const prefetchVisibleItems = () => {
       visibleItems.forEach(item => {
@@ -104,7 +105,7 @@ export function SettingsPageView({
 
     const timeoutId = globalThis.setTimeout(prefetchVisibleItems, 300);
     return () => globalThis.clearTimeout(timeoutId);
-  }, [isLoading, router, visibleItems]);
+  }, [activeTab, isLoading, router, visibleItems]);
 
   if (isLoading) return <SettingsPageLoadingState />;
 
@@ -119,6 +120,7 @@ export function SettingsPageView({
 
   if (activeTab === 'Roles & Permissions') return <RolesPermissionsWorkspace />;
   if (activeTab === 'User Accounts') return <ManageUsersPageContent accountsOnly />;
+  if (activeTab === 'Billing') return <BillingWorkspace />;
 
   return (
     <div className="settings-page-grid flex h-full min-h-0 flex-col text-[#20242c] dark:text-zinc-100">

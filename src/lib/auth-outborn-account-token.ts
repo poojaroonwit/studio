@@ -12,6 +12,8 @@ export interface RefreshedOutbornAccountToken {
   expiresAt: number;
 }
 
+const DEFAULT_REFRESH_TIMEOUT_MS = 7_000;
+
 function normalizeBaseUrl(value: string | undefined): string {
   const normalized = value?.trim().replace(/\/+$/, '') || '';
   if (!normalized) throw new Error('Outborn Account is not configured.');
@@ -25,6 +27,13 @@ function normalizeBaseUrl(value: string | undefined): string {
 
 function clientId(): string {
   return process.env.OUTBORN_HRIVE_WEB_CLIENT_ID?.trim() || 'outborn-hrive-web';
+}
+
+function refreshTimeoutMs(): number {
+  const configured = Number(process.env.OUTBORN_SERVICE_REQUEST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1_000 && configured <= 60_000
+    ? Math.trunc(configured)
+    : DEFAULT_REFRESH_TIMEOUT_MS;
 }
 
 function message(body: OutbornRefreshResponse): string {
@@ -49,6 +58,7 @@ export async function refreshOutbornAccountAccessToken(
       client_id: clientId(),
     }),
     cache: 'no-store',
+    signal: AbortSignal.timeout(refreshTimeoutMs()),
   });
   const body = await response.json().catch(() => ({})) as OutbornRefreshResponse;
   if (!response.ok) throw new Error(message(body));

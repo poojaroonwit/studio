@@ -19,17 +19,10 @@ export interface DesktopSignInViewProps {
     loginPageLogoDarkMode?: string | null;
   };
   errorMessage: string;
-  basicAuthEnabled: boolean;
-  isAzureAdConfigured: boolean;
-  activeFontColor: string;
-  activeBgStart: string;
-  activeBgEnd: string;
   loginPageFooter: string;
   loginHeroCopy: SignInHeroCopy;
   organizationName: string;
   loginLayoutType: LoginPageLayoutType;
-  loginStage: 'email' | 'otp';
-  onStageChange: (stage: 'email' | 'otp') => void;
 }
 
 export function DesktopSignInView(props: DesktopSignInViewProps) {

@@ -1,8 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
-import { AzureAdSignInButton } from '@/components/auth/AzureAdSignInButton';
-import { CredentialsSignInForm } from '@/components/auth/CredentialsSignInForm';
+import { OutbornAccountSignInButton } from '@/components/auth/OutbornAccountSignInButton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
 import type { DesktopSignInViewProps } from './DesktopSignInView';
@@ -94,16 +93,9 @@ export function DesktopSignInMobileBrand({
 }
 
 export function DesktopSignInAuthCard({
-  activeBgEnd,
-  activeBgStart,
-  activeFontColor,
   appName,
-  basicAuthEnabled,
   errorMessage,
-  isAzureAdConfigured,
   loginPageFooter,
-  loginStage,
-  onStageChange,
   organizationName,
   showLogoOnly,
 }: DesktopSignInViewPartProps) {
@@ -114,7 +106,7 @@ export function DesktopSignInAuthCard({
           <div className="space-y-2 text-center">
             <CardTitle className="text-3xl font-bold tracking-tight text-foreground">Sign in</CardTitle>
             <CardDescription className="text-base text-muted-foreground">
-              Continue to {appName}
+              Continue to {appName} with your Outborn Account
             </CardDescription>
           </div>
         )}
@@ -127,21 +119,7 @@ export function DesktopSignInAuthCard({
           </Alert>
         )}
 
-        {basicAuthEnabled && (
-          <CredentialsSignInForm
-            activeFontColor={activeFontColor}
-            activeBgStart={activeBgStart}
-            activeBgEnd={activeBgEnd}
-            onStageChange={onStageChange}
-          />
-        )}
-
-        {isAzureAdConfigured && loginStage === 'email' && (
-          <div className="mt-2">
-            {basicAuthEnabled && <DesktopSignInAzureDivider />}
-            <AzureAdSignInButton />
-          </div>
-        )}
+        <OutbornAccountSignInButton />
 
         <DesktopSignInPrivacyNotice />
 
@@ -160,7 +138,7 @@ function DesktopSignInPrivacyNotice() {
       <p className="mx-auto flex max-w-md items-start justify-center gap-2 text-xs leading-5 text-muted-foreground">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" aria-hidden="true" />
         <span>
-          Your sign-in is protected. Learn how hrive handles your information in our{' '}
+          Sign-in and account security are managed by Outborn Account. Learn how hrive handles your information in our{' '}
           <Link href="/privacy-support/privacy-policy" className="font-medium text-foreground underline decoration-slate-400 underline-offset-4 hover:text-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
             Privacy Policy
           </Link>{' '}
@@ -170,19 +148,6 @@ function DesktopSignInPrivacyNotice() {
           </Link>.
         </span>
       </p>
-    </div>
-  );
-}
-
-function DesktopSignInAzureDivider() {
-  return (
-    <div className="relative mb-4">
-      <div className="absolute inset-0 flex items-center">
-        <span className="w-full border-t border-border/50" />
-      </div>
-      <div className="relative flex justify-center text-xs uppercase">
-        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-      </div>
     </div>
   );
 }

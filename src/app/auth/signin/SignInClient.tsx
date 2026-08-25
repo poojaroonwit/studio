@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import type { SystemSetting } from '@/lib/types';
@@ -23,7 +23,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const isMobile = useIsMobile();
   const nextSearchParams = useSearchParams();
   const redirectAttemptedRef = useRef(false);
-  const [loginStage, setLoginStage] = useState<'email' | 'otp'>('email');
 
   const handleSignoutParamCleaned = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -34,14 +33,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, []);
 
   const {
-    activeBgEnd,
-    activeBgStart,
-    activeFontColor,
     appLogoUrl,
-    basicAuthEnabled,
     contextualLogos,
     currentAppName,
-    isAzureAdConfigured,
     isClient,
     isThemeDark,
     loginLayoutType,
@@ -130,11 +124,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         isThemeDark={isThemeDark}
         contextualLogos={contextualLogos}
         errorMessage={errorMessage}
-        basicAuthEnabled={basicAuthEnabled}
-        isAzureAdConfigured={isAzureAdConfigured}
-        activeFontColor={activeFontColor}
-        activeBgStart={activeBgStart}
-        activeBgEnd={activeBgEnd}
         loginPageContent={loginPageContent}
         loginPageFooter={loginPageFooter}
         loginPageLogoSize={loginPageLogoSize}
@@ -146,8 +135,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         mobileHeaderBackgroundType={mobileHeaderBackgroundType}
         mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
         organizationName={organizationName}
-        loginStage={loginStage}
-        onStageChange={setLoginStage}
       />
     );
   }
@@ -162,17 +149,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       isThemeDark={isThemeDark}
       contextualLogos={contextualLogos}
       errorMessage={errorMessage}
-      basicAuthEnabled={basicAuthEnabled}
-      isAzureAdConfigured={isAzureAdConfigured}
-      activeFontColor={activeFontColor}
-      activeBgStart={activeBgStart}
-      activeBgEnd={activeBgEnd}
       loginPageFooter={loginPageFooter}
       loginHeroCopy={loginHeroCopy}
       organizationName={organizationName}
       loginLayoutType={loginLayoutType}
-      loginStage={loginStage}
-      onStageChange={setLoginStage}
     />
   );
 }

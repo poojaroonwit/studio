@@ -96,7 +96,7 @@ export function Header({
       previewUsers: userActions.previewUsers,
       isSearchingUsers: userActions.isSearchingUsers,
       onOpenProfile: userActions.handleOpenProfileModal,
-      onOpenSecurity: () => userActions.setIsChangePasswordModalOpen(true),
+      onOpenSecurity: () => router.push("/account/security"),
       onClearCache: userActions.handleClearCache,
       onLocaleChange: changeLocale,
       onSignOut: userActions.handleSignOut,
@@ -156,8 +156,6 @@ export function Header({
 
       <HeaderProfileModals
         user={userActions.user}
-        isChangePasswordModalOpen={userActions.isChangePasswordModalOpen}
-        setIsChangePasswordModalOpen={userActions.setIsChangePasswordModalOpen}
         isUserModalOpen={userActions.isUserModalOpen}
         setIsUserModalOpen={userActions.setIsUserModalOpen}
         fullUserData={userActions.fullUserData}

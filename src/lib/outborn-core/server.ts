@@ -10,6 +10,7 @@ import { resolveHriveOrganization, type OutbornAccountIdentity } from './context
 const SESSION_COOKIE_NAME = 'next-auth.session-token';
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 const OUTBORN_REFRESH_EARLY_SECONDS = 5 * 60;
+const DEFAULT_REQUEST_TIMEOUT_MS = 7_000;
 
 export class OutbornServiceError extends Error {
   constructor(
@@ -43,6 +44,13 @@ function accountBaseUrl() {
 
 function coreBaseUrl() {
   return normalizeServiceUrl(process.env.OUTBORN_CORE_URL || process.env.OUTBORN_CORE_BASE_URL, 'Outborn Core');
+}
+
+function requestTimeoutMs(): number {
+  const configured = Number(process.env.OUTBORN_SERVICE_REQUEST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1_000 && configured <= 60_000
+    ? Math.trunc(configured)
+    : DEFAULT_REQUEST_TIMEOUT_MS;
 }
 
 async function jsonBody(response: Response): Promise<unknown> {
@@ -120,6 +128,13 @@ async function currentAccountAccessToken(request: NextRequest): Promise<string> 
     });
     return refreshed.accessToken;
   } catch (error) {
+    if (expiresAt > now) {
+      console.warn(
+        '[OUTBORN CORE] Early Account token refresh failed; using the still-valid access token:',
+        error instanceof Error ? error.message : error,
+      );
+      return accessToken;
+    }
     throw new OutbornServiceError(
       401,
       error instanceof Error
@@ -138,6 +153,7 @@ export async function getOutbornRequestContext(request: NextRequest): Promise<Ou
       method: 'GET',
       headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' },
       cache: 'no-store',
+      signal: AbortSignal.timeout(requestTimeoutMs()),
     });
   } catch (error) {
     throw new OutbornServiceError(503, error instanceof Error ? `Outborn Account is unavailable: ${error.message}` : 'Outborn Account is unavailable.');
@@ -169,6 +185,7 @@ export async function coreRequest<T>(
       ...init,
       headers,
       cache: 'no-store',
+      signal: init.signal ?? AbortSignal.timeout(requestTimeoutMs()),
     });
   } catch (error) {
     throw new OutbornServiceError(503, error instanceof Error ? `Outborn Core is unavailable: ${error.message}` : 'Outborn Core is unavailable.');

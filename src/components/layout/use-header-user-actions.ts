@@ -56,7 +56,6 @@ export function useHeaderUserActions({
   forceRefresh,
 }: HeaderUserActionsOptions) {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
   const [previewUsers, setPreviewUsers] = useState<HeaderPreviewUserSummary[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -195,8 +194,6 @@ export function useHeaderUserActions({
     user,
     isUserModalOpen,
     setIsUserModalOpen,
-    isChangePasswordModalOpen,
-    setIsChangePasswordModalOpen,
     fullUserData,
     previewUsers,
     isSearchingUsers,

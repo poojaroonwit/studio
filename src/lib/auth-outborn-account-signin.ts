@@ -48,16 +48,17 @@ export async function handleOutbornAccountSignIn({
     }
 
     if (!dbUser) {
+      const userId = crypto.randomUUID();
       const placeholderPassword = await bcrypt.hash(`outborn-account-${crypto.randomBytes(32).toString('base64url')}`, 12);
       const created = await client.query<{
         id: string;
         is_active: boolean;
         authentication_methods: string[] | null;
       }>(
-        `INSERT INTO "User" (name, email, password, role, image, "authentication_methods", "userGroupId", "emailVerified", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, 'Recruiter', $4, ARRAY[$5]::text[], $6, NOW(), NOW(), NOW())
+        `INSERT INTO "User" (id, name, email, password, role, image, "authentication_methods", "userGroupId", "emailVerified", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, 'Recruiter', $5, ARRAY[$6]::text[], $7, NOW(), NOW(), NOW())
          RETURNING id, "is_active", "authentication_methods"`,
-        [displayName, email, placeholderPassword, image, OUTBORN_AUTH_METHOD, PRE_REGISTERED_GROUP_ID],
+        [userId, displayName, email, placeholderPassword, image, OUTBORN_AUTH_METHOD, PRE_REGISTERED_GROUP_ID],
       );
       dbUser = created.rows[0];
       if (!dbUser) return false;

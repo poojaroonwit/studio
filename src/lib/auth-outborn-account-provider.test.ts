@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildOutbornAccountProvider } from './auth-outborn-account-provider';
 
 describe('Outborn Account Auth.js provider', () => {
-  it('uses Account OIDC endpoints with PKCE and no client secret auth', () => {
+  it('uses Account OIDC endpoints with PKCE, offline access, and no client secret auth', () => {
     const provider = buildOutbornAccountProvider({
       accountBaseUrl: 'https://account.example.com/',
       clientId: 'outborn-hrive-web',
@@ -17,5 +17,6 @@ describe('Outborn Account Auth.js provider', () => {
     expect(provider.checks).toEqual(['pkce', 'state']);
     expect(provider.client?.token_endpoint_auth_method).toBe('none');
     expect(provider.authorization?.params?.scope).toContain('organizations');
+    expect(provider.authorization?.params?.scope).toContain('offline_access');
   });
 });

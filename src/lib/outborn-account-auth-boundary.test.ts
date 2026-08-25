@@ -19,7 +19,7 @@ describe('Outborn Account human-auth boundary', () => {
 
   it('renders only the Outborn Account sign-in method on desktop and mobile', () => {
     const desktopSource = source('src/app/auth/signin/DesktopSignInViewParts.tsx');
-    const mobileSource = source('src/app/auth/signin/MobileSignInViewParts.tsx');
+    const mobileSource = source('src/app/auth/signin/MobileSignInCardPart.tsx');
 
     for (const signInSource of [desktopSource, mobileSource]) {
       expect(signInSource).toContain('OutbornAccountSignInButton');

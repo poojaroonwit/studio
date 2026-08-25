@@ -13,11 +13,6 @@ export interface MobileSignInViewProps {
     isThemeDark: boolean;
     contextualLogos: MobileSignInContextualLogos;
     errorMessage: string;
-    basicAuthEnabled: boolean;
-    isAzureAdConfigured: boolean;
-    activeFontColor: string;
-    activeBgStart: string;
-    activeBgEnd: string;
     loginPageContent: string;
     loginPageFooter: string;
     loginPageLogoSize: number;
@@ -29,6 +24,4 @@ export interface MobileSignInViewProps {
     mobileHeaderBackgroundType?: 'gradient' | 'transparent' | 'solid';
     mobileLoginLogoDataUrl?: string | null;
     organizationName?: string;
-    loginStage: 'email' | 'otp';
-    onStageChange: (stage: 'email' | 'otp') => void;
 }

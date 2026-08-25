@@ -17,6 +17,7 @@ import type {
 export async function handleJwtCallback({
   token,
   user,
+  account,
   profile,
   trigger,
   session,
@@ -44,6 +45,13 @@ export async function handleJwtCallback({
 
       if (typeof user.isMobile === 'boolean') token.isMobile = user.isMobile;
       if (user.sessionToken) token.sessionToken = user.sessionToken;
+    }
+
+    if (account?.provider === 'outborn-account' && typeof account.access_token === 'string' && account.access_token) {
+      token.outbornAccountAccessToken = account.access_token;
+      if (typeof account.expires_at === 'number') {
+        token.outbornAccountAccessTokenExpiresAt = account.expires_at;
+      }
     }
 
     await hydrateExternalIdentityTokenId(token, profile);

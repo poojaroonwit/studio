@@ -1,40 +1,21 @@
 import { AlertTriangle } from "lucide-react";
 
-import { AzureAdSignInButton } from "@/components/auth/AzureAdSignInButton";
-import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
+import { OutbornAccountSignInButton } from "@/components/auth/OutbornAccountSignInButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { sanitizeHtml } from "@/lib/utils";
-import {
-    shouldShowMobileSignInAzureDivider,
-    shouldShowMobileSignInAzureOnly,
-} from './mobile-signin-view-utils';
 
 export interface MobileSignInCardProps {
-    activeBgEnd: string;
-    activeBgStart: string;
-    activeFontColor: string;
-    basicAuthEnabled: boolean;
     errorMessage: string;
-    isAzureAdConfigured: boolean;
     loginPageContent: string;
     loginPageFooter: string;
-    loginStage: 'email' | 'otp';
-    onStageChange: (stage: 'email' | 'otp') => void;
     organizationName?: string;
 }
 
 export function MobileSignInCard({
-    activeBgEnd,
-    activeBgStart,
-    activeFontColor,
-    basicAuthEnabled,
     errorMessage,
-    isAzureAdConfigured,
     loginPageContent,
     loginPageFooter,
-    loginStage,
-    onStageChange,
     organizationName,
 }: MobileSignInCardProps) {
     return (
@@ -43,19 +24,7 @@ export function MobileSignInCard({
                 <div className="w-full max-w-md mx-auto space-y-6">
                     <MobileSignInIntro loginPageContent={loginPageContent} />
                     <MobileSignInError errorMessage={errorMessage} />
-                    {basicAuthEnabled && (
-                        <CredentialsSignInForm
-                            activeFontColor={activeFontColor}
-                            activeBgStart={activeBgStart}
-                            activeBgEnd={activeBgEnd}
-                            onStageChange={onStageChange}
-                        />
-                    )}
-                    <MobileSignInAzureOptions
-                        basicAuthEnabled={basicAuthEnabled}
-                        isAzureAdConfigured={isAzureAdConfigured}
-                        loginStage={loginStage}
-                    />
+                    <OutbornAccountSignInButton />
                     <MobileSignInFooter
                         loginPageFooter={loginPageFooter}
                         organizationName={organizationName}
@@ -73,7 +42,7 @@ function MobileSignInIntro({ loginPageContent }: { loginPageContent: string }) {
                 <h2 className="text-2xl font-black tracking-tight text-foreground uppercase leading-none">
                     Sign <span className="text-primary">In</span>
                 </h2>
-                <p className="text-xs text-muted-foreground font-medium">Please enter your credentials to continue.</p>
+                <p className="text-xs text-muted-foreground font-medium">Continue securely with your Outborn Account.</p>
             </div>
 
             {loginPageContent && (
@@ -95,38 +64,6 @@ function MobileSignInError({ errorMessage }: { errorMessage: string }) {
             <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
     );
-}
-
-function MobileSignInAzureOptions({
-    basicAuthEnabled,
-    isAzureAdConfigured,
-    loginStage,
-}: Pick<MobileSignInCardProps, 'basicAuthEnabled' | 'isAzureAdConfigured' | 'loginStage'>) {
-    if (shouldShowMobileSignInAzureDivider({ basicAuthEnabled, isAzureAdConfigured, loginStage })) {
-        return (
-            <div className="mt-4">
-                <div className="relative mb-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border/50" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                </div>
-                <AzureAdSignInButton />
-            </div>
-        );
-    }
-
-    if (shouldShowMobileSignInAzureOnly({ basicAuthEnabled, isAzureAdConfigured, loginStage })) {
-        return (
-            <div className="mt-4">
-                <AzureAdSignInButton />
-            </div>
-        );
-    }
-
-    return null;
 }
 
 function MobileSignInFooter({

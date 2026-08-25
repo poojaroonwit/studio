@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     const context = await getOutbornRequestContext(request);
     const selectedOrganization = context.identity.organizations.find(org => org.id === context.organizationId)!;
-    const [billing, preferences, entitlements, usage] = await Promise.all([
+    const [billing, preferences, allEntitlements, allUsage] = await Promise.all([
       billingSnapshot(context),
       coreRequest<CoreBillingPreferences>(context, organizationCorePath(context, 'billing/preferences')),
       coreRequest<CoreEntitlement[]>(context, organizationCorePath(context, 'entitlements')),
@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
       organizationRole: selectedOrganization.role,
       billing,
       preferences,
-      entitlements,
-      usage,
+      entitlements: allEntitlements.filter(item => item.key.startsWith('hrive.')),
+      usage: allUsage.filter(item => item.key.startsWith('hrive.')),
     };
     return NextResponse.json(overview);
   } catch (error) {

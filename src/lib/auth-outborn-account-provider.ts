@@ -39,7 +39,7 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
         ? profile.name.trim()
         : email.split('@')[0] || 'Hrive user';
       const image = typeof profile.picture === 'string' ? profile.picture : null;
-      return { id: sub, name, email, image, role: 'Recruiter' };
+      return { id: sub, name, email, image, role: 'Recruiter' as const };
     },
   };
 }

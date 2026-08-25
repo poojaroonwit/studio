@@ -1,5 +1,5 @@
-import { BillingWorkspace } from './BillingWorkspace';
+import { redirect } from 'next/navigation';
 
 export default function BillingPage() {
-  return <BillingWorkspace />;
+  redirect('/settings?adminTab=billing');
 }

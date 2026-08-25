@@ -29,9 +29,7 @@ export async function handleJwtCallback({
     if (trigger === 'update') {
       if (typeof token.id === 'string') {
         const userData = await getUserSessionData(token.id);
-        if (userData) {
-          token.name = userData.name;
-        }
+        if (userData) token.name = userData.name;
       }
 
       if (canUpdateImpersonationContext(token)) {
@@ -44,15 +42,11 @@ export async function handleJwtCallback({
       token.role = user.role || 'Recruiter';
       token.name = user.name;
 
-      if (typeof user.isMobile === 'boolean') {
-        token.isMobile = user.isMobile;
-      }
-      if (user.sessionToken) {
-        token.sessionToken = user.sessionToken;
-      }
+      if (typeof user.isMobile === 'boolean') token.isMobile = user.isMobile;
+      if (user.sessionToken) token.sessionToken = user.sessionToken;
     }
 
-    await hydrateAzureAdTokenId(token, profile);
+    await hydrateExternalIdentityTokenId(token, profile);
 
     if (!token.exp) {
       token.exp = Math.floor(Date.now() / 1000) + getSessionMaxAgeSeconds(token.isMobile ?? false);
@@ -65,24 +59,19 @@ export async function handleJwtCallback({
   return token;
 }
 
-async function hydrateAzureAdTokenId(token: MutableAuthToken, profile?: AzureAdProfile | null) {
-  if (typeof token.id !== 'string' || validateUuid(token.id)) {
-    return;
-  }
+async function hydrateExternalIdentityTokenId(token: MutableAuthToken, profile?: AzureAdProfile | null) {
+  if (typeof token.id !== 'string' || validateUuid(token.id)) return;
+
+  const email = typeof profile?.email === 'string' ? profile.email : null;
+  if (!email) return;
 
   const client = await getPool().connect();
   try {
-    const oid = profile?.oid ?? profile?.sub ?? profile?.email;
-    const res = await client.query(
-      'SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2',
-      [profile?.email, oid],
-    );
+    const res = await client.query('SELECT id FROM "User" WHERE lower(email) = lower($1) LIMIT 1', [email]);
     const dbUser = res.rows[0];
-    if (dbUser) {
-      token.id = dbUser.id;
-    }
+    if (dbUser) token.id = dbUser.id;
   } catch (error) {
-    console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', error);
+    console.error('[JWT CALLBACK] Error fetching local user UUID for external identity:', error);
   } finally {
     client.release();
   }

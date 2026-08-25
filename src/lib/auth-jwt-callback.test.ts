@@ -5,7 +5,10 @@ import { handleJwtCallback } from './auth-jwt-callback';
 describe('Hrive Outborn Account JWT bridge', () => {
   it('retains Account OAuth credentials only in the encrypted Auth.js JWT payload', async () => {
     const token = await handleJwtCallback({
-      token: {},
+      token: {
+        id: '00000000-0000-4000-8000-000000000000',
+        role: 'Recruiter',
+      },
       user: {
         id: '11111111-1111-4111-8111-111111111111',
         name: 'Hrive Admin',
@@ -30,7 +33,10 @@ describe('Hrive Outborn Account JWT bridge', () => {
 
   it('does not treat legacy provider access tokens as Outborn Account credentials', async () => {
     const token = await handleJwtCallback({
-      token: { id: '11111111-1111-4111-8111-111111111111' },
+      token: {
+        id: '11111111-1111-4111-8111-111111111111',
+        role: 'Recruiter',
+      },
       account: {
         provider: 'azure-ad',
         type: 'oidc',

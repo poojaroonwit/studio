@@ -14,11 +14,6 @@ export function MobileSignInView({
     isThemeDark,
     contextualLogos,
     errorMessage,
-    basicAuthEnabled,
-    isAzureAdConfigured,
-    activeFontColor,
-    activeBgStart,
-    activeBgEnd,
     loginPageContent,
     loginPageFooter,
     mobileHeaderGradient1 = '#3B82F6',
@@ -29,8 +24,6 @@ export function MobileSignInView({
     mobileHeaderBackgroundType = 'gradient',
     mobileLoginLogoDataUrl,
     organizationName,
-    loginStage,
-    onStageChange,
 }: MobileSignInViewProps) {
     const secureLogoUrl = buildMobileSignInSecureLogoUrl({
         appLogoUrl,
@@ -48,23 +41,16 @@ export function MobileSignInView({
     });
 
     return (
-        <div style={loginPageStyle} className="min-h-[100dvh]-[100dvh] flex flex-col p-0 overflow-hidden bg-background">
+        <div style={loginPageStyle} className="min-h-[100dvh] h-[100dvh] flex flex-col p-0 overflow-hidden bg-background">
             <MobileSignInHeader
                 appName={appName}
                 headerStyle={headerStyle}
                 secureLogoUrl={secureLogoUrl}
             />
             <MobileSignInCard
-                activeFontColor={activeFontColor}
-                activeBgStart={activeBgStart}
-                activeBgEnd={activeBgEnd}
-                basicAuthEnabled={basicAuthEnabled}
                 errorMessage={errorMessage}
-                isAzureAdConfigured={isAzureAdConfigured}
                 loginPageContent={loginPageContent}
                 loginPageFooter={loginPageFooter}
-                loginStage={loginStage}
-                onStageChange={onStageChange}
                 organizationName={organizationName}
             />
         </div>

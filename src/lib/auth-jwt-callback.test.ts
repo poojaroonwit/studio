@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { handleJwtCallback } from './auth-jwt-callback';
 
 describe('Hrive Outborn Account JWT bridge', () => {
-  it('retains the Account OAuth token only in the encrypted Auth.js JWT payload', async () => {
+  it('retains Account OAuth credentials only in the encrypted Auth.js JWT payload', async () => {
     const token = await handleJwtCallback({
       token: {},
       user: {
@@ -17,12 +17,14 @@ describe('Hrive Outborn Account JWT bridge', () => {
         type: 'oidc',
         providerAccountId: 'account-user-1',
         access_token: 'account-access-token',
+        refresh_token: 'account-refresh-token',
         expires_at: 2_000_000_000,
       },
     });
 
     expect(token.outbornAccountAccessToken).toBe('account-access-token');
     expect(token.outbornAccountAccessTokenExpiresAt).toBe(2_000_000_000);
+    expect(token.outbornAccountRefreshToken).toBe('account-refresh-token');
     expect(token.id).toBe('11111111-1111-4111-8111-111111111111');
   });
 
@@ -38,5 +40,6 @@ describe('Hrive Outborn Account JWT bridge', () => {
     });
 
     expect(token.outbornAccountAccessToken).toBeUndefined();
+    expect(token.outbornAccountRefreshToken).toBeUndefined();
   });
 });

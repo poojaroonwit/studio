@@ -1,8 +1,8 @@
 /**
- * NextAuth v5 (Auth.js) Configuration
+ * Hrive authentication configuration.
  *
- * This file replaces the old authOptions from src/lib/auth.ts.
- * NextAuth v5 uses a different structure optimized for Next.js 15 App Router.
+ * Outborn Account is the canonical human identity provider. Azure AD and local
+ * credentials remain explicit legacy/emergency compatibility paths only.
  */
 
 import NextAuth from 'next-auth';
@@ -12,28 +12,34 @@ import { getResolvedAzureAdSettings } from '@/lib/auth-azure-ad-settings';
 import { buildAuthCallbacks } from '@/lib/auth-callbacks';
 import { buildCredentialsProvider } from '@/lib/auth-credentials-provider';
 import { buildAuthEvents } from '@/lib/auth-events';
+import { getConfiguredOutbornAccountProvider } from '@/lib/auth-outborn-account-provider';
 
 const getAuthConfig = async () => {
-  const azureAdSettings = await getResolvedAzureAdSettings();
+  const outbornAccountProvider = getConfiguredOutbornAccountProvider();
+  const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true';
+  const azureAdSettings = legacyAzureEnabled ? await getResolvedAzureAdSettings() : null;
+
+  const providers = [
+    ...(outbornAccountProvider ? [outbornAccountProvider] : []),
+    ...(legacyAzureEnabled && azureAdSettings?.isConfigured ? [
+      AzureAD({
+        clientId: azureAdSettings.clientId!,
+        clientSecret: azureAdSettings.clientSecret!,
+        issuer: `https://login.microsoftonline.com/${azureAdSettings.tenantId}/v2.0`,
+        authorization: {
+          params: {
+            scope: 'openid profile email',
+            response_mode: 'query',
+          },
+        },
+        checks: ['pkce', 'state'],
+      }),
+    ] : []),
+    buildCredentialsProvider(),
+  ];
 
   return {
-    providers: [
-      ...(azureAdSettings.isConfigured ? [
-        AzureAD({
-          clientId: azureAdSettings.clientId!,
-          clientSecret: azureAdSettings.clientSecret!,
-          issuer: `https://login.microsoftonline.com/${azureAdSettings.tenantId}/v2.0`,
-          authorization: {
-            params: {
-              scope: 'openid profile email',
-              response_mode: 'query',
-            },
-          },
-          checks: ['pkce', 'state'],
-        }),
-      ] : []),
-      buildCredentialsProvider(),
-    ],
+    providers,
     trustHost: true,
     session: {
       strategy: 'jwt' as const,

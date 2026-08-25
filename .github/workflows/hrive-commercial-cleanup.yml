@@ -1,0 +1,43 @@
+name: Hrive commercial model cleanup
+
+on:
+  push:
+    branches: ['feat/hrive-outborn-core-integration']
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/hrive-outborn-core-integration
+      - name: Remove legacy billing policy definition
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/settings/policy-configuration/policy-configuration-model.ts')
+          text = path.read_text()
+          text = text.replace("  'billingConfiguration',\n", '', 1)
+          marker = "\n  {\n    id: 'billing',\n"
+          start = text.find(marker)
+          if start >= 0:
+              end = text.find("\n];", start)
+              if end < 0:
+                  raise SystemExit('Could not find end of policyConfigurationAreas')
+              text = text[:start] + text[end:]
+          path.write_text(text)
+          PY
+      - name: Commit cleanup
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/settings/policy-configuration/policy-configuration-model.ts
+          git commit -m "refactor: remove legacy local billing policy model"
+          git push origin HEAD:feat/hrive-outborn-core-integration

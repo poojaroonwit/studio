@@ -1,9 +1,15 @@
 import 'server-only';
 
-import { getToken } from 'next-auth/jwt';
+import { cookies } from 'next/headers';
+import { encode, getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 
+import { refreshOutbornAccountAccessToken } from '../auth-outborn-account-token';
 import { resolveHriveOrganization, type OutbornAccountIdentity } from './context';
+
+const SESSION_COOKIE_NAME = 'next-auth.session-token';
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+const OUTBORN_REFRESH_EARLY_SECONDS = 5 * 60;
 
 export class OutbornServiceError extends Error {
   constructor(
@@ -58,14 +64,73 @@ function errorMessage(body: unknown, fallback: string) {
   return fallback;
 }
 
-export async function getOutbornRequestContext(request: NextRequest): Promise<OutbornRequestContext> {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  const accessToken = typeof token?.outbornAccountAccessToken === 'string' ? token.outbornAccountAccessToken : '';
-  const expiresAt = typeof token?.outbornAccountAccessTokenExpiresAt === 'number' ? token.outbornAccountAccessTokenExpiresAt : undefined;
-  if (!accessToken) throw new OutbornServiceError(401, 'Sign in with Outborn Account to access commercial settings.');
-  if (expiresAt && expiresAt <= Math.floor(Date.now() / 1000)) {
-    throw new OutbornServiceError(401, 'Your Outborn Account authorization expired. Sign in again.');
+async function currentAccountAccessToken(request: NextRequest): Promise<string> {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) throw new OutbornServiceError(503, 'NEXTAUTH_SECRET is not configured.');
+
+  const token = await getToken({
+    req: request,
+    secret,
+    cookieName: SESSION_COOKIE_NAME,
+    salt: SESSION_COOKIE_NAME,
+  });
+  const accessToken = typeof token?.outbornAccountAccessToken === 'string'
+    ? token.outbornAccountAccessToken
+    : '';
+  if (!accessToken || !token) {
+    throw new OutbornServiceError(401, 'Sign in with Outborn Account to access commercial settings.');
   }
+
+  const expiresAt = typeof token.outbornAccountAccessTokenExpiresAt === 'number'
+    ? token.outbornAccountAccessTokenExpiresAt
+    : undefined;
+  const now = Math.floor(Date.now() / 1000);
+  if (!expiresAt || expiresAt > now + OUTBORN_REFRESH_EARLY_SECONDS) return accessToken;
+
+  const refreshToken = typeof token.outbornAccountRefreshToken === 'string'
+    ? token.outbornAccountRefreshToken
+    : '';
+  if (!refreshToken) {
+    if (expiresAt <= now) {
+      throw new OutbornServiceError(401, 'Your Outborn Account authorization expired. Sign in again.');
+    }
+    return accessToken;
+  }
+
+  try {
+    const refreshed = await refreshOutbornAccountAccessToken(refreshToken);
+    token.outbornAccountAccessToken = refreshed.accessToken;
+    token.outbornAccountAccessTokenExpiresAt = refreshed.expiresAt;
+    token.outbornAccountRefreshToken = refreshed.refreshToken;
+    delete token.outbornAccountTokenError;
+
+    const encoded = await encode({
+      token,
+      secret,
+      salt: SESSION_COOKIE_NAME,
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    });
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, encoded, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      secure: process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL?.startsWith('https://'),
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    });
+    return refreshed.accessToken;
+  } catch (error) {
+    throw new OutbornServiceError(
+      401,
+      error instanceof Error
+        ? `Your Outborn Account authorization could not be refreshed: ${error.message}`
+        : 'Your Outborn Account authorization could not be refreshed. Sign in again.',
+    );
+  }
+}
+
+export async function getOutbornRequestContext(request: NextRequest): Promise<OutbornRequestContext> {
+  const accessToken = await currentAccountAccessToken(request);
 
   let response: Response;
   try {

@@ -62,4 +62,16 @@ describe('Outborn Account human-auth boundary', () => {
       expect(existsSync(resolve(process.cwd(), path))).toBe(false);
     }
   });
+
+  it('routes account security through the Outborn Account boundary', () => {
+    const headerSource = source('src/components/layout/Header.tsx');
+    const modalSource = source('src/components/layout/HeaderProfileModals.tsx');
+    const actionsSource = source('src/components/layout/use-header-user-actions.ts');
+
+    expect(headerSource).toContain('/account/security');
+    expect(headerSource).not.toContain('setIsChangePasswordModalOpen');
+    expect(modalSource).not.toContain('ChangePasswordModal');
+    expect(actionsSource).not.toContain('isChangePasswordModalOpen');
+    expect(existsSync(resolve(process.cwd(), 'src/app/account/security/page.tsx'))).toBe(true);
+  });
 });

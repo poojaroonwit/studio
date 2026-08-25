@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -37,7 +37,14 @@ describe('Outborn Account human-auth boundary', () => {
   });
 
   it('does not expose local password or Hrive 2FA account routes', () => {
-    const authApiSource = source('src/app/api/auth/account-managed-routes.test.ts');
-    expect(authApiSource).toContain('Outborn Account');
+    const legacyRoutes = [
+      'src/app/api/auth/change-password/route.ts',
+      'src/app/api/auth/setup-password/route.ts',
+      'src/app/api/auth/2fa',
+    ];
+
+    for (const path of legacyRoutes) {
+      expect(existsSync(resolve(process.cwd(), path))).toBe(false);
+    }
   });
 });

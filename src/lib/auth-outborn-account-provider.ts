@@ -31,13 +31,16 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
     token: `${baseUrl}/api/auth/oauth2/token`,
     userinfo: `${baseUrl}/api/auth/oauth2/userinfo`,
     checks: ['pkce', 'state'] as Array<'pkce' | 'state'>,
-    client: { token_endpoint_auth_method: 'none' as const },
+    client: {
+      token_endpoint_auth_method: 'none' as const,
+      id_token_signed_response_alg: 'EdDSA' as const,
+    },
     profile(profile: Record<string, unknown>) {
       const sub = typeof profile.sub === 'string' ? profile.sub : '';
       const email = typeof profile.email === 'string' ? profile.email : '';
       const name = typeof profile.name === 'string' && profile.name.trim()
         ? profile.name.trim()
-        : email.split('@')[0] || 'Hrive user';
+        : email.split('@')[0] || 'Obsi People user';
       const image = typeof profile.picture === 'string' ? profile.picture : null;
       return { id: sub, name, email, image, role: 'Recruiter' as const };
     },

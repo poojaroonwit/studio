@@ -128,7 +128,7 @@ export function Header({
           <div className="flex min-w-0 items-center gap-4 xl:gap-6">
             <Link
               href="/dashboard"
-              aria-label={`${currentAppName} — hrive — ${initialPageTitle}`}
+              aria-label={`${currentAppName} — ${initialPageTitle}`}
               className="flex h-11 min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <HeaderBrandLockup

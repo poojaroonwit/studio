@@ -8,6 +8,7 @@ describe('Outborn Account Auth.js provider', () => {
       accountBaseUrl: 'https://account.example.com/',
       clientId: 'outborn-hrive-web',
     });
+    const clientMetadata = provider.client as Record<string, unknown> | undefined;
 
     expect(provider.id).toBe('outborn-account');
     expect(provider.issuer).toBe('https://account.example.com/api/auth');
@@ -15,8 +16,8 @@ describe('Outborn Account Auth.js provider', () => {
     expect(provider.token).toBe('https://account.example.com/api/auth/oauth2/token');
     expect(provider.userinfo).toBe('https://account.example.com/api/auth/oauth2/userinfo');
     expect(provider.checks).toEqual(['pkce', 'state']);
-    expect(provider.client?.token_endpoint_auth_method).toBe('none');
-    expect(provider.client?.id_token_signed_response_alg).toBe('EdDSA');
+    expect(clientMetadata?.token_endpoint_auth_method).toBe('none');
+    expect(clientMetadata?.id_token_signed_response_alg).toBe('EdDSA');
     expect(provider.authorization?.params?.scope).toContain('organizations');
     expect(provider.authorization?.params?.scope).toContain('offline_access');
   });

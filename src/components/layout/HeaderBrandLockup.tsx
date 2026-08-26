@@ -43,15 +43,16 @@ export function HeaderBrandLockup({
 
       <span aria-hidden="true" className="h-6 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
 
-      <Image
-        src="/brand/hrive-wordmark-transparent.png"
-        alt="hrive application"
-        width={145}
-        height={44}
-        priority
-        className={cn("shrink-0 object-contain", compact ? "h-5 w-auto" : "h-[1.375rem] w-auto")}
-      />
-
+      <span
+        aria-label="Obsi People"
+        className={cn(
+          "flex shrink-0 items-baseline font-semibold tracking-[-0.025em]",
+          compact ? "text-[15px]" : "text-[17px]",
+        )}
+      >
+        <span className="text-slate-950 dark:text-white">Obsi</span>
+        <span className="ml-1.5 text-slate-500 dark:text-zinc-400">People</span>
+      </span>
     </span>
   );
 }

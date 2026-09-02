@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { FaviconUpdater } from '@/components/layout/FaviconUpdater';
 import { BroadcastBanner } from '@/components/layout/BroadcastBanner';
@@ -8,7 +9,10 @@ import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { GlobalConnectivityBanner } from '@/components/layout/GlobalConnectivityBanner';
 import { DemoEnvironmentBanner } from '@/components/layout/DemoEnvironmentBanner';
 import { useLocalization } from '@/contexts/LocalizationContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Header } from './Header';
+import { HeaderSecondaryNavigation } from './HeaderSecondaryNavigation';
+import { isHeaderHiddenOnMobileDetail } from './header-utils';
 import type { AppLayoutContextualLogos } from './app-layout-settings';
 
 const MemoizedFaviconUpdater = memo(FaviconUpdater);
@@ -34,6 +38,12 @@ export function AppLayoutShell({
   showLogoOnly,
 }: AppLayoutShellProps) {
   const { t } = useLocalization();
+  const pathname = usePathname() || '';
+  const isMobile = useIsMobile();
+  const showSecondaryNavigation = (
+    !pathname.startsWith('/auth/')
+    && !(isMobile && isHeaderHiddenOnMobileDetail(pathname))
+  );
 
   return (
     <>
@@ -65,6 +75,9 @@ export function AppLayoutShell({
             >
               <section className="min-h-full w-full min-w-0 bg-background lg:overflow-hidden lg:rounded-[24px] lg:border lg:border-slate-200/80 lg:bg-white/95 lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)] dark:lg:border-zinc-800 dark:lg:bg-zinc-950/95 dark:lg:shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
                 <div className="flex min-h-full w-full min-w-0 flex-col">
+                  {showSecondaryNavigation ? (
+                    <HeaderSecondaryNavigation pathname={pathname} />
+                  ) : null}
                   {children}
                 </div>
               </section>

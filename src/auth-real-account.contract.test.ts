@@ -14,4 +14,8 @@ describe('canonical Outborn Account authentication', () => {
   it('keeps Azure AD opt-in instead of making it a second default human login path', () => {
     expect(source).toContain("const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true';");
   });
+
+  it('routes Auth.js failures back to the Obsi People sign-in surface', () => {
+    expect(source).toMatch(/pages:\s*\{[\s\S]*signIn:\s*['"]\/auth\/signin['"][\s\S]*error:\s*['"]\/auth\/signin['"]/);
+  });
 });

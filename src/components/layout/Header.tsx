@@ -16,7 +16,7 @@ import { HeaderActionsSection } from "./HeaderActionsSection";
 import { HeaderBrandSection } from "./HeaderBrandSection";
 import { HeaderBrandLockup } from "./HeaderBrandLockup";
 import { HeaderProfileModals } from "./HeaderProfileModals";
-import { HeaderPrimaryNavigation, HeaderSecondaryNavigation } from "./HeaderPrimaryNavigation";
+import { HeaderPrimaryNavigation } from "./HeaderPrimaryNavigation";
 import type { HeaderProps, HeaderUserMenuSharedProps } from "./HeaderTypes";
 import {
   isHeaderHiddenOnMobileDetail,
@@ -149,10 +149,6 @@ export function Header({
           userMenuProps={userMenuProps}
         />
       </header>
-
-      {supportsHeaderSearch && (
-        <HeaderSecondaryNavigation pathname={pathname || ""} />
-      )}
 
       <HeaderProfileModals
         user={userActions.user}

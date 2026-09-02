@@ -61,6 +61,7 @@ const getAuthConfig = async () => {
     secret: process.env.NEXTAUTH_SECRET,
     pages: {
       signIn: '/auth/signin',
+      error: '/auth/signin',
     },
     callbacks: buildAuthCallbacks(),
     events: buildAuthEvents(),

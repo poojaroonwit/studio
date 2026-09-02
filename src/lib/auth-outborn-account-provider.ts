@@ -30,6 +30,10 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
     },
     token: `${baseUrl}/api/auth/oauth2/token`,
     userinfo: `${baseUrl}/api/auth/oauth2/userinfo`,
+    // Outborn Account keeps its ID token identity/security focused. Auth.js must
+    // still validate that EdDSA token, then fetch the canonical profile claims
+    // (including email/name) from the userinfo endpoint.
+    idToken: false,
     checks: ['pkce', 'state'] as Array<'pkce' | 'state'>,
     client: {
       token_endpoint_auth_method: 'none' as const,

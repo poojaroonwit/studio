@@ -18,16 +18,23 @@ describe('Hrive desktop shell visual contract', () => {
     expect(primaryItem).toContain('after:bg-blue-600');
   });
 
-  it('renders the secondary navigation as a transparent borderless tab row', () => {
+  it('renders the secondary navigation inside the body canvas with a bottom divider', () => {
+    const header = source('src/components/layout/Header.tsx');
     const secondary = source('src/components/layout/HeaderSecondaryNavigation.tsx');
+    const shell = source('src/components/layout/AppLayoutShell.tsx');
 
-    expect(secondary).toContain('relative z-40 shrink-0 bg-transparent');
-    expect(secondary).not.toContain('border-b border-slate-200/80 bg-white/90');
-    expect(secondary).not.toContain('groupIndex > 0 && "border-l');
-    expect(secondary).not.toContain('items-stretch border-l border-slate-200 bg-white');
+    expect(header).not.toContain('<HeaderSecondaryNavigation');
+    expect(secondary).toContain('border-b border-slate-200/80');
     expect(secondary).toContain('text-slate-600');
     expect(secondary).toContain('after:bg-blue-600');
-    expect(secondary).not.toContain('bg-[#182235]');
+
+    const canvasIndex = shell.indexOf('<section className=');
+    const secondaryIndex = shell.indexOf('<HeaderSecondaryNavigation');
+    const childrenIndex = shell.indexOf('{children}');
+
+    expect(canvasIndex).toBeGreaterThanOrEqual(0);
+    expect(secondaryIndex).toBeGreaterThan(canvasIndex);
+    expect(secondaryIndex).toBeLessThan(childrenIndex);
   });
 
   it('places page content in a clipped rounded white canvas over a soft cool gradient', () => {

@@ -20,10 +20,10 @@ export async function handleOutbornAccountSignIn({
   if (account?.provider !== 'outborn-account') return true;
 
   const profileRecord = profile as unknown as Record<string, unknown> | null | undefined;
-  const email = stringClaim(profileRecord?.email).toLowerCase();
-  const subject = stringClaim(profileRecord?.sub);
-  const displayName = stringClaim(profileRecord?.name) || email.split('@')[0] || 'Hrive user';
-  const image = stringClaim(profileRecord?.picture) || null;
+  const email = (stringClaim(profileRecord?.email) || stringClaim(user?.email)).toLowerCase();
+  const subject = stringClaim(profileRecord?.sub) || stringClaim(user?.id);
+  const displayName = stringClaim(profileRecord?.name) || stringClaim(user?.name) || email.split('@')[0] || 'Obsi People user';
+  const image = stringClaim(profileRecord?.picture) || stringClaim(user?.image) || null;
 
   if (!email || !subject) {
     await logAudit('ERROR', 'Outborn Account sign-in failed: missing subject or email.', 'Auth:SignIn', null);
@@ -84,7 +84,7 @@ export async function handleOutbornAccountSignIn({
     await logAudit('AUDIT', `User '${email}' signed in via Outborn Account.`, 'Auth:SignIn', dbUser.id);
     return true;
   } catch (error) {
-    console.error('[OUTBORN ACCOUNT SIGNIN] Failed to map Account identity to Hrive user:', error);
+    console.error('[OUTBORN ACCOUNT SIGNIN] Failed to map Account identity to Obsi People user:', error);
     try {
       await logAudit(
         'ERROR',

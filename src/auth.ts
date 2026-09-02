@@ -2,7 +2,8 @@
  * Hrive authentication configuration.
  *
  * Outborn Account is the canonical human identity provider. Azure AD and local
- * credentials remain explicit legacy/emergency compatibility paths only.
+ * credentials are explicit legacy/emergency compatibility paths only and must
+ * be opted in independently.
  */
 
 import NextAuth from 'next-auth';
@@ -17,6 +18,7 @@ import { getConfiguredOutbornAccountProvider } from '@/lib/auth-outborn-account-
 const getAuthConfig = async () => {
   const outbornAccountProvider = getConfiguredOutbornAccountProvider();
   const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true';
+  const legacyCredentialsEnabled = process.env.HRIVE_LEGACY_CREDENTIALS_AUTH_ENABLED === 'true';
   const azureAdSettings = legacyAzureEnabled ? await getResolvedAzureAdSettings() : null;
 
   const providers = [
@@ -35,7 +37,7 @@ const getAuthConfig = async () => {
         checks: ['pkce', 'state'],
       }),
     ] : []),
-    buildCredentialsProvider(),
+    ...(legacyCredentialsEnabled ? [buildCredentialsProvider()] : []),
   ];
 
   return {

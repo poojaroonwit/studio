@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 20
     env:
       APP_BASE_URL: https://app-hrive.up.railway.app
-      ACCOUNT_BASE_URL: https://account-outborn.up.railway.app
+      ACCOUNT_BASE_URL: https://account.outborn.co
       EXPECTED_CLIENT_ID: outborn-hrive-web
     steps:
       - name: Wait for canonical provider set to reach production
@@ -112,7 +112,7 @@ jobs:
           echo "Outborn Account authorize status: $status"
           test "$status" -ge 200
           test "$status" -lt 400
-          if grep -Eqi 'invalid_request|unsupported|redirect_uri.*invalid|client.*invalid' "$body"; then
+          if grep -Eqi 'application not registered|not been registered|invalid_request|unsupported|redirect_uri.*invalid|client.*invalid' "$body"; then
             echo 'Outborn Account rejected the generated authorization request.'
             cat "$body"
             exit 1

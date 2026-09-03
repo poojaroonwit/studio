@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      APP_BASE_URL: https://app-hrive.up.railway.app
+      APP_BASE_URL: https://people.outborn.co
       ACCOUNT_BASE_URL: https://account.outborn.co
       EXPECTED_CLIENT_ID: outborn-hrive-web
     steps:

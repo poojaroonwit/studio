@@ -39,7 +39,7 @@ export function Header({
   const router = useRouter();
   const pathname = usePathname();
   const { refreshKey, forceRefresh } = useAvatarRefresh();
-  const { currentTheme } = useTheme();
+  const { currentTheme, themePreference, setTheme } = useTheme();
   const { t } = useLocalization();
   const userMenuLabels = useHeaderUserMenuLabels();
   const { currentLocale, changeLocale } = useHeaderLocale();
@@ -91,6 +91,7 @@ export function Header({
       user: userActions.user,
       refreshAvatar: refreshKey > 0,
       currentTheme,
+      themePreference,
       currentLocale,
       isAdminPreviewEnabled,
       previewUsers: userActions.previewUsers,
@@ -98,6 +99,7 @@ export function Header({
       onOpenProfile: userActions.handleOpenProfileModal,
       onOpenSecurity: () => userActions.setIsChangePasswordModalOpen(true),
       onClearCache: userActions.handleClearCache,
+      onThemeChange: setTheme,
       onLocaleChange: changeLocale,
       onSignOut: userActions.handleSignOut,
       onUserSearch: userActions.handleUserSearch,

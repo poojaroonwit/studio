@@ -34,8 +34,9 @@ export async function handleJwtCallback({ token, user, account, profile, trigger
       if (typeof account.expires_at === 'number') token.outbornAccountAccessTokenExpiresAt = account.expires_at;
       if (typeof account.refresh_token === 'string' && account.refresh_token) token.outbornAccountRefreshToken = account.refresh_token;
       else delete token.outbornAccountRefreshToken;
-      token.outbornAccountAuthorizationCheckedAt = Date.now();
+      token.outbornAccountAuthorizationCheckedAt = 0;
       delete token.outbornAccountTokenError;
+      await refreshOutbornAuthorizationIfNeeded(token, true);
     } else {
       await refreshOutbornTokenIfNeeded(token);
       await refreshOutbornAuthorizationIfNeeded(token);
@@ -69,16 +70,20 @@ async function refreshOutbornTokenIfNeeded(token: MutableAuthToken) {
   }
 }
 
-async function refreshOutbornAuthorizationIfNeeded(token: MutableAuthToken) {
+async function refreshOutbornAuthorizationIfNeeded(token: MutableAuthToken, force = false) {
   const accessToken = token.outbornAccountAccessToken;
   if (!accessToken || token.outbornAccountTokenError) return;
   const lastChecked = token.outbornAccountAuthorizationCheckedAt ?? 0;
-  if (Date.now() - lastChecked < OUTBORN_AUTHORIZATION_REFRESH_MS) return;
+  if (!force && Date.now() - lastChecked < OUTBORN_AUTHORIZATION_REFRESH_MS) return;
   try {
     const authorization = await loadOutbornAccountAuthorization(accessToken);
-    if (authorization) { token.role = authorization.role; token.modulePermissions = authorization.modulePermissions; }
+    if (authorization) {
+      token.role = authorization.role;
+      token.modulePermissions = authorization.modulePermissions;
+    }
     token.outbornAccountAuthorizationCheckedAt = Date.now();
   } catch (error) {
+    token.outbornAccountAuthorizationCheckedAt = Date.now();
     console.warn('[JWT CALLBACK] Unable to refresh Outborn Account role and permissions:', error instanceof Error ? error.message : error);
   }
 }

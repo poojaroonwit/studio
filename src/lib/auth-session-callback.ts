@@ -91,6 +91,9 @@ async function hydrateSessionFromContext(session: Session, token: MutableAuthTok
   if (typeof dbUser.name === 'string') {
     token.name = dbUser.name;
   }
+  if (typeof token.outbornAccountAccessToken === 'string') {
+    (session.user as any).outbornAccountAccessToken = token.outbornAccountAccessToken;
+  }
   return session;
 }
 
@@ -156,5 +159,8 @@ async function hydrateSessionFromTokenFallback(session: Session, token: MutableA
     session.user.name = `Preview: ${impersonatedRole}`;
   }
 
+  if (typeof token.outbornAccountAccessToken === 'string') {
+    (session.user as any).outbornAccountAccessToken = token.outbornAccountAccessToken;
+  }
   return session;
 }

@@ -1,9 +1,13 @@
 /**
- * Hrive authentication configuration.
+ * Obsi People authentication configuration.
  *
- * Outborn Account is the canonical human identity provider. Azure AD and local
- * credentials are explicit legacy/emergency compatibility paths only and must
- * be opted in independently.
+ * Outborn Account is the authoritative human identity provider in production.
+ * Local credentials and Azure AD are legacy fallbacks for development only and
+ * must be explicitly enabled via feature flags. Production fails closed without
+ * Outborn Account configuration.
+ *
+ * HR permissions, employee linkage, and session mappings remain Obsi People-owned
+ * regardless of identity provider.
  */
 
 import NextAuth from 'next-auth';
@@ -16,9 +20,19 @@ import { buildAuthEvents } from '@/lib/auth-events';
 import { getConfiguredOutbornAccountProvider } from '@/lib/auth-outborn-account-provider';
 
 const getAuthConfig = async () => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const outbornAccountProvider = getConfiguredOutbornAccountProvider();
-  const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true';
-  const legacyCredentialsEnabled = process.env.HRIVE_LEGACY_CREDENTIALS_AUTH_ENABLED === 'true';
+
+  // In production, Outborn Account is required and authoritative.
+  if (isProduction && !outbornAccountProvider) {
+    throw new Error(
+      'Production requires Outborn Account configuration. Set OUTBORN_ACCOUNT_AUTH_URL and OUTBORN_HRIVE_WEB_CLIENT_ID.',
+    );
+  }
+
+  // Development/testing: legacy providers are opt-in only.
+  const legacyAzureEnabled = process.env.HRIVE_LEGACY_AZURE_AUTH_ENABLED === 'true' && !isProduction;
+  const legacyCredentialsEnabled = process.env.HRIVE_LEGACY_CREDENTIALS_AUTH_ENABLED === 'true' && !isProduction;
   const azureAdSettings = legacyAzureEnabled ? await getResolvedAzureAdSettings() : null;
 
   const providers = [
@@ -40,6 +54,12 @@ const getAuthConfig = async () => {
     ...(legacyCredentialsEnabled ? [buildCredentialsProvider()] : []),
   ];
 
+  if (providers.length === 0) {
+    throw new Error(
+      'No authentication providers configured. Production requires Outborn Account. Development requires explicit feature flags.',
+    );
+  }
+
   return {
     providers,
     trustHost: true,
@@ -54,7 +74,7 @@ const getAuthConfig = async () => {
           httpOnly: true,
           sameSite: 'lax' as const,
           path: '/',
-          secure: process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL?.startsWith('https://'),
+          secure: isProduction && process.env.NEXTAUTH_URL?.startsWith('https://'),
         },
       },
     },

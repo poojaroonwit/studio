@@ -3,6 +3,7 @@ import { DM_Sans, IBM_Plex_Sans_Thai } from 'next/font/google';
 import Script from 'next/script';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import './globals.css';
+import '../../npm/outborn-app-shell/src/styles.css';
 import { FontLoader } from '@/components/ui/FontLoader';
 import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
@@ -116,11 +117,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${ibmPlexSansThai.variable}`}>
       <head>
-        {/* PWA Configuration - Will be conditionally added via PWAMetaTags component in body */}
-        {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
       <body>
         <Script id="theme-initializer" strategy="beforeInteractive">
@@ -145,4 +143,3 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
-

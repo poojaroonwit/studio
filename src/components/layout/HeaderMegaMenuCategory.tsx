@@ -64,8 +64,8 @@ export function HeaderMegaMenuCategory({
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
           className={cn(
-            "relative flex items-center gap-1.5 px-2 text-sm font-normal leading-6 tracking-[-0.01em] text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 xl:px-3 dark:text-zinc-300 dark:hover:text-white",
-            isActive && "font-medium text-blue-700 after:absolute after:inset-x-2.5 after:bottom-0 after:h-[3px] after:bg-blue-600 dark:text-blue-300 dark:after:bg-blue-400",
+            "relative flex items-center gap-1.5 px-2 text-sm font-normal leading-6 tracking-[-0.01em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring xl:px-3",
+            isActive && "font-medium text-primary after:absolute after:inset-x-2.5 after:bottom-0 after:h-[3px] after:bg-primary",
           )}
         >
           {CategoryIcon ? (
@@ -80,16 +80,16 @@ export function HeaderMegaMenuCategory({
         sideOffset={0}
         onMouseEnter={onMenuMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="z-[120] max-h-[72vh] w-[min(92vw,780px)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl data-[state=closed]:animate-none data-[state=closed]:opacity-0 motion-reduce:animate-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+        className="z-[120] max-h-[72vh] w-[min(92vw,780px)] overflow-y-auto rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-2xl data-[state=closed]:animate-none data-[state=closed]:opacity-0 motion-reduce:animate-none"
       >
-        <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3 dark:border-zinc-800">
+        <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
           <div>
             <p className="text-sm font-semibold">{category.label}</p>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {category.description}
             </p>
           </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             {category.items.length} link{category.items.length === 1 ? "" : "s"}
           </span>
         </div>
@@ -104,8 +104,8 @@ export function HeaderMegaMenuCategory({
             return (
               <section key={group.id} className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 px-2">
-                  <GroupIcon className="h-4 w-4 shrink-0 stroke-[1.7] text-blue-600 dark:text-blue-400" />
-                  <h2 className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-zinc-400">
+                  <GroupIcon className="h-4 w-4 shrink-0 stroke-[1.7] text-primary" />
+                  <h2 className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     {group.label}
                   </h2>
                 </div>
@@ -124,21 +124,21 @@ export function HeaderMegaMenuCategory({
                           href={item.href}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "group flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2 text-sm font-normal text-slate-700 outline-none transition-colors focus:bg-slate-100 focus:text-slate-950 dark:text-zinc-300 dark:focus:bg-zinc-800 dark:focus:text-white",
-                            active && "bg-blue-50 font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+                            "group flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2 text-sm font-normal text-foreground outline-none transition-colors focus:bg-accent focus:text-accent-foreground",
+                            active && "bg-primary/10 font-medium text-primary",
                           )}
                         >
                           <ItemIcon className="mt-0.5 h-4 w-4 shrink-0 stroke-[1.7]" />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate leading-5">{item.label}</span>
                             {item.description ? (
-                              <span className="mt-0.5 block line-clamp-2 text-xs font-normal leading-4 text-slate-400 group-focus:text-slate-500 dark:text-zinc-500 dark:group-focus:text-zinc-400">
+                              <span className="mt-0.5 block line-clamp-2 text-xs font-normal leading-4 text-muted-foreground/75 group-focus:text-muted-foreground">
                                 {item.description}
                               </span>
                             ) : null}
                           </span>
                           {badge ? (
-                            <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
+                            <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-destructive">
                               {badge}
                             </span>
                           ) : null}

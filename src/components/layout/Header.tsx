@@ -109,7 +109,7 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky z-50 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-transparent px-3 text-slate-700 shadow-none transition-[background-color,border-color] duration-300 sm:px-4 lg:px-8 dark:border-zinc-800 dark:text-zinc-100",
+          "sticky z-50 flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-transparent px-3 text-foreground shadow-none transition-[background-color,border-color] duration-300 sm:px-4 lg:px-8",
           (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) ? "top-8" : "top-0"
         )}
       >
@@ -129,7 +129,7 @@ export function Header({
             <Link
               href="/dashboard"
               aria-label={`${currentAppName} — ${initialPageTitle}`}
-              className="flex h-11 min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="flex h-11 min-w-0 shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <HeaderBrandLockup
                 appLogoUrl={appLogoUrl}

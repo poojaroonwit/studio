@@ -20,16 +20,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Wait for launcher SDK release
+      - name: Wait for exact launcher SDK release
         run: |
           url="https://app-shell-sdk-release-production.up.railway.app/outborn-app-shell-0.1.7.tgz"
+          archive="${RUNNER_TEMP}/outborn-app-shell-0.1.7.tgz"
+          manifest="${RUNNER_TEMP}/outborn-app-shell-package.json"
           for attempt in $(seq 1 60); do
-            if curl --fail --silent --show-error --head "$url" >/dev/null; then
+            rm -f "$archive" "$manifest"
+            if curl --fail --silent --show-error --location "$url" --output "$archive" \
+              && tar -xOzf "$archive" package/package.json > "$manifest" 2>/dev/null \
+              && [ "$(node -p "require('$manifest').version")" = "0.1.7" ]; then
               exit 0
             fi
             sleep 5
           done
-          echo "Outborn app-shell 0.1.7 was not available" >&2
+          echo "Exact Outborn app-shell 0.1.7 archive was not available" >&2
           exit 1
       - name: Refresh lockfile only
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund

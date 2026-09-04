@@ -1,37 +1,52 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
+interface AccountApplication {
+  applicationId?: string;
+  id?: string;
+  slug?: string;
+  name?: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  logoUrl?: string | null;
+  launchUrl?: string | null;
+  accessible?: boolean;
+  accessStatus?: string;
+}
+
 interface ApplicationSummary {
-  id: string;
+  applicationId: string;
   name: string;
-  slug: string;
-  logoUrl?: string;
-  color?: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  launchUrl?: string | null;
+  accessible: boolean;
 }
 
 function getAccountAccessToken(user: Record<string, unknown>): string | null {
   const token = user.outbornAccountAccessToken;
-  if (typeof token === 'string' && token.trim()) {
-    return token;
-  }
-  return null;
+  return typeof token === 'string' && token.trim() ? token : null;
 }
 
-async function fetchAccountApplications(accountToken: string): Promise<ApplicationSummary[]> {
-  const accountBaseUrl = process.env.OUTBORN_ACCOUNT_AUTH_URL || process.env.OUTBORN_ACCOUNT_BASE_URL || '';
-  if (!accountBaseUrl.trim()) {
-    return [];
-  }
-
+function normalizeAccountBaseUrl() {
+  const raw = process.env.OUTBORN_ACCOUNT_AUTH_URL || process.env.OUTBORN_ACCOUNT_BASE_URL || '';
+  if (!raw.trim()) return null;
   try {
-    const directoryUrl = new URL('/api/account/applications', accountBaseUrl);
-    const response = await fetch(directoryUrl.toString(), {
+    return new URL(raw).origin;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAccountApplications(accountBaseUrl: string, accountToken: string): Promise<ApplicationSummary[]> {
+  try {
+    const response = await fetch(`${accountBaseUrl}/api/account/applications`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accountToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Authorization: `Bearer ${accountToken}`,
+        Accept: 'application/json',
       },
+      cache: 'no-store',
       signal: AbortSignal.timeout(5000),
     });
 
@@ -43,19 +58,23 @@ async function fetchAccountApplications(accountToken: string): Promise<Applicati
       return [];
     }
 
-    const data = (await response.json()) as Record<string, unknown>;
-    const applications = Array.isArray(data.applications) ? data.applications : [];
+    const payload = (await response.json().catch(() => ({}))) as { applications?: AccountApplication[] };
+    const applications = Array.isArray(payload.applications) ? payload.applications : [];
 
-    return applications
-      .filter((app: unknown) => app && typeof app === 'object')
-      .map((app: Record<string, unknown>) => ({
-        id: typeof app.id === 'string' ? app.id : '',
-        name: typeof app.name === 'string' ? app.name : 'Application',
-        slug: typeof app.slug === 'string' ? app.slug : '',
-        logoUrl: typeof app.logoUrl === 'string' ? app.logoUrl : undefined,
-        color: typeof app.color === 'string' ? app.color : undefined,
-      }))
-      .filter((app) => app.id && app.slug);
+    return applications.flatMap((application) => {
+      const applicationId = String(application.applicationId || application.id || '').trim();
+      const name = String(application.name || '').trim();
+      if (!applicationId || !name) return [];
+
+      return [{
+        applicationId,
+        name,
+        description: application.description ?? null,
+        iconUrl: application.iconUrl ?? application.logoUrl ?? null,
+        launchUrl: application.launchUrl ?? null,
+        accessible: application.accessible ?? application.accessStatus !== 'unavailable',
+      }];
+    });
   } catch (error) {
     console.warn('[/api/account/applications] Failed to fetch Account applications:', error);
     return [];
@@ -65,25 +84,33 @@ async function fetchAccountApplications(accountToken: string): Promise<Applicati
 export async function GET() {
   try {
     const session = await auth();
-
-    if (!session?.user?.id || !session?.user?.email) {
+    if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const accountBaseUrl = normalizeAccountBaseUrl();
     const accountAccessToken = getAccountAccessToken(session.user as Record<string, unknown>);
-    const applications = accountAccessToken ? await fetchAccountApplications(accountAccessToken) : [];
+    const applications = accountBaseUrl && accountAccessToken
+      ? await fetchAccountApplications(accountBaseUrl, accountAccessToken)
+      : [];
 
     const safeApplications: ApplicationSummary[] = applications.length > 0
       ? applications
-      : [
-          {
-            id: 'obsi-people',
-            name: 'Obsi People',
-            slug: 'obsi-people',
-          },
-        ];
+      : [{
+          applicationId: 'obsi-people',
+          name: 'Obsi People',
+          description: 'People and workforce operations.',
+          iconUrl: null,
+          launchUrl: '/dashboard',
+          accessible: true,
+        }];
 
-    return NextResponse.json({ applications: safeApplications });
+    return NextResponse.json({
+      accountUrl: accountBaseUrl,
+      applications: safeApplications,
+    }, {
+      headers: { 'cache-control': 'no-store' },
+    });
   } catch (error) {
     console.error('[/api/account/applications] Unhandled error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

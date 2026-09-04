@@ -84,7 +84,7 @@ function HeaderLoadedActions({
 
   return (
     <div className="flex items-center gap-1.5">
-      <div className="[&_button]:!h-10 [&_button]:!rounded-lg [&_button]:!text-slate-600 [&_button]:hover:!bg-slate-100 [&_button]:hover:!text-slate-950 dark:[&_button]:!text-zinc-300 dark:[&_button]:hover:!bg-zinc-800 dark:[&_button]:hover:!text-white">
+      <div className="[&_button]:!h-10 [&_button]:!rounded-lg [&_button]:!text-muted-foreground [&_button]:hover:!bg-accent [&_button]:hover:!text-accent-foreground">
         <HrHelpWidget />
       </div>
       <HeaderOutbornApplicationLauncher />

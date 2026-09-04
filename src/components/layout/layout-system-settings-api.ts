@@ -3,7 +3,7 @@ import { normalizeSystemSettingsResponse } from '../../lib/system-settings-respo
 import { APP_LAYOUT_SIDEBAR_COLOR_KEYS } from './app-layout-sidebar-color-keys';
 
 const APP_LAYOUT_SETTINGS_KEYS = [
-  'appLogoDataUrl', 'appName', 'showLogoOnly', 'sidebarLogoSize', 'collapsedSidebarLogoSize',
+  'appName', 'showLogoOnly', 'sidebarLogoSize', 'collapsedSidebarLogoSize',
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode', 'sidebarLogoCollapsedDarkMode',
   'sidebarLogoExpandedDarkMode', 'themePreference', 'primaryGradient', 'primaryButtonShadowL',
   'primaryButtonShadowHoverL', 'primaryButtonShadowD', 'primaryButtonShadowHoverD', 'sidebarBackgroundType',
@@ -15,7 +15,12 @@ const APP_LAYOUT_SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedSettings: { value: unknown; expiresAt: number } | null = null;
 let settingsRequest: Promise<unknown> | null = null;
 
-interface AccountLauncherApplication { name?: unknown; iconUrl?: unknown; launchUrl?: unknown; }
+interface AccountLauncherApplication {
+  applicationId?: unknown;
+  name?: unknown;
+  iconUrl?: unknown;
+  launchUrl?: unknown;
+}
 interface AccountLauncherPayload { applications?: unknown; }
 
 function normalizeHost(url: string) {
@@ -73,11 +78,15 @@ export async function fetchLayoutSystemSettings(forceRefresh = false): Promise<u
     ]);
     const settingsValue = settingsResponse.ok ? await readJsonOrFallback<unknown>(settingsResponse, {}) : {};
     const localSettings = normalizeSystemSettingsResponse(settingsValue);
-    const value = accountBranding ? {
+
+    // Outborn Account is the only authority for the application icon. Never
+    // fall back to a locally stored appLogoDataUrl, otherwise branding can
+    // drift between the Account application registry and Hrive.
+    const value = {
       ...localSettings,
-      ...(accountBranding.appName ? { appName: accountBranding.appName } : {}),
-      ...(accountBranding.appLogoDataUrl ? { appLogoDataUrl: accountBranding.appLogoDataUrl } : {}),
-    } : localSettings;
+      appLogoDataUrl: accountBranding?.appLogoDataUrl ?? null,
+      ...(accountBranding?.appName ? { appName: accountBranding.appName } : {}),
+    };
 
     cachedSettings = { value, expiresAt: Date.now() + APP_LAYOUT_SETTINGS_CACHE_TTL_MS };
     return value;

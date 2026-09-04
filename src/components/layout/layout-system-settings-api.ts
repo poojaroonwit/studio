@@ -5,7 +5,7 @@ import { APP_LAYOUT_SIDEBAR_COLOR_KEYS } from './app-layout-sidebar-color-keys';
 const APP_LAYOUT_SETTINGS_KEYS = [
   'appName', 'showLogoOnly', 'sidebarLogoSize', 'collapsedSidebarLogoSize',
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode', 'sidebarLogoCollapsedDarkMode',
-  'sidebarLogoExpandedDarkMode', 'themePreference', 'primaryGradient', 'primaryButtonShadowL',
+  'sidebarLogoExpandedDarkMode', 'appThemePreference', 'primaryGradient', 'primaryButtonShadowL',
   'primaryButtonShadowHoverL', 'primaryButtonShadowD', 'primaryButtonShadowHoverD', 'sidebarBackgroundType',
   'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
   'sidebarNavigationMode', 'sidebarSecondaryGroupLabels', ...APP_LAYOUT_SIDEBAR_COLOR_KEYS,

@@ -1,4 +1,4 @@
-name: Sync Outborn launcher lock
+name: Sync Outborn Account SDK lock
 
 on:
   push:
@@ -20,22 +20,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Wait for exact launcher SDK release
+      - name: Validate Account directory SDK release
         run: |
-          url="https://app-shell-sdk-release-production.up.railway.app/outborn-app-shell-0.1.7.tgz"
-          archive="${RUNNER_TEMP}/outborn-app-shell-0.1.7.tgz"
-          manifest="${RUNNER_TEMP}/outborn-app-shell-package.json"
-          for attempt in $(seq 1 60); do
-            rm -f "$archive" "$manifest"
-            if curl --fail --silent --show-error --location "$url" --output "$archive" \
-              && tar -xOzf "$archive" package/package.json > "$manifest" 2>/dev/null \
-              && [ "$(node -p "require('$manifest').version")" = "0.1.7" ]; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Exact Outborn app-shell 0.1.7 archive was not available" >&2
-          exit 1
+          url="https://account-directory-sdk-release-production.up.railway.app/outborn-account-directory-0.1.1.tgz"
+          archive="${RUNNER_TEMP}/outborn-account-directory-0.1.1.tgz"
+          manifest="${RUNNER_TEMP}/outborn-account-directory-package.json"
+          curl --fail --silent --show-error --location "$url" --output "$archive"
+          tar -xOzf "$archive" package/package.json > "$manifest"
+          test "$(node -p "require('$manifest').version")" = "0.1.1"
       - name: Refresh lockfile only
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Commit lockfile
@@ -46,5 +38,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "chore: sync Outborn launcher dependency lock"
+          git commit -m "chore: sync Outborn Account SDK dependency lock"
           git push origin HEAD:dev

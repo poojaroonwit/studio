@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      APP_BASE_URL: https://app-hrive.up.railway.app
+      APP_BASE_URL: https://people.outborn.co
       ACCOUNT_BASE_URL: https://account.outborn.co
       EXPECTED_CLIENT_ID: outborn-hrive-web
     steps:
@@ -76,12 +76,17 @@ jobs:
             const u = new URL(process.env.AUTH_URL);
             const expectedAccount = new URL(process.env.ACCOUNT_BASE_URL);
             const expectedCallback = `${process.env.APP_BASE_URL}/api/auth/callback/outborn-account`;
+            const scopes = new Set((u.searchParams.get("scope") || "").split(/\s+/).filter(Boolean));
+            const hasCanonicalScopes = scopes.size === 3 && ["openid", "profile", "email"].every(scope => scopes.has(scope));
             const checks = [
               [u.origin === expectedAccount.origin, `origin=${u.origin}`],
               [u.pathname === "/api/auth/oauth2/authorize", `pathname=${u.pathname}`],
               [u.searchParams.get("client_id") === process.env.EXPECTED_CLIENT_ID, `client_id=${u.searchParams.get("client_id")}`],
               [u.searchParams.get("redirect_uri") === expectedCallback, `redirect_uri=${u.searchParams.get("redirect_uri")}`],
               [u.searchParams.get("response_type") === "code", `response_type=${u.searchParams.get("response_type")}`],
+              [hasCanonicalScopes, `scope=${u.searchParams.get("scope")}`],
+              [!scopes.has("offline_access"), "offline_access absent"],
+              [!scopes.has("organizations"), "organizations absent"],
               [Boolean(u.searchParams.get("state")), "state present"],
               [Boolean(u.searchParams.get("code_challenge")), "PKCE code_challenge present"],
               [u.searchParams.get("code_challenge_method") === "S256", `code_challenge_method=${u.searchParams.get("code_challenge_method")}`],
@@ -112,7 +117,7 @@ jobs:
           echo "Outborn Account authorize status: $status"
           test "$status" -ge 200
           test "$status" -lt 400
-          if grep -Eqi 'application not registered|not been registered|invalid_request|unsupported|redirect_uri.*invalid|client.*invalid' "$body"; then
+          if grep -Eqi 'application not registered|not been registered|invalid_scope|invalid_request|unsupported|redirect_uri.*invalid|client.*invalid' "$body"; then
             echo 'Outborn Account rejected the generated authorization request.'
             cat "$body"
             exit 1

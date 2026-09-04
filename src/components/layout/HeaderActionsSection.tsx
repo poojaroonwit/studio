@@ -12,6 +12,7 @@ import { useLocalization } from '@/contexts/LocalizationContext';
 import { HeaderExpandableSearch } from "./HeaderExpandableSearch";
 import { HeaderDesktopUserMenu } from "./HeaderDesktopUserMenu";
 import { HeaderMobileUserDrawer } from "./HeaderMobileUserDrawer";
+import { HeaderOutbornApplicationLauncher } from "./HeaderOutbornApplicationLauncher";
 import type { HeaderUserMenuSharedProps } from "./HeaderTypes";
 
 interface HeaderActionsSectionProps {
@@ -89,6 +90,7 @@ function HeaderLoadedActions({
         <div className="[&_button]:!text-slate-600 [&_button]:hover:!bg-slate-100 [&_button]:hover:!text-slate-950 dark:[&_button]:!text-zinc-300 dark:[&_button]:hover:!bg-zinc-800 dark:[&_button]:hover:!text-white">
           <HrHelpWidget />
         </div>
+        <HeaderOutbornApplicationLauncher />
         <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
         {isMobile ? (
           <HeaderMobileUserDrawer {...userMenuProps} />

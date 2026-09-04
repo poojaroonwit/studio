@@ -5,6 +5,7 @@ import { payrollActionSchema, payrollResources, type PayrollResource } from '@/l
 import { collectPayrollInputs } from '@/lib/payroll/collect-inputs';
 import { getPayrollAccess } from '@/lib/payroll/permissions';
 import { getPayrollWorkspace, mutatePayroll, PayrollServiceError } from '@/lib/payroll/service';
+import { markPayrollSourcesCollected, markPayrollSourcesPaid } from '@/lib/payroll/source-lifecycle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -49,6 +50,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const data = parsed.data.action === 'collect_inputs'
       ? await collectPayrollInputs(parsed.data, resolved.access, resolved.session.user.id)
       : await mutatePayroll(parsed.data, resolved.access, resolved.session.user.id);
+
+    if ('runId' in parsed.data) {
+      if (parsed.data.action === 'collect_inputs') {
+        await markPayrollSourcesCollected(parsed.data.runId);
+      }
+      if (parsed.data.action === 'mark_paid') {
+        await markPayrollSourcesPaid(parsed.data.runId, parsed.data.paymentReference);
+      }
+    }
+
     return NextResponse.json({ data });
   } catch (error) {
     return responseError(error);

@@ -58,7 +58,7 @@ describe('Hrive desktop shell visual contract', () => {
     expect(shell).not.toContain('dark:lg:bg-zinc-950/95');
   });
 
-  it('uses aligned divider-free semantic utility controls in the intended action order', () => {
+  it('uses semantic utility controls with one divider between Talk with HR and Outborn Apps', () => {
     const search = source('src/components/layout/HeaderExpandableSearch.tsx');
     const userMenu = source('src/components/layout/HeaderDesktopUserMenuAccount.tsx');
     const actions = source('src/components/layout/HeaderActionsSection.tsx');
@@ -69,18 +69,20 @@ describe('Hrive desktop shell visual contract', () => {
     expect(actions).toContain('[&_button]:!h-10');
     expect(actions).toContain('[&_button]:!text-muted-foreground');
     expect(actions).toContain('[&_button]:hover:!bg-accent');
-    expect(actions).not.toContain('h-5 w-px');
+    expect(actions).toContain('mx-1 h-5 w-px shrink-0 bg-border');
     expect(userMenu).toContain('text-foreground');
     expect(launcher).toContain('hover:bg-accent');
     expect(launcher).toContain('border-border');
 
     const helpIndex = actions.indexOf('<HrHelpWidget');
+    const dividerIndex = actions.indexOf('mx-1 h-5 w-px shrink-0 bg-border');
     const appsIndex = actions.indexOf('<HeaderOutbornApplicationLauncher');
     const notificationIndex = actions.indexOf('<NotificationIcon');
     const userIndex = actions.indexOf('<HeaderDesktopUserMenu');
 
     expect(helpIndex).toBeGreaterThanOrEqual(0);
-    expect(appsIndex).toBeGreaterThan(helpIndex);
+    expect(dividerIndex).toBeGreaterThan(helpIndex);
+    expect(appsIndex).toBeGreaterThan(dividerIndex);
     expect(notificationIndex).toBeGreaterThan(appsIndex);
     expect(userIndex).toBeGreaterThan(notificationIndex);
   });

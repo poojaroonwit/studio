@@ -23,8 +23,9 @@ interface ApplicationSummary {
   accessible: boolean;
 }
 
-function getAccountAccessToken(user: { outbornAccountAccessToken?: unknown }): string | null {
-  const token = user.outbornAccountAccessToken;
+function getAccountAccessToken(user: unknown): string | null {
+  if (!user || typeof user !== 'object') return null;
+  const token = (user as Record<string, unknown>).outbornAccountAccessToken;
   return typeof token === 'string' && token.trim() ? token : null;
 }
 

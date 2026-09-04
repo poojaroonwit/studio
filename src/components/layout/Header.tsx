@@ -8,7 +8,7 @@ import {
   OutbornApplicationFavicon,
   OutbornApplicationLauncher,
   type OutbornApplication,
-} from "@outborn/app-shell";
+} from "../../../npm/outborn-app-shell";
 
 import type { UnifiedUserFormValues } from "@/components/users/UnifiedUserModal";
 import { useAvatarRefresh } from "@/hooks/use-avatar-refresh";

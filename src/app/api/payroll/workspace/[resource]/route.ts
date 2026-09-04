@@ -5,6 +5,7 @@ import { applyPayrollAmountVisibility } from '@/lib/payroll/amount-visibility';
 import { payrollActionSchema, payrollResources, type PayrollResource } from '@/lib/payroll/contracts';
 import { collectPayrollInputs } from '@/lib/payroll/collect-inputs';
 import { getPayrollAccess } from '@/lib/payroll/permissions';
+import { rememberPayrollRunType } from '@/lib/payroll/run-type-registry';
 import { getPayrollWorkspace, mutatePayroll, PayrollServiceError } from '@/lib/payroll/service';
 import { markPayrollSourcesCollected, markPayrollSourcesPaid } from '@/lib/payroll/source-lifecycle';
 
@@ -52,6 +53,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const data = parsed.data.action === 'collect_inputs'
       ? await collectPayrollInputs(parsed.data, resolved.access, resolved.session.user.id)
       : await mutatePayroll(parsed.data, resolved.access, resolved.session.user.id);
+
+    if (parsed.data.action === 'create_run') {
+      await rememberPayrollRunType(parsed.data.runType);
+    }
 
     if ('runId' in parsed.data) {
       if (parsed.data.action === 'collect_inputs') {

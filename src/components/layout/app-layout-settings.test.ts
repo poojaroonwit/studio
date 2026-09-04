@@ -5,6 +5,7 @@ import {
   buildAppLayoutConfigUpdates,
   buildAppLayoutThemeConfig,
   parseAppLayoutSettingsResponse,
+  resolveAppLayoutThemePreference,
 } from './app-layout-settings';
 
 describe('app-layout-settings', () => {
@@ -84,6 +85,12 @@ describe('app-layout-settings', () => {
         primaryButtonShadowHoverD: null,
       },
     });
+  });
+
+  it('preserves the already resolved user theme when app palette settings are reapplied', () => {
+    expect(resolveAppLayoutThemePreference('system', 'dark')).toBe('dark');
+    expect(resolveAppLayoutThemePreference('dark', 'light')).toBe('light');
+    expect(resolveAppLayoutThemePreference('system', null)).toBe('system');
   });
 
   it('never lets local app config events override the Outborn Account logo', () => {

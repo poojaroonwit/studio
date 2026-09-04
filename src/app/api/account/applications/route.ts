@@ -23,7 +23,7 @@ interface ApplicationSummary {
   accessible: boolean;
 }
 
-function getAccountAccessToken(user: Record<string, unknown>): string | null {
+function getAccountAccessToken(user: { outbornAccountAccessToken?: unknown }): string | null {
   const token = user.outbornAccountAccessToken;
   return typeof token === 'string' && token.trim() ? token : null;
 }
@@ -89,7 +89,7 @@ export async function GET() {
     }
 
     const accountBaseUrl = normalizeAccountBaseUrl();
-    const accountAccessToken = getAccountAccessToken(session.user as Record<string, unknown>);
+    const accountAccessToken = getAccountAccessToken(session.user);
     const applications = accountBaseUrl && accountAccessToken
       ? await fetchAccountApplications(accountBaseUrl, accountAccessToken)
       : [];

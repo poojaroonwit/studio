@@ -37,11 +37,16 @@ export function HeaderBrandLockup({
           fill
           unoptimized
           sizes={compact ? "28px" : "32px"}
-          className={cn("object-contain", isDefaultCompanyLogo && "p-0.5 dark:brightness-0 dark:invert")}
+          className={cn(
+            "object-contain",
+            isDefaultCompanyLogo
+              ? "p-0.5 dark:brightness-0 dark:invert"
+              : "dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)]",
+          )}
         />
       </span>
 
-      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
+      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border" />
 
       <span
         aria-label="Obsi People"
@@ -50,8 +55,8 @@ export function HeaderBrandLockup({
           compact ? "text-[15px]" : "text-[17px]",
         )}
       >
-        <span className="text-slate-950 dark:text-white">Obsi</span>
-        <span className="ml-1.5 text-slate-500 dark:text-zinc-400">People</span>
+        <span className="text-foreground">Obsi</span>
+        <span className="ml-1.5 text-muted-foreground">People</span>
       </span>
     </span>
   );

@@ -16,6 +16,8 @@ import type {
 
 const DEFAULT_APP_NAME = "hrive";
 
+type AppThemePreference = 'system' | 'light' | 'dark';
+
 export type { AppLayoutContextualLogos, AppLayoutSettingsRecord };
 
 export function parseAppLayoutSettingsResponse(data: unknown): AppLayoutSettingsRecord {
@@ -75,6 +77,20 @@ export function buildAppLayoutThemeConfig(prefs: AppLayoutSettingsRecord) {
   };
 }
 
+/**
+ * The user's resolved light/dark choice is authoritative. App/system settings
+ * are allowed to provide palette values, but must not switch the resolved
+ * mode after useTheme (and the pre-hydration initializer) have selected it.
+ */
+export function resolveAppLayoutThemePreference(
+  configuredPreference: AppThemePreference,
+  resolvedTheme?: string | null,
+): AppThemePreference {
+  return resolvedTheme === 'light' || resolvedTheme === 'dark'
+    ? resolvedTheme
+    : configuredPreference;
+}
+
 export async function initializeAppLayoutSidebarStyles() {
   try {
     const { initializeSidebarStyles } = await import('@/lib/themeUtils');
@@ -90,8 +106,16 @@ export async function applyAppLayoutThemeSettings(
 ) {
   try {
     const { setThemeAndColors, applySidebarStyles } = await import('@/lib/themeUtils');
+    const resolvedTheme = typeof document !== 'undefined'
+      ? document.documentElement.dataset.resolvedTheme
+      : null;
+    const effectiveThemeConfig = {
+      ...themeConfig,
+      themePreference: resolveAppLayoutThemePreference(themeConfig.themePreference, resolvedTheme),
+    };
+
     applySidebarStyles(themeConfig.sidebarColors);
-    setThemeAndColors(themeConfig);
+    setThemeAndColors(effectiveThemeConfig);
   } catch (error) {
     console.warn('[APPLAYOUT] Error applying theme and colors:', error);
   }

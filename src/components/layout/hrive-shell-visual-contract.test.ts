@@ -7,12 +7,15 @@ function source(relativePath: string) {
 }
 
 describe('Hrive desktop shell visual contract', () => {
-  it('renders the desktop primary navigation on a light header with dark controls', () => {
+  it('renders the desktop primary navigation on a transparent header with dark controls', () => {
     const header = source('src/components/layout/Header.tsx');
     const primaryItem = source('src/components/layout/HeaderMegaMenuCategory.tsx');
 
-    expect(header).toContain('bg-white/95');
+    expect(header).toContain('bg-transparent');
     expect(header).toContain('border-slate-200/80');
+    expect(header).not.toContain('bg-white/95');
+    expect(header).not.toContain('supports-[backdrop-filter]:bg-white/90');
+    expect(header).not.toContain('dark:bg-zinc-950/95');
     expect(header).not.toContain('bg-[#111827]');
     expect(primaryItem).toContain('text-slate-600');
     expect(primaryItem).toContain('after:bg-blue-600');

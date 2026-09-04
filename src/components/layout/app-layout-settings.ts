@@ -105,7 +105,7 @@ export async function applyAppLayoutThemeSettings(
   themeConfig: ReturnType<typeof buildAppLayoutThemeConfig>
 ) {
   try {
-    const { setThemeAndColors, applySidebarStyles } = await import('@/lib/themeUtils');
+    const { setThemeAndColors } = await import('@/lib/themeUtils');
     const resolvedTheme = typeof document !== 'undefined'
       ? document.documentElement.dataset.resolvedTheme
       : null;
@@ -114,7 +114,9 @@ export async function applyAppLayoutThemeSettings(
       themePreference: resolveAppLayoutThemePreference(themeConfig.themePreference, resolvedTheme),
     };
 
-    applySidebarStyles(themeConfig.sidebarColors);
+    // setThemeAndColors receives the full sidebar palette and applies it once
+    // against the already resolved user theme. Avoid a pre-pass that can flash
+    // the wrong light/dark sidebar during hydration or login.
     setThemeAndColors(effectiveThemeConfig);
   } catch (error) {
     console.warn('[APPLAYOUT] Error applying theme and colors:', error);

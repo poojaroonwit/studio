@@ -8,8 +8,10 @@ import {
   BanknotesIcon as Banknotes,
   BriefcaseIcon as Briefcase,
   CalendarDaysIcon as CalendarDays,
+  ClockIcon as Clock,
   Cog6ToothIcon as Settings,
   EllipsisHorizontalIcon as MoreHorizontal,
+  IdentificationIcon as Identification,
   UsersIcon as Users,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
@@ -59,10 +61,22 @@ export function buildMobileNavItems(
       show: canViewPeople,
     },
     {
-      href: canViewWorkforce ? "/workforce/attendance?view=attendance" : "/ess/leave",
-      label: localize("navigation.workforce", "Workforce"),
-      icon: CalendarDays,
+      href: "/ess/profile",
+      label: localize("navigation.ess", "ESS"),
+      icon: Identification,
       show: true,
+    },
+    {
+      href: "/workforce/attendance?view=attendance",
+      label: localize("navigation.workforce", "Workforce"),
+      icon: Clock,
+      show: canViewWorkforce,
+    },
+    {
+      href: "/workforce/leave",
+      label: localize("navigation.leave", "Leave"),
+      icon: CalendarDays,
+      show: canViewWorkforce,
     },
     {
       href: canViewPayroll ? "/payroll" : "/expenses",

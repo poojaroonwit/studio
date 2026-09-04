@@ -87,6 +87,7 @@ function HeaderLoadedActions({
       <div className="[&_button]:!h-10 [&_button]:!rounded-lg [&_button]:!text-muted-foreground [&_button]:hover:!bg-accent [&_button]:hover:!text-accent-foreground">
         <HrHelpWidget />
       </div>
+      <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-border" />
       <HeaderOutbornApplicationLauncher />
       <div className="ml-0.5 [&_button]:!h-10 [&_button]:!w-10 [&_button]:!rounded-lg">
         <NotificationIcon />

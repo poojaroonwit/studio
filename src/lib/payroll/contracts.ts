@@ -133,7 +133,7 @@ export interface PayrollWorkspacePayload {
   resource: PayrollResource;
   generatedAt: string;
   companyId: string | null;
-  access: Omit<PayrollAccess, 'actorCompanyId' | 'actorEmployeeId'>;
+  access: Omit<PayrollAccess, 'actorCompanyId' | 'actorEmployeeId' | 'canViewAmounts'> & { canViewAmounts?: boolean };
   summary: Record<string, number | string | null>;
   records: Array<Record<string, unknown>>;
   secondary: Array<Record<string, unknown>>;

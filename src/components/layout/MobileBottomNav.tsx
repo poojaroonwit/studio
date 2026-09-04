@@ -4,13 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AcademicCapIcon as AcademicCap,
   BanknotesIcon as Banknotes,
   BriefcaseIcon as Briefcase,
   CalendarDaysIcon as CalendarDays,
   Cog6ToothIcon as Settings,
-  CurrencyDollarIcon as CurrencyDollar,
   EllipsisHorizontalIcon as MoreHorizontal,
-  UserGroupIcon as UserGroup,
   UsersIcon as Users,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
@@ -40,15 +39,55 @@ export function buildMobileNavItems(
   user: SessionLikeUser,
   localize: (key: string, fallback: string) => string = (_, fallback) => fallback,
 ): MobileNavItem[] {
+  const canViewPeople = hasAnyPermission(user, ["HR_PEOPLE_VIEW", "HR_PEOPLE_MANAGE"]);
+  const canViewWorkforce = hasAnyPermission(user, ["HR_WORKFORCE_VIEW", "HR_WORKFORCE_MANAGE"]);
+  const canViewPayroll = hasAnyPermission(user, ["HR_PAYROLL_VIEW", "HR_PAYROLL_MANAGE"]);
+  const canViewExpenses = hasAnyPermission(user, ["EXPENSES_VIEW", "EXPENSES_APPROVE", "EXPENSES_FINANCE"]);
+  const canViewHiring = hasAnyPermission(user, ["applicantS_VIEW", "POSITIONS_VIEW"]);
+
   const items: Array<MobileNavItem & { show: boolean }> = [
-    { href: "/my-workday", label: localize("navigation.home", "Home"), icon: CalendarDays, show: true },
-    { href: "/ess/team", label: localize("navigation.team", "Team"), icon: UserGroup, show: user.role === "Hiring Manager" || hasAnyPermission(user, ["HR_WORKFORCE_VIEW", "HR_WORKFORCE_MANAGE"]) },
-    { href: "/settings", label: localize("navigation.admin", "Admin"), icon: Settings, show: hasPermission(user, "SYSTEM_SETTINGS_VIEW") },
-    { href: "/people", label: localize("navigation.people", "People"), icon: Users, show: hasAnyPermission(user, ["HR_PEOPLE_VIEW", "HR_PEOPLE_MANAGE"]) },
-    { href: "/applicants", label: localize("navigation.recruiting", "Recruiting"), icon: Briefcase, show: hasAnyPermission(user, ["applicantS_VIEW", "POSITIONS_VIEW"]) },
-    { href: "/payroll", label: localize("navigation.payroll", "Payroll"), icon: Banknotes, show: hasAnyPermission(user, ["HR_PAYROLL_VIEW", "HR_PAYROLL_MANAGE"]) },
-    { href: "/expenses", label: localize("navigation.expenses", "Expenses"), icon: CurrencyDollar, show: hasAnyPermission(user, ["EXPENSES_VIEW", "EXPENSES_APPROVE", "EXPENSES_FINANCE"]) },
-    { href: "/ess/leave", label: localize("navigation.leave", "Leave"), icon: CalendarDays, show: true },
+    {
+      href: "/my-workday",
+      label: localize("navigation.home", "Home"),
+      icon: CalendarDays,
+      show: true,
+    },
+    {
+      href: "/people",
+      label: localize("navigation.people", "People"),
+      icon: Users,
+      show: canViewPeople,
+    },
+    {
+      href: canViewWorkforce ? "/workforce/attendance?view=attendance" : "/ess/leave",
+      label: localize("navigation.workforce", "Workforce"),
+      icon: CalendarDays,
+      show: true,
+    },
+    {
+      href: canViewPayroll ? "/payroll" : "/expenses",
+      label: localize("navigation.pay", "Pay"),
+      icon: Banknotes,
+      show: canViewPayroll || canViewExpenses,
+    },
+    {
+      href: "/applicants",
+      label: localize("navigation.hiring", "Hiring"),
+      icon: Briefcase,
+      show: canViewHiring,
+    },
+    {
+      href: "/learning",
+      label: localize("navigation.growth", "Growth"),
+      icon: AcademicCap,
+      show: true,
+    },
+    {
+      href: "/settings",
+      label: localize("navigation.admin", "Admin"),
+      icon: Settings,
+      show: hasPermission(user, "SYSTEM_SETTINGS_VIEW"),
+    },
   ];
 
   return items.filter(item => item.show).map(({ show: _show, ...item }) => item);
@@ -79,7 +118,6 @@ export function MobileBottomNav() {
     );
   }, []);
 
-  // Hide on login page and full-page workspaces that own their navigation.
   if (pathname?.startsWith('/auth/') || !session?.user || isEmbeddedFrame || isFullPageWorkspacePath(pathname)) {
     return null;
   }
@@ -108,7 +146,7 @@ export function MobileBottomNav() {
                 "relative flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-xs font-medium",
                 "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                 isActive
-                  ? "text-primary bg-primary/10"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground"
               )}
             >
@@ -148,7 +186,7 @@ export function MobileBottomNav() {
               <SheetHeader className="text-left">
                 <SheetTitle>{t("navigation.moreDestinations", "More destinations")}</SheetTitle>
                 <SheetDescription>
-                  {t("navigation.moreDestinationsDescription", "Open every module available to your account.")}
+                  {t("navigation.moreDestinationsDescription", "Open additional Hrive areas available to your account.")}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">

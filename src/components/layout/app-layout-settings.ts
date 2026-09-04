@@ -43,7 +43,8 @@ export function buildAppConfigChangedUpdates(detail?: AppConfigChangedDetail | n
 
   return {
     ...(detail.appName ? { currentAppName: normalizeAppName(detail.appName, DEFAULT_APP_NAME) } : {}),
-    ...(detail.logoUrl !== undefined ? { appLogoUrl: detail.logoUrl } : {}),
+    // The application logo is owned by Outborn Account. Local settings events
+    // may update display preferences, but they must never replace appLogoUrl.
     ...(detail.showLogoOnly !== undefined ? { showLogoOnly: detail.showLogoOnly } : {}),
     ...(detail.sidebarLogoSize !== undefined ? { sidebarLogoSize: detail.sidebarLogoSize } : {}),
     ...(detail.collapsedSidebarLogoSize !== undefined

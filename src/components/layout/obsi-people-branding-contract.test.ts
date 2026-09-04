@@ -28,4 +28,19 @@ describe('Obsi People branding contract', () => {
     expect(lockup).not.toContain('hrive application');
     expect(header).not.toContain('— hrive —');
   });
+
+  it('uses Outborn Account as the only runtime authority for the application logo', () => {
+    const layoutSettingsApi = source('src/components/layout/layout-system-settings-api.ts');
+    const appLayoutSettings = source('src/components/layout/app-layout-settings.ts');
+    const brandingSettings = source('src/components/settings/SystemPreferencesLogoSettingsCard.tsx');
+    const basicSettings = source('src/components/settings/system-preferences/basic-form-utils.ts');
+
+    expect(layoutSettingsApi).toContain("fetch('/api/outborn/application-launcher'");
+    expect(layoutSettingsApi).toContain('appLogoDataUrl: accountBranding?.appLogoDataUrl ?? null');
+    expect(layoutSettingsApi).not.toContain("'appLogoDataUrl', 'appName'");
+    expect(appLayoutSettings).not.toContain('detail.logoUrl !== undefined');
+    expect(brandingSettings).toContain('Application logo is managed by Outborn Account');
+    expect(brandingSettings).not.toContain('id="appLogo"');
+    expect(basicSettings).not.toContain('{ key: APP_LOGO_DATA_URL_KEY, value: appLogoUrl');
+  });
 });

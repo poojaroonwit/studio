@@ -2,14 +2,11 @@ import { validate as validateUuid } from 'uuid';
 import type { Session } from 'next-auth';
 
 import { getUserFullContext, getUserPermissions, getUserSessionData } from '@/lib/authUtils';
-import type { PlatformModuleId, UserProfile } from '@/lib/types';
+import type { UserProfile } from '@/lib/types';
 import { buildInactiveSession, hydrateSessionUserFromDb, isAdminRole } from '@/lib/auth-config-utils';
 import { asMutableSession, getTokenString, isSessionValidationError } from './auth-callback-shared';
 import type { AuthDbUser, MutableAuthToken, SessionCallbackInput } from './auth-callback-types';
 
-function mergePermissions(localPermissions: PlatformModuleId[] | null | undefined, accountPermissions: PlatformModuleId[] | null | undefined) {
-  return [...new Set([...(localPermissions ?? []), ...(accountPermissions ?? [])])];
-}
 function hasOutbornAccountAuthorization(token: MutableAuthToken) {
   return typeof token.outbornAccountAccessToken === 'string' && Boolean(token.outbornAccountAccessToken);
 }
@@ -41,15 +38,16 @@ async function hydrateSessionFromContext(session: Session, token: MutableAuthTok
   }
   if (!context.user) return false;
   const dbUser = context.user as AuthDbUser;
-  if (!dbUser.isActive) return buildInactiveSession(asMutableSession(session));
+  const accountAuthorized = hasOutbornAccountAuthorization(token);
+  if (!dbUser.isActive && !accountAuthorized) return buildInactiveSession(asMutableSession(session));
   hydrateSessionUserFromDb(session.user as unknown as Record<string, unknown>, dbUser);
-  if (hasOutbornAccountAuthorization(token)) {
+  if (accountAuthorized) {
     session.user.role = (typeof token.role === 'string' ? token.role : session.user.role) as UserProfile['role'];
-    session.user.modulePermissions = mergePermissions(session.user.modulePermissions, token.modulePermissions);
+    session.user.modulePermissions = token.modulePermissions ?? [];
   } else session.user.role = session.user.role as UserProfile['role'];
   session.user.twoFactorMethod = session.user.twoFactorMethod as 'email' | 'totp' | undefined;
   await applySessionImpersonation(session, dbUser, token);
-  if (!hasOutbornAccountAuthorization(token) && typeof dbUser.role === 'string') token.role = dbUser.role;
+  if (!accountAuthorized && typeof dbUser.role === 'string') token.role = dbUser.role;
   if (typeof dbUser.name === 'string') token.name = dbUser.name;
   return session;
 }
@@ -82,8 +80,10 @@ async function hydrateSessionFromTokenFallback(session: Session, token: MutableA
   if (typeof token.id === 'string' && !validateUuid(token.id)) { console.error('[SESSION CALLBACK] Invalid UUID in token.id:', token.id); session.user.id = ''; }
   else session.user.id = typeof token.id === 'string' ? token.id : '';
   session.user.role = (typeof token.role === 'string' ? token.role : 'Recruiter') as UserProfile['role'];
-  const localPermissions = session.user.id ? await getUserPermissions(session.user.id) : [];
-  session.user.modulePermissions = hasOutbornAccountAuthorization(token) ? mergePermissions(localPermissions, token.modulePermissions) : localPermissions;
+  const accountAuthorized = hasOutbornAccountAuthorization(token);
+  session.user.modulePermissions = accountAuthorized
+    ? (token.modulePermissions ?? [])
+    : (session.user.id ? await getUserPermissions(session.user.id) : []);
   session.user.name = typeof token.name === 'string' ? token.name : session.user.name;
   session.user.avatarUrl = typeof token.avatarUrl === 'string' ? token.avatarUrl : null;
   session.user.personalColor = typeof token.personalColor === 'string' ? token.personalColor : null;

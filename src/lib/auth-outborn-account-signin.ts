@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
-import { loadOutbornAccountAuthorization } from '@/lib/auth-outborn-account-authorization';
+import { loadOutbornAccountAuthorization, normalizeHriveAccountRole } from '@/lib/auth-outborn-account-authorization';
 import type { SignInCallbackInput } from './auth-callback-types';
 
 const PRE_REGISTERED_GROUP_ID = '00000000-0000-0000-0000-000000000004';
@@ -36,7 +36,7 @@ export async function handleOutbornAccountSignIn({ user, account, profile }: Sig
       'SELECT id, role, "is_active", "authentication_methods" FROM "User" WHERE lower(email) = lower($1) LIMIT 1', [email],
     );
     let dbUser = existingResult.rows[0];
-    const effectiveRole = accountAuthorization?.role || dbUser?.role || 'Recruiter';
+    const effectiveRole = accountAuthorization?.role ?? normalizeHriveAccountRole(dbUser?.role || 'employee');
     if (!dbUser) {
       const userId = crypto.randomUUID();
       const placeholderPassword = await bcrypt.hash(`outborn-account-${crypto.randomBytes(32).toString('base64url')}`, 12);

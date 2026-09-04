@@ -21,7 +21,7 @@ describe('Hrive desktop shell visual contract', () => {
     expect(primaryItem).toContain('after:bg-blue-600');
   });
 
-  it('renders the secondary navigation inside the body canvas with a bottom divider', () => {
+  it('renders contextual secondary navigation inside the body canvas with a bottom divider', () => {
     const header = source('src/components/layout/Header.tsx');
     const secondary = source('src/components/layout/HeaderSecondaryNavigation.tsx');
     const shell = source('src/components/layout/AppLayoutShell.tsx');
@@ -50,15 +50,26 @@ describe('Hrive desktop shell visual contract', () => {
     expect(shell).toContain('lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)]');
   });
 
-  it('uses light utility controls for search, HR help, and the desktop user trigger', () => {
+  it('uses aligned divider-free utility controls in the intended action order', () => {
     const search = source('src/components/layout/HeaderExpandableSearch.tsx');
     const userMenu = source('src/components/layout/HeaderDesktopUserMenuAccount.tsx');
     const actions = source('src/components/layout/HeaderActionsSection.tsx');
 
     expect(search).toContain('text-slate-500');
     expect(search).toContain('bg-white');
+    expect(actions).toContain('[&_button]:!h-10');
     expect(actions).toContain('[&_button]:!text-slate-600');
+    expect(actions).not.toContain('h-5 w-px');
     expect(userMenu).toContain('text-slate-700');
-    expect(actions).toContain('bg-slate-200');
+
+    const helpIndex = actions.indexOf('<HrHelpWidget');
+    const appsIndex = actions.indexOf('<HeaderOutbornApplicationLauncher');
+    const notificationIndex = actions.indexOf('<NotificationIcon');
+    const userIndex = actions.indexOf('<HeaderDesktopUserMenu');
+
+    expect(helpIndex).toBeGreaterThanOrEqual(0);
+    expect(appsIndex).toBeGreaterThan(helpIndex);
+    expect(notificationIndex).toBeGreaterThan(appsIndex);
+    expect(userIndex).toBeGreaterThan(notificationIndex);
   });
 });

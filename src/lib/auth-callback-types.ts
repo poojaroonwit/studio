@@ -1,6 +1,7 @@
 import type { Account, Profile, Session, User } from 'next-auth';
 import type { AdapterUser } from 'next-auth/adapters';
 import type { JWT } from 'next-auth/jwt';
+import type { PlatformModuleId } from '@/lib/types';
 
 export type MutableAuthToken = JWT & Record<string, unknown> & {
   id?: string;
@@ -12,6 +13,7 @@ export type MutableAuthToken = JWT & Record<string, unknown> & {
   twoFactorMethod?: 'email' | 'totp';
   isMobile?: boolean;
   sessionToken?: string;
+  modulePermissions?: PlatformModuleId[];
   impersonatedUserId?: string;
   impersonatedRole?: string;
   impersonatedName?: string;
@@ -20,6 +22,7 @@ export type MutableAuthToken = JWT & Record<string, unknown> & {
   outbornAccountAccessTokenExpiresAt?: number;
   outbornAccountRefreshToken?: string;
   outbornAccountTokenError?: string;
+  outbornAccountAuthorizationCheckedAt?: number;
   exp?: number;
 };
 
@@ -28,20 +31,11 @@ export type AuthCallbackUser = (User | AdapterUser) & {
   role?: string;
   isMobile?: boolean;
   sessionToken?: string;
+  modulePermissions?: PlatformModuleId[];
 };
 
-export type AzureAdProfile = Profile & {
-  oid?: string | null;
-  sub?: string | null;
-  email?: string | null;
-};
-
-export type AuthDbUser = Record<string, unknown> & {
-  id: string;
-  name?: string | null;
-  role?: string | null;
-  isActive?: boolean;
-};
+export type AzureAdProfile = Profile & { oid?: string | null; sub?: string | null; email?: string | null; };
+export type AuthDbUser = Record<string, unknown> & { id: string; name?: string | null; role?: string | null; isActive?: boolean; };
 
 export interface JwtCallbackInput {
   token: MutableAuthToken;
@@ -52,11 +46,7 @@ export interface JwtCallbackInput {
   session?: unknown;
 }
 
-export interface SessionCallbackInput {
-  session: Session;
-  token: MutableAuthToken;
-}
-
+export interface SessionCallbackInput { session: Session; token: MutableAuthToken; }
 export interface SignInCallbackInput {
   user: AuthCallbackUser;
   account?: Account | null;

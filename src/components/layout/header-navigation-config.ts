@@ -3,7 +3,9 @@ import type { SidebarNavGroup, SidebarNavItem } from "./SidebarNavConfig";
 export const MEGA_MENU_CATEGORIES = [
   { label: "Home", description: "Daily workspace and employee portal", groupIds: ["employee-portal"] },
   { label: "People", description: "Employee records, organization, contracts, and lifecycle", groupIds: ["people"] },
-  { label: "Workforce", description: "Self-service, time, attendance, rosters, and leave", groupIds: ["ess", "workforce", "leaves"] },
+  { label: "ESS", description: "Personal profile, attendance, leave, documents, benefits, and employee requests", groupIds: ["ess"] },
+  { label: "Workforce", description: "Attendance, timesheets, rosters, overtime, shifts, and transportation", groupIds: ["workforce"] },
+  { label: "Leave", description: "Leave operations, allocations, policy assignment, approvals, and encashment", groupIds: ["leaves"] },
   { label: "Pay", description: "Payroll, compensation, benefits, and expenses", groupIds: ["payroll", "expenses"] },
   { label: "Hiring", description: "Recruitment and the candidate-facing portal", groupIds: ["recruitment", "job-portal"] },
   { label: "Growth", description: "Performance, learning, development, and recognition", groupIds: ["performance", "learning"] },

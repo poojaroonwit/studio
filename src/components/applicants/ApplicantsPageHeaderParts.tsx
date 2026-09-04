@@ -91,7 +91,7 @@ export function ApplicantsHeaderActions({
   const actionsDisabled = isLoading || tableLoading;
 
   return (
-    <div className="ml-3 flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 xl:ml-3 xl:flex-nowrap xl:justify-end">
       {viewSwitcherProps ? <ApplicantsRecruitmentViewSwitch {...viewSwitcherProps} /> : null}
 
       <ApplicantFilterPopover

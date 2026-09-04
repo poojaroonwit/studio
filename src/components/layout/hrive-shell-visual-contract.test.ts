@@ -7,29 +7,31 @@ function source(relativePath: string) {
 }
 
 describe('Hrive desktop shell visual contract', () => {
-  it('renders the desktop primary navigation on a transparent header with dark controls', () => {
+  it('renders primary navigation and header chrome with semantic theme tokens', () => {
     const header = source('src/components/layout/Header.tsx');
     const primaryItem = source('src/components/layout/HeaderMegaMenuCategory.tsx');
 
     expect(header).toContain('bg-transparent');
-    expect(header).toContain('border-slate-200/80');
-    expect(header).not.toContain('bg-white/95');
-    expect(header).not.toContain('supports-[backdrop-filter]:bg-white/90');
-    expect(header).not.toContain('dark:bg-zinc-950/95');
-    expect(header).not.toContain('bg-[#111827]');
-    expect(primaryItem).toContain('text-slate-600');
-    expect(primaryItem).toContain('after:bg-blue-600');
+    expect(header).toContain('border-border/70');
+    expect(header).toContain('text-foreground');
+    expect(header).not.toContain('border-slate-200/80');
+    expect(header).not.toContain('dark:border-zinc-800');
+    expect(primaryItem).toContain('text-muted-foreground');
+    expect(primaryItem).toContain('after:bg-primary');
+    expect(primaryItem).toContain('bg-popover');
+    expect(primaryItem).not.toContain('dark:bg-zinc-950');
   });
 
-  it('renders contextual secondary navigation inside the body canvas with a bottom divider', () => {
+  it('renders contextual secondary navigation inside the body canvas with semantic colors', () => {
     const header = source('src/components/layout/Header.tsx');
     const secondary = source('src/components/layout/HeaderSecondaryNavigation.tsx');
     const shell = source('src/components/layout/AppLayoutShell.tsx');
 
     expect(header).not.toContain('<HeaderSecondaryNavigation');
-    expect(secondary).toContain('border-b border-slate-200/80');
-    expect(secondary).toContain('text-slate-600');
-    expect(secondary).toContain('after:bg-blue-600');
+    expect(secondary).toContain('border-b border-border/70');
+    expect(secondary).toContain('text-muted-foreground');
+    expect(secondary).toContain('after:bg-primary');
+    expect(secondary).not.toContain('dark:text-zinc-300');
 
     const canvasIndex = shell.indexOf('<section className=');
     const secondaryIndex = shell.indexOf('<HeaderSecondaryNavigation');
@@ -40,32 +42,37 @@ describe('Hrive desktop shell visual contract', () => {
     expect(secondaryIndex).toBeLessThan(childrenIndex);
   });
 
-  it('fills the available page height with a borderless rounded body canvas', () => {
+  it('fills the available page height with a borderless token-driven body canvas', () => {
     const shell = source('src/components/layout/AppLayoutShell.tsx');
 
-    expect(shell).toContain('bg-[radial-gradient(');
+    expect(shell).toContain('hsl(var(--primary) / 0.10)');
+    expect(shell).toContain('hsl(var(--app-page-background, var(--background)))');
     expect(shell).toContain('h-full min-h-0 w-full min-w-0 bg-background');
+    expect(shell).toContain('lg:bg-background/95');
     expect(shell).toContain('flex h-full min-h-0 w-full min-w-0 flex-col');
     expect(shell).toContain('min-h-0 flex-1');
     expect(shell).toContain('lg:rounded-[24px]');
     expect(shell).toContain('lg:overflow-hidden');
     expect(shell).not.toContain('lg:border ');
-    expect(shell).not.toContain('lg:border-slate-200/80');
-    expect(shell).not.toContain('dark:lg:border-zinc-800');
-    expect(shell).toContain('lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)]');
+    expect(shell).not.toContain('lg:bg-white/95');
+    expect(shell).not.toContain('dark:lg:bg-zinc-950/95');
   });
 
-  it('uses aligned divider-free utility controls in the intended action order', () => {
+  it('uses aligned divider-free semantic utility controls in the intended action order', () => {
     const search = source('src/components/layout/HeaderExpandableSearch.tsx');
     const userMenu = source('src/components/layout/HeaderDesktopUserMenuAccount.tsx');
     const actions = source('src/components/layout/HeaderActionsSection.tsx');
+    const launcher = source('src/components/layout/HeaderOutbornApplicationLauncher.tsx');
 
-    expect(search).toContain('text-slate-500');
-    expect(search).toContain('bg-white');
+    expect(search).toContain('text-muted-foreground');
+    expect(search).toContain('bg-popover');
     expect(actions).toContain('[&_button]:!h-10');
-    expect(actions).toContain('[&_button]:!text-slate-600');
+    expect(actions).toContain('[&_button]:!text-muted-foreground');
+    expect(actions).toContain('[&_button]:hover:!bg-accent');
     expect(actions).not.toContain('h-5 w-px');
-    expect(userMenu).toContain('text-slate-700');
+    expect(userMenu).toContain('text-foreground');
+    expect(launcher).toContain('hover:bg-accent');
+    expect(launcher).toContain('border-border');
 
     const helpIndex = actions.indexOf('<HrHelpWidget');
     const appsIndex = actions.indexOf('<HeaderOutbornApplicationLauncher');

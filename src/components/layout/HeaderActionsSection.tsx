@@ -37,7 +37,7 @@ export function HeaderActionsSection({
   const signInLabel = t("header.signIn", "Sign In");
 
   return (
-    <div className="relative flex shrink-0 items-center gap-3">
+    <div className="relative flex shrink-0 items-center gap-2">
       {supportsHeaderSearch && (
         <HeaderExpandableSearch
           expanded={searchExpanded}
@@ -47,8 +47,8 @@ export function HeaderActionsSection({
       )}
       {isLoading ? (
         <>
-          <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-          <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
+          <div className="h-10 w-24 animate-pulse rounded-lg bg-muted" />
         </>
       ) : (!isMobile || !searchExpanded) ? (
         <HeaderLoadedActions
@@ -75,7 +75,7 @@ function HeaderLoadedActions({
 }) {
   if (!userMenuProps) {
     return (
-      <Button variant="outline" onClick={() => signIn()}>
+      <Button className="h-10" variant="outline" onClick={() => signIn()}>
         <LogIn className="mr-2 h-4 w-4" />
         {signInLabel}
       </Button>
@@ -83,21 +83,21 @@ function HeaderLoadedActions({
   }
 
   return (
-    <>
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5">
+      <div className="[&_button]:!h-10 [&_button]:!rounded-lg [&_button]:!text-slate-600 [&_button]:hover:!bg-slate-100 [&_button]:hover:!text-slate-950 dark:[&_button]:!text-zinc-300 dark:[&_button]:hover:!bg-zinc-800 dark:[&_button]:hover:!text-white">
+        <HrHelpWidget />
+      </div>
+      <HeaderOutbornApplicationLauncher />
+      <div className="ml-0.5 [&_button]:!h-10 [&_button]:!w-10 [&_button]:!rounded-lg">
         <NotificationIcon />
-        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
-        <div className="[&_button]:!text-slate-600 [&_button]:hover:!bg-slate-100 [&_button]:hover:!text-slate-950 dark:[&_button]:!text-zinc-300 dark:[&_button]:hover:!bg-zinc-800 dark:[&_button]:hover:!text-white">
-          <HrHelpWidget />
-        </div>
-        <HeaderOutbornApplicationLauncher />
-        <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-slate-200 dark:bg-zinc-700" />
+      </div>
+      <div className="ml-0.5">
         {isMobile ? (
           <HeaderMobileUserDrawer {...userMenuProps} />
         ) : (
           <HeaderDesktopUserMenu {...userMenuProps} />
         )}
       </div>
-    </>
+    </div>
   );
 }

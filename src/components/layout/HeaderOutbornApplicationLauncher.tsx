@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowTopRightOnSquareIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/outline";
 
 import {
   Popover,
@@ -34,19 +37,6 @@ function applicationInitials(name: string): string {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "O"
-  );
-}
-
-function ApplicationGridGlyph() {
-  return (
-    <span
-      aria-hidden="true"
-      className="grid h-[18px] w-[18px] grid-cols-3 grid-rows-3 place-items-center gap-[2px]"
-    >
-      {Array.from({ length: 9 }, (_, index) => (
-        <span key={index} className="h-[3.5px] w-[3.5px] rounded-[1px] bg-current" />
-      ))}
-    </span>
   );
 }
 
@@ -229,12 +219,13 @@ export function HeaderOutbornApplicationLauncher() {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
-          aria-label="Outborn apps"
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
-          title="Outborn apps"
+          aria-label="Outborn Apps"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+          title="Outborn Apps"
           type="button"
         >
-          <ApplicationGridGlyph />
+          <Squares2X2Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+          <span className="whitespace-nowrap">Outborn Apps</span>
         </button>
       </PopoverTrigger>
 

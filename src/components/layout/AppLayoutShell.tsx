@@ -73,12 +73,14 @@ export function AppLayoutShell({
               tabIndex={-1}
               className="relative flex-1 overflow-y-auto overscroll-y-contain bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground [scrollbar-gutter:stable] focus:outline-none md:pb-0 lg:p-3 xl:p-4"
             >
-              <section className="min-h-full w-full min-w-0 bg-background lg:overflow-hidden lg:rounded-[24px] lg:border lg:border-slate-200/80 lg:bg-white/95 lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)] dark:lg:border-zinc-800 dark:lg:bg-zinc-950/95 dark:lg:shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
-                <div className="flex min-h-full w-full min-w-0 flex-col">
+              <section className="h-full min-h-0 w-full min-w-0 bg-background lg:overflow-hidden lg:rounded-[24px] lg:bg-white/95 lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)] dark:lg:bg-zinc-950/95 dark:lg:shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+                <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
                   {showSecondaryNavigation ? (
                     <HeaderSecondaryNavigation pathname={pathname} />
                   ) : null}
-                  {children}
+                  <div className="min-h-0 flex-1">
+                    {children}
+                  </div>
                 </div>
               </section>
             </main>

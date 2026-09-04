@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { auth } from '@/auth';
+import { applyPayrollAmountVisibility } from '@/lib/payroll/amount-visibility';
 import { payrollActionSchema, payrollResources, type PayrollResource } from '@/lib/payroll/contracts';
 import { collectPayrollInputs } from '@/lib/payroll/collect-inputs';
 import { getPayrollAccess } from '@/lib/payroll/permissions';
@@ -31,7 +32,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const resolved = await context(resourceValue);
   if ('response' in resolved) return resolved.response;
   try {
-    const data = await getPayrollWorkspace(resolved.resource, resolved.access, request.nextUrl.searchParams.get('companyId'));
+    const workspace = await getPayrollWorkspace(resolved.resource, resolved.access, request.nextUrl.searchParams.get('companyId'));
+    const data = applyPayrollAmountVisibility(workspace, resolved.access.canViewAmounts);
     return NextResponse.json({ data });
   } catch (error) {
     return responseError(error);

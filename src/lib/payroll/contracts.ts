@@ -117,6 +117,7 @@ export type PayrollActionInput = z.infer<typeof payrollActionSchema>;
 
 export interface PayrollAccess {
   canView: boolean;
+  canViewAmounts: boolean;
   canManage: boolean;
   canApprove: boolean;
   canExport: boolean;

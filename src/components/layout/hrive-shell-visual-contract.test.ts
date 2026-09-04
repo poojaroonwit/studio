@@ -84,4 +84,19 @@ describe('Hrive desktop shell visual contract', () => {
     expect(notificationIndex).toBeGreaterThan(appsIndex);
     expect(userIndex).toBeGreaterThan(notificationIndex);
   });
+
+  it('routes desktop and mobile Light Dark System choices through the persisted user theme hook', () => {
+    const header = source('src/components/layout/Header.tsx');
+    const desktopAppearance = source('src/components/layout/HeaderDesktopUserMenuAppearance.tsx');
+    const mobileAppearance = source('src/components/layout/HeaderMobileUserDrawerActions.tsx');
+
+    expect(header).toContain('currentTheme, themePreference, setTheme');
+    expect(header).toContain('onThemeChange: setTheme');
+    expect(desktopAppearance).toContain('onThemeChange');
+    expect(desktopAppearance).toContain('value={themePreference}');
+    expect(desktopAppearance).not.toContain('setThemeAndColors');
+    expect(mobileAppearance).toContain('themePreference={themePreference}');
+    expect(mobileAppearance).toContain('onThemeChange(themeOption.id)');
+    expect(mobileAppearance).not.toContain('setThemeAndColors');
+  });
 });

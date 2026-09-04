@@ -40,13 +40,18 @@ describe('Hrive desktop shell visual contract', () => {
     expect(secondaryIndex).toBeLessThan(childrenIndex);
   });
 
-  it('places page content in a clipped rounded white canvas over a soft cool gradient', () => {
+  it('fills the available page height with a borderless rounded body canvas', () => {
     const shell = source('src/components/layout/AppLayoutShell.tsx');
 
     expect(shell).toContain('bg-[radial-gradient(');
+    expect(shell).toContain('h-full min-h-0 w-full min-w-0 bg-background');
+    expect(shell).toContain('flex h-full min-h-0 w-full min-w-0 flex-col');
+    expect(shell).toContain('min-h-0 flex-1');
     expect(shell).toContain('lg:rounded-[24px]');
     expect(shell).toContain('lg:overflow-hidden');
-    expect(shell).toContain('lg:border-slate-200/80');
+    expect(shell).not.toContain('lg:border ');
+    expect(shell).not.toContain('lg:border-slate-200/80');
+    expect(shell).not.toContain('dark:lg:border-zinc-800');
     expect(shell).toContain('lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)]');
   });
 

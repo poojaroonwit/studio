@@ -2,16 +2,12 @@ import type { SidebarNavGroup, SidebarNavItem } from "./SidebarNavConfig";
 
 export const MEGA_MENU_CATEGORIES = [
   { label: "Home", description: "Daily workspace and employee portal", groupIds: ["employee-portal"] },
-  { label: "People", description: "Employee records, organization, performance, and growth", groupIds: ["people", "performance"] },
-  { label: "ESS", description: "Employee self-service, requests, and personal work", groupIds: ["ess"] },
+  { label: "People", description: "Employee records, organization, contracts, and lifecycle", groupIds: ["people"] },
+  { label: "Workforce", description: "Self-service, time, attendance, rosters, and leave", groupIds: ["ess", "workforce", "leaves"] },
   { label: "Pay", description: "Payroll, compensation, benefits, and expenses", groupIds: ["payroll", "expenses"] },
-  { label: "Time", description: "Attendance, rosters, overtime, and workforce planning", groupIds: ["workforce"] },
-  { label: "Leave", description: "Leave requests, balances, policies, and allocation", groupIds: ["leaves"] },
   { label: "Hiring", description: "Recruitment and the candidate-facing portal", groupIds: ["recruitment", "job-portal"] },
-  { label: "Analytics", description: "Data operations, reporting, and monitoring tools", groupIds: ["data-and-analytics", "other"] },
-  { label: "Learning", description: "Courses, paths, achievements, and certificates", groupIds: ["learning"] },
-  { label: "Admin Center", description: "Organization setup, access, preferences, and platform controls", groupIds: ["admin-center"] },
-  { label: "More", description: "Communications, policies, releases, and support", groupIds: ["broadcast", "privacy-support", "client", "other"] },
+  { label: "Growth", description: "Performance, learning, development, and recognition", groupIds: ["performance", "learning"] },
+  { label: "Admin", description: "Organization setup, analytics, communications, integrations, and platform controls", groupIds: ["admin-center", "data-and-analytics", "broadcast", "privacy-support", "client", "other"] },
 ] as const;
 
 export interface HeaderNavigationCategory {
@@ -42,16 +38,17 @@ export function buildAdminCenterMegaMenuGroups(
   categoryLabel: string,
   groups: SidebarNavGroup[],
 ): SidebarNavGroup[] {
-  if (categoryLabel !== "Admin Center" || groups.length !== 1) return groups;
+  if (categoryLabel !== "Admin" || groups.length === 0) return groups;
 
-  const [adminGroup] = groups;
-  const columns = [
+  const adminGroup = groups.find(group => group.id === "admin-center");
+  if (!adminGroup) return groups;
+
+  const otherGroups = groups.filter(group => group.id !== "admin-center");
+  const adminColumns = [
     { id: "admin-essentials", label: "Workspace", items: adminGroup.items.slice(0, 5) },
     { id: "admin-controls", label: "Platform controls", items: adminGroup.items.slice(5, 10) },
     { id: "admin-oversight", label: "Integrations & oversight", items: adminGroup.items.slice(10) },
-  ];
-
-  return columns
+  ]
     .filter(column => column.items.length > 0)
     .map(column => ({
       ...adminGroup,
@@ -60,4 +57,6 @@ export function buildAdminCenterMegaMenuGroups(
       icon: column.items[0]?.icon ?? adminGroup.icon,
       items: column.items,
     }));
+
+  return [...adminColumns, ...otherGroups];
 }

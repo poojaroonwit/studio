@@ -26,6 +26,7 @@ describe('OutbornShellOwnership', () => {
     expect(header).toContain('applicationId="obsi-people"');
     expect(header).toContain("fetch('/api/account/applications'");
     expect(header).toContain('accountHref={accountHref}');
+    expect(header).toContain('from "../../../npm/outborn-app-shell"');
     expect(header).not.toContain('HeaderBrandLockup');
   });
 
@@ -38,14 +39,15 @@ describe('OutbornShellOwnership', () => {
     expect(route).toContain("applicationId: 'obsi-people'");
   });
 
-  it('uses shared SDK release installation without making npm ci lockfile-dependent on tarball entries', () => {
+  it('vendors the canonical shared App Shell 0.1.5 without changing the npm dependency lock', () => {
     const manifest = read('package.json');
-    expect(manifest).toContain('"outborn:sdk:install"');
-    expect(manifest).toContain('outborn-account-directory-0.1.0.tgz');
-    expect(manifest).toContain('outborn-app-shell-0.1.5.tgz');
-    expect(manifest).toContain('"postinstall": "npm run outborn:sdk:install"');
-    expect(manifest).not.toContain('"@outborn/account-directory":');
+    const vendoredManifest = read('npm/outborn-app-shell/package.json');
+    const layout = read('src/app/layout.tsx');
     expect(manifest).not.toContain('"@outborn/app-shell":');
+    expect(manifest).not.toContain('"outborn:sdk:install"');
+    expect(vendoredManifest).toContain('"name": "@outborn/app-shell"');
+    expect(vendoredManifest).toContain('"version": "0.1.5"');
+    expect(layout).toContain("../../npm/outborn-app-shell/src/styles.css");
   });
 
   it('keeps Account as the production identity authority and removes local password/2FA ownership', () => {

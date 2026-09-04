@@ -3,14 +3,14 @@
 /*
  * Global typography contract.
  *
- * Keep one predictable stack across the application. DM Sans remains the
- * primary Latin face and IBM Plex Sans Thai is used only as a glyph fallback,
- * so mixed English/Thai labels keep the same sizing, weight and baseline.
+ * Keep one predictable stack across the application. IBM Plex Sans is the
+ * primary OBSI UI face and IBM Plex Sans Thai is used as the Thai glyph
+ * fallback, so mixed English/Thai labels keep consistent sizing and rhythm.
  */
 :root {
   --app-font-family:
-    var(--font-dm-sans),
-    "DM Sans",
+    var(--font-ibm-plex-sans),
+    "IBM Plex Sans",
     var(--font-ibm-plex-sans-thai),
     "IBM Plex Sans Thai",
     -apple-system,
@@ -41,6 +41,7 @@ body {
 
 .font-sans,
 .font-dm-sans,
+.font-ibm-plex-sans,
 .font-ibm-plex-sans-thai,
 .font-thai,
 .font-english,

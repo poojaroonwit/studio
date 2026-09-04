@@ -3,17 +3,19 @@ import { describe, expect, it } from 'vitest';
 import { buildMobileNavItems, partitionMobileNavItems } from './MobileBottomNav';
 
 describe('buildMobileNavItems', () => {
-  it('keeps the employee navigation focused on category destinations', () => {
+  it('keeps employee self-service separate from HR workforce operations', () => {
     const items = buildMobileNavItems({
       role: 'Employee',
       modulePermissions: ['TASK_BOARD_MANAGE_OWN'],
     });
 
-    expect(items.map(item => item.label)).toEqual(['Home', 'Workforce', 'Growth']);
-    expect(items.find(item => item.label === 'Workforce')?.href).toBe('/ess/leave');
+    expect(items.map(item => item.label)).toEqual(['Home', 'ESS', 'Growth']);
+    expect(items.find(item => item.label === 'ESS')?.href).toBe('/ess/profile');
+    expect(items.some(item => item.label === 'Workforce')).toBe(false);
+    expect(items.some(item => item.label === 'Leave')).toBe(false);
   });
 
-  it('matches the simplified desktop IA for permitted operational areas', () => {
+  it('matches desktop IA by splitting ESS, Workforce, and Leave for permitted HR users', () => {
     const items = buildMobileNavItems({
       role: 'Hiring Manager',
       modulePermissions: [
@@ -29,12 +31,16 @@ describe('buildMobileNavItems', () => {
     expect(items.map(item => item.label)).toEqual([
       'Home',
       'People',
+      'ESS',
       'Workforce',
+      'Leave',
       'Pay',
       'Hiring',
       'Growth',
     ]);
+    expect(items.find(item => item.label === 'ESS')?.href).toBe('/ess/profile');
     expect(items.find(item => item.label === 'Workforce')?.href).toBe('/workforce/attendance?view=attendance');
+    expect(items.find(item => item.label === 'Leave')?.href).toBe('/workforce/leave');
     expect(items.find(item => item.label === 'Pay')?.href).toBe('/payroll');
   });
 
@@ -60,7 +66,7 @@ describe('partitionMobileNavItems', () => {
   const item = (label: string) => ({ href: `/${label.toLowerCase()}`, label, icon: () => null });
 
   it('keeps five or fewer destinations directly in the bar', () => {
-    const items = ['Home', 'People', 'Workforce', 'Pay', 'Growth'].map(item);
+    const items = ['Home', 'People', 'ESS', 'Workforce', 'Leave'].map(item);
 
     expect(partitionMobileNavItems(items)).toEqual({
       primaryItems: items,
@@ -69,11 +75,11 @@ describe('partitionMobileNavItems', () => {
   });
 
   it('reserves the fifth slot for More and preserves every overflow destination', () => {
-    const items = ['Home', 'People', 'Workforce', 'Pay', 'Hiring', 'Growth', 'Admin'].map(item);
+    const items = ['Home', 'People', 'ESS', 'Workforce', 'Leave', 'Pay', 'Hiring', 'Growth', 'Admin'].map(item);
     const { primaryItems, overflowItems } = partitionMobileNavItems(items);
 
-    expect(primaryItems.map(entry => entry.label)).toEqual(['Home', 'People', 'Workforce', 'Pay']);
-    expect(overflowItems.map(entry => entry.label)).toEqual(['Hiring', 'Growth', 'Admin']);
+    expect(primaryItems.map(entry => entry.label)).toEqual(['Home', 'People', 'ESS', 'Workforce']);
+    expect(overflowItems.map(entry => entry.label)).toEqual(['Leave', 'Pay', 'Hiring', 'Growth', 'Admin']);
     expect([...primaryItems, ...overflowItems]).toEqual(items);
   });
 });

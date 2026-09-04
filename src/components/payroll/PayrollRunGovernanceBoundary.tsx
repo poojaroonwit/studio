@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PayrollRunTypeBoundary } from "./PayrollRunTypeBoundary";
 
 type Row = Record<string, unknown>;
 type Snapshot = {
@@ -204,27 +205,29 @@ export function PayrollRunGovernanceBoundary({ children }: { children: React.Rea
   }
 
   return (
-    <div ref={rootRef} onClickCapture={onClickCapture} onChangeCapture={onChangeCapture}>
-      {children}
-      <Dialog open={Boolean(pending)} onOpenChange={openState => { if (!openState && !busy) { setPending(null); setReason(""); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{pending?.title}</DialogTitle>
-            <DialogDescription>{pending?.description}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">Run {pending?.runId}</div>
-            <label className="grid gap-2 text-sm font-medium">
-              Reason / control note
-              <Input autoFocus value={reason} onChange={event => setReason(event.target.value)} placeholder="Enter the reason for this action" />
-            </label>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" disabled={busy} onClick={() => setPending(null)}>Cancel</Button>
-            <Button disabled={busy || reason.trim().length < 2} onClick={() => void confirm()}>{busy ? "Saving…" : "Confirm"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <PayrollRunTypeBoundary>
+      <div ref={rootRef} onClickCapture={onClickCapture} onChangeCapture={onChangeCapture}>
+        {children}
+        <Dialog open={Boolean(pending)} onOpenChange={openState => { if (!openState && !busy) { setPending(null); setReason(""); } }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{pending?.title}</DialogTitle>
+              <DialogDescription>{pending?.description}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">Run {pending?.runId}</div>
+              <label className="grid gap-2 text-sm font-medium">
+                Reason / control note
+                <Input autoFocus value={reason} onChange={event => setReason(event.target.value)} placeholder="Enter the reason for this action" />
+              </label>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" disabled={busy} onClick={() => setPending(null)}>Cancel</Button>
+              <Button disabled={busy || reason.trim().length < 2} onClick={() => void confirm()}>{busy ? "Saving…" : "Confirm"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </PayrollRunTypeBoundary>
   );
 }

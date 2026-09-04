@@ -1,6 +1,7 @@
 import { createAccountDirectoryClient } from '@outborn/account-directory';
 
 import { PLATFORM_MODULES, type PlatformModuleId } from '@/lib/platform-modules';
+import type { UserProfile } from '@/lib/types';
 
 const VALID_PLATFORM_MODULES = new Map(
   PLATFORM_MODULES.map(module => [module.id.toLowerCase(), module.id] as const),
@@ -13,11 +14,12 @@ function getAccountBaseUrl() {
   return configured || null;
 }
 
-function normalizeAccountRole(role: string) {
-  const roles = role.split(',').map(value => value.trim()).filter(Boolean);
-  if (roles.some(value => ['owner', 'admin'].includes(value.toLowerCase()))) return 'Admin';
-  if (roles.length === 1 && roles[0].toLowerCase() === 'member') return 'Employee';
-  return roles[0] || 'Employee';
+export function normalizeHriveAccountRole(role: string | null | undefined): UserProfile['role'] {
+  const roles = (role || '').split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+  if (roles.some(value => value === 'owner' || value === 'admin')) return 'Admin';
+  if (roles.some(value => value === 'recruiter')) return 'Recruiter';
+  if (roles.some(value => value === 'hiring manager' || value === 'hiring-manager' || value === 'hiring_manager')) return 'Hiring Manager';
+  return 'Employee';
 }
 
 function collectRecognizedPermissions(
@@ -45,7 +47,7 @@ function collectRecognizedPermissions(
 export interface OutbornAccountAuthorization {
   organizationId: string | null;
   organizationName: string | null;
-  role: string;
+  role: UserProfile['role'];
   modulePermissions: PlatformModuleId[];
 }
 
@@ -59,7 +61,7 @@ export async function loadOutbornAccountAuthorization(accessToken: string): Prom
   return {
     organizationId: organization?.id ?? null,
     organizationName: organization?.name ?? null,
-    role: normalizeAccountRole(accountRole),
+    role: normalizeHriveAccountRole(accountRole),
     modulePermissions: collectRecognizedPermissions(organization?.permissions, context.principal.permissions),
   };
 }

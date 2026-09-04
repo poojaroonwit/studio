@@ -17,13 +17,16 @@ describe('Obsi People branding contract', () => {
     expect(normalizeAppName('fitscan')).toBe('Obsi People');
   });
 
-  it('renders the shared header lockup as Obsi People with People in dark grey', () => {
+  it('renders the shared header lockup as Obsi People with theme-aware emphasis', () => {
     const lockup = source('src/components/layout/HeaderBrandLockup.tsx');
     const header = source('src/components/layout/Header.tsx');
 
     expect(lockup).toContain('Obsi');
     expect(lockup).toContain('People');
-    expect(lockup).toContain('text-slate-500');
+    expect(lockup).toContain('text-foreground');
+    expect(lockup).toContain('text-muted-foreground');
+    expect(lockup).toContain('bg-border');
+    expect(lockup).not.toContain('text-slate-500');
     expect(lockup).not.toContain('/brand/hrive-wordmark-transparent.png');
     expect(lockup).not.toContain('hrive application');
     expect(header).not.toContain('— hrive —');

@@ -65,7 +65,7 @@ export function HeaderExpandableSearch({
         aria-expanded={expanded}
         onClick={() => onExpandedChange(true)}
         className={cn(
-          "absolute inset-0 grid place-items-center rounded-full text-slate-500 transition-[transform,opacity,background-color,color] duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 motion-reduce:transition-none dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white",
+          "absolute inset-0 grid place-items-center rounded-full text-muted-foreground transition-[transform,opacity,background-color,color] duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
           expanded && "pointer-events-none scale-75 opacity-0",
         )}
       >
@@ -81,7 +81,7 @@ export function HeaderExpandableSearch({
         )}
       >
         <div className="group relative">
-          <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 stroke-[1.7] text-slate-400 transition-colors group-focus-within:text-blue-600 dark:text-zinc-500 dark:group-focus-within:text-blue-400" />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 stroke-[1.7] text-muted-foreground transition-colors group-focus-within:text-primary" />
           <Input
             ref={inputRef}
             id="header-search-input"
@@ -98,13 +98,13 @@ export function HeaderExpandableSearch({
                 collapse()
               }
             }}
-            className="h-10 w-full !rounded-full border-slate-200 bg-white pl-11 pr-11 text-sm font-normal text-slate-900 shadow-xl shadow-slate-950/10 outline-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500 dark:hover:border-zinc-600 dark:focus:border-blue-400 dark:focus:bg-zinc-900 dark:focus-visible:ring-blue-400/20"
+            className="h-10 w-full !rounded-full border-border bg-popover pl-11 pr-11 text-sm font-normal text-popover-foreground shadow-xl shadow-foreground/10 outline-none transition-colors placeholder:text-muted-foreground hover:border-foreground/25 focus:border-primary focus:bg-popover focus-visible:ring-2 focus-visible:ring-primary/20"
           />
           <button
             type="button"
             aria-label="Close search"
             onClick={collapse}
-            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-white"
+            className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <XMarkIcon className="h-4 w-4 stroke-2" />
           </button>

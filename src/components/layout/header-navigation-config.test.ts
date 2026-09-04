@@ -15,16 +15,22 @@ function item(label: string, href: string): SidebarNavItem {
 }
 
 describe("header navigation config", () => {
-  it("keeps the primary IA intentionally compact", () => {
+  it("keeps ESS, Workforce, and Leave as separate primary destinations", () => {
     expect(MEGA_MENU_CATEGORIES.map(category => category.label)).toEqual([
       "Home",
       "People",
+      "ESS",
       "Workforce",
+      "Leave",
       "Pay",
       "Hiring",
       "Growth",
       "Admin",
     ]);
+
+    expect(MEGA_MENU_CATEGORIES.find(category => category.label === "ESS")?.groupIds).toEqual(["ess"]);
+    expect(MEGA_MENU_CATEGORIES.find(category => category.label === "Workforce")?.groupIds).toEqual(["workforce"]);
+    expect(MEGA_MENU_CATEGORIES.find(category => category.label === "Leave")?.groupIds).toEqual(["leaves"]);
   });
 
   it("normalizes labels for localization keys", () => {

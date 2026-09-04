@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SidebarNavGroup, SidebarNavItem } from "./SidebarNavConfig";
 import {
+  MEGA_MENU_CATEGORIES,
   buildAdminCenterMegaMenuGroups,
   getCategoryFirstHref,
   slugHeaderNavigationText,
@@ -14,6 +15,18 @@ function item(label: string, href: string): SidebarNavItem {
 }
 
 describe("header navigation config", () => {
+  it("keeps the primary IA intentionally compact", () => {
+    expect(MEGA_MENU_CATEGORIES.map(category => category.label)).toEqual([
+      "Home",
+      "People",
+      "Workforce",
+      "Pay",
+      "Hiring",
+      "Growth",
+      "Admin",
+    ]);
+  });
+
   it("normalizes labels for localization keys", () => {
     expect(slugHeaderNavigationText("Audit, Logs & Monitoring")).toBe(
       "audit-logs-and-monitoring",
@@ -44,7 +57,7 @@ describe("header navigation config", () => {
     ).toBe("/people");
   });
 
-  it("splits a large admin group into stable presentation columns", () => {
+  it("splits the admin-center group into stable columns while preserving other admin groups", () => {
     const adminGroup: SidebarNavGroup = {
       id: "admin-center",
       label: "Admin Center",
@@ -53,14 +66,21 @@ describe("header navigation config", () => {
         item(`Item ${index + 1}`, `/settings/${index + 1}`),
       ),
     };
+    const analyticsGroup: SidebarNavGroup = {
+      id: "data-and-analytics",
+      label: "Data & Analytics",
+      icon: Icon,
+      items: [item("Import", "/data-operations?mode=import")],
+    };
 
-    const groups = buildAdminCenterMegaMenuGroups("Admin Center", [adminGroup]);
+    const groups = buildAdminCenterMegaMenuGroups("Admin", [adminGroup, analyticsGroup]);
 
     expect(groups.map(group => group.label)).toEqual([
       "Workspace",
       "Platform controls",
       "Integrations & oversight",
+      "Data & Analytics",
     ]);
-    expect(groups.map(group => group.items.length)).toEqual([5, 5, 3]);
+    expect(groups.map(group => group.items.length)).toEqual([5, 5, 3, 1]);
   });
 });

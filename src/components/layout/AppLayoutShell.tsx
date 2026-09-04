@@ -52,7 +52,10 @@ export function AppLayoutShell({
         {t("layout.skipToMainContent", "Skip to main content")}
       </a>
       <div
-        className="h-screen flex flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(219,234,254,0.70),transparent_34%),linear-gradient(135deg,#f8fafc_0%,#f1f5f9_58%,#eef2ff_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(30,64,175,0.16),transparent_32%),linear-gradient(135deg,#09090b_0%,#111827_100%)]"
+        className="flex h-screen flex-col overflow-hidden"
+        style={{
+          background: 'radial-gradient(circle at top left, hsl(var(--primary) / 0.10), transparent 34%), linear-gradient(135deg, hsl(var(--app-page-background, var(--background))) 0%, hsl(var(--muted)) 100%)',
+        }}
         data-testid="app-layout"
       >
         <ImpersonationBanner />
@@ -73,7 +76,7 @@ export function AppLayoutShell({
               tabIndex={-1}
               className="relative flex-1 overflow-y-auto overscroll-y-contain bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground [scrollbar-gutter:stable] focus:outline-none md:pb-0 lg:p-3 xl:p-4"
             >
-              <section className="h-full min-h-0 w-full min-w-0 bg-background lg:overflow-hidden lg:rounded-[24px] lg:bg-white/95 lg:shadow-[0_18px_48px_rgba(15,23,42,0.08)] dark:lg:bg-zinc-950/95 dark:lg:shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+              <section className="h-full min-h-0 w-full min-w-0 bg-background lg:overflow-hidden lg:rounded-[24px] lg:bg-background/95 lg:shadow-[0_18px_48px_hsl(var(--foreground)/0.08)]">
                 <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
                   {showSecondaryNavigation ? (
                     <HeaderSecondaryNavigation pathname={pathname} />

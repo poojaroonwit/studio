@@ -82,11 +82,13 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
     };
   }, [activeCategory?.label, updateScrollState]);
 
-  if (!activeCategory) return null;
+  if (!activeCategory || activeCategory.label === "Home" || activeCategory.items.length <= 1) {
+    return null;
+  }
 
   return (
-    <div className="relative z-40 shrink-0 border-b border-slate-200/80 bg-transparent pl-3 pr-0 text-slate-700 sm:pl-4 lg:pl-8 dark:border-zinc-800 dark:text-zinc-100">
-      <div className="flex h-12 min-w-0 items-stretch">
+    <div className="relative z-40 shrink-0 border-b border-slate-200/70 bg-transparent px-4 text-slate-700 sm:px-6 lg:px-8 dark:border-zinc-800 dark:text-zinc-100">
+      <div className="flex h-10 min-w-0 items-stretch">
         <div
           ref={scrollContainerRef}
           onScroll={updateScrollState}
@@ -106,8 +108,8 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "relative flex shrink-0 items-center px-3 text-sm font-normal tracking-[-0.01em] text-slate-600 transition-colors duration-150 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:px-4 dark:text-zinc-300 dark:hover:text-white",
-                        active && "font-semibold text-blue-700 after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-blue-600 dark:text-blue-300 dark:after:bg-blue-400",
+                        "relative flex shrink-0 items-center px-3 text-[13px] font-normal tracking-[-0.01em] text-slate-600 transition-colors duration-150 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:text-zinc-300 dark:hover:text-white",
+                        active && "font-semibold text-blue-700 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-blue-600 dark:text-blue-300 dark:after:bg-blue-400",
                       )}
                     >
                       {item.label}
@@ -119,13 +121,13 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
           </nav>
         </div>
         {scrollState.hasOverflow ? (
-          <div className="order-last ml-auto flex shrink-0 items-stretch bg-transparent">
+          <div className="order-last ml-auto flex shrink-0 items-stretch bg-background/90 backdrop-blur-sm">
             <button
               type="button"
               aria-label={`Show previous ${activeCategory.label} navigation items`}
               disabled={!scrollState.canScrollLeft}
               onClick={() => scrollMenu(-1)}
-              className="grid w-10 place-items-center rounded-none text-slate-500 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 dark:text-zinc-400 dark:hover:text-white dark:disabled:text-zinc-700"
+              className="grid w-9 place-items-center text-slate-500 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 dark:text-zinc-400 dark:hover:text-white dark:disabled:text-zinc-700"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -134,7 +136,7 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
               aria-label={`Show next ${activeCategory.label} navigation items`}
               disabled={!scrollState.canScrollRight}
               onClick={() => scrollMenu(1)}
-              className="grid w-10 place-items-center rounded-none text-slate-500 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 dark:text-zinc-400 dark:hover:text-white dark:disabled:text-zinc-700"
+              className="grid w-9 place-items-center text-slate-500 transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-default disabled:text-slate-300 dark:text-zinc-400 dark:hover:text-white dark:disabled:text-zinc-700"
             >
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>

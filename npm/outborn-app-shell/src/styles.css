@@ -1,0 +1,64 @@
+.outbornAppShell { position: relative; width: 100%; }
+.outbornAppShellTrigger { width: 100%; min-height: 42px; display: grid; grid-template-columns: 34px minmax(0,1fr) 16px; align-items: center; gap: 9px; margin: 0; padding: 4px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--outborn-app-shell-text, #454b55); cursor: pointer; font: inherit; text-align: left; }
+.outbornAppShellTrigger:hover, .outbornAppShellTrigger[aria-expanded="true"] { background: var(--outborn-app-shell-hover, #e5e8ee); color: var(--outborn-app-shell-strong, #111317); }
+.outbornAppShellTrigger:focus-visible, .outbornAppShellItem:focus-visible, .outbornAppShellAdminItem:focus-visible, .outbornAppShellRecentItem:focus-visible, .outbornAppShellHeader a:focus-visible { outline: 2px solid var(--outborn-app-shell-focus, #4c6fff); outline-offset: 2px; }
+.outbornAppShellTriggerIcon { width: 34px; height: 34px; display: grid; place-items: center; color: var(--outborn-app-shell-muted, #757c87); }
+.outbornAppShellGridIcon { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 2px; place-content: center; }
+.outbornAppShellGridIcon i { width: 100%; height: 100%; max-width: 4px; max-height: 4px; justify-self: center; align-self: center; border-radius: 1.5px; background: currentColor; }
+.outbornAppShellTriggerCopy { min-width: 0; display: grid; gap: 1px; }
+.outbornAppShellTriggerCopy strong { color: inherit; font-size: 12px; font-weight: 650; }
+.outbornAppShellTriggerCopy small { color: var(--outborn-app-shell-muted, #7b818c); font-size: 10px; font-weight: 500; }
+.outbornAppShellChevron { color: var(--outborn-app-shell-muted, #8b919c); font-size: 20px; line-height: 1; text-align: center; }
+.outbornAppShellPopover { position: fixed; z-index: 2147483000; width: min(880px, calc(100vw - 32px)); max-height: min(640px, calc(100vh - 32px)); overflow: auto; overscroll-behavior: contain; padding: 18px 20px 20px; border: 1px solid var(--outborn-app-shell-border, #dfe2e7); border-radius: 16px; background: var(--outborn-app-shell-surface, #fff); color: var(--outborn-app-shell-strong, #111317); box-shadow: 0 20px 54px rgba(26,31,40,.16); transform-origin: var(--outborn-app-shell-origin-x, 28px) 100%; animation: outbornAppShellPopoverEnter 180ms cubic-bezier(.2,.78,.24,1) both; will-change: transform, opacity; }
+@keyframes outbornAppShellPopoverEnter { from { opacity: 0; transform: translateY(10px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.outbornAppShellHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 2px 14px; margin-bottom: 4px; border-bottom: 1px solid var(--outborn-app-shell-border, #e6e8eb); }
+.outbornAppShellHeader > span { min-width: 0; display: grid; gap: 2px; }
+.outbornAppShellHeader strong { font-size: 13px; font-weight: 650; }
+.outbornAppShellHeader small { color: var(--outborn-app-shell-muted, #7b818c); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.outbornAppShellHeader a { border-radius: 8px; padding: 7px 9px; color: var(--outborn-app-shell-text, #454b55); font-size: 11px; font-weight: 650; text-decoration: none; }
+.outbornAppShellHeader a:hover { background: var(--outborn-app-shell-soft, #f1f3f6); }
+.outbornAppShellRecentSection { padding: 12px 0 10px; border-bottom: 1px solid var(--outborn-app-shell-border, #e6e8eb); }
+.outbornAppShellRecentGrid { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 6px; }
+.outbornAppShellRecentItem { width: 40px; min-width: 40px; max-width: min(250px, 100%); min-height: 40px; padding: 4px; border: 0; border-radius: 11px; display: grid; grid-template-columns: 32px minmax(0,0fr); align-items: center; gap: 0; overflow: hidden; background: transparent; color: var(--outborn-app-shell-text, #434851); text-decoration: none; transition: width 180ms cubic-bezier(.2,.78,.24,1), background-color 140ms ease, gap 180ms ease; }
+.outbornAppShellRecentItem:hover, .outbornAppShellRecentItem:focus-visible { width: min(250px, 100%); grid-template-columns: 32px minmax(0,1fr); gap: 9px; background: var(--outborn-app-shell-soft, #f0f2f5); }
+.outbornAppShellRecentItem .outbornAppShellMark { flex: 0 0 auto; }
+.outbornAppShellRecentCopy { min-width: 0; max-width: 0; opacity: 0; transform: translateX(-4px); display: grid; gap: 2px; overflow: hidden; transition: max-width 180ms cubic-bezier(.2,.78,.24,1), opacity 120ms ease, transform 180ms ease; }
+.outbornAppShellRecentItem:hover .outbornAppShellRecentCopy, .outbornAppShellRecentItem:focus-visible .outbornAppShellRecentCopy { max-width: 190px; opacity: 1; transform: translateX(0); }
+.outbornAppShellRecentCopy strong { overflow: hidden; color: var(--outborn-app-shell-strong, #111317); font-size: 12px; font-weight: 650; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.outbornAppShellRecentCopy small { overflow: hidden; color: var(--outborn-app-shell-muted, #6f7680); font-size: 10px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.outbornAppShellRecentItem.isDisabled { opacity: .48; }
+.outbornAppShellSection { padding: 14px 0 0; }
+.outbornAppShellSectionPrimary { padding-top: 8px; }
+.outbornAppShellSection + .outbornAppShellSection { margin-top: 10px; border-top: 1px solid var(--outborn-app-shell-border, #e6e8eb); }
+.outbornAppShellHeading { padding: 0 8px 8px; color: var(--outborn-app-shell-muted, #7b818c); font-size: 11px; font-weight: 650; letter-spacing: .01em; }
+.outbornAppShellGrid, .outbornAppShellAdminGrid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); column-gap: 18px; row-gap: 2px; }
+.outbornAppShellItem, .outbornAppShellAdminItem { min-width: 0; min-height: 66px; padding: 8px 10px; border: 0; border-radius: 10px; display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; align-items: center; background: transparent; color: var(--outborn-app-shell-text, #434851); text-align: left; text-decoration: none; }
+.outbornAppShellItem:hover, .outbornAppShellAdminItem:hover { background: var(--outborn-app-shell-soft, #f0f2f5); color: var(--outborn-app-shell-strong, #111317); }
+.outbornAppShellItem.isDisabled, .outbornAppShellAdminItem.isDisabled { opacity: .48; cursor: default; }
+.outbornAppShellItem.isDisabled:hover, .outbornAppShellAdminItem.isDisabled:hover { background: transparent; color: var(--outborn-app-shell-text, #434851); }
+.outbornAppShellMark { width: 32px; height: 32px; border: 0; border-radius: 9px; display: grid; place-items: center; overflow: hidden; background: var(--outborn-app-shell-soft, #f0f2f5); color: var(--outborn-app-shell-text, #434851); font-size: 10px; font-weight: 750; }
+.outbornAppShellMark.hasImage { border-radius: 0; background: transparent; }
+.outbornAppShellMark img { width: 32px; height: 32px; object-fit: contain; }
+.outbornAppShellItemCopy, .outbornAppShellAdminCopy { min-width: 0; display: grid; gap: 3px; align-content: center; }
+.outbornAppShellItemName, .outbornAppShellAdminCopy strong { max-width: 100%; overflow: hidden; color: var(--outborn-app-shell-strong, #111317); font-size: 14px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.outbornAppShellItemDescription, .outbornAppShellAdminCopy small { display: -webkit-box; overflow: hidden; color: var(--outborn-app-shell-muted, #6f7680); font-size: 12px; font-weight: 450; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.outbornAppShellAdminIcon { width: 32px; height: 32px; display: grid; place-items: center; overflow: hidden; color: var(--outborn-app-shell-muted, #757c87); }
+.outbornAppShellAdminIcon.hasImage { border-radius: 0; background: transparent; }
+.outbornAppShellAdminIcon img { width: 32px; height: 32px; object-fit: contain; }
+.outbornAppShellEmpty { grid-column: 1 / -1; padding: 20px 10px; color: var(--outborn-app-shell-muted, #7b818c); font-size: 11px; text-align: center; }
+.outbornAppShellApplicationBrand { min-width: 0; display: inline-flex; align-items: center; gap: 10px; color: var(--outborn-app-shell-strong, #111317); text-decoration: none; }
+.outbornAppShellApplicationBrandMark { flex: 0 0 auto; display: grid; place-items: center; overflow: hidden; border: 0; border-radius: 9px; background: var(--outborn-app-shell-soft, #f0f2f5); color: var(--outborn-app-shell-text, #434851); font-size: 10px; font-weight: 750; }
+.outbornAppShellApplicationBrandMark.hasImage { border-radius: 0; background: transparent; }
+.outbornAppShellApplicationBrandMark img { width: 100%; height: 100%; object-fit: contain; }
+.outbornAppShellApplicationBrandName { min-width: 0; overflow: hidden; color: inherit; font-size: 16px; font-weight: 650; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 920px) { .outbornAppShellPopover { width: min(620px, calc(100vw - 24px)); padding-inline: 16px; } .outbornAppShellGrid, .outbornAppShellAdminGrid { grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 12px; } }
+@media (max-width: 620px) { .outbornAppShellPopover { width: min(420px, calc(100vw - 16px)); padding: 14px 12px 16px; } .outbornAppShellGrid, .outbornAppShellAdminGrid { grid-template-columns: minmax(0,1fr); } .outbornAppShellItem, .outbornAppShellAdminItem { min-height: 62px; } .outbornAppShellRecentItem:hover, .outbornAppShellRecentItem:focus-visible { width: min(220px, 100%); } }
+@media (pointer: coarse) { .outbornAppShellTrigger { min-height: 44px; } .outbornAppShellItem, .outbornAppShellAdminItem { min-height: 66px; } }
+@media (prefers-reduced-motion: reduce) { .outbornAppShellPopover { animation: none; } .outbornAppShellRecentItem, .outbornAppShellRecentCopy { transition: none; } }
+.outbornAppShellUnavailableSection { margin-top: 12px !important; padding: 14px 0 0; border-top: 1px solid var(--outborn-app-shell-border, #e1e4e8) !important; border-right: 0 !important; border-bottom: 0 !important; border-left: 0 !important; border-radius: 0; background: transparent; }
+.outbornAppShellUnavailableHeading { color: var(--outborn-app-shell-muted, #777e88); }
+.outbornAppShellUnavailableSection .outbornAppShellItem.isDisabled { opacity: .68; color: var(--outborn-app-shell-muted, #777e88); }
+.outbornAppShellUnavailableSection .outbornAppShellItemName,
+.outbornAppShellUnavailableSection .outbornAppShellItemDescription { color: var(--outborn-app-shell-muted, #777e88); }
+.outbornAppShellUnavailableSection .outbornAppShellMark { filter: grayscale(1); opacity: .72; }
+.outbornAppShellUnavailableSection .outbornAppShellItem.isDisabled:hover { background: transparent; color: var(--outborn-app-shell-muted, #777e88); }

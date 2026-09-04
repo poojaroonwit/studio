@@ -51,7 +51,7 @@ function ApplicationMark({ application }: { application: LauncherApplication }) 
         "grid h-9 w-9 shrink-0 place-items-center overflow-hidden text-[10px] font-semibold",
         showImage
           ? "bg-transparent"
-          : "rounded-lg bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300",
+          : "rounded-lg bg-muted text-muted-foreground",
       )}
     >
       {showImage ? (
@@ -60,7 +60,7 @@ function ApplicationMark({ application }: { application: LauncherApplication }) 
         // eslint-disable-next-line @next/next/no-img-element
         <img
           alt=""
-          className="h-9 w-9 object-contain"
+          className="h-9 w-9 object-contain dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)]"
           decoding="async"
           height={36}
           loading="lazy"
@@ -87,11 +87,11 @@ function ApplicationItem({
     <>
       <ApplicationMark application={application} />
       <span className="min-w-0 flex-1">
-        <strong className="block truncate text-sm font-medium text-slate-950 dark:text-zinc-100">
+        <strong className="block truncate text-sm font-medium text-foreground">
           {application.name}
         </strong>
         {application.description ? (
-          <small className="mt-0.5 line-clamp-2 block text-xs leading-4 text-slate-500 dark:text-zinc-400">
+          <small className="mt-0.5 line-clamp-2 block text-xs leading-4 text-muted-foreground">
             {application.description}
           </small>
         ) : null}
@@ -113,7 +113,7 @@ function ApplicationItem({
 
   return (
     <a
-      className="flex min-h-[62px] min-w-0 items-center gap-3 rounded-xl px-3 py-2 no-underline transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-zinc-800"
+      className="flex min-h-[62px] min-w-0 items-center gap-3 rounded-xl px-3 py-2 no-underline transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       href={application.launchUrl!}
       onClick={onNavigate}
       title={`Open ${application.name}`}
@@ -128,10 +128,10 @@ function LauncherLoading() {
     <div className="grid grid-cols-1 gap-1 p-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading Outborn applications">
       {Array.from({ length: 6 }, (_, index) => (
         <div key={index} className="flex min-h-[62px] items-center gap-3 rounded-xl px-3 py-2">
-          <span className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-100 dark:bg-zinc-800" />
+          <span className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-muted" />
           <span className="min-w-0 flex-1 space-y-2">
-            <span className="block h-3 w-2/3 animate-pulse rounded bg-slate-100 dark:bg-zinc-800" />
-            <span className="block h-2.5 w-full animate-pulse rounded bg-slate-100 dark:bg-zinc-800" />
+            <span className="block h-3 w-2/3 animate-pulse rounded bg-muted" />
+            <span className="block h-2.5 w-full animate-pulse rounded bg-muted" />
           </span>
         </div>
       ))}
@@ -220,7 +220,7 @@ export function HeaderOutbornApplicationLauncher() {
       <PopoverTrigger asChild>
         <button
           aria-label="Outborn Apps"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           title="Outborn Apps"
           type="button"
         >
@@ -237,13 +237,13 @@ export function HeaderOutbornApplicationLauncher() {
         sideOffset={8}
         zIndexType="dropdown"
       >
-        <div className="flex min-h-14 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 dark:border-zinc-800">
+        <div className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-4 py-3">
           <span className="min-w-0">
-            <strong className="block text-sm font-semibold text-slate-950 dark:text-zinc-100">
+            <strong className="block text-sm font-semibold text-foreground">
               Outborn apps
             </strong>
             {data?.organization?.name ? (
-              <small className="block truncate text-xs text-slate-500 dark:text-zinc-400">
+              <small className="block truncate text-xs text-muted-foreground">
                 {data.organization.name}
               </small>
             ) : null}
@@ -251,7 +251,7 @@ export function HeaderOutbornApplicationLauncher() {
 
           {data?.accountHref ? (
             <a
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 no-underline hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground no-underline hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               href={data.accountHref}
               onClick={() => setOpen(false)}
             >
@@ -266,11 +266,11 @@ export function HeaderOutbornApplicationLauncher() {
 
           {error ? (
             <div className="px-5 py-8 text-center">
-              <p className="text-sm font-medium text-slate-800 dark:text-zinc-200">
+              <p className="text-sm font-medium text-foreground">
                 {error}
               </p>
               <button
-                className="mt-3 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                className="mt-3 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => {
                   setData(null);
                   void loadApplications();
@@ -296,7 +296,7 @@ export function HeaderOutbornApplicationLauncher() {
                     ))}
                   </div>
                 ) : (
-                  <p className="px-3 py-6 text-center text-xs text-slate-500 dark:text-zinc-400">
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
                     No applications are available for this organization.
                   </p>
                 )}
@@ -305,9 +305,9 @@ export function HeaderOutbornApplicationLauncher() {
               {unavailableApplications.length ? (
                 <section
                   aria-label="Unavailable Outborn applications"
-                  className="border-t border-slate-200 px-2 pb-2 pt-3 dark:border-zinc-800"
+                  className="border-t border-border px-2 pb-2 pt-3"
                 >
-                  <h3 className="px-3 pb-1 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
+                  <h3 className="px-3 pb-1 text-[11px] font-semibold text-muted-foreground">
                     Unavailable apps
                   </h3>
                   <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">

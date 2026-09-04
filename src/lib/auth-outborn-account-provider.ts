@@ -26,7 +26,9 @@ export function buildOutbornAccountProvider({ accountBaseUrl, clientId }: Outbor
     clientSecret: '',
     authorization: {
       url: `${baseUrl}/api/auth/oauth2/authorize`,
-      params: { scope: 'openid profile email offline_access organizations' },
+      // Keep this aligned with Outborn Core's first-party identity manifest for
+      // productKey `obsi-people` / clientId `outborn-hrive-web`.
+      params: { scope: 'openid profile email' },
     },
     token: `${baseUrl}/api/auth/oauth2/token`,
     userinfo: `${baseUrl}/api/auth/oauth2/userinfo`,

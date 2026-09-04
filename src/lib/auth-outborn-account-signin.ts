@@ -36,10 +36,6 @@ export async function handleOutbornAccountSignIn({ user, account, profile }: Sig
       'SELECT id, role, "is_active", "authentication_methods" FROM "User" WHERE lower(email) = lower($1) LIMIT 1', [email],
     );
     let dbUser = existingResult.rows[0];
-    if (dbUser && dbUser.is_active === false) {
-      await logAudit('WARN', `Outborn Account sign-in blocked: User ${email} is disabled.`, 'Auth:SignIn', dbUser.id);
-      return false;
-    }
     const effectiveRole = accountAuthorization?.role || dbUser?.role || 'Recruiter';
     if (!dbUser) {
       const userId = crypto.randomUUID();
@@ -54,13 +50,17 @@ export async function handleOutbornAccountSignIn({ user, account, profile }: Sig
       if (!dbUser) return false;
       await logAudit('AUDIT', `New user '${displayName}' created via Outborn Account.`, 'Auth:SignIn', dbUser.id);
     } else {
+      const wasLocallyInactive = dbUser.is_active === false;
       await client.query(
-        `UPDATE "User" SET name = CASE WHEN $1 <> '' THEN $1 ELSE name END, image = COALESCE($2, image), role = $3,
+        `UPDATE "User" SET name = CASE WHEN $1 <> '' THEN $1 ELSE name END, image = COALESCE($2, image), role = $3, "is_active" = TRUE,
           "authentication_methods" = CASE WHEN $4 = ANY(COALESCE("authentication_methods", ARRAY[]::text[])) THEN COALESCE("authentication_methods", ARRAY[]::text[]) ELSE array_append(COALESCE("authentication_methods", ARRAY[]::text[]), $4) END,
           "userGroupId" = COALESCE("userGroupId", $5), "updatedAt" = NOW() WHERE id = $6`,
         [displayName, image, effectiveRole, OUTBORN_AUTH_METHOD, PRE_REGISTERED_GROUP_ID, dbUser.id],
       );
-      dbUser = { ...dbUser, role: effectiveRole };
+      dbUser = { ...dbUser, role: effectiveRole, is_active: true };
+      if (wasLocallyInactive) {
+        await logAudit('AUDIT', `User '${email}' local shadow status reactivated from authoritative Outborn Account access.`, 'Auth:SignIn', dbUser.id);
+      }
     }
     user.id = dbUser.id;
     user.role = effectiveRole;

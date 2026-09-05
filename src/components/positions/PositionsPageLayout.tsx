@@ -10,7 +10,7 @@ interface PositionsPageLayoutProps {
 
 export function PositionsPageLayout({ page }: PositionsPageLayoutProps) {
   return (
-    <div className="w-full h-full positions-page-container overflow-hidden">
+    <div className="positions-page-container h-full min-h-0 w-full overflow-hidden">
       <PositionsPageMainContent page={page} />
       <PositionsPageLayoutModals page={page} />
     </div>

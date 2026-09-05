@@ -52,7 +52,7 @@ export function AppLayoutShell({
         {t("layout.skipToMainContent", "Skip to main content")}
       </a>
       <div
-        className="flex h-screen min-h-0 flex-col overflow-hidden"
+        className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:h-screen"
         style={{
           background: 'radial-gradient(circle at top left, hsl(var(--primary) / 0.10), transparent 34%), linear-gradient(135deg, hsl(var(--app-page-background, var(--background))) 0%, hsl(var(--muted)) 100%)',
         }}

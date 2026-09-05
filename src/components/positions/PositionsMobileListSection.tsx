@@ -51,7 +51,7 @@ export function PositionsMobileListSection({
   };
 
   return (
-    <div className="flex-1 overflow-hidden relative flex flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
         <PullToRefreshIndicator
           pullProgress={pullProgress}
@@ -60,7 +60,7 @@ export function PositionsMobileListSection({
       </div>
       <div
         ref={pullToRefreshRef}
-        className="flex-1 overflow-auto pb-24"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-24"
         onScroll={handleScroll}
       >
         <PositionsMobileListView

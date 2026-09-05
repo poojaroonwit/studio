@@ -47,7 +47,8 @@ describe('Hrive desktop shell visual contract', () => {
 
     expect(shell).toContain('hsl(var(--primary) / 0.10)');
     expect(shell).toContain('hsl(var(--app-page-background, var(--background)))');
-    expect(shell).toContain('h-full min-h-0 w-full min-w-0 bg-background');
+    expect(shell).toContain('h-full min-h-0 w-full min-w-0');
+    expect(shell).toContain('overflow-hidden bg-background');
     expect(shell).toContain('lg:bg-background/95');
     expect(shell).toContain('flex h-full min-h-0 w-full min-w-0 flex-col');
     expect(shell).toContain('min-h-0 flex-1');

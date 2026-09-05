@@ -63,18 +63,21 @@ async function collectInputs(
     actorId,
   });
 
-  // Reimbursements increase take-home pay but are not ordinary taxable salary.
-  // A source claim is attached to only one payroll run, even when subsequent
-  // runs overlap the same expense period.
+  // Reimbursements are routed through the post-tax input lane so the statutory
+  // earnings pipeline never mistakes them for salary. The calculation engine
+  // recognizes the reimbursement metadata and converts them into a net-only
+  // payout: take-home increases, while salary gross and taxable income do not.
+  // A source claim is attached to only one payroll run even when later runs
+  // overlap the same expense period.
   await client.$executeRawUnsafe(
     `INSERT INTO hr_payroll_inputs
       (id, company_id, payroll_run_id, employee_id, input_type, component_code, amount, currency,
        source_module, source_record_id, effective_date, approval_status, status, idempotency_key,
        created_by_id, metadata)
-     SELECT gen_random_uuid(), claim.company_id, $1::uuid, claim.employee_id, 'earning', 'EXPENSE_REIMBURSEMENT',
+     SELECT gen_random_uuid(), claim.company_id, $1::uuid, claim.employee_id, 'post_tax_deduction', 'EXPENSE_REIMBURSEMENT',
             claim.employee_reimbursement, claim.reimbursement_currency, 'expenses', claim.id::text,
             claim.period_end, 'approved', 'ready', concat('expense-claim:', claim.id::text), $2::uuid,
-            jsonb_build_object('taxable', false, 'reimbursement', true, 'source', 'expenses')
+            jsonb_build_object('taxable', false, 'reimbursement', true, 'netOnly', true, 'source', 'expenses')
        FROM expense_claims claim
        LEFT JOIN hr_employee_payroll_profiles profile
          ON profile.employee_id = claim.employee_id AND profile.status = 'active'

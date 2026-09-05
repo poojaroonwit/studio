@@ -6,7 +6,7 @@ import { SafeGroupsTab, UsersPageHeader, UsersPageTabs, type UsersSettingsTabId 
 
 export function ManageUsersPageContent({ accountsOnly = false }: { accountsOnly?: boolean }) {
   const [activeTab, setActiveTab] = useState<UsersSettingsTabId>('users');
-  return <div className="flex h-full flex-col">
+  return <div className="flex h-full min-h-0 flex-col">
     <UsersPageHeader activeTab={activeTab} />
     {!accountsOnly && <UsersPageTabs activeTab={activeTab} onTabChange={setActiveTab} />}
     <div className="min-h-0 flex-1 overflow-auto px-6 pb-6"><div className="h-full min-h-0">{activeTab === 'users' && <OutbornAccountDirectoryPanel />}{!accountsOnly && activeTab === 'groups' && <SafeGroupsTab />}</div></div>

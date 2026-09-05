@@ -15,12 +15,12 @@ export function PositionsPageMainContent({ page }: PositionsPageMainContentProps
   const { filters, referenceData, searchControls, uiState } = page;
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <section className="positions-content-area h-full min-w-0 flex-1 border-y border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div ref={page.contentRef} className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full min-h-0 overflow-hidden">
+      <section className="positions-content-area h-full min-h-0 min-w-0 flex-1 border-y border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <div ref={page.contentRef} className="flex h-full min-h-0 flex-col overflow-hidden">
           {page.isMobile && (
             <>
-              <div className="border-b border-slate-100 px-4 py-3 dark:border-zinc-800">
+              <div className="shrink-0 border-b border-slate-100 px-4 py-3 dark:border-zinc-800">
                 <h1 className="text-xl font-bold text-slate-950 dark:text-zinc-50">Positions</h1>
                 <p className="text-sm text-slate-500 dark:text-zinc-400">
                   {page.total} {page.total === 1 ? "position" : "positions"}

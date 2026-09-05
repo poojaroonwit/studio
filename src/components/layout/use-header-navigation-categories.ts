@@ -60,7 +60,7 @@ export function useHeaderNavigationCategories(): HeaderNavigationCategory[] {
       sidebarConfig,
       item => hasSidebarItemPermission(item, isAdmin, modulePermissions, session?.user),
     ).map(group => {
-      let items = group.items.map(item => ({
+      let items: SidebarNavItem[] = group.items.map<SidebarNavItem>(item => ({
         ...item,
         label: localizeSidebarText(t, "item", slugHeaderNavigationText(item.label), item.label),
         description: item.description

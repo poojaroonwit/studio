@@ -5,33 +5,26 @@ import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import { WebhookService } from '@/lib/webhookService';
-import type { WebhookData } from '@/lib/webhook/webhook-dispatcher-types';
+import type { ProcessedWebhookPayload } from '@/lib/webhook/webhook-body-types';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type ReplayablePayload = {
-  event: string;
-  data: WebhookData;
-};
-
-function getReplayablePayload(payload: Prisma.JsonValue): ReplayablePayload | null {
+function getReplayablePayload(payload: Prisma.JsonValue): ProcessedWebhookPayload | null {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return null;
   }
 
   const record = payload as Record<string, unknown>;
-  const event = record.event;
-  const data = record.data;
-
-  if (typeof event !== 'string' || !data || typeof data !== 'object' || Array.isArray(data)) {
+  if (
+    typeof record.event !== 'string'
+    || typeof record.timestamp !== 'string'
+    || !Object.prototype.hasOwnProperty.call(record, 'data')
+  ) {
     return null;
   }
 
-  return {
-    event,
-    data: data as WebhookData,
-  };
+  return record as unknown as ProcessedWebhookPayload;
 }
 
 export async function POST(
@@ -88,11 +81,7 @@ export async function POST(
       );
     }
 
-    const result = await WebhookService.sendWebhook(
-      log.webhook,
-      replayPayload.event,
-      replayPayload.data
-    );
+    const result = await WebhookService.replayWebhook(log.webhook, replayPayload);
 
     return NextResponse.json(
       {

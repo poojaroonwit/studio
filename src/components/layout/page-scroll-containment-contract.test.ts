@@ -34,6 +34,22 @@ function staticClassNames(source: string): string[] {
   return classes;
 }
 
+function staticScrollAreaClassNames(source: string): string[] {
+  const classes: string[] = [];
+  const patterns = [
+    /<ScrollArea[^>]*className\s*=\s*"([^"]+)"/g,
+    /<ScrollArea[^>]*className\s*=\s*'([^']+)'/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      classes.push(match[1]);
+    }
+  }
+
+  return classes;
+}
+
 describe('page scroll containment contract', () => {
   it('keeps clipped flex children shrinkable so their nested scrollers can scroll', () => {
     const offenders: string[] = [];
@@ -53,6 +69,24 @@ describe('page scroll containment contract', () => {
         );
 
         if ((clippedFlexChild || clippedFullHeightColumn) && !tokens.has('min-h-0')) {
+          offenders.push(`${relative}: ${className}`);
+        }
+      }
+    }
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('keeps flex ScrollArea children shrinkable inside page shells', () => {
+    const offenders: string[] = [];
+
+    for (const absolute of ROOTS.flatMap(tsxFiles)) {
+      const source = readFileSync(absolute, 'utf8');
+      const relative = path.relative(process.cwd(), absolute);
+
+      for (const className of staticScrollAreaClassNames(source)) {
+        const tokens = new Set(className.split(/\s+/));
+        if (tokens.has('flex-1') && !tokens.has('min-h-0')) {
           offenders.push(`${relative}: ${className}`);
         }
       }

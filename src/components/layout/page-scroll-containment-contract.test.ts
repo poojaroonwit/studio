@@ -1,0 +1,77 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const ROOTS = [
+  path.join(process.cwd(), 'src/app'),
+  path.join(process.cwd(), 'src/components/layout'),
+];
+
+function tsxFiles(root: string): string[] {
+  return readdirSync(root).flatMap((entry) => {
+    const absolute = path.join(root, entry);
+    const stat = statSync(absolute);
+    if (stat.isDirectory()) return tsxFiles(absolute);
+    return entry.endsWith('.tsx') ? [absolute] : [];
+  });
+}
+
+function staticClassNames(source: string): string[] {
+  const classes: string[] = [];
+  const patterns = [
+    /className\s*=\s*"([^"]+)"/g,
+    /className\s*=\s*'([^']+)'/g,
+    /className\s*=\s*\{cn\(\s*"([^"]+)"/g,
+    /className\s*=\s*\{cn\(\s*'([^']+)'/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      classes.push(match[1]);
+    }
+  }
+
+  return classes;
+}
+
+describe('page scroll containment contract', () => {
+  it('keeps clipped flex children shrinkable so their nested scrollers can scroll', () => {
+    const offenders: string[] = [];
+
+    for (const absolute of ROOTS.flatMap(tsxFiles)) {
+      const source = readFileSync(absolute, 'utf8');
+      const relative = path.relative(process.cwd(), absolute);
+
+      for (const className of staticClassNames(source)) {
+        const tokens = new Set(className.split(/\s+/));
+        const clippedFlexChild = tokens.has('flex-1') && tokens.has('overflow-hidden');
+        const clippedFullHeightColumn = (
+          tokens.has('h-full')
+          && tokens.has('flex')
+          && tokens.has('flex-col')
+          && tokens.has('overflow-hidden')
+        );
+
+        if ((clippedFlexChild || clippedFullHeightColumn) && !tokens.has('min-h-0')) {
+          offenders.push(`${relative}: ${className}`);
+        }
+      }
+    }
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('keeps the authenticated and settings shell scroll rails shrink-safe', () => {
+    const appShell = readFileSync(
+      path.join(process.cwd(), 'src/components/layout/AppLayoutShell.tsx'),
+      'utf8',
+    );
+    const settingsShell = readFileSync(
+      path.join(process.cwd(), 'src/app/settings/SettingsClientLayout.tsx'),
+      'utf8',
+    );
+
+    expect(appShell).toContain('min-h-0 flex-1 overflow-y-auto');
+    expect(settingsShell).toContain('min-h-0 flex-1 overflow-y-auto');
+  });
+});

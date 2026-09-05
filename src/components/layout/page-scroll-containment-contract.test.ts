@@ -2,8 +2,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+const APP_ROOT = path.join(process.cwd(), 'src/app');
 const ROOTS = [
-  path.join(process.cwd(), 'src/app'),
+  APP_ROOT,
   path.join(process.cwd(), 'src/components/layout'),
 ];
 
@@ -51,7 +52,31 @@ function staticScrollAreaClassNames(source: string): string[] {
 }
 
 describe('page scroll containment contract', () => {
-  it('keeps clipped flex children shrinkable so their nested scrollers can scroll', () => {
+  it('keeps full-height app flex columns shrinkable', () => {
+    const offenders: string[] = [];
+
+    for (const absolute of tsxFiles(APP_ROOT)) {
+      const source = readFileSync(absolute, 'utf8');
+      const relative = path.relative(process.cwd(), absolute);
+
+      for (const className of staticClassNames(source)) {
+        const tokens = new Set(className.split(/\s+/));
+        const fullHeightColumn = (
+          tokens.has('h-full')
+          && tokens.has('flex')
+          && tokens.has('flex-col')
+        );
+
+        if (fullHeightColumn && !tokens.has('min-h-0')) {
+          offenders.push(`${relative}: ${className}`);
+        }
+      }
+    }
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('keeps flex scroll and clipping children shrinkable', () => {
     const offenders: string[] = [];
 
     for (const absolute of ROOTS.flatMap(tsxFiles)) {
@@ -60,15 +85,16 @@ describe('page scroll containment contract', () => {
 
       for (const className of staticClassNames(source)) {
         const tokens = new Set(className.split(/\s+/));
-        const clippedFlexChild = tokens.has('flex-1') && tokens.has('overflow-hidden');
-        const clippedFullHeightColumn = (
-          tokens.has('h-full')
-          && tokens.has('flex')
-          && tokens.has('flex-col')
-          && tokens.has('overflow-hidden')
+        const flexScrollChild = (
+          tokens.has('flex-1')
+          && (
+            tokens.has('overflow-hidden')
+            || tokens.has('overflow-auto')
+            || tokens.has('overflow-y-auto')
+          )
         );
 
-        if ((clippedFlexChild || clippedFullHeightColumn) && !tokens.has('min-h-0')) {
+        if (flexScrollChild && !tokens.has('min-h-0')) {
           offenders.push(`${relative}: ${className}`);
         }
       }

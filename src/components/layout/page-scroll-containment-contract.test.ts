@@ -3,10 +3,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const APP_ROOT = path.join(process.cwd(), 'src/app');
-const ROOTS = [
-  APP_ROOT,
-  path.join(process.cwd(), 'src/components/layout'),
-];
+const COMPONENTS_ROOT = path.join(process.cwd(), 'src/components');
+const ROOTS = [APP_ROOT, COMPONENTS_ROOT];
 
 function tsxFiles(root: string): string[] {
   return readdirSync(root).flatMap((entry) => {
@@ -103,7 +101,7 @@ describe('page scroll containment contract', () => {
     expect(offenders, offenders.join('\n')).toEqual([]);
   });
 
-  it('keeps flex ScrollArea children shrinkable inside page shells', () => {
+  it('keeps flex ScrollArea children shrinkable inside pages and page-supporting components', () => {
     const offenders: string[] = [];
 
     for (const absolute of ROOTS.flatMap(tsxFiles)) {

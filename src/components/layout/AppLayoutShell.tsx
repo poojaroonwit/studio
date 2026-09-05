@@ -52,7 +52,7 @@ export function AppLayoutShell({
         {t("layout.skipToMainContent", "Skip to main content")}
       </a>
       <div
-        className="flex h-screen flex-col overflow-hidden"
+        className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:h-screen"
         style={{
           background: 'radial-gradient(circle at top left, hsl(var(--primary) / 0.10), transparent 34%), linear-gradient(135deg, hsl(var(--app-page-background, var(--background))) 0%, hsl(var(--muted)) 100%)',
         }}
@@ -63,7 +63,7 @@ export function AppLayoutShell({
         <BroadcastBanner />
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
             <Header
               pageTitle={pageTitle}
               showLogoOnly={showLogoOnly}
@@ -74,7 +74,7 @@ export function AppLayoutShell({
             <main
               id="main-content"
               tabIndex={-1}
-              className="relative flex-1 overflow-hidden bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground focus:outline-none md:pb-0 lg:p-3 xl:p-4"
+              className="relative min-h-0 flex-1 overflow-hidden bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground focus:outline-none md:pb-0 lg:p-3 xl:p-4"
             >
               <section className="h-full min-h-0 w-full min-w-0 overflow-hidden bg-background lg:rounded-[24px] lg:bg-background/95 lg:shadow-[0_18px_48px_hsl(var(--foreground)/0.08)]">
                 <div className="flex h-full min-h-0 w-full min-w-0 flex-col">

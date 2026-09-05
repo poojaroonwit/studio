@@ -47,7 +47,7 @@ export function AdminCenterConfigDrawer({
       <SheetContent
         side="right"
         sheetId="admin-center-config"
-        className="flex !w-[calc(100vw-1rem)] !max-w-[1180px] flex-col gap-0 overflow-hidden p-0 sm:!w-[min(92vw,1180px)]"
+        className="flex !w-[calc(100vw-1rem)] !max-w-[1180px] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:!w-[min(92vw,1180px)]"
       >
         {item && (
           <>
@@ -97,7 +97,7 @@ function AdminCenterConfigSkeleton({ title }: { title: string }) {
       aria-busy="true"
       aria-label={`Loading ${title} configuration`}
     >
-      <div className="mx-auto flex h-full max-w-[1040px] flex-col gap-4">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1040px] flex-col gap-4">
         <section className="rounded-[6px] border border-[#dfe2e8] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-2">

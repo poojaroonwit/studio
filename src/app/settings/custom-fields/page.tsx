@@ -26,7 +26,7 @@ export default function CustomFieldsPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <CustomFieldsPageHeader onAddNew={page.openModal} />
       <CustomFieldsPageContent
         definitions={page.definitions}

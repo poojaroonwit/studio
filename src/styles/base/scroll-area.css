@@ -3,6 +3,22 @@
   scroll-behavior: smooth;
 }
 
+/*
+ * A flex child defaults to min-height:auto, which can make it refuse to
+ * shrink below its content and silently clip the bottom of nested pages.
+ * Keep the selector zero-specificity so an explicit min-h-* utility can
+ * still opt into a different minimum height when a screen intentionally
+ * needs one.
+ */
+:where(.flex-1.overflow-hidden, .flex-1.overflow-auto, .flex-1.overflow-y-auto) {
+  min-height: 0;
+}
+
+/* Full-height vertical shells are common around drawers, tabs, and pages. */
+:where(.h-full.flex.flex-col) {
+  min-height: 0;
+}
+
 /* Override global scrollbar styles for ScrollArea components */
 [data-radix-scroll-area-viewport] {
   scrollbar-width: none;

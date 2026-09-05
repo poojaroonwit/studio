@@ -44,8 +44,10 @@ export async function GET() {
   const [records, employees] = await Promise.all([
     prisma.$queryRawUnsafe<Row[]>(
       `SELECT input.id, input.employee_id, input.payroll_run_id, input.input_type, input.component_code,
-              input.amount, input.units, input.currency, input.effective_date, input.approval_status,
-              input.status, input.source_module, input.source_record_id, input.metadata,
+              CASE WHEN $2::boolean THEN input.amount ELSE NULL END AS amount,
+              input.units, input.currency, input.effective_date, input.approval_status,
+              input.status, input.source_module, input.source_record_id,
+              CASE WHEN $2::boolean THEN input.metadata ELSE input.metadata - 'amount' - 'salary' END AS metadata,
               input.created_by_id, input.created_at, input.updated_at,
               concat(employee.first_name, ' ', employee.last_name) AS employee_name,
               employee.employee_number, department.name AS department_name,
@@ -58,6 +60,7 @@ export async function GET() {
         ORDER BY input.created_at DESC
         LIMIT 300`,
       companyId,
+      resolved.access.canViewAmounts,
     ),
     prisma.$queryRawUnsafe<Row[]>(
       `SELECT employee.id, employee.employee_number,
@@ -79,6 +82,7 @@ export async function GET() {
       access: {
         canManage: resolved.access.canManage,
         canApprove: resolved.access.canApprove,
+        canViewAmounts: resolved.access.canViewAmounts,
       },
     },
   });

@@ -11,16 +11,16 @@ const monetaryKeys = new Set([
   'repayment_amount', 'payment_total', 'payslip_total', 'calculation_total',
 ]);
 
-function shouldMask(key: string) {
+function shouldMask(key: string): boolean {
   const normalized = key.replace(/[A-Z]/g, match => `_${match.toLowerCase()}`).toLowerCase();
   return monetaryKeys.has(normalized) ||
     /(^|_)(salary|gross|net|deduction|contribution|debit|credit|taxable_income|withholding)$/.test(normalized) ||
     /(^|_)(amount|cost|pay|total)$/.test(normalized);
 }
 
-function maskRecord(record: Record<string, unknown>) {
+function maskRecord(record: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(record).map(([key, value]) => {
+    Object.entries(record).map(([key, value]): [string, unknown] => {
       if (shouldMask(key)) return [key, null];
       if (Array.isArray(value)) {
         return [key, value.map(item => item && typeof item === 'object' && !Array.isArray(item)

@@ -76,7 +76,7 @@ export function CustomFieldsPageContent({
   onEdit: (definition: CustomFieldDefinition) => void;
 }) {
   return (
-    <ScrollArea className="flex-1 p-6 pt-0 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
+    <ScrollArea className="min-h-0 flex-1 p-6 pt-0 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
       <div className="space-y-6">
         {isLoading && definitions.length === 0 ? (
           <div className="flex justify-center items-center py-10">

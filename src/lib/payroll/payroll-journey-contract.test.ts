@@ -51,6 +51,7 @@ describe('Payroll end-to-end journey contract', () => {
     const inputsPage = source('src/app/payroll/inputs/page.tsx');
     const outputsPage = source('src/app/payroll/outputs/page.tsx');
     const outputs = source('src/components/payroll/PayrollOutputsWorkspace.tsx');
+    expect(inputsApi).toContain('Payroll management or approval permission required.');
     expect(inputsApi).toContain('The creator cannot approve or reject their own payroll adjustment.');
     expect(inputsApi).toContain("approval_status = $2, status = $3");
     expect(inputsPage).toContain('PayrollInputsWorkspace');
@@ -63,10 +64,12 @@ describe('Payroll end-to-end journey contract', () => {
     const permissions = source('src/lib/payroll/permissions.ts');
     const redaction = source('src/lib/payroll/amount-visibility.ts');
     const route = source('src/app/api/payroll/workspace/[resource]/route.ts');
+    const inputs = source('src/app/api/payroll/v1/inputs/route.ts');
     expect(modules).toContain("id: 'HR_PAYROLL_AMOUNT_VIEW'");
     expect(permissions).toContain('requestedAmountView');
     expect(redaction).toContain('applyPayrollAmountVisibility');
     expect(route).toContain('applyPayrollAmountVisibility(workspace, resolved.access.canViewAmounts)');
+    expect(inputs).toContain('CASE WHEN $2::boolean THEN input.amount ELSE NULL END AS amount');
   });
 
   it('replaces prompt-based governance with a controlled boundary and continues blocker links', () => {
@@ -81,15 +84,31 @@ describe('Payroll end-to-end journey contract', () => {
     expect(focus).toContain('tax-details');
   });
 
-  it('persists custom payroll run types and rehydrates the legacy selector', () => {
+  it('persists custom payroll run types and mounts the selector rehydration boundary', () => {
     const registry = source('src/lib/payroll/run-type-registry.ts');
     const route = source('src/app/api/payroll/workspace/[resource]/route.ts');
     const boundary = source('src/components/payroll/PayrollRunTypeBoundary.tsx');
+    const runs = source('src/components/payroll/PayrollRunsWorkspace.tsx');
     expect(registry).toContain('PAYROLL_RUN_TYPES_SETTING_KEY');
     expect(registry).toContain('ON CONFLICT (key) DO UPDATE');
     expect(route).toContain('rememberPayrollRunType(parsed.data.runType)');
     expect(boundary).toContain('/api/payroll/v1/run-types');
     expect(boundary).toContain('__create_new_type__');
+    expect(runs).toContain('<PayrollRunTypeBoundary>');
+  });
+
+  it('makes payroll calculation assumptions editable through audited admin configuration', () => {
+    const config = source('src/lib/payroll-approval-route-config.ts');
+    const card = source('src/app/settings/payroll-approval-routes/PayrollCalculationAssumptionsCard.tsx');
+    const settingsPage = source('src/app/settings/payroll-approval-routes/page.tsx');
+    expect(config).toContain('overtimeMultiplier: z.number().positive().max(10).default(1.5)');
+    expect(config).toContain('standardHoursPerDay: z.number().positive().max(24).default(8)');
+    expect(config).toContain('salaryDaysPerMonth: z.number().positive().max(31).default(30)');
+    expect(card).toContain('Payroll calculation assumptions');
+    expect(card).toContain('overtimeMultiplier');
+    expect(card).toContain('standardHoursPerDay');
+    expect(card).toContain('salaryDaysPerMonth');
+    expect(settingsPage).toContain('PayrollCalculationAssumptionsCard');
   });
 
   it('adds employee payslips and payroll operations destinations to shared navigation', () => {

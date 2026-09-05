@@ -1,135 +1,53 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const APP_ROOT = path.join(process.cwd(), 'src/app');
-const COMPONENTS_ROOT = path.join(process.cwd(), 'src/components');
-const ROOTS = [APP_ROOT, COMPONENTS_ROOT];
-
-function tsxFiles(root: string): string[] {
-  return readdirSync(root).flatMap((entry) => {
-    const absolute = path.join(root, entry);
-    const stat = statSync(absolute);
-    if (stat.isDirectory()) return tsxFiles(absolute);
-    return entry.endsWith('.tsx') ? [absolute] : [];
-  });
-}
-
-function staticClassNames(source: string): string[] {
-  const classes: string[] = [];
-  const patterns = [
-    /className\s*=\s*"([^"]+)"/g,
-    /className\s*=\s*'([^']+)'/g,
-    /className\s*=\s*\{cn\(\s*"([^"]+)"/g,
-    /className\s*=\s*\{cn\(\s*'([^']+)'/g,
-  ];
-
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      classes.push(match[1]);
-    }
-  }
-
-  return classes;
-}
-
-function staticScrollAreaClassNames(source: string): string[] {
-  const classes: string[] = [];
-  const patterns = [
-    /<ScrollArea[^>]*className\s*=\s*"([^"]+)"/g,
-    /<ScrollArea[^>]*className\s*=\s*'([^']+)'/g,
-  ];
-
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      classes.push(match[1]);
-    }
-  }
-
-  return classes;
+function source(relativePath: string) {
+  return readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
 describe('page scroll containment contract', () => {
-  it('keeps full-height app flex columns shrinkable', () => {
-    const offenders: string[] = [];
+  it('normalizes nested flex scrollers without overriding explicit min-height utilities', () => {
+    const scrollCss = source('src/styles/base/scroll-area.css');
 
-    for (const absolute of tsxFiles(APP_ROOT)) {
-      const source = readFileSync(absolute, 'utf8');
-      const relative = path.relative(process.cwd(), absolute);
-
-      for (const className of staticClassNames(source)) {
-        const tokens = new Set(className.split(/\s+/));
-        const fullHeightColumn = (
-          tokens.has('h-full')
-          && tokens.has('flex')
-          && tokens.has('flex-col')
-        );
-
-        if (fullHeightColumn && !tokens.has('min-h-0')) {
-          offenders.push(`${relative}: ${className}`);
-        }
-      }
-    }
-
-    expect(offenders, offenders.join('\n')).toEqual([]);
-  });
-
-  it('keeps flex scroll and clipping children shrinkable', () => {
-    const offenders: string[] = [];
-
-    for (const absolute of ROOTS.flatMap(tsxFiles)) {
-      const source = readFileSync(absolute, 'utf8');
-      const relative = path.relative(process.cwd(), absolute);
-
-      for (const className of staticClassNames(source)) {
-        const tokens = new Set(className.split(/\s+/));
-        const flexScrollChild = (
-          tokens.has('flex-1')
-          && (
-            tokens.has('overflow-hidden')
-            || tokens.has('overflow-auto')
-            || tokens.has('overflow-y-auto')
-          )
-        );
-
-        if (flexScrollChild && !tokens.has('min-h-0')) {
-          offenders.push(`${relative}: ${className}`);
-        }
-      }
-    }
-
-    expect(offenders, offenders.join('\n')).toEqual([]);
-  });
-
-  it('keeps flex ScrollArea children shrinkable inside pages and page-supporting components', () => {
-    const offenders: string[] = [];
-
-    for (const absolute of ROOTS.flatMap(tsxFiles)) {
-      const source = readFileSync(absolute, 'utf8');
-      const relative = path.relative(process.cwd(), absolute);
-
-      for (const className of staticScrollAreaClassNames(source)) {
-        const tokens = new Set(className.split(/\s+/));
-        if (tokens.has('flex-1') && !tokens.has('min-h-0')) {
-          offenders.push(`${relative}: ${className}`);
-        }
-      }
-    }
-
-    expect(offenders, offenders.join('\n')).toEqual([]);
+    expect(scrollCss).toContain(
+      ':where(.flex-1.overflow-hidden, .flex-1.overflow-auto, .flex-1.overflow-y-auto)',
+    );
+    expect(scrollCss).toContain(':where(.h-full.flex.flex-col)');
+    expect(scrollCss.match(/min-height:\s*0;/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it('keeps the authenticated and settings shell scroll rails shrink-safe', () => {
-    const appShell = readFileSync(
-      path.join(process.cwd(), 'src/components/layout/AppLayoutShell.tsx'),
-      'utf8',
-    );
-    const settingsShell = readFileSync(
-      path.join(process.cwd(), 'src/app/settings/SettingsClientLayout.tsx'),
-      'utf8',
-    );
+    const appShell = source('src/components/layout/AppLayoutShell.tsx');
+    const settingsShell = source('src/app/settings/SettingsClientLayout.tsx');
 
     expect(appShell).toContain('min-h-0 flex-1 overflow-y-auto');
     expect(settingsShell).toContain('min-h-0 flex-1 overflow-y-auto');
+  });
+
+  it('keeps high-risk Admin Center nested shells explicitly shrink-safe', () => {
+    const adminDrawer = source('src/app/settings/AdminCenterConfigDrawer.tsx');
+    const systemSettings = source('src/app/settings/system-settings/page.tsx');
+    const systemSettingsTabs = source('src/app/settings/system-settings/SystemSettingsTabContent.tsx');
+    const customFields = source('src/app/settings/custom-fields/page.tsx');
+    const recruitmentStages = source('src/app/settings/stages/RecruitmentStagesPageView.tsx');
+    const systemPrompts = source('src/app/settings/system-prompts/SystemPromptsPageView.tsx');
+
+    expect(adminDrawer).toContain('flex h-full min-h-0 max-w-[1040px] flex-col');
+    expect(systemSettings).toContain('flex h-full min-h-0 flex-col bg-background');
+    expect(systemSettingsTabs).toContain('min-h-0 flex-1 overflow-hidden');
+    expect(customFields).toContain('flex h-full min-h-0 flex-col');
+    expect(recruitmentStages).toContain('flex h-full min-h-0 flex-col');
+    expect(systemPrompts).toContain('flex h-full min-h-0 flex-col');
+  });
+
+  it('keeps nested ScrollArea-based settings tabs shrink-safe', () => {
+    const promptList = source('src/app/settings/system-prompts/SystemPromptsListTab.tsx');
+    const promptCategories = source('src/app/settings/system-prompts/SystemPromptCategoriesTab.tsx');
+    const customFieldParts = source('src/app/settings/custom-fields/CustomFieldsPageParts.tsx');
+
+    expect(promptList).toContain('min-h-0 flex-1 pr-4');
+    expect(promptCategories).toContain('min-h-0 flex-1 pr-4');
+    expect(customFieldParts).toContain('min-h-0 flex-1 p-6 pt-0');
   });
 });

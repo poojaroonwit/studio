@@ -6,7 +6,7 @@ import type { SystemSettingsTabContentProps } from './SystemSettingsTabContentTy
 
 export function SystemSettingsTabContent({ settingsPage }: SystemSettingsTabContentProps) {
   return (
-    <div className="flex-1 overflow-hidden">
+    <div className="min-h-0 flex-1 overflow-hidden">
       <SystemSettingsCoreTabPanels settingsPage={settingsPage} />
       <SystemSettingsToolTabPanels settingsPage={settingsPage} />
     </div>

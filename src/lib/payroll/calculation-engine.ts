@@ -29,7 +29,10 @@ export const payrollCalculationInputSchema = z.object({
   roundingDecimals: z.number().int().min(0).max(4).default(2),
 });
 
-export type PayrollCalculationInput = z.infer<typeof payrollCalculationInputSchema>;
+// Accept the schema's input shape at the calculation boundary so callers can
+// omit fields that the schema intentionally defaults (for example netOnly).
+// The parsed `input` below still uses the fully normalized output shape.
+export type PayrollCalculationInput = z.input<typeof payrollCalculationInputSchema>;
 
 function round(value: number, decimals: number) {
   const factor = 10 ** decimals;

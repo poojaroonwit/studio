@@ -29,7 +29,7 @@ export function SystemPromptCategoriesTab({
   onDeleteCategory,
 }: SystemPromptCategoriesTabProps) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex justify-between items-center mb-6">
         <div className="flex-1 max-w-md">
           <div className="relative">
@@ -48,7 +48,7 @@ export function SystemPromptCategoriesTab({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 pr-4">
+      <ScrollArea className="min-h-0 flex-1 pr-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />

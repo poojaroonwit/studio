@@ -11,6 +11,7 @@ import {
 } from "./PayrollSettlementConfirmationDialog";
 import { PayrollSettlementBoundary } from "./PayrollSettlementBoundary";
 import { PayrollRunGovernanceBoundary } from "./PayrollRunGovernanceBoundary";
+import { PayrollRunTypeBoundary } from "./PayrollRunTypeBoundary";
 import { PayrollWorkspace } from "./PayrollWorkspace";
 
 type Row = Record<string, unknown>;
@@ -42,8 +43,9 @@ function responseMessage(payload: RunsWorkspaceResponse | null, fallback: string
 
 /**
  * Compatibility boundary around the legacy Runs view. Controlled register
- * export, management-action visibility, payment confirmation, and governance
- * dialogs are enforced here while the historical Runs register is decomposed.
+ * export, management-action visibility, payment confirmation, governance
+ * dialogs, and persisted custom run types are enforced here while the
+ * historical Runs register is decomposed.
  */
 export function PayrollRunsWorkspace() {
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -315,9 +317,11 @@ export function PayrollRunsWorkspace() {
           </p>
         </div>
       ) : null}
-      <PayrollRunGovernanceBoundary>
-        <PayrollWorkspace resource="runs" />
-      </PayrollRunGovernanceBoundary>
+      <PayrollRunTypeBoundary>
+        <PayrollRunGovernanceBoundary>
+          <PayrollWorkspace resource="runs" />
+        </PayrollRunGovernanceBoundary>
+      </PayrollRunTypeBoundary>
       <PayrollSettlementConfirmationDialog
         run={settlementRun}
         open={Boolean(settlementRun)}

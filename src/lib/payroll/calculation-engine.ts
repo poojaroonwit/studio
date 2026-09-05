@@ -29,11 +29,21 @@ export const payrollCalculationInputSchema = z.object({
   roundingDecimals: z.number().int().min(0).max(4).default(2),
 });
 
-export type PayrollCalculationInput = z.infer<typeof payrollCalculationInputSchema>;
+// Callers provide the pre-parse shape. Fields with schema defaults, such as
+// netOnly, may therefore be omitted and are normalized by Zod before use.
+export type PayrollCalculationInput = z.input<typeof payrollCalculationInputSchema>;
 
 function round(value: number, decimals: number) {
   const factor = 10 ** decimals;
   return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
+function isNetOnlyPayout(line: { code: string; netOnly?: boolean }) {
+  // Expense reimbursements are intentionally collected through the post-tax
+  // lane so statutory earnings never treat them as compensation. Keep the
+  // component-code fallback for historical rows created before netOnly was
+  // propagated through every caller.
+  return Boolean(line.netOnly || line.code === 'EXPENSE_REIMBURSEMENT');
 }
 
 export function calculatePayroll(raw: PayrollCalculationInput) {
@@ -41,23 +51,30 @@ export function calculatePayroll(raw: PayrollCalculationInput) {
   const r = (value: number) => round(value, input.roundingDecimals);
   const proratedBase = r(input.baseSalary * Math.min(1, input.payableDays / input.periodDays));
 
-  // Net-only earnings are amounts paid through Payroll that are not compensation
+  // Net-only payouts are amounts paid through Payroll that are not compensation
   // gross, such as an approved employee expense reimbursement. They increase the
   // employee payment and employer cash outflow without inflating salary gross or
-  // taxable income.
+  // taxable income. They may arrive in the earnings lane or in the post-tax lane;
+  // the latter keeps them isolated from statutory earnings calculations upstream.
   const grossEarningTotal = r(
     input.earnings
-      .filter(line => !line.netOnly)
+      .filter(line => !isNetOnlyPayout(line))
       .reduce((sum, line) => sum + line.amount, 0),
   );
   const netOnlyEarningTotal = r(
     input.earnings
-      .filter(line => line.netOnly)
+      .filter(isNetOnlyPayout)
       .reduce((sum, line) => sum + line.amount, 0),
   );
+  const netOnlyPostTaxPayoutTotal = r(
+    input.postTaxDeductions
+      .filter(isNetOnlyPayout)
+      .reduce((sum, line) => sum + line.amount, 0),
+  );
+  const netOnlyPayoutTotal = r(netOnlyEarningTotal + netOnlyPostTaxPayoutTotal);
   const taxableEarningTotal = r(
     input.earnings
-      .filter(line => line.taxable && !line.netOnly)
+      .filter(line => line.taxable && !isNetOnlyPayout(line))
       .reduce((sum, line) => sum + line.amount, 0),
   );
 
@@ -65,11 +82,15 @@ export function calculatePayroll(raw: PayrollCalculationInput) {
   const preTaxTotal = r(input.preTaxDeductions.reduce((sum, line) => sum + line.amount, 0));
   const taxableIncome = r(Math.max(0, proratedBase + taxableEarningTotal - preTaxTotal));
   const taxTotal = r(input.taxes.reduce((sum, line) => sum + line.amount, 0));
-  const postTaxTotal = r(input.postTaxDeductions.reduce((sum, line) => sum + line.amount, 0));
+  const postTaxTotal = r(
+    input.postTaxDeductions
+      .filter(line => !isNetOnlyPayout(line))
+      .reduce((sum, line) => sum + line.amount, 0),
+  );
   const totalDeductions = r(preTaxTotal + taxTotal + postTaxTotal);
-  const netPay = r(grossPay + netOnlyEarningTotal - totalDeductions);
+  const netPay = r(grossPay + netOnlyPayoutTotal - totalDeductions);
   const employerContributionTotal = r(input.employerContributions.reduce((sum, line) => sum + line.amount, 0));
-  const employerCost = r(grossPay + netOnlyEarningTotal + employerContributionTotal);
+  const employerCost = r(grossPay + netOnlyPayoutTotal + employerContributionTotal);
   const varianceAmount = input.previousNetPay == null ? null : r(netPay - input.previousNetPay);
   const variancePercent = input.previousNetPay == null || input.previousNetPay === 0
     ? null
@@ -77,10 +98,20 @@ export function calculatePayroll(raw: PayrollCalculationInput) {
 
   const lines = [
     { code: 'BASE_SALARY', label: 'Base salary', amount: proratedBase, lineType: 'earning', taxable: true, employerCost: false, netOnly: false, sourceModule: 'compensation', sourceRecordId: null },
-    ...input.earnings.map(line => ({ ...line, amount: r(line.amount), lineType: 'earning' })),
+    ...input.earnings.map(line => ({
+      ...line,
+      amount: r(line.amount),
+      netOnly: isNetOnlyPayout(line),
+      lineType: isNetOnlyPayout(line) ? 'net_only_payout' : 'earning',
+    })),
     ...input.preTaxDeductions.map(line => ({ ...line, amount: r(line.amount), lineType: 'pre_tax_deduction' })),
     ...input.taxes.map(line => ({ ...line, amount: r(line.amount), lineType: 'tax' })),
-    ...input.postTaxDeductions.map(line => ({ ...line, amount: r(line.amount), lineType: 'post_tax_deduction' })),
+    ...input.postTaxDeductions.map(line => ({
+      ...line,
+      amount: r(line.amount),
+      netOnly: isNetOnlyPayout(line),
+      lineType: isNetOnlyPayout(line) ? 'net_only_payout' : 'post_tax_deduction',
+    })),
     ...input.employerContributions.map(line => ({ ...line, amount: r(line.amount), lineType: 'employer_contribution' })),
   ];
 
@@ -93,6 +124,8 @@ export function calculatePayroll(raw: PayrollCalculationInput) {
     grossPay,
     taxableIncome,
     netOnlyEarningTotal,
+    netOnlyPostTaxPayoutTotal,
+    netOnlyPayoutTotal,
     totalDeductions,
     netPay,
     employerCost,
@@ -111,6 +144,8 @@ export function calculatePayroll(raw: PayrollCalculationInput) {
       payableDays: input.payableDays,
       roundingDecimals: input.roundingDecimals,
       netOnlyEarningTotal,
+      netOnlyPostTaxPayoutTotal,
+      netOnlyPayoutTotal,
       formula: 'prorated base + approved gross earnings + net-only payouts - approved deductions and tax',
     },
   };

@@ -57,6 +57,10 @@ export function buildBasicSystemPreferencesSavePayload({
 }: BasicSystemPreferencesState): BasicSystemPreferenceEntry[] {
   return [
     { key: APP_NAME_KEY, value: appName },
+    // Application identity is centrally owned by Outborn Account. Explicitly
+    // clear any legacy local logo value when basic preferences are saved so an
+    // old tenant setting cannot resurface through older clients or caches.
+    { key: APP_LOGO_DATA_URL_KEY, value: '' },
     { key: APP_FAVICON_DATA_URL_KEY, value: appFaviconUrl || '' },
     { key: APP_THEME_KEY, value: themePreference },
     { key: SHOW_LOGO_ONLY_KEY, value: showLogoOnly.toString() },

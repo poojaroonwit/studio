@@ -33,7 +33,9 @@ async function context() {
   const session = await auth();
   if (!session?.user?.id) return { response: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   const access = await getPayrollAccess(session.user);
-  if (!access.canView) return { response: NextResponse.json({ message: 'Payroll view permission required.' }, { status: 403 }) };
+  if (!access.canManage && !access.canApprove) {
+    return { response: NextResponse.json({ message: 'Payroll management or approval permission required.' }, { status: 403 }) };
+  }
   return { session, access };
 }
 

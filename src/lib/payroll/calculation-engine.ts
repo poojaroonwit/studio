@@ -29,7 +29,10 @@ export const payrollCalculationInputSchema = z.object({
   roundingDecimals: z.number().int().min(0).max(4).default(2),
 });
 
-export type PayrollCalculationInput = z.infer<typeof payrollCalculationInputSchema>;
+// This type describes caller input, not the post-parse Zod output. Fields with
+// schema defaults (including money-line netOnly) therefore remain optional at
+// call sites while the parsed value below is still fully populated.
+export type PayrollCalculationInput = z.input<typeof payrollCalculationInputSchema>;
 
 function round(value: number, decimals: number) {
   const factor = 10 ** decimals;

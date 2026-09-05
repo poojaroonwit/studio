@@ -40,4 +40,31 @@ describe('payroll calculation engine', () => {
     expect(result.netPay).toBe(-8000);
     expect(result.exceptions[0]?.code).toBe('NEGATIVE_NET_PAY');
   });
+
+  it('pays approved expense reimbursements without inflating gross or deductions', () => {
+    const result = calculatePayroll({
+      ...base,
+      postTaxDeductions: [{
+        code: 'EXPENSE_REIMBURSEMENT',
+        label: 'Expense reimbursement',
+        amount: 1250,
+        taxable: false,
+        employerCost: false,
+        sourceModule: 'expenses',
+        sourceRecordId: 'claim-1',
+      }],
+    });
+
+    expect(result.grossPay).toBe(62000);
+    expect(result.taxableIncome).toBe(62000);
+    expect(result.totalDeductions).toBe(0);
+    expect(result.netOnlyPayoutTotal).toBe(1250);
+    expect(result.netPay).toBe(63250);
+    expect(result.employerCost).toBe(63250);
+    expect(result.lines).toContainEqual(expect.objectContaining({
+      code: 'EXPENSE_REIMBURSEMENT',
+      netOnly: true,
+      lineType: 'net_only_payout',
+    }));
+  });
 });

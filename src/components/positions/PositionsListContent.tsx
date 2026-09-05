@@ -116,7 +116,7 @@ export function PositionsListContent({
   onPageSizeChange,
 }: PositionsListContentProps) {
   return (
-    <div className="positions-table-container flex flex-1 flex-col overflow-hidden">
+    <div className="positions-table-container flex min-h-0 flex-1 flex-col overflow-hidden">
       {!isLoading && positions.length === 0 ? (
         <PositionsEmptyState
           message={emptyStateMessage}

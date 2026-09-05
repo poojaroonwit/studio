@@ -65,11 +65,16 @@ describe('Payroll end-to-end journey contract', () => {
     const redaction = source('src/lib/payroll/amount-visibility.ts');
     const route = source('src/app/api/payroll/workspace/[resource]/route.ts');
     const inputs = source('src/app/api/payroll/v1/inputs/route.ts');
+    const timeline = source('src/app/api/hr/v1/employees/[id]/timeline/route.ts');
     expect(modules).toContain("id: 'HR_PAYROLL_AMOUNT_VIEW'");
     expect(permissions).toContain('requestedAmountView');
     expect(redaction).toContain('applyPayrollAmountVisibility');
     expect(route).toContain('applyPayrollAmountVisibility(workspace, resolved.access.canViewAmounts)');
     expect(inputs).toContain('CASE WHEN $2::boolean THEN input.amount ELSE NULL END AS amount');
+    expect(timeline).toContain('getPayrollAccess(session.user)');
+    expect(timeline).toContain("payslip.status = 'released'");
+    expect(timeline).toContain("'amountVisibility', CASE WHEN");
+    expect(timeline).not.toContain("'paymentDestination', item.payment_destination");
   });
 
   it('replaces prompt-based governance with a controlled boundary and continues blocker links', () => {

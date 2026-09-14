@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Loader2, Search, ShieldCheck, UsersRound } from 'lucide-react';
+import { ExternalLink, Search, ServerCrash, ShieldCheck, UsersRound } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageLoadingState } from '@/components/ui/PageLoadingState';
+import { PageStatusState } from '@/components/ui/PageStatusState';
 
 interface DirectoryMember { id: string; userId: string; name: string | null; email: string | null; avatarUrl: string | null; role: string; status: 'active' | 'suspended'; }
 interface DirectoryPayload { organization: { id: string; name: string; role: string } | null; members: DirectoryMember[]; error?: string; }
@@ -35,8 +38,23 @@ export function OutbornAccountDirectoryPanel() {
     return (payload?.members ?? []).filter(member => member.name?.toLowerCase().includes(value) || member.email?.toLowerCase().includes(value) || member.role.toLowerCase().includes(value));
   }, [payload, query]);
 
-  if (!payload && !error) return <div className="flex min-h-[280px] items-center justify-center" role="status"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (error) return <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6"><h2 className="font-semibold text-foreground">Account directory unavailable</h2><p className="mt-1 text-sm text-muted-foreground">{error}</p><Button asChild className="mt-4" variant="outline"><a href="/api/outborn/account-admin?section=members">Open Outborn Account <ExternalLink className="ml-2 h-4 w-4" /></a></Button></div>;
+  if (!payload && !error) {
+    return <PageLoadingState className="min-h-[280px]" message="Loading Account members..." />;
+  }
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <ServerCrash className="h-5 w-5" />
+        <AlertTitle>Account directory unavailable</AlertTitle>
+        <AlertDescription>
+          <p>{error}</p>
+          <Button asChild className="mt-3" variant="outline">
+            <a href="/api/outborn/account-admin?section=members">Open Outborn Account <ExternalLink className="ml-2 h-4 w-4" /></a>
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 p-4">
@@ -47,7 +65,14 @@ export function OutbornAccountDirectoryPanel() {
     <div className="overflow-hidden rounded-xl border border-border/70">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,0.45fr)_110px] border-b bg-muted/35 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"><span>Member</span><span>Role</span><span>Status</span></div>
       {members.map(member => <div key={member.id} className="grid grid-cols-[minmax(0,1fr)_minmax(120px,0.45fr)_110px] items-center border-b px-4 py-3 last:border-b-0"><div className="flex min-w-0 items-center gap-3"><Avatar className="h-8 w-8">{member.avatarUrl ? <AvatarImage src={member.avatarUrl} alt="" /> : null}<AvatarFallback className="text-xs">{initials(member)}</AvatarFallback></Avatar><div className="min-w-0"><div className="truncate text-sm font-medium text-foreground">{member.name || member.email || 'Unnamed member'}</div>{member.email ? <div className="truncate text-xs text-muted-foreground">{member.email}</div> : null}</div></div><span className="truncate text-sm text-foreground">{prettyRole(member.role)}</span><Badge variant={member.status === 'active' ? 'secondary' : 'outline'} className="w-fit capitalize">{member.status}</Badge></div>)}
-      {members.length === 0 ? <div className="px-4 py-10 text-center text-sm text-muted-foreground">No Account members match this search.</div> : null}
+      {members.length === 0 ? (
+        <PageStatusState
+          description={query.trim() ? 'Try a different search term.' : 'Members will appear here when they are available in Outborn Account.'}
+          icon={UsersRound}
+          size="embedded"
+          title={query.trim() ? 'No matching Account members' : 'No Account members found'}
+        />
+      ) : null}
     </div>
   </div>;
 }

@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -14,18 +13,14 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
-      "peer h-4 w-4 shrink-0 rounded-full border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
-      "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white", // Green styling when checked
-      "data-[state=indeterminate]:bg-green-400 data-[state=indeterminate]:border-green-400 data-[state=indeterminate]:text-white", // Green styling when indeterminate
-      "hover:data-[state=checked]:bg-green-600 hover:data-[state=checked]:border-green-600", // Darker green on hover when checked
-      "hover:data-[state=indeterminate]:bg-green-500 hover:data-[state=indeterminate]:border-green-500", // Darker green on hover when indeterminate
+      "peer h-4 w-4 shrink-0 rounded-full border border-input bg-background text-primary-foreground ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+      "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground hover:data-[state=checked]:bg-primary/90",
+      "data-[state=indeterminate]:border-warning data-[state=indeterminate]:bg-warning data-[state=indeterminate]:text-warning-foreground hover:data-[state=indeterminate]:bg-warning/90",
       className
     )}
     {...props}
   >
-    <CheckboxPrimitive.Indicator
-      className={cn("flex items-center justify-center text-current rounded-full")}
-    >
+    <CheckboxPrimitive.Indicator className="flex items-center justify-center rounded-full text-current">
       <CheckIcon className="h-4 w-4" />
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
@@ -45,7 +40,6 @@ const ThreeStateCheckbox = React.forwardRef<
   const handleCheckedChange = () => {
     if (!onValueChange) return;
 
-    // Cycle through states: unchecked → checked → indeterminate → unchecked
     if (value === 'unchecked') {
       onValueChange('checked');
     } else if (value === 'checked') {
@@ -63,18 +57,14 @@ const ThreeStateCheckbox = React.forwardRef<
       checked={checkedState}
       onCheckedChange={handleCheckedChange}
       className={cn(
-        "peer h-4 w-4 shrink-0 rounded-md border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
-        "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white", // Green styling when checked
-        "data-[state=indeterminate]:bg-green-400 data-[state=indeterminate]:border-green-400 data-[state=indeterminate]:text-white", // Green styling when indeterminate
-        "hover:data-[state=checked]:bg-green-600 hover:data-[state=checked]:border-green-600", // Darker green on hover when checked
-        "hover:data-[state=indeterminate]:bg-green-500 hover:data-[state=indeterminate]:border-green-500", // Darker green on hover when indeterminate
+        "peer h-4 w-4 shrink-0 rounded-md border border-input bg-background text-primary-foreground ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground hover:data-[state=checked]:bg-primary/90",
+        "data-[state=indeterminate]:border-warning data-[state=indeterminate]:bg-warning data-[state=indeterminate]:text-warning-foreground hover:data-[state=indeterminate]:bg-warning/90",
         className
       )}
       {...props}
     >
-      <CheckboxPrimitive.Indicator
-        className={cn("flex items-center justify-center text-current")}
-      >
+      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
         {value === 'indeterminate' ? (
           <MinusIcon className="h-4 w-4" />
         ) : (

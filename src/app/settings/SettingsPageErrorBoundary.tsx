@@ -3,11 +3,19 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { PageStatusState } from '@/components/ui/PageStatusState';
+
+interface SettingsPageErrorBoundaryProps {
+  children: React.ReactNode;
+  fallbackDescription?: string;
+}
+
 export class SettingsPageErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  SettingsPageErrorBoundaryProps,
   { hasError: boolean; error?: Error }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: SettingsPageErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -22,32 +30,33 @@ export class SettingsPageErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      return <SettingsPageErrorState />;
+      return (
+        <SettingsPageErrorState
+          description={
+            this.props.fallbackDescription
+            ?? 'There was an error loading the settings page. Please try refreshing the page.'
+          }
+        />
+      );
     }
 
     return this.props.children;
   }
 }
 
-function SettingsPageErrorState() {
+function SettingsPageErrorState({ description }: { description: string }) {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center">
-        <div className="p-4 rounded-full bg-destructive/10 mb-4">
-          <AlertTriangle className="h-8 w-8 text-destructive mx-auto" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
-        <p className="text-muted-foreground mb-4">
-          There was an error loading the settings page. Please try refreshing the page.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        >
+    <PageStatusState
+      className="min-h-full"
+      role="alert"
+      icon={AlertTriangle}
+      title="Something went wrong"
+      description={description}
+      action={(
+        <Button type="button" onClick={() => window.location.reload()}>
           Refresh Page
-        </button>
-      </div>
-    </div>
+        </Button>
+      )}
+    />
   );
 }

@@ -8,6 +8,7 @@ import {
   MapPinIcon,
 } from '@heroicons/react/24/outline';
 
+import { AppPage } from '@/components/layout/AppPage';
 import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
@@ -24,15 +25,15 @@ export default function NotFound() {
   }
 
   return (
-    <div className="relative flex min-h-[calc(100dvh-7rem)] w-full items-center justify-center overflow-hidden bg-background px-6 py-20">
+    <AppPage className="relative flex min-h-[calc(100dvh-7rem)] w-full items-center justify-center overflow-hidden px-6 py-20">
       <nav aria-label="Breadcrumb" className="absolute left-6 top-6 flex items-center gap-2 text-xs text-muted-foreground sm:left-8">
-        <Link href="/" className="font-medium text-[#5b8dff] hover:underline">Home</Link>
+        <Link href="/" className="font-medium text-primary hover:underline">Home</Link>
         <span aria-hidden="true">/</span>
         <span>Page not found</span>
       </nav>
 
       <main className="flex w-full max-w-[620px] -translate-y-8 flex-col items-center text-center sm:-translate-y-16">
-        <div className="relative grid h-[96px] w-[96px] place-items-center rounded-full border border-[#3478ff] text-foreground shadow-[0_0_38px_rgba(52,120,255,0.16)] sm:h-[120px] sm:w-[120px]">
+        <div className="relative grid h-[96px] w-[96px] place-items-center rounded-full border border-primary text-foreground shadow-[0_0_38px_hsl(var(--primary)/0.16)] sm:h-[120px] sm:w-[120px]">
           <MapPinIcon className="h-12 w-12 sm:h-[60px] sm:w-[60px]" aria-hidden="true" />
           <span className="absolute bottom-[19px] right-[18px] grid h-8 w-8 place-items-center rounded-full bg-background sm:bottom-[25px] sm:right-[24px] sm:h-9 sm:w-9">
             <MagnifyingGlassIcon className="h-6 w-6 sm:h-[30px] sm:w-[30px]" aria-hidden="true" />
@@ -53,7 +54,7 @@ export default function NotFound() {
           </Link>
         </Button>
 
-        <div className="mt-5 flex items-center justify-center gap-5 text-[14px] font-medium text-[#5b8dff] sm:mt-6 sm:text-[15px]">
+        <div className="mt-5 flex items-center justify-center gap-5 text-[14px] font-medium text-primary sm:mt-6 sm:text-[15px]">
           <button type="button" className="inline-flex items-center gap-1.5 hover:underline" onClick={goBack}>
             <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             Go back
@@ -69,6 +70,6 @@ export default function NotFound() {
           Error code: <span className="font-medium">404</span>
         </div>
       </main>
-    </div>
+    </AppPage>
   );
 }

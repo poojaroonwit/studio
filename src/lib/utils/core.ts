@@ -5,46 +5,37 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {
+  containsThaiText as containsThaiTextShared,
+  getFontClass as getFontClassShared,
+  getFontFamily as getFontFamilyShared,
+} from "../fontUtils";
 
-/**
- * Combine class names with Tailwind merge
- */
+/** Combine class names with Tailwind merge. */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/**
- * Detect if text contains Thai characters
- */
+/** Detect if text contains Thai characters using the shared typography utility. */
 export function containsThaiText(text: string): boolean {
-  if (!text) return false;
-  const thaiRegex = /[\u0E00-\u0E7F]/;
-  return thaiRegex.test(text);
+  return containsThaiTextShared(text);
 }
 
 /**
- * Get appropriate font class based on text content
+ * Get the semantic font class while keeping the legacy optional defaultClass
+ * argument compatible for existing callers.
  */
 export function getFontClass(text: string, defaultClass: string = 'font-sans'): string {
-  if (containsThaiText(text)) {
-    return 'font-ibm-plex-sans-thai';
-  }
-  return 'font-english';
+  if (!text && defaultClass) return defaultClass;
+  return getFontClassShared(text);
 }
 
-/**
- * Get appropriate font family CSS value based on text content
- */
+/** Get the single application font family contract. */
 export function getFontFamily(text: string): string {
-  if (containsThaiText(text)) {
-    return 'var(--font-ibm-plex-sans-thai), sans-serif';
-  }
-  return 'var(--font-dm-sans), "DM Sans", sans-serif';
+  return getFontFamilyShared(text);
 }
 
-/**
- * Safely ensures a value is an array
- */
+/** Safely ensures a value is an array. */
 export function ensureArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }

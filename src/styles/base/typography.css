@@ -6,8 +6,13 @@
  * Keep one predictable stack across the application. IBM Plex Sans is the
  * primary OBSI UI face and IBM Plex Sans Thai is used as the Thai glyph
  * fallback, so mixed English/Thai labels keep consistent sizing and rhythm.
+ *
+ * --font-dm-sans is retained only as a compatibility alias for legacy
+ * Tailwind utilities/components. It deliberately resolves to IBM Plex Sans so
+ * old class names can no longer render a different or browser-default face.
  */
 :root {
+  --font-dm-sans: var(--font-ibm-plex-sans);
   --app-font-family:
     var(--font-ibm-plex-sans),
     "IBM Plex Sans",

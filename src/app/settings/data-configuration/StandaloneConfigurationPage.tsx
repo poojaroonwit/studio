@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { PageLoadingState } from "@/components/ui/PageLoadingState";
 import { cn } from "@/lib/utils";
 
 export function StandaloneConfigurationPage({ children }: { children: ReactNode }) {
@@ -21,15 +21,11 @@ export function StandaloneConfigurationPage({ children }: { children: ReactNode 
   }, [router, status]);
 
   if (status === "loading") {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoadingState className="min-h-[50vh]" message="Loading configuration..." />;
   }
 
   if (status === "unauthenticated") {
-    return null;
+    return <PageLoadingState className="min-h-[50vh]" message="Redirecting to sign in..." />;
   }
 
   return (

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { AppPage } from '@/components/layout/AppPage';
+import { MyTasksPageClient } from '@/components/tasks/MyTasksPageClient';
 import { ApplicantsPageClientResolvedView } from './ApplicantsPageClientResolvedView';
 import { ApplicantsPageLoadingState } from './ApplicantsPageLoadingState';
 import { ApplicantsPageModals } from './ApplicantsPageModals';
@@ -11,7 +13,6 @@ import { ApplicantsRecruitmentViewSwitch, type ApplicantsRecruitmentView } from 
 import { ApplicantsHeaderUploadButton } from './ApplicantsPageHeaderActionsMenu';
 import { buildApplicantsPageClientViewProps } from './applicants-page-client-view-props';
 import { useApplicantsPageClientController } from './hooks/use-applicants-page-client-controller';
-import { MyTasksPageClient } from '@/components/tasks/MyTasksPageClient';
 
 export function ApplicantsPageClient(props: ApplicantsPageClientProps) {
   const controller = useApplicantsPageClientController(props);
@@ -59,7 +60,7 @@ export function ApplicantsPageClient(props: ApplicantsPageClientProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
+    <AppPage className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1">
         {activeView === 'task-board' ? (
           <div className="h-full min-h-0">
@@ -67,10 +68,10 @@ export function ApplicantsPageClient(props: ApplicantsPageClientProps) {
               embedded
               userSession={props.userSession ?? null}
               headerLeading={(
-              <ApplicantsRecruitmentViewSwitch
-                activeView={activeView}
-                onViewChange={handleViewChange}
-              />
+                <ApplicantsRecruitmentViewSwitch
+                  activeView={activeView}
+                  onViewChange={handleViewChange}
+                />
               )}
               headerTrailing={(
                 <ApplicantsHeaderUploadButton
@@ -94,6 +95,6 @@ export function ApplicantsPageClient(props: ApplicantsPageClientProps) {
           />
         )}
       </div>
-    </div>
+    </AppPage>
   );
 }

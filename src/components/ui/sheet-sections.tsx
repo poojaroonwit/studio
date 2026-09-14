@@ -4,33 +4,10 @@ import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 
 import { cn } from "@/lib/utils";
-
-function containsCancelLabel(children: React.ReactNode): boolean {
-  return React.Children.toArray(children).some((child) => {
-    if (typeof child === "string") return child.trim().toLowerCase() === "cancel";
-    if (!React.isValidElement(child)) return false;
-    return containsCancelLabel((child.props as { children?: React.ReactNode }).children);
-  });
-}
-
-function isCancelButtonChild(child: React.ReactNode): boolean {
-  if (!React.isValidElement(child)) return false;
-
-  const childType = child.type as React.ComponentType & { displayName?: string };
-  const childProps = child.props as {
-    "aria-label"?: string;
-    children?: React.ReactNode;
-    title?: string;
-  };
-  const accessibleLabel = `${childProps["aria-label"] || ""} ${childProps.title || ""}`.trim();
-  const isButton = child.type === "button" || childType.displayName === "Button";
-  const isSheetClose = childType.displayName === SheetPrimitive.Close.displayName;
-
-  return (isButton || isSheetClose) && (
-    accessibleLabel.toLowerCase() === "cancel" ||
-    containsCancelLabel(childProps.children)
-  );
-}
+import {
+  LAYER_DESCRIPTION_CLASS_NAME,
+  LAYER_TITLE_CLASS_NAME,
+} from "./layered-ui";
 
 const SheetHeader = ({
   className,
@@ -38,7 +15,7 @@ const SheetHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-2 border-b border-border/60 pb-4 text-center sm:text-left",
+      "flex flex-col gap-1.5 border-b border-border/60 pb-4 pr-10 text-left",
       className,
     )}
     {...props}
@@ -48,25 +25,16 @@ SheetHeader.displayName = "SheetHeader";
 
 const SheetFooter = ({
   className,
-  children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => {
-  const visibleChildren = React.Children.toArray(children).filter(
-    (child) => !isCancelButtonChild(child)
-  );
-
-  return (
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
       className,
     )}
     {...props}
-  >
-    {visibleChildren}
-  </div>
-  );
-};
+  />
+);
 SheetFooter.displayName = "SheetFooter";
 
 const SheetTitle = React.forwardRef<
@@ -75,7 +43,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-foreground", className)}
+    className={cn(LAYER_TITLE_CLASS_NAME, className)}
     {...props}
   />
 ));
@@ -87,7 +55,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn(LAYER_DESCRIPTION_CLASS_NAME, className)}
     {...props}
   />
 ));

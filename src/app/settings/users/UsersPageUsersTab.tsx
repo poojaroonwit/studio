@@ -86,13 +86,13 @@ export function UsersPageUsersTab(props: UsersPageUsersTabProps) {
 
         <UsersPageUsersFilters {...props} />
 
-        {users.length === 0 ? (
+        {sortedUsers.length === 0 ? (
           <PageStatusState
             className="min-h-[360px]"
-            description="Try changing your filters or add a new account."
+            description={users.length === 0 ? 'Add a new account to get started.' : 'Try changing your filters.'}
             icon={UsersRound}
             size="embedded"
-            title="No user accounts found"
+            title={users.length === 0 ? 'No user accounts found' : 'No accounts match this filter'}
           />
         ) : (
           <>

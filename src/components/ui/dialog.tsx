@@ -7,6 +7,13 @@ import { useDynamicZIndex, useLayerInstanceId } from "@/contexts/ZIndexContext"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 import { cn } from "@/lib/utils"
+import {
+  hasLayerA11yChild,
+  LAYER_CLOSE_BUTTON_CLASS_NAME,
+  LAYER_DESCRIPTION_CLASS_NAME,
+  LAYER_OVERLAY_CLASS_NAME,
+  LAYER_TITLE_CLASS_NAME,
+} from "./layered-ui"
 
 const Dialog = DialogPrimitive.Root
 
@@ -27,10 +34,7 @@ const DialogOverlay = React.forwardRef<
   return (
     <DialogPrimitive.Overlay
       ref={ref}
-      className={cn(
-        "fixed inset-0 bg-black/45 backdrop-blur-[1px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 dark:bg-black/60",
-        className
-      )}
+      className={cn(LAYER_OVERLAY_CLASS_NAME, className)}
       style={{ zIndex: overlayZIndex }}
       {...props}
     />
@@ -45,39 +49,14 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof Dialo
   overlayClassName?: string;
 }
 
-function hasDialogA11yChild(
-  children: React.ReactNode,
-  displayName?: string
-): boolean {
-  if (!displayName) {
-    return false;
-  }
-
-  return React.Children.toArray(children).some((child) => {
-    if (!React.isValidElement(child)) {
-      return false;
-    }
-
-    const childType = child.type as React.ComponentType & { displayName?: string };
-    if (childType.displayName === displayName) {
-      return true;
-    }
-
-    return hasDialogA11yChild(
-      (child.props as { children?: React.ReactNode }).children,
-      displayName
-    );
-  });
-}
-
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
 >(({ className, children, dialogId, hideCloseButton = false, placement = "center", overlayClassName, style, ...props }, ref) => {
   const effectiveDialogId = useLayerInstanceId(dialogId, "dialog");
   const { contentZIndex } = useDynamicZIndex(effectiveDialogId, 'modal');
-  const hasVisibleTitle = hasDialogA11yChild(children, DialogPrimitive.Title.displayName);
-  const hasVisibleDescription = hasDialogA11yChild(children, DialogPrimitive.Description.displayName);
+  const hasVisibleTitle = hasLayerA11yChild(children, DialogPrimitive.Title.displayName);
+  const hasVisibleDescription = hasLayerA11yChild(children, DialogPrimitive.Description.displayName);
   const needsFallbackTitle = !hasVisibleTitle && !props['aria-label'] && !props['aria-labelledby'];
   const needsFallbackDescription = !hasVisibleDescription && props['aria-describedby'] === undefined;
 
@@ -110,7 +89,9 @@ const DialogContent = React.forwardRef<
         )}
         {children}
         {!hideCloseButton && (
-          <DialogPrimitive.Close className="absolute right-4 top-4 z-[1] inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground shadow-sm ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close
+            className={cn("absolute right-4 top-4 z-[1]", LAYER_CLOSE_BUTTON_CLASS_NAME)}
+          >
             <XMarkIcon className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
@@ -155,10 +136,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-base font-semibold leading-tight tracking-[-0.01em]",
-      className
-    )}
+    className={cn(LAYER_TITLE_CLASS_NAME, className)}
     {...props}
   />
 ))
@@ -170,7 +148,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm leading-5 text-muted-foreground", className)}
+    className={cn(LAYER_DESCRIPTION_CLASS_NAME, className)}
     {...props}
   />
 ))

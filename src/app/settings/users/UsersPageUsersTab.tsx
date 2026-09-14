@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, ShieldAlert, UserRoundX, UsersRound } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { PageStatusState } from '@/components/ui/PageStatusState';
 import { SortableTableHead, type SortDirection, sortRowsByColumn, type SortValueResolverMap } from '@/components/ui/sortable-table';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { UserProfile } from '@/lib/types';
@@ -85,12 +86,14 @@ export function UsersPageUsersTab(props: UsersPageUsersTabProps) {
 
         <UsersPageUsersFilters {...props} />
 
-        {users.length === 0 ? (
-          <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
-            <UsersRound className="h-10 w-10 text-muted-foreground/60" />
-            <p className="mt-3 text-sm font-medium">No user accounts found</p>
-            <p className="mt-1 text-xs text-muted-foreground">Try changing your filters or add a new account.</p>
-          </div>
+        {sortedUsers.length === 0 ? (
+          <PageStatusState
+            className="min-h-[360px]"
+            description={users.length === 0 ? 'Add a new account to get started.' : 'Try changing your filters.'}
+            icon={UsersRound}
+            size="embedded"
+            title={users.length === 0 ? 'No user accounts found' : 'No accounts match this filter'}
+          />
         ) : (
           <>
             <UsersBulkActionsBar selectedCount={selectedUserIds.size} isUpdating={isBulkUpdating} canUpdate={canEditUsers} onUpdateStatus={onBulkUpdateStatus} onClear={onClearSelection} />

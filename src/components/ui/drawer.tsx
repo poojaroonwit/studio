@@ -4,8 +4,16 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 import { XMarkIcon } from "@heroicons/react/24/outline"
 import { useDynamicZIndex, useLayerInstanceId } from "@/contexts/ZIndexContext"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 import { cn } from "@/lib/utils"
+import {
+  hasLayerA11yChild,
+  LAYER_CLOSE_BUTTON_CLASS_NAME,
+  LAYER_DESCRIPTION_CLASS_NAME,
+  LAYER_OVERLAY_CLASS_NAME,
+  LAYER_TITLE_CLASS_NAME,
+} from "./layered-ui"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -37,7 +45,7 @@ const DrawerOverlay = React.forwardRef<
   return (
     <DrawerPrimitive.Overlay
       ref={ref}
-      className={cn("fixed inset-0 z-50 bg-black/80", className)}
+      className={cn(LAYER_OVERLAY_CLASS_NAME, className)}
       style={{ zIndex: overlayZIndex }}
       {...props}
     />
@@ -56,6 +64,10 @@ const DrawerContent = React.forwardRef<
 >(({ className, children, drawerId, hideCloseButton = false, style, ...props }, ref) => {
   const effectiveDrawerId = useLayerInstanceId(drawerId, "drawer");
   const { contentZIndex } = useDynamicZIndex(effectiveDrawerId, 'drawer');
+  const hasVisibleTitle = hasLayerA11yChild(children, DrawerPrimitive.Title.displayName);
+  const hasVisibleDescription = hasLayerA11yChild(children, DrawerPrimitive.Description.displayName);
+  const needsFallbackTitle = !hasVisibleTitle && !props['aria-label'] && !props['aria-labelledby'];
+  const needsFallbackDescription = !hasVisibleDescription && props['aria-describedby'] === undefined;
 
   return (
     <DrawerPortal>
@@ -63,16 +75,28 @@ const DrawerContent = React.forwardRef<
       <DrawerPrimitive.Content
         ref={ref}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-xl border bg-background shadow-xl",
           className
         )}
         style={{ zIndex: contentZIndex, ...style }}
         {...props}
       >
-        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+        {needsFallbackTitle && (
+          <VisuallyHidden>
+            <DrawerTitle>Drawer</DrawerTitle>
+          </VisuallyHidden>
+        )}
+        {needsFallbackDescription && (
+          <VisuallyHidden>
+            <DrawerDescription>Drawer content</DrawerDescription>
+          </VisuallyHidden>
+        )}
+        <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-muted" aria-hidden="true" />
         {children}
         {!hideCloseButton && !hasDrawerClose(children) && (
-          <DrawerPrimitive.Close className="absolute right-4 top-4 z-[1] inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground shadow-sm ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <DrawerPrimitive.Close
+            className={cn("absolute right-4 top-4 z-[1]", LAYER_CLOSE_BUTTON_CLASS_NAME)}
+          >
             <XMarkIcon className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DrawerPrimitive.Close>
@@ -92,39 +116,12 @@ function hasDrawerClose(children: React.ReactNode): boolean {
   });
 }
 
-function containsCancelLabel(children: React.ReactNode): boolean {
-  return React.Children.toArray(children).some((child) => {
-    if (typeof child === "string") return child.trim().toLowerCase() === "cancel";
-    if (!React.isValidElement(child)) return false;
-    return containsCancelLabel((child.props as { children?: React.ReactNode }).children);
-  });
-}
-
-function isCancelButtonChild(child: React.ReactNode): boolean {
-  if (!React.isValidElement(child)) return false;
-
-  const childType = child.type as React.ComponentType & { displayName?: string };
-  const childProps = child.props as {
-    "aria-label"?: string;
-    children?: React.ReactNode;
-    title?: string;
-  };
-  const accessibleLabel = `${childProps["aria-label"] || ""} ${childProps.title || ""}`.trim();
-  const isButton = child.type === "button" || childType.displayName === "Button";
-  const isDrawerClose = childType.displayName === DrawerPrimitive.Close.displayName;
-
-  return (isButton || isDrawerClose) && (
-    accessibleLabel.toLowerCase() === "cancel" ||
-    containsCancelLabel(childProps.children)
-  );
-}
-
 const DrawerHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("grid gap-1.5 border-b border-border/60 p-4 text-center sm:text-left", className)}
+    className={cn("grid gap-1.5 border-b border-border/60 p-4 pr-14 text-left", className)}
     {...props}
   />
 )
@@ -132,22 +129,13 @@ DrawerHeader.displayName = "DrawerHeader"
 
 const DrawerFooter = ({
   className,
-  children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => {
-  const visibleChildren = React.Children.toArray(children).filter(
-    (child) => !isCancelButtonChild(child)
-  );
-
-  return (
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn("mt-auto flex flex-col gap-2 p-4", className)}
     {...props}
-  >
-    {visibleChildren}
-  </div>
-  );
-}
+  />
+)
 DrawerFooter.displayName = "DrawerFooter"
 
 const DrawerTitle = React.forwardRef<
@@ -156,10 +144,7 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
+    className={cn(LAYER_TITLE_CLASS_NAME, className)}
     {...props}
   />
 ))
@@ -171,7 +156,7 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn(LAYER_DESCRIPTION_CLASS_NAME, className)}
     {...props}
   />
 ))

@@ -226,3 +226,5 @@ if (failures.length > 0) {
 } else {
   console.log("Frontend architecture check passed.");
 }
+
+await import("./check-layered-ui-architecture.mjs");

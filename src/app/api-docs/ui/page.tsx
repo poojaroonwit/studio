@@ -1,6 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  AppPage,
+  AppPageContainer,
+  AppPageHeader,
+  AppPageTitle,
+} from '@/components/layout/AppPage';
 import { ApiDocsEndpointList } from './ApiDocsEndpointList';
 import { ApiDocsSidebar } from './ApiDocsSidebar';
 import { ApiDocsErrorPanel, ApiDocsLoadingPanel } from './ApiDocsStatusPanels';
@@ -68,19 +74,17 @@ export default function ApiDocsUIPage() {
   const endpoints = getApiDocsEndpointsByTag(swaggerSpec, selectedTag);
 
   return (
-    <div className="min-h-full bg-[hsl(var(--app-page-background))] text-foreground">
-      <div className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="mb-2 text-3xl font-bold text-foreground">
-            {swaggerSpec.info.title} API Documentation
-          </h1>
-          <p className="text-muted-foreground">{swaggerSpec.info.description}</p>
-          <p className="mt-1 text-sm text-muted-foreground">Version: {swaggerSpec.info.version}</p>
-        </div>
-      </div>
+    <AppPage>
+      <AppPageHeader>
+        <AppPageTitle className="mb-2">
+          {swaggerSpec.info.title} API Documentation
+        </AppPageTitle>
+        <p className="text-muted-foreground">{swaggerSpec.info.description}</p>
+        <p className="mt-1 text-sm text-muted-foreground">Version: {swaggerSpec.info.version}</p>
+      </AppPageHeader>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <AppPageContainer className="py-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           <ApiDocsSidebar
             selectedTag={selectedTag}
             tags={tags}
@@ -93,7 +97,7 @@ export default function ApiDocsUIPage() {
             onToggleEndpoint={toggleEndpoint}
           />
         </div>
-      </div>
-    </div>
+      </AppPageContainer>
+    </AppPage>
   );
 }

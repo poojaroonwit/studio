@@ -7,13 +7,13 @@ function source(relativePath: string) {
 }
 
 describe('Hrive desktop shell visual contract', () => {
-  it('renders primary navigation and header chrome with semantic theme tokens', () => {
+  it('renders primary navigation and borderless header chrome with semantic theme tokens', () => {
     const header = source('src/components/layout/Header.tsx');
     const primaryItem = source('src/components/layout/HeaderMegaMenuCategory.tsx');
 
     expect(header).toContain('bg-transparent');
-    expect(header).toContain('border-border/70');
     expect(header).toContain('text-foreground');
+    expect(header).not.toContain('border-b border-border/70');
     expect(header).not.toContain('border-slate-200/80');
     expect(header).not.toContain('dark:border-zinc-800');
     expect(primaryItem).toContain('text-muted-foreground');

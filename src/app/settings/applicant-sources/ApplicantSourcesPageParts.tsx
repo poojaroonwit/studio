@@ -1,10 +1,13 @@
 "use client";
 
-import { Loader2, ServerCrash } from 'lucide-react';
+import { Inbox, ServerCrash } from 'lucide-react';
 
 import * as React from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PageLoadingState } from '@/components/ui/PageLoadingState';
+import { PageStatusState } from '@/components/ui/PageStatusState';
 import {
   Table,
   TableBody,
@@ -27,16 +30,16 @@ export function ApplicantSourcesErrorBanner({
   onRetry,
 }: ApplicantSourcesErrorBannerProps) {
   return (
-    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
-      <ServerCrash className="h-5 w-5 text-destructive" />
-      <div>
-        <p className="font-medium text-destructive">Failed to load Applicant sources</p>
-        <p className="text-sm text-destructive/80">{message}</p>
-      </div>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
+    <Alert variant="destructive">
+      <ServerCrash className="h-5 w-5" />
+      <AlertTitle>Failed to load applicant sources</AlertTitle>
+      <AlertDescription>
+        <p>{message}</p>
+        <Button className="mt-3" variant="outline" size="sm" onClick={onRetry}>
+          Retry
+        </Button>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -100,14 +103,20 @@ export function ApplicantSourcesTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+              <TableCell colSpan={9} className="p-0">
+                <PageLoadingState className="min-h-[8rem]" message="Loading applicant sources..." spinnerClassName="h-6 w-6" />
               </TableCell>
             </TableRow>
           ) : sortedSources.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                No Applicant sources found. Create your first source to get started.
+              <TableCell colSpan={9} className="p-0">
+                <PageStatusState
+                  className="min-h-[8rem]"
+                  description="Create your first source to get started."
+                  icon={Inbox}
+                  size="embedded"
+                  title="No applicant sources found"
+                />
               </TableCell>
             </TableRow>
           ) : (

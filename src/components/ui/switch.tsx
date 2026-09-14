@@ -10,18 +10,14 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-700",
+      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
       className
     )}
-    style={{ borderRadius: '9999px' }}
     {...props}
     ref={ref}
   >
     <SwitchPrimitives.Thumb
-      className={cn(
-        "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
-      )}
-      style={{ borderRadius: '9999px' }}
+      className="pointer-events-none block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
     />
   </SwitchPrimitives.Root>
 ))
@@ -39,7 +35,7 @@ const ThreeStateSwitch = React.forwardRef<
 >(({ value = 'off', onValueChange, className, ...props }, ref) => {
   const handleCheckedChange = () => {
     if (!onValueChange) return;
-    // Cycle through states: off → on → indeterminate → off
+
     if (value === 'off') {
       onValueChange('on');
     } else if (value === 'on') {
@@ -49,7 +45,6 @@ const ThreeStateSwitch = React.forwardRef<
     }
   };
 
-  // For visual: checked = 'on', indeterminate = special color, unchecked = 'off'
   const isChecked = value === 'on';
   const isIndeterminate = value === 'indeterminate';
 
@@ -60,26 +55,24 @@ const ThreeStateSwitch = React.forwardRef<
       onCheckedChange={handleCheckedChange}
       className={cn(
         "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        isChecked && "data-[state=checked]:bg-green-600",
-        isIndeterminate && "data-[state=checked]:bg-yellow-400",
-        !isChecked && !isIndeterminate && "data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-700",
+        isChecked && "data-[state=checked]:bg-primary",
+        isIndeterminate && "data-[state=checked]:bg-warning",
+        !isChecked && !isIndeterminate && "data-[state=unchecked]:bg-input",
         className
       )}
-      style={{ borderRadius: '9999px' }}
       {...props}
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform",
+          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-sm ring-0 transition-transform",
           isChecked && "data-[state=checked]:translate-x-4",
           isIndeterminate && "data-[state=checked]:translate-x-2",
           !isChecked && !isIndeterminate && "data-[state=unchecked]:translate-x-0"
         )}
-        style={{ borderRadius: '9999px' }}
       />
     </SwitchPrimitives.Root>
   );
 });
 ThreeStateSwitch.displayName = "ThreeStateSwitch";
 
-export { Switch, ThreeStateSwitch } 
+export { Switch, ThreeStateSwitch }

@@ -6,12 +6,19 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { useDynamicZIndex, useLayerInstanceId } from "@/contexts/ZIndexContext";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useDrawerStyle } from "@/hooks/use-drawer-style";
 import { cn } from "@/lib/utils";
+import {
+  hasLayerA11yChild,
+  LAYER_CLOSE_BUTTON_CLASS_NAME,
+  LAYER_OVERLAY_CLASS_NAME,
+} from "./layered-ui";
 import { SheetPortal } from "./sheet-root";
+import { SheetDescription, SheetTitle } from "./sheet-sections";
 
 const sheetVariants = cva(
-  "fixed gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  "fixed gap-4 bg-background p-6 shadow-xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
     variants: {
       side: {
@@ -43,11 +50,7 @@ const SheetOverlay = React.forwardRef<
 
   return (
     <SheetPrimitive.Overlay
-      className={cn(
-        "fixed inset-0 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "bg-black/70 dark:bg-black/80",
-        className,
-      )}
+      className={cn(LAYER_OVERLAY_CLASS_NAME, className)}
       style={{ zIndex: overlayZIndex }}
       {...props}
       ref={ref}
@@ -77,6 +80,10 @@ const SheetContent = React.forwardRef<
     isModern: drawerStyle === "modern",
     side,
   });
+  const hasVisibleTitle = hasLayerA11yChild(children, SheetPrimitive.Title.displayName);
+  const hasVisibleDescription = hasLayerA11yChild(children, SheetPrimitive.Description.displayName);
+  const needsFallbackTitle = !hasVisibleTitle && !props["aria-label"] && !props["aria-labelledby"];
+  const needsFallbackDescription = !hasVisibleDescription && props["aria-describedby"] === undefined;
 
   return (
     <SheetPortal>
@@ -91,10 +98,21 @@ const SheetContent = React.forwardRef<
         style={{ zIndex: contentZIndex, ...style }}
         {...props}
       >
-        <SheetPrimitive.Title className="sr-only">Sheet</SheetPrimitive.Title>
+        {needsFallbackTitle && (
+          <VisuallyHidden>
+            <SheetTitle>Sheet</SheetTitle>
+          </VisuallyHidden>
+        )}
+        {needsFallbackDescription && (
+          <VisuallyHidden>
+            <SheetDescription>Sheet content</SheetDescription>
+          </VisuallyHidden>
+        )}
         {children}
         {!hideCloseButton && (
-          <SheetPrimitive.Close className="absolute right-6 top-6 inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground shadow-sm ring-offset-background transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <SheetPrimitive.Close
+            className={cn("absolute right-6 top-6", LAYER_CLOSE_BUTTON_CLASS_NAME)}
+          >
             <XMarkIcon className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>

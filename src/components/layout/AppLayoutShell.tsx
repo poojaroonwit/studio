@@ -74,7 +74,7 @@ export function AppLayoutShell({
             <main
               id="main-content"
               tabIndex={-1}
-              className="relative min-h-0 flex-1 overflow-hidden bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground focus:outline-none md:pb-0 lg:p-3 xl:p-4"
+              className="relative min-h-0 flex-1 overflow-hidden bg-transparent pb-[calc(4rem+env(safe-area-inset-bottom))] text-foreground focus:outline-none md:pb-0 lg:px-3 lg:pb-3 lg:pt-0 xl:px-4 xl:pb-4 xl:pt-0"
             >
               <section className="h-full min-h-0 w-full min-w-0 overflow-hidden bg-background lg:rounded-[24px] lg:bg-background/95 lg:shadow-[0_18px_48px_hsl(var(--foreground)/0.08)]">
                 <div className="flex h-full min-h-0 w-full min-w-0 flex-col">

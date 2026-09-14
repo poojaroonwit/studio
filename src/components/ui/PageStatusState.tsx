@@ -7,6 +7,7 @@ interface PageStatusStateProps {
   className?: string;
   description: string;
   icon: ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>;
+  role?: 'alert' | 'status';
   title: string;
 }
 
@@ -15,6 +16,7 @@ export function PageStatusState({
   className,
   description,
   icon: Icon,
+  role = 'status',
   title,
 }: PageStatusStateProps) {
   return (
@@ -23,7 +25,7 @@ export function PageStatusState({
         'flex h-full min-h-[18rem] flex-col items-center justify-center p-8 text-center',
         className,
       )}
-      role="alert"
+      role={role}
     >
       <Icon
         aria-hidden="true"

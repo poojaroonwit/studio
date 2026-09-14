@@ -19,6 +19,7 @@ export function ServiceUnavailableState({ onRetry }: ServiceUnavailableStateProp
       ) : undefined}
       description="The service is temporarily unavailable. Please try again in a few moments."
       icon={ServerCrash}
+      role="alert"
       title="Service Unavailable"
     />
   );

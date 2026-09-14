@@ -180,6 +180,21 @@ if (/debug-(?:thai|english)-font/.test(globals)) {
   failures.push("src/app/globals.css: debug-only selectors are present");
 }
 
+const tailwindConfigPath = resolve(root, "tailwind.config.ts");
+const tailwindConfig = await readFile(tailwindConfigPath, "utf8");
+
+if (/(["'])DM Sans\1/.test(tailwindConfig)) {
+  failures.push(
+    "tailwind.config.ts: legacy DM Sans fallback is not allowed; use the shared IBM Plex Sans application stack",
+  );
+}
+
+if (!/fontFamily:\s*\{[\s\S]*?sans:\s*appSansStack/.test(tailwindConfig)) {
+  failures.push(
+    "tailwind.config.ts: font-sans must resolve through the shared application font stack",
+  );
+}
+
 for (const file of files.filter((candidate) => extname(candidate) === ".css")) {
   const source = await readFile(file, "utf8");
   if (/transition:\s*(?:width|height)/.test(source)) {

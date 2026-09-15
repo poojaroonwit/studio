@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildMobileNavItems, partitionMobileNavItems } from './MobileBottomNav';
+import {
+  buildEssMobileNavItems,
+  buildMobileNavItems,
+  isEmployeeSelfServicePath,
+  partitionMobileNavItems,
+} from './MobileBottomNav';
 
 describe('buildMobileNavItems', () => {
   it('keeps employee self-service separate from HR workforce operations', () => {
@@ -10,7 +15,7 @@ describe('buildMobileNavItems', () => {
     });
 
     expect(items.map(item => item.label)).toEqual(['Home', 'ESS', 'Growth']);
-    expect(items.find(item => item.label === 'ESS')?.href).toBe('/ess/profile');
+    expect(items.find(item => item.label === 'ESS')?.href).toBe('/employee-portal');
     expect(items.some(item => item.label === 'Workforce')).toBe(false);
     expect(items.some(item => item.label === 'Leave')).toBe(false);
   });
@@ -38,7 +43,7 @@ describe('buildMobileNavItems', () => {
       'Hiring',
       'Growth',
     ]);
-    expect(items.find(item => item.label === 'ESS')?.href).toBe('/ess/profile');
+    expect(items.find(item => item.label === 'ESS')?.href).toBe('/employee-portal');
     expect(items.find(item => item.label === 'Workforce')?.href).toBe('/workforce/attendance?view=attendance');
     expect(items.find(item => item.label === 'Leave')?.href).toBe('/workforce/leave');
     expect(items.find(item => item.label === 'Pay')?.href).toBe('/payroll');
@@ -59,6 +64,41 @@ describe('buildMobileNavItems', () => {
 
     expect(employeeItems.some(item => item.label === 'Admin')).toBe(false);
     expect(adminItems.some(item => item.label === 'Admin')).toBe(true);
+  });
+});
+
+describe('employee self-service mobile navigation', () => {
+  it('recognizes the employee portal and every ESS child route as the ESS mobile context', () => {
+    expect(isEmployeeSelfServicePath('/employee-portal')).toBe(true);
+    expect(isEmployeeSelfServicePath('/ess')).toBe(true);
+    expect(isEmployeeSelfServicePath('/ess/leave')).toBe(true);
+    expect(isEmployeeSelfServicePath('/workforce/leave')).toBe(false);
+  });
+
+  it('prioritizes daily employee actions and keeps the full ESS surface available', () => {
+    const items = buildEssMobileNavItems();
+    const { primaryItems, overflowItems } = partitionMobileNavItems(items);
+
+    expect(primaryItems.map(item => item.href)).toEqual([
+      '/employee-portal',
+      '/ess/attendance',
+      '/ess/leave',
+      '/ess/payslips',
+    ]);
+    expect(overflowItems.map(item => item.href)).toEqual(expect.arrayContaining([
+      '/ess/profile',
+      '/ess/requests',
+      '/ess/expenses',
+      '/ess/benefits',
+      '/ess/documents',
+      '/ess/learning',
+      '/ess/performance',
+      '/ess/overtime',
+      '/ess/attendance-corrections',
+      '/ess/shift-requests',
+      '/ess/onboarding',
+      '/my-workday',
+    ]));
   });
 });
 

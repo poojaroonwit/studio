@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastNotification } from '@/lib/simple-broadcaster';
+import { fanOutNativePush } from '@/lib/native-push';
 
 import {
   buildApplicantAddedNotification,
@@ -26,7 +27,7 @@ export class NotificationService {
     actingUserId?: string
   ) {
     try {
-      return await createNotificationWithAudit({
+      const created = await createNotificationWithAudit({
         actingUserId,
         broadcastNotification,
         createNotificationRecord: ({ userId: targetUserId, notification: notificationData }) =>
@@ -43,6 +44,22 @@ export class NotificationService {
         notification,
         userId,
       });
+
+      if (created) {
+        try {
+          await Promise.race([
+            fanOutNativePush(userId, {
+              title: notification.title,
+              message: notification.message,
+              data: notification.data,
+            }),
+            new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+          ]);
+        } catch (error) {
+          console.warn('[native-push] Native delivery failed without blocking in-app notification', error);
+        }
+      }
+      return created;
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;

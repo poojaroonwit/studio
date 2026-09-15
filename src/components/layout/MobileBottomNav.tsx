@@ -139,6 +139,11 @@ export function buildEssMobileNavItems(
       icon: AcademicCap,
     },
     {
+      href: '/ess/mobile-settings',
+      label: localize('navigation.mobileApp', 'Mobile app'),
+      icon: Settings,
+    },
+    {
       href: '/my-workday',
       label: localize('navigation.work', 'Work'),
       icon: CalendarDays,

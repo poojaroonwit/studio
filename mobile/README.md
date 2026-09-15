@@ -1,52 +1,117 @@
 # Hrive Native Mobile
 
-This workspace packages the existing Hrive / OBSI People Employee Self Service experience as native iOS and Android applications with Capacitor.
+Hrive packages the shared OBSI People / Employee Self Service experience as native iOS and Android apps with Capacitor. Business logic, authentication, permissions, localization, and ESS screens remain shared with `people.outborn.co`; native code supplies device capabilities and store packaging.
 
-## Product model
-
-The native apps do not duplicate ESS screens. They open the same production Hrive application at `https://people.outborn.co/employee-portal`, so authentication, permissions, APIs, localization, and ESS features stay shared with the web and PWA products.
-
-Native application identity:
+## Native identity
 
 - App name: `Hrive`
-- Bundle / application id: `co.outborn.people`
-- Initial route: `/employee-portal`
-- Platforms: iOS and Android
-- Cleartext HTTP: disabled
-- Android mixed content: disabled
+- Bundle/application id: `co.outborn.people`
+- Initial route: `https://people.outborn.co/employee-portal`
+- Custom link scheme: `hrive://`
+- Universal/App Link host: `people.outborn.co`
+- Platforms: iOS + Android
+- Cleartext HTTP and Android mixed content: disabled
+- Production WebView debugging: disabled
+
+## Implemented native capabilities
+
+- Push registration and notification tap routing
+- FCM HTTP v1 delivery for Android and APNs HTTP/2 delivery for iOS
+- Apple Universal Links, Android App Links, and `hrive://` fallback links
+- Face ID / Touch ID / Android biometric or device-credential lock
+- Keychain / Android Keystore-backed secure storage
+- Secure offline mutation queue with automatic replay after reconnect/resume
+- Native connectivity state
+- Camera/photo picker, document/file writes, native share sheet, external browser
+- Haptics and local notifications
+- Native splash screen, status bar, keyboard resizing, safe area support, Android back handling
+- Generated native icons and light/dark splash assets from the Hrive product icon
+- Native version/build-number synchronization
+- iOS and Android compile gates on pull requests
+- Signed Google Play and App Store Connect/TestFlight release workflow
 
 ## Prepare native projects
 
 Requirements:
 
 - Node.js 22+
+- Java 21 + Android SDK for Android development
 - Xcode for iOS development
-- Android Studio / Android SDK for Android development
-
-From this directory:
 
 ```bash
+cd mobile
 npm install
 npm run native:prepare
 ```
 
-`native:prepare` creates the native `ios/` and `android/` projects when missing and then runs `cap sync`. The generated platform projects are intentionally not committed; they are reproducible from the versioned Capacitor configuration and this workspace.
+`native:prepare` creates `ios/` and `android/` when missing, syncs all plugins, generates icons/splashes, and applies platform hardening/configuration. The generated platform trees are intentionally reproducible and are not committed.
 
-Open the projects with:
+Open or run:
 
 ```bash
 npm run native:open:ios
 npm run native:open:android
-```
-
-Run Capacitor diagnostics with:
-
-```bash
+npm run native:run:ios
+npm run native:run:android
 npm run native:doctor
 ```
 
-## Release notes
+## Server environment for native push and verified links
 
-App Store and Play Store signing identities, provisioning profiles, store listing metadata, screenshots, privacy disclosures, and production signing secrets must be supplied through the release environment rather than committed to the repository.
+Android push:
 
-Any ESS feature added to the shared Hrive routes becomes available in the native apps without a second UI implementation. Native-only device capabilities should be added as Capacitor plugins only when the capability cannot be provided by the shared web application.
+- `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`
+- `GOOGLE_SERVICES_JSON_BASE64` for generated Android app builds
+
+Apple push:
+
+- `APPLE_TEAM_ID`
+- `APPLE_APNS_KEY_ID`
+- `APPLE_APNS_PRIVATE_KEY` or `APPLE_APNS_PRIVATE_KEY_BASE64`
+- `APPLE_APNS_TOPIC` (defaults to `co.outborn.people`)
+- `APPLE_APNS_ENVIRONMENT=production` in production
+
+Verified links:
+
+- `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINTS` — comma-separated release certificate fingerprints
+- `APPLE_TEAM_ID`
+
+Without push-provider credentials, Hrive continues to create normal in-app notifications; native delivery is skipped safely.
+
+## Store release secrets
+
+The `Native store release` GitHub Actions workflow is manual and validates secrets before building.
+
+Android:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
+- `GOOGLE_SERVICES_JSON_BASE64`
+
+Apple:
+
+- `APPLE_TEAM_ID`
+- `APPLE_DISTRIBUTION_CERTIFICATE_BASE64`
+- `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD`
+- `APPLE_PROVISIONING_PROFILE_BASE64`
+- `APPLE_PROVISIONING_PROFILE_NAME`
+- `APPLE_BUILD_KEYCHAIN_PASSWORD` (optional; CI can generate a temporary password)
+- `APP_STORE_CONNECT_API_KEY_ID`
+- `APP_STORE_CONNECT_ISSUER_ID`
+- `APP_STORE_CONNECT_API_KEY_BASE64`
+
+Signing credentials, APNs keys, Firebase credentials, provisioning profiles, and App Store Connect keys must never be committed to source control.
+
+## Release flow
+
+1. Merge changes after the web quality gates and the `Native mobile` Android/iOS compile gates are green.
+2. Configure the release secrets above.
+3. Ensure the app records for `co.outborn.people` exist in App Store Connect and Google Play Console.
+4. Run **Native store release** and select iOS, Android, or both.
+5. Android uploads the signed AAB to the selected Play track. iOS uploads the signed IPA to App Store Connect/TestFlight.
+6. Complete store privacy declarations, screenshots, pricing/availability, and review submission in the store consoles when required.
+
+The repository automates the build and upload path; Apple/Google account ownership, legal agreements, and review approval remain external platform requirements.

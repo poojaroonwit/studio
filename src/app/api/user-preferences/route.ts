@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { getJsonObject, getJsonString } from '@/lib/json-types';
 import { readRequestJsonObject } from '@/lib/request-json';
 import prisma from '@/lib/prisma';
+import { NATIVE_DEVICE_MODEL_TYPE } from '@/lib/native-mobile-device-registry';
 import {
   buildUserPreferenceUpserts,
   isValidUserPreferenceModelType,
@@ -20,7 +21,10 @@ async function requireCurrentUserId() {
 async function fetchUserPreferencesWithTimeout(userId: string) {
   return Promise.race([
     prisma.userUIDisplayPreference.findMany({
-      where: { userId },
+      where: {
+        userId,
+        NOT: { modelType: NATIVE_DEVICE_MODEL_TYPE },
+      },
       orderBy: { createdAt: 'asc' },
       select: {
         modelType: true,
@@ -111,7 +115,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.userUIDisplayPreference.deleteMany({
       where: modelType
         ? { userId, modelType: normalizeUserPreferenceModelType(modelType) }
-        : { userId },
+        : { userId, NOT: { modelType: NATIVE_DEVICE_MODEL_TYPE } },
     });
 
     return NextResponse.json({ success: true });

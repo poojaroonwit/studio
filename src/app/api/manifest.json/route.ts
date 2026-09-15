@@ -9,6 +9,37 @@ type ManifestSettingRow = QueryResultRow & {
   value: string | null;
 };
 
+const pwaShortcuts = [
+  {
+    name: 'Employee self service',
+    short_name: 'ESS',
+    description: 'Open the employee self-service home',
+    url: '/employee-portal',
+    icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+  },
+  {
+    name: 'Attendance',
+    short_name: 'Attendance',
+    description: 'View attendance and time records',
+    url: '/ess/attendance',
+    icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+  },
+  {
+    name: 'Leave',
+    short_name: 'Leave',
+    description: 'View and manage employee leave',
+    url: '/ess/leave',
+    icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+  },
+  {
+    name: 'Payslips',
+    short_name: 'Pay',
+    description: 'Open employee payslips',
+    url: '/ess/payslips',
+    icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
+  },
+];
+
 // Public endpoint: PWA manifest must be readable before authentication.
 export async function GET() {
   try {
@@ -26,9 +57,9 @@ export async function GET() {
     }
 
     const manifest = {
-      name: settings.pwaName || `${settings.appName || 'hrive'} - AI-assisted recruitment platform`,
+      name: settings.pwaName || `${settings.appName || 'hrive'} - People and employee self service`,
       short_name: settings.pwaShortName || settings.appName || 'hrive',
-      description: settings.pwaDescription || 'AI-assisted recruitment and applicant management platform',
+      description: settings.pwaDescription || 'People operations and employee self-service for attendance, leave, pay, expenses, documents, and development',
       start_url: '/',
       display: 'standalone',
       background_color: settings.pwaBackgroundColor || '#171a26',
@@ -63,7 +94,7 @@ export async function GET() {
       ],
       categories: ['business', 'productivity'],
       screenshots: [],
-      shortcuts: [],
+      shortcuts: pwaShortcuts,
       prefer_related_applications: false
     };
 
@@ -84,9 +115,9 @@ export async function GET() {
     // Return a default manifest on error to prevent PWA from failing completely
     console.warn('[PWA Manifest] Returning fallback manifest due to error');
     return NextResponse.json({
-      name: 'hrive - AI-assisted recruitment platform',
+      name: 'hrive - People and employee self service',
       short_name: 'hrive',
-      description: 'AI-assisted recruitment and applicant management platform',
+      description: 'People operations and employee self-service for attendance, leave, pay, expenses, documents, and development',
       start_url: '/',
       display: 'standalone',
       background_color: '#171a26',
@@ -107,7 +138,9 @@ export async function GET() {
           purpose: 'any'
         }
       ],
-      categories: ['business', 'productivity']
+      categories: ['business', 'productivity'],
+      shortcuts: pwaShortcuts,
+      prefer_related_applications: false,
     }, {
       status: 200,
       headers: {
@@ -117,4 +150,3 @@ export async function GET() {
     });
   }
 }
-

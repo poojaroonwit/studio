@@ -1,7 +1,7 @@
 {
-  "name": "hrive - AI-assisted recruitment platform",
+  "name": "hrive - People and employee self service",
   "short_name": "hrive",
-  "description": "AI-assisted recruitment and applicant management platform",
+  "description": "People operations and employee self-service for attendance, leave, pay, expenses, documents, and development",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#171a26",
@@ -36,7 +36,35 @@
   ],
   "categories": ["business", "productivity"],
   "screenshots": [],
-  "shortcuts": [],
+  "shortcuts": [
+    {
+      "name": "Employee self service",
+      "short_name": "ESS",
+      "description": "Open the employee self-service home",
+      "url": "/employee-portal",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Attendance",
+      "short_name": "Attendance",
+      "description": "View attendance and time records",
+      "url": "/ess/attendance",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Leave",
+      "short_name": "Leave",
+      "description": "View and manage employee leave",
+      "url": "/ess/leave",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Payslips",
+      "short_name": "Pay",
+      "description": "Open employee payslips",
+      "url": "/ess/payslips",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "prefer_related_applications": false
 }
-

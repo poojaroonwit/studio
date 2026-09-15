@@ -57,23 +57,26 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -netdelay none -netspeed full
           script: |
+            adb shell cmd connectivity airplane-mode disable || true
+            adb shell svc wifi enable || true
+            adb shell svc data enable || true
+            timeout 120s adb shell 'until ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; do sleep 2; done'
+            timeout 120s adb shell 'until ping -c 1 -W 2 people.outborn.co >/dev/null 2>&1; do sleep 2; done'
+            adb shell dumpsys connectivity > mobile/android-emulator-connectivity.txt || true
             adb logcat -c
             adb install -r mobile/android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop co.outborn.people
-            adb shell am start -W -n co.outborn.people/.MainActivity > mobile/android-emulator-start.txt 2>&1 || true
-            sleep 15
+            adb shell am start -W -n co.outborn.people/.MainActivity > mobile/android-emulator-start.txt 2>&1
+            sleep 20
             adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' > mobile/android-emulator-focus.txt || true
             adb shell dumpsys activity activities | grep -A 12 -B 4 'co.outborn.people' > mobile/android-emulator-activity.txt || true
             adb exec-out screencap -p > mobile/android-emulator.png || true
             adb logcat -d > mobile/android-emulator-logcat.txt || true
-            PID=$(adb shell pidof co.outborn.people | tr -d '\r')
-            echo "${PID:-not-running}" > mobile/android-emulator-pid.txt
-            if [ -z "$PID" ]; then
-              echo 'Hrive process exited after launch.'
-              exit 1
-            fi
-            echo "Hrive process is running with PID $PID"
+            adb shell pidof co.outborn.people | tr -d '\r' | tee mobile/android-emulator-pid.txt | grep -Eq '[0-9]+'
+            grep -q 'co.outborn.people/.MainActivity' mobile/android-emulator-focus.txt
+            ! grep -q 'FATAL EXCEPTION.*co.outborn.people' mobile/android-emulator-logcat.txt
 
       - name: Upload emulator evidence
         if: always()
@@ -85,6 +88,7 @@ jobs:
             mobile/android-emulator-start.txt
             mobile/android-emulator-focus.txt
             mobile/android-emulator-activity.txt
+            mobile/android-emulator-connectivity.txt
             mobile/android-emulator-logcat.txt
             mobile/android-emulator-pid.txt
           if-no-files-found: warn

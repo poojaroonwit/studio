@@ -61,19 +61,8 @@ jobs:
           script: |
             adb shell cmd connectivity airplane-mode disable || true
             adb shell svc wifi enable || true
-            NETWORK_READY=0
-            for i in $(seq 1 75); do
-              if adb shell dumpsys connectivity | grep -q 'VALIDATED'; then
-                NETWORK_READY=1
-                break
-              fi
-              sleep 2
-            done
+            for i in $(seq 1 75); do adb shell dumpsys connectivity | grep -q 'VALIDATED' && exit 0; sleep 2; done; echo 'Android emulator network never reached VALIDATED state.'; exit 1
             adb shell dumpsys connectivity > mobile/android-emulator-connectivity.txt || true
-            if [ "$NETWORK_READY" -ne 1 ]; then
-              echo 'Android emulator network never reached VALIDATED state.'
-              exit 1
-            fi
             adb logcat -c
             adb install -r mobile/android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am force-stop co.outborn.people

@@ -26,6 +26,14 @@ type PushPlugin = {
   checkPermissions: () => Promise<{ receive: string }>;
   requestPermissions: () => Promise<{ receive: string }>;
   register: () => Promise<void>;
+  createChannel?: (options: {
+    id: string;
+    name: string;
+    description?: string;
+    importance?: number;
+    visibility?: number;
+    sound?: string;
+  }) => Promise<void>;
   addListener: <T>(eventName: string, callback: ListenerCallback<T>) => Promise<ListenerHandle>;
 };
 type DevicePlugin = {
@@ -54,7 +62,6 @@ type SecureStoragePlugin = {
     sync: boolean;
     access: number;
   }) => Promise<void>;
-  internalRemoveItem: (options: { prefixedKey: string; sync: boolean }) => Promise<{ success: boolean }>;
 };
 type BiometricPlugin = {
   checkBiometry: () => Promise<{
@@ -330,9 +337,22 @@ async function registerDeviceToken(token: string): Promise<void> {
   dispatchStatusChanged();
 }
 
+async function ensureAndroidPushChannel(push: PushPlugin): Promise<void> {
+  if (getNativePlatform() !== 'android' || !push.createChannel) return;
+  await push.createChannel({
+    id: 'hrive_general',
+    name: 'Hrive notifications',
+    description: 'Employee self-service alerts and workflow updates',
+    importance: 4,
+    visibility: 1,
+    sound: 'default',
+  }).catch(() => undefined);
+}
+
 async function requestPushPermission(): Promise<string> {
   const push = getNativePlugin<PushPlugin>('PushNotifications');
   if (!push) return 'unavailable';
+  await ensureAndroidPushChannel(push);
   let permission = await push.checkPermissions();
   if (permission.receive === 'prompt' || permission.receive === 'prompt-with-rationale') {
     permission = await push.requestPermissions();
@@ -381,7 +401,7 @@ function buildNativeApi(): HriveNativeApi {
           quality: 85,
           allowEditing: false,
           resultType: 'uri',
-          source: 'prompt',
+          source: 'PROMPT',
           correctOrientation: true,
         });
       } catch {
@@ -502,6 +522,7 @@ async function initializeNativeRuntime(): Promise<void> {
   }
 
   if (push) {
+    await ensureAndroidPushChannel(push);
     const currentPermission = await push.checkPermissions().catch(() => ({ receive: 'prompt' }));
     pushPermission = currentPermission.receive;
     listeners.push(await push.addListener<PushRegistration>('registration', ({ value }) => {

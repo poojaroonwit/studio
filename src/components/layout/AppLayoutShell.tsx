@@ -81,7 +81,10 @@ export function AppLayoutShell({
                   {showSecondaryNavigation ? (
                     <HeaderSecondaryNavigation pathname={pathname} />
                   ) : null}
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
+                  <div
+                    data-page-content
+                    className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] [&>*]:w-full [&>*]:max-w-none"
+                  >
                     {children}
                   </div>
                 </div>

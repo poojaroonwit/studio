@@ -241,7 +241,7 @@ async function registerDeviceToken(token: string): Promise<void> {
   const [deviceId, deviceInfo, appInfo] = await Promise.all([
     device?.getId().catch(() => ({ identifier: 'unknown' })) ?? Promise.resolve({ identifier: 'unknown' }),
     device?.getInfo().catch(() => ({})) ?? Promise.resolve({}),
-    app?.getInfo().catch(() => ({})) ?? Promise.resolve({}),
+    app?.getInfo().catch(() => ({})) ?? Promise.resolve<{ version?: string; build?: string }>({}),
   ]);
   const response = await originalFetch('/api/mobile/devices', {
     method: 'POST',

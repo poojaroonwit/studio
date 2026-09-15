@@ -40,7 +40,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
       - name: Validate Android release secrets
         working-directory: mobile
         env:

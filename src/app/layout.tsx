@@ -114,7 +114,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = fastDev ? null : await getValidatedAuthSession();
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${ibmPlexSans.variable} ${ibmPlexSansThai.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${ibmPlexSans.variable} ${ibmPlexSansThai.variable} app-page-canvas`}
+    >
       <head>
         {/* PWA Configuration - Will be conditionally added via PWAMetaTags component in body */}
         {/* Font preloading for better performance */}
@@ -122,7 +126,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
       </head>
-      <body>
+      <body className="app-page-canvas">
         <Script id="theme-initializer" strategy="beforeInteractive">
           {themeInitializerScript}
         </Script>

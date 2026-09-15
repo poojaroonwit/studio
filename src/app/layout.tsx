@@ -8,7 +8,7 @@ import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TgInitializationErrorBoundary } from '@/components/ui/TgInitializationErrorBoundary';
-import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { NativeAwareMobileBottomNav } from '@/components/layout/NativeAwareMobileBottomNav';
 import { SystemProtectionFeatures } from '@/components/security/SystemProtectionFeatures';
 import { themeInitializerScript } from './theme-initializer-script';
 import { getSystemSetting } from '@/lib/systemSettings';
@@ -136,7 +136,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <div id="screen-capture-protected-content" className="h-full w-full">
                   {children}
                 </div>
-                <MobileBottomNav />
+                <NativeAwareMobileBottomNav />
               </ClientProviders>
             </FontLoader>
           </ErrorBoundary>

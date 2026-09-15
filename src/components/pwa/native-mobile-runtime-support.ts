@@ -1,9 +1,15 @@
 export type ListenerHandle = { remove: () => Promise<void> | void };
 export type ListenerCallback<T> = (event: T) => void;
 
+export type NativeAppInfo = { version?: string; build?: string };
+
+type NativeAppInfoRequest = {
+  catch: (onRejected: (reason: unknown) => NativeAppInfo) => Promise<NativeAppInfo>;
+};
+
 export type AppPlugin = {
   addListener: <T>(eventName: string, callback: ListenerCallback<T>) => Promise<ListenerHandle>;
-  getInfo: () => Promise<{ version?: string; build?: string }>;
+  getInfo: () => NativeAppInfoRequest;
   exitApp: () => Promise<void>;
 };
 

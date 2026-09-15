@@ -10,7 +10,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'hrive',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
-  icon: '../public/icon-512x512.png',
+  icon: './assets/icon.png',
   ios: {
     ...config.ios,
     bundleIdentifier: 'co.outborn.hrive',
@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     ...config.android,
     package: 'co.outborn.hrive',
-    icon: '../public/icon-512x512.png',
+    icon: './assets/icon.png',
     predictiveBackGestureEnabled: true,
     intentFilters: [
       {

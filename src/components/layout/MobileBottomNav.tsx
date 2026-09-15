@@ -11,6 +11,7 @@ import {
   ClockIcon as Clock,
   Cog6ToothIcon as Settings,
   EllipsisHorizontalIcon as MoreHorizontal,
+  HomeIcon as Home,
   IdentificationIcon as Identification,
   UsersIcon as Users,
 } from "@heroicons/react/24/outline";
@@ -37,6 +38,99 @@ export type MobileNavItem = {
   icon: React.ElementType;
 };
 
+export function isEmployeeSelfServicePath(pathname: string) {
+  return pathname === '/employee-portal'
+    || pathname === '/ess'
+    || pathname.startsWith('/ess/');
+}
+
+export function buildEssMobileNavItems(
+  localize: (key: string, fallback: string) => string = (_, fallback) => fallback,
+): MobileNavItem[] {
+  return [
+    {
+      href: '/employee-portal',
+      label: localize('navigation.essHome', 'Home'),
+      icon: Home,
+    },
+    {
+      href: '/ess/attendance',
+      label: localize('navigation.attendance', 'Attendance'),
+      icon: Clock,
+    },
+    {
+      href: '/ess/leave',
+      label: localize('navigation.leave', 'Leave'),
+      icon: CalendarDays,
+    },
+    {
+      href: '/ess/payslips',
+      label: localize('navigation.payslips', 'Pay'),
+      icon: Banknotes,
+    },
+    {
+      href: '/ess/profile',
+      label: localize('navigation.profile', 'Profile'),
+      icon: Identification,
+    },
+    {
+      href: '/ess/requests',
+      label: localize('navigation.requests', 'Requests'),
+      icon: Briefcase,
+    },
+    {
+      href: '/ess/expenses',
+      label: localize('navigation.expenses', 'Expenses'),
+      icon: Banknotes,
+    },
+    {
+      href: '/ess/benefits',
+      label: localize('navigation.benefits', 'Benefits'),
+      icon: Users,
+    },
+    {
+      href: '/ess/documents',
+      label: localize('navigation.documents', 'Documents'),
+      icon: Identification,
+    },
+    {
+      href: '/ess/learning',
+      label: localize('navigation.learning', 'Learning'),
+      icon: AcademicCap,
+    },
+    {
+      href: '/ess/performance',
+      label: localize('navigation.performance', 'Performance'),
+      icon: Users,
+    },
+    {
+      href: '/ess/overtime',
+      label: localize('navigation.overtime', 'Overtime'),
+      icon: Clock,
+    },
+    {
+      href: '/ess/attendance-corrections',
+      label: localize('navigation.attendanceCorrections', 'Corrections'),
+      icon: Clock,
+    },
+    {
+      href: '/ess/shift-requests',
+      label: localize('navigation.shiftRequests', 'Shift requests'),
+      icon: CalendarDays,
+    },
+    {
+      href: '/ess/onboarding',
+      label: localize('navigation.onboarding', 'Onboarding'),
+      icon: AcademicCap,
+    },
+    {
+      href: '/my-workday',
+      label: localize('navigation.work', 'Work'),
+      icon: CalendarDays,
+    },
+  ];
+}
+
 export function buildMobileNavItems(
   user: SessionLikeUser,
   localize: (key: string, fallback: string) => string = (_, fallback) => fallback,
@@ -61,7 +155,7 @@ export function buildMobileNavItems(
       show: canViewPeople,
     },
     {
-      href: "/ess/profile",
+      href: "/employee-portal",
       label: localize("navigation.ess", "ESS"),
       icon: Identification,
       show: true,
@@ -136,7 +230,10 @@ export function MobileBottomNav() {
     return null;
   }
 
-  const navItems = buildMobileNavItems(session.user, t);
+  const isEssContext = isEmployeeSelfServicePath(pathname || '');
+  const navItems = isEssContext
+    ? buildEssMobileNavItems(t)
+    : buildMobileNavItems(session.user, t);
   const { primaryItems, overflowItems } = partitionMobileNavItems(navItems);
   const overflowIsActive = overflowItems.some(item => isSidebarItemActive(pathname || "", item));
 
@@ -146,7 +243,9 @@ export function MobileBottomNav() {
         "fixed inset-x-0 bottom-0 z-[100] border-t border-border/80 bg-card/95 backdrop-blur-md md:hidden no-print",
         "shadow-[0_-4px_16px_hsl(var(--foreground)/0.08)]"
       )}
-      aria-label={t("navigation.primaryMobile", "Primary mobile navigation")}
+      aria-label={isEssContext
+        ? t('navigation.essMobile', 'Employee self-service mobile navigation')
+        : t("navigation.primaryMobile", "Primary mobile navigation")}
     >
       <div className="flex min-h-16 items-stretch justify-around pb-[env(safe-area-inset-bottom)]">
         {primaryItems.map((item) => {
@@ -198,9 +297,15 @@ export function MobileBottomNav() {
               className="max-h-[72dvh] overflow-y-auto rounded-t-2xl pb-[calc(1rem+env(safe-area-inset-bottom))]"
             >
               <SheetHeader className="text-left">
-                <SheetTitle>{t("navigation.moreDestinations", "More destinations")}</SheetTitle>
+                <SheetTitle>
+                  {isEssContext
+                    ? t('navigation.moreEssServices', 'More self-service')
+                    : t("navigation.moreDestinations", "More destinations")}
+                </SheetTitle>
                 <SheetDescription>
-                  {t("navigation.moreDestinationsDescription", "Open additional Hrive areas available to your account.")}
+                  {isEssContext
+                    ? t('navigation.moreEssServicesDescription', 'Open your remaining employee self-service tools without leaving the mobile experience.')
+                    : t("navigation.moreDestinationsDescription", "Open additional Hrive areas available to your account.")}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">

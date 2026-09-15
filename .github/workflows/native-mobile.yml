@@ -50,7 +50,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
       - name: Install native dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund

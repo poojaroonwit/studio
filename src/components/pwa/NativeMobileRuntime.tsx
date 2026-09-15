@@ -7,84 +7,30 @@ import {
   isNativeHriveApp,
   type HriveNativeApi,
   type NativeMobileStatus,
-  type NativePhotoResult,
 } from '@/lib/native-mobile';
-
-type ListenerHandle = { remove: () => Promise<void> | void };
-type ListenerCallback<T> = (event: T) => void;
-
-type AppPlugin = {
-  addListener: <T>(eventName: string, callback: ListenerCallback<T>) => Promise<ListenerHandle>;
-  getInfo: () => Promise<{ version?: string; build?: string }>;
-  exitApp: () => Promise<void>;
-};
-type NetworkPlugin = {
-  getStatus: () => Promise<{ connected: boolean; connectionType: string }>;
-  addListener: <T>(eventName: string, callback: ListenerCallback<T>) => Promise<ListenerHandle>;
-};
-type PushPlugin = {
-  checkPermissions: () => Promise<{ receive: string }>;
-  requestPermissions: () => Promise<{ receive: string }>;
-  register: () => Promise<void>;
-  createChannel?: (options: {
-    id: string;
-    name: string;
-    description?: string;
-    importance?: number;
-    visibility?: number;
-    sound?: string;
-  }) => Promise<void>;
-  addListener: <T>(eventName: string, callback: ListenerCallback<T>) => Promise<ListenerHandle>;
-};
-type DevicePlugin = {
-  getId: () => Promise<{ identifier: string }>;
-  getInfo: () => Promise<Record<string, unknown>>;
-};
-type SplashPlugin = { hide: () => Promise<void> };
-type StatusBarPlugin = { setStyle: (options: { style: string }) => Promise<void> };
-type HapticsPlugin = { impact: (options: { style: string }) => Promise<void> };
-type CameraPlugin = { getPhoto: (options: Record<string, unknown>) => Promise<NativePhotoResult> };
-type FilesystemPlugin = {
-  writeFile: (options: Record<string, unknown>) => Promise<{ uri?: string }>;
-};
-type SharePlugin = { share: (options: Record<string, unknown>) => Promise<unknown> };
-type BrowserPlugin = { open: (options: { url: string }) => Promise<void> };
-type LocalNotificationsPlugin = {
-  checkPermissions: () => Promise<{ display: string }>;
-  requestPermissions: () => Promise<{ display: string }>;
-  schedule: (options: Record<string, unknown>) => Promise<void>;
-};
-type SecureStoragePlugin = {
-  internalGetItem: (options: { prefixedKey: string; sync: boolean }) => Promise<{ data: string | null }>;
-  internalSetItem: (options: {
-    prefixedKey: string;
-    data: string;
-    sync: boolean;
-    access: number;
-  }) => Promise<void>;
-};
-type BiometricPlugin = {
-  checkBiometry: () => Promise<{
-    isAvailable?: boolean;
-    deviceIsSecure?: boolean;
-    biometryType?: string | number;
-  }>;
-  internalAuthenticate: (options: Record<string, unknown>) => Promise<void>;
-};
-
-type OfflineRequest = {
-  id: string;
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-  body: string | null;
-  createdAt: string;
-};
-
-type PushRegistration = { value?: string };
-type PushAction = { notification?: { data?: Record<string, unknown> } };
-type AppUrlOpen = { url?: string };
-type AppStateChange = { isActive?: boolean };
+import {
+  routeNativeUrl,
+  type AppPlugin,
+  type AppStateChange,
+  type AppUrlOpen,
+  type BiometricPlugin,
+  type BrowserPlugin,
+  type CameraPlugin,
+  type DevicePlugin,
+  type FilesystemPlugin,
+  type HapticsPlugin,
+  type ListenerHandle,
+  type LocalNotificationsPlugin,
+  type NetworkPlugin,
+  type OfflineRequest,
+  type PushAction,
+  type PushPlugin,
+  type PushRegistration,
+  type SecureStoragePlugin,
+  type SharePlugin,
+  type SplashPlugin,
+  type StatusBarPlugin,
+} from './native-mobile-runtime-support';
 
 const OFFLINE_QUEUE_KEY = 'native_offline_queue_v1';
 const BIOMETRIC_LOCK_KEY = 'native_biometric_lock';
@@ -147,26 +93,6 @@ function dispatchStatusChanged(): void {
   window.dispatchEvent(new CustomEvent('hrive-native-status-changed'));
 }
 
-function routeNativeUrl(rawUrl: string): void {
-  try {
-    const url = new URL(rawUrl, window.location.origin);
-    let destination = url.pathname + url.search + url.hash;
-    if (url.protocol === 'hrive:') {
-      const hostPath = url.hostname ? `/${url.hostname}` : '';
-      destination = `${hostPath}${url.pathname}${url.search}${url.hash}`;
-    }
-    if (
-      destination.startsWith('/ess')
-      || destination.startsWith('/employee-portal')
-      || destination.startsWith('/my-workday')
-    ) {
-      window.location.assign(destination);
-    }
-  } catch {
-    // Ignore malformed external payloads rather than navigating the WebView.
-  }
-}
-
 async function requestBodyText(input: RequestInfo | URL, init?: RequestInit): Promise<string | null> {
   if (typeof init?.body === 'string') return init.body;
   if (input instanceof Request) {
@@ -209,10 +135,7 @@ function canQueueMutation(url: URL, method: string, body: string | null): boolea
     && body !== null;
 }
 
-async function queueOfflineMutation(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<Response | null> {
+async function queueOfflineMutation(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
   if (nativeConnected) return null;
   const url = requestUrl(input);
   const method = requestMethod(input, init);

@@ -30,17 +30,40 @@ body {
 }
 
 body {
-  background: hsl(var(--app-page-background, var(--background)));
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
+/*
+ * The application shell owns the visual backdrop. Pages themselves stay
+ * transparent so theme/backdrop changes remain visible consistently across
+ * every route. The class selector deliberately outranks legacy html/body
+ * background rules without making component surfaces transparent.
+ */
+html.app-page-canvas,
+body.app-page-canvas,
+body.app-page-canvas #screen-capture-protected-content,
+body.app-page-canvas #main-content {
+  background: transparent;
+  background-color: transparent;
+}
+
 /* Components and portalled overlays inherit the exact same application stack. */
 *,
 *::before,
 *::after {
+  font-family: inherit;
+}
+
+/* Native form controls can otherwise fall back to a platform UI font. */
+button,
+input,
+textarea,
+select,
+option,
+optgroup {
   font-family: inherit;
 }
 

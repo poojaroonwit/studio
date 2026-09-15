@@ -17,6 +17,7 @@ import { isFullPageWorkspacePath } from '@/lib/full-page-routes';
 import { LocalizationProvider } from '@/contexts/LocalizationContext';
 import { LocalizationRuntime } from '@/components/providers/LocalizationRuntime';
 import { PWAClientFeatures } from '@/components/pwa/PWAClientFeatures';
+import { NativeMobileRuntime } from '@/components/pwa/NativeMobileRuntime';
 
 interface ClientProvidersProps {
   children: React.ReactNode;
@@ -57,6 +58,7 @@ export function ClientProviders({ children, session }: ClientProvidersProps) {
             <GlobalSettingsProvider>
               <LocalizationRuntime />
               <PWAClientFeatures />
+              <NativeMobileRuntime />
               {fastDev ? (
                 <>
                   <RamdaPolyfillInitializer />

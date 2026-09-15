@@ -1,5 +1,11 @@
 node_modules/
 ios/
 android/
+assets/
+release.keystore
+*.p12
+*.mobileprovision
+*.ipa
+*.aab
 .DS_Store
 *.log

@@ -1,22 +1,45 @@
 {
   "name": "@hrive/native-mobile",
-  "version": "1.0.0",
+  "version": "1.2.6",
   "private": true,
-  "description": "Native iOS and Android shell for Hrive / OBSI People employee self service",
+  "description": "Native iOS and Android runtime for Hrive / OBSI People employee self service",
   "scripts": {
     "native:prepare": "node scripts/prepare-native.mjs",
-    "native:sync": "npx cap sync",
+    "native:assets": "node scripts/prepare-assets.mjs && npx @capacitor/assets generate --iconBackgroundColor '#ffffff' --iconBackgroundColorDark '#111827' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#111827'",
+    "native:configure": "node scripts/configure-generated-native.mjs",
+    "native:sync": "npx cap sync && npm run native:configure",
     "native:open:ios": "npx cap open ios",
     "native:open:android": "npx cap open android",
-    "native:doctor": "npx cap doctor"
+    "native:run:ios": "npx cap run ios",
+    "native:run:android": "npx cap run android",
+    "native:doctor": "npx cap doctor",
+    "release:check": "node scripts/validate-release-env.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
-    "@capacitor/ios": "^8.0.0"
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@aparajita/capacitor-secure-storage": "8.0.0",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/camera": "^8.0.0",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/device": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/keyboard": "^8.0.0",
+    "@capacitor/local-notifications": "^8.0.0",
+    "@capacitor/network": "^8.0.0",
+    "@capacitor/preferences": "^8.0.0",
+    "@capacitor/push-notifications": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.0.0"
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2",
+    "sharp": "0.35.3"
   },
   "engines": {
     "node": ">=22"

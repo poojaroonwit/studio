@@ -2,6 +2,7 @@
   "appId": "co.outborn.people",
   "appName": "Hrive",
   "webDir": "www",
+  "backgroundColor": "#ffffff",
   "server": {
     "url": "https://people.outborn.co/employee-portal",
     "cleartext": false,
@@ -12,10 +13,36 @@
   },
   "ios": {
     "contentInset": "automatic",
-    "preferredContentMode": "mobile"
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#ffffff"
   },
   "android": {
     "allowMixedContent": false,
-    "captureInput": true
+    "captureInput": true,
+    "backgroundColor": "#ffffff",
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DEFAULT",
+      "overlaysWebView": false
+    },
+    "Keyboard": {
+      "resize": "native",
+      "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_launcher_foreground"
+    }
   }
 }

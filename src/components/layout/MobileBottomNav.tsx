@@ -109,6 +109,21 @@ export function buildEssMobileNavItems(
       icon: Clock,
     },
     {
+      href: '/ess/timesheet',
+      label: localize('navigation.timesheet', 'Timesheet'),
+      icon: Clock,
+    },
+    {
+      href: '/ess/surveys',
+      label: localize('navigation.surveys', 'Surveys'),
+      icon: Briefcase,
+    },
+    {
+      href: '/ess/team',
+      label: localize('navigation.myTeam', 'My team'),
+      icon: Users,
+    },
+    {
       href: '/ess/attendance-corrections',
       label: localize('navigation.attendanceCorrections', 'Corrections'),
       icon: Clock,

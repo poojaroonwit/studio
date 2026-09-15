@@ -16,9 +16,9 @@ export const HRIVE_BASE_URL = normalizeBaseUrl(
 
 export const HRIVE_BASE_HOST = new URL(HRIVE_BASE_URL).hostname;
 
-const configuredAuthHosts = (process.env.EXPO_PUBLIC_HRIVE_AUTH_HOSTS || '')
+const configuredAuthHosts: string[] = (process.env.EXPO_PUBLIC_HRIVE_AUTH_HOSTS || '')
   .split(',')
-  .map((host) => host.trim().toLowerCase())
+  .map((host: string) => host.trim().toLowerCase())
   .filter(Boolean);
 
 export const IN_APP_WEB_HOSTS = new Set([

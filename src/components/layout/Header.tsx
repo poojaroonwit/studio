@@ -111,7 +111,7 @@ export function Header({
     <>
       <header
         className={cn(
-          "sticky z-50 flex h-16 shrink-0 items-center justify-between bg-transparent px-3 text-foreground shadow-none transition-[background-color] duration-300 sm:px-4 lg:px-8",
+          "sticky z-50 flex h-16 shrink-0 items-center justify-between bg-transparent px-4 text-foreground shadow-none transition-[background-color] duration-300 sm:px-6 lg:px-8",
           (session?.user?.impersonatedUserId || session?.user?.impersonatedRole) ? "top-8" : "top-0"
         )}
       >

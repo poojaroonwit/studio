@@ -51,9 +51,9 @@ export const essApi = {
   bootstrap: () => request<EssBootstrap>('/api/ess/mobile/bootstrap'),
   clockIn: (latitude?: number, longitude?: number) => request('/api/ess/attendance/clock-in', { method: 'POST', body: JSON.stringify({ latitude, longitude }) }),
   clockOut: (latitude?: number, longitude?: number) => request('/api/ess/attendance/clock-out', { method: 'POST', body: JSON.stringify({ latitude, longitude }) }),
-  createLeave: (payload: { type: string; startDate: string; endDate: string; reason?: string }) => request('/api/ess/leave', { method: 'POST', body: JSON.stringify(payload) }),
-  cancelLeave: (id: string) => request(`/api/ess/leave/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  createLeave: (payload: { type: string; startDate: string; endDate: string; reason?: string }) => request('/api/ess/leave/requests', { method: 'POST', body: JSON.stringify(payload) }),
+  cancelLeave: (id: string) => request(`/api/ess/leave/requests/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
   documentUrl: (id: string) => request<{ url: string }>(`/api/ess/documents/${encodeURIComponent(id)}/download`),
   markNotificationRead: (id: string) => request(`/api/ess/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
-  createHrTicket: (subject: string, message: string) => request('/api/ess/hr-tickets', { method: 'POST', body: JSON.stringify({ subject, message }) }),
+  createHrTicket: (subject: string, message: string) => request('/api/ess/hr-support/tickets', { method: 'POST', body: JSON.stringify({ subject, message }) }),
 }

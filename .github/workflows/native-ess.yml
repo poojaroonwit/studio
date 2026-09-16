@@ -1,0 +1,82 @@
+name: Native ESS Android
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'native-ess/**'
+      - '.github/workflows/native-ess.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'native-ess/**'
+      - '.github/workflows/native-ess.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install native ESS dependencies
+        working-directory: native-ess
+        run: npm install --no-audit --no-fund
+      - name: Typecheck native ESS
+        working-directory: native-ess
+        run: npm run typecheck
+      - name: Generate Android project
+        working-directory: native-ess
+        env:
+          EXPO_PUBLIC_HRIVE_API_URL: https://people.outborn.co
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_URL: https://account.outborn.co
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
+        run: npm run prebuild:android
+      - name: Build native ESS debug APK
+        working-directory: native-ess/android
+        run: ./gradlew assembleDebug --stacktrace
+      - name: Stage APK
+        run: |
+          mkdir -p dist
+          cp native-ess/android/app/build/outputs/apk/debug/app-debug.apk dist/obsi-people-ess-latest.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obsi-people-ess-native-apk
+          path: dist/obsi-people-ess-latest.apk
+          retention-days: 14
+
+  publish-latest:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: android
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: obsi-people-ess-native-apk
+          path: dist
+      - name: Publish stable native ESS APK URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: obsi-people-ess-android-latest
+          APK_PATH: dist/obsi-people-ess-latest.apk
+        run: |
+          set -euo pipefail
+          NOTES="Automated native React Native/Expo Obsi People ESS build from dev commit ${GITHUB_SHA}. This build does not load the HRIS web application."
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease
+          else
+            gh release create "$RELEASE_TAG" "$APK_PATH" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease
+          fi
+          curl --fail --location --silent --show-error --head "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/obsi-people-ess-latest.apk" >/dev/null

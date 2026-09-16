@@ -30,6 +30,9 @@ jobs:
       - name: Install native ESS dependencies
         working-directory: native-ess
         run: npm install --no-audit --no-fund
+      - name: Validate Expo SDK dependency compatibility
+        working-directory: native-ess
+        run: npm run expo:check
       - name: Typecheck native ESS
         working-directory: native-ess
         run: npm run typecheck
@@ -80,7 +83,7 @@ jobs:
           APK_PATH: dist/obsi-people-ess-latest.apk
         run: |
           set -euo pipefail
-          NOTES="Automated standalone React Native/Expo Obsi People ESS release build from dev commit ${GITHUB_SHA}. JavaScript is bundled into the APK; no Metro server or HRIS web shell is required."
+          NOTES="Automated standalone React Native/Expo Obsi People ESS release build from dev commit ${GITHUB_SHA}. JavaScript is bundled into the APK; no Metro server or HRIS web shell is required. Expo SDK native module compatibility was validated before build."
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease

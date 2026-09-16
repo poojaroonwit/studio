@@ -13,6 +13,7 @@
     "@expo/vector-icons": "^14.0.4",
     "expo": "~54.0.0",
     "expo-auth-session": "~7.0.8",
+    "expo-constants": "~18.0.9",
     "expo-crypto": "~15.0.7",
     "expo-location": "~19.0.7",
     "expo-secure-store": "~15.0.7",

@@ -41,13 +41,21 @@ jobs:
           EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
           EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
         run: npm run prebuild:android
-      - name: Build native ESS debug APK
+      - name: Build standalone native ESS release APK
         working-directory: native-ess/android
-        run: ./gradlew assembleDebug --stacktrace
+        env:
+          EXPO_PUBLIC_HRIVE_API_URL: https://people.outborn.co
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_URL: https://account.outborn.co
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
+          EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
+        run: ./gradlew assembleRelease --stacktrace
       - name: Stage APK
         run: |
+          set -euo pipefail
+          APK=$(find native-ess/android/app/build/outputs/apk/release -name '*.apk' -print -quit)
+          test -n "$APK"
           mkdir -p dist
-          cp native-ess/android/app/build/outputs/apk/debug/app-debug.apk dist/obsi-people-ess-latest.apk
+          cp "$APK" dist/obsi-people-ess-latest.apk
       - uses: actions/upload-artifact@v4
         with:
           name: obsi-people-ess-native-apk
@@ -72,7 +80,7 @@ jobs:
           APK_PATH: dist/obsi-people-ess-latest.apk
         run: |
           set -euo pipefail
-          NOTES="Automated native React Native/Expo Obsi People ESS build from dev commit ${GITHUB_SHA}. This build does not load the HRIS web application."
+          NOTES="Automated standalone React Native/Expo Obsi People ESS release build from dev commit ${GITHUB_SHA}. JavaScript is bundled into the APK; no Metro server or HRIS web shell is required."
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease

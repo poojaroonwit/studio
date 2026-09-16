@@ -45,6 +45,7 @@
     "vitest.config.ts",
     "alphayard-ref",
     "packages/hrive-sdk",
-    "packages/hrive-mcp"
+    "packages/hrive-mcp",
+    "native-ess"
   ]
 }

@@ -29,6 +29,19 @@ Hrive packages the shared OBSI People / Employee Self Service experience as nati
 - Native version/build-number synchronization
 - iOS and Android compile gates on pull requests
 - Signed Google Play and App Store Connect/TestFlight release workflow
+- Stable public Android debug APK for BrowserStack/App Live and other cloud-device testing
+
+## Cloud-device Android build
+
+Every successful native Android build uploads `hrive-latest.apk` as a GitHub Actions artifact. After a successful build on `dev`, CI also publishes/replaces the APK on the fixed `hrive-android-latest` prerelease.
+
+Stable public APK URL:
+
+```text
+https://github.com/poojaroonwit/studio/releases/download/hrive-android-latest/hrive-latest.apk
+```
+
+This URL is intended for BrowserStack App Live, Appetize-compatible APK import, QA devices, and other cloud-device test systems that can fetch a public APK URL. It is a debug/testing build; production distribution continues through the signed Google Play release workflow.
 
 ## Prepare native projects
 

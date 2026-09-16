@@ -63,6 +63,49 @@ jobs:
       - name: Compile Android debug app
         working-directory: mobile/android
         run: ./gradlew assembleDebug --stacktrace
+      - name: Stage BrowserStack APK
+        run: |
+          mkdir -p mobile/build/browserstack
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/build/browserstack/hrive-latest.apk
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hrive-android-debug-apk
+          path: mobile/build/browserstack/hrive-latest.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-android-latest:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [architecture, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android APK artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: hrive-android-debug-apk
+          path: dist
+      - name: Publish stable BrowserStack APK URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: hrive-android-latest
+          APK_PATH: dist/hrive-latest.apk
+        run: |
+          set -euo pipefail
+          test -f "$APK_PATH"
+          NOTES="Automated Hrive Android debug build from dev commit ${GITHUB_SHA}. Intended for BrowserStack/App Live and cloud-device testing."
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Hrive Android latest" --notes "$NOTES" --prerelease
+          else
+            gh release create "$RELEASE_TAG" "$APK_PATH" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Hrive Android latest" --notes "$NOTES" --prerelease
+          fi
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/hrive-latest.apk"
+          echo "### Hrive Android cloud-device build" >> "$GITHUB_STEP_SUMMARY"
+          echo "BrowserStack/App Live URL: $URL" >> "$GITHUB_STEP_SUMMARY"
+          curl --fail --location --silent --show-error --head "$URL" >/dev/null
 
   ios:
     runs-on: macos-15

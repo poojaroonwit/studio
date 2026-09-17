@@ -21,6 +21,7 @@ const allowedDropIndexes = new Set([
 const allowedDropTables = new Set([
   'hr_leave_allocation_drafts',
   'hr_learning_assignment_batches',
+  'hr_mobile_push_tokens',
 ]);
 
 function fail(message, details = '') {

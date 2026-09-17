@@ -17,7 +17,7 @@ import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { accountAuth } from './src/auth'
-import { loadAccountApplicationIdentity, loadAccountIdentity, type AccountApplicationIdentity, type AccountIdentity } from './src/account'
+import { loadAccountApplicationIdentity, loadAccountIdentity, loadPublicAccountApplicationIdentity, type AccountApplicationIdentity, type AccountIdentity } from './src/account'
 import { clearBootstrapCache, loadBootstrapCache, saveBootstrapCache } from './src/cache'
 import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
 import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen } from './src/screens'
@@ -135,6 +135,7 @@ export default function App() {
   }
 
   const initialize = async () => {
+    setAppIdentity(await loadPublicAccountApplicationIdentity())
     try {
       const recovered = await accountAuth.recoverPendingRedirect()
       if (recovered) {

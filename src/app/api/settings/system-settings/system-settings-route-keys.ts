@@ -66,4 +66,5 @@ export const SYSTEM_SETTING_KEYS = [
   "securityGovernanceConfiguration",
   "dataGovernanceConfiguration",
   "employeeJourneyConfiguration",
+  "essMobileAttendanceConfiguration",
 ] as const;

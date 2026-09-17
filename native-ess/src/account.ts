@@ -24,7 +24,6 @@ export type AccountApplicationIdentity = {
 
 const extra = Constants.expoConfig?.extra as Record<string, string> | undefined
 const accountUrl = (extra?.accountUrl || 'https://account.outborn.co').replace(/\/$/, '')
-const clientId = extra?.accountClientId || 'obsi-people-ess-mobile'
 
 function text(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
@@ -88,31 +87,30 @@ export async function loadAccountIdentity(): Promise<AccountIdentity> {
 export async function loadAccountApplicationIdentity(identity?: AccountIdentity): Promise<AccountApplicationIdentity> {
   const fallback: AccountApplicationIdentity = { name: 'Obsi People' }
   const organizationId = identity?.organizationId
-  if (!organizationId) return fallback
-
   try {
-    const response = await accountFetch(`/api/account/organizations/${encodeURIComponent(organizationId)}/external-applications`)
+    const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : ''
+    const response = await accountFetch(`/api/account/applications${query}`)
     if (!response.ok) return fallback
     const body = await response.json() as { applications?: unknown[] }
     const applications = Array.isArray(body.applications) ? body.applications : []
-    for (const raw of applications) {
-      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
+    const people = applications.find((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
       const app = raw as Record<string, unknown>
-      const oauth = app.oauthConfiguration && typeof app.oauthConfiguration === 'object' && !Array.isArray(app.oauthConfiguration)
-        ? app.oauthConfiguration as Record<string, unknown>
-        : undefined
-      const candidateClientId = text(oauth?.clientId)
-      const slug = text(app.slug)
-      if (candidateClientId !== clientId && slug !== 'obsi-people-mobile' && slug !== 'obsi-people') continue
-      return {
-        name: text(app.name) || fallback.name,
-        logoUrl: text(app.logoUrl) || undefined,
-      }
+      const name = text(app.name).toLowerCase()
+      const launchUrl = text(app.launchUrl).toLowerCase()
+      return name === 'obsi people'
+        || name === 'hrive'
+        || launchUrl.includes('people.outborn.co')
+        || launchUrl.includes('app-hrive.up.railway.app')
+    }) as Record<string, unknown> | undefined
+    if (!people) return fallback
+    return {
+      name: text(people.name) || fallback.name,
+      logoUrl: text(people.iconUrl) || undefined,
     }
   } catch {
-    // Account profile remains usable even when application metadata is not visible to this member.
+    return fallback
   }
-  return fallback
 }
 
 export const outbornAccountUrl = accountUrl

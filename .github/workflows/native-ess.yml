@@ -1,4 +1,4 @@
-name: Native ESS Android
+name: Native ESS Mobile
 
 on:
   workflow_dispatch:
@@ -15,6 +15,12 @@ on:
 
 permissions:
   contents: read
+
+env:
+  EXPO_PUBLIC_HRIVE_API_URL: https://people.outborn.co
+  EXPO_PUBLIC_OUTBORN_ACCOUNT_URL: https://account.outborn.co
+  EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
+  EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
 
 jobs:
   android:
@@ -39,19 +45,9 @@ jobs:
         run: npm run typecheck
       - name: Generate Android project
         working-directory: native-ess
-        env:
-          EXPO_PUBLIC_HRIVE_API_URL: https://people.outborn.co
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_URL: https://account.outborn.co
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
         run: npm run prebuild:android
       - name: Build standalone native ESS release APK
         working-directory: native-ess/android
-        env:
-          EXPO_PUBLIC_HRIVE_API_URL: https://people.outborn.co
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_URL: https://account.outborn.co
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID: obsi-people-ess-mobile
-          EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI: https://people.outborn.co/mobile/oauth/callback
         run: ./gradlew assembleRelease --stacktrace
       - name: Stage APK
         run: |
@@ -66,7 +62,7 @@ jobs:
           path: dist/obsi-people-ess-latest.apk
           retention-days: 14
 
-  publish-latest:
+  publish-android-latest:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/dev') || github.event_name == 'workflow_dispatch'
     needs: android
     runs-on: ubuntu-latest
@@ -84,7 +80,7 @@ jobs:
           APK_PATH: dist/obsi-people-ess-latest.apk
         run: |
           set -euo pipefail
-          NOTES="Automated standalone React Native/Expo Obsi People ESS release build from dev commit ${GITHUB_SHA}. JavaScript is bundled into the APK; no Metro server or HRIS web shell is required. Expo SDK native module compatibility was validated before build."
+          NOTES="Automated standalone React Native/Expo Obsi People ESS Android release build from dev commit ${GITHUB_SHA}."
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease
@@ -93,7 +89,7 @@ jobs:
           fi
           curl --fail --location --silent --show-error --head "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/obsi-people-ess-latest.apk" >/dev/null
 
-  firebase-distribution:
+  firebase-android-distribution:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/dev') || github.event_name == 'workflow_dispatch'
     needs: android
     runs-on: ubuntu-latest
@@ -115,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Missing repository secret FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE. Add the full Firebase service-account JSON under Settings > Secrets and variables > Actions > Repository secrets."
+            echo "::error::Missing repository secret FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE."
             exit 1
           fi
       - name: Authenticate to Google Cloud
@@ -139,11 +135,243 @@ jobs:
         run: |
           set -euo pipefail
           test -f "$APK_PATH"
-          args=(appdistribution:distribute "$APK_PATH" --app "$FIREBASE_APP_ID" --release-notes "Obsi People ESS automated dev build ${GITHUB_SHA::7}")
-          if [ -n "$FIREBASE_TESTERS" ]; then
-            args+=(--testers "$FIREBASE_TESTERS")
+          args=(appdistribution:distribute "$APK_PATH" --app "$FIREBASE_APP_ID" --release-notes "Obsi People ESS Android automated dev build ${GITHUB_SHA::7}")
+          if [ -n "$FIREBASE_TESTERS" ]; then args+=(--testers "$FIREBASE_TESTERS"); fi
+          if [ -n "$FIREBASE_GROUPS" ]; then args+=(--groups "$FIREBASE_GROUPS"); fi
+          firebase "${args[@]}"
+
+  ios-readiness:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/dev') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.readiness.outputs.enabled }}
+    env:
+      APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+      APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
+      FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+    steps:
+      - id: readiness
+        name: Check iOS signing and Firebase configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "$APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64)
+          [ -n "$APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD" ] || missing+=(APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD)
+          [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ] || missing+=(APPLE_PROVISIONING_PROFILE_BASE64)
+          [ -n "$APPLE_TEAM_ID" ] || missing+=(APPLE_TEAM_ID)
+          [ -n "$FIREBASE_SERVICE_ACCOUNT_JSON" ] || missing+=(FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE)
+          [ -n "$FIREBASE_IOS_APP_ID" ] || missing+=(FIREBASE_IOS_APP_ID)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::iOS distribution is implemented but waiting for: ${missing[*]}"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
-          if [ -n "$FIREBASE_GROUPS" ]; then
-            args+=(--groups "$FIREBASE_GROUPS")
+
+  ios:
+    needs: ios-readiness
+    if: needs.ios-readiness.outputs.enabled == 'true'
+    runs-on: macos-latest
+    env:
+      FIREBASE_PROJECT_ID: obsi-people
+      FIREBASE_IOS_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+      APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+      APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_EXPORT_METHOD: ${{ vars.IOS_EXPORT_METHOD || 'ad-hoc' }}
+      IOS_CODE_SIGN_IDENTITY: ${{ vars.IOS_CODE_SIGN_IDENTITY || 'Apple Distribution' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install native ESS dependencies
+        working-directory: native-ess
+        run: npm install --no-audit --no-fund
+      - name: Validate Expo SDK dependency compatibility
+        working-directory: native-ess
+        run: npm run expo:check
+      - name: Typecheck native ESS
+        working-directory: native-ess
+        run: npm run typecheck
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+      - name: Fetch iOS Firebase SDK configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          firebase apps:sdkconfig IOS "$FIREBASE_IOS_APP_ID" --project "$FIREBASE_PROJECT_ID" --out native-ess/GoogleService-Info.plist --non-interactive
+          test -s native-ess/GoogleService-Info.plist
+      - name: Generate iOS project
+        working-directory: native-ess
+        env:
+          EXPO_IOS_GOOGLE_SERVICES_FILE: ./GoogleService-Info.plist
+        run: npm run prebuild:ios
+      - name: Install CocoaPods dependencies
+        working-directory: native-ess/ios
+        run: pod install --repo-update
+      - name: Install Apple signing assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH="$RUNNER_TEMP/distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/distribution.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          KEYCHAIN_PATH="$RUNNER_TEMP/obsi-people-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+
+          printf '%s' "$APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print Name' "$PROFILE_PLIST")
+          PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print TeamIdentifier:0' "$PROFILE_PLIST")
+          test "$PROFILE_TEAM_ID" = "$APPLE_TEAM_ID"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+      - name: Resolve Xcode workspace and scheme
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE=$(find native-ess/ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          test -n "$WORKSPACE"
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list -json | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data["workspace"]["schemes"][0])')
+          test -n "$SCHEME"
+          echo "IOS_WORKSPACE=$WORKSPACE" >> "$GITHUB_ENV"
+          echo "IOS_SCHEME=$SCHEME" >> "$GITHUB_ENV"
+      - name: Archive signed iOS app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace "$IOS_WORKSPACE" \
+            -scheme "$IOS_SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ObsiPeopleESS.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="$IOS_CODE_SIGN_IDENTITY" \
+            clean archive
+      - name: Export signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
+          cat > "$EXPORT_OPTIONS" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>${IOS_EXPORT_METHOD}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>co.outborn.people.ess</key><string>${PROFILE_NAME}</string>
+            </dict>
+            <key>stripSwiftSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          rm -rf "$RUNNER_TEMP/ipa-export"
+          mkdir -p "$RUNNER_TEMP/ipa-export"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/ObsiPeopleESS.xcarchive" \
+            -exportPath "$RUNNER_TEMP/ipa-export" \
+            -exportOptionsPlist "$EXPORT_OPTIONS"
+          IPA=$(find "$RUNNER_TEMP/ipa-export" -name '*.ipa' -print -quit)
+          test -n "$IPA"
+          mkdir -p dist
+          cp "$IPA" dist/obsi-people-ess-latest.ipa
+      - uses: actions/upload-artifact@v7
+        with:
+          name: obsi-people-ess-native-ipa
+          path: dist/obsi-people-ess-latest.ipa
+          retention-days: 14
+
+  publish-ios-latest:
+    needs: ios
+    if: needs.ios.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: obsi-people-ess-native-ipa
+          path: dist
+      - name: Publish stable native ESS IPA URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: obsi-people-ess-ios-latest
+          IPA_PATH: dist/obsi-people-ess-latest.ipa
+        run: |
+          set -euo pipefail
+          NOTES="Automated signed native iOS Obsi People ESS release build from dev commit ${GITHUB_SHA}."
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$IPA_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --title "Obsi People ESS iOS latest" --notes "$NOTES" --prerelease
+          else
+            gh release create "$RELEASE_TAG" "$IPA_PATH" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obsi People ESS iOS latest" --notes "$NOTES" --prerelease
           fi
+
+  firebase-ios-distribution:
+    needs: ios
+    if: needs.ios.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_APP_ID: ${{ vars.FIREBASE_IOS_APP_ID }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
+      FIREBASE_TESTERS: ${{ vars.FIREBASE_APP_DISTRIBUTION_TESTERS || 'jaroonwit.pool@gmail.com' }}
+      FIREBASE_GROUPS: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v7
+        with:
+          name: obsi-people-ess-native-ipa
+          path: dist
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+      - name: Distribute IPA to Firebase testers
+        shell: bash
+        env:
+          IPA_PATH: dist/obsi-people-ess-latest.ipa
+        run: |
+          set -euo pipefail
+          test -f "$IPA_PATH"
+          args=(appdistribution:distribute "$IPA_PATH" --app "$FIREBASE_APP_ID" --release-notes "Obsi People ESS iOS automated dev build ${GITHUB_SHA::7}")
+          if [ -n "$FIREBASE_TESTERS" ]; then args+=(--testers "$FIREBASE_TESTERS"); fi
+          if [ -n "$FIREBASE_GROUPS" ]; then args+=(--groups "$FIREBASE_GROUPS"); fi
           firebase "${args[@]}"

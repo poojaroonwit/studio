@@ -152,7 +152,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const essApi = {
-  bootstrap: () => request<EssBootstrap>('/api/ess/mobile/bootstrap'),
+  bootstrap: async () => {
+    const [data, attendancePolicy] = await Promise.all([
+      request<EssBootstrap>('/api/ess/mobile/bootstrap'),
+      request<AttendancePolicy>('/api/ess/mobile/attendance-policy'),
+    ])
+    return { ...data, attendancePolicy }
+  },
 
   clockIn: (latitude?: number, longitude?: number) => request('/api/ess/attendance/clock-in', {
     method: 'POST',

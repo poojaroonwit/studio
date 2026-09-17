@@ -18,8 +18,8 @@ const tabs: Array<{ id: Tab; label: string; icon: keyof typeof Ionicons.glyphMap
 
 function OutbornAccountMark() {
   return (
-    <View style={s.accountMark} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={s.accountMarkDot} />
+    <View style={s.accountMark} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={s.accountMarkDot} pointerEvents="none" />
     </View>
   )
 }
@@ -29,12 +29,34 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   const load = async () => {
     try { setData(await essApi.bootstrap()) }
     catch { setData(null) }
     finally { setLoading(false); setRefreshing(false) }
   }
+
+  const signIn = async () => {
+    if (authLoading) return
+    setAuthLoading(true)
+    setAuthError(null)
+    try {
+      const success = await accountAuth.signIn()
+      if (!success) {
+        setAuthError('Sign-in was cancelled or did not complete. Please try again.')
+        return
+      }
+      setLoading(true)
+      await load()
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to start Outborn Account sign-in.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
   useEffect(() => { void load() }, [])
 
   if (loading) return <SafeAreaProvider><SafeAreaView style={s.center}><ActivityIndicator /><Text>Loading ESS…</Text></SafeAreaView></SafeAreaProvider>
@@ -44,14 +66,14 @@ export default function App() {
       <SafeAreaProvider>
         <SafeAreaView style={s.welcome}>
           <StatusBar style="light" />
-          <View style={s.welcomeTop}>
+          <View style={s.welcomeTop} pointerEvents="none">
             <View style={s.welcomeBrandRow}>
               <View style={s.peopleMark}><Ionicons name="people-outline" size={20} color="#fff" /></View>
               <Text style={s.welcomeBrand}>Obsi People</Text>
             </View>
           </View>
 
-          <View style={s.welcomeContent}>
+          <View style={s.welcomeContent} pointerEvents="none">
             <Text style={s.welcomeEyebrow}>EMPLOYEE SELF-SERVICE</Text>
             <Text style={s.welcomeTitle}>Work life,{"\n"}in one place.</Text>
             <Text style={s.welcomeCopy}>Access your time, requests, documents and employee profile from the native Obsi People experience.</Text>
@@ -61,23 +83,23 @@ export default function App() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Get start with Outborn Account"
-              style={({ pressed }) => [s.welcomeButton, pressed && s.welcomeButtonPressed]}
-              onPress={() => void (async () => {
-                if (await accountAuth.signIn()) {
-                  setLoading(true)
-                  await load()
-                }
-              })()}
+              accessibilityState={{ disabled: authLoading, busy: authLoading }}
+              disabled={authLoading}
+              hitSlop={8}
+              android_ripple={{ color: '#E5E7EB' }}
+              style={({ pressed }) => [s.welcomeButton, (pressed || authLoading) && s.welcomeButtonPressed]}
+              onPress={() => void signIn()}
             >
-              <View style={s.welcomeButtonIdentity}>
+              <View style={s.welcomeButtonIdentity} pointerEvents="none">
                 <OutbornAccountMark />
-                <View>
-                  <Text style={s.welcomeButtonText}>Get start</Text>
+                <View pointerEvents="none">
+                  <Text style={s.welcomeButtonText}>{authLoading ? 'Opening Account…' : 'Get start'}</Text>
                   <Text style={s.welcomeButtonSubtext}>with Outborn Account</Text>
                 </View>
               </View>
-              <Ionicons name="arrow-forward" size={20} color="#111317" />
+              {authLoading ? <ActivityIndicator size="small" color="#111317" /> : <Ionicons name="arrow-forward" size={20} color="#111317" />}
             </Pressable>
+            {authError ? <Text style={s.authError} accessibilityLiveRegion="polite">{authError}</Text> : null}
             <Text style={s.welcomeFoot}>One identity · Every Outborn product</Text>
           </View>
         </SafeAreaView>
@@ -103,13 +125,14 @@ const s = StyleSheet.create({
   welcomeTitle:{color:'#fff',fontSize:44,lineHeight:48,fontWeight:'700',letterSpacing:-1.4,textAlign:'left'},
   welcomeCopy:{color:'#A7ADB8',fontSize:15,lineHeight:23,marginTop:18,maxWidth:340,textAlign:'left'},
   welcomeBottom:{alignItems:'stretch',gap:14},
-  welcomeButton:{minHeight:72,backgroundColor:'#fff',borderRadius:18,paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  welcomeButtonPressed:{opacity:0.88,transform:[{scale:0.99}]},
+  welcomeButton:{minHeight:72,backgroundColor:'#fff',borderRadius:18,paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between',overflow:'hidden'},
+  welcomeButtonPressed:{opacity:0.78,transform:[{scale:0.99}]},
   welcomeButtonIdentity:{flexDirection:'row',alignItems:'center',gap:12},
   welcomeButtonText:{color:'#111317',fontSize:16,fontWeight:'700',letterSpacing:-0.2},
   welcomeButtonSubtext:{color:'#6B7280',fontSize:11,fontWeight:'500',marginTop:2},
   accountMark:{width:30,height:30,borderWidth:7,borderColor:'#111317',borderRadius:15,position:'relative'},
   accountMarkDot:{position:'absolute',width:7,height:7,borderRadius:4,backgroundColor:'#111317',right:-7,top:-6},
+  authError:{color:'#FCA5A5',fontSize:12,lineHeight:18},
   welcomeFoot:{color:'#686F7A',fontSize:11,textAlign:'left'},
   muted:{color:'#6B7280'},
   header:{paddingHorizontal:20,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},

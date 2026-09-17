@@ -13,12 +13,23 @@ export type EssBootstrap = {
   bankTax?: Record<string, unknown>
 }
 
+export class EssApiError extends Error {
+  constructor(message: string, public status = 0, public code: 'AUTH_REQUIRED' | 'HTTP_ERROR' | 'NETWORK' = 'HTTP_ERROR') {
+    super(message)
+    this.name = 'EssApiError'
+  }
+}
+
+export function isAuthRequired(error: unknown) {
+  return error instanceof EssApiError && error.code === 'AUTH_REQUIRED'
+}
+
 const extra = Constants.expoConfig?.extra as Record<string, string> | undefined
 const apiUrl = (extra?.apiUrl || 'https://people.outborn.co').replace(/\/$/, '')
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await accountAuth.getToken()
-  if (!token) throw new Error('AUTH_REQUIRED')
+  if (!token) throw new EssApiError('Sign in is required', 401, 'AUTH_REQUIRED')
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
   try {
@@ -33,15 +44,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
     if (res.status === 401) {
       await accountAuth.signOut()
-      throw new Error('AUTH_REQUIRED')
+      throw new EssApiError('Your session has expired. Please sign in again.', 401, 'AUTH_REQUIRED')
     }
     if (!res.ok) {
       let message = `Request failed (${res.status})`
       try { const body = await res.json(); message = body?.error || body?.message || message } catch {}
-      throw new Error(message)
+      throw new EssApiError(message, res.status, 'HTTP_ERROR')
     }
     if (res.status === 204) return undefined as T
     return res.json() as Promise<T>
+  } catch (error) {
+    if (error instanceof EssApiError) throw error
+    if (error instanceof Error && error.name === 'AbortError') throw new EssApiError('Request timed out. Check your connection and try again.', 0, 'NETWORK')
+    throw new EssApiError('Unable to reach Obsi People. Check your connection and try again.', 0, 'NETWORK')
   } finally {
     clearTimeout(timeout)
   }

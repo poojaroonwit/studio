@@ -29,6 +29,7 @@ type BranchConfigItem = {
 
 type BranchConfig = { branches?: BranchConfigItem[] };
 type PolicyConfig = Partial<Omit<MobileAttendancePolicy, 'locations'>>;
+type ShiftRow = { shift_date?: Date | string; start_time?: string; end_time?: string };
 
 const POLICY_KEY = 'essMobileAttendanceConfiguration';
 const BRANCH_KEY = 'branchConfig';
@@ -91,28 +92,64 @@ function distanceMeters(aLat: number, aLon: number, bLat: number, bLon: number) 
   return 2 * r * Math.asin(Math.sqrt(h));
 }
 
+function dateOnly(value: Date | string | undefined) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+}
+
+function normalizeTime(value: string | undefined, fallback: string) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return /^\d{2}:\d{2}(?::\d{2})?$/.test(text) ? text : fallback;
+}
+
+function shiftWindow(row: ShiftRow, policy: MobileAttendancePolicy) {
+  const day = dateOnly(row.shift_date);
+  if (!day) return null;
+  const startTime = normalizeTime(row.start_time, '00:00:00');
+  const endTime = normalizeTime(row.end_time, '23:59:59');
+  const start = new Date(`${day}T${startTime}+07:00`);
+  let end = new Date(`${day}T${endTime}+07:00`);
+  if (end <= start) end = new Date(end.getTime() + 86_400_000);
+  return {
+    opensAt: new Date(start.getTime() - policy.earlyClockInMinutes * 60_000),
+    closesAt: new Date(end.getTime() + policy.lateClockOutMinutes * 60_000),
+  };
+}
+
 export type AttendancePolicyDecision =
   | { allowed: true; policy: MobileAttendancePolicy }
   | { allowed: false; status: number; error: string; policy: MobileAttendancePolicy };
 
 export async function validateMobileAttendanceAction(input: {
   employeeId: string;
+  mode: 'in' | 'out';
   latitude?: number;
   longitude?: number;
 }): Promise<AttendancePolicyDecision> {
   const policy = await loadMobileAttendancePolicy();
 
   if (policy.requireScheduledShift) {
-    const shift = await getPool().query(
-      `SELECT id
+    const shiftResult = await getPool().query(
+      `SELECT shift_date, start_time, end_time
          FROM hr_shift_assignments
         WHERE employee_id = $1
           AND shift_date = (NOW() AT TIME ZONE 'Asia/Bangkok')::date
           AND status NOT IN ('cancelled', 'deleted')
+        ORDER BY start_time ASC
         LIMIT 1`,
       [input.employeeId],
     );
-    if (!shift.rows[0]) return { allowed: false, status: 409, error: 'No active shift is assigned for today', policy };
+    const shift = shiftResult.rows[0] as ShiftRow | undefined;
+    if (!shift) return { allowed: false, status: 409, error: 'No active shift is assigned for today', policy };
+    const window = shiftWindow(shift, policy);
+    const now = new Date();
+    if (!window || now < window.opensAt) {
+      return { allowed: false, status: 409, error: `Clock ${input.mode === 'in' ? 'in' : 'out'} is not available yet for your assigned shift`, policy };
+    }
+    if (now > window.closesAt) {
+      return { allowed: false, status: 409, error: `The allowed attendance window for your assigned shift has closed`, policy };
+    }
   }
 
   if (policy.locationRequired) {

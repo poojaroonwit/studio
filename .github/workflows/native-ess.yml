@@ -100,7 +100,7 @@ jobs:
     env:
       FIREBASE_APP_ID: 1:98366973176:android:99e8d873ffbd8b2399470d
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
-      FIREBASE_TESTERS: ${{ vars.FIREBASE_APP_DISTRIBUTION_TESTERS }}
+      FIREBASE_TESTERS: ${{ vars.FIREBASE_APP_DISTRIBUTION_TESTERS || 'jaroonwit.pool@gmail.com' }}
       FIREBASE_GROUPS: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
     steps:
       - uses: actions/setup-node@v5

@@ -1,195 +1,757 @@
-import { useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import * as LocalAuthentication from 'expo-local-authentication'
 import * as Location from 'expo-location'
+import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
-import { essApi, type EssBootstrap } from './api'
+import { essApi, type AttendanceRow, type EmergencyContact, type EssBootstrap } from './api'
+import type { AccountApplicationIdentity, AccountIdentity } from './account'
+import { colors, radii } from './theme'
 
-type Tab = 'home' | 'time' | 'requests' | 'documents' | 'me'
-const Card = ({children}:{children:React.ReactNode}) => <View style={s.card}>{children}</View>
-const Button = ({title,onPress,secondary=false,busy=false,disabled=false}:{title:string;onPress:()=>void;secondary?:boolean;busy?:boolean;disabled?:boolean}) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityState={{ disabled: disabled || busy, busy }}
-    disabled={disabled || busy}
-    style={({pressed})=>[s.button,secondary&&s.secondary,(disabled||busy)&&s.buttonDisabled,pressed&&s.buttonPressed]}
-    onPress={onPress}
-  >
-    {busy ? <ActivityIndicator size="small" color={secondary?'#111827':'#fff'} /> : <Text style={[s.buttonText,secondary&&s.secondaryText]}>{title}</Text>}
-  </Pressable>
-)
+type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
+type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
+type AccountSection = 'menu' | 'profile' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'security'
 
-function isIsoDate(value:string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  const date = new Date(`${value}T00:00:00Z`)
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0,10) === value
+const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
+
+function AppText({ children, style, ...props }: React.ComponentProps<typeof Text>) {
+  return <Text {...props} style={[s.text, style]}>{children}</Text>
 }
 
-function formatDateTime(value?:string|null) {
+function Muted({ children, style, ...props }: React.ComponentProps<typeof Text>) {
+  return <Text {...props} style={[s.text, s.muted, style]}>{children}</Text>
+}
+
+function Card({ children, style }: { children: React.ReactNode; style?: object }) {
+  return <View style={[s.card, style]}>{children}</View>
+}
+
+function Button({
+  title,
+  onPress,
+  secondary = false,
+  busy = false,
+  disabled = false,
+  large = false,
+  icon,
+}: {
+  title: string
+  onPress: () => void
+  secondary?: boolean
+  busy?: boolean
+  disabled?: boolean
+  large?: boolean
+  icon?: keyof typeof Ionicons.glyphMap
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: disabled || busy, busy }}
+      disabled={disabled || busy}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.button,
+        secondary && s.secondaryButton,
+        large && s.largeButton,
+        (disabled || busy) && s.disabled,
+        pressed && s.pressed,
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={secondary ? colors.text : colors.primaryText} />
+      ) : (
+        <View style={s.buttonContent} pointerEvents="none">
+          {icon ? <Ionicons name={icon} size={large ? 24 : 18} color={secondary ? colors.text : colors.primaryText} /> : null}
+          <AppText style={[s.buttonText, secondary && s.secondaryButtonText, large && s.largeButtonText]}>{title}</AppText>
+        </View>
+      )}
+    </Pressable>
+  )
+}
+
+function formatDateTime(value?: string | null) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString([], { dateStyle:'medium', timeStyle:'short' })
+  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-export function HomeScreen({data,setTab}:{data:EssBootstrap;setTab:(tab:Tab)=>void}) {
-  const firstName = data.employee.name.trim().split(/\s+/)[0] || 'there'
+function formatDate(value: Date) {
+  const year = value.getFullYear()
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+  const day = String(value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function bangkokDate() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}
+
+function distanceMeters(aLat: number, aLon: number, bLat: number, bLon: number) {
+  const toRad = (value: number) => value * Math.PI / 180
+  const r = 6371000
+  const dLat = toRad(bLat - aLat)
+  const dLon = toRad(bLon - aLon)
+  const lat1 = toRad(aLat)
+  const lat2 = toRad(bLat)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+  return 2 * r * Math.asin(Math.sqrt(h))
+}
+
+function todayAttendance(data: EssBootstrap) {
+  const today = bangkokDate()
+  return data.attendance.find((row) => row.date === today)
+}
+
+function PaginationFooter({ visible, total }: { visible: number; total: number }) {
+  if (visible >= total) return null
+  return <Muted style={s.loadingMore}>Loading more as you scroll…</Muted>
+}
+
+function useProgressiveCount(total: number, loadMoreTick: number, pageSize = 12) {
+  const [count, setCount] = useState(Math.min(pageSize, total))
+  useEffect(() => setCount((current) => Math.min(total, Math.max(current, pageSize))), [pageSize, total])
+  useEffect(() => {
+    if (loadMoreTick > 0) setCount((current) => Math.min(total, current + pageSize))
+  }, [loadMoreTick, pageSize, total])
+  return count
+}
+
+export function HomeScreen({
+  data,
+  setTab,
+  account,
+}: {
+  data: EssBootstrap
+  setTab: (tab: Tab) => void
+  account?: AccountIdentity | null
+}) {
+  const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
+  const recent = data.attendance.slice(0, 14)
+  const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
+  const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
+  const pending = data.leaveRequests.filter((item) => item.status === 'pending').length
+  const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
+  const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
+
   return <>
-    <Text style={s.kicker}>EMPLOYEE SELF-SERVICE</Text>
-    <Text style={s.pageTitle}>Hi, {firstName}</Text>
-    <Text style={s.muted}>{data.employee.position} · {data.employee.department}</Text>
+    <AppText style={s.kicker}>EMPLOYEE SELF-SERVICE</AppText>
+    <AppText style={s.pageTitle}>Hi, {firstName}</AppText>
+    <Muted>{data.employee.position} · {data.employee.department}</Muted>
+
     <View style={s.grid}>
-      <Quick icon="time-outline" label="Attendance" onPress={()=>setTab('time')}/>
-      <Quick icon="calendar-outline" label="Leave" onPress={()=>setTab('requests')}/>
-      <Quick icon="folder-open-outline" label="Documents" onPress={()=>setTab('documents')}/>
-      <Quick icon="person-outline" label="My profile" onPress={()=>setTab('me')}/>
+      <Quick icon="time-outline" label="Attendance" onPress={() => setTab('time')} />
+      <Quick icon="add-circle-outline" label="New request" onPress={() => setTab('requests')} />
+      <Quick icon="folder-open-outline" label="Documents" onPress={() => setTab('documents')} />
+      <Quick icon="person-circle-outline" label="Account" onPress={() => setTab('account')} />
     </View>
-    <Text style={s.section}>Today</Text>
-    <Card><Text style={s.cardTitle}>{data.employee.shiftLabel||'Schedule'}</Text><Text style={s.muted}>{data.employee.nextShift||'No shift scheduled'}</Text></Card>
-    <Text style={s.section}>Overview</Text>
-    <Card><Text style={s.metric}>{data.employee.leaveBalanceDays??0}</Text><Text style={s.muted}>leave days available</Text><Text>{data.leaveRequests.filter(x=>x.status==='pending').length} pending leave requests</Text><Text>{data.employee.unreadNotifications??0} unread notifications</Text></Card>
+
+    <AppText style={s.section}>Today</AppText>
+    <Card>
+      <View style={s.between}>
+        <View style={s.flexOne}>
+          <AppText style={s.cardTitle}>{data.employee.shiftLabel || 'Schedule'}</AppText>
+          <Muted>{data.employee.nextShift || 'No shift scheduled'}</Muted>
+        </View>
+        <Ionicons name="calendar-outline" size={22} color={colors.textMuted} />
+      </View>
+    </Card>
+
+    <AppText style={s.section}>Overview</AppText>
+    <Card>
+      <View style={s.metricRow}>
+        <View style={s.metricBlock}><AppText style={s.metric}>{leaveBalance}</AppText><Muted>leave days</Muted></View>
+        <View style={s.metricBlock}><AppText style={s.metric}>{pending}</AppText><Muted>pending</Muted></View>
+        <View style={s.metricBlock}><AppText style={s.metric}>{data.employee.unreadNotifications || 0}</AppText><Muted>unread</Muted></View>
+      </View>
+      <View style={s.chartGroup}>
+        <ChartBar label="Attendance · recent 14" value={attendanceRate} />
+        <ChartBar label="Leave availability" value={leaveScale} />
+      </View>
+    </Card>
   </>
 }
 
-function Quick({icon,label,onPress}:{icon:keyof typeof Ionicons.glyphMap;label:string;onPress:()=>void}) {
-  return <Pressable accessibilityRole="button" style={({pressed})=>[s.quick,pressed&&s.quickPressed]} onPress={onPress}><Ionicons name={icon} size={24}/><Text>{label}</Text></Pressable>
+function ChartBar({ label, value }: { label: string; value: number }) {
+  return <View style={s.chartItem}>
+    <View style={s.between}><Muted>{label}</Muted><AppText style={s.chartValue}>{value}%</AppText></View>
+    <View style={s.chartTrack}><View style={[s.chartFill, { width: `${Math.max(2, Math.min(100, value))}%` }]} /></View>
+  </View>
 }
 
-export function TimeScreen({data,reload}:{data:EssBootstrap;reload:()=>Promise<void>}) {
-  const [busy,setBusy]=useState<'in'|'out'|null>(null)
-  const clock=async(mode:'in'|'out')=>{
+function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.quick, pressed && s.pressed]} onPress={onPress}>
+    <Ionicons name={icon} size={24} color={colors.text} />
+    <AppText style={s.quickLabel}>{label}</AppText>
+  </Pressable>
+}
+
+export function TimeScreen({
+  data,
+  reload,
+  loadMoreTick,
+}: {
+  data: EssBootstrap
+  reload: () => Promise<void>
+  loadMoreTick: number
+}) {
+  const [busy, setBusy] = useState<'in' | 'out' | null>(null)
+  const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
+  const today = todayAttendance(data)
+  const policy = data.attendancePolicy || {}
+  const shiftDate = data.employee.shiftLabel && /^\d{4}-\d{2}-\d{2}$/.test(data.employee.shiftLabel) ? data.employee.shiftLabel : undefined
+  const hasShiftToday = !policy.requireScheduledShift || shiftDate === bangkokDate()
+  const canClockIn = hasShiftToday && !today?.checkIn
+  const canClockOut = hasShiftToday && Boolean(today?.checkIn) && !today?.checkOut
+
+  const clock = async (mode: 'in' | 'out') => {
     if (busy) return
     setBusy(mode)
     try {
-      const permission=await Location.requestForegroundPermissionsAsync()
       let lat: number | undefined
       let lng: number | undefined
-      if(permission.status==='granted'){
-        const pos=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced})
-        lat=pos.coords.latitude
-        lng=pos.coords.longitude
+      if (policy.locationRequired || (policy.locations?.length || 0) > 0) {
+        const permission = await Location.requestForegroundPermissionsAsync()
+        if (permission.status !== 'granted') throw new Error('Location permission is required by your organization for attendance.')
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+        lat = pos.coords.latitude
+        lng = pos.coords.longitude
+        const locations = policy.locations || []
+        if (locations.length) {
+          const matched = locations.some((location) => distanceMeters(lat!, lng!, location.latitude, location.longitude) <= location.radiusMeters)
+          if (!matched) throw new Error('You are outside the allowed organization or branch attendance location.')
+        }
+      } else {
+        const permission = await Location.getForegroundPermissionsAsync()
+        if (permission.status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+          lat = pos.coords.latitude
+          lng = pos.coords.longitude
+        }
       }
-      if(mode==='in') await essApi.clockIn(lat,lng)
-      else await essApi.clockOut(lat,lng)
+      if (mode === 'in') await essApi.clockIn(lat, lng)
+      else await essApi.clockOut(lat, lng)
       await reload()
-    } catch(e) {
-      Alert.alert('Attendance',e instanceof Error?e.message:'Unable to update attendance')
+    } catch (error) {
+      Alert.alert('Attendance', error instanceof Error ? error.message : 'Unable to update attendance')
     } finally {
       setBusy(null)
     }
   }
-  return <>
-    <Text style={s.pageTitle}>Time & attendance</Text>
-    <View style={s.row}><Button title="Clock in" busy={busy==='in'} disabled={busy!==null} onPress={()=>void clock('in')}/><Button title="Clock out" secondary busy={busy==='out'} disabled={busy!==null} onPress={()=>void clock('out')}/></View>
-    <Text style={s.section}>Recent attendance</Text>
-    {data.attendance.length===0 ? <Text style={s.empty}>No attendance records yet.</Text> : data.attendance.map(x=><Card key={x.id}><Text style={s.cardTitle}>{x.date}</Text><Text style={s.muted}>{formatDateTime(x.checkIn)} → {formatDateTime(x.checkOut)}</Text><Text style={s.status}>{x.status}</Text></Card>)}
-  </>
-}
-
-export function RequestsScreen({data,reload}:{data:EssBootstrap;reload:()=>Promise<void>}) {
-  const [type,setType]=useState('Annual leave')
-  const [start,setStart]=useState('')
-  const [end,setEnd]=useState('')
-  const [reason,setReason]=useState('')
-  const [submitting,setSubmitting]=useState(false)
-  const [cancelling,setCancelling]=useState<string|null>(null)
-
-  const submit=async()=>{
-    if (submitting) return
-    const cleanType=type.trim()
-    const cleanStart=start.trim()
-    const cleanEnd=end.trim()
-    if (!cleanType) return Alert.alert('Leave request','Leave type is required.')
-    if (!isIsoDate(cleanStart) || !isIsoDate(cleanEnd)) return Alert.alert('Leave request','Enter valid dates in YYYY-MM-DD format.')
-    if (cleanEnd < cleanStart) return Alert.alert('Leave request','End date cannot be before start date.')
-    setSubmitting(true)
-    try {
-      await essApi.createLeave({type:cleanType,startDate:cleanStart,endDate:cleanEnd,reason:reason.trim()})
-      setStart('');setEnd('');setReason('')
-      await reload()
-      Alert.alert('Leave request','Submitted successfully.')
-    } catch(e) {
-      Alert.alert('Leave request',e instanceof Error?e.message:'Unable to submit')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const cancel=async(id:string)=>{
-    if (cancelling) return
-    setCancelling(id)
-    try { await essApi.cancelLeave(id); await reload() }
-    catch(e){ Alert.alert('Leave request',e instanceof Error?e.message:'Unable to cancel request') }
-    finally { setCancelling(null) }
-  }
-
-  const confirmCancel=(id:string)=>Alert.alert('Cancel leave request','Are you sure you want to cancel this request?',[{text:'Keep',style:'cancel'},{text:'Cancel request',style:'destructive',onPress:()=>void cancel(id)}])
 
   return <>
-    <Text style={s.pageTitle}>Requests</Text>
-    <Card>
-      <TextInput style={s.input} value={type} onChangeText={setType} placeholder="Leave type" autoCapitalize="words"/>
-      <TextInput style={s.input} value={start} onChangeText={setStart} placeholder="Start YYYY-MM-DD" autoCapitalize="none"/>
-      <TextInput style={s.input} value={end} onChangeText={setEnd} placeholder="End YYYY-MM-DD" autoCapitalize="none"/>
-      <TextInput style={s.input} value={reason} onChangeText={setReason} placeholder="Reason"/>
-      <Button title="Submit leave request" busy={submitting} onPress={()=>void submit()}/>
+    <AppText style={s.pageTitle}>Time & attendance</AppText>
+    <Card style={s.shiftCard}>
+      <AppText style={s.cardTitle}>Your shift</AppText>
+      <Muted>{data.employee.shiftLabel || 'No scheduled shift'}</Muted>
+      <AppText>{data.employee.nextShift || 'No shift details available'}</AppText>
+      {policy.locationRequired ? <View style={s.infoRow}><Ionicons name="location-outline" size={18} color={colors.accent} /><Muted style={s.flexOne}>Location verification is required by your organization.</Muted></View> : null}
     </Card>
-    <Text style={s.section}>My requests</Text>
-    {data.leaveRequests.length===0 ? <Text style={s.empty}>No leave requests yet.</Text> : data.leaveRequests.map(x=><Card key={x.id}><Text style={s.cardTitle}>{x.type}</Text><Text style={s.muted}>{x.startDate} – {x.endDate} · {x.days} day(s)</Text><Text style={s.status}>{x.status}</Text>{['draft','pending'].includes(x.status)&&<Pressable disabled={cancelling!==null} onPress={()=>confirmCancel(x.id)}><Text style={[s.danger,cancelling===x.id&&s.muted]}>{cancelling===x.id?'Cancelling…':'Cancel request'}</Text></Pressable>}</Card>)}
+
+    {!hasShiftToday ? (
+      <Card><AppText style={s.cardTitle}>No clock action available</AppText><Muted>Your organization only allows attendance actions for an assigned shift.</Muted></Card>
+    ) : canClockIn ? (
+      <Button title="Clock in" icon="enter-outline" large busy={busy === 'in'} onPress={() => void clock('in')} />
+    ) : canClockOut ? (
+      <Button title="Clock out" icon="exit-outline" large busy={busy === 'out'} onPress={() => void clock('out')} />
+    ) : (
+      <Card style={s.successCard}><View style={s.infoRow}><Ionicons name="checkmark-circle" size={24} color={colors.success} /><View style={s.flexOne}><AppText style={s.cardTitle}>Attendance complete</AppText><Muted>Clock in {formatDateTime(today?.checkIn)} · Clock out {formatDateTime(today?.checkOut)}</Muted></View></View></Card>
+    )}
+
+    <AppText style={s.section}>Recent attendance</AppText>
+    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} />)}
+    <PaginationFooter visible={visible} total={data.attendance.length} />
   </>
 }
 
-export function DocumentsScreen({data}:{data:EssBootstrap}) {
-  const [opening,setOpening]=useState<string|null>(null)
-  const open=async(id:string)=>{
+function AttendanceCard({ row }: { row: AttendanceRow }) {
+  return <Card>
+    <View style={s.between}><AppText style={s.cardTitle}>{row.date}</AppText><StatusPill value={row.status} /></View>
+    <Muted>{formatDateTime(row.checkIn)} → {formatDateTime(row.checkOut)}</Muted>
+  </Card>
+}
+
+function StatusPill({ value }: { value: string }) {
+  return <View style={s.status}><AppText style={s.statusText}>{value}</AppText></View>
+}
+
+const requestKinds: Array<{ id: RequestKind; title: string; description: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { id: 'leave', title: 'Leave', description: 'Annual, sick or other leave', icon: 'calendar-outline' },
+  { id: 'attendance', title: 'Attendance correction', description: 'Correct missing or incorrect time', icon: 'time-outline' },
+  { id: 'general', title: 'HR request', description: 'General employee support request', icon: 'chatbubble-ellipses-outline' },
+  { id: 'bank-tax', title: 'Bank & tax', description: 'Update payroll payment or tax details', icon: 'card-outline' },
+  { id: 'emergency', title: 'Emergency contact', description: 'Add a contact for emergencies', icon: 'people-outline' },
+]
+
+export function RequestsScreen({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
+  const [kind, setKind] = useState<RequestKind | null>(null)
+  const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+
+  if (kind) {
+    return <>
+      <Pressable accessibilityRole="button" style={s.back} onPress={() => setKind(null)}><Ionicons name="arrow-back" size={18} color={colors.text} /><AppText>Requests</AppText></Pressable>
+      <RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} />
+    </>
+  }
+
+  return <>
+    <AppText style={s.pageTitle}>Requests</AppText>
+    <Muted>What would you like to request?</Muted>
+    <View style={s.requestGrid}>
+      {requestKinds.map((item) => <Pressable key={item.id} accessibilityRole="button" style={({ pressed }) => [s.requestCard, pressed && s.pressed]} onPress={() => setKind(item.id)}>
+        <View style={s.requestIcon}><Ionicons name={item.icon} size={24} color={colors.text} /></View>
+        <AppText style={s.cardTitle}>{item.title}</AppText>
+        <Muted>{item.description}</Muted>
+        <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
+      </Pressable>)}
+    </View>
+    <AppText style={s.section}>Recent leave requests</AppText>
+    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No requests yet" /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
+    <PaginationFooter visible={visible} total={data.leaveRequests.length} />
+  </>
+}
+
+function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
+  if (kind === 'leave') return <LeaveRequestForm reload={reload} onDone={onDone} />
+  if (kind === 'attendance') return <AttendanceCorrectionForm data={data} onDone={onDone} />
+  if (kind === 'bank-tax') return <BankTaxRequestForm reload={reload} onDone={onDone} />
+  if (kind === 'emergency') return <EmergencyRequestForm reload={reload} onDone={onDone} />
+  return <GeneralRequestForm onDone={onDone} />
+}
+
+function DateField({ label, value, onChange }: { label: string; value: Date; onChange: (value: Date) => void }) {
+  const [open, setOpen] = useState(false)
+  return <View style={s.field}>
+    <Muted style={s.fieldLabel}>{label}</Muted>
+    <Pressable style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>
+    {open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}
+  </View>
+}
+
+function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
+  const [type, setType] = useState('Annual leave')
+  const [start, setStart] = useState(new Date())
+  const [end, setEnd] = useState(new Date())
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const leaveTypes = ['Annual leave', 'Sick leave', 'Personal leave', 'Unpaid leave']
+
+  const submit = async () => {
+    if (end < start) return Alert.alert('Leave request', 'End date cannot be before start date.')
+    setBusy(true)
+    try {
+      await essApi.createLeave({ type, startDate: formatDate(start), endDate: formatDate(end), reason: reason.trim() })
+      await reload()
+      Alert.alert('Leave request', 'Submitted successfully.')
+      onDone()
+    } catch (error) {
+      Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to submit')
+    } finally { setBusy(false) }
+  }
+
+  return <>
+    <AppText style={s.pageTitle}>Leave request</AppText>
+    <Card>
+      <Muted style={s.fieldLabel}>Leave type</Muted>
+      <View style={s.chips}>{leaveTypes.map((item) => <Pressable key={item} style={[s.chip, type === item && s.chipActive]} onPress={() => setType(item)}><AppText style={[s.chipText, type === item && s.chipTextActive]}>{item}</AppText></Pressable>)}</View>
+      <DateField label="Start date" value={start} onChange={setStart} />
+      <DateField label="End date" value={end} onChange={setEnd} />
+      <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" />
+      <Button title="Submit request" busy={busy} onPress={() => void submit()} />
+    </Card>
+  </>
+}
+
+function AttendanceCorrectionForm({ data, onDone }: { data: EssBootstrap; onDone: () => void }) {
+  const [attendanceId, setAttendanceId] = useState(data.attendance[0]?.id || '')
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    if (!attendanceId || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
+    setBusy(true)
+    try {
+      await essApi.createAttendanceCorrection({ attendanceId, reason: reason.trim(), requestedCheckIn: checkIn.trim() || undefined, requestedCheckOut: checkOut.trim() || undefined })
+      Alert.alert('Attendance correction', 'Correction request submitted for review.')
+      onDone()
+    } catch (error) {
+      Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit')
+    } finally { setBusy(false) }
+  }
+  return <>
+    <AppText style={s.pageTitle}>Attendance correction</AppText>
+    <Card>
+      <Muted style={s.fieldLabel}>Attendance record</Muted>
+      <View style={s.chips}>{data.attendance.slice(0, 8).map((row) => <Pressable key={row.id} style={[s.chip, attendanceId === row.id && s.chipActive]} onPress={() => setAttendanceId(row.id)}><AppText style={[s.chipText, attendanceId === row.id && s.chipTextActive]}>{row.date}</AppText></Pressable>)}</View>
+      <Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" />
+      <Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" />
+      <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" />
+      <Button title="Submit correction" busy={busy} onPress={() => void submit()} />
+    </Card>
+  </>
+}
+
+function GeneralRequestForm({ onDone }: { onDone: () => void }) {
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [category, setCategory] = useState('general')
+  const [busy, setBusy] = useState(false)
+  const categories = ['general', 'payroll', 'benefits', 'policy', 'workplace']
+  const submit = async () => {
+    if (!subject.trim() || !message.trim()) return Alert.alert('HR request', 'Subject and details are required.')
+    setBusy(true)
+    try {
+      await essApi.createHrTicket(subject.trim(), message.trim(), category)
+      Alert.alert('HR request', 'Request submitted.')
+      onDone()
+    } catch (error) {
+      Alert.alert('HR request', error instanceof Error ? error.message : 'Unable to submit')
+    } finally { setBusy(false) }
+  }
+  return <>
+    <AppText style={s.pageTitle}>HR request</AppText>
+    <Card>
+      <Muted style={s.fieldLabel}>Category</Muted>
+      <View style={s.chips}>{categories.map((item) => <Pressable key={item} style={[s.chip, category === item && s.chipActive]} onPress={() => setCategory(item)}><AppText style={[s.chipText, category === item && s.chipTextActive]}>{item}</AppText></Pressable>)}</View>
+      <Field label="Subject" value={subject} onChangeText={setSubject} placeholder="What do you need help with?" />
+      <Field label="Details" value={message} onChangeText={setMessage} multiline placeholder="Add the information HR needs" />
+      <Button title="Submit HR request" busy={busy} onPress={() => void submit()} />
+    </Card>
+  </>
+}
+
+function BankTaxRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
+  const [bankName, setBankName] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [taxId, setTaxId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    if (!bankName.trim() && !accountNumber.trim() && !taxId.trim()) return Alert.alert('Bank & tax', 'Enter at least one value to update.')
+    setBusy(true)
+    try {
+      await essApi.patchBankTax({ bankName: bankName.trim() || undefined, accountNumber: accountNumber.trim() || undefined, taxId: taxId.trim() || undefined })
+      await reload()
+      Alert.alert('Bank & tax', 'Information updated.')
+      onDone()
+    } catch (error) { Alert.alert('Bank & tax', error instanceof Error ? error.message : 'Unable to update') }
+    finally { setBusy(false) }
+  }
+  return <>
+    <AppText style={s.pageTitle}>Bank & tax</AppText>
+    <Card><Field label="Bank name" value={bankName} onChangeText={setBankName} /><Field label="Account number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" /><Field label="Tax ID" value={taxId} onChangeText={setTaxId} keyboardType="numeric" /><Button title="Update information" busy={busy} onPress={() => void submit()} /></Card>
+  </>
+}
+
+function EmergencyRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
+  const [name, setName] = useState('')
+  const [relationship, setRelationship] = useState('')
+  const [phone, setPhone] = useState('')
+  const [primary, setPrimary] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    if (!name.trim() || !relationship.trim() || !phone.trim()) return Alert.alert('Emergency contact', 'Name, relationship and phone are required.')
+    setBusy(true)
+    try {
+      await essApi.createEmergencyContact({ name: name.trim(), relationship: relationship.trim(), phone: phone.trim(), primary })
+      await reload()
+      Alert.alert('Emergency contact', 'Contact added.')
+      onDone()
+    } catch (error) { Alert.alert('Emergency contact', error instanceof Error ? error.message : 'Unable to add contact') }
+    finally { setBusy(false) }
+  }
+  return <>
+    <AppText style={s.pageTitle}>Emergency contact</AppText>
+    <Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} /></View><Button title="Add contact" busy={busy} onPress={() => void submit()} /></Card>
+  </>
+}
+
+function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false)
+  const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [
+    { text: 'Keep', style: 'cancel' },
+    { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => {
+      setBusy(true)
+      try { await essApi.cancelLeave(request.id); await reload() }
+      catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') }
+      finally { setBusy(false) }
+    })() },
+  ])
+  return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{['draft', 'pending'].includes(request.status) ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
+}
+
+export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
+  const [opening, setOpening] = useState<string | null>(null)
+  const visible = useProgressiveCount(data.documents.length, loadMoreTick, 12)
+  const open = async (id: string) => {
     if (opening) return
     setOpening(id)
     try {
-      const {url}=await essApi.documentUrl(id)
+      const { url } = await essApi.documentUrl(id)
       if (!/^https?:\/\//i.test(url)) throw new Error('The document link is invalid.')
-      const supported=await Linking.canOpenURL(url)
-      if (!supported) throw new Error('No app is available to open this document.')
+      if (!await Linking.canOpenURL(url)) throw new Error('No app is available to open this document.')
       await Linking.openURL(url)
-    } catch(e) {
-      Alert.alert('Document',e instanceof Error?e.message:'Unable to open')
-    } finally {
-      setOpening(null)
-    }
+    } catch (error) { Alert.alert('Document', error instanceof Error ? error.message : 'Unable to open') }
+    finally { setOpening(null) }
   }
   return <>
-    <Text style={s.pageTitle}>Documents</Text>
-    {data.documents.length===0 ? <Text style={s.empty}>No documents available.</Text> : data.documents.map(x=><Pressable accessibilityRole="button" disabled={opening!==null} key={x.id} onPress={()=>void open(x.id)}><Card><View style={s.between}><View style={s.documentText}><Text style={s.cardTitle}>{x.title}</Text><Text style={s.muted}>{x.subtitle||x.kind} · {x.issuedAt}</Text></View>{opening===x.id?<ActivityIndicator size="small"/>:<Ionicons name="download-outline" size={22}/>}</View></Card></Pressable>)}
+    <AppText style={s.pageTitle}>Documents</AppText>
+    <Muted>Payslips, tax documents, policies and employee files.</Muted>
+    <View style={s.spacer} />
+    {data.documents.length === 0 ? <EmptyState icon="folder-open-outline" title="No documents available" /> : data.documents.slice(0, visible).map((document) => <Pressable key={document.id} accessibilityRole="button" disabled={Boolean(opening)} onPress={() => void open(document.id)}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{document.title}</AppText><Muted>{document.subtitle || document.kind} · {document.issuedAt}</Muted></View>{opening === document.id ? <ActivityIndicator /> : <Ionicons name="download-outline" size={22} color={colors.text} />}</View></Card></Pressable>)}
+    <PaginationFooter visible={visible} total={data.documents.length} />
   </>
 }
 
-export function MeScreen({data,onSignOut}:{data:EssBootstrap;onSignOut:()=>void}) {
-  const [subject,setSubject]=useState('')
-  const [message,setMessage]=useState('')
-  const [sending,setSending]=useState(false)
-  const send=async()=>{
-    if (sending) return
-    const cleanSubject=subject.trim()
-    const cleanMessage=message.trim()
-    if (!cleanSubject || !cleanMessage) return Alert.alert('Talk to HR','Subject and message are required.')
-    setSending(true)
+export function AccountScreen({
+  data,
+  account,
+  appIdentity,
+  reload,
+  onSignOut,
+  loadMoreTick,
+}: {
+  data: EssBootstrap
+  account?: AccountIdentity | null
+  appIdentity?: AccountApplicationIdentity | null
+  reload: () => Promise<void>
+  onSignOut: () => void
+  loadMoreTick: number
+}) {
+  const [section, setSection] = useState<AccountSection>('menu')
+  if (section !== 'menu') return <AccountSubpage section={section} setSection={setSection} data={data} account={account} reload={reload} loadMoreTick={loadMoreTick} />
+
+  const displayName = account?.name || data.employee.name
+  return <>
+    <AppText style={s.pageTitle}>Account</AppText>
+    <Card style={s.accountHero}>
+      <View style={s.accountIdentityRow}>
+        <Avatar imageUrl={account?.imageUrl || data.employee.avatarUrl} name={displayName} size={58} />
+        <View style={s.flexOne}><AppText style={s.accountName}>{displayName}</AppText><Muted>{account?.email || data.profile?.personalEmail || data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></View>
+      </View>
+      <Muted>Identity from Outborn Account · Employee profile from {appIdentity?.name || 'Obsi People'}</Muted>
+    </Card>
+    <View style={s.menuList}>
+      <MenuItem icon="person-outline" title="My profile" subtitle="Personal and employee information" onPress={() => setSection('profile')} />
+      <MenuItem icon="chatbubbles-outline" title="Talk to HR" subtitle="Open HR support chat" onPress={() => setSection('hr-chat')} />
+      <MenuItem icon="notifications-outline" title="Notifications" subtitle={`${data.employee.unreadNotifications || 0} unread`} onPress={() => setSection('notifications')} />
+      <MenuItem icon="heart-outline" title="Benefits" subtitle="Employee benefits and coverage" onPress={() => setSection('benefits')} />
+      <MenuItem icon="people-outline" title="Emergency contacts" subtitle="Manage emergency contacts" onPress={() => setSection('contacts')} />
+      <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => setSection('security')} />
+    </View>
+    <Button title="Sign out" secondary onPress={onSignOut} />
+    <Muted style={s.version}>Development build · v0.2.0</Muted>
+  </>
+}
+
+function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
+  return <>
+    <Pressable accessibilityRole="button" style={s.back} onPress={() => setSection('menu')}><Ionicons name="arrow-back" size={18} color={colors.text} /><AppText>Account</AppText></Pressable>
+    {section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}
+    {section === 'hr-chat' ? <HrChatPage /> : null}
+    {section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}
+    {section === 'benefits' ? <BenefitsPage data={data} /> : null}
+    {section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}
+    {section === 'security' ? <SecurityPage /> : null}
+  </>
+}
+
+function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
+  const [preferredName, setPreferredName] = useState(data.profile?.preferredName || '')
+  const [personalEmail, setPersonalEmail] = useState(data.profile?.personalEmail || '')
+  const [phone, setPhone] = useState(data.profile?.phone || '')
+  const [address, setAddress] = useState(data.profile?.address || '')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    setBusy(true)
     try {
-      await essApi.createHrTicket(cleanSubject,cleanMessage)
-      setSubject('');setMessage('')
-      Alert.alert('Talk to HR','Sent successfully.')
-    } catch(e) {
-      Alert.alert('Talk to HR',e instanceof Error?e.message:'Unable to send')
-    } finally {
-      setSending(false)
-    }
+      await essApi.patchProfile({ preferredName: preferredName.trim(), personalEmail: personalEmail.trim(), phone: phone.trim(), address: address.trim() })
+      await reload()
+      Alert.alert('My profile', 'Profile updated.')
+    } catch (error) { Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to update profile') }
+    finally { setBusy(false) }
   }
   return <>
-    <Text style={s.pageTitle}>Me</Text>
-    <Card><Text style={s.cardTitle}>{data.employee.name}</Text><Text style={s.muted}>{data.employee.employeeId}</Text><Text>{data.employee.position}</Text><Text>{data.employee.department}</Text></Card>
-    <Text style={s.section}>Talk to HR</Text>
-    <Card><TextInput style={s.input} value={subject} onChangeText={setSubject} placeholder="Subject"/><TextInput style={[s.input,s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message"/><Button title="Send to HR" busy={sending} onPress={()=>void send()}/></Card>
-    <Button title="Sign out" secondary onPress={onSignOut}/>
+    <AppText style={s.pageTitle}>My profile</AppText>
+    <Card><Muted>Outborn Account</Muted><AppText style={s.cardTitle}>{account?.name || data.employee.name}</AppText><Muted>{account?.email || 'Account email unavailable'}</Muted></Card>
+    <Card><Field label="Preferred name" value={preferredName} onChangeText={setPreferredName} /><Field label="Personal email" value={personalEmail} onChangeText={setPersonalEmail} keyboardType="email-address" autoCapitalize="none" /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><Field label="Address" value={address} onChangeText={setAddress} multiline /><Button title="Save profile" busy={busy} onPress={() => void submit()} /></Card>
+    <Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card>
   </>
 }
 
-const s=StyleSheet.create({
-  pageTitle:{fontSize:28,fontWeight:'700',marginBottom:6},kicker:{fontSize:11,fontWeight:'700',letterSpacing:1.3,color:'#6B7280'},muted:{color:'#6B7280'},section:{fontSize:16,fontWeight:'700',marginTop:18,marginBottom:8},card:{backgroundColor:'#fff',padding:16,borderRadius:18,gap:8,marginBottom:10},cardTitle:{fontSize:16,fontWeight:'600'},metric:{fontSize:34,fontWeight:'700'},grid:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:18},quick:{width:'48%',backgroundColor:'#fff',padding:16,borderRadius:18,gap:10},quickPressed:{opacity:0.75},row:{flexDirection:'row',gap:10,marginVertical:12},button:{flex:1,minHeight:46,backgroundColor:'#111827',paddingHorizontal:18,paddingVertical:13,borderRadius:14,alignItems:'center',justifyContent:'center'},buttonPressed:{opacity:0.78},buttonDisabled:{opacity:0.55},secondary:{backgroundColor:'#fff',borderWidth:1,borderColor:'#D1D5DB'},buttonText:{color:'#fff',fontWeight:'600'},secondaryText:{color:'#111827'},status:{alignSelf:'flex-start',backgroundColor:'#F3F4F6',paddingHorizontal:10,paddingVertical:5,borderRadius:999,textTransform:'capitalize'},input:{backgroundColor:'#F9FAFB',borderWidth:1,borderColor:'#E5E7EB',padding:12,borderRadius:12},multi:{minHeight:90,textAlignVertical:'top'},danger:{color:'#B91C1C',fontWeight:'600',paddingVertical:6},between:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:12},documentText:{flex:1,minWidth:0},empty:{color:'#6B7280',paddingVertical:10}
+function HrChatPage() {
+  const [message, setMessage] = useState('')
+  const [messages, setMessages] = useState<Array<{ id: string; body: string }>>([])
+  const [busy, setBusy] = useState(false)
+  const send = async () => {
+    const body = message.trim()
+    if (!body) return
+    setBusy(true)
+    try {
+      await essApi.createHrTicket('ESS chat', body, 'chat')
+      setMessages((current) => [...current, { id: `${Date.now()}`, body }])
+      setMessage('')
+    } catch (error) { Alert.alert('Talk to HR', error instanceof Error ? error.message : 'Unable to send') }
+    finally { setBusy(false) }
+  }
+  return <>
+    <AppText style={s.pageTitle}>Talk to HR</AppText>
+    <Muted>Messages create tracked HR support requests so nothing gets lost.</Muted>
+    <View style={s.chatArea}>{messages.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : messages.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.body}</AppText></View>)}</View>
+    <Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card>
+  </>
+}
+
+function NotificationsPage({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const visible = useProgressiveCount(data.notifications.length, loadMoreTick, 15)
+  const read = async (id: string) => { setBusy(id); try { await essApi.markNotificationRead(id); await reload() } catch (error) { Alert.alert('Notifications', error instanceof Error ? error.message : 'Unable to update') } finally { setBusy(null) } }
+  const readAll = async () => { setBusy('all'); try { await essApi.markAllNotificationsRead(); await reload() } catch (error) { Alert.alert('Notifications', error instanceof Error ? error.message : 'Unable to update') } finally { setBusy(null) } }
+  return <>
+    <View style={s.between}><AppText style={s.pageTitle}>Notifications</AppText>{data.notifications.some((item) => !item.read) ? <Pressable disabled={Boolean(busy)} onPress={() => void readAll()}><AppText style={s.linkText}>Mark all read</AppText></Pressable> : null}</View>
+    {data.notifications.length === 0 ? <EmptyState icon="notifications-outline" title="No notifications" /> : data.notifications.slice(0, visible).map((item) => <Pressable key={item.id} disabled={Boolean(busy) || item.read} onPress={() => void read(item.id)}><Card style={!item.read ? s.unreadCard : undefined}><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText>{item.body ? <Muted>{item.body}</Muted> : null}<Muted>{formatDateTime(item.createdAt)}</Muted></View>{busy === item.id ? <ActivityIndicator /> : !item.read ? <View style={s.unreadDot} /> : null}</View></Card></Pressable>)}
+    <PaginationFooter visible={visible} total={data.notifications.length} />
+  </>
+}
+
+function BenefitsPage({ data }: { data: EssBootstrap }) {
+  return <><AppText style={s.pageTitle}>Benefits</AppText>{data.benefits.length === 0 ? <EmptyState icon="heart-outline" title="No benefits published yet" subtitle="Benefits configured by HR will appear here." /> : data.benefits.map((item, index) => <Card key={String(item.id || index)}><AppText style={s.cardTitle}>{String(item.name || item.title || 'Benefit')}</AppText><Muted>{String(item.description || item.status || '')}</Muted></Card>)}</>
+}
+
+function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
+  const [adding, setAdding] = useState(false)
+  const remove = (contact: EmergencyContact) => Alert.alert('Remove contact', `Remove ${contact.name}?`, [{ text: 'Keep', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void (async () => { try { await essApi.deleteEmergencyContact(contact.id); await reload() } catch (error) { Alert.alert('Emergency contacts', error instanceof Error ? error.message : 'Unable to remove') } })() }])
+  return <>
+    <View style={s.between}><AppText style={s.pageTitle}>Emergency contacts</AppText><Pressable onPress={() => setAdding((current) => !current)}><Ionicons name={adding ? 'close' : 'add'} size={24} color={colors.text} /></Pressable></View>
+    {adding ? <EmergencyRequestForm reload={async () => { await reload(); setAdding(false) }} onDone={() => setAdding(false)} /> : null}
+    {data.emergencyContacts.length === 0 && !adding ? <EmptyState icon="people-outline" title="No emergency contacts" /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></View><Pressable onPress={() => remove(contact)}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable></View></Card>)}
+  </>
+}
+
+function SecurityPage() {
+  const [supported, setSupported] = useState<boolean | null>(null)
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => { void (async () => { setSupported(await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()); setEnabled((await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1') })() }, [])
+  const toggle = async (next: boolean) => {
+    if (next) {
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Enable biometric lock for Obsi People' })
+      if (!result.success) return
+    }
+    await SecureStore.setItemAsync(BIOMETRIC_KEY, next ? '1' : '0')
+    setEnabled(next)
+  }
+  return <>
+    <AppText style={s.pageTitle}>Security</AppText>
+    <Card><View style={s.switchRow}><View style={s.flexOne}><AppText style={s.cardTitle}>Biometric app lock</AppText><Muted>{supported === false ? 'Biometrics are not configured on this device.' : 'Require fingerprint or Face ID when opening the app.'}</Muted></View><Switch disabled={!supported} value={enabled} onValueChange={(next) => void toggle(next)} /></View></Card>
+  </>
+}
+
+function Avatar({ imageUrl, name, size = 44 }: { imageUrl?: string; name: string; size?: number }) {
+  const style = { width: size, height: size, borderRadius: size / 2 }
+  if (imageUrl) return <Image source={{ uri: imageUrl }} style={[style, s.avatarImage]} />
+  return <View style={[style, s.avatarFallback]}><AppText style={s.avatarInitial}>{(name.trim().slice(0, 1) || '?').toUpperCase()}</AppText></View>
+}
+
+function MenuItem({ icon, title, subtitle, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.menuItem, pressed && s.pressed]} onPress={onPress}><View style={s.menuIcon}><Ionicons name={icon} size={22} color={colors.text} /></View><View style={s.flexOne}><AppText style={s.cardTitle}>{title}</AppText><Muted>{subtitle}</Muted></View><Ionicons name="chevron-forward" size={20} color={colors.textMuted} /></Pressable>
+}
+
+function Field(props: React.ComponentProps<typeof TextInput> & { label: string }) {
+  const { label, style, ...inputProps } = props
+  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><TextInput {...inputProps} placeholderTextColor={colors.textSubtle} style={[s.input, inputProps.multiline && s.multi, style]} /></View>
+}
+
+function EmptyState({ icon, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string }) {
+  return <View style={s.empty}><Ionicons name={icon} size={30} color={colors.textMuted} /><AppText style={s.cardTitle}>{title}</AppText>{subtitle ? <Muted style={s.centerText}>{subtitle}</Muted> : null}</View>
+}
+
+const s = StyleSheet.create({
+  text: { color: colors.text, fontSize: 14 },
+  muted: { color: colors.textMuted },
+  pageTitle: { color: colors.text, fontSize: 28, fontWeight: '700', marginBottom: 6, letterSpacing: -0.6 },
+  kicker: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.3 },
+  section: { color: colors.text, fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 9 },
+  card: { backgroundColor: colors.surface, padding: 16, borderRadius: radii.lg, gap: 9, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '650' as '600' },
+  flexOne: { flex: 1, minWidth: 0 },
+  between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  spacer: { height: 14 },
+  pressed: { opacity: 0.7 },
+  disabled: { opacity: 0.45 },
+  button: { minHeight: 48, backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 13, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  largeButton: { minHeight: 82, borderRadius: radii.xl, marginVertical: 8 },
+  largeButtonText: { fontSize: 18 },
+  secondaryButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  buttonText: { color: colors.primaryText, fontWeight: '700' },
+  secondaryButtonText: { color: colors.text },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
+  quick: { width: '48%', minHeight: 104, backgroundColor: colors.surface, padding: 16, borderRadius: radii.lg, justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border },
+  quickLabel: { color: colors.text, fontWeight: '600' },
+  metricRow: { flexDirection: 'row', gap: 10 },
+  metricBlock: { flex: 1, backgroundColor: colors.surfaceMuted, padding: 12, borderRadius: radii.md },
+  metric: { color: colors.text, fontSize: 30, fontWeight: '700' },
+  chartGroup: { gap: 12, marginTop: 6 },
+  chartItem: { gap: 7 },
+  chartValue: { fontWeight: '700' },
+  chartTrack: { height: 8, backgroundColor: colors.surfaceStrong, borderRadius: 99, overflow: 'hidden' },
+  chartFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 99 },
+  shiftCard: { marginTop: 12 },
+  successCard: { backgroundColor: colors.successSurface, borderColor: '#CBEBD7' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  status: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.surfaceMuted },
+  statusText: { color: colors.text, fontSize: 12, textTransform: 'capitalize', fontWeight: '600' },
+  loadingMore: { textAlign: 'center', paddingVertical: 12 },
+  requestGrid: { gap: 10, marginTop: 16 },
+  requestCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 16, gap: 8 },
+  requestIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, alignSelf: 'flex-start', marginBottom: 8 },
+  field: { gap: 6, marginBottom: 6 },
+  fieldLabel: { fontSize: 12, fontWeight: '600' },
+  input: { minHeight: 46, color: colors.text, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 11 },
+  inputPressable: { minHeight: 46, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  multi: { minHeight: 96, textAlignVertical: 'top' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  chip: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.text, fontSize: 12, fontWeight: '600' },
+  chipTextActive: { color: colors.primaryText },
+  danger: { color: colors.danger, fontWeight: '700', paddingVertical: 5 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  empty: { minHeight: 132, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, marginBottom: 10, padding: 18 },
+  centerText: { textAlign: 'center' },
+  accountHero: { backgroundColor: colors.surface },
+  accountIdentityRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  accountName: { fontSize: 19, fontWeight: '700' },
+  avatarImage: { backgroundColor: colors.surfaceMuted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.primaryText, fontWeight: '700', fontSize: 18 },
+  menuList: { gap: 8, marginBottom: 16 },
+  menuItem: { minHeight: 70, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  menuIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  version: { textAlign: 'center', fontSize: 11, marginTop: 8 },
+  chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: 8, marginVertical: 14 },
+  chatBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.infoSurface, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  unreadCard: { backgroundColor: colors.infoSurface, borderColor: '#D5E3FF' },
+  unreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
+  linkText: { color: colors.accent, fontWeight: '700', fontSize: 12 },
 })

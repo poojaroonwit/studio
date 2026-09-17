@@ -8,6 +8,7 @@ module.exports = {
     userInterfaceStyle: 'automatic',
     android: {
       package: 'co.outborn.people.ess',
+      googleServicesFile: './google-services.json',
       adaptiveIcon: { backgroundColor: '#ffffff' },
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION']
     },
@@ -15,6 +16,8 @@ module.exports = {
       bundleIdentifier: 'co.outborn.people.ess'
     },
     plugins: [
+      '@react-native-firebase/app',
+      '@react-native-firebase/analytics',
       ['expo-secure-store', { configureAndroidBackup: false }],
       ['expo-location', { locationWhenInUsePermission: 'Allow Obsi People ESS to use your location when you clock in or out.' }]
     ],

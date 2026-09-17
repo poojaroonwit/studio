@@ -1,6 +1,13 @@
 import { Platform } from 'react-native'
 import Constants from 'expo-constants'
-import messaging from '@react-native-firebase/messaging'
+import {
+  AuthorizationStatus,
+  getMessaging,
+  getToken,
+  onTokenRefresh,
+  registerDeviceForRemoteMessages,
+  requestPermission,
+} from '@react-native-firebase/messaging'
 import * as SecureStore from 'expo-secure-store'
 
 const extra = Constants.expoConfig?.extra as Record<string, string> | undefined
@@ -8,8 +15,7 @@ const apiUrl = (extra?.apiUrl || 'https://people.outborn.co').replace(/\/$/, '')
 const PUSH_TOKEN_KEY = 'obsi.people.ess.push_token'
 
 function authorized(status: number) {
-  const auth = messaging.AuthorizationStatus
-  return status === auth.AUTHORIZED || status === auth.PROVISIONAL
+  return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL
 }
 
 async function sendRegistration(accessToken: string, token: string) {
@@ -33,10 +39,11 @@ async function sendRegistration(accessToken: string, token: string) {
 export async function syncPushRegistration(accessToken: string) {
   if (!accessToken || !['android', 'ios'].includes(Platform.OS)) return null
   try {
-    await messaging().registerDeviceForRemoteMessages()
-    const permission = await messaging().requestPermission()
+    const instance = getMessaging()
+    await registerDeviceForRemoteMessages(instance)
+    const permission = await requestPermission(instance)
     if (!authorized(permission) && Platform.OS === 'ios') return null
-    const token = await messaging().getToken()
+    const token = await getToken(instance)
     if (!token) return null
     await sendRegistration(accessToken, token)
     await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token)
@@ -48,7 +55,8 @@ export async function syncPushRegistration(accessToken: string) {
 }
 
 export function watchPushTokenRefresh(accessToken: string) {
-  return messaging().onTokenRefresh((token) => {
+  const instance = getMessaging()
+  return onTokenRefresh(instance, (token: string) => {
     void sendRegistration(accessToken, token)
       .then(() => SecureStore.setItemAsync(PUSH_TOKEN_KEY, token))
       .catch((error) => console.warn('Obsi People push token refresh failed', error))

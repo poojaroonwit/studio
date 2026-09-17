@@ -21,7 +21,7 @@ export async function handleNativeAttendanceClock(
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   const latitude = optionalNumber(body.latitude);
   const longitude = optionalNumber(body.longitude);
-  const policyDecision = await validateMobileAttendanceAction({ employeeId: identity.employeeId, latitude, longitude });
+  const policyDecision = await validateMobileAttendanceAction({ employeeId: identity.employeeId, mode, latitude, longitude });
   if (!policyDecision.allowed) return jsonError(policyDecision.error, policyDecision.status);
 
   const client = await getPool().connect();

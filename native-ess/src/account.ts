@@ -65,6 +65,29 @@ async function accountFetch(path: string, init?: RequestInit) {
   }
 }
 
+export async function loadPublicAccountApplicationIdentity(): Promise<AccountApplicationIdentity> {
+  const fallback: AccountApplicationIdentity = { name: 'Obsi People' }
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8000)
+  try {
+    const response = await fetch(`${accountUrl}/api/account/public/application-branding/obsi-people`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    })
+    if (!response.ok) return fallback
+    const body = await response.json() as Record<string, unknown>
+    const logoUrl = text(body.logoUrl)
+    return {
+      name: text(body.name) || fallback.name,
+      logoUrl: logoUrl || undefined,
+    }
+  } catch {
+    return fallback
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export async function loadAccountIdentity(): Promise<AccountIdentity> {
   const response = await accountFetch('/api/auth/oauth2/userinfo')
   if (!response.ok) throw new Error(`Unable to load Outborn Account profile (${response.status})`)
@@ -101,7 +124,8 @@ function applicationScore(raw: unknown) {
 }
 
 export async function loadAccountApplicationIdentity(identity?: AccountIdentity): Promise<AccountApplicationIdentity> {
-  const fallback: AccountApplicationIdentity = { name: 'Obsi People' }
+  const publicIdentity = await loadPublicAccountApplicationIdentity()
+  const fallback: AccountApplicationIdentity = publicIdentity
   const organizationIds = [identity?.organizationId, ...(identity?.organizations || []).map((organization) => organization.id)]
     .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
 
@@ -123,7 +147,7 @@ export async function loadAccountApplicationIdentity(identity?: AccountIdentity)
       const logoUrl = text(people.iconUrl || people.logoUrl || people.icon || people.logo)
       return {
         name: text(people.name) || fallback.name,
-        logoUrl: logoUrl || undefined,
+        logoUrl: logoUrl || fallback.logoUrl,
       }
     } catch {}
   }

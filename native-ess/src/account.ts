@@ -34,7 +34,7 @@ function parseOrganizations(value: unknown): AccountOrganization[] {
   return value.flatMap((item) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return []
     const row = item as Record<string, unknown>
-    const id = text(row.id || row.organization_id)
+    const id = text(row.id || row.organization_id || row.organizationId)
     if (!id) return []
     return [{
       id,
@@ -70,7 +70,7 @@ export async function loadAccountIdentity(): Promise<AccountIdentity> {
   if (!response.ok) throw new Error(`Unable to load Outborn Account profile (${response.status})`)
   const body = await response.json() as Record<string, unknown>
   const organizations = parseOrganizations(body.organizations)
-  const organizationId = text(body.organization_id) || organizations[0]?.id
+  const organizationId = text(body.organization_id || body.organizationId) || organizations[0]?.id
   const email = text(body.email)
   const name = text(body.name) || text(body.preferred_username) || email.split('@')[0] || 'Account'
   const imageUrl = text(body.picture) || text(body.image) || text(body.avatar_url) || text(body.avatarUrl)
@@ -84,33 +84,51 @@ export async function loadAccountIdentity(): Promise<AccountIdentity> {
   }
 }
 
+function applicationScore(raw: unknown) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return -1
+  const app = raw as Record<string, unknown>
+  const slug = text(app.slug).toLowerCase()
+  const name = text(app.name).toLowerCase()
+  const launchUrl = text(app.launchUrl).toLowerCase()
+  const applicationId = text(app.applicationId || app.id).toLowerCase()
+  if (slug === 'obsi-people') return 100
+  if (name === 'obsi people') return 90
+  if (launchUrl.includes('people.outborn.co')) return 80
+  if (launchUrl.includes('app-hrive.up.railway.app')) return 70
+  if (applicationId.includes('people') || applicationId.includes('hrive')) return 60
+  if (name === 'hrive') return 50
+  return -1
+}
+
 export async function loadAccountApplicationIdentity(identity?: AccountIdentity): Promise<AccountApplicationIdentity> {
   const fallback: AccountApplicationIdentity = { name: 'Obsi People' }
-  const organizationId = identity?.organizationId
-  try {
-    const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : ''
-    const response = await accountFetch(`/api/account/applications${query}`)
-    if (!response.ok) return fallback
-    const body = await response.json() as { applications?: unknown[] }
-    const applications = Array.isArray(body.applications) ? body.applications : []
-    const people = applications.find((raw) => {
-      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
-      const app = raw as Record<string, unknown>
-      const name = text(app.name).toLowerCase()
-      const launchUrl = text(app.launchUrl).toLowerCase()
-      return name === 'obsi people'
-        || name === 'hrive'
-        || launchUrl.includes('people.outborn.co')
-        || launchUrl.includes('app-hrive.up.railway.app')
-    }) as Record<string, unknown> | undefined
-    if (!people) return fallback
-    return {
-      name: text(people.name) || fallback.name,
-      logoUrl: text(people.iconUrl) || undefined,
-    }
-  } catch {
-    return fallback
+  const organizationIds = [identity?.organizationId, ...(identity?.organizations || []).map((organization) => organization.id)]
+    .filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+
+  const queries = organizationIds.length
+    ? organizationIds.map((organizationId) => `?organizationId=${encodeURIComponent(organizationId)}`)
+    : ['']
+
+  for (const query of queries) {
+    try {
+      const response = await accountFetch(`/api/account/applications${query}`)
+      if (!response.ok) continue
+      const body = await response.json() as { applications?: unknown[] }
+      const applications = Array.isArray(body.applications) ? body.applications : []
+      const people = applications
+        .map((application) => ({ application, score: applicationScore(application) }))
+        .filter(({ score }) => score >= 0)
+        .sort((a, b) => b.score - a.score)[0]?.application as Record<string, unknown> | undefined
+      if (!people) continue
+      const logoUrl = text(people.iconUrl || people.logoUrl || people.icon || people.logo)
+      return {
+        name: text(people.name) || fallback.name,
+        logoUrl: logoUrl || undefined,
+      }
+    } catch {}
   }
+
+  return fallback
 }
 
 export const outbornAccountUrl = accountUrl

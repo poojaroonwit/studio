@@ -91,3 +91,58 @@ jobs:
             gh release create "$RELEASE_TAG" "$APK_PATH" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obsi People ESS Android latest" --notes "$NOTES" --prerelease
           fi
           curl --fail --location --silent --show-error --head "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/obsi-people-ess-latest.apk" >/dev/null
+
+  firebase-distribution:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: android
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_APP_ID: 1:98366973176:android:99e8d873ffbd8b2399470d
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE }}
+      FIREBASE_TESTERS: ${{ vars.FIREBASE_APP_DISTRIBUTION_TESTERS }}
+      FIREBASE_GROUPS: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v5
+        with:
+          name: obsi-people-ess-native-apk
+          path: dist
+      - name: Check Firebase App Distribution authentication
+        id: firebase-auth
+        shell: bash
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Firebase App Distribution skipped. Add repository secret FIREBASE_SERVICE_ACCOUNT_OBSI_PEOPLE containing a Firebase/GCP service-account JSON key."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Configure Firebase service account
+        if: steps.firebase-auth.outputs.configured == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          chmod 600 "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+      - name: Install Firebase CLI
+        if: steps.firebase-auth.outputs.configured == 'true'
+        run: npm install --global firebase-tools
+      - name: Distribute APK to Firebase testers
+        if: steps.firebase-auth.outputs.configured == 'true'
+        shell: bash
+        env:
+          APK_PATH: dist/obsi-people-ess-latest.apk
+        run: |
+          set -euo pipefail
+          test -f "$APK_PATH"
+          args=(appdistribution:distribute "$APK_PATH" --app "$FIREBASE_APP_ID" --release-notes "Obsi People ESS automated dev build ${GITHUB_SHA::7}")
+          if [ -n "$FIREBASE_TESTERS" ]; then
+            args+=(--testers "$FIREBASE_TESTERS")
+          fi
+          if [ -n "$FIREBASE_GROUPS" ]; then
+            args+=(--groups "$FIREBASE_GROUPS")
+          fi
+          firebase "${args[@]}"

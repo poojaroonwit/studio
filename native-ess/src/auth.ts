@@ -49,8 +49,10 @@ export const accountAuth = {
 
     const code = params.get('code')
     const state = params.get('state')
-    if (!code || !request.codeVerifier) return false
-    if (state && state !== request.state) throw new Error('Outborn Account returned an invalid OAuth state')
+    if (!code || !state || !request.state || !request.codeVerifier) {
+      throw new Error('Outborn Account returned an incomplete sign-in response. Please try again.')
+    }
+    if (state !== request.state) throw new Error('Outborn Account returned an invalid OAuth state')
 
     const token = await AuthSession.exchangeCodeAsync({
       clientId,

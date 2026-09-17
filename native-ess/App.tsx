@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { accountAuth } from './src/auth'
-import { essApi, type EssBootstrap } from './src/api'
+import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
 import { HomeScreen, TimeScreen, RequestsScreen, DocumentsScreen, MeScreen } from './src/screens'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'me'
@@ -31,17 +31,32 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = async () => {
-    try { setData(await essApi.bootstrap()) }
-    catch { setData(null) }
-    finally { setLoading(false); setRefreshing(false) }
+    setLoadError(null)
+    try {
+      setData(await essApi.bootstrap())
+    } catch (error) {
+      if (isAuthRequired(error)) {
+        setData(null)
+      } else {
+        const message = error instanceof Error ? error.message : 'Unable to load employee data.'
+        const token = await accountAuth.getToken()
+        if (token) setLoadError(message)
+        else setData(null)
+      }
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }
 
   const signIn = async () => {
     if (authLoading) return
     setAuthLoading(true)
     setAuthError(null)
+    setLoadError(null)
     try {
       const success = await accountAuth.signIn()
       if (!success) {
@@ -57,9 +72,34 @@ export default function App() {
     }
   }
 
+  const signOut = async () => {
+    await accountAuth.signOut()
+    setData(null)
+    setLoadError(null)
+    setAuthError(null)
+    setTab('home')
+  }
+
   useEffect(() => { void load() }, [])
 
   if (loading) return <SafeAreaProvider><SafeAreaView style={s.center}><ActivityIndicator /><Text>Loading ESS…</Text></SafeAreaView></SafeAreaProvider>
+
+  if (!data && loadError) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={s.center}>
+          <StatusBar style="dark" />
+          <Ionicons name="cloud-offline-outline" size={34} color="#6B7280" />
+          <Text style={s.errorTitle}>Unable to load Obsi People</Text>
+          <Text style={s.errorCopy}>{loadError}</Text>
+          <View style={s.errorActions}>
+            <Pressable accessibilityRole="button" style={s.retryButton} onPress={() => { setLoading(true); void load() }}><Text style={s.retryButtonText}>Retry</Text></Pressable>
+            <Pressable accessibilityRole="button" style={s.signOutButton} onPress={() => void signOut()}><Text style={s.signOutButtonText}>Sign out</Text></Pressable>
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    )
+  }
 
   if (!data) {
     return (
@@ -107,42 +147,26 @@ export default function App() {
     )
   }
 
-  const screen = tab === 'home' ? <HomeScreen data={data} setTab={setTab} /> : tab === 'time' ? <TimeScreen data={data} reload={load} /> : tab === 'requests' ? <RequestsScreen data={data} reload={load} /> : tab === 'documents' ? <DocumentsScreen data={data} /> : <MeScreen data={data} onSignOut={() => void (async () => { await accountAuth.signOut(); setData(null) })()} />
+  const screen = tab === 'home' ? <HomeScreen data={data} setTab={setTab} /> : tab === 'time' ? <TimeScreen data={data} reload={load} /> : tab === 'requests' ? <RequestsScreen data={data} reload={load} /> : tab === 'documents' ? <DocumentsScreen data={data} /> : <MeScreen data={data} onSignOut={() => void signOut()} />
 
-  return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" /><View style={s.header}><View><Text style={s.brand}>Obsi People</Text><Text style={s.muted}>Employee Self-Service</Text></View><View style={s.avatar}><Text style={s.avatarText}>{data.employee.name.slice(0,1).toUpperCase()}</Text></View></View><ScrollView style={s.body} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load() }} />}>{screen}</ScrollView><View style={s.tabs}>{tabs.map(item => <Pressable key={item.id} style={s.tab} onPress={() => setTab(item.id)}><Ionicons name={item.icon} size={22} color={tab === item.id ? '#111827' : '#9CA3AF'} /><Text style={[s.tabText, tab === item.id && s.active]}>{item.label}</Text></Pressable>)}</View></SafeAreaView></SafeAreaProvider>
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={s.root}>
+        <StatusBar style="dark" />
+        <View style={s.header}><View><Text style={s.brand}>Obsi People</Text><Text style={s.muted}>Employee Self-Service</Text></View><View style={s.avatar}><Text style={s.avatarText}>{(data.employee.name.trim().slice(0,1)||'?').toUpperCase()}</Text></View></View>
+        {loadError ? <View style={s.warning}><Ionicons name="warning-outline" size={16} color="#92400E"/><Text style={s.warningText}>{loadError}</Text></View> : null}
+        <ScrollView style={s.body} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load() }} />}>{screen}</ScrollView>
+        <View style={s.tabs}>{tabs.map(item => <Pressable accessibilityRole="button" accessibilityState={{selected:tab===item.id}} key={item.id} style={s.tab} onPress={() => setTab(item.id)}><Ionicons name={item.icon} size={22} color={tab === item.id ? '#111827' : '#9CA3AF'} /><Text style={[s.tabText, tab === item.id && s.active]}>{item.label}</Text></Pressable>)}</View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  )
 }
 
 const s = StyleSheet.create({
   root:{flex:1,backgroundColor:'#F5F6F8'},
   center:{flex:1,alignItems:'center',justifyContent:'center',padding:28,gap:16,backgroundColor:'#F5F6F8'},
+  errorTitle:{fontSize:20,fontWeight:'700',textAlign:'center'},errorCopy:{color:'#6B7280',textAlign:'center',lineHeight:20},errorActions:{flexDirection:'row',gap:10,marginTop:4},retryButton:{backgroundColor:'#111827',paddingHorizontal:20,paddingVertical:12,borderRadius:12},retryButtonText:{color:'#fff',fontWeight:'600'},signOutButton:{backgroundColor:'#fff',borderWidth:1,borderColor:'#D1D5DB',paddingHorizontal:20,paddingVertical:12,borderRadius:12},signOutButtonText:{color:'#111827',fontWeight:'600'},
   welcome:{flex:1,backgroundColor:'#0B0D10',paddingHorizontal:24,paddingTop:12,paddingBottom:22,justifyContent:'space-between'},
-  welcomeTop:{alignItems:'flex-start'},
-  welcomeBrandRow:{flexDirection:'row',alignItems:'center',gap:10},
-  peopleMark:{width:34,height:34,borderRadius:11,borderWidth:1,borderColor:'#2A2E34',backgroundColor:'#15181D',alignItems:'center',justifyContent:'center'},
-  welcomeBrand:{color:'#fff',fontSize:17,fontWeight:'700',letterSpacing:-0.2},
-  welcomeContent:{alignItems:'flex-start',maxWidth:360},
-  welcomeEyebrow:{color:'#8F96A3',fontSize:11,fontWeight:'700',letterSpacing:1.4,marginBottom:14},
-  welcomeTitle:{color:'#fff',fontSize:44,lineHeight:48,fontWeight:'700',letterSpacing:-1.4,textAlign:'left'},
-  welcomeCopy:{color:'#A7ADB8',fontSize:15,lineHeight:23,marginTop:18,maxWidth:340,textAlign:'left'},
-  welcomeBottom:{alignItems:'stretch',gap:14},
-  welcomeButton:{minHeight:72,backgroundColor:'#fff',borderRadius:18,paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between',overflow:'hidden'},
-  welcomeButtonPressed:{opacity:0.78,transform:[{scale:0.99}]},
-  welcomeButtonIdentity:{flexDirection:'row',alignItems:'center',gap:12},
-  welcomeButtonText:{color:'#111317',fontSize:16,fontWeight:'700',letterSpacing:-0.2},
-  welcomeButtonSubtext:{color:'#6B7280',fontSize:11,fontWeight:'500',marginTop:2},
-  accountMark:{width:30,height:30,borderWidth:7,borderColor:'#111317',borderRadius:15,position:'relative'},
-  accountMarkDot:{position:'absolute',width:7,height:7,borderRadius:4,backgroundColor:'#111317',right:-7,top:-6},
-  authError:{color:'#FCA5A5',fontSize:12,lineHeight:18},
-  welcomeFoot:{color:'#686F7A',fontSize:11,textAlign:'left'},
-  muted:{color:'#6B7280'},
-  header:{paddingHorizontal:20,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  brand:{fontSize:18,fontWeight:'700'},
-  avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#111827',alignItems:'center',justifyContent:'center'},
-  avatarText:{color:'#fff',fontWeight:'700'},
-  body:{flex:1},
-  content:{padding:18,paddingBottom:28},
-  tabs:{flexDirection:'row',backgroundColor:'#fff',borderTopWidth:1,borderTopColor:'#E5E7EB',paddingVertical:8},
-  tab:{flex:1,alignItems:'center',gap:4},
-  tabText:{fontSize:11,color:'#9CA3AF'},
-  active:{color:'#111827',fontWeight:'600'},
+  welcomeTop:{alignItems:'flex-start'},welcomeBrandRow:{flexDirection:'row',alignItems:'center',gap:10},peopleMark:{width:34,height:34,borderRadius:11,borderWidth:1,borderColor:'#2A2E34',backgroundColor:'#15181D',alignItems:'center',justifyContent:'center'},welcomeBrand:{color:'#fff',fontSize:17,fontWeight:'700',letterSpacing:-0.2},welcomeContent:{alignItems:'flex-start',maxWidth:360},welcomeEyebrow:{color:'#8F96A3',fontSize:11,fontWeight:'700',letterSpacing:1.4,marginBottom:14},welcomeTitle:{color:'#fff',fontSize:44,lineHeight:48,fontWeight:'700',letterSpacing:-1.4,textAlign:'left'},welcomeCopy:{color:'#A7ADB8',fontSize:15,lineHeight:23,marginTop:18,maxWidth:340,textAlign:'left'},welcomeBottom:{alignItems:'stretch',gap:14},welcomeButton:{minHeight:72,backgroundColor:'#fff',borderRadius:18,paddingHorizontal:18,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between',overflow:'hidden'},welcomeButtonPressed:{opacity:0.78,transform:[{scale:0.99}]},welcomeButtonIdentity:{flexDirection:'row',alignItems:'center',gap:12},welcomeButtonText:{color:'#111317',fontSize:16,fontWeight:'700',letterSpacing:-0.2},welcomeButtonSubtext:{color:'#6B7280',fontSize:11,fontWeight:'500',marginTop:2},accountMark:{width:30,height:30,borderWidth:7,borderColor:'#111317',borderRadius:15,position:'relative'},accountMarkDot:{position:'absolute',width:7,height:7,borderRadius:4,backgroundColor:'#111317',right:-7,top:-6},authError:{color:'#FCA5A5',fontSize:12,lineHeight:18},welcomeFoot:{color:'#686F7A',fontSize:11,textAlign:'left'},
+  muted:{color:'#6B7280'},header:{paddingHorizontal:20,paddingVertical:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},brand:{fontSize:18,fontWeight:'700'},avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#111827',alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'700'},warning:{marginHorizontal:18,marginBottom:4,padding:10,borderRadius:12,backgroundColor:'#FEF3C7',flexDirection:'row',gap:8,alignItems:'center'},warningText:{color:'#92400E',fontSize:12,flex:1},body:{flex:1},content:{padding:18,paddingBottom:28},tabs:{flexDirection:'row',backgroundColor:'#fff',borderTopWidth:1,borderTopColor:'#E5E7EB',paddingVertical:8},tab:{flex:1,alignItems:'center',gap:4,minHeight:44,justifyContent:'center'},tabText:{fontSize:11,color:'#9CA3AF'},active:{color:'#111827',fontWeight:'600'},
 })

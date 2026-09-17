@@ -13,7 +13,7 @@ const nativeReturnUri = 'obsipeopleess://oauth/callback'
 const TOKEN_KEY = 'obsi.people.ess.access_token'
 
 async function discovery() {
-  return AuthSession.fetchDiscoveryAsync(`${accountUrl}/api/auth/.well-known/openid-configuration`)
+  return AuthSession.fetchDiscoveryAsync(`${accountUrl}/api/auth`)
 }
 
 function callbackParams(url: string) {

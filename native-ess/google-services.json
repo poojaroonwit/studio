@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "98366973176",
+    "project_id": "obsi-people",
+    "storage_bucket": "obsi-people.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:98366973176:android:99e8d873ffbd8b2399470d",
+        "android_client_info": {
+          "package_name": "co.outborn.people.ess"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCECBQv2ANLS4PxfP2EuKefLU0d5v0tx8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

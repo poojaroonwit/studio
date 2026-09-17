@@ -13,6 +13,17 @@ type SettingsPageSessionUser = {
   modulePermissions?: PlatformModuleId[] | null;
 };
 
+const essMobileAttendanceItem: SettingsPageItem = {
+  href: '/settings/ess-mobile-attendance',
+  label: 'ESS Mobile Attendance',
+  description: 'Control shift and branch geofence requirements for native employee clock in and clock out.',
+  tab: 'HR Setup',
+  section: 'Time & Attendance',
+  value: 'Configure',
+  permissionId: 'SYSTEM_SETTINGS_VIEW',
+  adminOnlyOrPermission: true,
+};
+
 export function useSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [isClient, setIsClient] = useState(false);
@@ -22,11 +33,10 @@ export function useSettingsPage() {
   }, []);
 
   const accessibleItems = useMemo(() => {
-    if (!isClient || !Array.isArray(settingsItems)) {
-      return [];
-    }
+    const allItems = [essMobileAttendanceItem, ...(Array.isArray(settingsItems) ? settingsItems : [])];
+    if (!isClient) return [];
 
-    return settingsItems.filter((item) => {
+    return allItems.filter((item) => {
       try {
         return canAccessSettingsItem({
           item,

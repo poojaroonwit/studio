@@ -2,31 +2,38 @@ module.exports = {
   expo: {
     name: 'Obsi People ESS',
     slug: 'obsi-people-ess',
-    version: '1.0.0',
+    version: '0.2.0',
     orientation: 'portrait',
     scheme: 'obsipeopleess',
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'light',
     android: {
       package: 'co.outborn.people.ess',
+      versionCode: 2,
       googleServicesFile: './google-services.json',
-      adaptiveIcon: { backgroundColor: '#ffffff' },
-      permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION']
+      adaptiveIcon: { backgroundColor: '#F5F6F8' },
+      permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS']
     },
     ios: {
       bundleIdentifier: 'co.outborn.people.ess',
-      googleServicesFile: process.env.EXPO_IOS_GOOGLE_SERVICES_FILE || undefined
+      buildNumber: '2',
+      googleServicesFile: process.env.EXPO_IOS_GOOGLE_SERVICES_FILE || undefined,
+      infoPlist: {
+        UIUserInterfaceStyle: 'Light'
+      }
     },
     plugins: [
       '@react-native-firebase/app',
       '@react-native-firebase/analytics',
       ['expo-secure-store', { configureAndroidBackup: false }],
-      ['expo-location', { locationWhenInUsePermission: 'Allow Obsi People ESS to use your location when you clock in or out.' }]
+      ['expo-local-authentication', { faceIDPermission: 'Allow Obsi People ESS to use Face ID to protect your employee information.' }],
+      ['expo-location', { locationWhenInUsePermission: 'Allow Obsi People ESS to use your location when your organization requires location verification for clock in or clock out.' }]
     ],
     extra: {
       apiUrl: process.env.EXPO_PUBLIC_HRIVE_API_URL || 'https://people.outborn.co',
       accountUrl: process.env.EXPO_PUBLIC_OUTBORN_ACCOUNT_URL || 'https://account.outborn.co',
       accountClientId: process.env.EXPO_PUBLIC_OUTBORN_ACCOUNT_CLIENT_ID || 'obsi-people-ess-mobile',
-      redirectUri: process.env.EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI || 'https://people.outborn.co/mobile/oauth/callback'
+      redirectUri: process.env.EXPO_PUBLIC_OUTBORN_ACCOUNT_REDIRECT_URI || 'https://people.outborn.co/mobile/oauth/callback',
+      releaseStage: 'development'
     }
   }
 }

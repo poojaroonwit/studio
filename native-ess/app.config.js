@@ -13,7 +13,8 @@ module.exports = {
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION']
     },
     ios: {
-      bundleIdentifier: 'co.outborn.people.ess'
+      bundleIdentifier: 'co.outborn.people.ess',
+      googleServicesFile: process.env.EXPO_IOS_GOOGLE_SERVICES_FILE || undefined
     },
     plugins: [
       '@react-native-firebase/app',

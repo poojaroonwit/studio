@@ -73,6 +73,34 @@ export type AttendancePolicy = {
   locations?: AttendanceLocation[]
 }
 
+export type EssScheduleItem = {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+  location?: string
+  status: string
+}
+
+export type EssAnnouncement = {
+  id: string
+  title: string
+  body: string
+  priority: string
+  ctaLabel?: string
+  createdAt?: string
+  expiresAt?: string
+}
+
+export type EssBenefit = {
+  id: string
+  name: string
+  description?: string
+  status?: string
+  provider?: string
+  url?: string
+}
+
 export type EssBootstrap = {
   employee: {
     employeeId: string
@@ -89,11 +117,19 @@ export type EssBootstrap = {
   leaveRequests: LeaveRequestRow[]
   documents: EssDocument[]
   notifications: EssNotification[]
-  benefits: Array<Record<string, unknown>>
+  benefits: EssBenefit[]
   emergencyContacts: EmergencyContact[]
   profile?: EssProfile
   bankTax?: BankTaxProfile
   attendancePolicy?: AttendancePolicy
+  schedule: EssScheduleItem[]
+  announcements: EssAnnouncement[]
+}
+
+type EssExtras = {
+  schedule?: EssScheduleItem[]
+  announcements?: EssAnnouncement[]
+  benefits?: EssBenefit[]
 }
 
 export class EssApiError extends Error {
@@ -153,11 +189,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const essApi = {
   bootstrap: async () => {
-    const [data, attendancePolicy] = await Promise.all([
+    const [data, attendancePolicy, extras] = await Promise.all([
       request<EssBootstrap>('/api/ess/mobile/bootstrap'),
       request<AttendancePolicy>('/api/ess/mobile/attendance-policy'),
+      request<EssExtras>('/api/ess/mobile/extras'),
     ])
-    return { ...data, attendancePolicy }
+    return {
+      ...data,
+      benefits: extras.benefits || data.benefits || [],
+      attendancePolicy,
+      schedule: extras.schedule || [],
+      announcements: extras.announcements || [],
+    }
   },
 
   clockIn: (latitude?: number, longitude?: number) => request('/api/ess/attendance/clock-in', {

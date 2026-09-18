@@ -29,7 +29,7 @@ import { appBuildLabel } from './runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
-type AccountSection = 'menu' | 'profile' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
+export type AccountSection = 'menu' | 'profile' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
 
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
 
@@ -617,8 +617,7 @@ export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; lo
   return <><AppText style={s.pageTitle}>Documents</AppText><Muted>Payslips, tax documents, policies and employee files.</Muted><View style={s.spacer} />{data.documents.length === 0 ? <EmptyState icon="folder-open-outline" title="No documents available" /> : data.documents.slice(0, visible).map((document) => <Pressable key={document.id} accessibilityRole="button" disabled={Boolean(opening)} onPress={() => void open(document.id)}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{document.title}</AppText><Muted>{document.subtitle || document.kind} · {document.issuedAt}</Muted></View>{opening === document.id ? <ActivityIndicator /> : <Ionicons name="download-outline" size={22} color={colors.text} />}</View></Card></Pressable>)}<PaginationFooter visible={visible} total={data.documents.length} /></>
 }
 
-export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick, onFullPageChange }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number; onFullPageChange?: (active: boolean) => void }) {
-  const [section, setSection] = useState<AccountSection>('menu')
+export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick, section, onSectionChange, onFullPageChange }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number; section: AccountSection; onSectionChange: (section: AccountSection) => void; onFullPageChange?: (active: boolean) => void }) {
   const confirmSignOut = () => Alert.alert('Sign out', 'Sign out of Obsi People on this device?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: onSignOut }])
 
   useEffect(() => {
@@ -627,8 +626,8 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
   useEffect(() => () => onFullPageChange?.(false), [onFullPageChange])
 
   const openSection = (next: AccountSection) => {
+    onSectionChange(next)
     onFullPageChange?.(next !== 'menu')
-    setSection(next)
   }
 
   useEffect(() => {

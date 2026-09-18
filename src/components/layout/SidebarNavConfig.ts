@@ -43,6 +43,7 @@ import {
   HeartIcon as Heart,
   ComputerDesktopIcon as ComputerDesktop,
   TruckIcon as Truck,
+  ArrowPathIcon as ArrowPath,
 } from "@heroicons/react/24/outline";
 import type { ElementType } from "react";
 import type { PlatformModuleId } from "@/lib/types";
@@ -116,6 +117,7 @@ export const iconMap = {
   Heart,
   ComputerDesktop,
   Truck,
+  ArrowPath,
   Wrench: AlertTriangle,
 };
 
@@ -271,6 +273,22 @@ export const sidebarConfigData = [
         permissionId: "HR_PEOPLE_VIEW"
       },
       {
+        label: "Employee Movements",
+        icon: "ArrowPath",
+        href: "/people/movements",
+        description: "Manage effective-dated transfers, promotions, manager changes, and assignments",
+        section: "People records",
+        permissionId: "HR_PEOPLE_VIEW"
+      },
+      {
+        label: "Talent & Mobility",
+        icon: "Target",
+        href: "/people/talent",
+        description: "Manage succession plans, talent reviews, and internal opportunities",
+        section: "Talent",
+        permissionIds: ["HR_PEOPLE_VIEW", "HR_WORKFORCE_VIEW"]
+      },
+      {
         label: "Offboarding",
         icon: "LogOut",
         href: "/people/offboarding",
@@ -365,6 +383,14 @@ export const sidebarConfigData = [
         href: "/workforce/transportation",
         description: "Manage employee transport routes and assignments",
         section: "Time",
+        permissionId: "HR_WORKFORCE_VIEW"
+      },
+      {
+        label: "Workforce Planning",
+        icon: "ChartPie",
+        href: "/workforce/planning",
+        description: "Model workforce demand, supply, scenarios, and cost forecasts",
+        section: "Planning",
         permissionId: "HR_WORKFORCE_VIEW"
       },
       {

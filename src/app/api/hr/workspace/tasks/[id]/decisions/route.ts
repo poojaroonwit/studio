@@ -6,6 +6,8 @@ import { logAudit } from '@/lib/auditLog';
 import { actOnExpense } from '@/lib/expenses/service';
 import { executeHrWorkflowAction } from '@/lib/hr/hr-workflows';
 import { decideRequest } from '@/lib/hr/leave-workspace-service';
+import { getPayrollAccess } from '@/lib/payroll/permissions';
+import { mutatePayroll, PayrollServiceError } from '@/lib/payroll/service';
 import prisma from '@/lib/prisma';
 import { completeHrisTaskDecision, getHrisTaskForDecision } from '@/lib/hris/task-projection';
 import type { HrisAction, HrisStatus } from '@/lib/hris/workspace-contracts';
@@ -92,6 +94,29 @@ export async function POST(request: NextRequest, context: Context) {
           idempotencyKey: `task-${task.id}-${task.version}-${decision}`,
         },
       );
+    } else if (handler.kind === 'payroll_approval') {
+      const payrollAccess = await getPayrollAccess(session.user);
+      if (!payrollAccess.canApprove) {
+        return error('FORBIDDEN', 'Payroll approval permission is required for this task.', 403);
+      }
+      try {
+        await mutatePayroll(
+          {
+            action: handler.action,
+            runId: task.sourceId,
+            expectedVersion: handler.expectedVersion,
+            reason: parsed.data.comment?.trim()
+              || (handler.action === 'approve' ? 'Approved from My Tasks' : 'Returned from My Tasks'),
+          },
+          payrollAccess,
+          session.user.id,
+        );
+      } catch (cause) {
+        if (cause instanceof PayrollServiceError) {
+          return error(cause.code, cause.message, cause.status, cause.details);
+        }
+        throw cause;
+      }
     } else {
       return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
     }

@@ -11,20 +11,40 @@ const decisionMap = {
   return_for_revision: 'request_changes',
 } as const;
 
-export function HrisUnifiedTaskInbox({ onCountChange }: { onCountChange?: (count: number) => void }) {
+export function HrisUnifiedTaskInbox({
+  onCountChange,
+  standalone = false,
+}: {
+  onCountChange?: (count: number) => void;
+  standalone?: boolean;
+}) {
   const [tasks, setTasks] = React.useState<HrisTask[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState('');
+  const [loadError, setLoadError] = React.useState('');
 
   const load = React.useCallback(async () => {
+    setLoadError('');
     try {
-      const response = await fetch('/api/hr/workspace/tasks?status=pending,pending_approval,under_review&priority=critical,high,normal,low&pageSize=100', { credentials: 'include', cache: 'no-store' });
-      if (!response.ok) return;
-      const payload = await response.json() as { data?: HrisTaskPage };
+      const response = await fetch('/api/hr/workspace/tasks?status=pending,pending_approval,under_review&priority=critical,high,normal,low&pageSize=100', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({})) as {
+        data?: HrisTaskPage;
+        error?: { message?: string };
+      };
+      if (!response.ok) {
+        throw new Error(payload.error?.message || 'The task inbox could not be loaded.');
+      }
       const records = payload.data?.records || [];
       setTasks(records);
       onCountChange?.(records.length);
+    } catch (cause) {
+      setTasks([]);
+      onCountChange?.(0);
+      setLoadError(cause instanceof Error ? cause.message : 'The task inbox could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -32,7 +52,18 @@ export function HrisUnifiedTaskInbox({ onCountChange }: { onCountChange?: (count
 
   React.useEffect(() => { void load(); }, [load]);
 
-  if (loading || !tasks.length) return null;
+  if (loading) {
+    if (!standalone) return null;
+    return (
+      <div className="space-y-3" aria-busy="true" aria-label="Loading tasks">
+        <div className="h-10 animate-pulse rounded-md bg-muted" />
+        <div className="h-36 animate-pulse rounded-md bg-muted/70" />
+        <div className="h-36 animate-pulse rounded-md bg-muted/50" />
+      </div>
+    );
+  }
+
+  if (!standalone && !tasks.length) return null;
 
   const approvalTasks = tasks.map(toApprovalTask);
   const decide = async (approval: HrisApprovalTask, decision: HrisApprovalDecision, comment: string) => {
@@ -44,9 +75,13 @@ export function HrisUnifiedTaskInbox({ onCountChange }: { onCountChange?: (count
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision: decisionMap[decision], comment: comment || null, expectedVersion: task.version }),
+        body: JSON.stringify({
+          decision: decisionMap[decision],
+          comment: comment || null,
+          expectedVersion: task.version,
+        }),
       });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error?.message || 'The task decision could not be completed.');
       setMessage('Task updated.');
       await load();
@@ -57,11 +92,40 @@ export function HrisUnifiedTaskInbox({ onCountChange }: { onCountChange?: (count
     }
   };
 
+  const content = (
+    <>
+      {loadError && (
+        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <p className="font-semibold text-destructive">Task inbox unavailable</p>
+          <p className="mt-1 text-muted-foreground">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              void load();
+            }}
+            className="mt-3 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+      {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
+      {!loadError && <HrisApprovalInbox tasks={approvalTasks} submitting={submitting} onDecision={decide} />}
+    </>
+  );
+
+  if (standalone) return <div className="space-y-4">{content}</div>;
+
   return (
     <div className="space-y-3 border-t border-border pt-5">
-      <div><h3 className="text-sm font-semibold">Cross-domain tasks</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Projected work from HRIS domains; each decision is applied by its authoritative workflow.</p></div>
-      {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
-      <HrisApprovalInbox tasks={approvalTasks} submitting={submitting} onDecision={decide} />
+      <div>
+        <h3 className="text-sm font-semibold">Cross-domain tasks</h3>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          Projected work from HRIS domains; each decision is applied by its authoritative workflow.
+        </p>
+      </div>
+      {content}
     </div>
   );
 }
@@ -77,7 +141,17 @@ function toApprovalTask(task: HrisTask): HrisApprovalTask {
     title: task.subject,
     meta: [task.requester?.name, task.companyName, dueText(task.dueAt)].filter(Boolean).join(' · '),
     status: task.status,
-    summary: <div><p>{task.summary || 'Open the source record for complete context.'}</p><a className="mt-2 inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline" href={task.deepLink}>Open source record</a></div>,
+    summary: (
+      <div>
+        <p>{task.summary || 'Open the source record for complete context.'}</p>
+        <a
+          className="mt-2 inline-flex text-xs font-semibold text-primary underline-offset-4 hover:underline"
+          href={task.deepLink}
+        >
+          Open source record
+        </a>
+      </div>
+    ),
     source: task,
     allowedDecisions: allowed,
   };

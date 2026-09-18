@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -301,14 +302,31 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
   { id: 'emergency', title: 'Emergency contact', description: 'Add a contact for emergencies', icon: 'people-outline' },
 ]
 
-export function RequestsScreen({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
+export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+
+  useEffect(() => {
+    onFullPageChange?.(kind !== null)
+    return () => onFullPageChange?.(false)
+  }, [kind, onFullPageChange])
+
+  useEffect(() => {
+    if (!kind) return
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setKind(null)
+      return true
+    })
+    return () => subscription.remove()
+  }, [kind])
+
   const chooseKind = (next: RequestKind) => {
     setChooserOpen(false)
-    setTimeout(() => setKind(next), 180)
+    setKind(next)
   }
+
+  if (kind) return <><Back label="Requests" onPress={() => setKind(null)} /><RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} /></>
 
   return <>
     <View style={s.pageHeadingRow}>
@@ -326,10 +344,6 @@ export function RequestsScreen({ data, reload, loadMoreTick }: { data: EssBootst
     <BottomDrawer visible={chooserOpen} title="New request" subtitle="Choose the request you want to create." onClose={() => setChooserOpen(false)}>
       {requestKinds.map((item) => <DrawerOption key={item.id} icon={item.icon} title={item.title} subtitle={item.description} onPress={() => chooseKind(item.id)} />)}
     </BottomDrawer>
-
-    <FullScreenTaskModal visible={kind !== null} contextLabel="Requests" onClose={() => setKind(null)}>
-      {kind ? <RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} /> : null}
-    </FullScreenTaskModal>
   </>
 }
 
@@ -432,9 +446,24 @@ export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; lo
   return <><AppText style={s.pageTitle}>Documents</AppText><Muted>Payslips, tax documents, policies and employee files.</Muted><View style={s.spacer} />{data.documents.length === 0 ? <EmptyState icon="folder-open-outline" title="No documents available" /> : data.documents.slice(0, visible).map((document) => <Pressable key={document.id} accessibilityRole="button" disabled={Boolean(opening)} onPress={() => void open(document.id)}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{document.title}</AppText><Muted>{document.subtitle || document.kind} · {document.issuedAt}</Muted></View>{opening === document.id ? <ActivityIndicator /> : <Ionicons name="download-outline" size={22} color={colors.text} />}</View></Card></Pressable>)}<PaginationFooter visible={visible} total={data.documents.length} /></>
 }
 
-export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number }) {
+export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick, onFullPageChange }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number; onFullPageChange?: (active: boolean) => void }) {
   const [section, setSection] = useState<AccountSection>('menu')
   const confirmSignOut = () => Alert.alert('Sign out', 'Sign out of Obsi People on this device?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: onSignOut }])
+
+  useEffect(() => {
+    onFullPageChange?.(section !== 'menu')
+    return () => onFullPageChange?.(false)
+  }, [section, onFullPageChange])
+
+  useEffect(() => {
+    if (section === 'menu') return
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSection('menu')
+      return true
+    })
+    return () => subscription.remove()
+  }, [section])
+
   if (section !== 'menu') return <AccountSubpage section={section} setSection={setSection} data={data} account={account} reload={reload} loadMoreTick={loadMoreTick} />
   const displayName = account?.name || data.employee.name
   return <>

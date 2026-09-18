@@ -320,7 +320,7 @@ export default function App() {
   }
 
   const screen = tab === 'home'
-    ? <HomeScreen data={data} setTab={navigateTab} account={account} />
+    ? <HomeScreen data={data} setTab={navigateTab} account={account} reload={load} />
     : tab === 'time'
       ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} />
       : tab === 'requests'

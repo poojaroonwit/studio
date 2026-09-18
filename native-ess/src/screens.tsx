@@ -225,20 +225,22 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
   onClose: () => void
   children: React.ReactNode
 }) {
-  return <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+  return <Modal transparent visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
     <Pressable style={s.drawerBackdrop} onPress={onClose}>
-      <Pressable accessibilityRole="none" style={s.drawer} onPress={(event) => event.stopPropagation()}>
-        <View style={s.drawerHandle} />
-        <View style={s.drawerHeader}>
-          <View style={s.flexOne}><AppText style={s.drawerTitle}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.modalClose} onPress={onClose}>
-            <Ionicons name="close" size={22} color={colors.text} />
-          </Pressable>
-        </View>
-        <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="handled">
-          {children}
-        </ScrollView>
-      </Pressable>
+      <SafeAreaView edges={['bottom']} style={s.drawerSafe}>
+        <Pressable accessibilityRole="none" style={s.drawer} onPress={(event) => event.stopPropagation()}>
+          <View style={s.drawerHandle} />
+          <View style={s.drawerHeader}>
+            <View style={s.flexOne}><AppText style={s.drawerTitle}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.modalClose} onPress={onClose}>
+              <Ionicons name="close" size={22} color={colors.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="handled">
+            {children}
+          </ScrollView>
+        </Pressable>
+      </SafeAreaView>
     </Pressable>
   </Modal>
 }
@@ -559,6 +561,34 @@ const s = StyleSheet.create({
   spacer: { height: spacing.sm },
   pressed: { opacity: 0.68 },
   disabled: { opacity: 0.5 },
+  controlPressed: { backgroundColor: colors.hover },
+
+  pageHeadingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.xs },
+  newRequestButton: { minHeight: controls.touch, paddingHorizontal: 13, borderRadius: radii.sm, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  newRequestButtonText: { color: colors.primaryText, fontSize: typography.sm, lineHeight: 16, fontWeight: '600' },
+
+  drawerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
+  drawerSafe: { width: '100%', maxHeight: '86%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden' },
+  drawer: { width: '100%', maxHeight: '100%', backgroundColor: colors.surface, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: 9 },
+  drawerHandle: { width: 38, height: 4, alignSelf: 'center', borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginBottom: spacing.sm },
+  drawerHeader: { minHeight: 56, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  drawerTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.4 },
+  drawerScroll: { maxHeight: 520 },
+  drawerContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
+  drawerOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border },
+  drawerOptionPressed: { backgroundColor: colors.hover },
+  drawerOptionIcon: { width: 40, height: 40, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
+  drawerOptionTitle: { color: colors.text, fontSize: typography.md, lineHeight: 20, fontWeight: '500' },
+  drawerOptionTitleSelected: { color: colors.primary, fontWeight: '600' },
+
+  modalPage: { flex: 1, backgroundColor: colors.background },
+  modalFlex: { flex: 1 },
+  modalHeader: { minHeight: 56, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalClose: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.hover },
+  modalContext: { maxWidth: '70%', fontSize: typography.md, lineHeight: 20, fontWeight: '600', textAlign: 'center' },
+  modalHeaderSpacer: { width: controls.touch, height: controls.touch },
+  modalContent: { paddingHorizontal: 14, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  inlineIconAction: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
 
   button: { minHeight: controls.button, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 10, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
   largeButton: { minHeight: 58, borderRadius: radii.sm, marginVertical: spacing.xs },
@@ -628,7 +658,7 @@ const s = StyleSheet.create({
 
   chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: spacing.xs, marginVertical: spacing.sm },
   chatBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.infoSurface, paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: radii.lg },
-  unreadCard: { backgroundColor: colors.infoSurface, borderColor: '#D8E4F7' },
+  unreadCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
   linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },
   iconAction: { width: controls.touch, height: controls.touch, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },

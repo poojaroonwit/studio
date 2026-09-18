@@ -94,23 +94,53 @@ export async function POST(request: NextRequest, context: Context) {
           idempotencyKey: `task-${task.id}-${task.version}-${decision}`,
         },
       );
-    } else if (handler.kind === 'payroll_approval') {
+    } else if (
+      handler.kind === 'payroll_approval'
+      || handler.kind === 'compensation_approval'
+      || handler.kind === 'benefit_enrollment_approval'
+    ) {
       const payrollAccess = await getPayrollAccess(session.user);
       if (!payrollAccess.canApprove) {
         return error('FORBIDDEN', 'Payroll approval permission is required for this task.', 403);
       }
       try {
-        await mutatePayroll(
-          {
-            action: handler.action,
-            runId: task.sourceId,
-            expectedVersion: handler.expectedVersion,
-            reason: parsed.data.comment?.trim()
-              || (handler.action === 'approve' ? 'Approved from My Tasks' : 'Returned from My Tasks'),
-          },
-          payrollAccess,
-          session.user.id,
-        );
+        if (handler.kind === 'payroll_approval') {
+          await mutatePayroll(
+            {
+              action: handler.action,
+              runId: task.sourceId,
+              expectedVersion: handler.expectedVersion,
+              reason: parsed.data.comment?.trim()
+                || (handler.action === 'approve' ? 'Approved from My Tasks' : 'Returned from My Tasks'),
+            },
+            payrollAccess,
+            session.user.id,
+          );
+        } else if (handler.kind === 'compensation_approval') {
+          await mutatePayroll(
+            {
+              action: handler.action,
+              id: task.sourceId,
+              expectedVersion: handler.expectedVersion,
+              reason: parsed.data.comment?.trim()
+                || (handler.action === 'approve_change' ? 'Approved from My Tasks' : 'Rejected from My Tasks'),
+            },
+            payrollAccess,
+            session.user.id,
+          );
+        } else {
+          await mutatePayroll(
+            {
+              action: handler.action,
+              id: task.sourceId,
+              expectedVersion: handler.expectedVersion,
+              reason: parsed.data.comment?.trim()
+                || (handler.action === 'approve_enrollment' ? 'Approved from My Tasks' : 'Returned from My Tasks'),
+            },
+            payrollAccess,
+            session.user.id,
+          );
+        }
       } catch (cause) {
         if (cause instanceof PayrollServiceError) {
           return error(cause.code, cause.message, cause.status, cause.details);

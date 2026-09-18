@@ -623,11 +623,9 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
   useEffect(() => {
     onFullPageChange?.(section !== 'menu')
   }, [section, onFullPageChange])
-  useEffect(() => () => onFullPageChange?.(false), [onFullPageChange])
 
   const openSection = (next: AccountSection) => {
     onSectionChange(next)
-    onFullPageChange?.(next !== 'menu')
   }
 
   useEffect(() => {

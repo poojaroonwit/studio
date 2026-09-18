@@ -5,11 +5,13 @@ on:
     paths-ignore:
       - 'mobile/**'
       - 'native-ess/**'
+      - 'deploy/railway-trigger.txt'
   push:
     branches: [main, master, uat, dev]
     paths-ignore:
       - 'mobile/**'
       - 'native-ess/**'
+      - 'deploy/railway-trigger.txt'
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
@@ -166,3 +168,41 @@ jobs:
           test "$DATABASE_RESULT" = "success"
           test "$BROWSER_RESULT" = "success"
           test "$CONTAINER_RESULT" = "success"
+
+  railway-deploy-trigger:
+    name: Queue Railway deployment
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+    needs: [payroll-production-gate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          fetch-depth: 0
+      - name: Advance Railway deploy trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin dev
+          latest="$(git rev-parse origin/dev)"
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "A newer dev commit exists; its quality run will handle deployment."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          mkdir -p deploy
+          printf '%s\n' "$GITHUB_SHA" > deploy/railway-trigger.txt
+
+          if git diff --quiet -- deploy/railway-trigger.txt; then
+            echo "Railway deploy trigger already points at this commit."
+            exit 0
+          fi
+
+          git add deploy/railway-trigger.txt
+          git commit -m "chore(deploy): queue Railway ${GITHUB_SHA::12} [skip ci]"
+          git push origin HEAD:dev

@@ -97,7 +97,7 @@ export async function syncHrisTasksForActor({
 }: {
   userId: string;
   email?: string | null;
-  user?: SessionLikeUser | null;
+  user?: (SessionLikeUser & { name?: string | null }) | null;
 }) {
   const employeeRows = await prisma.$queryRawUnsafe<Array<{
     id: string;

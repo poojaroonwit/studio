@@ -85,6 +85,7 @@ export const compensationChangeSchema = z.object({
 export const benefitActionSchema = z.object({
   action: z.enum(['create_plan', 'update_plan', 'enroll', 'approve_enrollment', 'return_enrollment', 'end_enrollment']),
   id: z.string().uuid().optional(),
+  expectedVersion: z.coerce.number().int().positive().optional(),
   employeeId: z.string().uuid().optional(),
   employeeIds: z.array(z.string().uuid()).min(1).max(1000).optional(),
   benefitPlanId: z.string().uuid().optional(),

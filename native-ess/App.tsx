@@ -55,7 +55,7 @@ function AccountAvatar({ account, data, size = 38 }: { account?: AccountIdentity
 }
 
 function SkeletonScreen() {
-  return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" /><View style={s.skeletonHeader}><View style={[s.skeleton, { width: 38, height: 38, borderRadius: 12 }]} /><View style={{ gap: 7, flex: 1 }}><View style={[s.skeleton, { width: 120, height: 15 }]} /><View style={[s.skeleton, { width: 82, height: 10 }]} /></View><View style={[s.skeleton, { width: 38, height: 38, borderRadius: 19 }]} /></View><View style={s.skeletonBody}><View style={[s.skeleton, { width: '62%', height: 34 }]} /><View style={[s.skeleton, { width: '44%', height: 14 }]} /><View style={s.skeletonGrid}>{[0,1,2,3].map((key) => <View key={key} style={[s.skeleton, { width: '48%', height: 104, borderRadius: radii.lg }]} />)}</View><View style={[s.skeleton, { width: '100%', height: 130, borderRadius: radii.lg, marginTop: 18 }]} /><View style={[s.skeleton, { width: '100%', height: 190, borderRadius: radii.lg }]} /></View></SafeAreaView></SafeAreaProvider>
+  return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" /><View style={s.skeletonHeader}><View style={[s.skeleton, { width: 38, height: 38, borderRadius: radii.md }]} /><View style={{ gap: 7, flex: 1 }}><View style={[s.skeleton, { width: 120, height: 15 }]} /><View style={[s.skeleton, { width: 82, height: 10 }]} /></View><View style={[s.skeleton, { width: 38, height: 38, borderRadius: radii.pill }]} /></View><View style={s.skeletonBody}><View style={[s.skeleton, { width: '62%', height: 34 }]} /><View style={[s.skeleton, { width: '44%', height: 14 }]} /><View style={s.skeletonGrid}>{[0,1,2,3].map((key) => <View key={key} style={[s.skeleton, { width: '48%', height: 104, borderRadius: radii.lg }]} />)}</View><View style={[s.skeleton, { width: '100%', height: 130, borderRadius: radii.lg, marginTop: 18 }]} /><View style={[s.skeleton, { width: '100%', height: 190, borderRadius: radii.lg }]} /></View></SafeAreaView></SafeAreaProvider>
 }
 
 export default function App() {
@@ -378,7 +378,7 @@ const s = StyleSheet.create({
   tabPrimaryIcon: { width: 44, height: 44, marginTop: -12, marginBottom: 1, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   tabPrimaryIconActive: { backgroundColor: colors.primaryStrong },
 
-  warning: { flexDirection: 'row', gap: spacing.xs, alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 9, backgroundColor: colors.warningSurface, borderBottomWidth: 1, borderBottomColor: '#F2E0B8' },
+  warning: { flexDirection: 'row', gap: spacing.xs, alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 9, backgroundColor: colors.warningSurface, borderBottomWidth: 1, borderBottomColor: colors.warningBorder },
   warningText: { flex: 1, fontSize: typography.sm, lineHeight: 18, color: colors.warning },
   center: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, gap: spacing.sm },
   unlock: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, gap: spacing.sm },

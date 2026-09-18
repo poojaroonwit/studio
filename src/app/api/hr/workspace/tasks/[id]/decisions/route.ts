@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
 import { executeHrWorkflowAction } from '@/lib/hr/hr-workflows';
+import prisma from '@/lib/prisma';
 import { completeHrisTaskDecision, getHrisTaskForDecision } from '@/lib/hris/task-projection';
 import type { HrisAction, HrisStatus } from '@/lib/hris/workspace-contracts';
 import { taskDecisionRequiresComment } from '@/lib/hris/workspace-contracts';
@@ -38,10 +39,38 @@ export async function POST(request: NextRequest, context: Context) {
     if (task.version !== parsed.data.expectedVersion) return error('VERSION_CONFLICT', 'The task changed since it was loaded.', 409);
     if (!task.allowedDecisions.includes(decision)) return error('DECISION_NOT_ALLOWED', 'That decision is not allowed at the current workflow stage.', 409);
     const handler = task.decisionHandlers[decision];
-    if (!handler || handler.kind !== 'hr_workflow') return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
+    if (!handler) return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
 
-    const result = await executeHrWorkflowAction({ action: handler.action, id: task.sourceId, actingUserId: session.user.id });
-    if (!result.row) return error('SOURCE_CONFLICT', 'The authoritative record could not apply this decision.', 409);
+    if (handler.kind === 'hr_workflow') {
+      const result = await executeHrWorkflowAction({
+        action: handler.action,
+        id: task.sourceId,
+        actingUserId: session.user.id,
+      });
+      if (!result.row) return error('SOURCE_CONFLICT', 'The authoritative record could not apply this decision.', 409);
+    } else if (handler.kind === 'mobility_application') {
+      const nextStatus = handler.action === 'manager_approve'
+        ? 'manager_approved'
+        : handler.action === 'return_for_revision'
+          ? 'returned_for_revision'
+          : 'rejected';
+      const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        `UPDATE hr_internal_mobility_applications
+         SET status = $2,
+             manager_endorsement = $3,
+             version = version + 1,
+             updated_at = now()
+         WHERE id = $1::uuid
+           AND status = 'submitted'
+         RETURNING *`,
+        task.sourceId,
+        nextStatus,
+        parsed.data.comment || null,
+      );
+      if (!rows[0]) return error('SOURCE_CONFLICT', 'This mobility application is no longer waiting for manager review.', 409);
+    } else {
+      return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
+    }
     const updated = await completeHrisTaskDecision({ id, expectedVersion: task.version, status: statusAfterDecision(decision) });
     if (!updated) return error('VERSION_CONFLICT', 'The task changed while the decision was being applied.', 409);
     await logAudit('AUDIT', `Unified HRIS task decision completed: ${decision}.`, `API:HRIS:Task:${task.sourceDomain}`, session.user.id, {

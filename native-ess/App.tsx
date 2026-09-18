@@ -71,6 +71,7 @@ export default function App() {
   const [offline, setOffline] = useState(false)
   const [locked, setLocked] = useState(false)
   const [loadMoreTick, setLoadMoreTick] = useState(0)
+  const [fullPage, setFullPage] = useState(false)
   const lastLoadMoreAt = useRef(0)
   const pushUnsubscribe = useRef<null | (() => void)>(null)
 
@@ -311,25 +312,25 @@ export default function App() {
     : tab === 'time'
       ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} />
       : tab === 'requests'
-        ? <RequestsScreen data={data} reload={load} loadMoreTick={loadMoreTick} />
+        ? <RequestsScreen data={data} reload={load} loadMoreTick={loadMoreTick} onFullPageChange={setFullPage} />
         : tab === 'documents'
           ? <DocumentsScreen data={data} loadMoreTick={loadMoreTick} />
-          : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} onSignOut={() => void signOut()} />
+          : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} onSignOut={() => void signOut()} onFullPageChange={setFullPage} />
 
   return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" />
-    <View style={s.header}>
+    {!fullPage ? <View style={s.header}>
       <View style={s.headerBrand}><BrandLogo identity={appIdentity} size={32} /><View><AppText style={s.brand}>{appIdentity?.name || 'Obsi People'}</AppText><AppText style={s.headerSub}>Employee Self-Service</AppText></View></View>
       <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => setTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
-    </View>
+    </View> : null}
     {loadError ? <View style={s.warning}><Ionicons name={offline ? 'cloud-offline-outline' : 'warning-outline'} size={16} color={colors.warning} /><AppText style={s.warningText}>{loadError}</AppText></View> : null}
-    <ScrollView style={s.body} keyboardShouldPersistTaps="handled" scrollEventThrottle={80} onScroll={onScroll} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} />}>{screen}</ScrollView>
-    <View style={s.tabs}>{tabs.map((item) => {
+    <ScrollView style={s.body} keyboardShouldPersistTaps="handled" scrollEventThrottle={80} onScroll={onScroll} contentContainerStyle={[s.content, fullPage && s.contentFullPage]} refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} />}>{screen}</ScrollView>
+    {!fullPage ? <View style={s.tabs}>{tabs.map((item) => {
       const active = tab === item.id
       return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => setTab(item.id)}>
         <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />
         <AppText style={[s.tabText, active && s.tabTextActive]}>{item.label}</AppText>
       </Pressable>
-    })}</View>
+    })}</View> : null}
   </SafeAreaView></SafeAreaProvider>
 }
 
@@ -366,6 +367,7 @@ const s = StyleSheet.create({
   avatarText: { fontWeight: '600', color: colors.text },
   body: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 14, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+  contentFullPage: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
 
   tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: spacing.xxs, paddingTop: spacing.xxs, paddingBottom: spacing.xs },
   tab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: radii.sm },

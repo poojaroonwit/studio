@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  AppState,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -243,6 +244,17 @@ export default function App() {
       pushUnsubscribe.current?.()
       pushUnsubscribe.current = null
     }
+  }, [authenticated])
+
+  useEffect(() => {
+    if (!authenticated) return
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'background') return
+      void SecureStore.getItemAsync(BIOMETRIC_KEY)
+        .then((value) => { if (value === '1') setLocked(true) })
+        .catch((error) => console.warn('Obsi People biometric relock check unavailable', error))
+    })
+    return () => subscription.remove()
   }, [authenticated])
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

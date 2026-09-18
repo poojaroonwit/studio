@@ -3,14 +3,14 @@ import { z } from 'zod';
 
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
+import { actOnExpense } from '@/lib/expenses/service';
 import { executeHrWorkflowAction } from '@/lib/hr/hr-workflows';
 import { decideRequest } from '@/lib/hr/leave-workspace-service';
 import prisma from '@/lib/prisma';
 import { completeHrisTaskDecision, getHrisTaskForDecision } from '@/lib/hris/task-projection';
 import type { HrisAction, HrisStatus } from '@/lib/hris/workspace-contracts';
 import { taskDecisionRequiresComment } from '@/lib/hris/workspace-contracts';
-import { hasAnyPermission, isAdminUser } from '@/lib/permissions';
-import type { PlatformModuleId } from '@/lib/types';
+import { isAdminUser } from '@/lib/permissions';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +20,6 @@ const schema = z.object({
   comment: z.string().trim().max(4000).nullish(),
   expectedVersion: z.number().int().positive(),
 });
-const managePermissions = ['HR_PEOPLE_MANAGE', 'HR_WORKFORCE_MANAGE', 'HR_PERFORMANCE_MANAGE', 'HR_LEARNING_MANAGE', 'HR_PAYROLL_MANAGE'] as PlatformModuleId[];
 
 export async function POST(request: NextRequest, context: Context) {
   const session = await auth();
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest, context: Context) {
   if (taskDecisionRequiresComment(decision) && !parsed.data.comment) {
     return error('COMMENT_REQUIRED', 'Add a reason for this decision.', 422);
   }
-  const canManageAll = isAdminUser(session.user) || hasAnyPermission(session.user, managePermissions);
+  const canManageAll = isAdminUser(session.user);
   try {
     const task = await getHrisTaskForDecision(id, session.user.id, canManageAll);
     if (!task) return error('TASK_NOT_FOUND', 'The task is unavailable or outside your assignment scope.', 404);
@@ -81,6 +80,18 @@ export async function POST(request: NextRequest, context: Context) {
         session.user.id,
       );
       if (!result) return error('SOURCE_CONFLICT', 'This leave request changed or is no longer waiting for your decision.', 409);
+    } else if (handler.kind === 'expense_approval') {
+      await actOnExpense(
+        handler.resource,
+        session.user,
+        {
+          id: task.sourceId,
+          action: handler.action,
+          comment: parsed.data.comment || null,
+          expectedVersion: handler.expectedVersion,
+          idempotencyKey: `task-${task.id}-${task.version}-${decision}`,
+        },
+      );
     } else {
       return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
     }

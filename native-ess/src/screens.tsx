@@ -309,13 +309,18 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange }:
 
   useEffect(() => {
     onFullPageChange?.(kind !== null)
-    return () => onFullPageChange?.(false)
   }, [kind, onFullPageChange])
+  useEffect(() => () => onFullPageChange?.(false), [onFullPageChange])
+
+  const closeRequest = () => {
+    onFullPageChange?.(false)
+    setKind(null)
+  }
 
   useEffect(() => {
     if (!kind) return
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setKind(null)
+      closeRequest()
       return true
     })
     return () => subscription.remove()
@@ -323,10 +328,11 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange }:
 
   const chooseKind = (next: RequestKind) => {
     setChooserOpen(false)
+    onFullPageChange?.(true)
     setKind(next)
   }
 
-  if (kind) return <><Back label="Requests" onPress={() => setKind(null)} /><RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} /></>
+  if (kind) return <><Back label="Requests" onPress={closeRequest} /><RequestForm kind={kind} data={data} reload={reload} onDone={closeRequest} /></>
 
   return <>
     <View style={s.pageHeadingRow}>
@@ -452,31 +458,36 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 
   useEffect(() => {
     onFullPageChange?.(section !== 'menu')
-    return () => onFullPageChange?.(false)
   }, [section, onFullPageChange])
+  useEffect(() => () => onFullPageChange?.(false), [onFullPageChange])
+
+  const openSection = (next: AccountSection) => {
+    onFullPageChange?.(next !== 'menu')
+    setSection(next)
+  }
 
   useEffect(() => {
     if (section === 'menu') return
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setSection('menu')
+      openSection('menu')
       return true
     })
     return () => subscription.remove()
   }, [section])
 
-  if (section !== 'menu') return <AccountSubpage section={section} setSection={setSection} data={data} account={account} reload={reload} loadMoreTick={loadMoreTick} />
+  if (section !== 'menu') return <AccountSubpage section={section} setSection={openSection} data={data} account={account} reload={reload} loadMoreTick={loadMoreTick} />
   const displayName = account?.name || data.employee.name
   return <>
     <AppText style={s.pageTitle}>Account</AppText>
     <Card style={s.accountHero}><View style={s.accountIdentityRow}><Avatar imageUrl={account?.imageUrl || data.employee.avatarUrl} name={displayName} size={58} /><View style={s.flexOne}><AppText style={s.accountName}>{displayName}</AppText><Muted>{account?.email || data.profile?.personalEmail || data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></View></View><Muted>Identity from Outborn Account · Employee data from {appIdentity?.name || 'Obsi People'}</Muted></Card>
     <View style={s.menuList}>
-      <MenuItem icon="person-outline" title="My profile" subtitle="Personal and employee information" onPress={() => setSection('profile')} />
-      <MenuItem icon="chatbubbles-outline" title="Talk to HR" subtitle="Open HR support chat" onPress={() => setSection('hr-chat')} />
-      <MenuItem icon="calendar-outline" title="Calendar" subtitle="Shifts and upcoming work schedule" onPress={() => setSection('calendar')} />
-      <MenuItem icon="notifications-outline" title="Notifications" subtitle={`${data.employee.unreadNotifications || 0} unread`} onPress={() => setSection('notifications')} />
-      <MenuItem icon="heart-outline" title="Benefits" subtitle="Employee benefits and coverage" onPress={() => setSection('benefits')} />
-      <MenuItem icon="people-outline" title="Emergency contacts" subtitle="Add, edit and remove contacts" onPress={() => setSection('contacts')} />
-      <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => setSection('security')} />
+      <MenuItem icon="person-outline" title="My profile" subtitle="Personal and employee information" onPress={() => openSection('profile')} />
+      <MenuItem icon="chatbubbles-outline" title="Talk to HR" subtitle="Open HR support chat" onPress={() => openSection('hr-chat')} />
+      <MenuItem icon="calendar-outline" title="Calendar" subtitle="Shifts and upcoming work schedule" onPress={() => openSection('calendar')} />
+      <MenuItem icon="notifications-outline" title="Notifications" subtitle={`${data.employee.unreadNotifications || 0} unread`} onPress={() => openSection('notifications')} />
+      <MenuItem icon="heart-outline" title="Benefits" subtitle="Employee benefits and coverage" onPress={() => openSection('benefits')} />
+      <MenuItem icon="people-outline" title="Emergency contacts" subtitle="Add, edit and remove contacts" onPress={() => openSection('contacts')} />
+      <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => openSection('security')} />
     </View>
     <Button title="Sign out" secondary onPress={confirmSignOut} />
     <Muted style={s.version}>Development build · v0.2.0</Muted>

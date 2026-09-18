@@ -150,7 +150,6 @@ export async function syncHrisTasksForActor({
               enrollment.status,
               enrollment.progress,
               enrollment.due_date,
-              enrollment.company_id,
               course.title AS course_title
        FROM hr_learning_enrollments enrollment
        JOIN hr_learning_courses course ON course.id = enrollment.course_id
@@ -241,7 +240,7 @@ export async function syncHrisTasksForActor({
 
   for (const row of learning) {
     await upsertHrisTaskProjection({
-      companyId: nullableString(row.company_id) || employee.company_id,
+      companyId: employee.company_id,
       taskType: 'my_learning',
       sourceDomain: 'learning',
       sourceType: 'learning_enrollment',

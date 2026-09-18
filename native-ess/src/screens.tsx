@@ -268,10 +268,12 @@ function AttendanceActionCard({ data, reload, offline = false, onViewAttendance 
         : action.complete ? 'checkmark-circle-outline'
           : 'time-outline'
 
-  return <Card style={cardStyle}>
+  return <Card style={[s.attendanceHero, cardStyle]}>
     <View style={s.between}>
-      <View style={s.flexOne}><AppText style={s.cardTitle}>{title}</AppText><Muted>{detail}</Muted></View>
-      <Ionicons name={icon} size={26} color={action.complete ? colors.success : offline || blocked ? colors.warning : colors.text} />
+      <View style={s.flexOne}><AppText style={s.attendanceTitle}>{title}</AppText><Muted>{detail}</Muted></View>
+      <View style={[s.attendanceIconWrap, action.complete ? s.attendanceIconSuccess : offline || blocked ? s.attendanceIconWarning : s.attendanceIconDefault]}>
+        <Ionicons name={icon} size={23} color={action.complete ? colors.success : offline || blocked ? colors.warning : colors.primary} />
+      </View>
     </View>
 
     {action.displayShift ? <View style={s.infoRow}>
@@ -315,23 +317,26 @@ export function HomeScreen({ data, setTab, account, reload, offline = false }: {
   const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
 
   return <>
-    <AppText style={s.kicker}>EMPLOYEE SELF-SERVICE</AppText>
     <AppText style={s.pageTitle}>Hi, {firstName}</AppText>
     <Muted>{data.employee.position} · {data.employee.department}</Muted>
 
-    {data.announcements.length ? <View style={s.announcementWrap}>{data.announcements.slice(0, 2).map((item) => <Card key={item.id} style={s.announcementCard}>
-      <View style={s.infoRow}><Ionicons name="megaphone-outline" size={20} color={colors.accent} /><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted numberOfLines={3}>{item.body}</Muted></View></View>
-    </Card>)}</View> : null}
+    <AppText style={s.section}>Today</AppText>
+    <AttendanceActionCard data={data} reload={reload} offline={offline} onViewAttendance={() => setTab('time')} />
 
+    {data.announcements.length ? <>
+      <AppText style={s.section}>Updates</AppText>
+      <View style={s.announcementWrap}>{data.announcements.slice(0, 2).map((item) => <Card key={item.id} style={s.announcementCard}>
+        <View style={s.infoRow}><Ionicons name="megaphone-outline" size={20} color={colors.accent} /><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted numberOfLines={3}>{item.body}</Muted></View></View>
+      </Card>)}</View>
+    </> : null}
+
+    <AppText style={s.section}>Quick actions</AppText>
     <View style={s.grid}>
       <Quick icon="time-outline" label="Attendance" onPress={() => setTab('time')} />
       <Quick icon="add-circle-outline" label="New request" onPress={() => setTab('requests')} />
       <Quick icon="folder-open-outline" label="Documents" onPress={() => setTab('documents')} />
       <Quick icon="person-circle-outline" label="Account" onPress={() => setTab('account')} />
     </View>
-
-    <AppText style={s.section}>Today</AppText>
-    <AttendanceActionCard data={data} reload={reload} offline={offline} onViewAttendance={() => setTab('time')} />
 
     <AppText style={s.section}>Overview</AppText>
     <Card>
@@ -350,7 +355,10 @@ function ChartBar({ label, value }: { label: string; value: number }) {
 }
 
 function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.quick, pressed && s.pressed]} onPress={onPress}><Ionicons name={icon} size={24} color={colors.text} /><AppText style={s.quickLabel}>{label}</AppText></Pressable>
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.quick, pressed && s.controlPressed]} onPress={onPress}>
+    <View style={s.quickTop}><View style={s.quickIcon}><Ionicons name={icon} size={20} color={colors.primary} /></View><Ionicons name="chevron-forward" size={16} color={colors.textSubtle} /></View>
+    <AppText style={s.quickLabel}>{label}</AppText>
+  </Pressable>
 }
 
 export function TimeScreen({ data, reload, loadMoreTick, offline = false }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; offline?: boolean }) {
@@ -366,7 +374,7 @@ export function TimeScreen({ data, reload, loadMoreTick, offline = false }: { da
     <PaginationFooter visible={visible} total={data.attendance.length} />
 
     <FullScreenTaskModal visible={Boolean(correctionId)} contextLabel="Attendance correction" onClose={() => setCorrectionId(null)}>
-      <AttendanceCorrectionForm data={data} initialAttendanceId={correctionId || undefined} onDone={() => { setCorrectionId(null); void reload() }} />
+      <AttendanceCorrectionForm data={data} initialAttendanceId={correctionId || undefined} showTitle={false} onDone={() => { setCorrectionId(null); void reload() }} />
     </FullScreenTaskModal>
   </>
 }
@@ -399,7 +407,7 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
           <View style={s.drawerHeader}>
             <View style={s.flexOne}><AppText style={s.drawerTitle}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
             <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.modalClose} onPress={onClose}>
-              <Ionicons name="close" size={22} color={colors.text} />
+              <Ionicons name="close" size={18} color={colors.text} />
             </Pressable>
           </View>
           <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="handled">
@@ -420,11 +428,10 @@ function FullScreenTaskModal({ visible, contextLabel, onClose, children }: {
   return <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
     <SafeAreaView style={s.modalPage}>
       <View style={s.modalHeader}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Close ${contextLabel}`} style={s.modalClose} onPress={onClose}>
-          <Ionicons name="close" size={22} color={colors.text} />
-        </Pressable>
         <AppText style={s.modalContext} numberOfLines={1}>{contextLabel}</AppText>
-        <View style={s.modalHeaderSpacer} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Close ${contextLabel}`} style={s.modalClose} onPress={onClose}>
+          <Ionicons name="close" size={18} color={colors.text} />
+        </Pressable>
       </View>
       <KeyboardAvoidingView style={s.modalFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={s.modalFlex} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
@@ -544,7 +551,7 @@ function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onD
   return <><AppText style={s.pageTitle}>Leave request</AppText><Card><SelectField label="Leave type" value={type} onPress={() => setTypeOpen(true)} /><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={typeOpen} title="Leave type" onClose={() => setTypeOpen(false)}>{leaveTypes.map((item) => <DrawerOption key={item} title={item} selected={type === item} onPress={() => { setType(item); setTypeOpen(false) }} />)}</BottomDrawer></>
 }
 
-function AttendanceCorrectionForm({ data, onDone, initialAttendanceId }: { data: EssBootstrap; onDone: () => void; initialAttendanceId?: string }) {
+function AttendanceCorrectionForm({ data, onDone, initialAttendanceId, showTitle = true }: { data: EssBootstrap; onDone: () => void; initialAttendanceId?: string; showTitle?: boolean }) {
   const [attendanceId, setAttendanceId] = useState(initialAttendanceId || data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
   const selected = data.attendance.find((row) => row.id === attendanceId)
   const submit = async () => {
@@ -554,7 +561,7 @@ function AttendanceCorrectionForm({ data, onDone, initialAttendanceId }: { data:
     catch (error) { Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>Attendance correction</AppText><Card><SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} /><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>{data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => { setAttendanceId(row.id); setRecordOpen(false) }} />)}</BottomDrawer></>
+  return <>{showTitle ? <AppText style={s.pageTitle}>Attendance correction</AppText> : null}<Card><SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} /><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>{data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => { setAttendanceId(row.id); setRecordOpen(false) }} />)}</BottomDrawer></>
 }
 
 function GeneralRequestForm({ onDone }: { onDone: () => void }) {
@@ -582,7 +589,7 @@ function BankTaxRequestForm({ reload, onDone }: { reload: () => Promise<void>; o
   return <><AppText style={s.pageTitle}>Bank & tax</AppText><Card><Field label="Bank name" value={bankName} onChangeText={setBankName} /><Field label="Account number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" /><Field label="Tax ID" value={taxId} onChangeText={setTaxId} keyboardType="numeric" /><Button title="Update information" busy={busy} onPress={() => void submit()} /></Card></>
 }
 
-function EmergencyContactForm({ reload, onDone, contact }: { reload: () => Promise<void>; onDone: () => void; contact?: EmergencyContact }) {
+function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { reload: () => Promise<void>; onDone: () => void; contact?: EmergencyContact; showTitle?: boolean }) {
   const [name, setName] = useState(contact?.name || ''), [relationship, setRelationship] = useState(contact?.relationship || ''), [phone, setPhone] = useState(contact?.phone || ''), [primary, setPrimary] = useState(contact?.primary === true), [busy, setBusy] = useState(false)
   const submit = async () => {
     if (!name.trim() || !relationship.trim() || !phone.trim()) return Alert.alert('Emergency contact', 'Name, relationship and phone are required.')
@@ -595,7 +602,7 @@ function EmergencyContactForm({ reload, onDone, contact }: { reload: () => Promi
     } catch (error) { Alert.alert('Emergency contact', error instanceof Error ? error.message : 'Unable to save contact') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>{contact ? 'Edit emergency contact' : 'Emergency contact'}</AppText><Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} trackColor={{ false: colors.surfaceStrong, true: colors.primary }} thumbColor={colors.surface} /></View><Button title={contact ? 'Save contact' : 'Add contact'} busy={busy} onPress={() => void submit()} /></Card></>
+  return <>{showTitle ? <AppText style={s.pageTitle}>{contact ? 'Edit emergency contact' : 'Emergency contact'}</AppText> : null}<Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} trackColor={{ false: colors.surfaceStrong, true: colors.primary }} thumbColor={colors.surface} /></View><Button title={contact ? 'Save contact' : 'Add contact'} busy={busy} onPress={() => void submit()} /></Card></>
 }
 
 function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
@@ -651,7 +658,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
       <MenuItem icon="people-outline" title="Emergency contacts" subtitle="Add, edit and remove contacts" onPress={() => openSection('contacts')} />
       <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => openSection('security')} />
     </View>
-    <Button title="Sign out" secondary onPress={confirmSignOut} />
+    <Button title="Sign out" icon="log-out-outline" secondary onPress={confirmSignOut} />
     <Muted style={s.version}>{appBuildLabel}</Muted>
   </>
 }
@@ -704,7 +711,7 @@ function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Prom
     <View style={s.between}><AppText style={s.pageTitle}>Emergency contacts</AppText><Pressable accessibilityRole="button" accessibilityLabel="Add emergency contact" style={({ pressed }) => [s.iconAction, pressed && s.controlPressed]} onPress={() => setEditing('new')}><Ionicons name="add" size={24} color={colors.text} /></Pressable></View>
     {data.emergencyContacts.length === 0 ? <EmptyState icon="people-outline" title="No emergency contacts" subtitle="Add at least one person HR can contact in an emergency." /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><Pressable accessibilityRole="button" style={s.flexOne} onPress={() => setEditing(contact)}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></Pressable><View style={s.inlineActions}><Pressable accessibilityRole="button" accessibilityLabel={`Edit ${contact.name}`} style={s.inlineIconAction} onPress={() => setEditing(contact)}><Ionicons name="create-outline" size={20} color={colors.text} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${contact.name}`} style={s.inlineIconAction} onPress={() => remove(contact)}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable></View></View></Card>)}
     <FullScreenTaskModal visible={editing !== null} contextLabel="Emergency contacts" onClose={() => setEditing(null)}>
-      {editing ? <EmergencyContactForm contact={editing === 'new' ? undefined : editing} reload={reload} onDone={() => setEditing(null)} /> : null}
+      {editing ? <EmergencyContactForm contact={editing === 'new' ? undefined : editing} reload={reload} showTitle={false} onDone={() => setEditing(null)} /> : null}
     </FullScreenTaskModal>
   </>
 }
@@ -753,9 +760,9 @@ const s = StyleSheet.create({
   muted: { color: colors.textMuted, lineHeight: 20 },
   pageTitle: { color: colors.text, fontSize: typography.title, lineHeight: 33, fontWeight: '700', marginBottom: spacing.xxs, letterSpacing: -0.7 },
   kicker: { color: colors.primary, fontSize: typography.xs, lineHeight: 15, fontWeight: '600', letterSpacing: 0.8 },
-  section: { color: colors.text, fontSize: typography.xl, lineHeight: 23, fontWeight: '600', marginTop: spacing.lg, marginBottom: spacing.xs, letterSpacing: -0.25 },
+  section: { color: colors.text, fontSize: typography.xl, lineHeight: 23, fontWeight: '600', marginTop: 20, marginBottom: spacing.xs, letterSpacing: -0.25 },
 
-  card: { backgroundColor: colors.surface, padding: 14, borderRadius: radii.md, gap: spacing.xs, marginBottom: spacing.xs, borderWidth: 1, borderColor: colors.border },
+  card: { backgroundColor: colors.surface, padding: spacing.md, borderRadius: radii.lg, gap: spacing.xs, marginBottom: spacing.xs },
   cardTitle: { color: colors.text, fontSize: typography.md, lineHeight: 20, fontWeight: '600', letterSpacing: -0.15 },
   flexOne: { flex: 1, minWidth: 0 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
@@ -769,10 +776,10 @@ const s = StyleSheet.create({
   newRequestButtonText: { color: colors.primaryText, fontSize: typography.sm, lineHeight: 16, fontWeight: '600' },
 
   drawerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
-  drawerSafe: { width: '100%', maxHeight: '86%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden' },
-  drawer: { width: '100%', maxHeight: '100%', backgroundColor: colors.surface, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: 9 },
-  drawerHandle: { width: 38, height: 4, alignSelf: 'center', borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginBottom: spacing.sm },
-  drawerHeader: { minHeight: 56, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  drawerSafe: { width: '100%', maxHeight: '88%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden' },
+  drawer: { width: '100%', maxHeight: '100%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: 10 },
+  drawerHandle: { width: 36, height: 4, alignSelf: 'center', borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginBottom: spacing.xs },
+  drawerHeader: { minHeight: 54, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   drawerTitle: { fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.4 },
   drawerScroll: { maxHeight: 520 },
   drawerContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
@@ -784,11 +791,11 @@ const s = StyleSheet.create({
 
   modalPage: { flex: 1, backgroundColor: colors.background },
   modalFlex: { flex: 1 },
-  modalHeader: { minHeight: 56, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
-  modalClose: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.hover },
-  modalContext: { maxWidth: '70%', fontSize: typography.md, lineHeight: 20, fontWeight: '600', textAlign: 'center' },
-  modalHeaderSpacer: { width: controls.touch, height: controls.touch },
-  modalContent: { paddingHorizontal: 14, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  modalHeader: { minHeight: 60, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, backgroundColor: colors.surface },
+  modalClose: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
+  modalContext: { flex: 1, minWidth: 0, fontSize: typography.xl, lineHeight: 23, fontWeight: '700', letterSpacing: -0.3, textAlign: 'left' },
+  modalHeaderSpacer: { width: 36, height: 36 },
+  modalContent: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xl },
   inlineIconAction: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
 
   button: { minHeight: controls.button, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 10, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
@@ -799,11 +806,13 @@ const s = StyleSheet.create({
   buttonText: { color: colors.primaryText, fontSize: typography.base, lineHeight: 18, fontWeight: '600' },
   secondaryButtonText: { color: colors.text },
 
-  announcementWrap: { marginTop: spacing.md },
-  announcementCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
+  announcementWrap: { gap: spacing.xs },
+  announcementCard: { backgroundColor: colors.infoSurface },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.md },
-  quick: { width: '48%', minHeight: 96, backgroundColor: colors.surface, padding: 14, borderRadius: radii.md, justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  quick: { flexBasis: '48%', flexGrow: 1, minHeight: 82, backgroundColor: colors.surface, padding: spacing.sm, borderRadius: radii.lg, justifyContent: 'space-between', gap: spacing.sm },
+  quickTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  quickIcon: { width: 36, height: 36, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
   quickLabel: { color: colors.text, fontSize: typography.base, lineHeight: 18, fontWeight: '600' },
 
   metricRow: { flexDirection: 'row', gap: spacing.xs },
@@ -815,15 +824,21 @@ const s = StyleSheet.create({
   chartTrack: { height: 6, backgroundColor: colors.surfaceStrong, borderRadius: radii.pill, overflow: 'hidden' },
   chartFill: { height: '100%', backgroundColor: colors.primary, borderRadius: radii.pill },
 
+  attendanceHero: { padding: spacing.md, borderRadius: radii.lg },
+  attendanceTitle: { color: colors.text, fontSize: typography.lg, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2 },
+  attendanceIconWrap: { width: 42, height: 42, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center' },
+  attendanceIconDefault: { backgroundColor: colors.selected },
+  attendanceIconSuccess: { backgroundColor: colors.successSurface },
+  attendanceIconWarning: { backgroundColor: colors.warningSurface },
   shiftCard: { marginTop: spacing.xs },
-  successCard: { backgroundColor: colors.successSurface, borderColor: colors.successBorder },
-  warningCard: { backgroundColor: colors.warningSurface, borderColor: colors.warningBorder },
+  successCard: { backgroundColor: colors.successSurface },
+  warningCard: { backgroundColor: colors.warningSurface },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
   loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
 
-  back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.xs, paddingRight: spacing.sm, borderRadius: radii.pill },
+  back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
 
   field: { gap: 6, marginBottom: spacing.xs },
   fieldLabel: { fontSize: typography.sm, lineHeight: 16, fontWeight: '500', color: colors.textMuted },
@@ -834,7 +849,7 @@ const s = StyleSheet.create({
   danger: { color: colors.danger, fontWeight: '600', paddingVertical: spacing.xs },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 
-  empty: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.surfaceMuted, borderRadius: radii.md, marginBottom: spacing.xs, padding: spacing.lg },
+  empty: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderRadius: radii.lg, marginBottom: spacing.xs, padding: spacing.lg },
   centerText: { textAlign: 'center' },
 
   accountHero: { backgroundColor: colors.surface },

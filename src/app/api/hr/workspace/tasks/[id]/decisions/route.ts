@@ -122,6 +122,9 @@ export async function POST(request: NextRequest, context: Context) {
               action: handler.action,
               id: task.sourceId,
               expectedVersion: handler.expectedVersion,
+              // Compensation transition actions do not consume currency, but the
+              // normalized payroll command contract applies its THB default at parse time.
+              currency: 'THB',
               reason: parsed.data.comment?.trim()
                 || (handler.action === 'approve_change' ? 'Approved from My Tasks' : 'Rejected from My Tasks'),
             },

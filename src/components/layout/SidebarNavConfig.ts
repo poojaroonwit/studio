@@ -314,7 +314,7 @@ export const sidebarConfigData = [
       {
         label: "Attendance",
         icon: "Clock",
-        href: "/workforce/attendance?view=attendance",
+        href: "/workforce/attendance",
         description: "Review attendance records and daily exceptions",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
@@ -322,7 +322,7 @@ export const sidebarConfigData = [
       {
         label: "Timesheets",
         icon: "ClipboardCheck",
-        href: "/workforce/attendance?view=timesheet",
+        href: "/workforce/timesheets",
         description: "Review and approve employee timesheets",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
@@ -330,7 +330,7 @@ export const sidebarConfigData = [
       {
         label: "Roster",
         icon: "CalendarDays",
-        href: "/workforce/attendance?view=roster",
+        href: "/workforce/roster",
         description: "Plan and publish employee shift rosters",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
@@ -338,7 +338,7 @@ export const sidebarConfigData = [
       {
         label: "Attendance Requests",
         icon: "CalendarDays",
-        href: "/workforce/attendance?view=requests",
+        href: "/workforce/attendance-requests",
         description: "Review and decide employee attendance corrections",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
@@ -346,7 +346,7 @@ export const sidebarConfigData = [
       {
         label: "Shift Requests",
         icon: "CalendarDays",
-        href: "/workforce/leave?type=shift-request",
+        href: "/workforce/shift-requests",
         description: "Review schedule changes, swaps, and open-shift requests",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
@@ -354,7 +354,7 @@ export const sidebarConfigData = [
       {
         label: "Overtime",
         icon: "Clock",
-        href: "/workforce/attendance?view=overtime",
+        href: "/workforce/overtime",
         description: "Review and manage overtime requests",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"

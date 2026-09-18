@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { essApi, type AttendanceRow, type EmergencyContact, type EssBootstrap } from './api'
 import type { AccountApplicationIdentity, AccountIdentity } from './account'
 import { colors, controls, radii, spacing, typography } from './theme'
+import { appBuildLabel } from './runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
@@ -490,7 +491,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
       <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => openSection('security')} />
     </View>
     <Button title="Sign out" secondary onPress={confirmSignOut} />
-    <Muted style={s.version}>Development build · v0.2.0</Muted>
+    <Muted style={s.version}>{appBuildLabel}</Muted>
   </>
 }
 

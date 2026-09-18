@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { HrisOperationsWorkspace } from '@/components/hr/HrisOperationsWorkspace';
+import { WorkforcePlanningWorkspace } from '@/components/hr/WorkforcePlanningWorkspace';
 import { hasPermission } from '@/lib/permissions';
 
 export const metadata = { title: 'Workforce Planning | hrive' };
@@ -12,13 +12,8 @@ export default async function WorkforcePlanningPage() {
   if (!hasPermission(session.user, 'HR_WORKFORCE_VIEW')) redirect('/unauthorized');
 
   return (
-    <HrisOperationsWorkspace
-      resources={[
-        {
-          key: 'workforce-plans',
-          canManage: hasPermission(session.user, 'HR_WORKFORCE_MANAGE'),
-        },
-      ]}
+    <WorkforcePlanningWorkspace
+      canManage={hasPermission(session.user, 'HR_WORKFORCE_MANAGE')}
     />
   );
 }

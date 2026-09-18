@@ -91,14 +91,14 @@ export default function App() {
       const next = await essApi.bootstrap()
       setData(next)
       setOffline(false)
-      void saveBootstrapCache(next)
+      void saveBootstrapCache(next).catch((error) => console.warn('Obsi People bootstrap cache write failed', error))
       void loadAccount()
     } catch (error) {
       if (isAuthRequired(error)) {
         setData(null)
         setAccount(null)
         setOffline(false)
-        void clearBootstrapCache()
+        void clearBootstrapCache().catch((cacheError) => console.warn('Obsi People bootstrap cache clear failed', cacheError))
       } else {
         const message = error instanceof Error ? error.message : 'Unable to load employee data.'
         const token = await accountAuth.getToken()
@@ -204,14 +204,26 @@ export default function App() {
     pushUnsubscribe.current?.()
     pushUnsubscribe.current = null
     if (token) void removePushRegistration(token)
-    await accountAuth.signOut()
-    await clearBootstrapCache()
-    setData(null)
-    setAccount(null)
-    setOffline(false)
-    setLoadError(null)
-    setAuthError(null)
-    setTab('home')
+
+    let secureSignOutFailed = false
+    try {
+      await accountAuth.signOut()
+    } catch (error) {
+      secureSignOutFailed = true
+      console.warn('Obsi People secure sign-out cleanup failed', error)
+    }
+    try {
+      await clearBootstrapCache()
+    } catch (error) {
+      console.warn('Obsi People bootstrap cache clear failed', error)
+    } finally {
+      setData(null)
+      setAccount(null)
+      setOffline(false)
+      setLoadError(null)
+      setAuthError(secureSignOutFailed ? 'Secure sign-out could not be fully completed. Please sign in again before using employee data.' : null)
+      setTab('home')
+    }
   }
 
   useEffect(() => { void initialize() }, [])

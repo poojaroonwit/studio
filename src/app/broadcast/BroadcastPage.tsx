@@ -49,7 +49,11 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
     event.preventDefault();
     if (view === "email" || view === "sms") {
       setIsSubmitting(true);
-      const toastId = toast.loading(`Sending ${view.toUpperCase()} broadcast...`);
+      const toastId = toast.loading(
+        form.scheduleDate
+          ? `Scheduling ${view.toUpperCase()} broadcast...`
+          : `Sending ${view.toUpperCase()} broadcast...`,
+      );
       try {
         const response = await fetch(`/api/broadcast/${view}`, {
           method: "POST",
@@ -58,6 +62,9 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
           body: JSON.stringify({
             audience: form.audience,
             message: form.message,
+            scheduledAt: form.scheduleDate
+              ? new Date(`${form.scheduleDate}T00:00:00`).toISOString()
+              : null,
             ...(view === "sms" ? { title: form.title } : {}),
             ...(view === "email" ? { subject: form.subject, templateCode: form.templateCode } : {}),
           }),
@@ -71,7 +78,14 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
         if (data.campaign) setHistory(current => [toHistoryItem(data.campaign), ...current]);
         setForm(initialBroadcastForm);
         setComposerOpen(false);
-        toast.success(`${data.sent || 0} ${view.toUpperCase()} message${data.sent === 1 ? "" : "s"} sent`, { id: toastId });
+        toast.success(
+          data.message || (
+            data.scheduled
+              ? `${data.scheduled} ${view.toUpperCase()} message${data.scheduled === 1 ? "" : "s"} scheduled`
+              : `${data.sent || 0} ${view.toUpperCase()} message${data.sent === 1 ? "" : "s"} sent`
+          ),
+          { id: toastId },
+        );
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Broadcast failed", { id: toastId });
       } finally {
@@ -115,11 +129,17 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
     }
   }
 
-  const submitLabel = view === "email" || view === "sms"
-    ? "Send broadcast"
-    : view === "banner"
-      ? "Publish banner"
-      : "Publish popup";
+  const submitLabel = form.scheduleDate
+    ? view === "email" || view === "sms"
+      ? "Schedule broadcast"
+      : view === "banner"
+        ? "Schedule banner"
+        : "Schedule popup"
+    : view === "email" || view === "sms"
+      ? "Send broadcast"
+      : view === "banner"
+        ? "Publish banner"
+        : "Publish popup";
 
   async function handleDeactivateBanner(campaignId: string) {
     const current = history.find(item => item.campaignId === campaignId);

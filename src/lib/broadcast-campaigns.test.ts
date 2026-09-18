@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPool } from "@/lib/db";
 import {
+  beginOutboundBroadcastRetry,
   claimDueOutboundBroadcastCampaigns,
   finalizeOutboundBroadcastCampaign,
   getBroadcastBannerReport,
@@ -94,4 +95,16 @@ describe("broadcast banner engagement", () => {
       "Provider timeout",
     ]);
   });
+
+  it("retries only failed outbound campaigns with persisted audiences", async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: "campaign-1", channel: "email", status: "sending" }] });
+
+    const campaign = await beginOutboundBroadcastRetry("d4fc4b80-3635-4ef5-a839-98889641ec04");
+
+    expect(campaign).toMatchObject({ status: "sending" });
+    expect(query.mock.calls[0][0]).toContain("status = 'failed'");
+    expect(query.mock.calls[0][0]).toContain("audience <> 'custom'");
+    expect(query.mock.calls[0][0]).toContain("provider_message_id = NULL");
+  });
+
 });

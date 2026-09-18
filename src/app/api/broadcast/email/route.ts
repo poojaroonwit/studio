@@ -5,7 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { sendEmail } from "@/lib/emailService";
 import { getSystemSetting } from "@/lib/systemSettings";
-import { createBroadcastCampaign } from "@/lib/broadcast-campaigns";
+import { createBroadcastCampaign, finalizeOutboundBroadcastCampaign } from "@/lib/broadcast-campaigns";
 import { getActiveEmailTemplateVersions } from "@/lib/email-template-catalog";
 import {
   broadcastAudienceSchema,
@@ -25,6 +25,7 @@ const emailBroadcastSchema = z.object({
   message: z.string().trim().min(1).max(100000),
   subject: z.string().trim().min(1).max(180),
   templateCode: z.string().trim().min(1).max(100),
+  scheduledAt: z.string().datetime().nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,35 +48,65 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Select an active email template from Admin Center" }, { status: 400 });
   }
 
+  const scheduledAt = parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : null;
+  const scheduled = Boolean(scheduledAt && scheduledAt > new Date());
+  if (scheduled && parsed.data.customRecipients?.length) {
+    return NextResponse.json({
+      message: "Scheduled email broadcasts currently require a saved audience rather than one-time custom recipients.",
+    }, { status: 400 });
+  }
+
   const recipients = await getBroadcastRecipients(parsed.data.audience, parsed.data.customRecipients);
   const emails = [...new Set(recipients.map((recipient) => recipient.email).filter((email): email is string => Boolean(email)))];
   if (emails.length === 0) {
     return NextResponse.json({ message: "No recipients with email addresses were found" }, { status: 400 });
   }
 
-  const result = await sendEmail(
-    emails,
-    parsed.data.subject,
-    sanitizeBroadcastEmailHtml(parsed.data.message),
-  );
-
-  if (!result.success) {
-    return NextResponse.json({ message: result.error || "Failed to send email broadcast" }, { status: 500 });
-  }
-
+  const safeHtml = sanitizeBroadcastEmailHtml(parsed.data.message);
   const campaign = await createBroadcastCampaign({
-    channel: "email", title: parsed.data.subject, message: parsed.data.message,
-    audience: parsed.data.audience, status: "sent", recipientCount: emails.length,
-    providerMessageId: result.messageId, createdBy: session!.user.id,
+    channel: "email",
+    title: parsed.data.subject,
+    message: safeHtml,
+    audience: parsed.data.audience,
+    status: scheduled ? "scheduled" : "sending",
+    scheduledAt,
+    recipientCount: emails.length,
+    createdBy: session!.user.id,
     createdByName: session!.user.name || session!.user.email || "Unknown user",
   });
+
+  if (scheduled) {
+    return NextResponse.json({
+      message: "Email broadcast scheduled",
+      channel: "email",
+      scheduled: emails.length,
+      campaign,
+    }, { status: 201 });
+  }
+
+  const result = await sendEmail(emails, parsed.data.subject, safeHtml);
+  const finalized = await finalizeOutboundBroadcastCampaign({
+    id: campaign.id,
+    status: result.success ? "sent" : "failed",
+    recipientCount: result.success ? emails.length : 0,
+    failedCount: result.success ? 0 : emails.length,
+    providerMessageId: result.success ? result.messageId : null,
+    errorMessage: result.success ? null : result.error || "Failed to send email broadcast",
+  });
+
+  if (!result.success) {
+    return NextResponse.json({
+      message: result.error || "Failed to send email broadcast",
+      campaign: finalized || campaign,
+    }, { status: 502 });
+  }
 
   return NextResponse.json({
     message: "Email broadcast sent",
     channel: "email",
     sent: emails.length,
     messageId: result.messageId,
-    campaign,
+    campaign: finalized || campaign,
   });
 }
 

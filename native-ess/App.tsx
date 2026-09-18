@@ -365,7 +365,7 @@ export default function App() {
     >{screen}</ScrollView>
     {!fullPage ? <View style={s.tabs}>{tabs.map((item) => {
       const active = tab === item.id
-      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => navigateTab(item.id)}>
+      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, active && s.tabActive, pressed && s.tabPressed]} onPress={() => navigateTab(item.id)}>
         <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />
         <AppText style={[s.tabText, active && s.tabTextActive]}>{item.label}</AppText>
       </Pressable>
@@ -397,7 +397,7 @@ const s = StyleSheet.create({
   authError: { color: colors.danger, textAlign: 'center', fontSize: typography.sm, lineHeight: 18 },
   pressed: { opacity: 0.66 },
 
-  header: { minHeight: 58, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { minHeight: 60, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.background },
   headerBrand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerAction: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
   brand: { fontWeight: '600', fontSize: typography.md, lineHeight: 19, letterSpacing: -0.2 },
@@ -405,11 +405,12 @@ const s = StyleSheet.create({
   avatar: { backgroundColor: colors.surfaceStrong, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontWeight: '600', color: colors.text },
   body: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 14, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+  content: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg },
   contentFullPage: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
 
-  tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: spacing.xxs, paddingTop: spacing.xxs, paddingBottom: spacing.xs },
-  tab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: radii.sm },
+  tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', backgroundColor: colors.surface, paddingHorizontal: spacing.xs, paddingTop: 6, paddingBottom: spacing.xs, gap: 2 },
+  tab: { flex: 1, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: radii.sm },
+  tabActive: { backgroundColor: colors.selected },
   tabPressed: { backgroundColor: colors.hover },
   tabText: { fontSize: typography.xs, lineHeight: 14, color: colors.textSubtle, fontWeight: '500' },
   tabTextActive: { color: colors.primary, fontWeight: '600' },
@@ -431,7 +432,7 @@ const s = StyleSheet.create({
   secondarySmallText: { color: colors.text, fontWeight: '600' },
 
   skeleton: { backgroundColor: colors.skeleton },
-  skeletonHeader: { minHeight: 58, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
-  skeletonBody: { paddingHorizontal: 14, paddingTop: spacing.md, gap: spacing.sm },
+  skeletonHeader: { minHeight: 60, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.background },
+  skeletonBody: { paddingHorizontal: spacing.md, paddingTop: spacing.md, gap: spacing.sm },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.xs, marginTop: spacing.xxs },
 })

@@ -46,7 +46,8 @@ ENV NODE_ENV=production
 
 # Do not bypass TypeScript/lint failures in the deployment image. The same
 # production build must succeed here that succeeds in the Quality Gates.
-RUN set -e && \
+RUN --mount=type=cache,id=hrive-next-cache,target=/app/.next/cache \
+    set -e && \
     NEXT_PHASE=phase-production-build npm run build && \
     echo "=== Build completed successfully ==="
 

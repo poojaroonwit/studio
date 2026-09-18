@@ -20,13 +20,13 @@ export async function PATCH(
   const id = campaignIdSchema.safeParse(rawId);
   const body = updateSchema.safeParse(await request.json().catch(() => null));
   if (!id.success || !body.success) {
-    return NextResponse.json({ message: "Invalid banner update" }, { status: 400 });
+    return NextResponse.json({ message: "Invalid campaign update" }, { status: 400 });
   }
 
   const campaign = await deactivateBroadcastCampaign(id.data);
   if (!campaign) {
-    return NextResponse.json({ message: "Active or scheduled banner not found" }, { status: 404 });
+    return NextResponse.json({ message: "Scheduled campaign or active banner not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ message: "Banner deactivated", campaign });
+  return NextResponse.json({ message: campaign.status === "inactive" ? "Campaign stopped" : "Campaign updated", campaign });
 }

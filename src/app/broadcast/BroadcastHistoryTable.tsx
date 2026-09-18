@@ -13,6 +13,7 @@ import { channelLabel, type BroadcastHistoryItem } from "./BroadcastPageModel";
 
 const statusClass = {
   scheduled: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
+  sending: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   sent: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
   active: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300",
   inactive: "border-border bg-muted text-muted-foreground",
@@ -31,7 +32,8 @@ export function BroadcastHistoryTable({
   title,
   history,
   isLoading,
-  allowDeactivate,
+  showEngagement,
+  allowStop,
   deactivatingId,
   onDeactivate,
   onReport,
@@ -39,7 +41,8 @@ export function BroadcastHistoryTable({
   title: string;
   history: BroadcastHistoryItem[];
   isLoading: boolean;
-  allowDeactivate: boolean;
+  showEngagement: boolean;
+  allowStop: boolean;
   deactivatingId: string | null;
   onDeactivate: (campaignId: string) => void;
   onReport: (campaign: BannerReportCampaign) => void;
@@ -63,7 +66,7 @@ export function BroadcastHistoryTable({
     setSortDirection(direction);
   };
 
-  const columnCount = allowDeactivate ? 10 : 7;
+  const columnCount = 7 + (showEngagement ? 2 : 0) + (allowStop ? 1 : 0);
 
   return (
     <section className="rounded-[8px] border border-border bg-card shadow-sm dark:shadow-none">
@@ -79,11 +82,11 @@ export function BroadcastHistoryTable({
               <SortableTableHead column="title" label="Title" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableTableHead column="audience" label="Audience" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableTableHead column="status" label="Status" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              {allowDeactivate && <SortableTableHead className="text-right" column="seen" label="Seen" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />}
-              {allowDeactivate && <SortableTableHead className="text-right" column="acknowledged" label="Acknowledged" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />}
+              {showEngagement && <SortableTableHead className="text-right" column="seen" label="Seen" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />}
+              {showEngagement && <SortableTableHead className="text-right" column="acknowledged" label="Acknowledged" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />}
               <SortableTableHead column="owner" label="Owner" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableTableHead column="date" label="Date" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              {allowDeactivate && <TableHead className="text-right">Action</TableHead>}
+              {allowStop && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,24 +112,26 @@ export function BroadcastHistoryTable({
                   <TableCell>
                     <Badge variant="outline" className={cn("capitalize", statusClass[item.status])}>{item.status}</Badge>
                   </TableCell>
-                  {allowDeactivate && <TableCell className="text-right font-medium tabular-nums">{item.seenCount.toLocaleString()}</TableCell>}
-                  {allowDeactivate && <TableCell className="text-right font-medium tabular-nums">{item.acknowledgedCount.toLocaleString()}</TableCell>}
+                  {showEngagement && <TableCell className="text-right font-medium tabular-nums">{item.seenCount.toLocaleString()}</TableCell>}
+                  {showEngagement && <TableCell className="text-right font-medium tabular-nums">{item.acknowledgedCount.toLocaleString()}</TableCell>}
                   <TableCell>{item.owner}</TableCell>
                   <TableCell>{item.date}</TableCell>
-                  {allowDeactivate && (
+                  {allowStop && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          onClick={() => onReport({ id: item.campaignId, title: item.title })}
-                        >
-                          <BarChart3 />
-                          Report
-                        </Button>
-                        {(item.status === "active" || item.status === "scheduled" || deactivatingId === item.campaignId) && (
+                        {showEngagement ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => onReport({ id: item.campaignId, title: item.title })}
+                          >
+                            <BarChart3 />
+                            Report
+                          </Button>
+                        ) : null}
+                        {(item.status === "scheduled" || (item.channel === "banner" && item.status === "active") || deactivatingId === item.campaignId) && (
                           <Button
                             type="button"
                             variant="outline"
@@ -134,10 +139,12 @@ export function BroadcastHistoryTable({
                             className="gap-2 border-border text-foreground hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:border-red-800 dark:hover:bg-red-950/60 dark:hover:text-red-300"
                             disabled={deactivatingId !== null}
                             onClick={() => onDeactivate(item.campaignId)}
-                            aria-label={`Deactivate ${item.title}`}
+                            aria-label={`${item.status === "scheduled" ? "Cancel" : "Deactivate"} ${item.title}`}
                           >
                             {deactivatingId === item.campaignId ? <Loader2 className="animate-spin" /> : <CircleOff />}
-                            {deactivatingId === item.campaignId ? "Deactivating" : "Deactivate"}
+                            {deactivatingId === item.campaignId
+                              ? item.status === "scheduled" ? "Cancelling" : "Deactivating"
+                              : item.status === "scheduled" ? "Cancel" : "Deactivate"}
                           </Button>
                         )}
                       </div>

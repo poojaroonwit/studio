@@ -22,7 +22,7 @@ import { loadAccountApplicationIdentity, loadAccountIdentity, loadPublicAccountA
 import { clearBootstrapCache, loadBootstrapCache, saveBootstrapCache } from './src/cache'
 import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
 import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen } from './src/screens'
-import { colors, radii } from './src/theme'
+import { colors, controls, radii, spacing, typography } from './src/theme'
 import { removePushRegistration, syncPushRegistration, watchPushTokenRefresh } from './src/push'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
@@ -318,67 +318,84 @@ export default function App() {
 
   return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" />
     <View style={s.header}>
-      <View style={s.headerBrand}><BrandLogo identity={appIdentity} size={36} /><View><AppText style={s.brand}>{appIdentity?.name || 'Obsi People'}</AppText><AppText style={s.headerSub}>Employee Self-Service</AppText></View></View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Open account" onPress={() => setTab('account')}><AccountAvatar account={account} data={data} /></Pressable>
+      <View style={s.headerBrand}><BrandLogo identity={appIdentity} size={32} /><View><AppText style={s.brand}>{appIdentity?.name || 'Obsi People'}</AppText><AppText style={s.headerSub}>Employee Self-Service</AppText></View></View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => setTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
     </View>
     {loadError ? <View style={s.warning}><Ionicons name={offline ? 'cloud-offline-outline' : 'warning-outline'} size={16} color={colors.warning} /><AppText style={s.warningText}>{loadError}</AppText></View> : null}
     <ScrollView style={s.body} keyboardShouldPersistTaps="handled" scrollEventThrottle={80} onScroll={onScroll} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} />}>{screen}</ScrollView>
-    <View style={s.tabs}>{tabs.map((item) => <Pressable accessibilityRole="button" accessibilityState={{ selected: tab === item.id }} key={item.id} style={s.tab} onPress={() => setTab(item.id)}><Ionicons name={item.icon} size={22} color={tab === item.id ? colors.text : colors.textSubtle} /><AppText style={[s.tabText, tab === item.id && s.tabTextActive]}>{item.label}</AppText></Pressable>)}</View>
+    <View style={s.tabs}>{tabs.map((item) => {
+      const active = tab === item.id
+      const primaryAction = item.id === 'requests'
+      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => setTab(item.id)}>
+        {primaryAction
+          ? <View style={[s.tabPrimaryIcon, active && s.tabPrimaryIconActive]}><Ionicons name={item.icon} size={23} color={colors.primaryText} /></View>
+          : <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />}
+        <AppText style={[s.tabText, active && s.tabTextActive]}>{item.label}</AppText>
+      </Pressable>
+    })}</View>
   </SafeAreaView></SafeAreaProvider>
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  text: { color: colors.text },
-  welcome: { flex: 1, backgroundColor: colors.surface, paddingHorizontal: 24 },
-  welcomeTop: { paddingTop: 18 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  text: { color: colors.text, fontSize: typography.base, lineHeight: 20 },
+  welcome: { flex: 1, backgroundColor: colors.surface, paddingHorizontal: spacing.md },
+  welcomeTop: { paddingTop: spacing.sm },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   logoFallback: { backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  welcomeBrand: { fontSize: 18, fontWeight: '700', color: colors.text },
-  welcomeBrandSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  welcomeContent: { flex: 1, justifyContent: 'center', paddingBottom: 36 },
-  welcomeEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.3, color: colors.textMuted, marginBottom: 14 },
-  welcomeTitle: { fontSize: 36, lineHeight: 42, fontWeight: '700', letterSpacing: -1.2, color: colors.text },
-  welcomeCopy: { fontSize: 16, lineHeight: 24, color: colors.textMuted, marginTop: 18, maxWidth: 420 },
-  welcomeBottom: { paddingBottom: 18, gap: 12 },
-  welcomeButton: { minHeight: 68, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  welcomeButtonIdentity: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  welcomeButtonText: { fontSize: 16, fontWeight: '700', color: colors.text },
-  welcomeButtonSubtext: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  outbornMark: { width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: colors.text, position: 'relative' },
-  outbornDot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, backgroundColor: colors.text, right: -5, top: -5 },
-  welcomeFoot: { textAlign: 'center', fontSize: 11, color: colors.textSubtle },
-  authError: { color: colors.danger, textAlign: 'center', fontSize: 12 },
-  pressed: { opacity: 0.72 },
-  header: { minHeight: 64, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface },
-  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brand: { fontWeight: '700', fontSize: 15 },
-  headerSub: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  welcomeBrand: { fontSize: typography.xl, lineHeight: 22, fontWeight: '600', letterSpacing: -0.3, color: colors.text },
+  welcomeBrandSub: { fontSize: typography.sm, lineHeight: 17, color: colors.textMuted, marginTop: 1 },
+  welcomeContent: { flex: 1, justifyContent: 'center', paddingBottom: spacing.lg },
+  welcomeEyebrow: { fontSize: typography.xs, lineHeight: 15, fontWeight: '600', letterSpacing: 0.8, color: colors.primary, marginBottom: spacing.sm },
+  welcomeTitle: { fontSize: 32, lineHeight: 36, fontWeight: '700', letterSpacing: -1, color: colors.text, maxWidth: 420 },
+  welcomeCopy: { fontSize: typography.md, lineHeight: 23, color: colors.textMuted, marginTop: spacing.md, maxWidth: 420 },
+  welcomeBottom: { paddingBottom: spacing.md, gap: spacing.sm },
+  welcomeButton: { minHeight: 60, borderRadius: radii.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  welcomeButtonIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  welcomeButtonText: { fontSize: typography.md, lineHeight: 20, fontWeight: '600', color: colors.text },
+  welcomeButtonSubtext: { fontSize: typography.xs, lineHeight: 15, color: colors.textMuted, marginTop: 1 },
+  outbornMark: { width: 32, height: 32, borderRadius: radii.sm, borderWidth: 2.5, borderColor: colors.primary, position: 'relative' },
+  outbornDot: { position: 'absolute', width: 7, height: 7, borderRadius: radii.pill, backgroundColor: colors.primary, right: -5, top: -5 },
+  welcomeFoot: { textAlign: 'center', fontSize: typography.xs, color: colors.textSubtle },
+  authError: { color: colors.danger, textAlign: 'center', fontSize: typography.sm, lineHeight: 18 },
+  pressed: { opacity: 0.66 },
+
+  header: { minHeight: 58, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  headerAction: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
+  brand: { fontWeight: '600', fontSize: typography.md, lineHeight: 19, letterSpacing: -0.2 },
+  headerSub: { fontSize: typography.xs, lineHeight: 15, color: colors.textMuted },
   avatar: { backgroundColor: colors.surfaceStrong, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontWeight: '700', color: colors.text },
-  body: { flex: 1 },
-  content: { padding: 18, paddingBottom: 36 },
-  tabs: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, paddingVertical: 8 },
-  tab: { flex: 1, alignItems: 'center', gap: 3, minHeight: 48, justifyContent: 'center' },
-  tabText: { fontSize: 10, color: colors.textSubtle },
-  tabTextActive: { color: colors.text, fontWeight: '700' },
-  warning: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, backgroundColor: colors.warningSurface },
-  warningText: { flex: 1, fontSize: 12, color: colors.warning },
-  center: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 28, gap: 14 },
-  unlock: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 28, gap: 14 },
-  unlockTitle: { fontSize: 24, fontWeight: '700', textAlign: 'center' },
-  mutedCenter: { color: colors.textMuted, textAlign: 'center' },
-  primaryAction: { minHeight: 54, paddingHorizontal: 24, borderRadius: radii.md, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
-  primaryActionText: { color: colors.primaryText, fontWeight: '700' },
-  errorTitle: { fontSize: 21, fontWeight: '700', textAlign: 'center' },
-  errorCopy: { color: colors.textMuted, textAlign: 'center', lineHeight: 20 },
-  errorActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  primarySmall: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 11, borderRadius: radii.md },
-  primarySmallText: { color: colors.primaryText, fontWeight: '700' },
-  secondarySmall: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 18, paddingVertical: 11, borderRadius: radii.md },
-  secondarySmallText: { color: colors.text, fontWeight: '700' },
+  avatarText: { fontWeight: '600', color: colors.text },
+  body: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 14, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+
+  tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: spacing.xxs, paddingTop: spacing.xxs, paddingBottom: spacing.xs },
+  tab: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: radii.sm },
+  tabPressed: { backgroundColor: colors.hover },
+  tabText: { fontSize: typography.xs, lineHeight: 14, color: colors.textSubtle, fontWeight: '500' },
+  tabTextActive: { color: colors.primary, fontWeight: '600' },
+  tabPrimaryIcon: { width: 44, height: 44, marginTop: -12, marginBottom: 1, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  tabPrimaryIconActive: { backgroundColor: colors.primaryStrong },
+
+  warning: { flexDirection: 'row', gap: spacing.xs, alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 9, backgroundColor: colors.warningSurface, borderBottomWidth: 1, borderBottomColor: '#F2E0B8' },
+  warningText: { flex: 1, fontSize: typography.sm, lineHeight: 18, color: colors.warning },
+  center: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, gap: spacing.sm },
+  unlock: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, gap: spacing.sm },
+  unlockTitle: { fontSize: 24, lineHeight: 29, fontWeight: '700', letterSpacing: -0.5, textAlign: 'center' },
+  mutedCenter: { color: colors.textMuted, lineHeight: 21, textAlign: 'center' },
+  primaryAction: { minHeight: controls.button, paddingHorizontal: spacing.lg, borderRadius: radii.sm, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.xs },
+  primaryActionText: { color: colors.primaryText, fontWeight: '600' },
+  errorTitle: { fontSize: 22, lineHeight: 27, fontWeight: '700', letterSpacing: -0.4, textAlign: 'center' },
+  errorCopy: { color: colors.textMuted, textAlign: 'center', lineHeight: 21, maxWidth: 360 },
+  errorActions: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
+  primarySmall: { minHeight: controls.touch, justifyContent: 'center', backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 9, borderRadius: radii.sm },
+  primarySmallText: { color: colors.primaryText, fontWeight: '600' },
+  secondarySmall: { minHeight: controls.touch, justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: spacing.md, paddingVertical: 9, borderRadius: radii.sm },
+  secondarySmallText: { color: colors.text, fontWeight: '600' },
+
   skeleton: { backgroundColor: colors.skeleton },
-  skeletonHeader: { height: 64, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: colors.surface },
-  skeletonBody: { padding: 18, gap: 13 },
-  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 8 },
+  skeletonHeader: { minHeight: 58, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  skeletonBody: { paddingHorizontal: 14, paddingTop: spacing.md, gap: spacing.sm },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.xs, marginTop: spacing.xxs },
 })

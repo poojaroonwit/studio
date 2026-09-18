@@ -110,6 +110,15 @@ export const payrollOperationsConfigSchema = z
         employerSocialSecurityRate: z.number().min(0).max(1).default(0.05),
         socialSecurityMonthlyWageCeiling: z.number().positive().default(15000),
         annualDeductions: z.number().nonnegative().default(60000),
+        goldenCaseCertification: z
+          .object({
+            legalVersion: z.string().trim().max(80).default(""),
+            suiteId: z.string().trim().max(160).default(""),
+            certifiedBy: z.string().trim().max(160).default(""),
+            passedAt: z.string().date().nullable().default(null),
+            evidenceReference: z.string().trim().max(500).default(""),
+          })
+          .default({}),
         taxBrackets: z
           .array(
             z.object({
@@ -180,6 +189,26 @@ export type PayrollApprovalRoute = z.infer<typeof payrollApprovalRouteSchema>;
 export type PayrollOperationsConfig = z.infer<
   typeof payrollOperationsConfigSchema
 >;
+export type PayrollStatutoryRules = PayrollOperationsConfig["statutoryRules"];
+
+export function isPayrollStatutoryCertificationCurrent(
+  rules: PayrollStatutoryRules,
+  payDate?: string | null,
+) {
+  const certification = rules.goldenCaseCertification;
+  return Boolean(
+    rules.enabled
+      && rules.legalVersion
+      && rules.legalVersion !== "CONFIGURE_ME"
+      && rules.reviewerName
+      && rules.reviewedAt
+      && (!payDate || rules.effectiveFrom <= payDate)
+      && certification?.legalVersion === rules.legalVersion
+      && certification?.suiteId
+      && certification?.certifiedBy
+      && certification?.passedAt,
+  );
+}
 
 export const DEFAULT_PAYROLL_APPROVAL_ROUTES: PayrollApprovalRoute[] = [
   {

@@ -7,10 +7,15 @@ import { normalizeHrisTaskFilter } from './workspace-contracts';
 type TaskRow = Record<string, unknown>;
 type TaskProjectionClient = Pick<Prisma.TransactionClient, '$queryRawUnsafe' | '$executeRawUnsafe'>;
 
-export type HrisDecisionHandler = {
-  kind: 'hr_workflow';
-  action: HrWorkflowAction;
-};
+export type HrisDecisionHandler =
+  | {
+      kind: 'hr_workflow';
+      action: HrWorkflowAction;
+    }
+  | {
+      kind: 'mobility_application';
+      action: 'manager_approve' | 'return_for_revision' | 'reject';
+    };
 
 export interface HrisProjectedTask extends HrisTask {
   decisionHandlers: Record<string, HrisDecisionHandler>;

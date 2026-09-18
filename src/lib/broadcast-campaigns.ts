@@ -182,7 +182,11 @@ export async function deactivateBroadcastCampaign(id: string) {
   const result = await getPool().query<BroadcastCampaign>(
     `UPDATE broadcast_campaigns
      SET status = 'inactive', updated_at = now()
-     WHERE id = $1::uuid AND channel = 'banner' AND status IN ('active', 'scheduled')
+     WHERE id = $1::uuid
+       AND (
+         status = 'scheduled'
+         OR (channel = 'banner' AND status = 'active')
+       )
      RETURNING ${SELECT_COLUMNS}`,
     [id],
   );

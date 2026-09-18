@@ -486,8 +486,8 @@ const s = StyleSheet.create({
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
   loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
 
-  requestGrid: { gap: 0, marginTop: spacing.md, marginBottom: spacing.xxs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, overflow: 'hidden' },
-  requestCard: { minHeight: 74, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 14, paddingVertical: spacing.sm, gap: spacing.sm, flexDirection: 'row', alignItems: 'center' },
+  requestGrid: { gap: 0, marginTop: spacing.md, marginBottom: spacing.xxs, backgroundColor: 'transparent' },
+  requestCard: { minHeight: 74, backgroundColor: 'transparent', borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 2, paddingVertical: spacing.sm, gap: spacing.sm, flexDirection: 'row', alignItems: 'center' },
   requestIcon: { width: controls.touch, height: controls.touch, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
   back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.xs, paddingRight: spacing.sm, borderRadius: radii.pill },
 
@@ -516,8 +516,8 @@ const s = StyleSheet.create({
   avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
   avatarInitial: { color: colors.primaryText, fontWeight: '600', fontSize: typography.lg },
 
-  menuList: { gap: 0, marginBottom: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, overflow: 'hidden' },
-  menuItem: { minHeight: 64, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  menuList: { gap: 0, marginBottom: spacing.md, backgroundColor: 'transparent' },
+  menuItem: { minHeight: 64, backgroundColor: 'transparent', borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 2, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   menuIcon: { width: 40, height: 40, borderRadius: radii.sm, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   version: { textAlign: 'center', fontSize: typography.xs, lineHeight: 15, color: colors.textSubtle, marginTop: spacing.xs },
 

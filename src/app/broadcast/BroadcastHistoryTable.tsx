@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, BellRing, CircleOff, Loader2, Mail, MonitorUp, Smartphone } from "lucide-react";
+import { ArrowPath as ArrowPathIcon, BarChart3, BellRing, CircleOff, Loader2, Mail, MonitorUp, Smartphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function BroadcastHistoryTable({
   allowStop,
   deactivatingId,
   onDeactivate,
+  onRetry,
   onReport,
 }: {
   title: string;
@@ -45,6 +46,7 @@ export function BroadcastHistoryTable({
   allowStop: boolean;
   deactivatingId: string | null;
   onDeactivate: (campaignId: string) => void;
+  onRetry: (campaignId: string) => void;
   onReport: (campaign: BannerReportCampaign) => void;
 }) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -129,6 +131,22 @@ export function BroadcastHistoryTable({
                           >
                             <BarChart3 />
                             Report
+                          </Button>
+                        ) : null}
+                        {item.status === "failed"
+                          && (item.channel === "email" || item.channel === "sms")
+                          && item.audience !== "Custom" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            disabled={deactivatingId !== null}
+                            onClick={() => onRetry(item.campaignId)}
+                            aria-label={`Retry ${item.title}`}
+                          >
+                            {deactivatingId === item.campaignId ? <Loader2 className="animate-spin" /> : <ArrowPathIcon />}
+                            {deactivatingId === item.campaignId ? "Retrying" : "Retry"}
                           </Button>
                         ) : null}
                         {(item.status === "scheduled" || (item.channel === "banner" && item.status === "active") || deactivatingId === item.campaignId) && (

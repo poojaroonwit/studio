@@ -3,16 +3,24 @@ import { expect, test, type Response } from '@playwright/test';
 function expectApplicationRoute(response: Response | null) {
   expect(response).not.toBeNull();
   expect(response?.status()).not.toBe(404);
-  expectApplicationRoute(response);
+  expect(response?.status()).toBeLessThan(500);
 }
 
 test.describe('HRIS protected surfaces', () => {
-  test('operations workspace is a valid application route', async ({ page }) => {
-    const response = await page.goto('/people/hris-operations');
+  for (const [path, label] of [
+    ['/people/movements', 'employee movements'],
+    ['/people/talent', 'talent and mobility'],
+    ['/workforce/planning', 'workforce planning'],
+    ['/workforce/performance?tab=appraisal', 'appraisal'],
+    ['/ess/opportunities', 'internal opportunities'],
+  ] as const) {
+    test(`${label} is a valid application route`, async ({ page }) => {
+      const response = await page.goto(path);
 
-    expectApplicationRoute(response);
-    await expect(page.locator('body')).toBeVisible();
-  });
+      expectApplicationRoute(response);
+      await expect(page.locator('body')).toBeVisible();
+    });
+  }
 
   test('engagement workspace is a valid application route', async ({ page }) => {
     const response = await page.goto('/workforce/engagement');
@@ -40,6 +48,17 @@ test.describe('HRIS protected surfaces', () => {
 
     expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('internal mobility API requires an authenticated session', async ({ request }) => {
+    const response = await request.get('/api/ess/internal-opportunities');
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'UNAUTHORIZED',
+      },
+    });
   });
 
   test('HR API requires an authenticated session', async ({ request }) => {

@@ -19,7 +19,7 @@ WORKDIR /app
 # resolve through .npmrc to the canonical Outborn Registry.
 FROM base AS deps
 COPY package.json package-lock.json .npmrc ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=hrive-npm,target=/root/.npm \
     npm config set maxsockets 10 && \
     npm ci --prefer-offline --no-audit --no-fund
 

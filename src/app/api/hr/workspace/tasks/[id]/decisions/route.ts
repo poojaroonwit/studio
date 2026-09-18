@@ -137,6 +137,8 @@ export async function POST(request: NextRequest, context: Context) {
               action: handler.action,
               id: task.sourceId,
               expectedVersion: handler.expectedVersion,
+              employerCost: 0,
+              employeeCost: 0,
               reason: parsed.data.comment?.trim()
                 || (handler.action === 'approve_enrollment' ? 'Approved from My Tasks' : 'Returned from My Tasks'),
             },

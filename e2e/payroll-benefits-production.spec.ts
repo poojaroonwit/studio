@@ -211,13 +211,20 @@ test.describe("Benefits production journey", () => {
       planDrawer.getByRole("button", { name: "End coverage" }),
     ).toBeVisible();
 
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain("Reason for ending coverage");
-      await dialog.accept("Coverage ended after employee request");
-    });
-    const end = waitForBenefitMutation(page);
     await planDrawer.getByRole("button", { name: "End coverage" }).click();
+    const endCoverageDialog = page.getByRole("dialog", {
+      name: "End benefit coverage",
+    });
+    await expect(endCoverageDialog).toBeVisible();
+    await endCoverageDialog
+      .getByLabel("Reason")
+      .fill("Coverage ended after employee request");
+    const end = waitForBenefitMutation(page);
+    await endCoverageDialog
+      .getByRole("button", { name: "End coverage" })
+      .click();
     await end;
+    await expect(endCoverageDialog).toBeHidden();
     await expect(planDrawer.getByText("ended", { exact: true })).toBeVisible();
 
     expect(actions).toEqual([

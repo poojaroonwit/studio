@@ -6,14 +6,14 @@
   "src/components/appraisal/AppraisalActionSheet.tsx": 934,
   "src/components/ess/LeaveRequestView.tsx": 1145,
   "src/app/workforce/holidays/HolidaysPageClient.tsx": 943,
-  "src/components/layout/SidebarNavConfig.ts": 934,
+  "src/components/layout/SidebarNavConfig.ts": 966,
   "src/app/people/onboarding/PeopleOnboardingClient.tsx": 914,
   "src/components/hr/OffboardingPage.tsx": 1249,
   "src/components/hr/HrModulePage.tsx": 1333,
   "src/components/hr/HrEmployeeProfilePage.tsx": 4385,
   "src/components/payroll/PayrollWorkspace.tsx": 5146,
   "src/components/payroll/CompensationReviewWorkspace.tsx": 898,
-  "src/components/payroll/BenefitsCommandCenter.tsx": 1528,
+  "src/components/payroll/BenefitsCommandCenter.tsx": 1595,
   "src/lib/appraisal/appraisal-service.ts": 1367,
   "src/components/shift/views/TimesheetCommandCenter.tsx": 1828,
   "src/components/shift/views/RosterView.tsx": 1711,
@@ -26,5 +26,8 @@
   "src/app/settings/settings-page-model.ts": 853,
   "src/lib/performance/performance-service.ts": 1099,
   "src/lib/survey/survey-service.ts": 1344,
-  "src/app/api/ess/[[...path]]/route.ts": 627
+  "src/app/api/ess/[[...path]]/route.ts": 627,
+  "src/app/api/hr/v1/[resource]/route.ts": 570,
+  "src/components/expenses/ExpensesWorkspace.tsx": 645,
+  "src/lib/hris/task-projection.ts": 783
 }

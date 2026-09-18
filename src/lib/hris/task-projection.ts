@@ -1,6 +1,8 @@
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import type { HrWorkflowAction } from '@/lib/hr/hr-workflows';
+import { getExpenseAccess } from '@/lib/expenses/permissions';
+import type { SessionLikeUser } from '@/lib/permissions';
 import type { HrisAction, HrisStatus, HrisTask, HrisTaskFilter, HrisTaskPage, HrisTaskPriority } from './workspace-contracts';
 import { normalizeHrisTaskFilter } from './workspace-contracts';
 
@@ -19,6 +21,12 @@ export type HrisDecisionHandler =
   | {
       kind: 'leave_request';
       action: 'approved' | 'returned_for_revision' | 'rejected';
+      expectedVersion: number;
+    }
+  | {
+      kind: 'expense_approval';
+      resource: 'advances' | 'claims' | 'travel';
+      action: 'approve' | 'return_for_revision' | 'reject';
       expectedVersion: number;
     };
 
@@ -78,9 +86,11 @@ export function mapHrisTaskRow(row: TaskRow): HrisProjectedTask {
 export async function syncHrisTasksForActor({
   userId,
   email,
+  user,
 }: {
   userId: string;
   email?: string | null;
+  user?: SessionLikeUser | null;
 }) {
   const employeeRows = await prisma.$queryRawUnsafe<Array<{
     id: string;
@@ -114,7 +124,8 @@ export async function syncHrisTasksForActor({
 
   if (!employee) return;
 
-  const [leaveApprovals, onboarding, learning, performance, returnedExpenses] = await Promise.all([
+  const expenseAccess = getExpenseAccess(user || null, true);
+  const [leaveApprovals, onboarding, learning, performance, returnedExpenses, expenseApprovals] = await Promise.all([
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT request.id,
               request.employee_id,
@@ -182,6 +193,51 @@ export async function syncHrisTasksForActor({
        WHERE claim.employee_id = $1::uuid
          AND claim.status = 'returned_for_revision'`,
       employee.id,
+    ).catch(() => [] as TaskRow[]),
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT approval.entity_type,
+              approval.entity_id,
+              approval.approval_role,
+              approval.approver_user_id,
+              source.reference,
+              source.title,
+              source.status,
+              source.version,
+              source.company_id,
+              source.amount,
+              source.currency,
+              source.employee_name
+       FROM expense_approvals approval
+       JOIN (
+         SELECT 'claim'::text AS entity_type, claim.id, claim.reference, claim.title,
+                claim.status, claim.version, claim.company_id, claim.claimed_amount AS amount,
+                claim.claim_currency AS currency,
+                NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name
+         FROM expense_claims claim
+         JOIN hr_employees employee ON employee.id = claim.employee_id
+         UNION ALL
+         SELECT 'advance'::text, advance.id, advance.reference, advance.title,
+                advance.status, advance.version, advance.company_id, advance.requested_amount,
+                advance.currency,
+                NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '')
+         FROM employee_advances advance
+         JOIN hr_employees employee ON employee.id = advance.employee_id
+         UNION ALL
+         SELECT 'travel'::text, travel.id, travel.reference, travel.title,
+                travel.status, travel.version, travel.company_id, travel.estimated_amount,
+                travel.currency,
+                NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '')
+         FROM travel_requests travel
+         JOIN hr_employees employee ON employee.id = travel.employee_id
+       ) source ON source.entity_type = approval.entity_type AND source.id = approval.entity_id
+       WHERE approval.status = 'pending'
+         AND (
+           approval.approver_user_id = $1::uuid
+           OR ($2::boolean AND approval.approval_role = 'finance' AND approval.approver_user_id IS NULL)
+         )
+       ORDER BY approval.sequence, source.reference`,
+      userId,
+      expenseAccess.canFinance,
     ).catch(() => [] as TaskRow[]),
   ]);
 
@@ -294,6 +350,43 @@ export async function syncHrisTasksForActor({
       deepLink: '/ess/expenses',
       allowedDecisions: [],
       decisionHandlers: {},
+    });
+  }
+
+  for (const row of expenseApprovals) {
+    const entityType = String(row.entity_type);
+    const resource = entityType === 'advance'
+      ? 'advances'
+      : entityType === 'travel'
+        ? 'travel'
+        : 'claims';
+    const reference = String(row.reference || 'Expense');
+    const role = String(row.approval_role || 'approver');
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id) || employee.company_id,
+      taskType: `expense_${role}_approval`,
+      sourceDomain: 'expenses',
+      sourceType: entityType,
+      sourceId: String(row.entity_id),
+      subject: `${reference} · ${role === 'finance' ? 'Finance review' : 'Manager approval'}`,
+      summary: [
+        String(row.employee_name || 'Employee'),
+        row.title ? String(row.title) : null,
+        row.amount !== null && row.amount !== undefined
+          ? `${String(row.currency || 'THB')} ${Number(row.amount).toLocaleString()}`
+          : null,
+      ].filter(Boolean).join(' · '),
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: role === 'finance' ? 'high' : 'normal',
+      status: 'pending',
+      deepLink: `/expenses/${resource}?id=${String(row.entity_id)}`,
+      allowedDecisions: ['approve', 'request_changes', 'reject'],
+      decisionHandlers: {
+        approve: { kind: 'expense_approval', resource, action: 'approve', expectedVersion: Number(row.version || 1) },
+        request_changes: { kind: 'expense_approval', resource, action: 'return_for_revision', expectedVersion: Number(row.version || 1) },
+        reject: { kind: 'expense_approval', resource, action: 'reject', expectedVersion: Number(row.version || 1) },
+      },
     });
   }
 }

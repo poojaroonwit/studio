@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { HrisOperationsWorkspace } from '@/components/hr/HrisOperationsWorkspace';
+import { TalentMobilityWorkspace } from '@/components/hr/TalentMobilityWorkspace';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 
 export const metadata = { title: 'Talent & Mobility | hrive' };
@@ -13,16 +13,10 @@ export default async function TalentMobilityPage() {
     redirect('/unauthorized');
   }
 
-  const canManagePeople = hasPermission(session.user, 'HR_PEOPLE_MANAGE');
-  const canManageWorkforce = hasPermission(session.user, 'HR_WORKFORCE_MANAGE');
-
   return (
-    <HrisOperationsWorkspace
-      resources={[
-        { key: 'succession-plans', canManage: canManageWorkforce },
-        { key: 'talent-reviews', canManage: canManageWorkforce },
-        { key: 'internal-opportunities', canManage: canManagePeople },
-      ]}
+    <TalentMobilityWorkspace
+      canManagePeople={hasPermission(session.user, 'HR_PEOPLE_MANAGE')}
+      canManageWorkforce={hasPermission(session.user, 'HR_WORKFORCE_MANAGE')}
     />
   );
 }

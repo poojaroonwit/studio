@@ -118,8 +118,19 @@ function shiftWindow(row: ShiftRow, policy: MobileAttendancePolicy) {
 }
 
 export type AttendancePolicyDecision =
-  | { allowed: true; policy: MobileAttendancePolicy }
+  | { allowed: true; policy: MobileAttendancePolicy; workDate: string }
   | { allowed: false; status: number; error: string; policy: MobileAttendancePolicy };
+
+function bangkokDateOnly() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find(part => part.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
 
 export async function validateMobileAttendanceAction(input: {
   employeeId: string;
@@ -128,28 +139,38 @@ export async function validateMobileAttendanceAction(input: {
   longitude?: number;
 }): Promise<AttendancePolicyDecision> {
   const policy = await loadMobileAttendancePolicy();
+  let workDate = bangkokDateOnly();
 
   if (policy.requireScheduledShift) {
     const shiftResult = await getPool().query(
       `SELECT shift_date, start_time, end_time
          FROM hr_shift_assignments
         WHERE employee_id = $1
-          AND shift_date = (NOW() AT TIME ZONE 'Asia/Bangkok')::date
+          AND shift_date BETWEEN ((NOW() AT TIME ZONE 'Asia/Bangkok')::date - INTERVAL '1 day')
+                             AND ((NOW() AT TIME ZONE 'Asia/Bangkok')::date + INTERVAL '1 day')
           AND status NOT IN ('cancelled', 'deleted')
-        ORDER BY start_time ASC
-        LIMIT 1`,
+        ORDER BY shift_date ASC, start_time ASC`,
       [input.employeeId],
     );
-    const shift = shiftResult.rows[0] as ShiftRow | undefined;
-    if (!shift) return { allowed: false, status: 409, error: 'No active shift is assigned for today', policy };
-    const window = shiftWindow(shift, policy);
     const now = new Date();
-    if (!window || now < window.opensAt) {
-      return { allowed: false, status: 409, error: `Clock ${input.mode === 'in' ? 'in' : 'out'} is not available yet for your assigned shift`, policy };
+    const candidates = (shiftResult.rows as ShiftRow[])
+      .map(shift => ({ shift, window: shiftWindow(shift, policy) }))
+      .filter((entry): entry is { shift: ShiftRow; window: NonNullable<ReturnType<typeof shiftWindow>> } => Boolean(entry.window));
+    const active = candidates.find(entry => now >= entry.window.opensAt && now <= entry.window.closesAt);
+
+    if (!active) {
+      const upcoming = candidates
+        .filter(entry => now < entry.window.opensAt)
+        .sort((a, b) => a.window.opensAt.getTime() - b.window.opensAt.getTime())[0];
+      if (upcoming) {
+        return { allowed: false, status: 409, error: `Clock ${input.mode === 'in' ? 'in' : 'out'} is not available yet for your assigned shift`, policy };
+      }
+      if (candidates.length) {
+        return { allowed: false, status: 409, error: 'The allowed attendance window for your assigned shift has closed', policy };
+      }
+      return { allowed: false, status: 409, error: 'No active shift is assigned for the current attendance window', policy };
     }
-    if (now > window.closesAt) {
-      return { allowed: false, status: 409, error: `The allowed attendance window for your assigned shift has closed`, policy };
-    }
+    workDate = dateOnly(active.shift.shift_date);
   }
 
   if (policy.locationRequired) {
@@ -165,5 +186,5 @@ export async function validateMobileAttendanceAction(input: {
     if (!inside) return { allowed: false, status: 403, error: 'You are outside the allowed organization or branch attendance location', policy };
   }
 
-  return { allowed: true, policy };
+  return { allowed: true, policy, workDate };
 }

@@ -325,11 +325,8 @@ export default function App() {
     <ScrollView style={s.body} keyboardShouldPersistTaps="handled" scrollEventThrottle={80} onScroll={onScroll} contentContainerStyle={s.content} refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} />}>{screen}</ScrollView>
     <View style={s.tabs}>{tabs.map((item) => {
       const active = tab === item.id
-      const primaryAction = item.id === 'requests'
       return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => setTab(item.id)}>
-        {primaryAction
-          ? <View style={[s.tabPrimaryIcon, active && s.tabPrimaryIconActive]}><Ionicons name={item.icon} size={23} color={colors.primaryText} /></View>
-          : <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />}
+        <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />
         <AppText style={[s.tabText, active && s.tabTextActive]}>{item.label}</AppText>
       </Pressable>
     })}</View>
@@ -375,8 +372,6 @@ const s = StyleSheet.create({
   tabPressed: { backgroundColor: colors.hover },
   tabText: { fontSize: typography.xs, lineHeight: 14, color: colors.textSubtle, fontWeight: '500' },
   tabTextActive: { color: colors.primary, fontWeight: '600' },
-  tabPrimaryIcon: { width: 44, height: 44, marginTop: -12, marginBottom: 1, borderRadius: radii.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  tabPrimaryIconActive: { backgroundColor: colors.primaryStrong },
 
   warning: { flexDirection: 'row', gap: spacing.xs, alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 9, backgroundColor: colors.warningSurface, borderBottomWidth: 1, borderBottomColor: colors.warningBorder },
   warningText: { flex: 1, fontSize: typography.sm, lineHeight: 18, color: colors.warning },

@@ -464,7 +464,7 @@ const s = StyleSheet.create({
   secondaryButtonText: { color: colors.text },
 
   announcementWrap: { marginTop: spacing.md },
-  announcementCard: { backgroundColor: colors.infoSurface, borderColor: '#D8E4F7' },
+  announcementCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.md },
   quick: { width: '48%', minHeight: 96, backgroundColor: colors.surface, padding: 14, borderRadius: radii.md, justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border },
@@ -480,7 +480,7 @@ const s = StyleSheet.create({
   chartFill: { height: '100%', backgroundColor: colors.primary, borderRadius: radii.pill },
 
   shiftCard: { marginTop: spacing.xs },
-  successCard: { backgroundColor: colors.successSurface, borderColor: '#CFE8D8' },
+  successCard: { backgroundColor: colors.successSurface, borderColor: colors.successBorder },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },

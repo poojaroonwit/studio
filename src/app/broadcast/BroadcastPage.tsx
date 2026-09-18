@@ -143,7 +143,11 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
 
   async function handleDeactivateBanner(campaignId: string) {
     const current = history.find(item => item.campaignId === campaignId);
-    if (!current || (current.status !== "active" && current.status !== "scheduled")) return;
+    const canStop = current && (
+      current.status === "scheduled"
+      || (current.channel === "banner" && current.status === "active")
+    );
+    if (!current || !canStop) return;
 
     setDeactivatingId(campaignId);
     setHistory(items => items.map(item => item.campaignId === campaignId ? { ...item, status: "inactive" } : item));
@@ -155,11 +159,11 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
         body: JSON.stringify({ action: "deactivate" }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "Unable to deactivate banner");
-      toast.success("Banner deactivated");
+      if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "Unable to stop campaign");
+      toast.success(current.status === "scheduled" ? "Campaign cancelled" : "Banner deactivated");
     } catch (error) {
       setHistory(items => items.map(item => item.campaignId === campaignId ? { ...item, status: current.status } : item));
-      toast.error(error instanceof Error ? error.message : "Unable to deactivate banner");
+      toast.error(error instanceof Error ? error.message : "Unable to stop campaign");
     } finally {
       setDeactivatingId(null);
     }
@@ -187,7 +191,8 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
           title={view === "banner" ? "Banner history" : "Broadcast history"}
           history={visibleHistory}
           isLoading={isLoadingHistory}
-          allowDeactivate={view === "banner"}
+          showEngagement={view === "banner"}
+          allowStop
           deactivatingId={deactivatingId}
           onDeactivate={handleDeactivateBanner}
           onReport={(campaign) => setReportCampaign(campaign)}

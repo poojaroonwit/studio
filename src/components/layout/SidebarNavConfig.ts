@@ -127,18 +127,9 @@ export const sidebarConfigData = [
     icon: "LayoutDashboard",
     items: [
       {
-        label: "Admin Portal",
+        label: "Dashboard",
         icon: "BarChart3",
         href: "/dashboard",
-        description: "Explore dashboards, metrics, and operational insights",
-        section: "Employee Portal",
-        permissionId: "DASHBOARD_VIEW"
-      },
-      {
-        label: "HR Dashboard",
-        icon: "ChartPie",
-        href: "/hr-dashboard",
-        exact: true,
         description: "Hiring outcomes, interviews, trends, and pipeline analytics",
         section: "Employee Portal",
         permissionId: "DASHBOARD_VIEW"
@@ -157,6 +148,14 @@ export const sidebarConfigData = [
         href: "/my-workday",
         exact: true,
         description: "Personal workday summary and quick actions",
+        section: "Employee Portal"
+      },
+      {
+        label: "My Tasks",
+        icon: "ListTodo",
+        href: "/my-tasks",
+        exact: true,
+        description: "Review assigned tasks and approvals across HR workflows",
         section: "Employee Portal"
       },
     ],
@@ -367,6 +366,14 @@ export const sidebarConfigData = [
         description: "Manage employee transport routes and assignments",
         section: "Time",
         permissionId: "HR_WORKFORCE_VIEW"
+      },
+      {
+        label: "Engagement",
+        icon: "ChartPie",
+        href: "/workforce/engagement",
+        description: "Create and analyze employee surveys with privacy-safe reporting",
+        section: "Engagement",
+        permissionId: "SURVEY_VIEW"
       },
     ],
   },

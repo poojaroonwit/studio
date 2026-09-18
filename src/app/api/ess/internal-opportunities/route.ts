@@ -147,7 +147,7 @@ async function projectManagerTask({
     assigneeName: manager.name,
     priority: 'normal',
     status: 'pending',
-    deepLink: '/people/talent',
+    deepLink: '/my-tasks',
     allowedDecisions: ['approve', 'request_changes', 'reject'],
     decisionHandlers: {
       approve: { kind: 'mobility_application', action: 'manager_approve' },

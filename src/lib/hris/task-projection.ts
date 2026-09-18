@@ -15,6 +15,11 @@ export type HrisDecisionHandler =
   | {
       kind: 'mobility_application';
       action: 'manager_approve' | 'return_for_revision' | 'reject';
+    }
+  | {
+      kind: 'leave_request';
+      action: 'approved' | 'returned_for_revision' | 'rejected';
+      expectedVersion: number;
     };
 
 export interface HrisProjectedTask extends HrisTask {
@@ -68,6 +73,230 @@ export function mapHrisTaskRow(row: TaskRow): HrisProjectedTask {
     createdAt: dateString(row.created_at) || new Date(0).toISOString(),
     updatedAt: dateString(row.updated_at) || new Date(0).toISOString(),
   };
+}
+
+export async function syncHrisTasksForActor({
+  userId,
+  email,
+}: {
+  userId: string;
+  email?: string | null;
+}) {
+  const employeeRows = await prisma.$queryRawUnsafe<Array<{
+    id: string;
+    company_id: string | null;
+    manager_id: string | null;
+    employee_number: string | null;
+    display_name: string | null;
+  }>>(
+    `SELECT id,
+            company_id,
+            manager_id,
+            employee_number,
+            NULLIF(TRIM(CONCAT_WS(' ', preferred_name, first_name, last_name)), '') AS display_name
+     FROM hr_employees
+     WHERE user_id = $1::uuid OR lower(email) = lower($2)
+     ORDER BY CASE WHEN user_id = $1::uuid THEN 0 ELSE 1 END
+     LIMIT 1`,
+    userId,
+    email || '',
+  );
+  const employee = employeeRows[0];
+
+  await prisma.$executeRawUnsafe(
+    `UPDATE hr_workflow_tasks
+     SET status = 'completed', version = version + 1, updated_at = now()
+     WHERE assignee_user_id = $1::uuid
+       AND source_domain IN ('leave', 'onboarding', 'learning', 'performance', 'expenses')
+       AND status NOT IN ('completed', 'cancelled', 'archived')`,
+    userId,
+  );
+
+  if (!employee) return;
+
+  const [leaveApprovals, onboarding, learning, performance, returnedExpenses] = await Promise.all([
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT request.id,
+              request.employee_id,
+              request.start_date,
+              request.end_date,
+              request.days,
+              request.reason,
+              request.status,
+              request.version,
+              employee.company_id,
+              employee.employee_number,
+              NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name
+       FROM hr_leave_requests request
+       JOIN hr_employees employee ON employee.id = request.employee_id
+       WHERE employee.manager_id = $1::uuid
+         AND request.status IN ('pending', 'submitted', 'pending_approval', 'pending_manager_approval')`,
+      employee.id,
+    ),
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT onboarding.id,
+              onboarding.status,
+              onboarding.target_date,
+              onboarding.progress,
+              employee.company_id
+       FROM hr_employee_onboarding onboarding
+       JOIN hr_employees employee ON employee.id = onboarding.employee_id
+       WHERE onboarding.employee_id = $1::uuid
+         AND onboarding.status IN ('not_started', 'in_progress')`,
+      employee.id,
+    ),
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT enrollment.id,
+              enrollment.status,
+              enrollment.progress,
+              enrollment.due_date,
+              enrollment.company_id,
+              course.title AS course_title
+       FROM hr_learning_enrollments enrollment
+       JOIN hr_learning_courses course ON course.id = enrollment.course_id
+       WHERE enrollment.employee_id = $1::uuid
+         AND enrollment.status IN ('assigned', 'in_progress')`,
+      employee.id,
+    ).catch(() => [] as TaskRow[]),
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT review.id,
+              review.status,
+              review.updated_at,
+              cycle.name AS cycle_name,
+              cycle.end_date,
+              employee.company_id
+       FROM hr_performance_reviews review
+       JOIN hr_performance_cycles cycle ON cycle.id = review.cycle_id
+       JOIN hr_employees employee ON employee.id = review.employee_id
+       WHERE review.employee_id = $1::uuid
+         AND review.status IN ('not_started', 'in_progress')`,
+      employee.id,
+    ).catch(() => [] as TaskRow[]),
+    prisma.$queryRawUnsafe<TaskRow[]>(
+      `SELECT claim.id,
+              claim.reference,
+              claim.title,
+              claim.status,
+              claim.company_id,
+              claim.updated_at
+       FROM expense_claims claim
+       WHERE claim.employee_id = $1::uuid
+         AND claim.status = 'returned_for_revision'`,
+      employee.id,
+    ).catch(() => [] as TaskRow[]),
+  ]);
+
+  const actorName = employee.display_name || employee.employee_number || 'Employee';
+
+  for (const row of leaveApprovals) {
+    const leaveName = String(row.employee_name || row.employee_number || 'Employee');
+    const start = dateString(row.start_date);
+    const end = dateString(row.end_date);
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id),
+      taskType: 'leave_approval',
+      sourceDomain: 'leave',
+      sourceType: 'leave_request',
+      sourceId: String(row.id),
+      subject: `Leave request · ${leaveName}`,
+      summary: [
+        Number(row.days || 0) ? `${Number(row.days)} day(s)` : null,
+        start && end ? `${start.slice(0, 10)} → ${end.slice(0, 10)}` : null,
+        row.reason ? String(row.reason) : null,
+      ].filter(Boolean).join(' · '),
+      requesterName: leaveName,
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: 'normal',
+      status: 'pending',
+      deepLink: '/workforce/leave',
+      allowedDecisions: ['approve', 'request_changes', 'reject'],
+      decisionHandlers: {
+        approve: { kind: 'leave_request', action: 'approved', expectedVersion: Number(row.version || 1) },
+        request_changes: { kind: 'leave_request', action: 'returned_for_revision', expectedVersion: Number(row.version || 1) },
+        reject: { kind: 'leave_request', action: 'rejected', expectedVersion: Number(row.version || 1) },
+      },
+    });
+  }
+
+  for (const row of onboarding) {
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id),
+      taskType: 'my_onboarding',
+      sourceDomain: 'onboarding',
+      sourceType: 'employee_onboarding',
+      sourceId: String(row.id),
+      subject: 'Complete onboarding',
+      summary: `Your onboarding is ${Number(row.progress || 0)}% complete.`,
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: 'normal',
+      dueAt: dateString(row.target_date),
+      status: 'in_progress',
+      deepLink: '/ess/onboarding',
+      allowedDecisions: [],
+      decisionHandlers: {},
+    });
+  }
+
+  for (const row of learning) {
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id) || employee.company_id,
+      taskType: 'my_learning',
+      sourceDomain: 'learning',
+      sourceType: 'learning_enrollment',
+      sourceId: String(row.id),
+      subject: String(row.course_title || 'Assigned learning'),
+      summary: `Learning progress: ${Number(row.progress || 0)}%.`,
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: 'normal',
+      dueAt: dateString(row.due_date),
+      status: 'in_progress',
+      deepLink: '/learning',
+      allowedDecisions: [],
+      decisionHandlers: {},
+    });
+  }
+
+  for (const row of performance) {
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id) || employee.company_id,
+      taskType: 'my_performance_review',
+      sourceDomain: 'performance',
+      sourceType: 'performance_review',
+      sourceId: String(row.id),
+      subject: String(row.cycle_name || 'Performance review'),
+      summary: 'Complete your current performance review activities.',
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: 'normal',
+      dueAt: dateString(row.end_date),
+      status: 'in_progress',
+      deepLink: '/ess/performance',
+      allowedDecisions: [],
+      decisionHandlers: {},
+    });
+  }
+
+  for (const row of returnedExpenses) {
+    await upsertHrisTaskProjection({
+      companyId: nullableString(row.company_id) || employee.company_id,
+      taskType: 'expense_revision',
+      sourceDomain: 'expenses',
+      sourceType: 'expense_claim',
+      sourceId: String(row.id),
+      subject: String(row.reference || 'Expense claim') + ' · changes requested',
+      summary: String(row.title || 'Update the expense claim and resubmit it for review.'),
+      assigneeUserId: userId,
+      assigneeName: actorName,
+      priority: 'normal',
+      status: 'returned_for_revision',
+      deepLink: '/ess/expenses',
+      allowedDecisions: [],
+      decisionHandlers: {},
+    });
+  }
 }
 
 export async function upsertHrisTaskProjection(input: HrisTaskProjectionInput, client: TaskProjectionClient = prisma) {

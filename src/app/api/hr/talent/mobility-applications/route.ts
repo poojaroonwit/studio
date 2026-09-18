@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
 
   if (access.actorCompanyId) {
     values.push(access.actorCompanyId);
-    conditions.push(`(opportunity.company_id IS NULL OR opportunity.company_id = $${values.length}::uuid)`);
+    conditions.push(`(opportunity.company_id IS NULL OR opportunity.company_id = ${values.length}::uuid)`);
+    conditions.push(`employee.company_id = ${values.length}::uuid`);
   }
   if (status) {
     values.push(status);
@@ -167,7 +168,7 @@ export async function PATCH(request: NextRequest) {
          JOIN hr_employees employee ON employee.id = application.employee_id
          LEFT JOIN "Position" position ON position.id = opportunity.position_id
          WHERE application.id = $1::uuid
-           ${access.actorCompanyId ? 'AND (opportunity.company_id IS NULL OR opportunity.company_id = $2::uuid)' : ''}
+           ${access.actorCompanyId ? 'AND (opportunity.company_id IS NULL OR opportunity.company_id = $2::uuid) AND employee.company_id = $2::uuid' : ''}
          FOR UPDATE`,
         parsed.data.applicationId,
         ...(access.actorCompanyId ? [access.actorCompanyId] : []),

@@ -74,6 +74,7 @@ export default function App() {
   const [loadMoreTick, setLoadMoreTick] = useState(0)
   const [fullPage, setFullPage] = useState(false)
   const lastLoadMoreAt = useRef(0)
+  const scrollRef = useRef<ScrollView>(null)
   const pushUnsubscribe = useRef<null | (() => void)>(null)
 
   const loadAccount = async () => {
@@ -271,6 +272,16 @@ export default function App() {
     return () => subscription.remove()
   }, [authenticated])
 
+  const navigateTab = (next: Tab) => {
+    setFullPage(false)
+    setTab(next)
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
+  }
+
+  useEffect(() => {
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
+  }, [tab, fullPage])
+
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
     const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 220
@@ -309,7 +320,7 @@ export default function App() {
   }
 
   const screen = tab === 'home'
-    ? <HomeScreen data={data} setTab={setTab} account={account} />
+    ? <HomeScreen data={data} setTab={navigateTab} account={account} />
     : tab === 'time'
       ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} />
       : tab === 'requests'
@@ -321,10 +332,11 @@ export default function App() {
   return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" />
     {!fullPage ? <View style={s.header}>
       <View style={s.headerBrand}><BrandLogo identity={appIdentity} size={32} /><View><AppText style={s.brand}>{appIdentity?.name || 'Obsi People'}</AppText><AppText style={s.headerSub}>Employee Self-Service</AppText></View></View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => setTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => navigateTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
     </View> : null}
     {loadError ? <View style={s.warning}><Ionicons name={offline ? 'cloud-offline-outline' : 'warning-outline'} size={16} color={colors.warning} /><AppText style={s.warningText}>{loadError}</AppText></View> : null}
     <ScrollView
+      ref={scrollRef}
       style={s.body}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -336,7 +348,7 @@ export default function App() {
     >{screen}</ScrollView>
     {!fullPage ? <View style={s.tabs}>{tabs.map((item) => {
       const active = tab === item.id
-      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => setTab(item.id)}>
+      return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => navigateTab(item.id)}>
         <Ionicons name={item.icon} size={21} color={active ? colors.primary : colors.textSubtle} />
         <AppText style={[s.tabText, active && s.tabTextActive]}>{item.label}</AppText>
       </Pressable>

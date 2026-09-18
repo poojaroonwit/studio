@@ -197,12 +197,12 @@ jobs:
 
           mkdir -p deploy
           printf '%s\n' "$GITHUB_SHA" > deploy/railway-trigger.txt
+          git add deploy/railway-trigger.txt
 
-          if git diff --quiet -- deploy/railway-trigger.txt; then
+          if git diff --cached --quiet -- deploy/railway-trigger.txt; then
             echo "Railway deploy trigger already points at this commit."
             exit 0
           fi
 
-          git add deploy/railway-trigger.txt
           git commit -m "chore(deploy): queue Railway ${GITHUB_SHA::12} [skip ci]"
           git push origin HEAD:dev

@@ -120,15 +120,6 @@ export async function syncHrisTasksForActor({
   );
   const employee = employeeRows[0];
 
-  await prisma.$executeRawUnsafe(
-    `UPDATE hr_workflow_tasks
-     SET status = 'completed', version = version + 1, updated_at = now()
-     WHERE assignee_user_id = $1::uuid
-       AND source_domain IN ('leave', 'onboarding', 'learning', 'performance', 'expenses', 'payroll')
-       AND status NOT IN ('completed', 'cancelled', 'archived')`,
-    userId,
-  );
-
   const expenseAccess = getExpenseAccess(user || null, Boolean(employee));
   const payrollAccess = user
     ? await getPayrollAccess({ ...user, id: userId, email: email || null })
@@ -201,7 +192,7 @@ export async function syncHrisTasksForActor({
        FROM expense_claims claim
        WHERE claim.employee_id = $1::uuid
          AND claim.status = 'returned_for_revision'`,
-      employee.id,
+      employee?.id || '00000000-0000-0000-0000-000000000000',
     ).catch(() => [] as TaskRow[]),
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT approval.entity_type,
@@ -275,8 +266,13 @@ export async function syncHrisTasksForActor({
   ]);
 
   const actorName = employee?.display_name || employee?.employee_number || String(user?.name || email || 'User');
+  const activeTaskKeys = new Set<string>();
+  const taskKey = (domain: string, type: string, sourceId: unknown, taskType: string) =>
+    `${domain}|${type}|${String(sourceId)}|${taskType}`;
+
 
   for (const row of leaveApprovals) {
+    activeTaskKeys.add(taskKey('leave', 'leave_request', row.id, 'leave_approval'));
     const leaveName = String(row.employee_name || row.employee_number || 'Employee');
     const start = dateString(row.start_date);
     const end = dateString(row.end_date);
@@ -308,6 +304,7 @@ export async function syncHrisTasksForActor({
   }
 
   for (const row of onboarding) {
+    activeTaskKeys.add(taskKey('onboarding', 'employee_onboarding', row.id, 'my_onboarding'));
     await upsertHrisTaskProjection({
       companyId: nullableString(row.company_id),
       taskType: 'my_onboarding',
@@ -328,6 +325,7 @@ export async function syncHrisTasksForActor({
   }
 
   for (const row of learning) {
+    activeTaskKeys.add(taskKey('learning', 'learning_enrollment', row.id, 'my_learning'));
     await upsertHrisTaskProjection({
       companyId: employee?.company_id || null,
       taskType: 'my_learning',
@@ -348,6 +346,7 @@ export async function syncHrisTasksForActor({
   }
 
   for (const row of performance) {
+    activeTaskKeys.add(taskKey('performance', 'performance_review', row.id, 'my_performance_review'));
     await upsertHrisTaskProjection({
       companyId: nullableString(row.company_id) || employee?.company_id || null,
       taskType: 'my_performance_review',
@@ -368,6 +367,7 @@ export async function syncHrisTasksForActor({
   }
 
   for (const row of returnedExpenses) {
+    activeTaskKeys.add(taskKey('expenses', 'expense_claim', row.id, 'expense_revision'));
     await upsertHrisTaskProjection({
       companyId: nullableString(row.company_id) || employee?.company_id || null,
       taskType: 'expense_revision',
@@ -395,9 +395,11 @@ export async function syncHrisTasksForActor({
         : 'claims';
     const reference = String(row.reference || 'Expense');
     const role = String(row.approval_role || 'approver');
+    const expenseTaskType = `expense_${role}_approval`;
+    activeTaskKeys.add(taskKey('expenses', entityType, row.entity_id, expenseTaskType));
     await upsertHrisTaskProjection({
       companyId: nullableString(row.company_id) || employee?.company_id || null,
-      taskType: `expense_${role}_approval`,
+      taskType: expenseTaskType,
       sourceDomain: 'expenses',
       sourceType: entityType,
       sourceId: String(row.entity_id),
@@ -432,6 +434,7 @@ export async function syncHrisTasksForActor({
       );
       if ((!assignedToActor && !roleMatches) || String(row.created_by_id || '') === userId) continue;
 
+      activeTaskKeys.add(taskKey('payroll', 'payroll_run', row.id, 'payroll_approval'));
       await upsertHrisTaskProjection({
         companyId: nullableString(row.company_id),
         taskType: 'payroll_approval',
@@ -460,6 +463,27 @@ export async function syncHrisTasksForActor({
       });
     }
   }
+
+  await reconcileHrisTaskProjectionsForActor(userId, [...activeTaskKeys]);
+}
+
+async function reconcileHrisTaskProjectionsForActor(userId: string, activeKeys: string[]) {
+  await prisma.$executeRawUnsafe(
+    `UPDATE hr_workflow_tasks
+     SET status = 'completed', version = version + 1, updated_at = now()
+     WHERE assignee_user_id = $1::uuid
+       AND source_domain IN ('leave', 'onboarding', 'learning', 'performance', 'expenses', 'payroll')
+       AND status NOT IN ('completed', 'cancelled', 'archived')
+       AND (
+         COALESCE(array_length($2::text[], 1), 0) = 0
+         OR NOT (
+           source_domain || '|' || source_type || '|' || source_id::text || '|' || task_type
+           = ANY($2::text[])
+         )
+       )`,
+    userId,
+    activeKeys,
+  );
 }
 
 export async function upsertHrisTaskProjection(input: HrisTaskProjectionInput, client: TaskProjectionClient = prisma) {
@@ -479,7 +503,64 @@ export async function upsertHrisTaskProjection(input: HrisTaskProjectionInput, c
        priority = EXCLUDED.priority, due_at = EXCLUDED.due_at, sla_at = EXCLUDED.sla_at,
        status = EXCLUDED.status, deep_link = EXCLUDED.deep_link,
        allowed_decisions = EXCLUDED.allowed_decisions, decision_handlers = EXCLUDED.decision_handlers,
-       version = hr_workflow_tasks.version + 1, updated_at = now()
+       version = hr_workflow_tasks.version + CASE WHEN ROW(
+         hr_workflow_tasks.subject,
+         hr_workflow_tasks.summary,
+         hr_workflow_tasks.requester_user_id,
+         hr_workflow_tasks.requester_name,
+         hr_workflow_tasks.assignee_name,
+         hr_workflow_tasks.company_name,
+         hr_workflow_tasks.priority,
+         hr_workflow_tasks.due_at,
+         hr_workflow_tasks.sla_at,
+         hr_workflow_tasks.status,
+         hr_workflow_tasks.deep_link,
+         hr_workflow_tasks.allowed_decisions,
+         hr_workflow_tasks.decision_handlers
+       ) IS DISTINCT FROM ROW(
+         EXCLUDED.subject,
+         EXCLUDED.summary,
+         EXCLUDED.requester_user_id,
+         EXCLUDED.requester_name,
+         EXCLUDED.assignee_name,
+         EXCLUDED.company_name,
+         EXCLUDED.priority,
+         EXCLUDED.due_at,
+         EXCLUDED.sla_at,
+         EXCLUDED.status,
+         EXCLUDED.deep_link,
+         EXCLUDED.allowed_decisions,
+         EXCLUDED.decision_handlers
+       ) THEN 1 ELSE 0 END,
+       updated_at = CASE WHEN ROW(
+         hr_workflow_tasks.subject,
+         hr_workflow_tasks.summary,
+         hr_workflow_tasks.requester_user_id,
+         hr_workflow_tasks.requester_name,
+         hr_workflow_tasks.assignee_name,
+         hr_workflow_tasks.company_name,
+         hr_workflow_tasks.priority,
+         hr_workflow_tasks.due_at,
+         hr_workflow_tasks.sla_at,
+         hr_workflow_tasks.status,
+         hr_workflow_tasks.deep_link,
+         hr_workflow_tasks.allowed_decisions,
+         hr_workflow_tasks.decision_handlers
+       ) IS DISTINCT FROM ROW(
+         EXCLUDED.subject,
+         EXCLUDED.summary,
+         EXCLUDED.requester_user_id,
+         EXCLUDED.requester_name,
+         EXCLUDED.assignee_name,
+         EXCLUDED.company_name,
+         EXCLUDED.priority,
+         EXCLUDED.due_at,
+         EXCLUDED.sla_at,
+         EXCLUDED.status,
+         EXCLUDED.deep_link,
+         EXCLUDED.allowed_decisions,
+         EXCLUDED.decision_handlers
+       ) THEN now() ELSE hr_workflow_tasks.updated_at END
      RETURNING *`,
     input.companyId ?? null,
     input.taskType,

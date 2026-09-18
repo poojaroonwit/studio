@@ -726,6 +726,13 @@ export const sidebarConfigData = [
         section: "Growth"
       },
       {
+        label: "Career Opportunities",
+        icon: "Briefcase",
+        href: "/ess/opportunities",
+        description: "Explore and apply for published internal opportunities",
+        section: "Growth"
+      },
+      {
         label: "My Surveys",
         icon: "ListTodo",
         href: "/ess/surveys",

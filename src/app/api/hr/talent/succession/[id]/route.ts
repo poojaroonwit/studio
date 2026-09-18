@@ -96,6 +96,7 @@ export async function GET(_request: NextRequest, context: Context) {
        JOIN hr_employees employee ON employee.id = candidate.employee_id
        LEFT JOIN hr_departments department ON department.id = employee.department_id
        WHERE candidate.succession_plan_id = $1::uuid
+         ${access.actorCompanyId ? `AND employee.company_id = $2::uuid` : ``}
        ORDER BY
          CASE candidate.readiness
            WHEN 'ready_now' THEN 0
@@ -104,6 +105,7 @@ export async function GET(_request: NextRequest, context: Context) {
          END,
          candidate.updated_at DESC`,
       id,
+      ...(access.actorCompanyId ? [access.actorCompanyId] : []),
     );
     return NextResponse.json({
       data: {
@@ -193,6 +195,14 @@ export async function PATCH(request: NextRequest, context: Context) {
   values.push(parsed.data.candidateId, id, parsed.data.expectedVersion);
 
   try {
+    if (access.actorCompanyId && parsed.data.employeeId) {
+      const eligible = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM hr_employees WHERE id = $1::uuid AND company_id = $2::uuid LIMIT 1`,
+        parsed.data.employeeId,
+        access.actorCompanyId,
+      );
+      if (!eligible[0]) return error('EMPLOYEE_SCOPE_VIOLATION', 'The employee is outside your company scope.', 403);
+    }
     const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `UPDATE hr_successor_candidates
        SET ${sets.join(', ')}
@@ -224,12 +234,15 @@ export async function DELETE(request: NextRequest, context: Context) {
   if ('response' in access) return access.response;
 
   const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-    `UPDATE hr_successor_candidates
-     SET status = 'archived', version = version + 1, updated_at = now()
-     WHERE id = $1::uuid AND succession_plan_id = $2::uuid
-     RETURNING *`,
+    `UPDATE hr_successor_candidates candidate
+     SET status = 'archived', version = candidate.version + 1, updated_at = now()
+     WHERE candidate.id = $1::uuid
+       AND candidate.succession_plan_id = $2::uuid
+       ${access.actorCompanyId ? `AND EXISTS (SELECT 1 FROM hr_employees employee WHERE employee.id = candidate.employee_id AND employee.company_id = $3::uuid)` : ``}
+     RETURNING candidate.*`,
     candidateId,
     id,
+    ...(access.actorCompanyId ? [access.actorCompanyId] : []),
   );
   if (!rows[0]) return error('CANDIDATE_NOT_FOUND', 'The successor candidate was not found.', 404);
   await logAudit('AUDIT', 'Successor candidate archived.', 'API:HR:Talent:SuccessionCandidate:Archive', access.session.user.id, {

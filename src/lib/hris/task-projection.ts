@@ -35,6 +35,16 @@ export type HrisDecisionHandler =
       kind: 'payroll_approval';
       action: 'approve' | 'return';
       expectedVersion: number;
+    }
+  | {
+      kind: 'compensation_approval';
+      action: 'approve_change' | 'reject_change';
+      expectedVersion: number;
+    }
+  | {
+      kind: 'benefit_enrollment_approval';
+      action: 'approve_enrollment' | 'return_enrollment';
+      expectedVersion: number;
     };
 
 export interface HrisProjectedTask extends HrisTask {
@@ -125,7 +135,17 @@ export async function syncHrisTasksForActor({
     ? await getPayrollAccess({ ...user, id: userId, email: email || null })
     : null;
 
-  const [leaveApprovals, onboarding, learning, performance, returnedExpenses, expenseApprovals, payrollApprovals] = await Promise.all([
+  const [
+    leaveApprovals,
+    onboarding,
+    learning,
+    performance,
+    returnedExpenses,
+    expenseApprovals,
+    payrollApprovals,
+    compensationApprovals,
+    benefitApprovals,
+  ] = await Promise.all([
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT request.id,
               request.employee_id,
@@ -260,6 +280,48 @@ export async function syncHrisTasksForActor({
              AND run.status = 'pending_approval'
              AND ($1::uuid IS NULL OR run.company_id = $1::uuid)
            ORDER BY period.pay_date, approval.sequence`,
+          payrollAccess.actorCompanyId,
+        ).catch(() => [] as TaskRow[])
+      : Promise.resolve([] as TaskRow[]),
+    payrollAccess?.canApprove
+      ? prisma.$queryRawUnsafe<TaskRow[]>(
+          `SELECT change.id,
+                  change.version,
+                  change.company_id,
+                  change.current_amount,
+                  change.proposed_amount,
+                  change.currency,
+                  change.effective_date,
+                  change.change_type,
+                  change.requested_by_id,
+                  employee.employee_number,
+                  employee.job_title,
+                  NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name
+           FROM hr_compensation_changes change
+           JOIN hr_employees employee ON employee.id = change.employee_id
+           WHERE change.status = 'pending_approval'
+             AND ($1::uuid IS NULL OR change.company_id = $1::uuid)
+           ORDER BY change.effective_date, change.created_at`,
+          payrollAccess.actorCompanyId,
+        ).catch(() => [] as TaskRow[])
+      : Promise.resolve([] as TaskRow[]),
+    payrollAccess?.canApprove
+      ? prisma.$queryRawUnsafe<TaskRow[]>(
+          `SELECT enrollment.id,
+                  enrollment.version,
+                  enrollment.status,
+                  employee.company_id,
+                  employee.employee_number,
+                  employee.job_title,
+                  NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name,
+                  plan.name AS plan_name,
+                  plan.type AS plan_type
+           FROM hr_employee_benefit_enrollments enrollment
+           JOIN hr_employees employee ON employee.id = enrollment.employee_id
+           JOIN hr_benefit_plans plan ON plan.id = enrollment.benefit_plan_id
+           WHERE enrollment.status = 'pending_approval'
+             AND ($1::uuid IS NULL OR employee.company_id = $1::uuid)
+           ORDER BY enrollment.created_at`,
           payrollAccess.actorCompanyId,
         ).catch(() => [] as TaskRow[])
       : Promise.resolve([] as TaskRow[]),
@@ -459,6 +521,65 @@ export async function syncHrisTasksForActor({
         decisionHandlers: {
           approve: { kind: 'payroll_approval', action: 'approve', expectedVersion: Number(row.version || 1) },
           request_changes: { kind: 'payroll_approval', action: 'return', expectedVersion: Number(row.version || 1) },
+        },
+      });
+    }
+  }
+
+  if (payrollAccess?.canApprove) {
+    for (const row of compensationApprovals) {
+      if (String(row.requested_by_id || '') === userId) continue;
+      activeTaskKeys.add(taskKey('payroll', 'compensation_change', row.id, 'compensation_approval'));
+      await upsertHrisTaskProjection({
+        companyId: nullableString(row.company_id),
+        taskType: 'compensation_approval',
+        sourceDomain: 'payroll',
+        sourceType: 'compensation_change',
+        sourceId: String(row.id),
+        subject: `Compensation change · ${String(row.employee_name || row.employee_number || 'Employee')}`,
+        summary: [
+          row.change_type ? String(row.change_type).replace(/_/g, ' ') : null,
+          row.current_amount !== null && row.current_amount !== undefined
+            ? `${String(row.currency || 'THB')} ${Number(row.current_amount).toLocaleString()} → ${Number(row.proposed_amount || 0).toLocaleString()}`
+            : null,
+          row.effective_date ? `Effective ${dateString(row.effective_date)?.slice(0, 10)}` : null,
+        ].filter(Boolean).join(' · '),
+        assigneeUserId: userId,
+        assigneeName: actorName,
+        priority: 'high',
+        status: 'pending',
+        deepLink: '/payroll/compensation',
+        allowedDecisions: ['approve', 'reject'],
+        decisionHandlers: {
+          approve: { kind: 'compensation_approval', action: 'approve_change', expectedVersion: Number(row.version || 1) },
+          reject: { kind: 'compensation_approval', action: 'reject_change', expectedVersion: Number(row.version || 1) },
+        },
+      });
+    }
+
+    for (const row of benefitApprovals) {
+      activeTaskKeys.add(taskKey('payroll', 'benefit_enrollment', row.id, 'benefit_enrollment_approval'));
+      await upsertHrisTaskProjection({
+        companyId: nullableString(row.company_id),
+        taskType: 'benefit_enrollment_approval',
+        sourceDomain: 'payroll',
+        sourceType: 'benefit_enrollment',
+        sourceId: String(row.id),
+        subject: `Benefit enrollment · ${String(row.employee_name || row.employee_number || 'Employee')}`,
+        summary: [
+          row.plan_name ? String(row.plan_name) : 'Benefit plan',
+          row.plan_type ? String(row.plan_type).replace(/_/g, ' ') : null,
+          row.job_title ? String(row.job_title) : null,
+        ].filter(Boolean).join(' · '),
+        assigneeUserId: userId,
+        assigneeName: actorName,
+        priority: 'normal',
+        status: 'pending',
+        deepLink: '/payroll/benefits',
+        allowedDecisions: ['approve', 'request_changes'],
+        decisionHandlers: {
+          approve: { kind: 'benefit_enrollment_approval', action: 'approve_enrollment', expectedVersion: Number(row.version || 1) },
+          request_changes: { kind: 'benefit_enrollment_approval', action: 'return_enrollment', expectedVersion: Number(row.version || 1) },
         },
       });
     }

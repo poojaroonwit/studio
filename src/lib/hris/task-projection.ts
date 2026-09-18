@@ -144,7 +144,7 @@ export async function syncHrisTasksForActor({
               request.reason,
               request.status,
               request.version,
-              employee?.company_id || null,
+              employee.company_id,
               employee.employee_number,
               NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name
        FROM hr_leave_requests request
@@ -158,7 +158,7 @@ export async function syncHrisTasksForActor({
               onboarding.status,
               onboarding.target_date,
               onboarding.progress,
-              employee?.company_id || null
+              employee.company_id
        FROM hr_employee_onboarding onboarding
        JOIN hr_employees employee ON employee.id = onboarding.employee_id
        WHERE onboarding.employee_id = $1::uuid
@@ -183,7 +183,7 @@ export async function syncHrisTasksForActor({
               review.updated_at,
               cycle.name AS cycle_name,
               cycle.end_date,
-              employee?.company_id || null
+              employee.company_id
        FROM hr_performance_reviews review
        JOIN hr_performance_cycles cycle ON cycle.id = review.cycle_id
        JOIN hr_employees employee ON employee.id = review.employee_id

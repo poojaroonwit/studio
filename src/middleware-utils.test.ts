@@ -31,6 +31,7 @@ describe('middleware utilities', () => {
   it('classifies skipped middleware paths', () => {
     expect(shouldSkipMiddlewarePath('/_next/static/app.js')).toBe(true);
     expect(shouldSkipMiddlewarePath('/api/auth/session')).toBe(true);
+    expect(shouldSkipMiddlewarePath('/mobile/oauth/callback')).toBe(true);
     expect(shouldSkipMiddlewarePath('/auth/setup-password')).toBe(true);
     expect(shouldSkipMiddlewarePath('/setup')).toBe(true);
     expect(shouldSkipMiddlewarePath('/favicon.ico')).toBe(true);

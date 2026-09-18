@@ -207,12 +207,10 @@ export function BroadcastComposerFields({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {(view === "banner" || view === "popup") && (
-          <label className="grid gap-1 text-sm font-medium">
-            Publish date
-            <Input type="date" value={form.scheduleDate} onChange={(event) => setForm(current => ({ ...current, scheduleDate: event.target.value }))} />
-          </label>
-        )}
+        <label className="grid gap-1 text-sm font-medium">
+          {view === "email" || view === "sms" ? "Send date (optional)" : "Publish date"}
+          <Input type="date" value={form.scheduleDate} onChange={(event) => setForm(current => ({ ...current, scheduleDate: event.target.value }))} />
+        </label>
         {(view === "banner" || view === "popup") && (
           <label className="grid gap-1 text-sm font-medium">
             Priority

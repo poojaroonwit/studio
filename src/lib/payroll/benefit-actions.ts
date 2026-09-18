@@ -162,6 +162,15 @@ export async function benefitAction(
       "Enrollment id is required.",
       422,
     );
+  if (
+    ["approve_enrollment", "return_enrollment", "end_enrollment"].includes(input.action)
+    && !input.expectedVersion
+  )
+    throw new PayrollServiceError(
+      "VALIDATION_FAILED",
+      "Enrollment version is required.",
+      422,
+    );
   const status =
     input.action === "approve_enrollment"
       ? "active"
@@ -184,16 +193,19 @@ export async function benefitAction(
        version = version + 1, updated_at = now()
      FROM hr_employees employee WHERE enrollment.id = $1::uuid AND employee.id = enrollment.employee_id
        AND enrollment.status = ANY($4::text[])
-       AND ($3::uuid IS NULL OR employee.company_id = $3::uuid) RETURNING enrollment.*`,
+       AND ($3::uuid IS NULL OR employee.company_id = $3::uuid)
+       AND enrollment.version = $5
+     RETURNING enrollment.*`,
     input.id,
     status,
     access.actorCompanyId,
     allowedStatuses,
+    input.expectedVersion,
   );
   if (!rows[0])
     throw new PayrollServiceError(
-      "NOT_FOUND",
-      "Benefit enrollment was not found or is not in a valid state for this action.",
+      "CONCURRENT_UPDATE",
+      "Benefit enrollment changed, is outside your company scope, or is no longer in a valid state. Refresh and try again.",
       409,
     );
   return rows[0];

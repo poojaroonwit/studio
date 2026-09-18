@@ -19,8 +19,7 @@ WORKDIR /app
 # resolve through .npmrc to the canonical Outborn Registry.
 FROM base AS deps
 COPY package.json package-lock.json .npmrc ./
-RUN --mount=type=cache,id=hrive-npm,target=/root/.npm \
-    npm config set maxsockets 10 && \
+RUN npm config set maxsockets 10 && \
     npm ci --prefer-offline --no-audit --no-fund
 
 # Runtime dependencies retain the Prisma CLI because migrations are deployed
@@ -46,8 +45,7 @@ ENV NODE_ENV=production
 
 # Do not bypass TypeScript/lint failures in the deployment image. The same
 # production build must succeed here that succeeds in the Quality Gates.
-RUN --mount=type=cache,id=hrive-next-cache,target=/app/.next/cache \
-    set -e && \
+RUN set -e && \
     NEXT_PHASE=phase-production-build npm run build && \
     echo "=== Build completed successfully ==="
 

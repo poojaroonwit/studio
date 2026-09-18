@@ -95,8 +95,10 @@ export async function GET(_request: NextRequest, context: Context) {
        JOIN hr_employees employee ON employee.id = entry.employee_id
        LEFT JOIN hr_departments department ON department.id = employee.department_id
        WHERE entry.review_id = $1::uuid
+         ${access.actorCompanyId ? `AND employee.company_id = $2::uuid` : ``}
        ORDER BY entry.potential_axis DESC, entry.performance_axis DESC, entry.updated_at DESC`,
       id,
+      ...(access.actorCompanyId ? [access.actorCompanyId] : []),
     );
     return NextResponse.json({
       data: {
@@ -176,6 +178,14 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   try {
     assertEditable(access.review);
+    if (access.actorCompanyId && parsed.data.employeeId) {
+      const employees = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM hr_employees WHERE id = $1::uuid AND company_id = $2::uuid LIMIT 1`,
+        parsed.data.employeeId,
+        access.actorCompanyId,
+      );
+      if (!employees[0]) return error('EMPLOYEE_SCOPE_VIOLATION', 'The employee is outside your company scope.', 403);
+    }
     const values: unknown[] = [];
     const sets: string[] = [];
     const add = (column: string, value: unknown, cast = '') => {
@@ -227,11 +237,14 @@ export async function DELETE(request: NextRequest, context: Context) {
   try {
     assertEditable(access.review);
     const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
-      `DELETE FROM hr_talent_review_entries
-       WHERE id = $1::uuid AND review_id = $2::uuid
-       RETURNING *`,
+      `DELETE FROM hr_talent_review_entries entry
+       WHERE entry.id = $1::uuid
+         AND entry.review_id = $2::uuid
+         ${access.actorCompanyId ? `AND EXISTS (SELECT 1 FROM hr_employees employee WHERE employee.id = entry.employee_id AND employee.company_id = $3::uuid)` : ``}
+       RETURNING entry.*`,
       entryId,
       id,
+      ...(access.actorCompanyId ? [access.actorCompanyId] : []),
     );
     if (!rows[0]) return error('ENTRY_NOT_FOUND', 'The talent assessment was not found.', 404);
     await logAudit('AUDIT', 'Talent review assessment removed.', 'API:HR:Talent:ReviewEntry:Delete', access.session.user.id, {

@@ -345,7 +345,7 @@ function DateField({ label, value, onChange }: { label: string; value: Date; onC
 }
 
 function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
-  const [type, setType] = useState('Annual leave'), [start, setStart] = useState(new Date()), [end, setEnd] = useState(new Date()), [reason, setReason] = useState(''), [busy, setBusy] = useState(false)
+  const [type, setType] = useState('Annual leave'), [start, setStart] = useState(new Date()), [end, setEnd] = useState(new Date()), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [typeOpen, setTypeOpen] = useState(false)
   const leaveTypes = ['Annual leave', 'Sick leave', 'Personal leave', 'Unpaid leave']
   const submit = async () => {
     if (end < start) return Alert.alert('Leave request', 'End date cannot be before start date.')
@@ -354,11 +354,12 @@ function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onD
     catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>Leave request</AppText><Card><Muted style={s.fieldLabel}>Leave type</Muted><View style={s.chips}>{leaveTypes.map((item) => <Chip key={item} label={item} active={type === item} onPress={() => setType(item)} />)}</View><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card></>
+  return <><AppText style={s.pageTitle}>Leave request</AppText><Card><SelectField label="Leave type" value={type} onPress={() => setTypeOpen(true)} /><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={typeOpen} title="Leave type" onClose={() => setTypeOpen(false)}>{leaveTypes.map((item) => <DrawerOption key={item} title={item} selected={type === item} onPress={() => { setType(item); setTypeOpen(false) }} />)}</BottomDrawer></>
 }
 
 function AttendanceCorrectionForm({ data, onDone }: { data: EssBootstrap; onDone: () => void }) {
-  const [attendanceId, setAttendanceId] = useState(data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false)
+  const [attendanceId, setAttendanceId] = useState(data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
+  const selected = data.attendance.find((row) => row.id === attendanceId)
   const submit = async () => {
     if (!attendanceId || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
     setBusy(true)
@@ -366,11 +367,11 @@ function AttendanceCorrectionForm({ data, onDone }: { data: EssBootstrap; onDone
     catch (error) { Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>Attendance correction</AppText><Card><Muted style={s.fieldLabel}>Attendance record</Muted><View style={s.chips}>{data.attendance.slice(0, 10).map((row) => <Chip key={row.id} label={row.date} active={attendanceId === row.id} onPress={() => setAttendanceId(row.id)} />)}</View><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card></>
+  return <><AppText style={s.pageTitle}>Attendance correction</AppText><Card><SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} /><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>{data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => { setAttendanceId(row.id); setRecordOpen(false) }} />)}</BottomDrawer></>
 }
 
 function GeneralRequestForm({ onDone }: { onDone: () => void }) {
-  const [subject, setSubject] = useState(''), [message, setMessage] = useState(''), [category, setCategory] = useState('general'), [busy, setBusy] = useState(false)
+  const [subject, setSubject] = useState(''), [message, setMessage] = useState(''), [category, setCategory] = useState('general'), [busy, setBusy] = useState(false), [categoryOpen, setCategoryOpen] = useState(false)
   const categories = ['general', 'payroll', 'benefits', 'policy', 'workplace']
   const submit = async () => {
     if (!subject.trim() || !message.trim()) return Alert.alert('HR request', 'Subject and details are required.')
@@ -379,7 +380,7 @@ function GeneralRequestForm({ onDone }: { onDone: () => void }) {
     catch (error) { Alert.alert('HR request', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>HR request</AppText><Card><Muted style={s.fieldLabel}>Category</Muted><View style={s.chips}>{categories.map((item) => <Chip key={item} label={item} active={category === item} onPress={() => setCategory(item)} />)}</View><Field label="Subject" value={subject} onChangeText={setSubject} placeholder="What do you need help with?" /><Field label="Details" value={message} onChangeText={setMessage} multiline placeholder="Add the information HR needs" /><Button title="Submit HR request" busy={busy} onPress={() => void submit()} /></Card></>
+  return <><AppText style={s.pageTitle}>HR request</AppText><Card><SelectField label="Category" value={category.charAt(0).toUpperCase() + category.slice(1)} onPress={() => setCategoryOpen(true)} /><Field label="Subject" value={subject} onChangeText={setSubject} placeholder="What do you need help with?" /><Field label="Details" value={message} onChangeText={setMessage} multiline placeholder="Add the information HR needs" /><Button title="Submit HR request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={categoryOpen} title="Request category" onClose={() => setCategoryOpen(false)}>{categories.map((item) => <DrawerOption key={item} title={item.charAt(0).toUpperCase() + item.slice(1)} selected={category === item} onPress={() => { setCategory(item); setCategoryOpen(false) }} />)}</BottomDrawer></>
 }
 
 function BankTaxRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {

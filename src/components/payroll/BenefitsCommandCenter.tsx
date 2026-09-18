@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useLocalization } from "@/contexts/LocalizationContext";
 import { useDropdownOptions } from "@/hooks/use-dropdown-options";
 import { defaultDropdownOptions } from "@/lib/dropdown-option-catalog";
@@ -222,6 +223,8 @@ export function BenefitsCommandCenter({
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [approvalsOpen, setApprovalsOpen] = React.useState(false);
+  const [endingEnrollment, setEndingEnrollment] = React.useState<Row | null>(null);
+  const [endCoverageReason, setEndCoverageReason] = React.useState("");
   const [configurationPlan, setConfigurationPlan] = React.useState<Row | null>(
     null,
   );
@@ -1299,6 +1302,7 @@ export function BenefitsCommandCenter({
                                   {
                                     action: "approve_enrollment",
                                     id: item.id,
+                                    expectedVersion: Number(item.version || 1),
                                     reason:
                                       "Benefit eligibility and contribution approved",
                                   },
@@ -1321,18 +1325,8 @@ export function BenefitsCommandCenter({
                               className="mt-2 w-full"
                               disabled={Boolean(busy)}
                               onClick={() => {
-                                const reason = window.prompt(
-                                  "Reason for ending coverage",
-                                );
-                                if (reason?.trim())
-                                  void mutate(
-                                    {
-                                      action: "end_enrollment",
-                                      id: item.id,
-                                      reason,
-                                    },
-                                    `benefit-end-${item.id}`,
-                                  );
+                                setEndCoverageReason("");
+                                setEndingEnrollment(item);
                               }}
                             >
                               {busy === `benefit-end-${item.id}`
@@ -1495,6 +1489,77 @@ export function BenefitsCommandCenter({
         onOpenChange={(open) => setMode(open ? "enroll_v2" : null)}
         onEnroll={mutate}
       />
+      <Dialog
+        open={Boolean(endingEnrollment)}
+        onOpenChange={(open) => {
+          if (!open && !busy) {
+            setEndingEnrollment(null);
+            setEndCoverageReason("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>End benefit coverage</DialogTitle>
+            <DialogDescription>
+              {endingEnrollment
+                ? `End ${String(endingEnrollment.plan_name || "benefit")} coverage for ${String(endingEnrollment.employee_name || endingEnrollment.employee_number || "this employee")}.`
+                : "Provide a reason before ending benefit coverage."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="benefit-end-reason" className="text-sm font-medium">
+              Reason
+            </label>
+            <Textarea
+              id="benefit-end-reason"
+              value={endCoverageReason}
+              onChange={(event) => setEndCoverageReason(event.target.value)}
+              rows={5}
+              maxLength={2000}
+              placeholder="Explain why this coverage is ending."
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={Boolean(busy)}
+              onClick={() => {
+                setEndingEnrollment(null);
+                setEndCoverageReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={Boolean(busy) || !endCoverageReason.trim() || !endingEnrollment}
+              onClick={() => {
+                if (!endingEnrollment) return;
+                const enrollment = endingEnrollment;
+                void mutate(
+                  {
+                    action: "end_enrollment",
+                    id: enrollment.id,
+                    expectedVersion: Number(enrollment.version || 1),
+                    reason: endCoverageReason.trim(),
+                  },
+                  `benefit-end-${enrollment.id}`,
+                ).then(() => {
+                  setEndingEnrollment(null);
+                  setEndCoverageReason("");
+                });
+              }}
+            >
+              {endingEnrollment && busy === `benefit-end-${endingEnrollment.id}`
+                ? "Ending…"
+                : "End coverage"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BenefitApprovalWorkspace
         open={approvalsOpen}
         pending={allPending}
@@ -1507,6 +1572,7 @@ export function BenefitsCommandCenter({
             {
               action: "approve_enrollment",
               id: item.id,
+              expectedVersion: Number(item.version || 1),
               reason: "Benefit eligibility and contribution approved",
             },
             `benefit-${item.id}`,
@@ -1517,6 +1583,7 @@ export function BenefitsCommandCenter({
             {
               action: "return_enrollment",
               id: item.id,
+              expectedVersion: Number(item.version || 1),
               reason: "Enrollment details require correction before approval",
             },
             `benefit-return-${item.id}`,

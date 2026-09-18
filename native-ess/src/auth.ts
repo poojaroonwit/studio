@@ -31,7 +31,15 @@ function callbackParams(url: string) {
 }
 
 function isNativeCallback(url?: string | null) {
-  return Boolean(url && url.toLowerCase().startsWith(nativeReturnUri.toLowerCase()))
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol.toLowerCase() === 'obsipeopleess:'
+      && parsed.hostname.toLowerCase() === 'oauth'
+      && (parsed.pathname === '/callback' || parsed.pathname === '/callback/')
+  } catch {
+    return false
+  }
 }
 
 async function readPending(): Promise<PendingAuth | null> {
@@ -66,8 +74,14 @@ async function completeRedirect(url: string) {
 
   const code = params.get('code')
   const state = params.get('state')
-  if (!code || !state) throw new Error('Outborn Account returned an incomplete sign-in response. Please try again.')
-  if (state !== pending.state) throw new Error('Outborn Account returned an invalid OAuth state')
+  if (!code || !state) {
+    await SecureStore.deleteItemAsync(PENDING_KEY)
+    throw new Error('Outborn Account returned an incomplete sign-in response. Please try again.')
+  }
+  if (state !== pending.state) {
+    await SecureStore.deleteItemAsync(PENDING_KEY)
+    throw new Error('Outborn Account returned an invalid OAuth state')
+  }
 
   const config = await discovery()
   const token = await AuthSession.exchangeCodeAsync({

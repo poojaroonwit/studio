@@ -12,6 +12,7 @@ export default async function AppraisalPage({
     const targetKey = key === 'tab' ? 'appraisalTab' : key;
     values.forEach(value => target.append(targetKey, value));
   }
+  if (!target.has('appraisalTab')) target.set('appraisalTab', 'overview');
 
   redirect(`/workforce/performance?${target.toString()}`);
 }

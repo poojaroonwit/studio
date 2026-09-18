@@ -208,10 +208,21 @@ export const essApi = {
     ])
     return {
       ...data,
-      benefits: extras.benefits || data.benefits || [],
-      attendancePolicy,
-      schedule: extras.schedule || data.schedule || [],
-      announcements: extras.announcements || data.announcements || [],
+      attendance: Array.isArray(data.attendance) ? data.attendance : [],
+      leaveRequests: Array.isArray(data.leaveRequests) ? data.leaveRequests : [],
+      documents: Array.isArray(data.documents) ? data.documents : [],
+      notifications: Array.isArray(data.notifications) ? data.notifications : [],
+      emergencyContacts: Array.isArray(data.emergencyContacts) ? data.emergencyContacts : [],
+      benefits: Array.isArray(extras.benefits)
+        ? extras.benefits
+        : Array.isArray(data.benefits) ? data.benefits : [],
+      attendancePolicy: attendancePolicy || {},
+      schedule: Array.isArray(extras.schedule)
+        ? extras.schedule
+        : Array.isArray(data.schedule) ? data.schedule : [],
+      announcements: Array.isArray(extras.announcements)
+        ? extras.announcements
+        : Array.isArray(data.announcements) ? data.announcements : [],
     }
   },
 

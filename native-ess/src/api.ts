@@ -187,19 +187,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+
+async function optionalRequest<T>(path: string, fallback: T): Promise<T> {
+  try {
+    return await request<T>(path)
+  } catch (error) {
+    if (isAuthRequired(error)) throw error
+    console.warn(`Optional ESS endpoint unavailable: ${path}`, error)
+    return fallback
+  }
+}
+
+
 export const essApi = {
   bootstrap: async () => {
     const [data, attendancePolicy, extras] = await Promise.all([
       request<EssBootstrap>('/api/ess/mobile/bootstrap'),
-      request<AttendancePolicy>('/api/ess/mobile/attendance-policy'),
-      request<EssExtras>('/api/ess/mobile/extras'),
+      optionalRequest<AttendancePolicy>('/api/ess/mobile/attendance-policy', {}),
+      optionalRequest<EssExtras>('/api/ess/mobile/extras', {}),
     ])
     return {
       ...data,
       benefits: extras.benefits || data.benefits || [],
       attendancePolicy,
-      schedule: extras.schedule || [],
-      announcements: extras.announcements || [],
+      schedule: extras.schedule || data.schedule || [],
+      announcements: extras.announcements || data.announcements || [],
     }
   },
 
@@ -231,11 +243,11 @@ export const essApi = {
     body: JSON.stringify(payload),
   }),
 
-  createEmergencyContact: (payload: Omit<EmergencyContact, 'id'>) => request<{ contact: EmergencyContact }>('/api/ess/emergency-contacts', {
+  createEmergencyContact: (payload: Omit<EmergencyContact, 'id'>) => request<EmergencyContact>('/api/ess/emergency-contacts', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  updateEmergencyContact: (id: string, payload: Partial<Omit<EmergencyContact, 'id'>>) => request<{ contact: EmergencyContact }>(`/api/ess/emergency-contacts/${encodeURIComponent(id)}`, {
+  updateEmergencyContact: (id: string, payload: Partial<Omit<EmergencyContact, 'id'>>) => request<EmergencyContact>(`/api/ess/emergency-contacts/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   }),

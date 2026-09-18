@@ -187,16 +187,28 @@ jobs:
           set -euo pipefail
           git fetch origin dev
           latest="$(git rev-parse origin/dev)"
+          deploy_target="$GITHUB_SHA"
           if [ "$latest" != "$GITHUB_SHA" ]; then
-            echo "A newer dev commit exists; its quality run will handle deployment."
-            exit 0
+            # Keep this check aligned with the workflow paths-ignore rules.
+            # A mobile-only commit can safely ride with the validated web build
+            # because mobile/native sources are excluded from the production image.
+            if ! git diff --quiet "$GITHUB_SHA" "$latest" -- . \
+              ':(exclude)mobile/**' \
+              ':(exclude)native-ess/**' \
+              ':(exclude)deploy/railway-trigger.txt'; then
+              echo "A newer deploy-relevant dev commit exists; its quality run will handle deployment."
+              exit 0
+            fi
+            echo "Only deploy-ignored commits landed after this run; deploying the latest dev head."
+            deploy_target="$latest"
           fi
 
+          git reset --hard origin/dev
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           mkdir -p deploy
-          printf '%s\n' "$GITHUB_SHA" > deploy/railway-trigger.txt
+          printf '%s\n' "$deploy_target" > deploy/railway-trigger.txt
           git add deploy/railway-trigger.txt
 
           if git diff --cached --quiet -- deploy/railway-trigger.txt; then
@@ -204,5 +216,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore(deploy): queue Railway ${GITHUB_SHA::12} [skip ci]"
+          git commit -m "chore(deploy): queue Railway ${deploy_target::12} [skip ci]"
           git push origin HEAD:dev

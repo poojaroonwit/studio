@@ -57,21 +57,20 @@ RUN apk add --no-cache postgresql-client openssl && \
 
 WORKDIR /app
 
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
-COPY --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
-COPY --from=builder /app/entrypoint-local.sh ./entrypoint-local.sh
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/src/scripts ./src/scripts
-COPY --from=builder /app/src/lib/email-template-catalog.ts ./src/lib/email-template-catalog.ts
-COPY --from=builder /app/src/lib/email-template-requirements.ts ./src/lib/email-template-requirements.ts
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone ./
+COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
+COPY --chown=nextjs:nodejs --from=builder /app/prisma ./prisma
+COPY --chown=nextjs:nodejs --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=nextjs:nodejs --from=builder /app/entrypoint.sh ./entrypoint.sh
+COPY --chown=nextjs:nodejs --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
+COPY --chown=nextjs:nodejs --from=builder /app/entrypoint-local.sh ./entrypoint-local.sh
+COPY --chown=nextjs:nodejs --from=builder /app/scripts ./scripts
+COPY --chown=nextjs:nodejs --from=builder /app/src/scripts ./src/scripts
+COPY --chown=nextjs:nodejs --from=builder /app/src/lib/email-template-catalog.ts ./src/lib/email-template-catalog.ts
+COPY --chown=nextjs:nodejs --from=builder /app/src/lib/email-template-requirements.ts ./src/lib/email-template-requirements.ts
 
-RUN chmod +x ./entrypoint.sh ./entrypoint-processor.sh ./entrypoint-local.sh && \
-    chown -R nextjs:nodejs /app
+RUN chmod +x ./entrypoint.sh ./entrypoint-processor.sh ./entrypoint-local.sh
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

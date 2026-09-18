@@ -102,6 +102,9 @@ export default function App() {
         setData(null)
         setAccount(null)
         setOffline(false)
+        setFullPage(false)
+        setAccountSection('menu')
+        setTab('home')
         void clearBootstrapCache().catch((cacheError) => console.warn('Obsi People bootstrap cache clear failed', cacheError))
       } else {
         const message = error instanceof Error ? error.message : 'Unable to load employee data.'
@@ -226,6 +229,7 @@ export default function App() {
       setOffline(false)
       setLoadError(null)
       setAuthError(secureSignOutFailed ? 'Secure sign-out could not be fully completed. Please sign in again before using employee data.' : null)
+      setFullPage(false)
       setAccountSection('menu')
       setTab('home')
     }

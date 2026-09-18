@@ -167,11 +167,19 @@ export async function finalizeOutboundBroadcastCampaign(input: {
   return result.rows[0] || null;
 }
 
-export async function markOutboundBroadcastSending(id: string) {
+export async function beginOutboundBroadcastRetry(id: string) {
   const result = await getPool().query<BroadcastCampaign>(
     `UPDATE broadcast_campaigns
-     SET status = 'sending', updated_at = now(), error_message = NULL
-     WHERE id = $1::uuid AND channel IN ('email', 'sms') AND status = 'scheduled'
+     SET status = 'sending',
+         recipient_count = 0,
+         failed_count = 0,
+         provider_message_id = NULL,
+         error_message = NULL,
+         updated_at = now()
+     WHERE id = $1::uuid
+       AND channel IN ('email', 'sms')
+       AND status = 'failed'
+       AND audience <> 'custom'
      RETURNING ${SELECT_COLUMNS}`,
     [id],
   );

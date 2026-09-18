@@ -1,4 +1,4 @@
-import { Platform } from 'react-native'
+import { PermissionsAndroid, Platform } from 'react-native'
 import Constants from 'expo-constants'
 import {
   AuthorizationStatus,
@@ -18,8 +18,29 @@ function authorized(status: number) {
   return status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL
 }
 
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 10_000) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function ensurePushPermission(instance: ReturnType<typeof getMessaging>) {
+  if (Platform.OS === 'ios') {
+    return authorized(await requestPermission(instance))
+  }
+  if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+    const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)
+    return result === PermissionsAndroid.RESULTS.GRANTED
+  }
+  return true
+}
+
 async function sendRegistration(accessToken: string, token: string) {
-  const response = await fetch(`${apiUrl}/api/ess/mobile/push-token`, {
+  const response = await fetchWithTimeout(`${apiUrl}/api/ess/mobile/push-token`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -41,8 +62,7 @@ export async function syncPushRegistration(accessToken: string) {
   try {
     const instance = getMessaging()
     await registerDeviceForRemoteMessages(instance)
-    const permission = await requestPermission(instance)
-    if (!authorized(permission) && Platform.OS === 'ios') return null
+    if (!await ensurePushPermission(instance)) return null
     const token = await getToken(instance)
     if (!token) return null
     await sendRegistration(accessToken, token)
@@ -67,7 +87,7 @@ export async function removePushRegistration(accessToken: string) {
   const token = await SecureStore.getItemAsync(PUSH_TOKEN_KEY)
   if (!token || !accessToken) return
   try {
-    await fetch(`${apiUrl}/api/ess/mobile/push-token`, {
+    await fetchWithTimeout(`${apiUrl}/api/ess/mobile/push-token`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${accessToken}`,

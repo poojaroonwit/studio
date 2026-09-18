@@ -87,136 +87,89 @@ function bangkokDate() {
   return `${get('year')}-${get('month')}-${get('day')}`
 }
 
-function todayAttendance(data: EssBootstrap) {
-  const today = bangkokDate()
-  return data.attendance.find((row) => row.date === today)
+function attendanceForDate(data: EssBootstrap, date: string) {
+  return data.attendance.find((row) => row.date === date)
 }
 
-function useProgressiveCount(total: number, loadMoreTick: number, pageSize = 12) {
-  const [count, setCount] = useState(Math.min(pageSize, total))
-  useEffect(() => setCount((current) => Math.min(total, Math.max(current, pageSize))), [pageSize, total])
-  useEffect(() => {
-    if (loadMoreTick > 0) setCount((current) => Math.min(total, current + pageSize))
-  }, [loadMoreTick, pageSize, total])
-  return count
+function bangkokDateOffset(days: number) {
+  const anchor = new Date(`${bangkokDate()}T12:00:00+07:00`)
+  anchor.setUTCDate(anchor.getUTCDate() + days)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(anchor)
 }
 
-function PaginationFooter({ visible, total }: { visible: number; total: number }) {
-  if (visible >= total) return null
-  return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
-}
-
-export function HomeScreen({ data, setTab, account, reload }: { data: EssBootstrap; setTab: (tab: Tab) => void; account?: AccountIdentity | null; reload: () => Promise<void> }) {
-  const [clockBusy, setClockBusy] = useState<'in' | 'out' | null>(null)
-  const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
-  const recent = data.attendance.slice(0, 14)
-  const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
-  const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
-  const pending = data.leaveRequests.filter((item) => item.status === 'pending').length
-  const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
-  const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
-  const nextSchedule = data.schedule.find((item) => item.date >= bangkokDate())
-  const today = todayAttendance(data)
-  const policy = data.attendancePolicy || {}
-  const shiftDate = data.employee.shiftLabel && /^\\d{4}-\\d{2}-\\d{2}$/.test(data.employee.shiftLabel) ? data.employee.shiftLabel : undefined
-  const hasShiftToday = !policy.requireScheduledShift || shiftDate === bangkokDate()
-  const canClockIn = hasShiftToday && !today?.checkIn
-  const canClockOut = hasShiftToday && Boolean(today?.checkIn) && !today?.checkOut
-
-  const clock = async (mode: 'in' | 'out') => {
-    if (clockBusy) return
-    setClockBusy(mode)
-    try {
-      let lat: number | undefined
-      let lng: number | undefined
-      if (policy.locationRequired) {
-        const permission = await Location.requestForegroundPermissionsAsync()
-        if (permission.status !== 'granted') throw new Error('Location permission is required by your organization for attendance.')
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
-        lat = pos.coords.latitude
-        lng = pos.coords.longitude
-      } else {
-        const permission = await Location.getForegroundPermissionsAsync()
-        if (permission.status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-          lat = pos.coords.latitude
-          lng = pos.coords.longitude
-        }
-      }
-      if (mode === 'in') await essApi.clockIn(lat, lng)
-      else await essApi.clockOut(lat, lng)
-      await reload()
-    } catch (error) {
-      Alert.alert('Attendance', error instanceof Error ? error.message : 'Unable to update attendance')
-    } finally {
-      setClockBusy(null)
-    }
+function shiftWindow(shift: EssBootstrap['schedule'][number], policy: EssBootstrap['attendancePolicy']) {
+  const startText = /^\d{2}:\d{2}(?::\d{2})?$/.test(shift.startTime || '') ? shift.startTime : '00:00:00'
+  const endText = /^\d{2}:\d{2}(?::\d{2})?$/.test(shift.endTime || '') ? shift.endTime : '23:59:59'
+  const start = new Date(`${shift.date}T${startText}+07:00`)
+  let end = new Date(`${shift.date}T${endText}+07:00`)
+  if (end <= start) end = new Date(end.getTime() + 86_400_000)
+  return {
+    shift,
+    opensAt: new Date(start.getTime() - Number(policy?.earlyClockInMinutes || 0) * 60_000),
+    closesAt: new Date(end.getTime() + Number(policy?.lateClockOutMinutes || 0) * 60_000),
   }
-
-  return <>
-    <AppText style={s.kicker}>EMPLOYEE SELF-SERVICE</AppText>
-    <AppText style={s.pageTitle}>Hi, {firstName}</AppText>
-    <Muted>{data.employee.position} · {data.employee.department}</Muted>
-
-    {data.announcements.length ? <View style={s.announcementWrap}>{data.announcements.slice(0, 2).map((item) => <Card key={item.id} style={s.announcementCard}>
-      <View style={s.infoRow}><Ionicons name="megaphone-outline" size={20} color={colors.accent} /><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted numberOfLines={3}>{item.body}</Muted></View></View>
-    </Card>)}</View> : null}
-
-    <View style={s.grid}>
-      <Quick icon="time-outline" label="Attendance" onPress={() => setTab('time')} />
-      <Quick icon="add-circle-outline" label="New request" onPress={() => setTab('requests')} />
-      <Quick icon="folder-open-outline" label="Documents" onPress={() => setTab('documents')} />
-      <Quick icon="person-circle-outline" label="Account" onPress={() => setTab('account')} />
-    </View>
-
-    <AppText style={s.section}>Today</AppText>
-    <Card style={!hasShiftToday || (!canClockIn && !canClockOut) ? s.successCard : undefined}>
-      <View style={s.between}>
-        <View style={s.flexOne}>
-          <AppText style={s.cardTitle}>{canClockIn ? 'Clock in' : canClockOut ? 'Clock out' : hasShiftToday ? 'Attendance complete' : 'Attendance'}</AppText>
-          <Muted>{!hasShiftToday ? 'No active shift is assigned for today.' : canClockIn ? 'Start your workday when you are ready.' : canClockOut ? `Clocked in · ${formatDateTime(today?.checkIn)}` : `Clock in ${formatDateTime(today?.checkIn)} · Clock out ${formatDateTime(today?.checkOut)}`}</Muted>
-        </View>
-        <Ionicons name={canClockIn ? 'enter-outline' : canClockOut ? 'exit-outline' : 'checkmark-circle-outline'} size={26} color={canClockIn || canClockOut ? colors.text : colors.success} />
-      </View>
-      {policy.locationRequired && (canClockIn || canClockOut) ? <View style={s.infoRow}><Ionicons name="location-outline" size={18} color={colors.accent} /><Muted style={s.flexOne}>Location verification is required for this attendance action.</Muted></View> : null}
-      {canClockIn ? <Button title="Clock in" icon="enter-outline" large busy={clockBusy === 'in'} onPress={() => void clock('in')} />
-        : canClockOut ? <Button title="Clock out" icon="exit-outline" large busy={clockBusy === 'out'} onPress={() => void clock('out')} />
-          : <Button title="View attendance" icon="time-outline" secondary onPress={() => setTab('time')} />}
-    </Card>
-    <Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{data.employee.shiftLabel || 'Schedule'}</AppText><Muted>{data.employee.nextShift || 'No shift scheduled'}</Muted>{nextSchedule?.location ? <Muted>{nextSchedule.location}</Muted> : null}</View><Ionicons name="calendar-outline" size={22} color={colors.textMuted} /></View></Card>
-
-    <AppText style={s.section}>Overview</AppText>
-    <Card>
-      <View style={s.metricRow}>
-        <View style={s.metricBlock}><AppText style={s.metric}>{leaveBalance}</AppText><Muted>leave days</Muted></View>
-        <View style={s.metricBlock}><AppText style={s.metric}>{pending}</AppText><Muted>pending</Muted></View>
-        <View style={s.metricBlock}><AppText style={s.metric}>{data.employee.unreadNotifications || 0}</AppText><Muted>unread</Muted></View>
-      </View>
-      <View style={s.chartGroup}><ChartBar label="Attendance · recent 14" value={attendanceRate} /><ChartBar label="Leave availability" value={leaveScale} /></View>
-    </Card>
-  </>
 }
 
-function ChartBar({ label, value }: { label: string; value: number }) {
-  return <View style={s.chartItem}><View style={s.between}><Muted>{label}</Muted><AppText style={s.chartValue}>{value}%</AppText></View><View style={s.chartTrack}><View style={[s.chartFill, { width: `${Math.max(2, Math.min(100, value))}%` }]} /></View></View>
+function formatBangkokTime(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })
 }
 
-function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.quick, pressed && s.pressed]} onPress={onPress}><Ionicons name={icon} size={24} color={colors.text} /><AppText style={s.quickLabel}>{label}</AppText></Pressable>
+function shiftSummary(shift?: EssBootstrap['schedule'][number]) {
+  if (!shift) return 'No scheduled shift'
+  const time = `${(shift.startTime || '').slice(0, 5) || '—'}–${(shift.endTime || '').slice(0, 5) || '—'}`
+  return `${time}${shift.location ? ` · ${shift.location}` : ''}`
 }
 
-export function TimeScreen({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
-  const [busy, setBusy] = useState<'in' | 'out' | null>(null)
-  const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
-  const today = todayAttendance(data)
+function elapsedSince(value: string | null | undefined, now: number) {
+  if (!value) return ''
+  const started = new Date(value).getTime()
+  if (!Number.isFinite(started) || now <= started) return ''
+  const minutes = Math.floor((now - started) / 60_000)
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return hours > 0 ? `${hours}h ${rest}m elapsed` : `${rest}m elapsed`
+}
+
+function useAttendanceAction(data: EssBootstrap, reload: () => Promise<void>, offline = false) {
+  const [busy, setBusy] = useState<'in' | 'out' | 'sync' | null>(null)
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
+
   const policy = data.attendancePolicy || {}
-  const shiftDate = data.employee.shiftLabel && /^\d{4}-\d{2}-\d{2}$/.test(data.employee.shiftLabel) ? data.employee.shiftLabel : undefined
-  const hasShiftToday = !policy.requireScheduledShift || shiftDate === bangkokDate()
-  const canClockIn = hasShiftToday && !today?.checkIn
-  const canClockOut = hasShiftToday && Boolean(today?.checkIn) && !today?.checkOut
+  const relevantDates = new Set([bangkokDateOffset(-1), bangkokDate(), bangkokDateOffset(1)])
+  const windows = data.schedule
+    .filter((shift) => relevantDates.has(shift.date) && !['cancelled', 'deleted'].includes((shift.status || '').toLowerCase()))
+    .map((shift) => shiftWindow(shift, policy))
+    .sort((a, b) => a.opensAt.getTime() - b.opensAt.getTime())
+
+  const activeWindow = windows.find((entry) => now >= entry.opensAt.getTime() && now <= entry.closesAt.getTime())
+  const upcomingWindow = windows.find((entry) => now < entry.opensAt.getTime())
+  const todayShift = data.schedule.find((shift) => shift.date === bangkokDate() && !['cancelled', 'deleted'].includes((shift.status || '').toLowerCase()))
+  const displayShift = activeWindow?.shift || todayShift || upcomingWindow?.shift
+  const workDate = activeWindow?.shift.date || bangkokDate()
+  const attendance = attendanceForDate(data, workDate)
+  const requiresShift = policy.requireScheduledShift === true
+  const hasActionWindow = !requiresShift || Boolean(activeWindow)
+  const waitingForWindow = requiresShift && !activeWindow && Boolean(upcomingWindow)
+  const windowClosed = requiresShift && !activeWindow && !upcomingWindow && windows.length > 0
+  const canClockIn = !offline && hasActionWindow && !attendance?.checkIn
+  const canClockOut = !offline && hasActionWindow && Boolean(attendance?.checkIn) && !attendance?.checkOut
+  const complete = Boolean(attendance?.checkIn && attendance?.checkOut)
+  const branchNames = (policy.locations || []).map((location) => location.name).filter(Boolean)
 
   const clock = async (mode: 'in' | 'out') => {
-    if (busy) return
+    if (busy || offline) return
     setBusy(mode)
     try {
       let lat: number | undefined
@@ -238,31 +191,190 @@ export function TimeScreen({ data, reload, loadMoreTick }: { data: EssBootstrap;
       if (mode === 'in') await essApi.clockIn(lat, lng)
       else await essApi.clockOut(lat, lng)
       await reload()
+      Alert.alert('Attendance', mode === 'in' ? 'Clock in recorded successfully.' : 'Clock out recorded successfully.')
     } catch (error) {
       Alert.alert('Attendance', error instanceof Error ? error.message : 'Unable to update attendance')
-    } finally { setBusy(null) }
+    } finally {
+      setBusy(null)
+    }
   }
 
+  const reconnect = async () => {
+    if (busy) return
+    setBusy('sync')
+    try {
+      await reload()
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return {
+    attendance,
+    policy,
+    displayShift,
+    activeWindow,
+    upcomingWindow,
+    waitingForWindow,
+    windowClosed,
+    requiresShift,
+    hasActionWindow,
+    canClockIn,
+    canClockOut,
+    complete,
+    branchNames,
+    busy,
+    now,
+    clock,
+    reconnect,
+  }
+}
+
+function AttendanceActionCard({ data, reload, offline = false, onViewAttendance }: {
+  data: EssBootstrap
+  reload: () => Promise<void>
+  offline?: boolean
+  onViewAttendance?: () => void
+}) {
+  const action = useAttendanceAction(data, reload, offline)
+  const elapsed = elapsedSince(action.attendance?.checkIn, action.now)
+  const blocked = !action.hasActionWindow || action.waitingForWindow || action.windowClosed
+  const cardStyle = action.complete ? s.successCard : offline || blocked ? s.warningCard : undefined
+
+  const title = offline
+    ? action.attendance?.checkIn && !action.attendance?.checkOut ? 'Reconnect to clock out' : 'Reconnect to clock in'
+    : action.canClockIn ? 'Clock in'
+      : action.canClockOut ? 'Clock out'
+        : action.complete ? 'Attendance complete'
+          : action.waitingForWindow ? 'Clock action available later'
+            : action.windowClosed ? 'Attendance window closed'
+              : action.requiresShift ? 'No clock action available'
+                : 'Attendance'
+
+  const detail = offline
+    ? 'Attendance data is cached. Reconnect before recording a clock action.'
+    : action.canClockIn ? 'Start your workday when you are ready.'
+      : action.canClockOut ? `Clocked in ${formatBangkokTime(action.attendance?.checkIn || '')}${elapsed ? ` · ${elapsed}` : ''}`
+        : action.complete ? `Clock in ${formatBangkokTime(action.attendance?.checkIn || '')} · Clock out ${formatBangkokTime(action.attendance?.checkOut || '')}`
+          : action.waitingForWindow && action.upcomingWindow ? `Available from ${action.upcomingWindow.shift.date} at ${formatBangkokTime(action.upcomingWindow.opensAt)}.`
+            : action.windowClosed ? 'The allowed attendance window for the assigned shift has ended.'
+              : 'No active shift is assigned for the current attendance window.'
+
+  const icon: keyof typeof Ionicons.glyphMap = offline ? 'cloud-offline-outline'
+    : action.canClockIn ? 'enter-outline'
+      : action.canClockOut ? 'exit-outline'
+        : action.complete ? 'checkmark-circle-outline'
+          : 'time-outline'
+
+  return <Card style={cardStyle}>
+    <View style={s.between}>
+      <View style={s.flexOne}><AppText style={s.cardTitle}>{title}</AppText><Muted>{detail}</Muted></View>
+      <Ionicons name={icon} size={26} color={action.complete ? colors.success : offline || blocked ? colors.warning : colors.text} />
+    </View>
+
+    {action.displayShift ? <View style={s.infoRow}>
+      <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+      <Muted style={s.flexOne}>{action.displayShift.date} · {shiftSummary(action.displayShift)}</Muted>
+    </View> : null}
+
+    {action.policy.locationRequired ? <View style={s.infoRow}>
+      <Ionicons name="location-outline" size={18} color={colors.accent} />
+      <Muted style={s.flexOne}>{action.branchNames.length ? `Location verification required · ${action.branchNames.slice(0, 2).join(', ')}${action.branchNames.length > 2 ? ` +${action.branchNames.length - 2} more` : ''}` : 'Location verification is required, but no active branch location is configured.'}</Muted>
+    </View> : null}
+
+    {offline ? <Button title="Reconnect" icon="refresh-outline" secondary busy={action.busy === 'sync'} onPress={() => void action.reconnect()} />
+      : action.canClockIn ? <Button title="Clock in" icon="enter-outline" large busy={action.busy === 'in'} onPress={() => void action.clock('in')} />
+        : action.canClockOut ? <Button title="Clock out" icon="exit-outline" large busy={action.busy === 'out'} onPress={() => void action.clock('out')} />
+          : onViewAttendance ? <Button title="View attendance" icon="time-outline" secondary onPress={onViewAttendance} /> : null}
+  </Card>
+}
+
+function useProgressiveCount(total: number, loadMoreTick: number, pageSize = 12) {
+  const [count, setCount] = useState(Math.min(pageSize, total))
+  useEffect(() => setCount((current) => Math.min(total, Math.max(current, pageSize))), [pageSize, total])
+  useEffect(() => {
+    if (loadMoreTick > 0) setCount((current) => Math.min(total, current + pageSize))
+  }, [loadMoreTick, pageSize, total])
+  return count
+}
+
+function PaginationFooter({ visible, total }: { visible: number; total: number }) {
+  if (visible >= total) return null
+  return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
+}
+
+export function HomeScreen({ data, setTab, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
+  const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
+  const recent = data.attendance.slice(0, 14)
+  const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
+  const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
+  const pending = data.leaveRequests.filter((item) => item.status === 'pending').length
+  const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
+  const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
+
   return <>
-    <AppText style={s.pageTitle}>Time & attendance</AppText>
-    <Card style={s.shiftCard}>
-      <View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>Your shift</AppText><Muted>{data.employee.shiftLabel || 'No scheduled shift'}</Muted><AppText>{data.employee.nextShift || 'No shift details available'}</AppText></View><Ionicons name="calendar-number-outline" size={24} color={colors.textMuted} /></View>
-      {policy.locationRequired ? <View style={s.infoRow}><Ionicons name="location-outline" size={18} color={colors.accent} /><Muted style={s.flexOne}>Your organization requires location verification. Allowed locations come from active organization branches.</Muted></View> : null}
+    <AppText style={s.kicker}>EMPLOYEE SELF-SERVICE</AppText>
+    <AppText style={s.pageTitle}>Hi, {firstName}</AppText>
+    <Muted>{data.employee.position} · {data.employee.department}</Muted>
+
+    {data.announcements.length ? <View style={s.announcementWrap}>{data.announcements.slice(0, 2).map((item) => <Card key={item.id} style={s.announcementCard}>
+      <View style={s.infoRow}><Ionicons name="megaphone-outline" size={20} color={colors.accent} /><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted numberOfLines={3}>{item.body}</Muted></View></View>
+    </Card>)}</View> : null}
+
+    <View style={s.grid}>
+      <Quick icon="time-outline" label="Attendance" onPress={() => setTab('time')} />
+      <Quick icon="add-circle-outline" label="New request" onPress={() => setTab('requests')} />
+      <Quick icon="folder-open-outline" label="Documents" onPress={() => setTab('documents')} />
+      <Quick icon="person-circle-outline" label="Account" onPress={() => setTab('account')} />
+    </View>
+
+    <AppText style={s.section}>Today</AppText>
+    <AttendanceActionCard data={data} reload={reload} offline={offline} onViewAttendance={() => setTab('time')} />
+
+    <AppText style={s.section}>Overview</AppText>
+    <Card>
+      <View style={s.metricRow}>
+        <View style={s.metricBlock}><AppText style={s.metric}>{leaveBalance}</AppText><Muted>leave days</Muted></View>
+        <View style={s.metricBlock}><AppText style={s.metric}>{pending}</AppText><Muted>pending</Muted></View>
+        <View style={s.metricBlock}><AppText style={s.metric}>{data.employee.unreadNotifications || 0}</AppText><Muted>unread</Muted></View>
+      </View>
+      <View style={s.chartGroup}><ChartBar label="Attendance · recent 14" value={attendanceRate} /><ChartBar label="Leave availability" value={leaveScale} /></View>
     </Card>
-
-    {!hasShiftToday ? <Card><AppText style={s.cardTitle}>No clock action available</AppText><Muted>No active shift is assigned for today.</Muted></Card>
-      : canClockIn ? <Button title="Clock in" icon="enter-outline" large busy={busy === 'in'} onPress={() => void clock('in')} />
-        : canClockOut ? <Button title="Clock out" icon="exit-outline" large busy={busy === 'out'} onPress={() => void clock('out')} />
-          : <Card style={s.successCard}><View style={s.infoRow}><Ionicons name="checkmark-circle" size={26} color={colors.success} /><View style={s.flexOne}><AppText style={s.cardTitle}>Attendance complete</AppText><Muted>Clock in {formatDateTime(today?.checkIn)} · Clock out {formatDateTime(today?.checkOut)}</Muted></View></View></Card>}
-
-    <AppText style={s.section}>Recent attendance</AppText>
-    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} />)}
-    <PaginationFooter visible={visible} total={data.attendance.length} />
   </>
 }
 
-function AttendanceCard({ row }: { row: AttendanceRow }) {
-  return <Card><View style={s.between}><AppText style={s.cardTitle}>{row.date}</AppText><StatusPill value={row.status} /></View><Muted>{formatDateTime(row.checkIn)} → {formatDateTime(row.checkOut)}</Muted></Card>
+function ChartBar({ label, value }: { label: string; value: number }) {
+  return <View style={s.chartItem}><View style={s.between}><Muted>{label}</Muted><AppText style={s.chartValue}>{value}%</AppText></View><View style={s.chartTrack}><View style={[s.chartFill, { width: `${Math.max(2, Math.min(100, value))}%` }]} /></View></View>
+}
+
+function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.quick, pressed && s.pressed]} onPress={onPress}><Ionicons name={icon} size={24} color={colors.text} /><AppText style={s.quickLabel}>{label}</AppText></Pressable>
+}
+
+export function TimeScreen({ data, reload, loadMoreTick, offline = false }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; offline?: boolean }) {
+  const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
+  const [correctionId, setCorrectionId] = useState<string | null>(null)
+
+  return <>
+    <AppText style={s.pageTitle}>Time & attendance</AppText>
+    <AttendanceActionCard data={data} reload={reload} offline={offline} />
+
+    <AppText style={s.section}>Recent attendance</AppText>
+    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => setCorrectionId(row.id)} />)}
+    <PaginationFooter visible={visible} total={data.attendance.length} />
+
+    <FullScreenTaskModal visible={Boolean(correctionId)} contextLabel="Attendance correction" onClose={() => setCorrectionId(null)}>
+      <AttendanceCorrectionForm data={data} initialAttendanceId={correctionId || undefined} onDone={() => { setCorrectionId(null); void reload() }} />
+    </FullScreenTaskModal>
+  </>
+}
+
+function AttendanceCard({ row, onCorrect }: { row: AttendanceRow; onCorrect?: () => void }) {
+  return <Card>
+    <View style={s.between}><AppText style={s.cardTitle}>{row.date}</AppText><StatusPill value={row.status} /></View>
+    <Muted>{formatDateTime(row.checkIn)} → {formatDateTime(row.checkOut)}</Muted>
+    {onCorrect ? <Pressable accessibilityRole="button" style={({ pressed }) => [s.inlineCorrection, pressed && s.pressed]} onPress={onCorrect}><Ionicons name="create-outline" size={16} color={colors.accent} /><AppText style={s.linkText}>Correct attendance</AppText></Pressable> : null}
+  </Card>
 }
 
 function StatusPill({ value }: { value: string }) {
@@ -430,8 +542,8 @@ function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onD
   return <><AppText style={s.pageTitle}>Leave request</AppText><Card><SelectField label="Leave type" value={type} onPress={() => setTypeOpen(true)} /><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={typeOpen} title="Leave type" onClose={() => setTypeOpen(false)}>{leaveTypes.map((item) => <DrawerOption key={item} title={item} selected={type === item} onPress={() => { setType(item); setTypeOpen(false) }} />)}</BottomDrawer></>
 }
 
-function AttendanceCorrectionForm({ data, onDone }: { data: EssBootstrap; onDone: () => void }) {
-  const [attendanceId, setAttendanceId] = useState(data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
+function AttendanceCorrectionForm({ data, onDone, initialAttendanceId }: { data: EssBootstrap; onDone: () => void; initialAttendanceId?: string }) {
+  const [attendanceId, setAttendanceId] = useState(initialAttendanceId || data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
   const selected = data.attendance.find((row) => row.id === attendanceId)
   const submit = async () => {
     if (!attendanceId || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
@@ -706,6 +818,7 @@ const s = StyleSheet.create({
 
   shiftCard: { marginTop: spacing.xs },
   successCard: { backgroundColor: colors.successSurface, borderColor: colors.successBorder },
+  warningCard: { backgroundColor: colors.warningSurface, borderColor: colors.warningBorder },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
@@ -742,6 +855,7 @@ const s = StyleSheet.create({
   unreadCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
   linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },
+  inlineCorrection: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginTop: spacing.xxs },
   iconAction: { width: controls.touch, height: controls.touch, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   inlineActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 })

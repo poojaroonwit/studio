@@ -18,7 +18,7 @@ import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
 import { essApi, type AttendanceRow, type EmergencyContact, type EssBootstrap } from './api'
 import type { AccountApplicationIdentity, AccountIdentity } from './account'
-import { colors, radii } from './theme'
+import { colors, controls, radii, spacing, typography } from './theme'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
@@ -309,7 +309,7 @@ function EmergencyContactForm({ reload, onDone, contact }: { reload: () => Promi
     } catch (error) { Alert.alert('Emergency contact', error instanceof Error ? error.message : 'Unable to save contact') }
     finally { setBusy(false) }
   }
-  return <><AppText style={s.pageTitle}>{contact ? 'Edit emergency contact' : 'Emergency contact'}</AppText><Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} trackColor={{ false: colors.surfaceStrong, true: colors.text }} thumbColor={colors.surface} /></View><Button title={contact ? 'Save contact' : 'Add contact'} busy={busy} onPress={() => void submit()} /></Card></>
+  return <><AppText style={s.pageTitle}>{contact ? 'Edit emergency contact' : 'Emergency contact'}</AppText><Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} trackColor={{ false: colors.surfaceStrong, true: colors.primary }} thumbColor={colors.surface} /></View><Button title={contact ? 'Save contact' : 'Add contact'} busy={busy} onPress={() => void submit()} /></Card></>
 }
 
 function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
@@ -441,14 +441,91 @@ function Field(props: React.ComponentProps<typeof TextInput> & { label: string }
 function EmptyState({ icon, title, subtitle }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle?: string }) { return <View style={s.empty}><Ionicons name={icon} size={30} color={colors.textMuted} /><AppText style={s.cardTitle}>{title}</AppText>{subtitle ? <Muted style={s.centerText}>{subtitle}</Muted> : null}</View> }
 
 const s = StyleSheet.create({
-  text: { color: colors.text, fontSize: 14 }, muted: { color: colors.textMuted }, pageTitle: { color: colors.text, fontSize: 28, fontWeight: '700', marginBottom: 6, letterSpacing: -0.6 }, kicker: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.3 }, section: { color: colors.text, fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 9 },
-  card: { backgroundColor: colors.surface, padding: 16, borderRadius: radii.lg, gap: 9, marginBottom: 10, borderWidth: 1, borderColor: colors.border }, cardTitle: { color: colors.text, fontSize: 16, fontWeight: '600' }, flexOne: { flex: 1, minWidth: 0 }, between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, spacer: { height: 14 }, pressed: { opacity: 0.72 }, disabled: { opacity: 0.45 },
-  button: { minHeight: 48, backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 13, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }, largeButton: { minHeight: 88, borderRadius: radii.xl, marginVertical: 10 }, largeButtonText: { fontSize: 19 }, secondaryButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong }, buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, buttonText: { color: colors.primaryText, fontWeight: '700' }, secondaryButtonText: { color: colors.text },
-  announcementWrap: { marginTop: 16 }, announcementCard: { backgroundColor: colors.infoSurface, borderColor: '#D5E3FF' }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 }, quick: { width: '48%', minHeight: 104, backgroundColor: colors.surface, padding: 16, borderRadius: radii.lg, justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }, quickLabel: { color: colors.text, fontWeight: '600' },
-  metricRow: { flexDirection: 'row', gap: 10 }, metricBlock: { flex: 1, backgroundColor: colors.surfaceMuted, padding: 12, borderRadius: radii.md }, metric: { color: colors.text, fontSize: 30, fontWeight: '700' }, chartGroup: { gap: 12, marginTop: 6 }, chartItem: { gap: 7 }, chartValue: { fontWeight: '700' }, chartTrack: { height: 8, backgroundColor: colors.surfaceStrong, borderRadius: 99, overflow: 'hidden' }, chartFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 99 },
-  shiftCard: { marginTop: 12 }, successCard: { backgroundColor: colors.successSurface, borderColor: '#CBEBD7' }, infoRow: { flexDirection: 'row', alignItems: 'center', gap: 9 }, status: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.surfaceMuted }, statusText: { color: colors.text, fontSize: 12, textTransform: 'capitalize', fontWeight: '600' }, loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  requestGrid: { gap: 10, marginTop: 16 }, requestCard: { minHeight: 96, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center' }, requestIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted }, back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, alignSelf: 'flex-start', marginBottom: 8 },
-  field: { gap: 6, marginBottom: 6 }, fieldLabel: { fontSize: 12, fontWeight: '600' }, input: { minHeight: 46, color: colors.text, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 11 }, inputPressable: { minHeight: 46, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, multi: { minHeight: 96, textAlignVertical: 'top' }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }, chip: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface }, chipActive: { backgroundColor: colors.primary, borderColor: colors.primary }, chipText: { color: colors.text, fontSize: 12, fontWeight: '600' }, chipTextActive: { color: colors.primaryText },
-  danger: { color: colors.danger, fontWeight: '700', paddingVertical: 5 }, switchRow: { flexDirection: 'row', alignItems: 'center', gap: 14 }, empty: { minHeight: 132, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, marginBottom: 10, padding: 18 }, centerText: { textAlign: 'center' }, accountHero: { backgroundColor: colors.surface }, accountIdentityRow: { flexDirection: 'row', alignItems: 'center', gap: 13 }, accountName: { fontSize: 19, fontWeight: '700' }, avatarImage: { backgroundColor: colors.surfaceMuted }, avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }, avatarInitial: { color: colors.primaryText, fontWeight: '700', fontSize: 18 },
-  menuList: { gap: 8, marginBottom: 16 }, menuItem: { minHeight: 70, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 12 }, menuIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' }, version: { textAlign: 'center', fontSize: 11, marginTop: 8 }, chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: 8, marginVertical: 14 }, chatBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.infoSurface, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 }, unreadCard: { backgroundColor: colors.infoSurface, borderColor: '#D5E3FF' }, unreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent }, linkText: { color: colors.accent, fontWeight: '700', fontSize: 12 }, iconAction: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.surfaceMuted }, inlineActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  text: { color: colors.text, fontSize: typography.base, lineHeight: 20 },
+  muted: { color: colors.textMuted, lineHeight: 20 },
+  pageTitle: { color: colors.text, fontSize: typography.title, lineHeight: 33, fontWeight: '700', marginBottom: spacing.xxs, letterSpacing: -0.7 },
+  kicker: { color: colors.primary, fontSize: typography.xs, lineHeight: 15, fontWeight: '600', letterSpacing: 0.8 },
+  section: { color: colors.text, fontSize: typography.xl, lineHeight: 23, fontWeight: '600', marginTop: spacing.lg, marginBottom: spacing.xs, letterSpacing: -0.25 },
+
+  card: { backgroundColor: colors.surface, padding: 14, borderRadius: radii.md, gap: spacing.xs, marginBottom: spacing.xs, borderWidth: 1, borderColor: colors.border },
+  cardTitle: { color: colors.text, fontSize: typography.md, lineHeight: 20, fontWeight: '600', letterSpacing: -0.15 },
+  flexOne: { flex: 1, minWidth: 0 },
+  between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  spacer: { height: spacing.sm },
+  pressed: { opacity: 0.68 },
+  disabled: { opacity: 0.5 },
+
+  button: { minHeight: controls.button, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: 10, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs },
+  largeButton: { minHeight: 58, borderRadius: radii.sm, marginVertical: spacing.xs },
+  largeButtonText: { fontSize: typography.lg },
+  secondaryButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  buttonText: { color: colors.primaryText, fontSize: typography.base, lineHeight: 18, fontWeight: '600' },
+  secondaryButtonText: { color: colors.text },
+
+  announcementWrap: { marginTop: spacing.md },
+  announcementCard: { backgroundColor: colors.infoSurface, borderColor: '#D8E4F7' },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.md },
+  quick: { width: '48%', minHeight: 96, backgroundColor: colors.surface, padding: 14, borderRadius: radii.md, justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border },
+  quickLabel: { color: colors.text, fontSize: typography.base, lineHeight: 18, fontWeight: '600' },
+
+  metricRow: { flexDirection: 'row', gap: spacing.xs },
+  metricBlock: { flex: 1, backgroundColor: colors.surfaceMuted, padding: spacing.sm, borderRadius: radii.sm },
+  metric: { color: colors.text, fontSize: 26, lineHeight: 31, fontWeight: '700', letterSpacing: -0.6 },
+  chartGroup: { gap: spacing.sm, marginTop: spacing.xxs },
+  chartItem: { gap: 6 },
+  chartValue: { fontWeight: '600', fontSize: typography.sm },
+  chartTrack: { height: 6, backgroundColor: colors.surfaceStrong, borderRadius: radii.pill, overflow: 'hidden' },
+  chartFill: { height: '100%', backgroundColor: colors.primary, borderRadius: radii.pill },
+
+  shiftCard: { marginTop: spacing.xs },
+  successCard: { backgroundColor: colors.successSurface, borderColor: '#CFE8D8' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
+  statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
+  loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+
+  requestGrid: { gap: 0, marginTop: spacing.md, marginBottom: spacing.xxs, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, overflow: 'hidden' },
+  requestCard: { minHeight: 74, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 14, paddingVertical: spacing.sm, gap: spacing.sm, flexDirection: 'row', alignItems: 'center' },
+  requestIcon: { width: controls.touch, height: controls.touch, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
+  back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.xs, paddingRight: spacing.sm, borderRadius: radii.pill },
+
+  field: { gap: 6, marginBottom: spacing.xs },
+  fieldLabel: { fontSize: typography.sm, lineHeight: 16, fontWeight: '500', color: colors.textMuted },
+  input: { minHeight: controls.input, color: colors.text, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radii.sm, paddingHorizontal: 11, paddingVertical: 10, fontSize: 16, lineHeight: 21 },
+  inputPressable: { minHeight: controls.input, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radii.sm, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  multi: { minHeight: 96, textAlignVertical: 'top' },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs },
+  chip: { minHeight: controls.touch, justifyContent: 'center', paddingHorizontal: spacing.sm, paddingVertical: 8, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.textMuted, fontSize: typography.sm, lineHeight: 16, fontWeight: '500' },
+  chipTextActive: { color: colors.primaryText, fontWeight: '600' },
+
+  danger: { color: colors.danger, fontWeight: '600', paddingVertical: spacing.xs },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+
+  empty: { minHeight: 136, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.surfaceMuted, borderRadius: radii.md, marginBottom: spacing.xs, padding: spacing.lg },
+  centerText: { textAlign: 'center' },
+
+  accountHero: { backgroundColor: colors.surface },
+  accountIdentityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  accountName: { fontSize: typography.xl, lineHeight: 23, fontWeight: '700', letterSpacing: -0.3 },
+  avatarImage: { backgroundColor: colors.surfaceMuted },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+  avatarInitial: { color: colors.primaryText, fontWeight: '600', fontSize: typography.lg },
+
+  menuList: { gap: 0, marginBottom: spacing.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, overflow: 'hidden' },
+  menuItem: { minHeight: 64, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  menuIcon: { width: 40, height: 40, borderRadius: radii.sm, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  version: { textAlign: 'center', fontSize: typography.xs, lineHeight: 15, color: colors.textSubtle, marginTop: spacing.xs },
+
+  chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: spacing.xs, marginVertical: spacing.sm },
+  chatBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.infoSurface, paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: radii.lg },
+  unreadCard: { backgroundColor: colors.infoSurface, borderColor: '#D8E4F7' },
+  unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
+  linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },
+  iconAction: { width: controls.touch, height: controls.touch, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
+  inlineActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 })

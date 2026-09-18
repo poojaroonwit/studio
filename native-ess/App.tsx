@@ -264,10 +264,20 @@ export default function App() {
   useEffect(() => {
     if (!authenticated) return
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'background') return
-      void SecureStore.getItemAsync(BIOMETRIC_KEY)
-        .then((value) => { if (value === '1') setLocked(true) })
-        .catch((error) => console.warn('Obsi People biometric relock check unavailable', error))
+      if (state === 'background') {
+        void SecureStore.getItemAsync(BIOMETRIC_KEY)
+          .then((value) => { if (value === '1') setLocked(true) })
+          .catch((error) => console.warn('Obsi People biometric relock check unavailable', error))
+        return
+      }
+      if (state === 'active') {
+        void SecureStore.getItemAsync(BIOMETRIC_KEY)
+          .then((value) => {
+            if (value === '1') return
+            void load({ allowCache: false })
+          })
+          .catch(() => void load({ allowCache: false }))
+      }
     })
     return () => subscription.remove()
   }, [authenticated])
@@ -320,9 +330,9 @@ export default function App() {
   }
 
   const screen = tab === 'home'
-    ? <HomeScreen data={data} setTab={navigateTab} account={account} reload={load} />
+    ? <HomeScreen data={data} setTab={navigateTab} account={account} reload={load} offline={offline} />
     : tab === 'time'
-      ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} />
+      ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} offline={offline} />
       : tab === 'requests'
         ? <RequestsScreen data={data} reload={load} loadMoreTick={loadMoreTick} onFullPageChange={setFullPage} />
         : tab === 'documents'

@@ -24,6 +24,7 @@ import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
 import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen } from './src/screens'
 import { colors, controls, radii, spacing, typography } from './src/theme'
 import { removePushRegistration, syncPushRegistration, watchPushTokenRefresh } from './src/push'
+import { appBuildLabel } from './src/runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
@@ -302,7 +303,7 @@ export default function App() {
           {authLoading ? <ActivityIndicator color={colors.text} /> : <Ionicons name="arrow-forward" size={21} color={colors.text} />}
         </Pressable>
         {authError ? <AppText style={s.authError}>{authError}</AppText> : null}
-        <AppText style={s.welcomeFoot}>Development build · v0.2.0</AppText>
+        <AppText style={s.welcomeFoot}>{appBuildLabel}</AppText>
       </View>
     </SafeAreaView></SafeAreaProvider>
   }

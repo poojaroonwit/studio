@@ -106,7 +106,8 @@ function PaginationFooter({ visible, total }: { visible: number; total: number }
   return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
 }
 
-export function HomeScreen({ data, setTab, account }: { data: EssBootstrap; setTab: (tab: Tab) => void; account?: AccountIdentity | null }) {
+export function HomeScreen({ data, setTab, account, reload }: { data: EssBootstrap; setTab: (tab: Tab) => void; account?: AccountIdentity | null; reload: () => Promise<void> }) {
+  const [clockBusy, setClockBusy] = useState<'in' | 'out' | null>(null)
   const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
   const recent = data.attendance.slice(0, 14)
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
@@ -115,6 +116,42 @@ export function HomeScreen({ data, setTab, account }: { data: EssBootstrap; setT
   const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
   const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
   const nextSchedule = data.schedule.find((item) => item.date >= bangkokDate())
+  const today = todayAttendance(data)
+  const policy = data.attendancePolicy || {}
+  const shiftDate = data.employee.shiftLabel && /^\\d{4}-\\d{2}-\\d{2}$/.test(data.employee.shiftLabel) ? data.employee.shiftLabel : undefined
+  const hasShiftToday = !policy.requireScheduledShift || shiftDate === bangkokDate()
+  const canClockIn = hasShiftToday && !today?.checkIn
+  const canClockOut = hasShiftToday && Boolean(today?.checkIn) && !today?.checkOut
+
+  const clock = async (mode: 'in' | 'out') => {
+    if (clockBusy) return
+    setClockBusy(mode)
+    try {
+      let lat: number | undefined
+      let lng: number | undefined
+      if (policy.locationRequired) {
+        const permission = await Location.requestForegroundPermissionsAsync()
+        if (permission.status !== 'granted') throw new Error('Location permission is required by your organization for attendance.')
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+        lat = pos.coords.latitude
+        lng = pos.coords.longitude
+      } else {
+        const permission = await Location.getForegroundPermissionsAsync()
+        if (permission.status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+          lat = pos.coords.latitude
+          lng = pos.coords.longitude
+        }
+      }
+      if (mode === 'in') await essApi.clockIn(lat, lng)
+      else await essApi.clockOut(lat, lng)
+      await reload()
+    } catch (error) {
+      Alert.alert('Attendance', error instanceof Error ? error.message : 'Unable to update attendance')
+    } finally {
+      setClockBusy(null)
+    }
+  }
 
   return <>
     <AppText style={s.kicker}>EMPLOYEE SELF-SERVICE</AppText>
@@ -133,6 +170,19 @@ export function HomeScreen({ data, setTab, account }: { data: EssBootstrap; setT
     </View>
 
     <AppText style={s.section}>Today</AppText>
+    <Card style={!hasShiftToday || (!canClockIn && !canClockOut) ? s.successCard : undefined}>
+      <View style={s.between}>
+        <View style={s.flexOne}>
+          <AppText style={s.cardTitle}>{canClockIn ? 'Clock in' : canClockOut ? 'Clock out' : hasShiftToday ? 'Attendance complete' : 'Attendance'}</AppText>
+          <Muted>{!hasShiftToday ? 'No active shift is assigned for today.' : canClockIn ? 'Start your workday when you are ready.' : canClockOut ? `Clocked in · ${formatDateTime(today?.checkIn)}` : `Clock in ${formatDateTime(today?.checkIn)} · Clock out ${formatDateTime(today?.checkOut)}`}</Muted>
+        </View>
+        <Ionicons name={canClockIn ? 'enter-outline' : canClockOut ? 'exit-outline' : 'checkmark-circle-outline'} size={26} color={canClockIn || canClockOut ? colors.text : colors.success} />
+      </View>
+      {policy.locationRequired && (canClockIn || canClockOut) ? <View style={s.infoRow}><Ionicons name="location-outline" size={18} color={colors.accent} /><Muted style={s.flexOne}>Location verification is required for this attendance action.</Muted></View> : null}
+      {canClockIn ? <Button title="Clock in" icon="enter-outline" large busy={clockBusy === 'in'} onPress={() => void clock('in')} />
+        : canClockOut ? <Button title="Clock out" icon="exit-outline" large busy={clockBusy === 'out'} onPress={() => void clock('out')} />
+          : <Button title="View attendance" icon="time-outline" secondary onPress={() => setTab('time')} />}
+    </Card>
     <Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{data.employee.shiftLabel || 'Schedule'}</AppText><Muted>{data.employee.nextShift || 'No shift scheduled'}</Muted>{nextSchedule?.location ? <Muted>{nextSchedule.location}</Muted> : null}</View><Ionicons name="calendar-outline" size={22} color={colors.textMuted} /></View></Card>
 
     <AppText style={s.section}>Overview</AppText>

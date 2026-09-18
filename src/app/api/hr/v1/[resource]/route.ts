@@ -258,13 +258,13 @@ export async function PATCH(request: NextRequest, context: Context) {
     const placeholder = castCreatePlaceholder(
       access.resource as Parameters<typeof castCreatePlaceholder>[0],
       column,
-      `${values.length}`,
+      `$${values.length}`,
     );
     return `${column} = ${placeholder}`;
   });
   if (resource === 'employment-events' && validatedUpdate.data.status === 'approved') {
     values.push(access.session.user.id);
-    sets.push(`approved_by_id = ${values.length}::uuid`, 'approved_at = now()');
+    sets.push(`approved_by_id = $${values.length}::uuid`, 'approved_at = now()');
   }
   if (resource === 'employment-events' && validatedUpdate.data.status === 'applied') {
     sets.push('applied_at = now()');
@@ -368,7 +368,7 @@ export async function PATCH(request: NextRequest, context: Context) {
             : column === 'end_date'
               ? `::timestamp`
               : '';
-          employeeSets.push(`${column} = ${employeeUpdateValues.length + 1}${cast}`);
+          employeeSets.push(`${column} = $${employeeUpdateValues.length + 1}${cast}`);
         }
 
         if (employeeSets.length) {

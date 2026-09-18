@@ -27,10 +27,10 @@ describe('HR sidebar links', () => {
     expect(sidebarConfigData[0]).toMatchObject({
       label: 'Employee Portal',
       items: [
-        { label: 'Admin Portal', href: '/dashboard' },
-        { label: 'HR Dashboard', href: '/hr-dashboard' },
+        { label: 'Dashboard', href: '/dashboard' },
         { label: 'Employee Portal', href: '/employee-portal' },
         { label: 'My Workday', href: '/my-workday' },
+        { label: 'My Tasks', href: '/my-tasks' },
       ],
     });
     const ess = (sidebarConfigData as Array<{ label: string; items: Array<{ label: string; href: string }> }>)
@@ -45,6 +45,7 @@ describe('HR sidebar links', () => {
       ['My Documents', '/ess/documents'],
       ['My Benefits', '/ess/benefits'],
       ['My Performance', '/ess/performance'],
+      ['Career Opportunities', '/ess/opportunities'],
       ['My Surveys', '/ess/surveys'],
       ['My Team', '/ess/team'],
     ]);
@@ -67,11 +68,12 @@ describe('HR sidebar links', () => {
     ]));
   });
 
-  it('does not expose My Tasks in the sidebar', () => {
-    const sidebarItems = (sidebarConfigData as Array<{ items: Array<{ href: string }> }>)
-      .flatMap(group => group.items);
+  it('exposes My Tasks as a top-level employee workflow', () => {
+    const employeePortal = (sidebarConfigData as Array<{ label: string; items: Array<{ label: string; href: string }> }>)
+      .find(group => group.label === 'Employee Portal');
 
-    expect(sidebarItems).not.toContainEqual(expect.objectContaining({
+    expect(employeePortal?.items).toContainEqual(expect.objectContaining({
+      label: 'My Tasks',
       href: '/my-tasks',
     }));
   });
@@ -120,6 +122,8 @@ describe('HR sidebar links', () => {
       'Onboarding',
       'Org Chart',
       'Probation',
+      'Employee Movements',
+      'Talent & Mobility',
       'Offboarding',
       'Contracts',
       'Assets',
@@ -133,6 +137,8 @@ describe('HR sidebar links', () => {
       'Shift Requests',
       'Overtime',
       'Transportation',
+      'Workforce Planning',
+      'Engagement',
     ]);
     expect(labelsFor('Leave')).toEqual([
       'Leave Request',

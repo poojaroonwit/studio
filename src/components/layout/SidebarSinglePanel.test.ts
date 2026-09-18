@@ -59,21 +59,18 @@ describe('buildFigmaSidebarSections', () => {
     )).toBe(true);
   });
 
-  it('renders Admin Portal, HR Dashboard, Employee Portal, and My Workday as standalone items at the top', () => {
+  it('renders primary employee workflows as standalone items at the top', () => {
     const sections = buildFigmaSidebarSections(sidebarConfig);
 
     expect(sections[0]).toMatchObject({
       label: 'Main',
       entries: [
-        { type: 'leaf', label: 'Admin Portal', item: { href: '/dashboard' } },
-        { type: 'leaf', label: 'HR Dashboard', item: { href: '/hr-dashboard' } },
+        { type: 'leaf', label: 'Dashboard', item: { href: '/dashboard' } },
         { type: 'leaf', label: 'Employee Portal', item: { href: '/employee-portal' } },
         { type: 'leaf', label: 'My Workday', item: { href: '/my-workday' } },
+        { type: 'leaf', label: 'My Tasks', item: { href: '/my-tasks' } },
       ],
     });
-    expect(sections[0].entries).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'My Tasks' }),
-    ]));
   });
 
   it('renders Client List as a standalone item instead of a Client group', () => {

@@ -205,7 +205,7 @@ describe('safe-sidebar-nav-utils', () => {
       sidebarConfigData.find(group => group.label === 'Workforce')?.items[0],
     ).toMatchObject({
       label: 'Attendance',
-      href: '/workforce/attendance?view=attendance',
+      href: '/workforce/attendance',
       permissionId: 'HR_WORKFORCE_VIEW',
     });
     expect(

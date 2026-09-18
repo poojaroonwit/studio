@@ -301,14 +301,33 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
 
 export function RequestsScreen({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
+  const [chooserOpen, setChooserOpen] = useState(false)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
-  if (kind) return <><Back label="Requests" onPress={() => setKind(null)} /><RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} /></>
+  const chooseKind = (next: RequestKind) => {
+    setChooserOpen(false)
+    setTimeout(() => setKind(next), 180)
+  }
+
   return <>
-    <AppText style={s.pageTitle}>Requests</AppText><Muted>Choose what you need first. The form changes for each request type.</Muted>
-    <View style={s.requestGrid}>{requestKinds.map((item) => <Pressable key={item.id} accessibilityRole="button" style={({ pressed }) => [s.requestCard, pressed && s.pressed]} onPress={() => setKind(item.id)}><View style={s.requestIcon}><Ionicons name={item.icon} size={24} color={colors.text} /></View><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted>{item.description}</Muted></View><Ionicons name="chevron-forward" size={20} color={colors.textMuted} /></Pressable>)}</View>
+    <View style={s.pageHeadingRow}>
+      <View style={s.flexOne}><AppText style={s.pageTitle}>Requests</AppText><Muted>Track submitted requests and start a new one.</Muted></View>
+      <Pressable accessibilityRole="button" style={({ pressed }) => [s.newRequestButton, pressed && s.pressed]} onPress={() => setChooserOpen(true)}>
+        <Ionicons name="add" size={19} color={colors.primaryText} />
+        <AppText style={s.newRequestButtonText}>New</AppText>
+      </Pressable>
+    </View>
+
     <AppText style={s.section}>Recent leave requests</AppText>
-    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No requests yet" /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
+    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No requests yet" subtitle="Create a request when you need leave, an attendance correction or HR support." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
     <PaginationFooter visible={visible} total={data.leaveRequests.length} />
+
+    <BottomDrawer visible={chooserOpen} title="New request" subtitle="Choose the request you want to create." onClose={() => setChooserOpen(false)}>
+      {requestKinds.map((item) => <DrawerOption key={item.id} icon={item.icon} title={item.title} subtitle={item.description} onPress={() => chooseKind(item.id)} />)}
+    </BottomDrawer>
+
+    <FullScreenTaskModal visible={kind !== null} contextLabel="Requests" onClose={() => setKind(null)}>
+      {kind ? <RequestForm kind={kind} data={data} reload={reload} onDone={() => setKind(null)} /> : null}
+    </FullScreenTaskModal>
   </>
 }
 

@@ -432,6 +432,7 @@ export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; lo
 
 export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number }) {
   const [section, setSection] = useState<AccountSection>('menu')
+  const confirmSignOut = () => Alert.alert('Sign out', 'Sign out of Obsi People on this device?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: onSignOut }])
   if (section !== 'menu') return <AccountSubpage section={section} setSection={setSection} data={data} account={account} reload={reload} loadMoreTick={loadMoreTick} />
   const displayName = account?.name || data.employee.name
   return <>
@@ -446,7 +447,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
       <MenuItem icon="people-outline" title="Emergency contacts" subtitle="Add, edit and remove contacts" onPress={() => setSection('contacts')} />
       <MenuItem icon="shield-checkmark-outline" title="Security" subtitle="Biometric app lock" onPress={() => setSection('security')} />
     </View>
-    <Button title="Sign out" secondary onPress={onSignOut} />
+    <Button title="Sign out" secondary onPress={confirmSignOut} />
     <Muted style={s.version}>Development build · v0.2.0</Muted>
   </>
 }
@@ -495,8 +496,13 @@ function BenefitsPage({ data }: { data: EssBootstrap }) {
 function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
   const [editing, setEditing] = useState<EmergencyContact | 'new' | null>(null)
   const remove = (contact: EmergencyContact) => Alert.alert('Remove contact', `Remove ${contact.name}?`, [{ text: 'Keep', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void (async () => { try { await essApi.deleteEmergencyContact(contact.id); await reload() } catch (error) { Alert.alert('Emergency contacts', error instanceof Error ? error.message : 'Unable to remove') } })() }])
-  if (editing) return <><Back label="Emergency contacts" onPress={() => setEditing(null)} /><EmergencyContactForm contact={editing === 'new' ? undefined : editing} reload={reload} onDone={() => setEditing(null)} /></>
-  return <><View style={s.between}><AppText style={s.pageTitle}>Emergency contacts</AppText><Pressable accessibilityRole="button" style={s.iconAction} onPress={() => setEditing('new')}><Ionicons name="add" size={24} color={colors.text} /></Pressable></View>{data.emergencyContacts.length === 0 ? <EmptyState icon="people-outline" title="No emergency contacts" /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><Pressable style={s.flexOne} onPress={() => setEditing(contact)}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></Pressable><View style={s.inlineActions}><Pressable onPress={() => setEditing(contact)}><Ionicons name="create-outline" size={20} color={colors.text} /></Pressable><Pressable onPress={() => remove(contact)}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable></View></View></Card>)}</>
+  return <>
+    <View style={s.between}><AppText style={s.pageTitle}>Emergency contacts</AppText><Pressable accessibilityRole="button" accessibilityLabel="Add emergency contact" style={({ pressed }) => [s.iconAction, pressed && s.controlPressed]} onPress={() => setEditing('new')}><Ionicons name="add" size={24} color={colors.text} /></Pressable></View>
+    {data.emergencyContacts.length === 0 ? <EmptyState icon="people-outline" title="No emergency contacts" subtitle="Add at least one person HR can contact in an emergency." /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><Pressable accessibilityRole="button" style={s.flexOne} onPress={() => setEditing(contact)}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></Pressable><View style={s.inlineActions}><Pressable accessibilityRole="button" accessibilityLabel={`Edit ${contact.name}`} style={s.inlineIconAction} onPress={() => setEditing(contact)}><Ionicons name="create-outline" size={20} color={colors.text} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${contact.name}`} style={s.inlineIconAction} onPress={() => remove(contact)}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable></View></View></Card>)}
+    <FullScreenTaskModal visible={editing !== null} contextLabel="Emergency contacts" onClose={() => setEditing(null)}>
+      {editing ? <EmergencyContactForm contact={editing === 'new' ? undefined : editing} reload={reload} onDone={() => setEditing(null)} /> : null}
+    </FullScreenTaskModal>
+  </>
 }
 
 function SecurityPage() {
@@ -529,7 +535,7 @@ function SecurityPage() {
       setBusy(false)
     }
   }
-  return <><AppText style={s.pageTitle}>Security</AppText><Card><View style={s.switchRow}><View style={s.flexOne}><AppText style={s.cardTitle}>Biometric app lock</AppText><Muted>{supported === false ? 'Biometrics are not configured on this device.' : 'Require fingerprint or Face ID when opening the app.'}</Muted></View><Switch disabled={!supported || busy} value={enabled} onValueChange={(next) => void toggle(next)} trackColor={{ false: colors.surfaceStrong, true: colors.text }} thumbColor={colors.surface} /></View></Card></>
+  return <><AppText style={s.pageTitle}>Security</AppText><Card><View style={s.switchRow}><View style={s.flexOne}><AppText style={s.cardTitle}>Biometric app lock</AppText><Muted>{supported === false ? 'Biometrics are not configured on this device.' : 'Require fingerprint or Face ID when opening the app.'}</Muted></View><Switch disabled={!supported || busy} value={enabled} onValueChange={(next) => void toggle(next)} trackColor={{ false: colors.surfaceStrong, true: colors.primary }} thumbColor={colors.surface} /></View></Card></>
 }
 
 function Back({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" style={s.back} onPress={onPress}><Ionicons name="arrow-back" size={18} color={colors.text} /><AppText>{label}</AppText></Pressable> }

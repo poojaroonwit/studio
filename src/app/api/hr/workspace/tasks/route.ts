@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
-import { listHrisTaskProjections } from '@/lib/hris/task-projection';
+import { listHrisTaskProjections, syncHrisTasksForActor } from '@/lib/hris/task-projection';
 import type { HrisStatus, HrisTaskPriority } from '@/lib/hris/workspace-contracts';
 import { hasAnyPermission, isAdminUser } from '@/lib/permissions';
 import type { PlatformModuleId } from '@/lib/types';
@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
     return error('FORBIDDEN', 'You cannot view another user’s task inbox.', 403);
   }
   try {
+    await syncHrisTasksForActor({
+      userId: session.user.id,
+      email: session.user.email,
+    });
     const page = await listHrisTaskProjections({
       actorUserId: session.user.id,
       allowAssigneeOverride,

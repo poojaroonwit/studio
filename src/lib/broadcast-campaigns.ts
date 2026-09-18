@@ -9,7 +9,7 @@ export type BroadcastCampaign = {
   title: string;
   message: string;
   audience: string;
-  status: "scheduled" | "sent" | "active" | "inactive" | "failed" | "expired";
+  status: "scheduled" | "sending" | "sent" | "active" | "inactive" | "failed" | "expired";
   priority: string;
   placement: string | null;
   backgroundColor: string | null;
@@ -112,6 +112,70 @@ export async function createBroadcastCampaign(input: {
       input.createdByName],
   );
   return result.rows[0];
+}
+
+export async function claimDueOutboundBroadcastCampaigns(limit = 25) {
+  const result = await getPool().query<BroadcastCampaign>(
+    `WITH due AS (
+       SELECT id
+       FROM broadcast_campaigns
+       WHERE channel IN ('email', 'sms')
+         AND status = 'scheduled'
+         AND scheduled_at IS NOT NULL
+         AND scheduled_at <= now()
+       ORDER BY scheduled_at, created_at
+       FOR UPDATE SKIP LOCKED
+       LIMIT $1
+     )
+     UPDATE broadcast_campaigns campaign
+     SET status = 'sending', updated_at = now(), error_message = NULL
+     FROM due
+     WHERE campaign.id = due.id
+     RETURNING ${SELECT_COLUMNS}`,
+    [Math.min(Math.max(limit, 1), 100)],
+  );
+  return result.rows;
+}
+
+export async function finalizeOutboundBroadcastCampaign(input: {
+  id: string;
+  status: 'sent' | 'failed';
+  recipientCount: number;
+  failedCount: number;
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
+}) {
+  const result = await getPool().query<BroadcastCampaign>(
+    `UPDATE broadcast_campaigns
+     SET status = $2,
+         recipient_count = $3,
+         failed_count = $4,
+         provider_message_id = $5,
+         error_message = $6,
+         updated_at = now()
+     WHERE id = $1::uuid AND channel IN ('email', 'sms')
+     RETURNING ${SELECT_COLUMNS}`,
+    [
+      input.id,
+      input.status,
+      input.recipientCount,
+      input.failedCount,
+      input.providerMessageId || null,
+      input.errorMessage || null,
+    ],
+  );
+  return result.rows[0] || null;
+}
+
+export async function markOutboundBroadcastSending(id: string) {
+  const result = await getPool().query<BroadcastCampaign>(
+    `UPDATE broadcast_campaigns
+     SET status = 'sending', updated_at = now(), error_message = NULL
+     WHERE id = $1::uuid AND channel IN ('email', 'sms') AND status = 'scheduled'
+     RETURNING ${SELECT_COLUMNS}`,
+    [id],
+  );
+  return result.rows[0] || null;
 }
 
 export async function deactivateBroadcastCampaign(id: string) {

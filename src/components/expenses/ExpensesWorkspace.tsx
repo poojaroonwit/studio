@@ -18,6 +18,17 @@ import {
 } from '@heroicons/react/24/outline';
 
 import type { ExpenseActionInput, ExpenseRecord, ExpenseResource, ExpenseSummary } from '@/lib/expenses/contracts';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { HrisWorkspaceHeader } from '@/components/hris/HrisWorkspacePrimitives';
 import { cn } from '@/lib/utils';
 import { ExpenseCreateForm } from './ExpenseCreateForm';
@@ -81,8 +92,28 @@ const emptySummary: ExpenseSummary = {
   },
 };
 
+type ExpenseActionOption = {
+  action: ExpenseActionInput['action'];
+  label: string;
+  tone?: 'primary' | 'danger';
+};
+
+const actionsRequiringComment = new Set<ExpenseActionInput['action']>([
+  'reject',
+  'return_for_revision',
+  'mark_posting_failed',
+  'reverse',
+  'reconcile',
+]);
+
+const actionsRequiringReference = new Set<ExpenseActionInput['action']>([
+  'mark_paid',
+  'mark_exported',
+  'mark_posted',
+]);
+
 function actionOptions(resource: ExpenseResource, record: ExpenseRecord, summary: ExpenseSummary) {
-  const actions: Array<{ action: ExpenseActionInput['action']; label: string; tone?: 'primary' | 'danger' }> = [];
+  const actions: ExpenseActionOption[] = [];
   if (resource === 'accounting') {
     if (['pending_generation', 'validation_failed', 'posting_failed'].includes(record.status)) actions.push({ action: 'generate_journal', label: record.status === 'posting_failed' ? 'Regenerate journal' : 'Generate journal', tone: 'primary' });
     if (record.status === 'ready_for_review') actions.push({ action: 'mark_ready_to_export', label: 'Mark ready to export', tone: 'primary' });
@@ -124,6 +155,10 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
   const [creating, setCreating] = React.useState(false);
   const [selected, setSelected] = React.useState<ExpenseRecord | null>(null);
   const [actionBusy, setActionBusy] = React.useState(false);
+  const [pendingAction, setPendingAction] = React.useState<ExpenseActionOption | null>(null);
+  const [actionComment, setActionComment] = React.useState('');
+  const [actionAmount, setActionAmount] = React.useState('');
+  const [actionReference, setActionReference] = React.useState('');
   const [online, setOnline] = React.useState(true);
   const searchDeferred = React.useDeferredValue(search);
 
@@ -165,28 +200,42 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
     };
   }, []);
 
-  async function performAction(action: ExpenseActionInput['action']) {
-    if (!selected) return;
-    let comment: string | null = null;
-    if (['reject', 'return_for_revision', 'mark_posting_failed', 'reverse', 'reconcile'].includes(action)) {
-      comment = window.prompt(action === 'reconcile' ? 'Add reconciliation notes' : 'Explain this decision');
-      if (!comment?.trim()) return;
+  function openAction(option: ExpenseActionOption) {
+    setActionComment('');
+    setActionAmount('');
+    setActionReference('');
+    setPendingAction(option);
+  }
+
+  async function performAction() {
+    if (!selected || !pendingAction) return;
+    const action = pendingAction.action;
+    const comment = actionComment.trim() || null;
+
+    if (actionsRequiringComment.has(action) && !comment) {
+      setMessage(action === 'reconcile'
+        ? 'Add reconciliation notes before continuing.'
+        : 'Add a reason before continuing.');
+      return;
     }
+
     let settlementAmount: number | undefined;
     if (action === 'settle') {
-      const value = window.prompt('Settlement amount');
-      if (!value) return;
-      settlementAmount = Number(value);
+      settlementAmount = Number(actionAmount);
       if (!Number.isFinite(settlementAmount) || settlementAmount <= 0) {
         setMessage('Enter a settlement amount greater than zero.');
         return;
       }
     }
-    let reference: string | null = null;
-    if (['mark_paid', 'mark_exported', 'mark_posted'].includes(action)) {
-      reference = window.prompt(action === 'mark_paid' ? 'Payment reference' : 'External reference');
-      if (!reference?.trim()) return;
+
+    const reference = actionReference.trim() || null;
+    if (actionsRequiringReference.has(action) && !reference) {
+      setMessage(action === 'mark_paid'
+        ? 'Enter a payment reference before continuing.'
+        : 'Enter an external reference before continuing.');
+      return;
     }
+
     setActionBusy(true);
     setMessage(null);
     try {
@@ -207,6 +256,7 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
       const body = await response.json();
       if (!response.ok) throw new Error(body.message || 'The action could not be completed.');
       setMessage(`${selected.reference} is now ${String(body.data.status).replace(/_/g, ' ')}.`);
+      setPendingAction(null);
       await load(true);
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'The action could not be completed.');
@@ -460,7 +510,7 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
                               key={option.action}
                               type="button"
                               disabled={actionBusy || !online}
-                              onClick={() => performAction(option.action)}
+                              onClick={() => openAction(option)}
                               className={cn(
                                 'min-h-11 rounded-lg border px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
                                 option.tone === 'primary'
@@ -483,6 +533,113 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
           )}
         </div>
       </section>
+
+      <Dialog
+        open={Boolean(pendingAction)}
+        onOpenChange={(open) => {
+          if (!open && !actionBusy) setPendingAction(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{pendingAction?.label || 'Confirm financial action'}</DialogTitle>
+            <DialogDescription>
+              {selected
+                ? `Review this action for ${selected.reference}. Hrive will keep the resulting status change and reference in the financial audit trail.`
+                : 'Review this financial action before continuing.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendingAction ? (
+            <div className="space-y-4 py-1">
+              {actionsRequiringComment.has(pendingAction.action) ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="expense-action-comment">
+                    {pendingAction.action === 'reconcile' ? 'Reconciliation notes' : 'Reason'}
+                  </Label>
+                  <Textarea
+                    id="expense-action-comment"
+                    value={actionComment}
+                    onChange={(event) => setActionComment(event.target.value)}
+                    maxLength={2000}
+                    placeholder={pendingAction.action === 'reconcile'
+                      ? 'Describe the reconciliation evidence and any variance.'
+                      : 'Explain why this action is required.'}
+                  />
+                </div>
+              ) : null}
+
+              {pendingAction.action === 'settle' ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="expense-action-amount">Settlement amount</Label>
+                  <Input
+                    id="expense-action-amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={actionAmount}
+                    onChange={(event) => setActionAmount(event.target.value)}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Currency: {selected?.currency || summary.currency || '—'}
+                  </p>
+                </div>
+              ) : null}
+
+              {actionsRequiringReference.has(pendingAction.action) ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="expense-action-reference">
+                    {pendingAction.action === 'mark_paid' ? 'Payment reference' : 'External reference'}
+                  </Label>
+                  <Input
+                    id="expense-action-reference"
+                    value={actionReference}
+                    onChange={(event) => setActionReference(event.target.value)}
+                    maxLength={240}
+                    placeholder={pendingAction.action === 'mark_paid'
+                      ? 'Bank transaction or payment reference'
+                      : 'ERP or accounting reference'}
+                  />
+                </div>
+              ) : null}
+
+              {!actionsRequiringComment.has(pendingAction.action)
+                && pendingAction.action !== 'settle'
+                && !actionsRequiringReference.has(pendingAction.action) ? (
+                <div className="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">
+                  This action will update the authoritative financial workflow for {selected?.reference || 'this record'}.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={() => setPendingAction(null)}
+              className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={actionBusy || !online}
+              onClick={() => void performAction()}
+              className={cn(
+                'inline-flex min-h-10 items-center justify-center rounded-md px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50',
+                pendingAction?.tone === 'danger'
+                  ? 'bg-rose-700 hover:bg-rose-800'
+                  : 'bg-blue-700 hover:bg-blue-800',
+              )}
+            >
+              {actionBusy ? 'Processing…' : pendingAction?.label || 'Confirm'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

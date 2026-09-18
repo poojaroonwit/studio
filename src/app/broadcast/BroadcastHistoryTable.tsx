@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowPath as ArrowPathIcon, BarChart3, BellRing, CircleOff, Loader2, Mail, MonitorUp, Smartphone } from "lucide-react";
+import { RefreshCw, BarChart3, BellRing, CircleOff, Loader2, Mail, MonitorUp, Smartphone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,7 +145,7 @@ export function BroadcastHistoryTable({
                             onClick={() => onRetry(item.campaignId)}
                             aria-label={`Retry ${item.title}`}
                           >
-                            {deactivatingId === item.campaignId ? <Loader2 className="animate-spin" /> : <ArrowPathIcon />}
+                            {deactivatingId === item.campaignId ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                             {deactivatingId === item.campaignId ? "Retrying" : "Retry"}
                           </Button>
                         ) : null}

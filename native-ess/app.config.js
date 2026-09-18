@@ -10,7 +10,7 @@ module.exports = {
       package: 'co.outborn.people.ess',
       versionCode: 2,
       googleServicesFile: './google-services.json',
-      adaptiveIcon: { backgroundColor: '#F5F6F8' },
+      adaptiveIcon: { backgroundColor: '#F6F7F9' },
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS']
     },
     ios: {

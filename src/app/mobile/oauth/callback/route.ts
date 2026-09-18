@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
 
   const suffix = params.size ? `?${params.toString()}` : '';
   const target = `${NATIVE_CALLBACK}${suffix}`;
-  const serializedTarget = JSON.stringify(target);
+  const serializedTarget = JSON.stringify(target)
+    .replaceAll('<', '\\u003c')
+    .replaceAll('>', '\\u003e')
+    .replaceAll('&', '\\u0026');
 
   const html = `<!doctype html>
 <html lang="en">
@@ -54,6 +57,9 @@ export async function GET(request: NextRequest) {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store, max-age=0',
+      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
       'X-Robots-Tag': 'noindex, nofollow',
       'Referrer-Policy': 'no-referrer',
     },

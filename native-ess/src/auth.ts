@@ -123,30 +123,21 @@ export const accountAuth = {
       keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     })
 
-    return new Promise<boolean>((resolve, reject) => {
-      let settled = false
-      const finish = (callback: () => void) => {
-        if (settled) return
-        settled = true
-        clearTimeout(timeout)
-        subscription.remove()
-        callback()
-      }
-      const subscription = Linking.addEventListener('url', ({ url }) => {
-        if (!isNativeCallback(url)) return
-        void completeRedirect(url)
-          .then((success) => finish(() => resolve(success)))
-          .catch((error) => finish(() => reject(error)))
-      })
-      const timeout = setTimeout(() => {
-        finish(() => reject(new Error('Outborn Account sign-in timed out. Please try again.')))
-      }, PENDING_MAX_AGE_MS)
-
-      void WebBrowser.openBrowserAsync(authUrl, {
-        enableBarCollapsing: true,
-        showTitle: false,
-      }).catch((error) => finish(() => reject(error)))
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, nativeReturnUri, {
+      enableBarCollapsing: true,
+      showTitle: false,
     })
+
+    if (result.type === 'success') {
+      if (!isNativeCallback(result.url)) {
+        await SecureStore.deleteItemAsync(PENDING_KEY)
+        throw new Error('Outborn Account returned an invalid native callback. Please try again.')
+      }
+      return completeRedirect(result.url)
+    }
+
+    await SecureStore.deleteItemAsync(PENDING_KEY)
+    return false
   },
 
   async signOut() {

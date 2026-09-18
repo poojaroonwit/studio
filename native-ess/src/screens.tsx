@@ -3,8 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -16,6 +20,7 @@ import * as LocalAuthentication from 'expo-local-authentication'
 import * as Location from 'expo-location'
 import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { essApi, type AttendanceRow, type EmergencyContact, type EssBootstrap } from './api'
 import type { AccountApplicationIdentity, AccountIdentity } from './account'
 import { colors, controls, radii, spacing, typography } from './theme'
@@ -210,6 +215,80 @@ function AttendanceCard({ row }: { row: AttendanceRow }) {
 
 function StatusPill({ value }: { value: string }) {
   return <View style={s.status}><AppText style={s.statusText}>{value}</AppText></View>
+}
+
+
+function BottomDrawer({ visible, title, subtitle, onClose, children }: {
+  visible: boolean
+  title: string
+  subtitle?: string
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return <Modal transparent visible={visible} animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Pressable style={s.drawerBackdrop} onPress={onClose}>
+      <Pressable accessibilityRole="none" style={s.drawer} onPress={(event) => event.stopPropagation()}>
+        <View style={s.drawerHandle} />
+        <View style={s.drawerHeader}>
+          <View style={s.flexOne}><AppText style={s.drawerTitle}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.modalClose} onPress={onClose}>
+            <Ionicons name="close" size={22} color={colors.text} />
+          </Pressable>
+        </View>
+        <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="handled">
+          {children}
+        </ScrollView>
+      </Pressable>
+    </Pressable>
+  </Modal>
+}
+
+function FullScreenTaskModal({ visible, contextLabel, onClose, children }: {
+  visible: boolean
+  contextLabel: string
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+    <SafeAreaView style={s.modalPage}>
+      <View style={s.modalHeader}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Close ${contextLabel}`} style={s.modalClose} onPress={onClose}>
+          <Ionicons name="close" size={22} color={colors.text} />
+        </Pressable>
+        <AppText style={s.modalContext} numberOfLines={1}>{contextLabel}</AppText>
+        <View style={s.modalHeaderSpacer} />
+      </View>
+      <KeyboardAvoidingView style={s.modalFlex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView style={s.modalFlex} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  </Modal>
+}
+
+function DrawerOption({ icon, title, subtitle, selected = false, onPress }: {
+  icon?: keyof typeof Ionicons.glyphMap
+  title: string
+  subtitle?: string
+  selected?: boolean
+  onPress: () => void
+}) {
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.drawerOption, pressed && s.drawerOptionPressed]} onPress={onPress}>
+    {icon ? <View style={s.drawerOptionIcon}><Ionicons name={icon} size={21} color={selected ? colors.primary : colors.text} /></View> : null}
+    <View style={s.flexOne}><AppText style={[s.drawerOptionTitle, selected && s.drawerOptionTitleSelected]}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
+    {selected ? <Ionicons name="checkmark" size={21} color={colors.primary} /> : <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />}
+  </Pressable>
+}
+
+function SelectField({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+  return <View style={s.field}>
+    <Muted style={s.fieldLabel}>{label}</Muted>
+    <Pressable accessibilityRole="button" style={({ pressed }) => [s.inputPressable, pressed && s.controlPressed]} onPress={onPress}>
+      <AppText numberOfLines={1} style={s.flexOne}>{value}</AppText>
+      <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+    </Pressable>
+  </View>
 }
 
 const requestKinds: Array<{ id: RequestKind; title: string; description: string; icon: keyof typeof Ionicons.glyphMap }> = [

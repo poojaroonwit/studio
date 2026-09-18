@@ -3,10 +3,10 @@ import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { sendEmail } from "@/lib/emailService";
 import { getSystemSetting } from "@/lib/systemSettings";
-import { createBroadcastCampaign, finalizeOutboundBroadcastCampaign } from "@/lib/broadcast-campaigns";
+import { createBroadcastCampaign } from "@/lib/broadcast-campaigns";
 import { getActiveEmailTemplateVersions } from "@/lib/email-template-catalog";
+import { deliverOutboundBroadcastCampaign } from "../broadcast-delivery";
 import {
   broadcastAudienceSchema,
   getBroadcastRecipients,
@@ -84,29 +84,20 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   }
 
-  const result = await sendEmail(emails, parsed.data.subject, safeHtml);
-  const finalized = await finalizeOutboundBroadcastCampaign({
-    id: campaign.id,
-    status: result.success ? "sent" : "failed",
-    recipientCount: result.success ? emails.length : 0,
-    failedCount: result.success ? 0 : emails.length,
-    providerMessageId: result.success ? result.messageId : null,
-    errorMessage: result.success ? null : result.error || "Failed to send email broadcast",
-  });
-
-  if (!result.success) {
+  const delivery = await deliverOutboundBroadcastCampaign(campaign, recipients);
+  if (delivery.status === "failed") {
     return NextResponse.json({
-      message: result.error || "Failed to send email broadcast",
-      campaign: finalized || campaign,
+      message: delivery.error || "Failed to send email broadcast",
+      campaign: delivery.campaign || campaign,
     }, { status: 502 });
   }
 
   return NextResponse.json({
     message: "Email broadcast sent",
     channel: "email",
-    sent: emails.length,
-    messageId: result.messageId,
-    campaign: finalized || campaign,
+    sent: delivery.sent,
+    messageId: delivery.providerMessageId,
+    campaign: delivery.campaign || campaign,
   });
 }
 

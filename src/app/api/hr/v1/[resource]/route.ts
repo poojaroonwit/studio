@@ -25,6 +25,77 @@ function error(code: string, message: string, status: number, details?: unknown)
   return NextResponse.json({ error: { code, message, details } }, { status });
 }
 
+const EMPLOYMENT_EVENT_TRANSITIONS: Record<string, readonly string[]> = {
+  draft: ['pending', 'cancelled'],
+  pending: ['approved', 'rejected', 'cancelled'],
+  approved: ['applied', 'cancelled'],
+  applied: [],
+  rejected: [],
+  cancelled: [],
+};
+
+const EMPLOYEE_EVENT_FIELDS = {
+  companyId: 'company_id',
+  clientId: 'client_id',
+  positionId: 'position_id',
+  departmentId: 'department_id',
+  managerId: 'manager_id',
+  jobTitle: 'job_title',
+  employmentType: 'employment_type',
+  location: 'location',
+  status: 'status',
+  endDate: 'end_date',
+  contractNoticeDays: 'contract_notice_days',
+  probationPeriodDays: 'probation_period_days',
+  probationEvaluationFrequencyDays: 'probation_evaluation_frequency_days',
+} as const;
+
+const ASSIGNMENT_EVENT_FIELDS = new Set([
+  'companyId',
+  'clientId',
+  'positionId',
+  'departmentId',
+  'managerId',
+  'gradeId',
+  'workScheduleId',
+  'assignmentType',
+  'employmentType',
+  'jobTitle',
+  'location',
+  'contractNumber',
+]);
+
+function recordValue(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function proposedValue(values: Record<string, unknown>, key: string) {
+  if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
+  const snake = toSnakeCase(key);
+  return Object.prototype.hasOwnProperty.call(values, snake) ? values[snake] : undefined;
+}
+
+function assertEmploymentEventTransition(currentStatus: unknown, nextStatus: string) {
+  const current = String(currentStatus || 'draft');
+  if (current === nextStatus) return;
+  if (!(EMPLOYMENT_EVENT_TRANSITIONS[current] || []).includes(nextStatus)) {
+    throw new Error('INVALID_EMPLOYMENT_EVENT_TRANSITION');
+  }
+}
+
 async function authorize(resource: string, manage = false) {
   const session = await auth();
   if (!session?.user?.id) return { response: error('UNAUTHORIZED', 'User session required.', 401) };
@@ -187,10 +258,17 @@ export async function PATCH(request: NextRequest, context: Context) {
     const placeholder = castCreatePlaceholder(
       access.resource as Parameters<typeof castCreatePlaceholder>[0],
       column,
-      `$${values.length}`,
+      `${values.length}`,
     );
     return `${column} = ${placeholder}`;
   });
+  if (resource === 'employment-events' && validatedUpdate.data.status === 'approved') {
+    values.push(access.session.user.id);
+    sets.push(`approved_by_id = ${values.length}::uuid`, 'approved_at = now()');
+  }
+  if (resource === 'employment-events' && validatedUpdate.data.status === 'applied') {
+    sets.push('applied_at = now()');
+  }
   values.push(parsed.data.expectedVersion, id);
   const companyPredicate = access.config.companyScoped && access.actorCompanyId
     ? ` AND company_id = $${values.push(access.actorCompanyId)}::uuid`
@@ -199,6 +277,32 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   try {
     const rows = await prisma.$transaction(async transaction => {
+      let currentEmploymentEvent: Record<string, unknown> | null = null;
+      if (resource === 'employment-events') {
+        const currentRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+          `SELECT * FROM hr_employment_events
+           WHERE id = $1::uuid
+             ${access.actorCompanyId ? 'AND company_id = $2::uuid' : ''}
+           FOR UPDATE`,
+          id,
+          ...(access.actorCompanyId ? [access.actorCompanyId] : []),
+        );
+        currentEmploymentEvent = currentRows[0] || null;
+        if (!currentEmploymentEvent) throw new Error('EMPLOYMENT_EVENT_NOT_FOUND');
+        if (Number(currentEmploymentEvent.version) !== parsed.data.expectedVersion) {
+          throw new Error('EMPLOYMENT_EVENT_VERSION_CONFLICT');
+        }
+        if (validatedUpdate.data.status) {
+          assertEmploymentEventTransition(currentEmploymentEvent.status, validatedUpdate.data.status);
+        }
+        if (
+          Object.keys(validatedUpdate.data.changes).length > 0
+          && !['draft', 'pending'].includes(String(currentEmploymentEvent.status || 'draft'))
+        ) {
+          throw new Error('EMPLOYMENT_EVENT_LOCKED');
+        }
+      }
+
       const updatedRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
         `UPDATE ${access.config.table} SET ${sets.join(', ')}
          WHERE version = $${values.length - (companyPredicate ? 2 : 1)}
@@ -207,7 +311,165 @@ export async function PATCH(request: NextRequest, context: Context) {
          RETURNING *`,
         ...values,
       );
-      const updated = updatedRows[0];
+      let updated = updatedRows[0];
+      if (resource === 'employment-events' && validatedUpdate.data.status === 'applied' && updated) {
+        const effectiveDate = String(updated.effective_date || '').slice(0, 10);
+        const today = new Date().toISOString().slice(0, 10);
+        if (!effectiveDate || effectiveDate > today) {
+          throw new Error('EMPLOYMENT_EVENT_EFFECTIVE_DATE_NOT_REACHED');
+        }
+
+        const employeeId = String(updated.employee_id || '');
+        const employeeRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+          `SELECT * FROM hr_employees WHERE id = $1::uuid FOR UPDATE`,
+          employeeId,
+        );
+        const employee = employeeRows[0];
+        if (!employee) throw new Error('EMPLOYMENT_EVENT_EMPLOYEE_NOT_FOUND');
+
+        const proposed = recordValue(updated.proposed_values);
+        const supportedKeys = new Set([
+          ...Object.keys(EMPLOYEE_EVENT_FIELDS),
+          ...ASSIGNMENT_EVENT_FIELDS,
+        ]);
+        const unknownKeys = Object.keys(proposed).filter(key => {
+          const camelCandidate = key.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase());
+          return !supportedKeys.has(key) && !supportedKeys.has(camelCandidate);
+        });
+        if (unknownKeys.length) throw new Error('EMPLOYMENT_EVENT_UNSUPPORTED_VALUES');
+
+        if (proposed.positionId !== undefined && proposed.jobTitle === undefined) {
+          const targetPositionId = proposedValue(proposed, 'positionId');
+          if (targetPositionId) {
+            const positionRows = await transaction.$queryRawUnsafe<Array<{ title: string }>>(
+              `SELECT title FROM "Position" WHERE id = $1::uuid LIMIT 1`,
+              String(targetPositionId),
+            );
+            if (positionRows[0]?.title) proposed.jobTitle = positionRows[0].title;
+          }
+        }
+
+        const previousValues: Record<string, unknown> = {};
+        const employeeSets: string[] = [];
+        const employeeUpdateValues: unknown[] = [];
+        for (const [key, column] of Object.entries(EMPLOYEE_EVENT_FIELDS)) {
+          const next = proposedValue(proposed, key);
+          if (next === undefined) continue;
+          previousValues[key] = employee[column];
+          employeeUpdateValues.push(next);
+          const cast = [
+            'company_id',
+            'client_id',
+            'position_id',
+            'department_id',
+            'manager_id',
+          ].includes(column)
+            ? `::uuid`
+            : column === 'end_date'
+              ? `::timestamp`
+              : '';
+          employeeSets.push(`${column} = ${employeeUpdateValues.length + 1}${cast}`);
+        }
+
+        if (employeeSets.length) {
+          await transaction.$executeRawUnsafe(
+            `UPDATE hr_employees
+             SET ${employeeSets.join(', ')}, version = version + 1, updated_at = now()
+             WHERE id = $1::uuid`,
+            employeeId,
+            ...employeeUpdateValues,
+          );
+        }
+
+        const assignmentRows = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+          `SELECT * FROM hr_employment_assignments
+           WHERE employee_id = $1::uuid
+             AND assignment_type = 'primary'
+             AND status = 'active'
+           ORDER BY effective_from DESC, created_at DESC
+           LIMIT 1
+           FOR UPDATE`,
+          employeeId,
+        );
+        const currentAssignment = assignmentRows[0] || {};
+
+        if (currentAssignment.id) {
+          await transaction.$executeRawUnsafe(
+            `UPDATE hr_employment_assignments
+             SET effective_to = CASE
+                   WHEN effective_from < $2::date THEN $2::date - 1
+                   ELSE effective_from
+                 END,
+                 status = 'ended',
+                 updated_at = now()
+             WHERE id = $1::uuid`,
+            String(currentAssignment.id),
+            effectiveDate,
+          );
+        }
+
+        const assignment = {
+          companyId: proposedValue(proposed, 'companyId') ?? employee.company_id ?? currentAssignment.company_id ?? null,
+          clientId: proposedValue(proposed, 'clientId') ?? employee.client_id ?? currentAssignment.client_id ?? null,
+          positionId: proposedValue(proposed, 'positionId') ?? employee.position_id ?? currentAssignment.position_id ?? null,
+          departmentId: proposedValue(proposed, 'departmentId') ?? employee.department_id ?? currentAssignment.department_id ?? null,
+          managerId: proposedValue(proposed, 'managerId') ?? employee.manager_id ?? currentAssignment.manager_id ?? null,
+          gradeId: proposedValue(proposed, 'gradeId') ?? currentAssignment.grade_id ?? null,
+          workScheduleId: proposedValue(proposed, 'workScheduleId') ?? currentAssignment.work_schedule_id ?? null,
+          assignmentType: proposedValue(proposed, 'assignmentType') ?? 'primary',
+          employmentType: proposedValue(proposed, 'employmentType') ?? employee.employment_type ?? currentAssignment.employment_type ?? 'full_time',
+          jobTitle: proposedValue(proposed, 'jobTitle') ?? employee.job_title ?? currentAssignment.job_title ?? null,
+          location: proposedValue(proposed, 'location') ?? employee.location ?? currentAssignment.location ?? null,
+          contractNumber: proposedValue(proposed, 'contractNumber') ?? currentAssignment.contract_number ?? null,
+        };
+
+        await transaction.$executeRawUnsafe(
+          `INSERT INTO hr_employment_assignments(
+             employee_id, company_id, client_id, position_id, department_id, manager_id,
+             grade_id, work_schedule_id, assignment_type, employment_type, job_title,
+             location, contract_number, effective_from, status, reason, source_event_id,
+             created_by_id, approved_by_id, approved_at
+           ) VALUES (
+             $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
+             $7::uuid, $8::uuid, $9, $10, $11,
+             $12, $13, $14::date, 'active', $15, $16::uuid,
+             $17::uuid, $17::uuid, now()
+           )`,
+          employeeId,
+          assignment.companyId,
+          assignment.clientId,
+          assignment.positionId,
+          assignment.departmentId,
+          assignment.managerId,
+          assignment.gradeId,
+          assignment.workScheduleId,
+          String(assignment.assignmentType || 'primary'),
+          String(assignment.employmentType || 'full_time'),
+          assignment.jobTitle,
+          assignment.location,
+          assignment.contractNumber,
+          effectiveDate,
+          String(updated.reason || parsed.data.reason),
+          id,
+          access.session.user.id,
+        );
+
+        await transaction.$executeRawUnsafe(
+          `UPDATE hr_employment_events
+           SET previous_values = $2::jsonb,
+               applied_at = COALESCE(applied_at, now()),
+               updated_at = now()
+           WHERE id = $1::uuid`,
+          id,
+          JSON.stringify(previousValues),
+        );
+        const refreshed = await transaction.$queryRawUnsafe<Record<string, unknown>[]>(
+          `SELECT * FROM hr_employment_events WHERE id = $1::uuid LIMIT 1`,
+          id,
+        );
+        updated = refreshed[0] || updated;
+      }
+
       if (resource === 'exits' && parsed.data.status === 'completed' && updated) {
         const checklist = Array.isArray(updated.checklist) ? updated.checklist as Array<Record<string, unknown>> : [];
         if (!checklist.length || checklist.some(task => !['complete', 'completed', 'done'].includes(String(task.status || '').toLowerCase()))) {
@@ -238,7 +500,7 @@ export async function PATCH(request: NextRequest, context: Context) {
           id,
         );
       }
-      return updatedRows;
+      return updated ? [updated] : updatedRows;
     });
     if (!rows[0]) return error('VERSION_CONFLICT', 'The record changed since it was loaded.', 409);
     await logAudit('AUDIT', `HRIS ${resource} record updated.`, `API:HRIS:v1:${resource}:Update`, access.session.user.id, {
@@ -254,6 +516,27 @@ export async function PATCH(request: NextRequest, context: Context) {
     }
     if (cause instanceof Error && cause.message === 'EXIT_DATE_NOT_REACHED') {
       return error('EXIT_DATE_NOT_REACHED', 'The case cannot be completed before the employee\'s last working date.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_NOT_FOUND') {
+      return error('NOT_FOUND', 'The employment event was not found.', 404);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_VERSION_CONFLICT') {
+      return error('VERSION_CONFLICT', 'The employment event changed since it was loaded.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'INVALID_EMPLOYMENT_EVENT_TRANSITION') {
+      return error('INVALID_TRANSITION', 'The employment event cannot move directly to that status.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_LOCKED') {
+      return error('EVENT_LOCKED', 'Approved, applied, rejected, and cancelled employment events cannot be edited.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_EFFECTIVE_DATE_NOT_REACHED') {
+      return error('EFFECTIVE_DATE_NOT_REACHED', 'Apply the employment event on or after its effective date.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_EMPLOYEE_NOT_FOUND') {
+      return error('EMPLOYEE_NOT_FOUND', 'The employee linked to this movement no longer exists.', 409);
+    }
+    if (cause instanceof Error && cause.message === 'EMPLOYMENT_EVENT_UNSUPPORTED_VALUES') {
+      return error('UNSUPPORTED_MOVEMENT_VALUES', 'The proposed movement contains fields that cannot be applied to the employee record.', 422);
     }
     return error('UPDATE_FAILED', 'Unable to update the HR record.', 500);
   }

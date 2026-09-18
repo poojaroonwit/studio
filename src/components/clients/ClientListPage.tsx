@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   BuildingOffice2Icon,
@@ -311,7 +312,9 @@ export function ClientListPage() {
                     {canManage && <td className="px-4 py-4"><Checkbox aria-label={`Select ${client.name || 'client'}`} checked={selectedIds.has(client.id)} onCheckedChange={checked => setSelectedIds(current => { const next = new Set(current); checked === true ? next.add(client.id) : next.delete(client.id); return next; })} /></td>}
                     <td className="px-4 py-4 font-semibold text-primary">{client.clientCode || "—"}</td>
                     <td className="px-4 py-4">
-                      <p className="font-semibold text-foreground">{client.name || "Unnamed client"}</p>
+                      <Link href={`/clients/${client.id}`} className="font-semibold text-foreground hover:text-primary hover:underline">
+                        {client.name || "Unnamed client"}
+                      </Link>
                       <p className="mt-1 text-xs text-muted-foreground">{client.industry || "Industry not set"}</p>
                     </td>
                     <td className="px-4 py-4 text-foreground/80">{client.primaryContactName || "—"}</td>

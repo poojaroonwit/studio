@@ -2,8 +2,18 @@ name: Quality gates
 
 on:
   pull_request:
+    paths-ignore:
+      - 'mobile/**'
+      - 'native-ess/**'
   push:
     branches: [main, master, uat, dev]
+    paths-ignore:
+      - 'mobile/**'
+      - 'native-ess/**'
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   application:
@@ -63,7 +73,6 @@ jobs:
           src/lib/leaves/leave-allocation-draft.test.ts
           --max-warnings=0
       - run: npm run test:run
-      - run: npm run build
 
   database-schema:
     runs-on: ubuntu-latest

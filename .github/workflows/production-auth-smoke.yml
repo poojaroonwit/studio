@@ -1,14 +1,9 @@
 name: Production auth smoke
 
 on:
+  # This is a post-deploy smoke test. Keep it manual so Railway's Wait for CI
+  # gate cannot deadlock waiting on a check that itself waits for production.
   workflow_dispatch:
-  push:
-    branches: [dev]
-    paths:
-      - 'src/auth.ts'
-      - 'src/lib/auth-outborn-account-provider.ts'
-      - 'src/app/auth/signin/**'
-      - '.github/workflows/production-auth-smoke.yml'
 
 concurrency:
   group: production-auth-smoke

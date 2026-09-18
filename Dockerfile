@@ -19,13 +19,14 @@ WORKDIR /app
 # resolve through .npmrc to the canonical Outborn Registry.
 FROM base AS deps
 COPY package.json package-lock.json .npmrc ./
-COPY prisma ./prisma
-RUN npm config set maxsockets 10 && \
-    npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set maxsockets 10 && \
+    npm ci --prefer-offline --no-audit --no-fund
 
 # Runtime dependencies retain the Prisma CLI because migrations are deployed
 # by entrypoint.sh before the standalone Next.js server starts.
 FROM deps AS prod-deps
+COPY prisma ./prisma
 RUN npm prune --omit=dev && \
     npx prisma generate --generator client
 
@@ -33,7 +34,6 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
 COPY --from=deps /app/.npmrc ./.npmrc
-COPY --from=deps /app/prisma ./prisma
 COPY . ./
 
 RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh ./entrypoint-local.sh 2>/dev/null || true
@@ -48,9 +48,7 @@ ENV NODE_ENV=production
 # production build must succeed here that succeeds in the Quality Gates.
 RUN set -e && \
     NEXT_PHASE=phase-production-build npm run build && \
-    echo "=== Build completed successfully ===" && \
-    cp -r .next/static .next/standalone/.next/static && \
-    cp -r public .next/standalone/public
+    echo "=== Build completed successfully ==="
 
 FROM node:22-alpine AS runner
 RUN apk add --no-cache postgresql-client openssl && \

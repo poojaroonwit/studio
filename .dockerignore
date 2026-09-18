@@ -12,3 +12,9 @@ build
 dist
 .DS_Store
 *.pem
+mobile
+native-ess
+e2e
+.github
+playwright-report
+test-results

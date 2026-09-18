@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPool } from "@/lib/db";
-import { getBroadcastBannerReport, listActiveAnnouncements, recordBannerEngagement } from "./broadcast-campaigns";
+import {
+  claimDueOutboundBroadcastCampaigns,
+  finalizeOutboundBroadcastCampaign,
+  getBroadcastBannerReport,
+  listActiveAnnouncements,
+  recordBannerEngagement,
+} from "./broadcast-campaigns";
 
 vi.mock("@/lib/db", () => ({ getPool: vi.fn() }));
 
@@ -52,5 +58,40 @@ describe("broadcast banner engagement", () => {
     const report = await getBroadcastBannerReport("d4fc4b80-3635-4ef5-a839-98889641ec04");
 
     expect(report).toMatchObject({ totalAudience: 3, seenCount: 2, acknowledgedCount: 1 });
+  });
+
+
+  it("claims due email and SMS campaigns atomically", async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: "campaign-1", channel: "email", status: "sending" }] });
+
+    const campaigns = await claimDueOutboundBroadcastCampaigns(10);
+
+    expect(campaigns).toHaveLength(1);
+    expect(query.mock.calls[0][0]).toContain("FOR UPDATE SKIP LOCKED");
+    expect(query.mock.calls[0][0]).toContain("status = 'sending'");
+    expect(query.mock.calls[0][1]).toEqual([10]);
+  });
+
+  it("persists outbound delivery outcome for campaign history", async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: "campaign-1", channel: "sms", status: "failed" }] });
+
+    await finalizeOutboundBroadcastCampaign({
+      id: "d4fc4b80-3635-4ef5-a839-98889641ec04",
+      status: "failed",
+      recipientCount: 8,
+      failedCount: 2,
+      errorMessage: "Provider timeout",
+    });
+
+    expect(query.mock.calls[0][0]).toContain("recipient_count = $3");
+    expect(query.mock.calls[0][0]).toContain("failed_count = $4");
+    expect(query.mock.calls[0][1]).toEqual([
+      "d4fc4b80-3635-4ef5-a839-98889641ec04",
+      "failed",
+      8,
+      2,
+      null,
+      "Provider timeout",
+    ]);
   });
 });

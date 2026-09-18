@@ -201,52 +201,68 @@ export async function PATCH(request: NextRequest) {
 
       let employmentEventId: string | null = null;
       if (parsed.data.action === 'approve' && current.position_id) {
-        const eventRows = await transaction.$queryRawUnsafe<Array<{ id: string }>>(
-          `INSERT INTO hr_employment_events(
-             employee_id,
-             company_id,
-             event_type,
-             effective_date,
-             status,
-             reason,
-             previous_values,
-             proposed_values,
-             request_id,
-             idempotency_key,
-             requested_by_id,
-             approved_by_id,
-             approved_at
-           ) VALUES (
-             $1::uuid,
-             $2::uuid,
-             'transfer',
-             $3::date,
-             'approved',
-             $4,
-             '{}'::jsonb,
-             $5::jsonb,
-             $6,
-             $7,
-             $8::uuid,
-             $8::uuid,
-             now()
-           )
-           ON CONFLICT (company_id, idempotency_key) DO UPDATE
-             SET updated_at = hr_employment_events.updated_at
-           RETURNING id`,
-          String(current.employee_id),
-          current.company_id || current.employee_company_id || null,
-          parsed.data.effectiveDate,
-          parsed.data.comment || `Approved internal move to ${String(current.opportunity_title || current.position_title || 'new position')}`,
-          JSON.stringify({
-            positionId: String(current.position_id),
-            jobTitle: current.position_title ? String(current.position_title) : undefined,
-          }),
-          `mobility:${parsed.data.applicationId}`,
-          `mobility-application:${parsed.data.applicationId}`,
-          access.session.user.id,
+        const idempotencyKey = `mobility-application:${parsed.data.applicationId}`;
+        await transaction.$queryRawUnsafe(
+          `SELECT pg_advisory_xact_lock(hashtext($1))`,
+          idempotencyKey,
         );
-        employmentEventId = eventRows[0]?.id || null;
+        const existingEvents = await transaction.$queryRawUnsafe<Array<{ id: string }>>(
+          `SELECT id
+           FROM hr_employment_events
+           WHERE idempotency_key = $1
+             AND company_id IS NOT DISTINCT FROM $2::uuid
+           LIMIT 1`,
+          idempotencyKey,
+          current.company_id || current.employee_company_id || null,
+        );
+        if (existingEvents[0]) {
+          employmentEventId = existingEvents[0].id;
+        } else {
+          const eventRows = await transaction.$queryRawUnsafe<Array<{ id: string }>>(
+            `INSERT INTO hr_employment_events(
+               employee_id,
+               company_id,
+               event_type,
+               effective_date,
+               status,
+               reason,
+               previous_values,
+               proposed_values,
+               request_id,
+               idempotency_key,
+               requested_by_id,
+               approved_by_id,
+               approved_at
+             ) VALUES (
+               $1::uuid,
+               $2::uuid,
+               'transfer',
+               $3::date,
+               'approved',
+               $4,
+               '{}'::jsonb,
+               $5::jsonb,
+               $6,
+               $7,
+               $8::uuid,
+               $8::uuid,
+               now()
+             )
+             RETURNING id`,
+            String(current.employee_id),
+            current.company_id || current.employee_company_id || null,
+            parsed.data.effectiveDate,
+            parsed.data.comment || `Approved internal move to ${String(current.opportunity_title || current.position_title || 'new position')}`,
+            JSON.stringify({
+              positionId: String(current.position_id),
+              jobTitle: current.position_title ? String(current.position_title) : undefined,
+            }),
+            `mobility:${parsed.data.applicationId}`,
+            idempotencyKey,
+            access.session.user.id,
+          );
+          employmentEventId = eventRows[0]?.id || null;
+        }
       }
 
       return { updated, employmentEventId };

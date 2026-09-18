@@ -27,7 +27,7 @@ export function HrisUnifiedTaskInbox({
   const load = React.useCallback(async () => {
     setLoadError('');
     try {
-      const response = await fetch('/api/hr/workspace/tasks?status=pending,pending_approval,under_review&priority=critical,high,normal,low&pageSize=100', {
+      const response = await fetch('/api/hr/workspace/tasks?status=pending,pending_approval,under_review,in_progress,submitted,returned_for_revision,blocked&priority=critical,high,normal,low&pageSize=100', {
         credentials: 'include',
         cache: 'no-store',
       });

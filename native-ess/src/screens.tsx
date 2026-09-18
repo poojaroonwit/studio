@@ -388,7 +388,13 @@ function AttendanceCard({ row, onCorrect }: { row: AttendanceRow; onCorrect?: ()
 }
 
 function StatusPill({ value }: { value: string }) {
-  return <View style={s.status}><AppText style={s.statusText}>{value}</AppText></View>
+  const normalized = value.trim().toLowerCase()
+  const success = ['approved', 'present', 'completed', 'complete', 'active', 'available', 'success'].includes(normalized)
+  const warning = ['pending', 'late', 'draft', 'waiting', 'scheduled'].includes(normalized)
+  const danger = ['rejected', 'cancelled', 'canceled', 'absent', 'failed', 'declined'].includes(normalized)
+  return <View style={[s.status, success && s.statusSuccess, warning && s.statusWarning, danger && s.statusDanger]}>
+    <AppText style={[s.statusText, success && s.statusTextSuccess, warning && s.statusTextWarning, danger && s.statusTextDanger]}>{value}</AppText>
+  </View>
 }
 
 
@@ -835,7 +841,13 @@ const s = StyleSheet.create({
   warningCard: { backgroundColor: colors.warningSurface },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
+  statusSuccess: { backgroundColor: colors.successSurface },
+  statusWarning: { backgroundColor: colors.warningSurface },
+  statusDanger: { backgroundColor: colors.dangerSurface },
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
+  statusTextSuccess: { color: colors.success },
+  statusTextWarning: { color: colors.warning },
+  statusTextDanger: { color: colors.danger },
   loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
 
   back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },

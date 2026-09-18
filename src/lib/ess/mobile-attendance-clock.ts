@@ -23,6 +23,7 @@ export async function handleNativeAttendanceClock(
   const longitude = optionalNumber(body.longitude);
   const policyDecision = await validateMobileAttendanceAction({ employeeId: identity.employeeId, mode, latitude, longitude });
   if (!policyDecision.allowed) return jsonError(policyDecision.error, policyDecision.status);
+  const workDate = policyDecision.workDate;
 
   const client = await getPool().connect();
   try {
@@ -30,9 +31,9 @@ export async function handleNativeAttendanceClock(
     const existing = await client.query(
       `SELECT id, clock_in, clock_out
          FROM hr_attendance_records
-        WHERE employee_id = $1 AND work_date = (NOW() AT TIME ZONE 'Asia/Bangkok')::date
+        WHERE employee_id = $1 AND work_date = $2::date
         FOR UPDATE`,
-      [identity.employeeId],
+      [identity.employeeId, workDate],
     );
     let record = existing.rows[0] as Record<string, unknown> | undefined;
 
@@ -45,9 +46,9 @@ export async function handleNativeAttendanceClock(
         const inserted = await client.query(
           `INSERT INTO hr_attendance_records
              (id, employee_id, work_date, clock_in, status, source, latitude, longitude, timezone, created_at, updated_at)
-           VALUES ($1, $2, (NOW() AT TIME ZONE 'Asia/Bangkok')::date, NOW(), 'present', 'mobile', $3, $4, 'Asia/Bangkok', NOW(), NOW())
+           VALUES ($1, $2, $3::date, NOW(), 'present', 'mobile', $4, $5, 'Asia/Bangkok', NOW(), NOW())
            RETURNING id, clock_in, clock_out`,
-          [randomUUID(), identity.employeeId, latitude ?? null, longitude ?? null],
+          [randomUUID(), identity.employeeId, workDate, latitude ?? null, longitude ?? null],
         );
         record = inserted.rows[0] as Record<string, unknown>;
       } else {
@@ -83,18 +84,18 @@ export async function handleNativeAttendanceClock(
       `INSERT INTO hr_attendance_events
          (id, attendance_record_id, employee_id, event_type, occurred_at, logical_shift_date, source,
           latitude, longitude, ip_address, user_agent, idempotency_key, actor_user_id, created_at)
-       VALUES ($1, $2, $3, $4, NOW(), (NOW() AT TIME ZONE 'Asia/Bangkok')::date, 'mobile',
-               $5, $6, $7, $8, $9, $10, NOW())`,
+       VALUES ($1, $2, $3, $4, NOW(), $5::date, 'mobile',
+               $6, $7, $8, $9, $10, $11, NOW())`,
       [
         randomUUID(), record!.id, identity.employeeId, mode === 'in' ? 'clock_in' : 'clock_out',
-        latitude ?? null, longitude ?? null,
+        workDate, latitude ?? null, longitude ?? null,
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
         request.headers.get('user-agent') || null,
         randomUUID(), identity.userId,
       ],
     );
     await client.query('COMMIT');
-    return NextResponse.json({ success: true, attendancePolicy: policyDecision.policy });
+    return NextResponse.json({ success: true, workDate, attendancePolicy: policyDecision.policy });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Native ESS attendance clock failed', error);

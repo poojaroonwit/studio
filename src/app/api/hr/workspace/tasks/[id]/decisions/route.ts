@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
 import { executeHrWorkflowAction } from '@/lib/hr/hr-workflows';
+import { decideRequest } from '@/lib/hr/leave-workspace-service';
 import prisma from '@/lib/prisma';
 import { completeHrisTaskDecision, getHrisTaskForDecision } from '@/lib/hris/task-projection';
 import type { HrisAction, HrisStatus } from '@/lib/hris/workspace-contracts';
@@ -68,6 +69,18 @@ export async function POST(request: NextRequest, context: Context) {
         parsed.data.comment || null,
       );
       if (!rows[0]) return error('SOURCE_CONFLICT', 'This mobility application is no longer waiting for manager review.', 409);
+    } else if (handler.kind === 'leave_request') {
+      const result = await decideRequest(
+        {
+          action: 'request_decision',
+          id: task.sourceId,
+          decision: handler.action,
+          comment: parsed.data.comment || null,
+          expectedVersion: handler.expectedVersion,
+        },
+        session.user.id,
+      );
+      if (!result) return error('SOURCE_CONFLICT', 'This leave request changed or is no longer waiting for your decision.', 409);
     } else {
       return error('HANDLER_UNAVAILABLE', 'The source domain has not registered this decision handler.', 409);
     }

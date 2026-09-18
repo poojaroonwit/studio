@@ -1,38 +1,44 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Response } from '@playwright/test';
+
+function expectApplicationRoute(response: Response | null) {
+  expect(response).not.toBeNull();
+  expect(response?.status()).not.toBe(404);
+  expectApplicationRoute(response);
+}
 
 test.describe('HRIS protected surfaces', () => {
   test('operations workspace is a valid application route', async ({ page }) => {
-    const response = await page.goto('/people/operations');
+    const response = await page.goto('/people/hris-operations');
 
-    expect(response?.status()).toBeLessThan(500);
+    expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('engagement workspace is a valid application route', async ({ page }) => {
     const response = await page.goto('/workforce/engagement');
 
-    expect(response?.status()).toBeLessThan(500);
+    expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('career explorer is a valid Learning route', async ({ page }) => {
     const response = await page.goto('/learning/career-explorer');
 
-    expect(response?.status()).toBeLessThan(500);
+    expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('trusted certificates is a valid Learning route', async ({ page }) => {
     const response = await page.goto('/learning/trusted-certificates');
 
-    expect(response?.status()).toBeLessThan(500);
+    expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('achievements is a valid dedicated Learning route', async ({ page }) => {
     const response = await page.goto('/learning/achievements');
 
-    expect(response?.status()).toBeLessThan(500);
+    expectApplicationRoute(response);
     await expect(page.locator('body')).toBeVisible();
   });
 

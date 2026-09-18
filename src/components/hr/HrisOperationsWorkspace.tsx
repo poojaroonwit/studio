@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   ArrowPathIcon,
   CalendarDaysIcon,
@@ -341,7 +342,12 @@ function RecordRow({ resource, row, statusEdit, onEditStatus, onEdit, onSaveStat
   const statusOptions = RESOURCE_DEFINITIONS[resource].statuses;
   const hasStatus = typeof row.status === 'string' && row.status.length > 0 && statusOptions.length > 0;
   const editing = statusEdit?.id === row.id;
-  return <article className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_180px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-semibold capitalize text-foreground">{primaryLabel(resource, row)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{secondaryLabel(resource, row)}</p><p className="mt-2 truncate text-xs text-muted-foreground">ID: {row.id}</p></div><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{detailLabel(resource, row)}</p></div><div>{hasStatus ? editing ? <div className="flex items-center gap-2"><select aria-label={`Status for ${primaryLabel(resource, row)}`} className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-xs capitalize" value={statusEdit.status} onChange={event => onEditStatus({ ...statusEdit, status: event.target.value })}>{statusOptions.map(status => <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>)}</select><Button type="button" size="sm" onClick={onSaveStatus} disabled={saving}>Save</Button></div> : <Badge variant="outline" className="capitalize">{formatValue(row.status)}</Badge> : <span className="text-sm text-muted-foreground">No status workflow</span>}</div><div className="flex flex-wrap justify-start gap-2 lg:justify-end">{canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}>Edit</Button>}{canManage && hasStatus && !editing ? <Button type="button" size="sm" variant="ghost" onClick={() => onEditStatus({ id: row.id, version: Number(row.version || 1), status: String(row.status) })}>Status</Button> : null}</div></article>;
+  const detailHref = resource === 'succession-plans'
+    ? `/people/talent/succession/${row.id}`
+    : resource === 'talent-reviews'
+      ? `/people/talent/reviews/${row.id}`
+      : null;
+  return <article className="grid gap-4 px-5 py-5 lg:grid-cols-[minmax(220px,1.35fr)_minmax(220px,1fr)_180px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-semibold capitalize text-foreground">{primaryLabel(resource, row)}</p><p className="mt-1 truncate text-xs text-muted-foreground">{secondaryLabel(resource, row)}</p><p className="mt-2 truncate text-xs text-muted-foreground">ID: {row.id}</p></div><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{detailLabel(resource, row)}</p></div><div>{hasStatus ? editing ? <div className="flex items-center gap-2"><select aria-label={`Status for ${primaryLabel(resource, row)}`} className="h-9 min-w-0 rounded-md border border-input bg-background px-2 text-xs capitalize" value={statusEdit.status} onChange={event => onEditStatus({ ...statusEdit, status: event.target.value })}>{statusOptions.map(status => <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>)}</select><Button type="button" size="sm" onClick={onSaveStatus} disabled={saving}>Save</Button></div> : <Badge variant="outline" className="capitalize">{formatValue(row.status)}</Badge> : <span className="text-sm text-muted-foreground">No status workflow</span>}</div><div className="flex flex-wrap justify-start gap-2 lg:justify-end">{detailHref ? <Button asChild type="button" size="sm"><Link href={detailHref}>Open</Link></Button> : null}{canManage && <Button type="button" size="sm" variant="outline" onClick={onEdit}>Edit</Button>}{canManage && hasStatus && !editing ? <Button type="button" size="sm" variant="ghost" onClick={() => onEditStatus({ id: row.id, version: Number(row.version || 1), status: String(row.status) })}>Status</Button> : null}</div></article>;
 }
 
 function detailLabel(key: ResourceKey, row: Row) {

@@ -141,6 +141,36 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
         ? "Publish banner"
         : "Publish popup";
 
+  async function handleRetryCampaign(campaignId: string) {
+    const current = history.find(item => item.campaignId === campaignId);
+    if (!current || current.status !== "failed") return;
+
+    setDeactivatingId(campaignId);
+    setHistory(items => items.map(item => item.campaignId === campaignId ? { ...item, status: "sending" } : item));
+    const toastId = toast.loading(`Retrying ${current.channel.toUpperCase()} broadcast...`);
+    try {
+      const response = await fetch(`/api/broadcast/${campaignId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "retry" }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "Broadcast retry failed");
+      if (data.campaign) {
+        setHistory(items => items.map(item =>
+          item.campaignId === campaignId ? toHistoryItem(data.campaign) : item,
+        ));
+      }
+      toast.success(data.message || "Broadcast retry completed", { id: toastId });
+    } catch (error) {
+      setHistory(items => items.map(item => item.campaignId === campaignId ? { ...item, status: current.status } : item));
+      toast.error(error instanceof Error ? error.message : "Broadcast retry failed", { id: toastId });
+    } finally {
+      setDeactivatingId(null);
+    }
+  }
+
   async function handleDeactivateBanner(campaignId: string) {
     const current = history.find(item => item.campaignId === campaignId);
     const canStop = current && (
@@ -195,6 +225,7 @@ export function BroadcastPage({ view }: { view: BroadcastView }) {
           allowStop
           deactivatingId={deactivatingId}
           onDeactivate={handleDeactivateBanner}
+          onRetry={handleRetryCampaign}
           onReport={(campaign) => setReportCampaign(campaign)}
         />
 

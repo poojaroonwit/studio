@@ -21,7 +21,7 @@ import { accountAuth } from './src/auth'
 import { loadAccountApplicationIdentity, loadAccountIdentity, loadPublicAccountApplicationIdentity, type AccountApplicationIdentity, type AccountIdentity } from './src/account'
 import { clearBootstrapCache, loadBootstrapCache, saveBootstrapCache } from './src/cache'
 import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
-import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen } from './src/screens'
+import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen, type AccountSection } from './src/screens'
 import { colors, controls, radii, spacing, typography } from './src/theme'
 import { removePushRegistration, syncPushRegistration, watchPushTokenRefresh } from './src/push'
 import { appBuildLabel } from './src/runtime'
@@ -73,6 +73,7 @@ export default function App() {
   const [locked, setLocked] = useState(false)
   const [loadMoreTick, setLoadMoreTick] = useState(0)
   const [fullPage, setFullPage] = useState(false)
+  const [accountSection, setAccountSection] = useState<AccountSection>('menu')
   const lastLoadMoreAt = useRef(0)
   const scrollRef = useRef<ScrollView>(null)
   const pushUnsubscribe = useRef<null | (() => void)>(null)
@@ -225,6 +226,7 @@ export default function App() {
       setOffline(false)
       setLoadError(null)
       setAuthError(secureSignOutFailed ? 'Secure sign-out could not be fully completed. Please sign in again before using employee data.' : null)
+      setAccountSection('menu')
       setTab('home')
     }
   }
@@ -284,6 +286,7 @@ export default function App() {
 
   const navigateTab = (next: Tab) => {
     setFullPage(false)
+    setAccountSection('menu')
     setTab(next)
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
   }
@@ -337,7 +340,7 @@ export default function App() {
         ? <RequestsScreen data={data} reload={load} loadMoreTick={loadMoreTick} onFullPageChange={setFullPage} />
         : tab === 'documents'
           ? <DocumentsScreen data={data} loadMoreTick={loadMoreTick} />
-          : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} onSignOut={() => void signOut()} onFullPageChange={setFullPage} />
+          : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} section={accountSection} onSectionChange={setAccountSection} onSignOut={() => void signOut()} onFullPageChange={setFullPage} />
 
   return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" />
     {!fullPage ? <View style={s.header}>

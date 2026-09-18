@@ -94,12 +94,14 @@ function attendanceForDate(data: EssBootstrap, date: string) {
 function bangkokDateOffset(days: number) {
   const anchor = new Date(`${bangkokDate()}T12:00:00+07:00`)
   anchor.setUTCDate(anchor.getUTCDate() + days)
-  return new Intl.DateTimeFormat('en-CA', {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Bangkok',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(anchor)
+  }).formatToParts(anchor)
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}`
 }
 
 function shiftWindow(shift: EssBootstrap['schedule'][number], policy: EssBootstrap['attendancePolicy']) {
@@ -242,7 +244,7 @@ function AttendanceActionCard({ data, reload, offline = false, onViewAttendance 
   const cardStyle = action.complete ? s.successCard : offline || blocked ? s.warningCard : undefined
 
   const title = offline
-    ? action.attendance?.checkIn && !action.attendance?.checkOut ? 'Reconnect to clock out' : 'Reconnect to clock in'
+    ? action.complete ? 'Attendance complete · offline' : action.attendance?.checkIn && !action.attendance?.checkOut ? 'Reconnect to clock out' : 'Reconnect to clock in'
     : action.canClockIn ? 'Clock in'
       : action.canClockOut ? 'Clock out'
         : action.complete ? 'Attendance complete'

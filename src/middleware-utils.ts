@@ -12,6 +12,7 @@ const SKIPPED_PATH_PREFIXES = [
   '/apply',
   '/offer',
   '/employee-portal/public',
+  '/mobile/oauth/callback',
   '/setup',
   '/auth/setup-password',
   '/api/auth',

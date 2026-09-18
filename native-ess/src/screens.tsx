@@ -570,7 +570,6 @@ function SecurityPage() {
 }
 
 function Back({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" style={s.back} onPress={onPress}><Ionicons name="arrow-back" size={18} color={colors.text} /><AppText>{label}</AppText></Pressable> }
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) { return <Pressable style={[s.chip, active && s.chipActive]} onPress={onPress}><AppText style={[s.chipText, active && s.chipTextActive]}>{label}</AppText></Pressable> }
 function Avatar({ imageUrl, name, size = 44 }: { imageUrl?: string; name: string; size?: number }) { const style = { width: size, height: size, borderRadius: size / 2 }; return imageUrl ? <Image source={{ uri: imageUrl }} style={[style, s.avatarImage]} /> : <View style={[style, s.avatarFallback]}><AppText style={s.avatarInitial}>{(name.trim().slice(0, 1) || '?').toUpperCase()}</AppText></View> }
 function MenuItem({ icon, title, subtitle, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; onPress: () => void }) { return <Pressable accessibilityRole="button" style={({ pressed }) => [s.menuItem, pressed && s.pressed]} onPress={onPress}><View style={s.menuIcon}><Ionicons name={icon} size={22} color={colors.text} /></View><View style={s.flexOne}><AppText style={s.cardTitle}>{title}</AppText><Muted>{subtitle}</Muted></View><Ionicons name="chevron-forward" size={20} color={colors.textMuted} /></Pressable> }
 function Field(props: React.ComponentProps<typeof TextInput> & { label: string }) { const { label, style, ...inputProps } = props; return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><TextInput {...inputProps} placeholderTextColor={colors.textSubtle} style={[s.input, inputProps.multiline && s.multi, style]} /></View> }
@@ -650,9 +649,6 @@ const s = StyleSheet.create({
   statusText: { color: colors.textMuted, fontSize: typography.xs, lineHeight: 15, textTransform: 'capitalize', fontWeight: '600' },
   loadMore: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
 
-  requestGrid: { gap: 0, marginTop: spacing.md, marginBottom: spacing.xxs, backgroundColor: 'transparent' },
-  requestCard: { minHeight: 74, backgroundColor: 'transparent', borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 2, paddingVertical: spacing.sm, gap: spacing.sm, flexDirection: 'row', alignItems: 'center' },
-  requestIcon: { width: controls.touch, height: controls.touch, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
   back: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginBottom: spacing.xs, paddingRight: spacing.sm, borderRadius: radii.pill },
 
   field: { gap: 6, marginBottom: spacing.xs },
@@ -660,12 +656,6 @@ const s = StyleSheet.create({
   input: { minHeight: controls.input, color: colors.text, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radii.sm, paddingHorizontal: 11, paddingVertical: 10, fontSize: 16, lineHeight: 21 },
   inputPressable: { minHeight: controls.input, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radii.sm, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   multi: { minHeight: 96, textAlignVertical: 'top' },
-
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs },
-  chip: { minHeight: controls.touch, justifyContent: 'center', paddingHorizontal: spacing.sm, paddingVertical: 8, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.textMuted, fontSize: typography.sm, lineHeight: 16, fontWeight: '500' },
-  chipTextActive: { color: colors.primaryText, fontWeight: '600' },
 
   danger: { color: colors.danger, fontWeight: '600', paddingVertical: spacing.xs },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

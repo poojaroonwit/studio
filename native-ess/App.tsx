@@ -22,6 +22,7 @@ import { clearBootstrapCache, loadBootstrapCache, saveBootstrapCache } from './s
 import { essApi, isAuthRequired, type EssBootstrap } from './src/api'
 import { AccountScreen, DocumentsScreen, HomeScreen, RequestsScreen, TimeScreen } from './src/screens'
 import { colors, radii } from './src/theme'
+import { removePushRegistration, syncPushRegistration, watchPushTokenRefresh } from './src/push'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
@@ -70,6 +71,7 @@ export default function App() {
   const [locked, setLocked] = useState(false)
   const [loadMoreTick, setLoadMoreTick] = useState(0)
   const lastLoadMoreAt = useRef(0)
+  const pushUnsubscribe = useRef<null | (() => void)>(null)
 
   const loadAccount = async () => {
     try {
@@ -135,28 +137,45 @@ export default function App() {
   }
 
   const initialize = async () => {
-    setAppIdentity(await loadPublicAccountApplicationIdentity())
-    try {
-      const recovered = await accountAuth.recoverPendingRedirect()
-      if (recovered) {
-        setAuthError(null)
-        await Promise.all([loadAccount(), load({ allowCache: false })])
-        return
-      }
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'Unable to complete Outborn Account sign-in.')
-    }
+    void loadPublicAccountApplicationIdentity()
+      .then(setAppIdentity)
+      .catch(() => undefined)
 
-    const token = await accountAuth.getToken()
-    if (token && (await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1') {
-      const supported = await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()
-      if (supported) {
-        setLocked(true)
-        setLoading(false)
-        return
+    try {
+      try {
+        const recovered = await accountAuth.recoverPendingRedirect()
+        if (recovered) {
+          setAuthError(null)
+          await Promise.all([loadAccount(), load({ allowCache: false })])
+          return
+        }
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Unable to complete Outborn Account sign-in.')
       }
+
+      const token = await accountAuth.getToken()
+      if (token) {
+        try {
+          const biometricEnabled = (await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1'
+          if (biometricEnabled) {
+            const supported = await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()
+            if (supported) {
+              setLocked(true)
+              setLoading(false)
+              return
+            }
+          }
+        } catch (error) {
+          console.warn('Obsi People biometric startup check unavailable', error)
+        }
+      }
+
+      await load()
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to initialize Obsi People securely.')
+      setLoading(false)
+      setRefreshing(false)
     }
-    await load()
   }
 
   const signIn = async () => {
@@ -180,6 +199,10 @@ export default function App() {
   }
 
   const signOut = async () => {
+    const token = await accountAuth.getToken().catch(() => null)
+    pushUnsubscribe.current?.()
+    pushUnsubscribe.current = null
+    if (token) void removePushRegistration(token)
     await accountAuth.signOut()
     await clearBootstrapCache()
     setData(null)
@@ -191,6 +214,36 @@ export default function App() {
   }
 
   useEffect(() => { void initialize() }, [])
+
+  const authenticated = Boolean(data)
+  useEffect(() => {
+    let active = true
+
+    if (!authenticated) {
+      pushUnsubscribe.current?.()
+      pushUnsubscribe.current = null
+      return () => { active = false }
+    }
+
+    void (async () => {
+      const token = await accountAuth.getToken().catch(() => null)
+      if (!token || !active) return
+      await syncPushRegistration(token)
+      if (!active) return
+      try {
+        pushUnsubscribe.current?.()
+        pushUnsubscribe.current = watchPushTokenRefresh(token)
+      } catch (error) {
+        console.warn('Obsi People push refresh listener unavailable', error)
+      }
+    })()
+
+    return () => {
+      active = false
+      pushUnsubscribe.current?.()
+      pushUnsubscribe.current = null
+    }
+  }, [authenticated])
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent

@@ -6,7 +6,7 @@ export type BroadcastHistoryItem = {
   channel: "sms" | "email" | "banner" | "popup";
   title: string;
   audience: string;
-  status: "scheduled" | "sent" | "active" | "inactive" | "failed" | "expired";
+  status: "scheduled" | "sending" | "sent" | "active" | "inactive" | "failed" | "expired";
   owner: string;
   date: string;
   seenCount: number;

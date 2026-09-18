@@ -382,7 +382,15 @@ function NotificationsPage({ data, reload, loadMoreTick }: { data: EssBootstrap;
 }
 
 function BenefitsPage({ data }: { data: EssBootstrap }) {
-  return <><AppText style={s.pageTitle}>Benefits</AppText>{data.benefits.length === 0 ? <EmptyState icon="heart-outline" title="No benefits published yet" subtitle="Benefits configured by HR will appear here." /> : data.benefits.map((item) => <Pressable key={item.id} disabled={!item.url} onPress={() => item.url ? void Linking.openURL(item.url) : undefined}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.name}</AppText>{item.description ? <Muted>{item.description}</Muted> : null}{item.provider ? <Muted>{item.provider}</Muted> : null}</View>{item.url ? <Ionicons name="open-outline" size={20} color={colors.textMuted} /> : <StatusPill value={item.status || 'available'} />}</View></Card></Pressable>)}</>
+  const open = async (url: string) => {
+    try {
+      if (!/^https?:\/\//i.test(url) || !await Linking.canOpenURL(url)) throw new Error('This benefit link cannot be opened safely on this device.')
+      await Linking.openURL(url)
+    } catch (error) {
+      Alert.alert('Benefits', error instanceof Error ? error.message : 'Unable to open benefit link')
+    }
+  }
+  return <><AppText style={s.pageTitle}>Benefits</AppText>{data.benefits.length === 0 ? <EmptyState icon="heart-outline" title="No benefits published yet" subtitle="Benefits configured by HR will appear here." /> : data.benefits.map((item) => <Pressable key={item.id} disabled={!item.url} onPress={() => item.url ? void open(item.url) : undefined}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.name}</AppText>{item.description ? <Muted>{item.description}</Muted> : null}{item.provider ? <Muted>{item.provider}</Muted> : null}</View>{item.url ? <Ionicons name="open-outline" size={20} color={colors.textMuted} /> : <StatusPill value={item.status || 'available'} />}</View></Card></Pressable>)}</>
 }
 
 function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
@@ -393,10 +401,36 @@ function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Prom
 }
 
 function SecurityPage() {
-  const [supported, setSupported] = useState<boolean | null>(null), [enabled, setEnabled] = useState(false)
-  useEffect(() => { void (async () => { setSupported(await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()); setEnabled((await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1') })() }, [])
-  const toggle = async (next: boolean) => { if (next) { const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Enable biometric lock for Obsi People' }); if (!result.success) return } await SecureStore.setItemAsync(BIOMETRIC_KEY, next ? '1' : '0'); setEnabled(next) }
-  return <><AppText style={s.pageTitle}>Security</AppText><Card><View style={s.switchRow}><View style={s.flexOne}><AppText style={s.cardTitle}>Biometric app lock</AppText><Muted>{supported === false ? 'Biometrics are not configured on this device.' : 'Require fingerprint or Face ID when opening the app.'}</Muted></View><Switch disabled={!supported} value={enabled} onValueChange={(next) => void toggle(next)} trackColor={{ false: colors.surfaceStrong, true: colors.text }} thumbColor={colors.surface} /></View></Card></>
+  const [supported, setSupported] = useState<boolean | null>(null), [enabled, setEnabled] = useState(false), [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void (async () => {
+      try {
+        const available = await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()
+        setSupported(available)
+        setEnabled((await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1')
+      } catch (error) {
+        console.warn('Obsi People biometric settings unavailable', error)
+        setSupported(false)
+      }
+    })()
+  }, [])
+  const toggle = async (next: boolean) => {
+    if (busy) return
+    setBusy(true)
+    try {
+      if (next) {
+        const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Enable biometric lock for Obsi People' })
+        if (!result.success) return
+      }
+      await SecureStore.setItemAsync(BIOMETRIC_KEY, next ? '1' : '0')
+      setEnabled(next)
+    } catch (error) {
+      Alert.alert('Security', error instanceof Error ? error.message : 'Unable to update biometric lock')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <><AppText style={s.pageTitle}>Security</AppText><Card><View style={s.switchRow}><View style={s.flexOne}><AppText style={s.cardTitle}>Biometric app lock</AppText><Muted>{supported === false ? 'Biometrics are not configured on this device.' : 'Require fingerprint or Face ID when opening the app.'}</Muted></View><Switch disabled={!supported || busy} value={enabled} onValueChange={(next) => void toggle(next)} trackColor={{ false: colors.surfaceStrong, true: colors.text }} thumbColor={colors.surface} /></View></Card></>
 }
 
 function Back({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" style={s.back} onPress={onPress}><Ionicons name="arrow-back" size={18} color={colors.text} /><AppText>{label}</AppText></Pressable> }

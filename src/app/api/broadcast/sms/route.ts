@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { sendSms } from "@/lib/smsService";
-import { createBroadcastCampaign, finalizeOutboundBroadcastCampaign } from "@/lib/broadcast-campaigns";
+import { createBroadcastCampaign } from "@/lib/broadcast-campaigns";
+import { deliverOutboundBroadcastCampaign } from "../broadcast-delivery";
 import {
   broadcastAudienceSchema,
   getBroadcastRecipients,
@@ -73,37 +73,23 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   }
 
-  const results = [];
-  const batchSize = 10;
-  for (let index = 0; index < phoneNumbers.length; index += batchSize) {
-    const batch = phoneNumbers.slice(index, index + batchSize);
-    results.push(...await Promise.all(batch.map((phoneNumber) => sendSms(phoneNumber, message))));
-  }
-  const sent = results.filter((result) => result.success).length;
-  const failed = results.length - sent;
-  const finalized = await finalizeOutboundBroadcastCampaign({
-    id: campaign.id,
-    status: sent > 0 ? "sent" : "failed",
-    recipientCount: sent,
-    failedCount: failed,
-    errorMessage: sent > 0 ? null : results.find((result) => result.error)?.error || "Failed to send SMS broadcast",
-  });
+  const delivery = await deliverOutboundBroadcastCampaign(campaign, recipients);
 
-  if (sent === 0) {
+  if (delivery.status === "failed") {
     return NextResponse.json({
-      message: results.find((result) => result.error)?.error || "Failed to send SMS broadcast",
-      sent,
-      failed,
-      campaign: finalized || campaign,
+      message: delivery.error || "Failed to send SMS broadcast",
+      sent: delivery.sent,
+      failed: delivery.failed,
+      campaign: delivery.campaign || campaign,
     }, { status: 502 });
   }
 
   return NextResponse.json({
-    message: failed > 0 ? "SMS broadcast sent with delivery failures" : "SMS broadcast sent",
+    message: delivery.failed > 0 ? "SMS broadcast sent with delivery failures" : "SMS broadcast sent",
     channel: "sms",
-    sent,
-    failed,
-    campaign: finalized || campaign,
+    sent: delivery.sent,
+    failed: delivery.failed,
+    campaign: delivery.campaign || campaign,
   });
 }
 

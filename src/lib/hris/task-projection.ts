@@ -3,6 +3,8 @@ import type { Prisma } from '@prisma/client';
 import type { HrWorkflowAction } from '@/lib/hr/hr-workflows';
 import { getExpenseAccess } from '@/lib/expenses/permissions';
 import type { SessionLikeUser } from '@/lib/permissions';
+import { getPayrollAccess } from '@/lib/payroll/permissions';
+import { actorHasPayrollResponsibility } from '@/lib/payroll/service-foundation';
 import type { HrisAction, HrisStatus, HrisTask, HrisTaskFilter, HrisTaskPage, HrisTaskPriority } from './workspace-contracts';
 import { normalizeHrisTaskFilter } from './workspace-contracts';
 
@@ -27,6 +29,11 @@ export type HrisDecisionHandler =
       kind: 'expense_approval';
       resource: 'advances' | 'claims' | 'travel';
       action: 'approve' | 'return_for_revision' | 'reject';
+      expectedVersion: number;
+    }
+  | {
+      kind: 'payroll_approval';
+      action: 'approve' | 'return';
       expectedVersion: number;
     };
 
@@ -117,15 +124,17 @@ export async function syncHrisTasksForActor({
     `UPDATE hr_workflow_tasks
      SET status = 'completed', version = version + 1, updated_at = now()
      WHERE assignee_user_id = $1::uuid
-       AND source_domain IN ('leave', 'onboarding', 'learning', 'performance', 'expenses')
+       AND source_domain IN ('leave', 'onboarding', 'learning', 'performance', 'expenses', 'payroll')
        AND status NOT IN ('completed', 'cancelled', 'archived')`,
     userId,
   );
 
-  if (!employee) return;
+  const expenseAccess = getExpenseAccess(user || null, Boolean(employee));
+  const payrollAccess = user
+    ? await getPayrollAccess({ ...user, id: userId, email: email || null })
+    : null;
 
-  const expenseAccess = getExpenseAccess(user || null, true);
-  const [leaveApprovals, onboarding, learning, performance, returnedExpenses, expenseApprovals] = await Promise.all([
+  const [leaveApprovals, onboarding, learning, performance, returnedExpenses, expenseApprovals, payrollApprovals] = await Promise.all([
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT request.id,
               request.employee_id,
@@ -135,26 +144,26 @@ export async function syncHrisTasksForActor({
               request.reason,
               request.status,
               request.version,
-              employee.company_id,
+              employee?.company_id || null,
               employee.employee_number,
               NULLIF(TRIM(CONCAT_WS(' ', employee.preferred_name, employee.first_name, employee.last_name)), '') AS employee_name
        FROM hr_leave_requests request
        JOIN hr_employees employee ON employee.id = request.employee_id
        WHERE employee.manager_id = $1::uuid
          AND request.status IN ('pending', 'submitted', 'pending_approval', 'pending_manager_approval')`,
-      employee.id,
+      employee?.id || '00000000-0000-0000-0000-000000000000',
     ),
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT onboarding.id,
               onboarding.status,
               onboarding.target_date,
               onboarding.progress,
-              employee.company_id
+              employee?.company_id || null
        FROM hr_employee_onboarding onboarding
        JOIN hr_employees employee ON employee.id = onboarding.employee_id
        WHERE onboarding.employee_id = $1::uuid
          AND onboarding.status IN ('not_started', 'in_progress')`,
-      employee.id,
+      employee?.id || '00000000-0000-0000-0000-000000000000',
     ),
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT enrollment.id,
@@ -166,7 +175,7 @@ export async function syncHrisTasksForActor({
        JOIN hr_learning_courses course ON course.id = enrollment.course_id
        WHERE enrollment.employee_id = $1::uuid
          AND enrollment.status IN ('assigned', 'in_progress')`,
-      employee.id,
+      employee?.id || '00000000-0000-0000-0000-000000000000',
     ).catch(() => [] as TaskRow[]),
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT review.id,
@@ -174,13 +183,13 @@ export async function syncHrisTasksForActor({
               review.updated_at,
               cycle.name AS cycle_name,
               cycle.end_date,
-              employee.company_id
+              employee?.company_id || null
        FROM hr_performance_reviews review
        JOIN hr_performance_cycles cycle ON cycle.id = review.cycle_id
        JOIN hr_employees employee ON employee.id = review.employee_id
        WHERE review.employee_id = $1::uuid
          AND review.status IN ('not_started', 'in_progress')`,
-      employee.id,
+      employee?.id || '00000000-0000-0000-0000-000000000000',
     ).catch(() => [] as TaskRow[]),
     prisma.$queryRawUnsafe<TaskRow[]>(
       `SELECT claim.id,
@@ -239,9 +248,33 @@ export async function syncHrisTasksForActor({
       userId,
       expenseAccess.canFinance,
     ).catch(() => [] as TaskRow[]),
+    payrollAccess?.canApprove
+      ? prisma.$queryRawUnsafe<TaskRow[]>(
+          `SELECT approval.id AS approval_id,
+                  approval.approval_role,
+                  approval.approver_user_id,
+                  approval.sequence,
+                  run.id,
+                  run.version,
+                  run.company_id,
+                  run.net_total,
+                  run.run_type,
+                  run.created_by_id,
+                  period.name AS period_name,
+                  period.pay_date
+           FROM hr_payroll_approvals approval
+           JOIN hr_payroll_runs run ON run.id = approval.payroll_run_id
+           JOIN hr_payroll_periods period ON period.id = run.period_id
+           WHERE approval.status = 'pending'
+             AND run.status = 'pending_approval'
+             AND ($1::uuid IS NULL OR run.company_id = $1::uuid)
+           ORDER BY period.pay_date, approval.sequence`,
+          payrollAccess.actorCompanyId,
+        ).catch(() => [] as TaskRow[])
+      : Promise.resolve([] as TaskRow[]),
   ]);
 
-  const actorName = employee.display_name || employee.employee_number || 'Employee';
+  const actorName = employee?.display_name || employee?.employee_number || String(user?.name || email || 'User');
 
   for (const row of leaveApprovals) {
     const leaveName = String(row.employee_name || row.employee_number || 'Employee');
@@ -296,7 +329,7 @@ export async function syncHrisTasksForActor({
 
   for (const row of learning) {
     await upsertHrisTaskProjection({
-      companyId: employee.company_id,
+      companyId: employee?.company_id || null,
       taskType: 'my_learning',
       sourceDomain: 'learning',
       sourceType: 'learning_enrollment',
@@ -316,7 +349,7 @@ export async function syncHrisTasksForActor({
 
   for (const row of performance) {
     await upsertHrisTaskProjection({
-      companyId: nullableString(row.company_id) || employee.company_id,
+      companyId: nullableString(row.company_id) || employee?.company_id || null,
       taskType: 'my_performance_review',
       sourceDomain: 'performance',
       sourceType: 'performance_review',
@@ -336,7 +369,7 @@ export async function syncHrisTasksForActor({
 
   for (const row of returnedExpenses) {
     await upsertHrisTaskProjection({
-      companyId: nullableString(row.company_id) || employee.company_id,
+      companyId: nullableString(row.company_id) || employee?.company_id || null,
       taskType: 'expense_revision',
       sourceDomain: 'expenses',
       sourceType: 'expense_claim',
@@ -363,7 +396,7 @@ export async function syncHrisTasksForActor({
     const reference = String(row.reference || 'Expense');
     const role = String(row.approval_role || 'approver');
     await upsertHrisTaskProjection({
-      companyId: nullableString(row.company_id) || employee.company_id,
+      companyId: nullableString(row.company_id) || employee?.company_id || null,
       taskType: `expense_${role}_approval`,
       sourceDomain: 'expenses',
       sourceType: entityType,
@@ -388,6 +421,44 @@ export async function syncHrisTasksForActor({
         reject: { kind: 'expense_approval', resource, action: 'reject', expectedVersion: Number(row.version || 1) },
       },
     });
+  }
+
+  if (payrollAccess?.canApprove) {
+    for (const row of payrollApprovals) {
+      const assignedToActor = row.approver_user_id && String(row.approver_user_id) === userId;
+      const roleMatches = !row.approver_user_id && (
+        payrollAccess.isAdmin
+        || actorHasPayrollResponsibility(payrollAccess, String(row.approval_role || ''))
+      );
+      if ((!assignedToActor && !roleMatches) || String(row.created_by_id || '') === userId) continue;
+
+      await upsertHrisTaskProjection({
+        companyId: nullableString(row.company_id),
+        taskType: 'payroll_approval',
+        sourceDomain: 'payroll',
+        sourceType: 'payroll_run',
+        sourceId: String(row.id),
+        subject: `Payroll approval · ${String(row.period_name || 'Payroll run')}`,
+        summary: [
+          String(row.approval_role || 'Approval'),
+          row.run_type ? String(row.run_type).replace(/_/g, ' ') : null,
+          row.net_total !== null && row.net_total !== undefined
+            ? `Net THB ${Number(row.net_total).toLocaleString()}`
+            : null,
+          row.pay_date ? `Pay date ${dateString(row.pay_date)?.slice(0, 10)}` : null,
+        ].filter(Boolean).join(' · '),
+        assigneeUserId: userId,
+        assigneeName: actorName,
+        priority: 'high',
+        status: 'pending',
+        deepLink: `/payroll/runs?runId=${String(row.id)}`,
+        allowedDecisions: ['approve', 'request_changes'],
+        decisionHandlers: {
+          approve: { kind: 'payroll_approval', action: 'approve', expectedVersion: Number(row.version || 1) },
+          request_changes: { kind: 'payroll_approval', action: 'return', expectedVersion: Number(row.version || 1) },
+        },
+      });
+    }
   }
 }
 

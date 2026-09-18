@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     await syncHrisTasksForActor({
       userId: session.user.id,
       email: session.user.email,
+      user: session.user,
     });
     const page = await listHrisTaskProjections({
       actorUserId: session.user.id,

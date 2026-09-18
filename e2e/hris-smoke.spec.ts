@@ -61,6 +61,48 @@ test.describe('HRIS protected surfaces', () => {
     });
   });
 
+  test('unified task inbox requires an authenticated session', async ({ request }) => {
+    const response = await request.get('/api/hr/workspace/tasks');
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'UNAUTHORIZED',
+      },
+    });
+  });
+
+  test('unified task decisions require an authenticated session', async ({ request }) => {
+    const response = await request.post('/api/hr/workspace/tasks/00000000-0000-0000-0000-000000000000/decisions', {
+      data: {
+        decision: 'approve',
+        expectedVersion: 1,
+      },
+    });
+
+    expect(response.status()).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'UNAUTHORIZED',
+      },
+    });
+  });
+
+  test('talent detail APIs require an authenticated session', async ({ request }) => {
+    const [succession, review] = await Promise.all([
+      request.get('/api/hr/talent/succession/00000000-0000-0000-0000-000000000000'),
+      request.get('/api/hr/talent/reviews/00000000-0000-0000-0000-000000000000'),
+    ]);
+
+    expect(succession.status()).toBe(401);
+    expect(review.status()).toBe(401);
+  });
+
+  test('scheduled broadcast dispatcher is automation-key protected', async ({ request }) => {
+    const response = await request.post('/api/broadcast/scheduled');
+    expect([401, 503]).toContain(response.status());
+  });
+
   test('HR API requires an authenticated session', async ({ request }) => {
     const response = await request.get('/api/hr/v1/assignments?pageSize=1');
 

@@ -323,7 +323,16 @@ export default function App() {
       <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => setTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
     </View> : null}
     {loadError ? <View style={s.warning}><Ionicons name={offline ? 'cloud-offline-outline' : 'warning-outline'} size={16} color={colors.warning} /><AppText style={s.warningText}>{loadError}</AppText></View> : null}
-    <ScrollView style={s.body} keyboardShouldPersistTaps="handled" scrollEventThrottle={80} onScroll={onScroll} contentContainerStyle={[s.content, fullPage && s.contentFullPage]} refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} />}>{screen}</ScrollView>
+    <ScrollView
+      style={s.body}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets={fullPage}
+      scrollEventThrottle={80}
+      onScroll={onScroll}
+      contentContainerStyle={[s.content, fullPage && s.contentFullPage]}
+      refreshControl={!fullPage ? <RefreshControl refreshing={refreshing} tintColor={colors.text} onRefresh={() => { setRefreshing(true); void load({ allowCache: false }) }} /> : undefined}
+    >{screen}</ScrollView>
     {!fullPage ? <View style={s.tabs}>{tabs.map((item) => {
       const active = tab === item.id
       return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} key={item.id} style={({ pressed }) => [s.tab, pressed && s.tabPressed]} onPress={() => setTab(item.id)}>

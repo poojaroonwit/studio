@@ -822,17 +822,74 @@ function SupportRequestDetail({ request, reload }: { request: EssBootstrap['supp
   </>
 }
 
-export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
+export function DocumentsScreen({ data, loadMoreTick, reload }: { data: EssBootstrap; loadMoreTick: number; reload?: () => Promise<void> }) {
   const [opening, setOpening] = useState<string | null>(null)
+  const [acknowledging, setAcknowledging] = useState<string | null>(null)
   const visible = useProgressiveCount(data.documents.length, loadMoreTick, 12)
+
   const open = async (id: string) => {
-    if (opening) return
+    if (opening || acknowledging) return
     setOpening(id)
-    try { const { url } = await essApi.documentUrl(id); if (!/^https?:\/\//i.test(url) || !await Linking.canOpenURL(url)) throw new Error('The document cannot be opened on this device.'); await Linking.openURL(url) }
-    catch (error) { Alert.alert('Document', error instanceof Error ? error.message : 'Unable to open') }
-    finally { setOpening(null) }
+    try {
+      const { url } = await essApi.documentUrl(id)
+      if (!/^https?:\/\//i.test(url) || !await Linking.canOpenURL(url)) throw new Error('The document cannot be opened on this device.')
+      await Linking.openURL(url)
+    } catch (error) {
+      Alert.alert('Document', error instanceof Error ? error.message : 'Unable to open')
+    } finally {
+      setOpening(null)
+    }
   }
-  return <><AppText style={s.pageTitle}>Documents</AppText><Muted>Payslips, tax documents, policies and employee files.</Muted><View style={s.spacer} />{data.documents.length === 0 ? <EmptyState icon="folder-open-outline" title="No documents available" /> : data.documents.slice(0, visible).map((document) => <Pressable key={document.id} accessibilityRole="button" disabled={Boolean(opening)} onPress={() => void open(document.id)}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{document.title}</AppText><Muted>{document.subtitle || document.kind} · {document.issuedAt}</Muted></View>{opening === document.id ? <ActivityIndicator /> : <Ionicons name="download-outline" size={22} color={colors.text} />}</View></Card></Pressable>)}<PaginationFooter visible={visible} total={data.documents.length} /></>
+
+  const acknowledge = (document: EssBootstrap['documents'][number]) => {
+    if (acknowledging || opening) return
+    Alert.alert(
+      'Acknowledge document',
+      'Confirm only after you have reviewed this document. Your acknowledgment will be recorded.',
+      [
+        { text: 'Not yet', style: 'cancel' },
+        {
+          text: 'Acknowledge',
+          onPress: () => void (async () => {
+            setAcknowledging(document.id)
+            try {
+              await essApi.acknowledgeDocument(document.id)
+              if (reload) await reload()
+              Alert.alert('Document', 'Acknowledgment recorded.')
+            } catch (error) {
+              Alert.alert('Document', error instanceof Error ? error.message : 'Unable to acknowledge')
+            } finally {
+              setAcknowledging(null)
+            }
+          })(),
+        },
+      ],
+    )
+  }
+
+  return <>
+    <AppText style={s.pageTitle}>Documents</AppText>
+    <Muted>Payslips, tax documents, policies and employee files.</Muted>
+    <View style={s.spacer} />
+    {data.documents.length === 0 ? <EmptyState icon="folder-open-outline" title="No documents available" /> : data.documents.slice(0, visible).map((document) => {
+      const requiresAck = Boolean(document.requiresAcknowledgment && !document.acknowledgedAt)
+      return <Card key={document.id}>
+        <View style={s.between}>
+          <View style={s.flexOne}>
+            <AppText style={s.cardTitle}>{document.title}</AppText>
+            <Muted>{document.subtitle || document.kind} · {document.issuedAt}</Muted>
+            {requiresAck ? <AppText style={s.warningText}>Acknowledgment required</AppText> : document.acknowledgedAt ? <Muted>Acknowledged · {formatDateTime(document.acknowledgedAt)}</Muted> : null}
+          </View>
+          {opening === document.id || acknowledging === document.id ? <ActivityIndicator /> : <Ionicons name={requiresAck ? "alert-circle-outline" : "document-text-outline"} size={22} color={requiresAck ? colors.warning : colors.text} />}
+        </View>
+        <View style={s.documentActions}>
+          <Button title="Open document" icon="open-outline" secondary disabled={Boolean(opening || acknowledging)} busy={opening === document.id} onPress={() => void open(document.id)} />
+          {requiresAck ? <Button title="Acknowledge" icon="checkmark-circle-outline" disabled={Boolean(opening || acknowledging)} busy={acknowledging === document.id} onPress={() => acknowledge(document)} /> : null}
+        </View>
+      </Card>
+    })}
+    <PaginationFooter visible={visible} total={data.documents.length} />
+  </>
 }
 
 export function AccountScreen({ data, account, appIdentity, reload, onSignOut, loadMoreTick, section, onSectionChange, onFullPageChange }: { data: EssBootstrap; account?: AccountIdentity | null; appIdentity?: AccountApplicationIdentity | null; reload: () => Promise<void>; onSignOut: () => void; loadMoreTick: number; section: AccountSection; onSectionChange: (section: AccountSection) => void; onFullPageChange?: (active: boolean) => void }) {
@@ -1096,6 +1153,8 @@ const s = StyleSheet.create({
   warningCard: { backgroundColor: colors.warningSurface },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   inlineNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.warningSurface, marginBottom: spacing.xs },
+  documentActions: { marginTop: spacing.sm, gap: spacing.xs },
+  warningText: { color: colors.warning, fontSize: typography.sm, lineHeight: 18, fontWeight: '600', marginTop: 4 },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusSuccess: { backgroundColor: colors.successSurface },
   statusWarning: { backgroundColor: colors.warningSurface },

@@ -806,7 +806,7 @@ function BankTaxRequestForm({ data, reload, onDone }: { data: EssBootstrap; relo
   const [taxId, setTaxId] = useState('')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
-  const history = data.profileChangeRequests.filter(item => item.requestedValues.bankInformation !== undefined || item.requestedValues.taxInformation !== undefined)
+  const history = data.profileChangeRequests.filter(item => item.requestedFields.includes('bankInformation') || item.requestedFields.includes('taxInformation'))
 
   const submit = async () => {
     const bankValue = {
@@ -1126,7 +1126,7 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
   const [address, setAddress] = useState(data.profile?.address || '')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
-  const history = data.profileChangeRequests.filter(item => item.requestedValues.preferredName !== undefined || item.requestedValues.phone !== undefined || item.requestedValues.address !== undefined)
+  const history = data.profileChangeRequests.filter(item => item.requestedFields.some(field => ['preferredName', 'phone', 'address'].includes(field)))
   const changed = preferredName.trim() !== (data.profile?.preferredName || '').trim()
     || phone.trim() !== (data.profile?.phone || '').trim()
     || address.trim() !== (data.profile?.address || '').trim()

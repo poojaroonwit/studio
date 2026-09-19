@@ -949,19 +949,8 @@ function HeadcountRequestRow({
     <Fragment>
       <TableRow
         aria-selected={selected}
-        aria-label={`Review request ${request.ticketNo} for ${request.position.title}`}
-        aria-haspopup="dialog"
-        role="button"
-        tabIndex={0}
         onClick={onReview}
-        onKeyDown={event => {
-          if (event.currentTarget !== event.target) return;
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onReview();
-          }
-        }}
-        className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selected ? "bg-primary/5 hover:bg-primary/5" : "hover:bg-muted/30"}`}
+        className={`cursor-pointer transition-colors ${selected ? "bg-primary/5 hover:bg-primary/5" : "hover:bg-muted/30"}`}
       >
         <TableCell onClick={event => event.stopPropagation()}>
           <Checkbox

@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   if (!identity) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const pool = getPool();
-  const [scheduleResult, announcementResult, benefitsSetting] = await Promise.all([
+  const [scheduleResult, announcementResult, benefitsSetting, supportRequestResult] = await Promise.all([
     pool.query(
       `SELECT id, shift_date, start_time, end_time, work_location, status
          FROM hr_shift_assignments
@@ -75,6 +75,14 @@ export async function GET(request: NextRequest) {
         LIMIT 30`,
     ).catch(() => ({ rows: [] as DbRow[] })),
     pool.query(`SELECT value FROM "SystemSetting" WHERE key = 'essBenefitsConfiguration' LIMIT 1`),
+    pool.query(
+      `SELECT id, request_number, category, subject, description, status, priority, submitted_at, created_at, updated_at
+         FROM employee_support_requests
+        WHERE employee_id = $1
+        ORDER BY COALESCE(submitted_at, created_at) DESC
+        LIMIT 60`,
+      [identity.employeeId],
+    ).catch(() => ({ rows: [] as DbRow[] })),
   ]);
 
   return NextResponse.json({
@@ -96,5 +104,16 @@ export async function GET(request: NextRequest) {
       expiresAt: iso(row.expires_at) || undefined,
     })),
     benefits: parseBenefits((benefitsSetting.rows[0] as DbRow | undefined)?.value),
+    supportRequests: (supportRequestResult.rows as DbRow[]).map(row => ({
+      id: String(row.id),
+      requestNumber: text(row.request_number),
+      category: text(row.category) || 'general',
+      subject: text(row.subject) || 'HR request',
+      description: text(row.description) || undefined,
+      status: text(row.status) || 'submitted',
+      priority: text(row.priority) || 'normal',
+      submittedAt: iso(row.submitted_at || row.created_at),
+      updatedAt: iso(row.updated_at || row.submitted_at || row.created_at),
+    })),
   }, { headers: { 'Cache-Control': 'no-store' } });
 }

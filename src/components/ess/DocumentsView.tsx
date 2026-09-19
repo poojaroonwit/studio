@@ -55,13 +55,25 @@ export function DocumentsView({
   });
   const [templateData, setTemplateData] = React.useState<SelfServiceTemplateData | null>(null);
   const [templatesLoading, setTemplatesLoading] = React.useState(true);
-  React.useEffect(() => {
-    fetch('/api/ess/document-templates')
-      .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load templates')))
-      .then((value: SelfServiceTemplateData) => setTemplateData(value))
-      .catch(() => setTemplateData({ templates: [], company: { name: '', legalName: '', address: '', taxId: '', hrContact: '', logo: '' } }))
-      .finally(() => setTemplatesLoading(false));
+  const [templatesError, setTemplatesError] = React.useState<string | null>(null);
+  const loadTemplates = React.useCallback(async () => {
+    setTemplatesLoading(true);
+    setTemplatesError(null);
+    try {
+      const response = await fetch('/api/ess/document-templates', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Unable to load document templates.');
+      setTemplateData(await response.json() as SelfServiceTemplateData);
+    } catch (error) {
+      setTemplateData(null);
+      setTemplatesError(error instanceof Error ? error.message : 'Unable to load document templates.');
+    } finally {
+      setTemplatesLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    void loadTemplates();
+  }, [loadTemplates]);
   const documentRequests = data.requests.filter(item => item.request_type === 'document_request');
   const filtered = data.documents.filter(document => {
     const text = `${document.title || ''} ${document.type || ''} ${document.category || ''}`.toLowerCase();
@@ -120,7 +132,7 @@ export function DocumentsView({
 
       <TabsContent value="generate">
         <Section title="Generate a document instantly" description="Your verified employee details are added automatically. No HR request is needed for these standard documents.">
-          {templatesLoading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : templateData?.templates.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{templateData.templates.map(template => (
+          {templatesLoading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div> : templatesError ? <EmptyState title="Templates could not be loaded" description={templatesError} action={<Button variant="outline" size="sm" onClick={() => void loadTemplates()}>Retry</Button>} /> : templateData?.templates.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{templateData.templates.map(template => (
             <article key={template.id} className="flex min-h-52 flex-col rounded-md border border-border bg-background p-4 transition-colors hover:border-primary/40">
               <div className="flex items-start justify-between gap-3"><span className="grid h-9 w-9 place-items-center rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"><FileOutput className="h-4 w-4" /></span>{template.isConfidential ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300"><LockKeyhole className="h-3 w-3" />Confidential</span> : <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Instant</span>}</div>
               <h3 className="mt-4 text-sm font-semibold">{template.name}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{template.description}</p>

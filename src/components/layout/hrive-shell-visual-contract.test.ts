@@ -28,7 +28,7 @@ describe('Hrive desktop shell visual contract', () => {
     const shell = source('src/components/layout/AppLayoutShell.tsx');
 
     expect(header).not.toContain('<HeaderSecondaryNavigation');
-    expect(secondary).toContain('border-b border-border/70');
+    expect(secondary).not.toContain('border-b border-border/70');
     expect(secondary).toContain('text-muted-foreground');
     expect(secondary).toContain('after:bg-primary');
     expect(secondary).not.toContain('dark:text-zinc-300');

@@ -87,7 +87,7 @@ export function HeaderSecondaryNavigation({ pathname }: { pathname: string }) {
   }
 
   return (
-    <div className="relative z-40 shrink-0 border-b border-border/70 bg-transparent px-4 text-foreground sm:px-6 lg:px-8">
+    <div className="relative z-40 shrink-0 bg-transparent px-4 text-foreground sm:px-6 lg:px-8">
       <div className="flex h-10 min-w-0 items-stretch">
         <div
           ref={scrollContainerRef}

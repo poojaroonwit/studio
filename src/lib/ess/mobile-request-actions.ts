@@ -109,6 +109,37 @@ export async function createMobileAttendanceCorrection(identity: MobileEssReques
   }
 }
 
+function normalizeProfileChangeValue(
+  field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
+  value: unknown,
+) {
+  if (field === 'preferredName') {
+    const normalized = text(value, 120);
+    return normalized ? normalized : null;
+  }
+  if (field === 'phone') {
+    const normalized = text(value, 80);
+    return normalized ? normalized : null;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (field === 'address') {
+    const formatted = text(record.formatted, 500);
+    return formatted ? { formatted } : null;
+  }
+  if (field === 'bankInformation') {
+    const bankName = text(record.bankName, 160);
+    const accountNumber = text(record.accountNumber, 80);
+    const normalized = {
+      ...(bankName ? { bankName } : {}),
+      ...(accountNumber ? { accountNumber } : {}),
+    };
+    return Object.keys(normalized).length > 0 ? normalized : null;
+  }
+  const taxId = text(record.taxId, 80);
+  return taxId ? { taxId } : null;
+}
+
 async function createProfileChange(
   identity: MobileEssRequestIdentity,
   field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
@@ -139,12 +170,17 @@ export async function createMobileProfileChangeRequest(identity: MobileEssReques
   const reason = text(body.reason, 2000);
   const allowedFields = new Set(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
   if (!allowedFields.has(field)) return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
+  if (reason.length < 3) return NextResponse.json({ error: 'Add a short reason for this change request' }, { status: 400 });
+
+  const typedField = field as 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation';
+  const normalizedValue = normalizeProfileChangeValue(typedField, body.value);
+  if (normalizedValue === null) return NextResponse.json({ error: 'Enter a valid value for this profile change' }, { status: 400 });
 
   try {
     const data = await createProfileChange(
       identity,
-      field as 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
-      body.value,
+      typedField,
+      normalizedValue,
       reason,
     );
     return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
@@ -164,12 +200,23 @@ export async function createLegacyMobileProfileChangeRequests(
   }> = [];
 
   if (kind === 'profile') {
+    const currentResult = await getPool().query(
+      `SELECT preferred_name, phone, address
+         FROM hr_employees
+        WHERE id = $1::uuid
+        LIMIT 1`,
+      [identity.employeeId],
+    ).catch(() => ({ rows: [] as DbRow[] }));
+    const current = currentResult.rows[0] as DbRow | undefined;
+    const currentAddress = current?.address && typeof current.address === 'object' && !Array.isArray(current.address)
+      ? text((current.address as Record<string, unknown>).formatted, 500)
+      : '';
     const preferredName = text(body.preferredName, 120);
     const phone = text(body.phone, 80);
     const address = text(body.address, 500);
-    if (preferredName) changes.push({ field: 'preferredName', value: preferredName });
-    if (phone) changes.push({ field: 'phone', value: phone });
-    if (address) changes.push({ field: 'address', value: { formatted: address } });
+    if (preferredName && preferredName !== text(current?.preferred_name, 120)) changes.push({ field: 'preferredName', value: preferredName });
+    if (phone && phone !== text(current?.phone, 80)) changes.push({ field: 'phone', value: phone });
+    if (address && address !== currentAddress) changes.push({ field: 'address', value: { formatted: address } });
   } else {
     const bankName = text(body.bankName, 160);
     const accountNumber = text(body.accountNumber, 80);

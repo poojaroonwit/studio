@@ -33,7 +33,7 @@ export type ProfileChangeRequestRow = {
   title: string
   reason?: string
   status: string
-  requestedValues: Record<string, unknown>
+  requestedFields: string[]
   reviewerComment?: string
   reviewedAt?: string
   submittedAt?: string

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from 'react';
-import { FileClock, Pencil, RefreshCw, RotateCcw, Send, Undo2 } from 'lucide-react';
+import Link from 'next/link';
+import { CalendarDays, Clock3, FileClock, Pencil, ReceiptText, RefreshCw, RotateCcw, Send, TimerReset, Undo2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -140,6 +141,14 @@ function ownerActions(request: EssRow): OwnerAction[] {
   return [];
 }
 
+const requestJourneys = [
+  { label: 'Leave', description: 'Time away and balances', href: '/ess/leave', icon: CalendarDays },
+  { label: 'Shift requests', description: 'Schedule changes and swaps', href: '/ess/shift-requests', icon: Clock3 },
+  { label: 'Attendance corrections', description: 'Fix missing or incorrect time', href: '/ess/attendance-corrections', icon: FileClock },
+  { label: 'Overtime', description: 'Submit and track overtime', href: '/ess/overtime', icon: TimerReset },
+  { label: 'Expenses', description: 'Claims and reimbursement', href: '/ess/expenses', icon: ReceiptText },
+] as const;
+
 export function EssRequestCenter() {
   const [requests, setRequests] = React.useState<EssRow[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -247,21 +256,41 @@ export function EssRequestCenter() {
   }
 
   return (
-    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-4 py-6 text-foreground sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-5">
+    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7">
+      <div className="mx-auto max-w-[1440px] space-y-4">
         <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee self-service</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">My requests</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Revise returned requests, resubmit them, and follow every approval through to its final state.</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">My requests</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Start the right employee request, then return here for profile and document approval history.</p>
           </div>
-          <Button variant="outline" disabled={refreshing} onClick={() => void load(true)}><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />Refresh</Button>
+          <Button variant="outline" disabled={refreshing} onClick={() => void load(true)}><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />Refresh history</Button>
         </header>
+
+        <section aria-labelledby="request-journeys-title">
+          <div className="mb-2">
+            <h2 id="request-journeys-title" className="text-sm font-semibold">Start or track a request</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Leave, time, overtime and expense requests keep their dedicated forms and policy rules.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {requestJourneys.map(({ label, description, href, icon: Icon }) => (
+              <Link key={href} href={href} className="group flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span>
+                <span className="min-w-0"><span className="block text-sm font-semibold">{label}</span><span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{description}</span></span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <div>
+          <h2 className="text-sm font-semibold">Profile & document request history</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">These request types share the central ESS approval workflow and revision editor.</p>
+        </div>
 
         <section className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
           <Metric label="Needs your action" value={needsAction} />
-          <Metric label="Open requests" value={requests.filter(item => !['approved', 'rejected', 'cancelled', 'completed'].includes(String(item.status))).length} />
-          <Metric label="All history" value={requests.length} />
+          <Metric label="Open profile/document" value={requests.filter(item => !['approved', 'rejected', 'cancelled', 'completed'].includes(String(item.status))).length} />
+          <Metric label="Profile/document history" value={requests.length} />
         </section>
 
         <div className="flex flex-wrap gap-2" aria-label="Request filters">

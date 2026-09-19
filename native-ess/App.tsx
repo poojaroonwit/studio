@@ -297,6 +297,14 @@ export default function App() {
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
   }
 
+  const openAccountSection = (section: AccountSection) => {
+    setRequestComposerPending(false)
+    setTab('account')
+    setAccountSection(section)
+    setFullPage(section !== 'menu')
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
+  }
+
   useEffect(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
   }, [tab, fullPage])
@@ -349,9 +357,10 @@ export default function App() {
         account={account}
         reload={load}
         offline={offline}
+        openNotifications={() => openAccountSection('notifications')}
       />
     : tab === 'time'
-      ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} offline={offline} />
+      ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} offline={offline} onFullPageChange={setFullPage} />
       : tab === 'requests'
         ? <RequestsScreen
             data={data}

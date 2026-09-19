@@ -109,10 +109,17 @@ export async function createMobileAttendanceCorrection(identity: MobileEssReques
   }
 }
 
-function normalizeProfileChangeValue(
-  field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
-  value: unknown,
-) {
+type ProfileChangeField = 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation';
+
+const profileChangeLabels: Record<ProfileChangeField, string> = {
+  preferredName: 'Preferred name',
+  phone: 'Personal phone',
+  address: 'Address',
+  bankInformation: 'Bank information',
+  taxInformation: 'Tax information',
+};
+
+function normalizeProfileChangeValue(field: ProfileChangeField, value: unknown) {
   if (field === 'preferredName') {
     const normalized = text(value, 120);
     return normalized ? normalized : null;
@@ -142,22 +149,19 @@ function normalizeProfileChangeValue(
 
 async function createProfileChange(
   identity: MobileEssRequestIdentity,
-  field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
-  value: unknown,
+  changes: Partial<Record<ProfileChangeField, unknown>>,
   reason: string,
 ) {
-  const labels: Record<string, string> = {
-    preferredName: 'Preferred name',
-    phone: 'Personal phone',
-    address: 'Address',
-    bankInformation: 'Bank information',
-    taxInformation: 'Tax information',
-  };
+  const fields = Object.keys(changes) as ProfileChangeField[];
+  const title = fields.length === 1
+    ? `Update ${profileChangeLabels[fields[0]]}`
+    : `Update ${fields.map(field => profileChangeLabels[field]).join(', ')}`;
+
   const parsed = essRequestCreateSchema.safeParse({
     requestType: 'profile_change',
-    title: `Update ${labels[field] || 'profile'}`,
+    title,
     reason,
-    values: { [field]: value },
+    values: changes,
     originalValues: {},
     saveAsDraft: false,
   });
@@ -166,23 +170,33 @@ async function createProfileChange(
 }
 
 export async function createMobileProfileChangeRequest(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
-  const field = text(body.field, 80);
   const reason = text(body.reason, 2000);
-  const allowedFields = new Set(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
-  if (!allowedFields.has(field)) return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
   if (reason.length < 3) return NextResponse.json({ error: 'Add a short reason for this change request' }, { status: 400 });
 
-  const typedField = field as 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation';
-  const normalizedValue = normalizeProfileChangeValue(typedField, body.value);
-  if (normalizedValue === null) return NextResponse.json({ error: 'Enter a valid value for this profile change' }, { status: 400 });
+  const allowedFields = new Set<ProfileChangeField>(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
+  const source = body.changes && typeof body.changes === 'object' && !Array.isArray(body.changes)
+    ? body.changes as Record<string, unknown>
+    : text(body.field, 80)
+      ? { [text(body.field, 80)]: body.value }
+      : {};
+  const entries = Object.entries(source);
+  if (entries.length === 0) return NextResponse.json({ error: 'Change at least one profile field' }, { status: 400 });
+
+  const changes: Partial<Record<ProfileChangeField, unknown>> = {};
+  for (const [field, value] of entries) {
+    if (!allowedFields.has(field as ProfileChangeField)) {
+      return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
+    }
+    const typedField = field as ProfileChangeField;
+    const normalizedValue = normalizeProfileChangeValue(typedField, value);
+    if (normalizedValue === null) {
+      return NextResponse.json({ error: `Enter a valid value for ${profileChangeLabels[typedField].toLowerCase()}` }, { status: 400 });
+    }
+    changes[typedField] = normalizedValue;
+  }
 
   try {
-    const data = await createProfileChange(
-      identity,
-      typedField,
-      normalizedValue,
-      reason,
-    );
+    const data = await createProfileChange(identity, changes, reason);
     return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
   } catch (error) {
     return errorResponse(error, 'Unable to create profile change request');
@@ -194,10 +208,7 @@ export async function createLegacyMobileProfileChangeRequests(
   kind: 'profile' | 'bank-tax',
   body: Record<string, unknown>,
 ) {
-  const changes: Array<{
-    field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation';
-    value: unknown;
-  }> = [];
+  const changes: Partial<Record<ProfileChangeField, unknown>> = {};
 
   if (kind === 'profile') {
     const currentResult = await getPool().query(
@@ -214,9 +225,9 @@ export async function createLegacyMobileProfileChangeRequests(
     const preferredName = text(body.preferredName, 120);
     const phone = text(body.phone, 80);
     const address = text(body.address, 500);
-    if (preferredName && preferredName !== text(current?.preferred_name, 120)) changes.push({ field: 'preferredName', value: preferredName });
-    if (phone && phone !== text(current?.phone, 80)) changes.push({ field: 'phone', value: phone });
-    if (address && address !== currentAddress) changes.push({ field: 'address', value: { formatted: address } });
+    if (preferredName && preferredName !== text(current?.preferred_name, 120)) changes.preferredName = preferredName;
+    if (phone && phone !== text(current?.phone, 80)) changes.phone = phone;
+    if (address && address !== currentAddress) changes.address = { formatted: address };
   } else {
     const bankName = text(body.bankName, 160);
     const accountNumber = text(body.accountNumber, 80);
@@ -225,11 +236,11 @@ export async function createLegacyMobileProfileChangeRequests(
       ...(bankName ? { bankName } : {}),
       ...(accountNumber ? { accountNumber } : {}),
     };
-    if (Object.keys(bankInformation).length > 0) changes.push({ field: 'bankInformation', value: bankInformation });
-    if (taxId) changes.push({ field: 'taxInformation', value: { taxId } });
+    if (Object.keys(bankInformation).length > 0) changes.bankInformation = bankInformation;
+    if (taxId) changes.taxInformation = { taxId };
   }
 
-  if (changes.length === 0) {
+  if (Object.keys(changes).length === 0) {
     return NextResponse.json({
       error: kind === 'profile'
         ? 'No supported profile changes were provided. Account email is managed by Outborn Account.'
@@ -238,12 +249,11 @@ export async function createLegacyMobileProfileChangeRequests(
   }
 
   try {
-    const requests = [];
-    for (const change of changes) {
-      const data = await createProfileChange(identity, change.field, change.value, 'Requested from mobile account settings');
-      requests.push({ id: data.id, requestNumber: data.request_id, status: data.status });
-    }
-    return NextResponse.json({ success: true, requests }, { status: 202 });
+    const data = await createProfileChange(identity, changes, 'Requested from mobile account settings');
+    return NextResponse.json({
+      success: true,
+      requests: [{ id: data.id, requestNumber: data.request_id, status: data.status }],
+    }, { status: 202 });
   } catch (error) {
     return errorResponse(error, 'Unable to create profile change request');
   }

@@ -313,14 +313,19 @@ export function HeadcountRequestsClient() {
     setForm(initialForm);
     setFormError(null);
     setIsPositionChoiceOpen(false);
-    setIsCreateDialogOpen(true);
+    // Let the chooser dialog release focus/pointer locks before opening
+    // the next layered surface. Opening both in the same click can make
+    // the follow-up dialog immediately close or appear unresponsive.
+    window.setTimeout(() => setIsCreateDialogOpen(true), 0);
   }
 
   function openNewPositionFlow() {
     setForm(initialForm);
     setFormError(null);
     setIsPositionChoiceOpen(false);
-    setIsAddPositionOpen(true);
+    // See openRequestForExistingPosition: defer the next modal by one
+    // task so Radix can finish closing the request chooser first.
+    window.setTimeout(() => setIsAddPositionOpen(true), 0);
   }
 
   async function handleAddPosition(positionForm: AddPositionFormValues) {
@@ -944,9 +949,21 @@ function HeadcountRequestRow({
     <Fragment>
       <TableRow
         aria-selected={selected}
-        className={`transition-colors ${selected ? "bg-primary/5 hover:bg-primary/5" : "hover:bg-muted/30"}`}
+        aria-label={`Review request ${request.ticketNo} for ${request.position.title}`}
+        aria-haspopup="dialog"
+        role="button"
+        tabIndex={0}
+        onClick={onReview}
+        onKeyDown={event => {
+          if (event.currentTarget !== event.target) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onReview();
+          }
+        }}
+        className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selected ? "bg-primary/5 hover:bg-primary/5" : "hover:bg-muted/30"}`}
       >
-        <TableCell>
+        <TableCell onClick={event => event.stopPropagation()}>
           <Checkbox
             aria-label={`Select ${request.ticketNo}`}
             disabled={request.status === "filled" || request.status === "draft"}
@@ -963,7 +980,10 @@ function HeadcountRequestRow({
               className="h-7 w-7 shrink-0"
               aria-label={`${expanded ? "Collapse" : "Expand"} approval journey for ${request.position.title}`}
               aria-expanded={expanded}
-              onClick={onToggleExpanded}
+              onClick={event => {
+                event.stopPropagation();
+                onToggleExpanded();
+              }}
             >
               <ChevronRightIcon className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
             </Button>
@@ -996,7 +1016,16 @@ function HeadcountRequestRow({
           <div className="mt-0.5 text-xs text-muted-foreground">{formatRelativeDate(request.updatedAt)}</div>
         </TableCell>
         <TableCell>
-          <Button type="button" variant="ghost" size="icon" aria-label={`Review ${request.position.title}`} onClick={onReview}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Review ${request.position.title}`}
+            onClick={event => {
+              event.stopPropagation();
+              onReview();
+            }}
+          >
             <PanelRightOpenIcon className="h-4 w-4" />
           </Button>
         </TableCell>

@@ -610,7 +610,8 @@ async function pathParts(context: RouteContext) {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const path = await pathParts(context);
-  if (path[0] === 'document-file' && path[1]) return serveDocument(request, path[1]);
+  const resourceId = path[1];
+  if (path[0] === 'document-file' && resourceId) return serveDocument(request, resourceId);
   const authResult = await requireIdentity(request);
   if ('response' in authResult) return authResult.response;
   const { identity } = authResult;
@@ -618,7 +619,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     try { return NextResponse.json(await bootstrap(identity)); }
     catch (error) { console.error('ESS bootstrap failed', error); return jsonError('Unable to load employee self-service', 500); }
   }
-  if (path[0] === 'documents' && path[1] && path[2] === 'download') return documentLink(request, identity, path[1]);
+  if (path[0] === 'documents' && resourceId && path[2] === 'download') return documentLink(request, identity, resourceId);
   return jsonError('Not found', 404);
 }
 
@@ -628,19 +629,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if ('response' in authResult) return authResult.response;
   const { identity } = authResult;
   const body = await bodyJson(request) || {};
+  const requestId = path[2];
+  const notificationId = path[1];
   if (path.join('/') === 'attendance/clock-in') return clock(identity, 'in', body, request);
   if (path.join('/') === 'attendance/clock-out') return clock(identity, 'out', body, request);
   if (path.join('/') === 'attendance/corrections') return createCorrection(identity, body);
   if (path.join('/') === 'leave/requests') return createLeave(identity, body);
-  if (path[0] === 'leave' && path[1] === 'requests' && path[2] && path[3] === 'cancel') return cancelLeave(identity, path[2]);
+  if (path[0] === 'leave' && path[1] === 'requests' && requestId && path[3] === 'cancel') return cancelLeave(identity, requestId);
   if (path.join('/') === 'emergency-contacts') {
     const result = await writeMobileEmergencyContact(identity.employeeId, body);
     return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact, { status: 201 });
   }
   if (path.join('/') === 'hr-support/tickets') return createSupportTicket(identity, body);
-  if (path[0] === 'hr-support' && path[1] === 'tickets' && path[2] && path[3] === 'reply') return replySupportTicket(identity, path[2], body);
-  if (path[0] === 'notifications' && path[1] && path[2] === 'read') {
-    await getPool().query('UPDATE "Notification" SET "isRead" = TRUE, "updatedAt" = NOW() WHERE id = $1 AND "userId" = $2', [path[1], identity.userId]);
+  if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'reply') return replySupportTicket(identity, requestId, body);
+  if (path[0] === 'notifications' && notificationId && path[2] === 'read') {
+    await getPool().query('UPDATE "Notification" SET "isRead" = TRUE, "updatedAt" = NOW() WHERE id = $1 AND "userId" = $2', [notificationId, identity.userId]);
     return new NextResponse(null, { status: 204 });
   }
   if (path.join('/') === 'notifications/read-all') {

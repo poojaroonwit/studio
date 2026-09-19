@@ -7,6 +7,19 @@ function source(relativePath: string) {
 }
 
 describe('employee self-service route ownership', () => {
+  it('routes the ESS entry point to My Workday instead of the company intranet', () => {
+    const text = source('src/app/ess/page.tsx');
+    expect(text).toContain("redirect('/my-workday')");
+    expect(text).not.toContain("redirect('/employee-portal')");
+  });
+
+  it('uses the shared self-service profile journey', () => {
+    const text = source('src/app/ess/profile/page.tsx');
+    expect(text).toContain('EmployeeSelfServicePage');
+    expect(text).toContain('view="profile"');
+    expect(text).not.toContain('HrEmployeeProfilePage');
+  });
+
   it('owns onboarding inside ESS instead of redirecting employees to the HR onboarding console', () => {
     const text = source('src/app/ess/onboarding/page.tsx');
     expect(text).toContain('OnboardingView');

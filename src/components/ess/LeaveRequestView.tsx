@@ -36,6 +36,7 @@ import {
 } from "./LeaveRequestPrimitives";
 import type { EssDashboard, EssRow } from "./ess-types";
 import { dateValue, statusLabel, stringValue } from "./ess-types";
+import { EssConfirmActionDialog } from "./EssConfirmActionDialog";
 
 type LeaveSegment = {
   policyId: string;
@@ -166,7 +167,16 @@ function dateYear(value: unknown) {
   return Number.isNaN(date.getTime()) ? "" : String(date.getFullYear());
 }
 
-function availableRequestAction(request: EssRow) {
+type LeaveRequestAction = "submit" | "withdraw" | "resubmit" | "cancel";
+
+const leaveRequestSuccessMessage: Record<LeaveRequestAction, string> = {
+  submit: "Leave request submitted.",
+  withdraw: "Leave request withdrawn.",
+  resubmit: "Leave request resubmitted.",
+  cancel: "Leave request cancelled.",
+};
+
+function availableRequestAction(request: EssRow): LeaveRequestAction | null {
   if (request.status === "draft") return "submit";
   if (
     ["pending", "submitted", "pending_approval", "returned_for_revision"].includes(
@@ -207,6 +217,25 @@ export function LeaveRequestView({
   const [selectedRequest, setSelectedRequest] = React.useState<EssRow | null>(
     null,
   );
+  const [pendingRequestAction, setPendingRequestAction] = React.useState<Extract<LeaveRequestAction, "withdraw" | "cancel"> | null>(null);
+  const runRequestAction = React.useCallback(async (request: EssRow, action: LeaveRequestAction) => {
+    const result = await mutate(
+      "/api/ess/leave",
+      "PATCH",
+      {
+        id: request.id,
+        action,
+        expectedVersion: request.version,
+      },
+      leaveRequestSuccessMessage[action],
+    );
+    if (result) {
+      setPendingRequestAction(null);
+      setSelectedRequest(null);
+    }
+    return result;
+  }, [mutate]);
+
   const contactOptions = React.useMemo(
     () => emergencyContactOptions(data.employee.profile.emergencyContacts),
     [data.employee.profile.emergencyContacts],
@@ -1117,16 +1146,11 @@ export function LeaveRequestView({
                     onClick={() => {
                       const action = availableRequestAction(selectedRequest);
                       if (!action) return;
-                      void mutate(
-                        "/api/ess/leave",
-                        "PATCH",
-                        {
-                          id: selectedRequest.id,
-                          action,
-                          expectedVersion: selectedRequest.version,
-                        },
-                        `Leave request ${action.replace(/e$/, "")}ed.`,
-                      ).then(() => setSelectedRequest(null));
+                      if (action === "cancel" || action === "withdraw") {
+                        setPendingRequestAction(action);
+                        return;
+                      }
+                      void runRequestAction(selectedRequest, action);
                     }}
                     className="capitalize"
                   >
@@ -1140,6 +1164,22 @@ export function LeaveRequestView({
           )}
         </DialogContent>
       </Dialog>
+      <EssConfirmActionDialog
+        open={Boolean(pendingRequestAction && selectedRequest)}
+        onOpenChange={open => { if (!open && !submitting) setPendingRequestAction(null); }}
+        title={pendingRequestAction === "cancel" ? "Cancel approved leave?" : "Withdraw leave request?"}
+        description={pendingRequestAction === "cancel"
+          ? "This will cancel the approved leave request and update the leave workflow and balance according to policy."
+          : "This removes the request from approval. You can resubmit later only while the leave lifecycle allows it."}
+        confirmLabel={pendingRequestAction === "cancel" ? "Cancel leave" : "Withdraw request"}
+        destructive
+        busy={submitting}
+        onConfirm={() => {
+          if (selectedRequest && pendingRequestAction) {
+            void runRequestAction(selectedRequest, pendingRequestAction);
+          }
+        }}
+      />
     </div>
   );
 }

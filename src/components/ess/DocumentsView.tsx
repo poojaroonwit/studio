@@ -110,7 +110,7 @@ export function DocumentsView({
 
   return (
     <Tabs defaultValue={initialTab} className="space-y-4">
-      <TabsList className="h-auto">
+      <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="library" className="min-h-9">My documents</TabsTrigger>
         <TabsTrigger value="generate" className="min-h-9">Generate a document</TabsTrigger>
         <TabsTrigger value="payslips" className="min-h-9">Payslips</TabsTrigger>

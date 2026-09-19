@@ -472,12 +472,25 @@ async function patchBankTax(identity: EssIdentity, body: Record<string, unknown>
   return NextResponse.json({ success: true });
 }
 
+function emergencyContactIndex(contacts: Array<Record<string, unknown>>, contactId: string) {
+  const exact = contacts.findIndex(item => String(item.id || '') === contactId);
+  if (exact >= 0) return exact;
+
+  const synthetic = contactId.match(/^contact-(\d+)$/);
+  if (!synthetic) return -1;
+  const index = Number(synthetic[1]);
+  if (!Number.isInteger(index) || index < 0 || index >= contacts.length) return -1;
+  return contacts[index]?.id ? -1 : index;
+}
+
 async function writeEmergencyContact(identity: EssIdentity, body: Record<string, unknown>, contactId?: string) {
   const employeeResult = await getPool().query('SELECT emergency_contacts FROM hr_employees WHERE id = $1', [identity.employeeId]);
   const contacts = jsonArray((employeeResult.rows[0] as DbRow | undefined)?.emergency_contacts);
-  const id = contactId || randomUUID();
-  const index = contacts.findIndex(item => item.id === id);
+  const index = contactId ? emergencyContactIndex(contacts, contactId) : -1;
+  if (contactId && index < 0) return { response: jsonError('Emergency contact not found', 404) };
+
   const previous = index >= 0 ? contacts[index] : {};
+  const id = stringValue(previous.id, 80) || randomUUID();
   const next = {
     ...previous,
     id,
@@ -496,9 +509,10 @@ async function writeEmergencyContact(identity: EssIdentity, body: Record<string,
 async function deleteEmergencyContact(identity: EssIdentity, contactId: string) {
   const employeeResult = await getPool().query('SELECT emergency_contacts FROM hr_employees WHERE id = $1', [identity.employeeId]);
   const contacts = jsonArray((employeeResult.rows[0] as DbRow | undefined)?.emergency_contacts);
-  const next = contacts.filter(item => item.id !== contactId);
-  if (next.length === contacts.length) return jsonError('Emergency contact not found', 404);
-  await getPool().query('UPDATE hr_employees SET emergency_contacts = $2::jsonb, updated_at = NOW(), version = version + 1 WHERE id = $1', [identity.employeeId, JSON.stringify(next)]);
+  const index = emergencyContactIndex(contacts, contactId);
+  if (index < 0) return jsonError('Emergency contact not found', 404);
+  contacts.splice(index, 1);
+  await getPool().query('UPDATE hr_employees SET emergency_contacts = $2::jsonb, updated_at = NOW(), version = version + 1 WHERE id = $1', [identity.employeeId, JSON.stringify(contacts)]);
   return new NextResponse(null, { status: 204 });
 }
 

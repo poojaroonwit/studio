@@ -29,7 +29,19 @@ import { appBuildLabel } from './runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general'
-export type AccountSection = 'menu' | 'profile' | 'bank-tax' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
+type ProfileEditSection = 'profile-preferred-name' | 'profile-phone' | 'profile-address'
+type ProfileEditableField = 'preferredName' | 'phone' | 'address'
+export type AccountSection = 'menu' | 'profile' | ProfileEditSection | 'bank-tax' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
+
+const PROFILE_EDIT_FIELD_BY_SECTION: Record<ProfileEditSection, ProfileEditableField> = {
+  'profile-preferred-name': 'preferredName',
+  'profile-phone': 'phone',
+  'profile-address': 'address',
+}
+
+function isProfileEditSection(section: AccountSection): section is ProfileEditSection {
+  return section in PROFILE_EDIT_FIELD_BY_SECTION
+}
 
 type HrChatCategoryId = 'chat-payroll' | 'chat-leave' | 'chat-attendance' | 'chat-benefits' | 'chat-employment' | 'chat-general'
 
@@ -1226,7 +1238,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
   useEffect(() => {
     if (section === 'menu') return
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      openSection('menu')
+      openSection(isProfileEditSection(section) ? 'profile' : 'menu')
       return true
     })
     return () => subscription.remove()
@@ -1254,49 +1266,30 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
   if (section === 'hr-chat') return <HrChatPage data={data} reload={reload} onBack={() => setSection('menu')} />
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+
+  const profileEditField = isProfileEditSection(section) ? PROFILE_EDIT_FIELD_BY_SECTION[section] : null
+  const backTarget: AccountSection = profileEditField ? 'profile' : 'menu'
+  const backLabel = profileEditField ? 'My profile' : 'Account'
+
+  return <><Back label={backLabel} onPress={() => setSection(backTarget)} />
+    {section === 'profile' ? <ProfilePage data={data} account={account} onEdit={setSection} /> : null}
+    {profileEditField ? <ProfileEditPage field={profileEditField} data={data} reload={reload} onDone={() => setSection('profile')} /> : null}
+    {section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} /> : null}
+    {section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}
+    {section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}
+    {section === 'benefits' ? <BenefitsPage data={data} /> : null}
+    {section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}
+    {section === 'security' ? <SecurityPage /> : null}
+  </>
 }
-function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
-  const [preferredName, setPreferredName] = useState(data.profile?.preferredName || '')
-  const [phone, setPhone] = useState(data.profile?.phone || '')
-  const [address, setAddress] = useState(data.profile?.address || '')
-  const [reason, setReason] = useState('')
-  const [busy, setBusy] = useState(false)
+
+function ProfilePage({ data, account, onEdit }: { data: EssBootstrap; account?: AccountIdentity | null; onEdit: (section: AccountSection) => void }) {
   const history = data.profileChangeRequests.filter(item => item.requestedFields.some(field => ['preferredName', 'phone', 'address'].includes(field)))
-  const changed = preferredName.trim() !== (data.profile?.preferredName || '').trim()
-    || phone.trim() !== (data.profile?.phone || '').trim()
-    || address.trim() !== (data.profile?.address || '').trim()
-
-  const submit = async () => {
-    if (!changed) return Alert.alert('My profile', 'Change at least one profile field before submitting.')
-    if (reason.trim().length < 3) return Alert.alert('My profile', 'Add a short reason for this change request.')
-
-    const changes: Parameters<typeof essApi.createProfileChangeRequest>[0]['changes'] = {}
-    if (preferredName.trim() !== (data.profile?.preferredName || '').trim()) {
-      changes.preferredName = preferredName.trim()
-    }
-    if (phone.trim() !== (data.profile?.phone || '').trim()) {
-      changes.phone = phone.trim()
-    }
-    if (address.trim() !== (data.profile?.address || '').trim()) {
-      changes.address = { formatted: address.trim() }
-    }
-
-    setBusy(true)
-    try {
-      await essApi.createProfileChangeRequest({ changes, reason: reason.trim() })
-      setPreferredName(data.profile?.preferredName || '')
-      setPhone(data.profile?.phone || '')
-      setAddress(data.profile?.address || '')
-      setReason('')
-      await reload()
-      Alert.alert('My profile', 'Change request submitted for approval.')
-    } catch (error) {
-      Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to submit profile change request')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const profileOptions: Array<{ section: ProfileEditSection; icon: keyof typeof Ionicons.glyphMap; title: string; value: string }> = [
+    { section: 'profile-preferred-name', icon: 'person-outline', title: 'Preferred name', value: data.profile?.preferredName || 'Not set' },
+    { section: 'profile-phone', icon: 'call-outline', title: 'Personal phone', value: data.profile?.phone || 'Not set' },
+    { section: 'profile-address', icon: 'location-outline', title: 'Address', value: data.profile?.address || 'Not set' },
+  ]
 
   return <>
     <AppText style={s.pageTitle}>My profile</AppText>
@@ -1306,16 +1299,91 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
       <Muted>{account?.email || 'Account email unavailable'}</Muted>
       <Muted>Account email is managed by Outborn Account.</Muted>
     </Card>
+
+    <AppText style={s.section}>Profile information</AppText>
+    <Muted>Select the information you want to change.</Muted>
+    <View style={s.spacer} />
+    <View style={s.menuList}>
+      {profileOptions.map((option) => <MenuItem
+        key={option.section}
+        icon={option.icon}
+        title={option.title}
+        subtitle={option.value}
+        onPress={() => onEdit(option.section)}
+      />)}
+    </View>
+
     <Card>
-      <View style={s.inlineNotice}><Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} /><Muted style={s.flexOne}>These profile changes are submitted for approval and stay visible in change history.</Muted></View>
-      <Field label="Preferred name" value={preferredName} onChangeText={setPreferredName} />
-      <Field label="Personal phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-      <Field label="Address" value={address} onChangeText={setAddress} multiline />
+      <View style={s.inlineNotice}>
+        <Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} />
+        <Muted style={s.flexOne}>Profile changes are submitted for approval and stay visible in change history.</Muted>
+      </View>
+    </Card>
+
+    <Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card>
+    <ProfileChangeHistory items={history} empty="No profile change requests yet." />
+  </>
+}
+
+function ProfileEditPage({ field, data, reload, onDone }: { field: ProfileEditableField; data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
+  const config = field === 'preferredName'
+    ? { title: 'Edit preferred name', label: 'Preferred name', keyboardType: 'default' as const, multiline: false }
+    : field === 'phone'
+      ? { title: 'Edit personal phone', label: 'Personal phone', keyboardType: 'phone-pad' as const, multiline: false }
+      : { title: 'Edit address', label: 'Address', keyboardType: 'default' as const, multiline: true }
+
+  const currentValue = field === 'preferredName'
+    ? data.profile?.preferredName || ''
+    : field === 'phone'
+      ? data.profile?.phone || ''
+      : data.profile?.address || ''
+
+  const [value, setValue] = useState(currentValue)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const changed = value.trim() !== currentValue.trim()
+
+  const submit = async () => {
+    if (!changed) return Alert.alert('My profile', 'Change this field before submitting.')
+    if (reason.trim().length < 3) return Alert.alert('My profile', 'Add a short reason for this change request.')
+
+    const changes: Parameters<typeof essApi.createProfileChangeRequest>[0]['changes'] = {}
+    if (field === 'preferredName') changes.preferredName = value.trim()
+    if (field === 'phone') changes.phone = value.trim()
+    if (field === 'address') changes.address = { formatted: value.trim() }
+
+    setBusy(true)
+    try {
+      await essApi.createProfileChangeRequest({ changes, reason: reason.trim() })
+      await reload()
+      onDone()
+      Alert.alert('My profile', 'Change request submitted for approval.')
+    } catch (error) {
+      Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to submit profile change request')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>
+    <AppText style={s.pageTitle}>{config.title}</AppText>
+    <Muted>Update this information and explain why the change is needed.</Muted>
+    <View style={s.spacer} />
+    <Card>
+      <View style={s.inlineNotice}>
+        <Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} />
+        <Muted style={s.flexOne}>This change will be submitted for approval and recorded in change history.</Muted>
+      </View>
+      <Field
+        label={config.label}
+        value={value}
+        onChangeText={setValue}
+        keyboardType={config.keyboardType}
+        multiline={config.multiline}
+      />
       <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why is this change needed?" />
       <Button title="Submit change request" busy={busy} disabled={!changed || reason.trim().length < 3} onPress={() => void submit()} />
     </Card>
-    <Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card>
-    <ProfileChangeHistory items={history} empty="No profile change requests yet." />
   </>
 }
 

@@ -4342,21 +4342,25 @@ function PayslipsView({
         </section>
       </div>
 
-      {selected && (
-        <>
-          <button
-            aria-label="Close payslip drawer"
-            className="fixed inset-0 z-[90] !mt-0 bg-slate-950/60 backdrop-blur-[1px]"
-            onClick={() => setSelected(null)}
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Payslip for ${selected.employee_name}`}
-            style={{ width: "min(580px, calc(100vw - 2rem))" }}
-            className="fixed bottom-4 right-4 top-4 z-[100] !mt-0 flex flex-col overflow-hidden rounded-xl border border-border dark:border-[#31536d] bg-card dark:bg-[#071927] shadow-[-24px_0_80px_rgba(0,0,0,0.55)]"
-          >
-            <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border dark:border-[#27445f] bg-muted dark:bg-[#0a2030] px-5">
+      <Sheet
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          hideCloseButton
+          sheetId="payslip-details-drawer"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[580px]"
+        >
+          <SheetTitle className="sr-only">Payslip details</SheetTitle>
+          <SheetDescription className="sr-only">
+            Review payslip details, breakdown, delivery status, and employee payroll information.
+          </SheetDescription>
+          {selected && (
+            <aside className="flex h-full min-h-0 flex-col">
+              <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border dark:border-[#27445f] bg-muted dark:bg-[#0a2030] px-5">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-500 text-sm font-bold text-foreground dark:text-white">
                   {String(selected.employee_name)
@@ -4675,9 +4679,11 @@ function PayslipsView({
                 </div>
               </div>
             </div>
-          </aside>
-        </>
-      )}
+          
+            </aside>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

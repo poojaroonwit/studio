@@ -241,8 +241,30 @@ async function applyApprovedRequest(
         );
       }
     }
-    const jsonColumns: Record<string, string> = {
+    const mergedJsonColumns: Record<string, string> = {
       address: 'address',
+      bankInformation: 'bank_information',
+      taxInformation: 'tax_information',
+      governmentIdentification: 'government_identification',
+    };
+    for (const [field, column] of Object.entries(mergedJsonColumns)) {
+      if (values[field] !== undefined) {
+        const requested = values[field];
+        if (!requested || typeof requested !== 'object' || Array.isArray(requested)) {
+          throw new Error(`Approved ${field} change must be an object.`);
+        }
+        await client.$executeRawUnsafe(
+          `UPDATE "hr_employees"
+           SET "${column}" = COALESCE("${column}", '{}'::jsonb) || $2::jsonb,
+               "version" = "version" + 1,
+               "updated_at" = CURRENT_TIMESTAMP
+           WHERE "id" = $1::uuid`,
+          request.requester_employee_id,
+          JSON.stringify(requested),
+        );
+      }
+    }
+    const replacementJsonColumns: Record<string, string> = {
       emergencyContacts: 'emergency_contacts',
       familyDependents: 'family_dependents',
       education: 'education',
@@ -250,11 +272,8 @@ async function applyApprovedRequest(
       skills: 'skills',
       certifications: 'certifications',
       languages: 'languages',
-      bankInformation: 'bank_information',
-      taxInformation: 'tax_information',
-      governmentIdentification: 'government_identification',
     };
-    for (const [field, column] of Object.entries(jsonColumns)) {
+    for (const [field, column] of Object.entries(replacementJsonColumns)) {
       if (values[field] !== undefined) {
         await client.$executeRawUnsafe(
           `UPDATE "hr_employees" SET "${column}" = $2::jsonb, "version" = "version" + 1, "updated_at" = CURRENT_TIMESTAMP WHERE "id" = $1::uuid`,

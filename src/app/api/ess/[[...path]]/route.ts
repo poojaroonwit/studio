@@ -5,7 +5,12 @@ import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
 import { getDownloadedStorageFile } from '@/app/api/download/download-route-storage';
 import { deleteMobileEmergencyContact, writeMobileEmergencyContact } from '@/lib/ess/mobile-emergency-contacts';
-import { cancelOwnLeaveRequest, createEssGroupedLeaveRequest } from '@/lib/hr/ess-service';
+import {
+  cancelMobileLeaveRequest,
+  createMobileLeaveRequest,
+  createMobileSupportTicket,
+  replyMobileSupportTicket,
+} from '@/lib/ess/mobile-request-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -404,56 +409,6 @@ async function clock(identity: EssIdentity, mode: 'in' | 'out', body: Record<str
   }
 }
 
-async function createLeave(identity: EssIdentity, body: Record<string, unknown>) {
-  const policyId = stringValue(body.policyId, 80);
-  const startDate = stringValue(body.startDate, 10);
-  const endDate = stringValue(body.endDate, 10);
-  const reason = stringValue(body.reason, 1000);
-  const emergencyContact = stringValue(body.emergencyContact, 500);
-
-  if (!policyId || !/^[0-9a-f-]{36}$/i.test(policyId) || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-    return jsonError('Choose an available leave policy and valid dates', 400);
-  }
-  if (!emergencyContact) return jsonError('Choose an emergency contact before submitting leave', 400);
-
-  try {
-    const result = await createEssGroupedLeaveRequest(identity.userId, identity.email, {
-      startDate,
-      endDate,
-      policyId,
-      requestUnit: 'full_day',
-      halfDayPeriod: null,
-      requestedHours: null,
-      reason: reason || null,
-      emergencyContact,
-      handoverInformation: null,
-      actingEmployeeId: null,
-      saveAsDraft: false,
-    });
-    const segment = result.segments[0] as Record<string, unknown> | undefined;
-    return NextResponse.json({
-      id: segment?.id ? String(segment.id) : result.id,
-      requestGroupId: result.requestGroupId,
-      startDate: asIsoDate(segment?.start_date || startDate),
-      endDate: asIsoDate(segment?.end_date || endDate),
-      days: Number(segment?.days || 0),
-      status: String(segment?.status || 'pending_approval'),
-    }, { status: 201 });
-  } catch (error) {
-    return jsonError(error instanceof Error ? error.message : 'Unable to create leave request', 400);
-  }
-}
-
-async function cancelLeave(identity: EssIdentity, id: string) {
-  try {
-    const result = await cancelOwnLeaveRequest(identity.userId, identity.email, id, 'cancel');
-    if (!result) return jsonError('Leave request changed or can no longer be cancelled', 409);
-    return NextResponse.json(result);
-  } catch (error) {
-    return jsonError(error instanceof Error ? error.message : 'Unable to cancel leave request', 400);
-  }
-}
-
 async function createCorrection(identity: EssIdentity, body: Record<string, unknown>) {
   const attendanceId = stringValue(body.attendanceId, 80);
   const reason = stringValue(body.reason, 1000);
@@ -505,53 +460,6 @@ async function patchBankTax(identity: EssIdentity, body: Record<string, unknown>
     [identity.employeeId, bankName, accountNumber, taxId],
   );
   return NextResponse.json({ success: true });
-}
-
-async function createSupportTicket(identity: EssIdentity, body: Record<string, unknown>) {
-  const subject = stringValue(body.subject, 180);
-  const message = stringValue(body.message, 5000);
-  const category = stringValue(body.category, 100) || 'general';
-  if (!subject || !message) return jsonError('Subject and message are required', 400);
-  const id = randomUUID();
-  const requestNumber = `ESS-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 8).toUpperCase()}`;
-  await getPool().query(
-    `INSERT INTO employee_support_requests
-       (id, request_number, requester_user_id, employee_id, category, subject, description, status, priority, metadata, submitted_at, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'submitted', 'normal', $8::jsonb, NOW(), NOW(), NOW())`,
-    [id, requestNumber, identity.userId, identity.employeeId, category, subject, message, JSON.stringify({ source: 'ess-mobile' })],
-  );
-  return NextResponse.json({ id, status: 'submitted' }, { status: 201 });
-}
-
-async function replySupportTicket(identity: EssIdentity, id: string, body: Record<string, unknown>) {
-  const message = stringValue(body.message, 5000);
-  if (!message) return jsonError('Message is required', 400);
-
-  const owned = await getPool().query(
-    `SELECT id, status
-       FROM employee_support_requests
-      WHERE id = $1::uuid
-        AND employee_id = $2::uuid
-      LIMIT 1`,
-    [id, identity.employeeId],
-  );
-  const request = owned.rows[0] as DbRow | undefined;
-  if (!request) return jsonError('HR request not found', 404);
-  if (['resolved', 'closed', 'cancelled', 'canceled'].includes(String(request.status || '').toLowerCase())) {
-    return jsonError('This HR request is closed. Create a new request to continue.', 409);
-  }
-
-  await getPool().query(
-    `INSERT INTO employee_support_activities
-       (id, request_id, actor_user_id, action, message, visibility, metadata, created_at)
-     VALUES ($1, $2::uuid, $3::uuid, 'requester_message', $4, 'requester', '{}'::jsonb, NOW())`,
-    [randomUUID(), id, identity.userId, message],
-  );
-  await getPool().query(
-    `UPDATE employee_support_requests SET updated_at = NOW() WHERE id = $1::uuid AND employee_id = $2::uuid`,
-    [id, identity.employeeId],
-  );
-  return NextResponse.json({ success: true }, { status: 201 });
 }
 
 async function documentLink(request: NextRequest, identity: EssIdentity, id: string) {
@@ -623,14 +531,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (path.join('/') === 'attendance/clock-in') return clock(identity, 'in', body, request);
   if (path.join('/') === 'attendance/clock-out') return clock(identity, 'out', body, request);
   if (path.join('/') === 'attendance/corrections') return createCorrection(identity, body);
-  if (path.join('/') === 'leave/requests') return createLeave(identity, body);
-  if (path[0] === 'leave' && path[1] === 'requests' && requestId && path[3] === 'cancel') return cancelLeave(identity, requestId);
+  if (path.join('/') === 'leave/requests') return createMobileLeaveRequest(identity, body);
+  if (path[0] === 'leave' && path[1] === 'requests' && requestId && path[3] === 'cancel') return cancelMobileLeaveRequest(identity, requestId);
   if (path.join('/') === 'emergency-contacts') {
     const result = await writeMobileEmergencyContact(identity.employeeId, body);
     return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact, { status: 201 });
   }
-  if (path.join('/') === 'hr-support/tickets') return createSupportTicket(identity, body);
-  if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'reply') return replySupportTicket(identity, requestId, body);
+  if (path.join('/') === 'hr-support/tickets') return createMobileSupportTicket(identity, body);
+  if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'reply') return replyMobileSupportTicket(identity, requestId, body);
   if (path[0] === 'notifications' && notificationId && path[2] === 'read') {
     await getPool().query('UPDATE "Notification" SET "isRead" = TRUE, "updatedAt" = NOW() WHERE id = $1 AND "userId" = $2', [notificationId, identity.userId]);
     return new NextResponse(null, { status: 204 });

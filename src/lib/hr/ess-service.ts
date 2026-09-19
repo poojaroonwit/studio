@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma';
 import { NotificationService } from '@/lib/notificationService';
 import { maskSensitiveValue } from './ess-contracts';
 import { getAttendanceGeofences, validateAttendanceGeofence } from './attendance-geofence';
+import { calculateEmployeeReadiness } from './employee-readiness';
 
 export const essLeaveRequestSchema = z.object({
   startDate: z.string().min(1),
@@ -106,7 +107,12 @@ interface EmployeeRow {
   location: string | null;
   manager_id?: string | null;
   department_id?: string | null;
+  position_id?: string | null;
   company_id?: string | null;
+  client_id?: string | null;
+  end_date?: Date | null;
+  probation_period_days?: number | null;
+  probation_evaluation_frequency_days?: number | null;
   legal_name?: string | null;
   business_unit?: string | null;
   work_phone?: string | null;
@@ -202,6 +208,11 @@ function mapEmployee(employee: EmployeeRow) {
     lastName: employee.last_name,
     companyId: employee.company_id || null,
     departmentId: employee.department_id || null,
+    positionId: employee.position_id || null,
+    clientId: employee.client_id || null,
+    endDate: toIsoDate(employee.end_date),
+    probationPeriodDays: employee.probation_period_days ?? null,
+    probationEvaluationFrequencyDays: employee.probation_evaluation_frequency_days ?? null,
     department: employee.department_name || null,
     businessUnit: employee.business_unit || null,
     managerName: employee.manager_name || null,
@@ -255,8 +266,9 @@ export async function getEmployeeForUser(userId: string, email?: string | null) 
   const rows = await prisma.$queryRawUnsafe<EmployeeRow[]>(
     `SELECT e.id, e.user_id, e.employee_number, e.first_name, e.last_name, e.preferred_name,
             e.email, e.phone, e.job_title, e.employment_type, e.status, e.hire_date, e.location,
-            e.manager_id, e.department_id, e.company_id, e.legal_name, e.business_unit,
-            e.work_phone, e.profile_photo_url, e.personal_information, e.address,
+            e.manager_id, e.department_id, e.position_id, e.company_id, e.client_id,
+            e.end_date, e.probation_period_days, e.probation_evaluation_frequency_days,
+            e.legal_name, e.business_unit, e.work_phone, e.profile_photo_url, e.personal_information, e.address,
             e.emergency_contacts, e.family_dependents, e.bank_information, e.tax_information,
             e.government_identification, e.education, e.work_experience, e.skills,
             e.certifications, e.languages, e.profile_completion, e.version,
@@ -307,6 +319,50 @@ async function requireEmployee(userId: string, email?: string | null) {
   return employee;
 }
 
+async function getEmployeeReadinessContext(employeeId: string) {
+  const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+    `SELECT
+       compensation.base_salary AS "baseSalary",
+       compensation.currency AS "compensationCurrency",
+       compensation.pay_frequency AS "payFrequency",
+       compensation.effective_from AS "compensationEffectiveFrom",
+       payroll.id AS "payrollProfileId",
+       payroll.payroll_group_id AS "payrollGroupId",
+       payroll.payment_method AS "paymentMethod",
+       payroll.bank_account_reference AS "bankAccountReference",
+       payroll.tax_profile_reference AS "taxProfileReference",
+       payroll.statutory_profile_reference AS "statutoryProfileReference",
+       payroll.payroll_start_date AS "payrollStartDate",
+       account_user.id AS "accountUserId",
+       account_user."is_active" AS "accountIsActive",
+       account_user.force_password_change AS "accountForcePasswordChange"
+     FROM "hr_employees" employee
+     LEFT JOIN LATERAL (
+       SELECT package.base_salary, package.currency, package.pay_frequency, package.effective_from
+       FROM "hr_compensation_packages" package
+       WHERE package.employee_id = employee.id
+         AND package.status = 'approved'
+         AND package.effective_from <= CURRENT_DATE
+         AND (package.effective_to IS NULL OR package.effective_to >= CURRENT_DATE)
+       ORDER BY package.effective_from DESC
+       LIMIT 1
+     ) compensation ON TRUE
+     LEFT JOIN "hr_employee_payroll_profiles" payroll
+       ON payroll.employee_id = employee.id AND payroll.status = 'active'
+     LEFT JOIN LATERAL (
+       SELECT u.id, u."is_active", u.force_password_change
+       FROM "User" u
+       WHERE u.id = employee.user_id OR lower(u.email) = lower(employee.email)
+       ORDER BY CASE WHEN u.id = employee.user_id THEN 0 ELSE 1 END
+       LIMIT 1
+     ) account_user ON TRUE
+     WHERE employee.id = $1::uuid
+     LIMIT 1`,
+    employeeId,
+  ).catch(() => []);
+  return rows[0] || {};
+}
+
 async function getEssSlices(employeeId: string) {
   const [
     onboarding,
@@ -333,7 +389,7 @@ async function getEssSlices(employeeId: string) {
     ),
     prisma.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT eo.id AS onboarding_id, ot.id AS task_id, ot.title, ot.description, ot.owner_role, ot.sort_order,
-              COALESCE(tp.status, 'pending') AS status, tp.completed_at
+              ot.is_required, COALESCE(tp.status, 'pending') AS status, tp.completed_at
        FROM "hr_employee_onboarding" eo
        JOIN "hr_onboarding_tasks" ot ON ot.template_id = eo.template_id
        LEFT JOIN "hr_employee_onboarding_task_progress" tp ON tp.onboarding_id = eo.id AND tp.task_id = ot.id
@@ -492,11 +548,30 @@ async function getEssSlices(employeeId: string) {
 export async function getEssDashboard(userId: string, email?: string | null) {
   const employee = await getEmployeeForUser(userId, email);
   if (!employee) return null;
-  const slices = await getEssSlices(employee.id);
-  const directReports = await listDirectReports(employee.id);
+  const [slices, directReports, readinessContext] = await Promise.all([
+    getEssSlices(employee.id),
+    listDirectReports(employee.id),
+    getEmployeeReadinessContext(employee.id),
+  ]);
+  const employeeData = mapEmployee(employee);
+  const readiness = calculateEmployeeReadiness({
+    ...employeeData,
+    bankInformation: employee.bank_information,
+    taxInformation: employee.tax_information,
+    governmentIdentification: employee.government_identification,
+    ...readinessContext,
+    requiredDocumentOpenCount: slices.documents.filter(item => (
+      item.requires_acknowledgment === true && !item.acknowledged_at
+    )).length,
+    requiredOnboardingOpenCount: slices.onboardingTasks.filter(item => (
+      item.is_required === true && String(item.status || 'pending') !== 'completed'
+    )).length,
+    onboardingAssigned: Boolean(slices.onboarding[0]),
+    onboardingCaseId: slices.onboarding[0]?.id || null,
+  });
 
   return {
-    employee: mapEmployee(employee),
+    employee: { ...employeeData, readiness },
     ...slices,
     metrics: {
       openLeaveRequests: slices.leaveRequests.filter(item => item.status === 'pending').length,

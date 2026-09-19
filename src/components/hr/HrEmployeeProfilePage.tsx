@@ -53,6 +53,7 @@ import {
 import { getUnderlineNavTriggerClassName } from "@/components/ui/underline-nav";
 import { UserAvatarUpload } from "@/components/ui/user-avatar-upload";
 import type { HrCrudRecord } from "@/lib/hr/hr-crud";
+import type { EmployeeReadiness } from "@/lib/hr/employee-readiness";
 import {
   accountAccessStatus,
   accountLinkStatus,
@@ -3449,24 +3450,41 @@ function EmployeeOnboardingPanel({
   const configuredTasks = Array.isArray(employee.onboardingTasks)
     ? (employee.onboardingTasks as EmployeeOnboardingTask[])
     : [];
-  const requiredItems = [
-    {
-      id: "system-account",
-      title: "Account setup",
-      description:
-        "Create the employee login and send password setup instructions.",
-      complete: Boolean(employee.accountUserId),
-      completedAt: employee.accountUserId ? employee.createdAt : null,
-    },
-    {
-      id: "profile-complete",
-      title: "Personal information",
-      description: "Complete all required employee profile information.",
-      complete: profileCompletion.required === 100,
-      completedAt:
-        profileCompletion.required === 100 ? employee.updatedAt : null,
-    },
-  ];
+  const readiness =
+    employee.employeeReadiness && typeof employee.employeeReadiness === "object"
+      ? (employee.employeeReadiness as EmployeeReadiness)
+      : null;
+  const readinessItems = readiness
+    ? readiness.sections
+        .filter((section) => section.id !== "onboarding")
+        .map((section) => ({
+          id: `readiness-${section.id}`,
+          title: section.label,
+          description: `${section.complete}/${section.total} required checks complete.`,
+          complete: section.missing === 0,
+          completedAt: section.missing === 0 ? employee.updatedAt : null,
+        }))
+    : [];
+  const requiredItems = readinessItems.length
+    ? readinessItems
+    : [
+        {
+          id: "system-account",
+          title: "Account setup",
+          description:
+            "Create the employee login and send password setup instructions.",
+          complete: Boolean(employee.accountUserId),
+          completedAt: employee.accountUserId ? employee.createdAt : null,
+        },
+        {
+          id: "profile-complete",
+          title: "Personal information",
+          description: "Complete all required employee profile information.",
+          complete: profileCompletion.required === 100,
+          completedAt:
+            profileCompletion.required === 100 ? employee.updatedAt : null,
+        },
+      ];
   const completedConfiguredTasks = configuredTasks.filter(
     (task) => task.status === "completed",
   ).length;
@@ -3590,6 +3608,7 @@ function EmployeeOnboardingPanel({
           total={totalItems}
           onboardingProgress={onboardingProgress}
           profileProgress={profileCompletion}
+          readiness={readiness}
         />
         <OnboardingChecklist
           requiredItems={requiredItems}
@@ -3642,6 +3661,7 @@ function EmployeeOnboardingPanel({
         total={totalItems}
         onboardingProgress={onboardingProgress}
         profileProgress={profileCompletion}
+        readiness={readiness}
       />
       <OnboardingChecklist
         requiredItems={requiredItems}
@@ -3792,11 +3812,13 @@ function OnboardingSummary({
   total,
   onboardingProgress,
   profileProgress,
+  readiness,
 }: {
   completed: number;
   total: number;
   onboardingProgress: number;
   profileProgress: { required: number; optional: number };
+  readiness?: EmployeeReadiness | null;
 }) {
   const chartData = {
     datasets: [
@@ -3822,18 +3844,28 @@ function OnboardingSummary({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">
-            Profile complete
+            Employee setup
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Required and optional employee information.
+            Profile completeness and operational readiness are tracked separately.
           </p>
         </div>
-        <Badge
-          variant={onboardingProgress === 100 ? "success" : "secondary"}
-          className="rounded-full"
-        >
-          {completed}/{total}
-        </Badge>
+        <div className="flex flex-wrap justify-end gap-2">
+          {readiness ? (
+            <Badge
+              variant={readiness.ready ? "success" : "secondary"}
+              className="rounded-full"
+            >
+              Setup {readiness.percent}%
+            </Badge>
+          ) : null}
+          <Badge
+            variant={onboardingProgress === 100 ? "success" : "secondary"}
+            className="rounded-full"
+          >
+            {completed}/{total}
+          </Badge>
+        </div>
       </div>
       <div
         className="mt-4 flex items-center gap-5"

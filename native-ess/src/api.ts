@@ -192,6 +192,7 @@ export type EssBootstrap = {
   schedule: EssScheduleItem[]
   announcements: EssAnnouncement[]
   supportRequests: SupportRequestRow[]
+  extrasAvailable?: boolean
 }
 
 type EssExtras = {
@@ -269,16 +270,28 @@ async function optionalRequest<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
+async function optionalRequestResult<T>(path: string, fallback: T): Promise<{ value: T; available: boolean }> {
+  try {
+    return { value: await request<T>(path), available: true }
+  } catch (error) {
+    if (isAuthRequired(error)) throw error
+    console.warn(`Optional ESS endpoint unavailable: ${path}`, error)
+    return { value: fallback, available: false }
+  }
+}
+
 
 export const essApi = {
   bootstrap: async () => {
-    const [data, attendancePolicy, extras] = await Promise.all([
+    const [data, attendancePolicy, extrasResult] = await Promise.all([
       request<EssBootstrap>('/api/ess/mobile/bootstrap'),
       optionalRequest<AttendancePolicy>('/api/ess/mobile/attendance-policy', {}),
-      optionalRequest<EssExtras>('/api/ess/mobile/extras', {}),
+      optionalRequestResult<EssExtras>('/api/ess/mobile/extras', {}),
     ])
+    const extras = extrasResult.value
     return {
       ...data,
+      extrasAvailable: extrasResult.available,
       attendance: Array.isArray(data.attendance) ? data.attendance : [],
       attendanceCorrections: Array.isArray(extras.attendanceCorrections)
         ? extras.attendanceCorrections

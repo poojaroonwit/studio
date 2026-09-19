@@ -27,7 +27,7 @@ const sheetVariants = cva(
           "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+          "inset-x-0 bottom-0 h-[min(88dvh,48rem)] w-full rounded-t-[24px] border-t max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:slide-in-from-bottom sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-3/4 sm:rounded-none sm:border-l sm:border-t-0 sm:data-[state=closed]:slide-out-to-right sm:data-[state=open]:slide-in-from-right",
       },
     },
     defaultVariants: {
@@ -111,7 +111,7 @@ const SheetContent = React.forwardRef<
         {children}
         {!hideCloseButton && (
           <SheetPrimitive.Close
-            className={cn("absolute right-6 top-6", LAYER_CLOSE_BUTTON_CLASS_NAME)}
+            className={cn("absolute right-4 top-4", LAYER_CLOSE_BUTTON_CLASS_NAME)}
           >
             <XMarkIcon className="h-4 w-4" />
             <span className="sr-only">Close</span>
@@ -136,12 +136,15 @@ function getSheetInsetStyleClasses({
     return "";
   }
 
-  const hasCustomWidth = className && /w-\[\d+v|w-1\/|w-2\/|w-3\/|w-4\/|w-5\/|max-w-\[/.test(className);
-  const insetClasses = "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] rounded-lg";
+  const hasCustomWidth = Boolean(className && /w-\[|w-1\/|w-2\/|w-3\/|w-4\/|w-5\/|max-w-\[/.test(className));
+  const mobilePresentation = "max-sm:!inset-x-0 max-sm:!bottom-0 max-sm:!top-auto max-sm:!h-[min(88dvh,48rem)] max-sm:!w-full max-sm:!max-w-none max-sm:!rounded-t-[24px] max-sm:!rounded-b-none";
+  const desktopInset = "sm:!top-4 sm:!bottom-4 sm:!right-4 sm:!left-auto sm:!h-[calc(100dvh-2rem)] sm:rounded-[20px]";
 
-  return isModern && !hasCustomWidth
-    ? `${insetClasses} !w-96 sm:!max-w-md`
-    : insetClasses;
+  if (isModern && !hasCustomWidth) {
+    return `${mobilePresentation} ${desktopInset} sm:!w-96 sm:!max-w-md`;
+  }
+
+  return `${mobilePresentation} ${desktopInset}`;
 }
 
 export {

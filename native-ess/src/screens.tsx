@@ -642,7 +642,7 @@ function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { r
 function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
-  const canCancel = ['draft', 'pending', 'submitted', 'pending_approval'].includes(normalizeStatus(request.status))
+  const canCancel = ['draft', 'pending'].includes(normalizeStatus(request.status))
   return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
 }
 

@@ -110,20 +110,21 @@ export default function App() {
       } else {
         const message = error instanceof Error ? error.message : 'Unable to load employee data.'
         const token = await accountAuth.getToken()
+        if (token) setOffline(true)
         if (token && allowCache && !data) {
           const cached = await loadBootstrapCache()
           if (cached) {
             setData(cached.value)
-            setOffline(true)
             setLoadError(`Offline data${cached.stale ? ' may be out of date' : ''}. ${message}`)
             void loadAccount()
           } else {
             setLoadError(message)
           }
         } else if (token) {
-          setLoadError(message)
+          setLoadError(data ? `Offline. ${message}` : message)
         } else {
           setData(null)
+          setOffline(false)
         }
       }
     } finally {

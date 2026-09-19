@@ -6,6 +6,7 @@ import { getPool } from '@/lib/db';
 import { getDownloadedStorageFile } from '@/app/api/download/download-route-storage';
 import { deleteMobileEmergencyContact, writeMobileEmergencyContact } from '@/lib/ess/mobile-emergency-contacts';
 import {
+  acknowledgeMobileDocument,
   cancelMobileLeaveRequest,
   createMobileLeaveRequest,
   createMobileSupportTicket,
@@ -196,7 +197,7 @@ async function bootstrap(identity: EssIdentity) {
       [identity.employeeId],
     ),
     pool.query(
-      `SELECT id, title, type, category, issue_date, created_at
+      `SELECT id, title, type, category, issue_date, created_at, requires_acknowledgment, acknowledged_at
          FROM hr_employee_documents
         WHERE employee_id = $1
           AND status NOT IN ('deleted', 'revoked')
@@ -314,6 +315,8 @@ async function bootstrap(identity: EssIdentity) {
       subtitle: typeof item.category === 'string' ? item.category : undefined,
       kind: ['payslip', 'tax', 'policy', 'certificate'].includes(String(item.type)) ? String(item.type) : 'other',
       issuedAt: asIsoDate(item.issue_date || item.created_at),
+      requiresAcknowledgment: item.requires_acknowledgment === true,
+      acknowledgedAt: item.acknowledged_at ? asIso(item.acknowledged_at) : undefined,
     })),
     leavePolicies: (leavePolicyResult.rows as DbRow[]).map(item => ({
       id: String(item.id),
@@ -572,6 +575,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
   if (path.join('/') === 'hr-support/tickets') return createMobileSupportTicket(identity, body);
   if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'reply') return replyMobileSupportTicket(identity, requestId, body);
+  if (path[0] === 'documents' && path[1] && path[2] === 'acknowledge') return acknowledgeMobileDocument(identity, path[1], request);
   if (path[0] === 'notifications' && notificationId && path[2] === 'read') {
     await getPool().query('UPDATE "Notification" SET "isRead" = TRUE, "updatedAt" = NOW() WHERE id = $1 AND "userId" = $2', [notificationId, identity.userId]);
     return new NextResponse(null, { status: 204 });

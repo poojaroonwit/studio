@@ -18,6 +18,16 @@ export type LeaveRequestRow = {
   status: string
 }
 
+export type LeavePolicyOption = {
+  id: string
+  name: string
+  leaveType: string
+  balance: number
+  allowHalfDay?: boolean
+  allowHourly?: boolean
+  minimumRequestUnits?: number
+}
+
 export type EssDocument = {
   id: string
   title: string
@@ -34,6 +44,13 @@ export type EssNotification = {
   createdAt?: string
 }
 
+export type SupportActivityRow = {
+  id: string
+  action: string
+  message?: string
+  createdAt?: string
+}
+
 export type SupportRequestRow = {
   id: string
   requestNumber: string
@@ -44,6 +61,7 @@ export type SupportRequestRow = {
   priority: string
   submittedAt?: string
   updatedAt?: string
+  activities?: SupportActivityRow[]
 }
 
 export type EmergencyContact = {
@@ -127,6 +145,7 @@ export type EssBootstrap = {
   }
   attendance: AttendanceRow[]
   leaveRequests: LeaveRequestRow[]
+  leavePolicies: LeavePolicyOption[]
   documents: EssDocument[]
   notifications: EssNotification[]
   benefits: EssBenefit[]
@@ -224,6 +243,7 @@ export const essApi = {
       ...data,
       attendance: Array.isArray(data.attendance) ? data.attendance : [],
       leaveRequests: Array.isArray(data.leaveRequests) ? data.leaveRequests : [],
+      leavePolicies: Array.isArray(data.leavePolicies) ? data.leavePolicies : [],
       documents: Array.isArray(data.documents) ? data.documents : [],
       notifications: Array.isArray(data.notifications) ? data.notifications : [],
       emergencyContacts: Array.isArray(data.emergencyContacts) ? data.emergencyContacts : [],
@@ -256,7 +276,7 @@ export const essApi = {
     body: JSON.stringify(payload),
   }),
 
-  createLeave: (payload: { type: string; startDate: string; endDate: string; reason?: string }) => request('/api/ess/leave/requests', {
+  createLeave: (payload: { policyId: string; startDate: string; endDate: string; reason?: string }) => request('/api/ess/leave/requests', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
@@ -289,6 +309,10 @@ export const essApi = {
   createHrTicket: (subject: string, message: string, category = 'general') => request('/api/ess/hr-support/tickets', {
     method: 'POST',
     body: JSON.stringify({ subject, message, category }),
+  }),
+  replyHrTicket: (id: string, message: string) => request(`/api/ess/hr-support/tickets/${encodeURIComponent(id)}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
   }),
 }
 

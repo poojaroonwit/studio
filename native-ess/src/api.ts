@@ -35,6 +35,8 @@ export type EssDocument = {
   subtitle?: string
   kind: string
   issuedAt: string
+  requiresAcknowledgment?: boolean
+  acknowledgedAt?: string
 }
 
 export type EssNotification = {
@@ -303,6 +305,8 @@ export const essApi = {
   deleteEmergencyContact: (id: string) => request(`/api/ess/emergency-contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   documentUrl: (id: string) => request<{ url: string }>(`/api/ess/documents/${encodeURIComponent(id)}/download`),
+
+  acknowledgeDocument: (id: string) => request(`/api/ess/documents/${encodeURIComponent(id)}/acknowledge`, { method: 'POST' }),
 
   markNotificationRead: (id: string) => request(`/api/ess/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
   markAllNotificationsRead: () => request('/api/ess/notifications/read-all', { method: 'POST' }),

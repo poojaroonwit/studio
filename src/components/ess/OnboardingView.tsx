@@ -118,9 +118,9 @@ export function OnboardingView() {
         </header>
 
         {message && <div role="status" className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">{message}</div>}
-        {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">{error}</div>}
+        {error && <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
 
-        {!journey ? (
+        {!journey && !error ? (
           <section className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
             <CheckCircle2 className="mx-auto h-9 w-9 text-muted-foreground" />
             <h2 className="mt-3 font-semibold">No onboarding journey assigned</h2>

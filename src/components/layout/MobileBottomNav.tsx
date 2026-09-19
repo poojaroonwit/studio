@@ -16,6 +16,8 @@ import {
   UsersIcon as Users,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
+import { UserAvatarCompact } from "@/components/ui/user-avatar";
+import type { CachedAvatarUser } from "@/components/ui/use-cached-avatar-image";
 import { isSidebarItemActive } from "./safe-sidebar-nav-utils";
 import { isFullPageWorkspacePath } from "@/lib/full-page-routes";
 import {
@@ -67,11 +69,6 @@ export function buildEssMobileNavItems(
       href: '/ess/payslips',
       label: localize('navigation.payslips', 'Pay'),
       icon: Banknotes,
-    },
-    {
-      href: '/ess/profile',
-      label: localize('navigation.profile', 'Profile'),
-      icon: Identification,
     },
     {
       href: '/ess/requests',
@@ -254,7 +251,18 @@ export function MobileBottomNav() {
   const navItems = isEssContext
     ? buildEssMobileNavItems(t)
     : buildMobileNavItems(session.user, t);
-  const { primaryItems, overflowItems } = partitionMobileNavItems(navItems);
+  const { primaryItems, overflowItems } = partitionMobileNavItems(navItems, 4);
+  const sessionUser = session.user as Partial<CachedAvatarUser> & { name?: string | null; email?: string | null };
+  const accountUser: CachedAvatarUser = {
+    id: sessionUser.id || sessionUser.email || 'current-user',
+    name: sessionUser.name || sessionUser.email || t('navigation.account', 'Account'),
+    email: sessionUser.email || undefined,
+    avatarUrl: sessionUser.avatarUrl ?? null,
+    image: sessionUser.image ?? null,
+    personalColor: sessionUser.personalColor ?? null,
+  };
+  const accountHref = '/ess/profile';
+  const accountIsActive = pathname === accountHref || pathname?.startsWith(`${accountHref}/`);
   const overflowIsActive = overflowItems.some(item => isSidebarItemActive(pathname || "", item));
 
   return (
@@ -357,6 +365,28 @@ export function MobileBottomNav() {
             </SheetContent>
           </Sheet>
         ) : null}
+
+        <Link
+          href={accountHref}
+          aria-current={accountIsActive ? "page" : undefined}
+          aria-label={t('navigation.account', 'Account')}
+          className={cn(
+            "relative flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 text-xs font-medium",
+            "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
+            accountIsActive ? "bg-primary/10 text-primary" : "text-muted-foreground",
+          )}
+        >
+          <UserAvatarCompact
+            user={accountUser}
+            size="xs"
+            variant="plain"
+            className={cn(
+              "ring-1 ring-border/60 shadow-none",
+              accountIsActive && "ring-2 ring-primary/60",
+            )}
+          />
+          <span className="max-w-full truncate">{t('navigation.account', 'Account')}</span>
+        </Link>
       </div>
     </nav>
   );

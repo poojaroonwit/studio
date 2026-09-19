@@ -356,8 +356,7 @@ export const essApi = {
   }),
 
   createProfileChangeRequest: (payload: {
-    field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation'
-    value: unknown
+    changes: Partial<Record<'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation', unknown>>
     reason: string
   }) => request('/api/ess/profile-change-requests', {
     method: 'POST',

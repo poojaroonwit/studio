@@ -162,7 +162,7 @@ function validDocumentSignature(documentId: string, expires: number, signature: 
 
 async function bootstrap(identity: EssIdentity) {
   const pool = getPool();
-  const [employeeResult, attendanceResult, leaveResult, documentResult, notificationResult, shiftResult, leaveBalanceResult] = await Promise.all([
+  const [employeeResult, attendanceResult, leaveResult, documentResult, notificationResult, shiftResult, leaveBalanceResult, leavePolicyResult] = await Promise.all([
     pool.query(
       `SELECT e.*, p.title AS "positionTitle", d.name AS "departmentName"
          FROM hr_employees e
@@ -221,6 +221,19 @@ async function bootstrap(identity: EssIdentity) {
          FROM hr_leave_balances
         WHERE employee_id = $1
           AND year = EXTRACT(YEAR FROM NOW())::int`,
+      [identity.employeeId],
+    ),
+    pool.query(
+      `SELECT p.id, p.name, p.leave_type, p.allow_half_day, p.allow_hourly, p.minimum_request_units,
+              (b.allocated + b.carry_forward + b.accrued - b.used - b.pending - b.reserved) AS balance
+         FROM hr_leave_balances b
+         JOIN hr_leave_policies p ON p.id = b.policy_id
+        WHERE b.employee_id = $1
+          AND b.year = EXTRACT(YEAR FROM NOW())::int
+          AND p.is_active = TRUE
+          AND (p.effective_from IS NULL OR p.effective_from <= NOW())
+          AND (p.effective_to IS NULL OR p.effective_to >= NOW())
+        ORDER BY p.name ASC`,
       [identity.employeeId],
     ),
   ]);
@@ -295,6 +308,15 @@ async function bootstrap(identity: EssIdentity) {
       subtitle: typeof item.category === 'string' ? item.category : undefined,
       kind: ['payslip', 'tax', 'policy', 'certificate'].includes(String(item.type)) ? String(item.type) : 'other',
       issuedAt: asIsoDate(item.issue_date || item.created_at),
+    })),
+    leavePolicies: (leavePolicyResult.rows as DbRow[]).map(item => ({
+      id: String(item.id),
+      name: String(item.name || item.leave_type || 'Leave'),
+      leaveType: String(item.leave_type || item.name || 'leave'),
+      balance: Number(item.balance || 0),
+      allowHalfDay: item.allow_half_day === true,
+      allowHourly: item.allow_hourly === true,
+      minimumRequestUnits: Number(item.minimum_request_units || 0.5),
     })),
   };
 }
@@ -381,27 +403,48 @@ async function clock(identity: EssIdentity, mode: 'in' | 'out', body: Record<str
 }
 
 async function createLeave(identity: EssIdentity, body: Record<string, unknown>) {
-  const type = stringValue(body.type, 120);
+  const policyId = stringValue(body.policyId, 80);
   const startDate = stringValue(body.startDate, 10);
   const endDate = stringValue(body.endDate, 10);
   const reason = stringValue(body.reason, 1000);
-  if (!type || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return jsonError('Invalid leave request', 400);
+  if (!policyId || !/^[0-9a-f-]{36}$/i.test(policyId) || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return jsonError('Choose an available leave policy and valid dates', 400);
+  }
   const start = new Date(`${startDate}T00:00:00Z`);
   const end = new Date(`${endDate}T00:00:00Z`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return jsonError('Invalid leave dates', 400);
   const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
-  const policy = await getPool().query(
-    `SELECT id FROM hr_leave_policies
-      WHERE is_active = TRUE AND (LOWER(name) = LOWER($1) OR LOWER(leave_type) = LOWER($1))
-      ORDER BY updated_at DESC LIMIT 1`,
-    [type],
+
+  const policyResult = await getPool().query(
+    `SELECT p.id, p.name, p.leave_type, p.allow_negative_balance, p.negative_balance_limit,
+            (b.allocated + b.carry_forward + b.accrued - b.used - b.pending - b.reserved) AS balance
+       FROM hr_leave_policies p
+       JOIN hr_leave_balances b ON b.policy_id = p.id
+      WHERE p.id = $1::uuid
+        AND b.employee_id = $2::uuid
+        AND b.year = EXTRACT(YEAR FROM NOW())::int
+        AND p.is_active = TRUE
+        AND (p.effective_from IS NULL OR p.effective_from <= NOW())
+        AND (p.effective_to IS NULL OR p.effective_to >= NOW())
+      LIMIT 1`,
+    [policyId, identity.employeeId],
   );
+  const policy = policyResult.rows[0] as DbRow | undefined;
+  if (!policy) return jsonError('This leave policy is not available for your account', 400);
+
+  const available = Number(policy.balance || 0);
+  const allowNegative = policy.allow_negative_balance === true;
+  const negativeLimit = Math.max(0, Number(policy.negative_balance_limit || 0));
+  if (!allowNegative && days > available) return jsonError('This request exceeds your available leave balance', 400);
+  if (allowNegative && available - days < -negativeLimit) return jsonError('This request exceeds the allowed negative leave balance', 400);
+
+  const type = String(policy.name || policy.leave_type || 'Leave');
   const result = await getPool().query(
     `INSERT INTO hr_leave_requests
        (id, employee_id, policy_id, start_date, end_date, days, reason, status, request_id, submitted_at, created_at, updated_at)
      VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, 'pending', $8, NOW(), NOW(), NOW())
      RETURNING id, start_date, end_date, days, status`,
-    [randomUUID(), identity.employeeId, policy.rows[0]?.id ?? null, startDate, endDate, days, reason || null, `ESS-${Date.now()}-${randomUUID().slice(0, 8)}`],
+    [randomUUID(), identity.employeeId, policyId, startDate, endDate, days, reason || null, `ESS-${Date.now()}-${randomUUID().slice(0, 8)}`],
   );
   const row = result.rows[0] as DbRow;
   return NextResponse.json({ id: String(row.id), type, startDate: asIsoDate(row.start_date), endDate: asIsoDate(row.end_date), days: Number(row.days), status: String(row.status) }, { status: 201 });

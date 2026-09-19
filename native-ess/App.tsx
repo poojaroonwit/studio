@@ -371,6 +371,7 @@ export default function App() {
       <Pressable accessibilityRole="button" accessibilityLabel="Open account" style={({ pressed }) => [s.headerAction, pressed && s.pressed]} onPress={() => navigateTab('account')}><AccountAvatar account={account} data={data} size={36} /></Pressable>
     </View> : null}
     {loadError ? <View style={s.warning}><Ionicons name={offline ? 'cloud-offline-outline' : 'warning-outline'} size={16} color={colors.warning} /><AppText style={s.warningText}>{loadError}</AppText></View> : null}
+    {!loadError && data.extrasAvailable === false ? <View style={s.warning}><Ionicons name="warning-outline" size={16} color={colors.warning} /><AppText style={s.warningText}>Some employee services could not refresh. Pull to retry before assuming an empty section has no data.</AppText></View> : null}
     <ScrollView
       ref={scrollRef}
       style={s.body}

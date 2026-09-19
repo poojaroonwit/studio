@@ -439,12 +439,12 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
   onClose: () => void
   children: React.ReactNode
 }) {
-  return <Modal transparent visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+  return <Modal transparent visible={visible} animationType="slide" statusBarTranslucent hardwareAccelerated onRequestClose={onClose}>
     <View style={s.drawerBackdrop}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Close ${title}`}
-        style={StyleSheet.absoluteFill}
+        style={s.drawerBackdropDismiss}
         onPress={onClose}
       />
       <SafeAreaView pointerEvents="box-none" edges={['bottom']} style={s.drawerSafe}>
@@ -520,7 +520,7 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
 
 export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, openNewRequest = false, onNewRequestOpened }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void; openNewRequest?: boolean; onNewRequestOpened?: () => void }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
-  const [chooserOpen, setChooserOpen] = useState(false)
+  const [chooserOpen, setChooserOpen] = useState(openNewRequest)
   const [leaveRequestId, setLeaveRequestId] = useState<string | null>(null)
   const [correctionRequestId, setCorrectionRequestId] = useState<string | null>(null)
   const [profileRequestId, setProfileRequestId] = useState<string | null>(null)
@@ -539,6 +539,11 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
     setChooserOpen(true)
     onNewRequestOpened?.()
   }, [openNewRequest, onNewRequestOpened])
+
+  const openChooser = () => {
+    setKind(null)
+    setChooserOpen(true)
+  }
 
   useEffect(() => {
     onFullPageChange?.(kind !== null)
@@ -560,9 +565,9 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   }, [kind])
 
   const chooseKind = (next: RequestKind) => {
-    setChooserOpen(false)
-    onFullPageChange?.(true)
     setKind(next)
+    onFullPageChange?.(true)
+    setChooserOpen(false)
   }
 
   if (kind) return <><Back label="Requests" onPress={closeRequest} /><RequestForm kind={kind} data={data} reload={reload} onDone={closeRequest} /></>
@@ -570,7 +575,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   return <>
     <View style={s.pageHeadingRow}>
       <View style={s.flexOne}><AppText style={s.pageTitle}>Requests</AppText><Muted>Track submitted requests and start a new one.</Muted></View>
-      <Pressable accessibilityRole="button" style={({ pressed }) => [s.newRequestButton, pressed && s.pressed]} onPress={() => setChooserOpen(true)}>
+      <Pressable accessibilityRole="button" style={({ pressed }) => [s.newRequestButton, pressed && s.pressed]} onPress={openChooser}>
         <Ionicons name="add" size={19} color={colors.primaryText} />
         <AppText style={s.newRequestButtonText}>New</AppText>
       </Pressable>
@@ -1405,7 +1410,8 @@ const s = StyleSheet.create({
   newRequestButtonText: { color: colors.primaryText, fontSize: typography.sm, lineHeight: 16, fontWeight: '600' },
 
   drawerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
-  drawerSafe: { width: '100%', maxHeight: '88%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden' },
+  drawerBackdropDismiss: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  drawerSafe: { width: '100%', maxHeight: '88%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden', zIndex: 1, elevation: 1 },
   drawer: { width: '100%', maxHeight: '100%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: 10 },
   drawerHandle: { width: 36, height: 4, alignSelf: 'center', borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginBottom: spacing.xs },
   drawerHeader: { minHeight: 54, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

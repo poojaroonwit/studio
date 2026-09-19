@@ -582,8 +582,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (!body) return jsonError('Invalid JSON body', 400);
   if (path.join('/') === 'profile') return patchProfile(identity, body);
   if (path.join('/') === 'bank-tax') return patchBankTax(identity, body);
-  if (path[0] === 'emergency-contacts' && path[1]) {
-    const result = await writeMobileEmergencyContact(identity.employeeId, body, path[1]);
+  const contactId = path[1];
+  if (path[0] === 'emergency-contacts' && contactId) {
+    const result = await writeMobileEmergencyContact(identity.employeeId, body, contactId);
     return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact);
   }
   return jsonError('Not found', 404);
@@ -593,8 +594,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const path = await pathParts(context);
   const authResult = await requireIdentity(request);
   if ('response' in authResult) return authResult.response;
-  if (path[0] === 'emergency-contacts' && path[1]) {
-    const deleted = await deleteMobileEmergencyContact(authResult.identity.employeeId, path[1]);
+  const contactId = path[1];
+  if (path[0] === 'emergency-contacts' && contactId) {
+    const deleted = await deleteMobileEmergencyContact(authResult.identity.employeeId, contactId);
     return deleted ? new NextResponse(null, { status: 204 }) : jsonError('Emergency contact not found', 404);
   }
   return jsonError('Not found', 404);

@@ -439,9 +439,9 @@ export function CompensationReviewWorkspace({
         ]}
       />
 
-      <div className="mb-1 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+      <div className="mb-1 flex flex-wrap items-center gap-2 border-b border-border pb-3 dark:border-slate-800">
         <div
-          className="inline-flex rounded-md border border-slate-200 dark:border-slate-700"
+          className="inline-flex rounded-md border border-border dark:border-slate-700"
           role="tablist"
           aria-label="Compensation workspace tabs"
         >
@@ -452,7 +452,7 @@ export function CompensationReviewWorkspace({
               "h-9 px-4 text-sm font-semibold",
               tab === "packages"
                 ? "bg-blue-600 text-white"
-                : "text-slate-600 dark:text-slate-300",
+                : "text-muted-foreground dark:text-slate-300",
             )}
           >
             Packages
@@ -464,14 +464,14 @@ export function CompensationReviewWorkspace({
               "h-9 px-4 text-sm font-semibold",
               tab === "changes"
                 ? "bg-blue-600 text-white"
-                : "text-slate-600 dark:text-slate-300",
+                : "text-muted-foreground dark:text-slate-300",
             )}
           >
             Changes
           </button>
         </div>
         <div className="relative ml-auto min-w-0 flex-1 md:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -604,18 +604,18 @@ export function CompensationReviewWorkspace({
       </Dialog>
 
       {tab === "packages" ? (
-        <section className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0a1422]">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <section className="border border-border bg-white dark:border-slate-800 dark:bg-[#0a1422]">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 dark:border-slate-800">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 Packages
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Current and historical compensation package rows from payroll.
               </p>
             </div>
             {tab === "packages" && (
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={showInactivePackages}
@@ -631,7 +631,7 @@ export function CompensationReviewWorkspace({
           {filteredPackages.length ? (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] text-left text-xs">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+                <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground dark:bg-slate-900">
                   <tr>
                     <th className="px-3 py-2">Employee</th>
                     <th className="px-3 py-2">Employee ID</th>
@@ -647,12 +647,12 @@ export function CompensationReviewWorkspace({
                   {filteredPackages.map((row) => (
                     <tr
                       key={asString(row.id)}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900"
+                      className="hover:bg-muted/40 dark:hover:bg-slate-900"
                     >
                       <td className="px-3 py-2">
                         {asString(row.employee_name)}
                       </td>
-                      <td className="px-3 py-2 text-slate-500">
+                      <td className="px-3 py-2 text-muted-foreground">
                         {asString(row.employee_number)}
                       </td>
                       <td className="px-3 py-2">{asString(row.job_title)}</td>
@@ -665,7 +665,7 @@ export function CompensationReviewWorkspace({
                       <td className="px-3 py-2 capitalize">
                         {asString(row.pay_frequency || "monthly")}
                       </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                      <td className="px-3 py-2 text-muted-foreground dark:text-slate-300">
                         {formatDate(row.effective_from)} -{" "}
                         {row.effective_to
                           ? formatDate(row.effective_to)
@@ -679,7 +679,7 @@ export function CompensationReviewWorkspace({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 border-slate-300"
+                            className="h-8 border-input"
                             onClick={() => openCreateForm(row)}
                           >
                             New change
@@ -699,19 +699,19 @@ export function CompensationReviewWorkspace({
           )}
         </section>
       ) : (
-        <section className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#0a1422]">
-          <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        <section className="border border-border bg-white dark:border-slate-800 dark:bg-[#0a1422]">
+          <div className="border-b border-border px-4 py-3 dark:border-slate-800">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Compensation changes
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Review requested salary changes and move them through approval.
             </p>
           </div>
           {changes.length ? (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-left text-xs">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+                <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground dark:bg-slate-900">
                   <tr>
                     <th className="px-3 py-2">Employee</th>
                     <th className="px-3 py-2">Employee ID</th>
@@ -737,17 +737,17 @@ export function CompensationReviewWorkspace({
                     return (
                       <tr
                         key={asString(row.id)}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-900"
+                        className="hover:bg-muted/40 dark:hover:bg-slate-900"
                       >
                         <td className="px-3 py-3">
                           <p className="font-semibold">
                             {asString(row.employee_name)}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Reason: {asString(row.reason).slice(0, 64) || "—"}
                           </p>
                         </td>
-                        <td className="px-3 py-3 text-slate-500">
+                        <td className="px-3 py-3 text-muted-foreground">
                           {asString(row.employee_number)}
                         </td>
                         <td className="px-3 py-3 capitalize">
@@ -877,7 +877,7 @@ export function CompensationReviewWorkspace({
         </section>
       )}
 
-      <div className="rounded border border-slate-200 bg-emerald-50 p-4 text-xs leading-5 text-slate-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+      <div className="rounded border border-border bg-emerald-50 p-4 text-xs leading-5 text-foreground/80 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
         <div className="mb-2 flex items-center gap-2 font-semibold">
           <CheckCircle2 className="h-4 w-4" />
           Workspace workflow

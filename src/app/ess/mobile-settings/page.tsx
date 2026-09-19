@@ -82,7 +82,7 @@ export default function NativeMobileSettingsPage() {
   const api = getHriveNativeApi();
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6">
+    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7"><div className="mx-auto w-full max-w-[1440px]">
       <header className="mb-5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Employee self service</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Mobile app</h1>
@@ -167,6 +167,6 @@ export default function NativeMobileSettingsPage() {
           </SettingRow>
         </section>
       )}
-    </main>
+    </div></main>
   );
 }

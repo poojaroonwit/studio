@@ -29,7 +29,7 @@ import { appBuildLabel } from './runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
-export type AccountSection = 'menu' | 'profile' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
+export type AccountSection = 'menu' | 'profile' | 'bank-tax' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
 
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
 
@@ -600,6 +600,15 @@ function attendanceTimestamp(date: string, value: Date | null, dayOffset = 0) {
   return `${offsetAttendanceDate(date, dayOffset)}T${hours}:${minutes}:00+07:00`
 }
 
+function sameAttendanceMinute(left?: string | null, right?: string | null) {
+  if (!left && !right) return true
+  if (!left || !right) return false
+  const leftDate = new Date(left)
+  const rightDate = new Date(right)
+  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) return false
+  return Math.floor(leftDate.getTime() / 60_000) === Math.floor(rightDate.getTime() / 60_000)
+}
+
 function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
   const [start, setStart] = useState(new Date())
   const [end, setEnd] = useState(new Date())
@@ -684,13 +693,18 @@ function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, s
     const checkInMinutes = checkIn ? checkIn.getHours() * 60 + checkIn.getMinutes() : null
     const checkOutMinutes = checkOut ? checkOut.getHours() * 60 + checkOut.getMinutes() : null
     const overnight = checkInMinutes !== null && checkOutMinutes !== null && checkOutMinutes <= checkInMinutes
+    const requestedCheckIn = attendanceTimestamp(selected.date, checkIn)
+    const requestedCheckOut = attendanceTimestamp(selected.date, checkOut, overnight ? 1 : 0)
+    if (sameAttendanceMinute(requestedCheckIn, selected.checkIn) && sameAttendanceMinute(requestedCheckOut, selected.checkOut)) {
+      return Alert.alert('Attendance correction', 'Change the requested clock in or clock out time before submitting.')
+    }
     setBusy(true)
     try {
       await essApi.createAttendanceCorrection({
         attendanceId,
         reason: reason.trim(),
-        requestedCheckIn: attendanceTimestamp(selected.date, checkIn),
-        requestedCheckOut: attendanceTimestamp(selected.date, checkOut, overnight ? 1 : 0),
+        requestedCheckIn,
+        requestedCheckOut,
       })
       if (reload) await reload()
       Alert.alert('Attendance correction', 'Submitted for review.')
@@ -848,6 +862,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
     <Card style={s.accountHero}><View style={s.accountIdentityRow}><Avatar imageUrl={account?.imageUrl || data.employee.avatarUrl} name={displayName} size={58} /><View style={s.flexOne}><AppText style={s.accountName}>{displayName}</AppText><Muted>{account?.email || data.profile?.personalEmail || data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></View></View><Muted>Identity from Outborn Account · Employee data from {appIdentity?.name || 'Obsi People'}</Muted></Card>
     <View style={s.menuList}>
       <MenuItem icon="person-outline" title="My profile" subtitle="Personal and employee information" onPress={() => openSection('profile')} />
+      <MenuItem icon="card-outline" title="Bank & tax" subtitle="Bank account and tax identification" onPress={() => openSection('bank-tax')} />
       <MenuItem icon="chatbubbles-outline" title="Talk to HR" subtitle="Open HR support chat" onPress={() => openSection('hr-chat')} />
       <MenuItem icon="calendar-outline" title="Calendar" subtitle="Shifts and upcoming work schedule" onPress={() => openSection('calendar')} />
       <MenuItem icon="notifications-outline" title="Notifications" subtitle={`${data.employee.unreadNotifications || 0} unread`} onPress={() => openSection('notifications')} />
@@ -861,7 +876,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 }
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxForm data={data} reload={reload} onDone={() => setSection('menu')} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
 }
 
 function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {

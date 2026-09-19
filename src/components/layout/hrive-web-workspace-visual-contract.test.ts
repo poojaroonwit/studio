@@ -21,19 +21,7 @@ describe('Hrive web workspace visual alignment', () => {
     expect(css).toContain('background: hsl(var(--background));');
     expect(css).not.toContain('#f5f6f9');
     expect(css).not.toContain('#09090b');
-    it('keeps Payroll and Dashboard inside the shared body canvas', () => {
-    const payroll = source('src/components/payroll/PayrollWorkspace.tsx');
-    const dashboard = source('src/app/dashboard/dashboard.css');
-
-    expect(payroll).toContain('min-h-full bg-background text-foreground');
-    expect(payroll).toContain('border-b border-border/60 bg-muted/20');
-    expect(payroll).not.toContain('min-h-full bg-[#f7f8fa]');
-    expect(dashboard).toContain('min-height: 100%;');
-    expect(dashboard).toContain('background: var(--dashboard-bg);');
-    expect(dashboard).not.toContain('linear-gradient(180deg, #eef3f9');
-    expect(dashboard).not.toContain('linear-gradient(180deg, #111b2a');
   });
-});
 
   it('keeps Positions chrome on the same semantic palette and page surface as the shell', () => {
     const main = source('src/components/positions/PositionsPageMainContent.tsx');
@@ -47,5 +35,18 @@ describe('Hrive web workspace visual alignment', () => {
     expect(toolbar).toContain('text-muted-foreground');
     expect(toolbar).not.toContain('border-slate-100 bg-white');
     expect(toolbar).not.toContain('text-slate-950 dark:text-zinc-50');
+  });
+
+  it('keeps Payroll and Dashboard inside the shared body canvas', () => {
+    const payroll = source('src/components/payroll/PayrollWorkspace.tsx');
+    const dashboard = source('src/app/dashboard/dashboard.css');
+
+    expect(payroll).toContain('min-h-full bg-background text-foreground');
+    expect(payroll).toContain('border-b border-border/60 bg-muted/20');
+    expect(payroll).not.toContain('min-h-full bg-[#f7f8fa]');
+    expect(dashboard).toContain('min-height: 100%;');
+    expect(dashboard).toContain('background: var(--dashboard-bg);');
+    expect(dashboard).not.toContain('linear-gradient(180deg, #eef3f9');
+    expect(dashboard).not.toContain('linear-gradient(180deg, #111b2a');
   });
 });

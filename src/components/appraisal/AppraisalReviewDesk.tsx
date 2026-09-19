@@ -114,7 +114,7 @@ export function AppraisalReviewDesk({
           </div>
           <div className="mt-3 flex gap-2">
             <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <Input
                 value={query}
                 onChange={event => setQuery(event.target.value)}
@@ -284,7 +284,7 @@ export function AppraisalReviewDesk({
               <div className="mt-4 space-y-3">
                 {checklist.map(item => (
                   <div key={item.label} className="flex items-center gap-2 text-xs">
-                    {item.complete ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" /> : <Circle className="h-4 w-4 shrink-0 text-slate-600" />}
+                    {item.complete ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" /> : <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />}
                     <span className={cn(item.complete ? 'text-muted-foreground line-through' : 'text-foreground')}>{item.label}</span>
                   </div>
                 ))}
@@ -355,7 +355,7 @@ function ContextRow({ icon: Icon, label, value, complete }: { icon: typeof Users
     <div className="flex items-center gap-3">
       <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1"><p className="text-xs text-foreground">{label}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{value}</p></div>
-      {complete ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-slate-600" />}
+      {complete ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
     </div>
   );
 }

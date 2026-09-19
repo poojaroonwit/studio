@@ -516,12 +516,15 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   const [chooserOpen, setChooserOpen] = useState(false)
   const [leaveRequestId, setLeaveRequestId] = useState<string | null>(null)
   const [correctionRequestId, setCorrectionRequestId] = useState<string | null>(null)
+  const [profileRequestId, setProfileRequestId] = useState<string | null>(null)
   const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
   const correctionVisible = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
+  const profileVisible = useProgressiveCount(data.profileChangeRequests.length, loadMoreTick, 10)
   const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
   const leaveRequest = leaveRequestId ? data.leaveRequests.find(item => item.id === leaveRequestId) : undefined
   const correctionRequest = correctionRequestId ? data.attendanceCorrections.find(item => item.id === correctionRequestId) : undefined
+  const profileRequest = profileRequestId ? data.profileChangeRequests.find(item => item.id === profileRequestId) : undefined
   const supportRequest = supportRequestId ? data.supportRequests.find(item => item.id === supportRequestId) : undefined
 
   useEffect(() => {
@@ -576,6 +579,12 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
       : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} onPress={() => setCorrectionRequestId(request.id)} />)}
     <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} />
 
+    <AppText style={s.section}>Account changes</AppText>
+    {data.profileChangeRequests.length === 0
+      ? <EmptyState icon="person-outline" title="No account change requests yet" subtitle="Profile, bank, and tax changes submitted from Account will appear here." />
+      : data.profileChangeRequests.slice(0, profileVisible).map((request) => <ProfileChangeRequestSummaryCard key={request.id} request={request} onPress={() => setProfileRequestId(request.id)} />)}
+    <PaginationFooter visible={profileVisible} total={data.profileChangeRequests.length} />
+
     <AppText style={s.section}>Recent HR requests</AppText>
     {data.supportRequests.length === 0
       ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR requests yet" subtitle="Requests you submit to HR will remain visible here with their latest status." />
@@ -588,6 +597,10 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
 
     <FullScreenTaskModal visible={Boolean(correctionRequest)} contextLabel="Attendance correction" onClose={() => setCorrectionRequestId(null)}>
       {correctionRequest ? <AttendanceCorrectionDetail request={correctionRequest} /> : null}
+    </FullScreenTaskModal>
+
+    <FullScreenTaskModal visible={Boolean(profileRequest)} contextLabel="Account change" onClose={() => setProfileRequestId(null)}>
+      {profileRequest ? <ProfileChangeRequestDetail request={profileRequest} /> : null}
     </FullScreenTaskModal>
 
     <FullScreenTaskModal visible={Boolean(supportRequest)} contextLabel="HR request" onClose={() => setSupportRequestId(null)}>
@@ -957,6 +970,40 @@ function AttendanceCorrectionDetail({ request }: { request: EssBootstrap['attend
 
 function DetailRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return <View style={[s.detailRow, last && s.detailRowLast]}><Muted style={s.detailLabel}>{label}</Muted><AppText style={s.detailValue}>{value}</AppText></View>
+}
+
+function ProfileChangeRequestSummaryCard({ request, onPress }: { request: EssBootstrap['profileChangeRequests'][number]; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}>
+    <Card>
+      <View style={s.between}>
+        <View style={s.flexOne}>
+          <AppText style={s.cardTitle}>{request.title}</AppText>
+          <Muted>{request.requestNumber || 'Request'} · {formatDateTime(request.submittedAt)}</Muted>
+        </View>
+        <StatusPill value={request.status} />
+      </View>
+      {request.reason ? <Muted numberOfLines={2}>Reason · {request.reason}</Muted> : null}
+      <View style={s.infoRow}><AppText style={s.linkText}>View request</AppText><Ionicons name="chevron-forward" size={16} color={colors.accent} /></View>
+    </Card>
+  </Pressable>
+}
+
+function ProfileChangeRequestDetail({ request }: { request: EssBootstrap['profileChangeRequests'][number] }) {
+  return <>
+    <View style={s.between}>
+      <View style={s.flexOne}>
+        <AppText style={s.pageTitle}>{request.title}</AppText>
+        <Muted>{request.requestNumber || 'Request'} · {formatDateTime(request.submittedAt)}</Muted>
+      </View>
+      <StatusPill value={request.status} />
+    </View>
+    <Card>
+      <DetailRow label="Requested fields" value={request.requestedFields.length ? request.requestedFields.map(displayStatus).join(', ') : '—'} />
+      <DetailRow label="Reason" value={request.reason || '—'} />
+      <DetailRow label="Reviewer comment" value={request.reviewerComment || '—'} />
+      <DetailRow label="Reviewed" value={formatDateTime(request.reviewedAt)} last />
+    </Card>
+  </>
 }
 
 function SupportRequestCard({ request, onPress }: { request: EssBootstrap['supportRequests'][number]; onPress?: () => void }) {

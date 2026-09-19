@@ -608,19 +608,31 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
+  const primaryContact = data.emergencyContacts.find(item => item.primary) || data.emergencyContacts[0]
+  const [contactId, setContactId] = useState(primaryContact?.id || '')
+  const [contactOpen, setContactOpen] = useState(false)
   const policy = availablePolicies.find(item => item.id === policyId)
+  const contact = data.emergencyContacts.find(item => item.id === contactId)
 
   useEffect(() => {
     if (policyId && data.leavePolicies.some(item => item.id === policyId && item.year === start.getFullYear())) return
     setPolicyId(data.leavePolicies.find(item => item.year === start.getFullYear())?.id || '')
   }, [data.leavePolicies, policyId, start])
 
+  useEffect(() => {
+    if (contactId && data.emergencyContacts.some(item => item.id === contactId)) return
+    const next = data.emergencyContacts.find(item => item.primary) || data.emergencyContacts[0]
+    setContactId(next?.id || '')
+  }, [contactId, data.emergencyContacts])
+
   const submit = async () => {
     if (!policyId) return Alert.alert('Leave request', 'No leave policy is currently available for your account.')
+    if (!contact) return Alert.alert('Leave request', 'Add an emergency contact in Account before submitting leave.')
     if (end < start) return Alert.alert('Leave request', 'End date cannot be before start date.')
+    const emergencyContact = JSON.stringify({ name: contact.name, relationship: contact.relationship, phone: contact.phone })
     setBusy(true)
     try {
-      await essApi.createLeave({ policyId, startDate: formatDate(start), endDate: formatDate(end), reason: reason.trim() })
+      await essApi.createLeave({ policyId, startDate: formatDate(start), endDate: formatDate(end), reason: reason.trim(), emergencyContact })
       await reload()
       Alert.alert('Leave request', 'Submitted successfully.')
       onDone()
@@ -635,12 +647,17 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
     {availablePolicies.length > 0
       ? <SelectField label="Leave policy" value={policy ? `${policy.name} · ${policy.balance.toFixed(1)} days available` : 'Choose a policy'} onPress={() => setPolicyOpen(true)} />
       : <View style={s.inlineNotice}><Ionicons name="information-circle-outline" size={19} color={colors.warning} /><Muted style={s.flexOne}>{`No assigned leave balance is published for ${start.getFullYear()}. Choose dates in a year with an available policy.`}</Muted></View>}
+    {data.emergencyContacts.length > 0
+      ? <SelectField label="Emergency contact" value={contact ? `${contact.name} · ${contact.relationship}` : 'Choose a contact'} onPress={() => setContactOpen(true)} />
+      : <View style={s.inlineNotice}><Ionicons name="people-outline" size={19} color={colors.warning} /><Muted style={s.flexOne}>Add an emergency contact from Account → Emergency contacts before requesting leave.</Muted></View>}
     <DateField label="Start date" value={start} onChange={(next) => { setStart(next); if (end < next) setEnd(next) }} />
     <DateField label="End date" value={end} onChange={setEnd} />
     <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" />
-    <Button title="Submit request" busy={busy} disabled={!policyId || availablePolicies.length === 0} onPress={() => void submit()} />
+    <Button title="Submit request" busy={busy} disabled={!policyId || availablePolicies.length === 0 || !contact} onPress={() => void submit()} />
   </Card><BottomDrawer visible={policyOpen && availablePolicies.length > 0} title="Leave policy" subtitle="Only policies assigned to you are shown." onClose={() => setPolicyOpen(false)}>
     {availablePolicies.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.balance.toFixed(1)} days available · ${item.year}`} selected={policyId === item.id} onPress={() => { setPolicyId(item.id); setPolicyOpen(false) }} />)}
+  </BottomDrawer><BottomDrawer visible={contactOpen && data.emergencyContacts.length > 0} title="Emergency contact" subtitle="Choose who HR can contact if needed during your leave." onClose={() => setContactOpen(false)}>
+    {data.emergencyContacts.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.relationship} · ${item.phone}${item.primary ? ' · Primary' : ''}`} selected={contactId === item.id} onPress={() => { setContactId(item.id); setContactOpen(false) }} />)}
   </BottomDrawer></>
 }
 
@@ -740,7 +757,7 @@ function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { r
 function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
-  const canCancel = ['draft', 'pending'].includes(normalizeStatus(request.status))
+  const canCancel = ['pending', 'submitted', 'pending_approval', 'approved'].includes(normalizeStatus(request.status))
   return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
 }
 

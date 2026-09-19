@@ -77,7 +77,7 @@ export function MyPerformanceView({
             <ProfileField label="Previous review result" value={data.reviews.find(item => item.rating !== null)?.rating ? `${String(data.reviews.find(item => item.rating !== null)?.rating)} / 5` : 'Not released'} helper="Only released ratings are visible" />
             <ProfileField label="Recognition received" value={data.recognition.length} helper="Recorded recognition items" />
           </div>
-          <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-5 dark:border-slate-800">
+          <div className="mt-6 flex flex-wrap gap-2 border-t border-border/60 pt-5 dark:border-slate-800">
             <Button asChild className="bg-[#263f73] text-white hover:bg-[#1f345f]"><a href="/ess/performance">View appraisal</a></Button>
             <Button asChild variant="outline"><a href="/ess/performance">View all goals</a></Button>
             <Button variant="outline" onClick={() => onAction('feedback')}>Request feedback</Button>
@@ -107,13 +107,13 @@ export function MyPerformanceView({
           {data.recognition.length ? (
             <div className="space-y-4">
               {data.recognition.slice(0, 6).map(item => (
-                <article key={String(item.id)} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0 dark:border-slate-800">
+                <article key={String(item.id)} className="border-b border-border/60 pb-4 last:border-0 last:pb-0 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4 text-amber-600" aria-hidden />
-                    <p className="text-xs font-bold capitalize text-slate-900 dark:text-slate-100">{String(item.category || '').replace(/_/g, ' ')}</p>
+                    <p className="text-xs font-bold capitalize text-foreground dark:text-slate-100">{String(item.category || '').replace(/_/g, ' ')}</p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(item.message)}</p>
-                  <p className="mt-2 text-xs text-slate-500">{String(item.providerName || 'Colleague')} · {formatDate(item.createdAt)}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground dark:text-slate-300">{String(item.message)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{String(item.providerName || 'Colleague')} · {formatDate(item.createdAt)}</p>
                 </article>
               ))}
             </div>
@@ -146,21 +146,21 @@ export function CheckInsView({
       {data.checkIns.length ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {data.checkIns.map(checkIn => (
-            <article key={String(checkIn.id)} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <article key={String(checkIn.id)} className="rounded-lg border border-border p-4 dark:border-slate-800">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold capitalize text-slate-950 dark:text-slate-50">{String(checkIn.type || 'Check-in').replace(/_/g, ' ')}</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatDate(checkIn.meetingDate)} · {String(checkIn.managerName || 'Manager')}</p>
+                  <p className="text-sm font-bold capitalize text-foreground dark:text-slate-50">{String(checkIn.type || 'Check-in').replace(/_/g, ' ')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(checkIn.meetingDate)} · {String(checkIn.managerName || 'Manager')}</p>
                 </div>
                 <PerformanceStatusBadge status={checkIn.status} />
               </div>
-              <p className="mt-4 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Agenda</p>
-              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(checkIn.agenda || 'No agenda prepared.')}</p>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">Agenda</p>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground dark:text-slate-300">{String(checkIn.agenda || 'No agenda prepared.')}</p>
               {checkIn.sharedNotes ? <NotePreview label="Shared notes" value={checkIn.sharedNotes} /> : null}
               {checkIn.employeeDraftNotes ? <NotePreview label="Your private draft" value={checkIn.employeeDraftNotes} privateNote /> : null}
               {checkIn.managerPrivateNotes ? <NotePreview label="Manager-private note" value={checkIn.managerPrivateNotes} privateNote /> : null}
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                <span className="text-xs text-slate-500">Version {String(checkIn.version || 1)}</span>
+              <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 dark:border-slate-800">
+                <span className="text-xs text-muted-foreground">Version {String(checkIn.version || 1)}</span>
                 {!['completed', 'cancelled'].includes(String(checkIn.status)) ? (
                   <Button variant="outline" size="sm" onClick={() => onComplete(checkIn)}>Complete check-in</Button>
                 ) : null}
@@ -194,11 +194,11 @@ export function FeedbackView({
         {published.length ? (
           <div className="grid gap-3 md:grid-cols-2">
             {published.map(item => (
-              <article key={String(item.id)} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+              <article key={String(item.id)} className="rounded-lg border border-border p-4 dark:border-slate-800">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold capitalize text-slate-950 dark:text-slate-50">{String(item.feedbackType || 'Feedback').replace(/_/g, ' ')}</p>
-                    <p className="mt-1 text-xs text-slate-500">{String(item.providerName || 'Feedback provider')} · {formatDate(item.createdAt)}</p>
+                    <p className="text-sm font-bold capitalize text-foreground dark:text-slate-50">{String(item.feedbackType || 'Feedback').replace(/_/g, ' ')}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{String(item.providerName || 'Feedback provider')} · {formatDate(item.createdAt)}</p>
                   </div>
                   <Badge variant="outline" className="rounded-full capitalize">{String(item.visibility || 'recipient').replace(/_/g, ' ')}</Badge>
                 </div>
@@ -246,11 +246,11 @@ export function CompetenciesView({
             {competencies.map(item => {
               const gap = item.expectedLevel - item.currentLevel;
               return (
-                <article key={item.name} className="grid gap-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800 md:grid-cols-[minmax(0,1fr)_100px_100px_100px] md:items-center">
+                <article key={item.name} className="grid gap-4 rounded-lg border border-border p-4 dark:border-slate-800 md:grid-cols-[minmax(0,1fr)_100px_100px_100px] md:items-center">
                   <div>
-                    <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{item.name}</p>
-                    <p className="mt-1 text-xs capitalize text-slate-500">{item.category} competency · Latest released assessment</p>
-                    <Progress value={Math.min(100, (item.currentLevel / Math.max(item.expectedLevel, 1)) * 100)} className="mt-3 h-1.5 bg-slate-100 [&>div]:bg-emerald-600 dark:bg-slate-800" />
+                    <p className="text-sm font-bold text-foreground dark:text-slate-50">{item.name}</p>
+                    <p className="mt-1 text-xs capitalize text-muted-foreground">{item.category} competency · Latest released assessment</p>
+                    <Progress value={Math.min(100, (item.currentLevel / Math.max(item.expectedLevel, 1)) * 100)} className="mt-3 h-1.5 bg-muted [&>div]:bg-emerald-600 dark:bg-slate-800" />
                   </div>
                   <CompetencyMetric label="Current" value={item.currentLevel} />
                   <CompetencyMetric label="Expected" value={item.expectedLevel} />
@@ -265,12 +265,12 @@ export function CompetenciesView({
         {data.competencyEvidence.length ? (
           <div className="grid gap-3 md:grid-cols-2">
             {data.competencyEvidence.map(item => (
-              <article key={String(item.id)} className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-900/50">
+              <article key={String(item.id)} className="flex items-start gap-3 rounded-lg bg-muted/40 p-4 dark:bg-slate-900/50">
                 <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-[#3459a8] dark:text-blue-300" aria-hidden />
                 <div>
-                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{String(item.title)}</p>
-                  <p className="mt-1 text-xs text-slate-500">{String(item.competencyName)} · {String(item.evidenceType || '').replace(/_/g, ' ')}</p>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(item.description || 'No description supplied.')}</p>
+                  <p className="text-sm font-bold text-foreground dark:text-slate-50">{String(item.title)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{String(item.competencyName)} · {String(item.evidenceType || '').replace(/_/g, ' ')}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground dark:text-slate-300">{String(item.description || 'No description supplied.')}</p>
                   <PerformanceStatusBadge status={item.status} className="mt-3" />
                 </div>
               </article>
@@ -297,24 +297,24 @@ export function DevelopmentView({
         {data.developmentPlans.length ? (
           <div className="space-y-3">
             {data.developmentPlans.map(plan => (
-              <article key={String(plan.id)} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+              <article key={String(plan.id)} className="rounded-lg border border-border p-4 dark:border-slate-800">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{String(plan.title)}</p>
-                    <p className="mt-1 text-xs capitalize text-slate-500">{String(plan.planType || '').replace(/_/g, ' ')} · Target {formatDate(plan.targetDate)}</p>
+                    <p className="text-sm font-bold text-foreground dark:text-slate-50">{String(plan.title)}</p>
+                    <p className="mt-1 text-xs capitalize text-muted-foreground">{String(plan.planType || '').replace(/_/g, ' ')} · Target {formatDate(plan.targetDate)}</p>
                   </div>
                   <PerformanceStatusBadge status={plan.status} />
                 </div>
-                {plan.aspiration ? <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(plan.aspiration)}</p> : null}
+                {plan.aspiration ? <p className="mt-3 text-sm leading-6 text-muted-foreground dark:text-slate-300">{String(plan.aspiration)}</p> : null}
                 <div className="mt-4 space-y-2">
                   {data.developmentActions.filter(action => action.planId === plan.id).map(action => (
-                    <button key={String(action.id)} type="button" className="flex w-full items-center gap-3 rounded-lg bg-slate-50 p-3 text-left transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3459a8] dark:bg-slate-900/60 dark:hover:bg-slate-900" onClick={() => onUpdate(action)}>
-                      <CheckCircle2 className={`h-4 w-4 shrink-0 ${action.status === 'completed' ? 'text-emerald-600' : 'text-slate-400'}`} aria-hidden />
+                    <button key={String(action.id)} type="button" className="flex w-full items-center gap-3 rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3459a8] dark:bg-slate-900/60 dark:hover:bg-slate-900" onClick={() => onUpdate(action)}>
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 ${action.status === 'completed' ? 'text-emerald-600' : 'text-muted-foreground/70'}`} aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{String(action.title)}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{String(action.actionType || '').replace(/_/g, ' ')} · {percent(action.progress)}%</p>
+                        <p className="truncate text-sm font-semibold text-foreground dark:text-slate-100">{String(action.title)}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{String(action.actionType || '').replace(/_/g, ' ')} · {percent(action.progress)}%</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-slate-400" aria-hidden />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/70" aria-hidden />
                     </button>
                   ))}
                 </div>
@@ -353,7 +353,7 @@ export function HistoryView({ data }: { data: PerformanceWorkspaceData }) {
         <div className="space-y-8">
           {Object.entries(years).sort(([a], [b]) => b.localeCompare(a)).map(([year, items]) => (
             <section key={year} className="grid gap-4 md:grid-cols-[100px_minmax(0,1fr)]">
-              <h3 className="text-2xl font-bold tracking-[-0.04em] text-slate-300 dark:text-slate-700">{year}</h3>
+              <h3 className="text-2xl font-bold tracking-[-0.04em] text-slate-300 dark:text-foreground/80">{year}</h3>
               <Timeline activities={items} />
             </section>
           ))}
@@ -377,7 +377,7 @@ export function TeamPerformanceView({
   const attention = data.team.filter(item => item.performanceStatus === 'attention_required' || item.performanceStatus === 'at_risk');
   return (
     <div className="space-y-4">
-      <div className="grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 dark:border-slate-800 dark:bg-slate-800 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-muted dark:border-slate-800 dark:bg-slate-800 sm:grid-cols-2 lg:grid-cols-4">
         <TeamMetric label="Appraisal completion" value={`${completion}%`} helper={`${data.team.length} people in authorized scope`} />
         <TeamMetric label="Employees requiring attention" value={attention.length} helper="Rule-based risk or overdue actions" />
         <TeamMetric label="Average goal progress" value={`${average(data.team, 'goalProgress')}%`} helper="Calculated from Goal records" />
@@ -389,7 +389,7 @@ export function TeamPerformanceView({
             <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground dark:border-slate-800">
                     <th className="px-3 py-3">Employee</th>
                     <th className="px-3 py-3">Status</th>
                     <th className="px-3 py-3">Appraisal</th>
@@ -400,13 +400,13 @@ export function TeamPerformanceView({
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {data.team.map(row => (
-                    <tr key={String(row.id)} className="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50" onClick={() => setDetail(row)}>
+                    <tr key={String(row.id)} className="cursor-pointer transition-colors hover:bg-muted/40 dark:hover:bg-slate-900/50" onClick={() => setDetail(row)}>
                       <td className="px-3 py-4"><EmployeeCell row={row} /></td>
                       <td className="px-3 py-4"><PerformanceStatusBadge status={row.performanceStatus} /></td>
                       <td className="px-3 py-4"><PerformanceStatusBadge status={row.reviewStatus || 'not_started'} /></td>
                       <td className="px-3 py-4"><InlineProgress value={percent(row.goalProgress)} /></td>
                       <td className="px-3 py-4"><InlineProgress value={percent(row.developmentProgress)} /></td>
-                      <td className="px-3 py-4 font-bold tabular-nums text-slate-900 dark:text-slate-100">{Number(row.overdueCheckIns || 0) + Number(row.overdueDevelopmentActions || 0)}</td>
+                      <td className="px-3 py-4 font-bold tabular-nums text-foreground dark:text-slate-100">{Number(row.overdueCheckIns || 0) + Number(row.overdueDevelopmentActions || 0)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -414,7 +414,7 @@ export function TeamPerformanceView({
             </div>
             <div className="grid gap-3 md:hidden">
               {data.team.map(row => (
-                <button key={String(row.id)} type="button" className="rounded-lg border border-slate-200 p-4 text-left dark:border-slate-800" onClick={() => setDetail(row)}>
+                <button key={String(row.id)} type="button" className="rounded-lg border border-border p-4 text-left dark:border-slate-800" onClick={() => setDetail(row)}>
                   <EmployeeCell row={row} />
                   <div className="mt-4 flex flex-wrap gap-2"><PerformanceStatusBadge status={row.performanceStatus} /><PerformanceStatusBadge status={row.reviewStatus || 'not_started'} /></div>
                   <div className="mt-4 grid grid-cols-2 gap-3"><InlineProgress value={percent(row.goalProgress)} label="Goals" /><InlineProgress value={percent(row.developmentProgress)} label="Development" /></div>
@@ -428,7 +428,7 @@ export function TeamPerformanceView({
         <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-lg">
           {detail ? (
             <>
-              <SheetHeader className="border-b border-slate-200 p-5 text-left dark:border-slate-800">
+              <SheetHeader className="border-b border-border p-5 text-left dark:border-slate-800">
                 <SheetTitle>{String(detail.name)}</SheetTitle>
                 <SheetDescription>{String(detail.jobTitle || 'Role not assigned')} · {String(detail.department || 'Department not assigned')}</SheetDescription>
               </SheetHeader>
@@ -440,14 +440,14 @@ export function TeamPerformanceView({
                   <DrawerMetric label="At-risk goals" value={Number(detail.atRiskGoals || 0)} />
                   <DrawerMetric label="Overdue actions" value={Number(detail.overdueCheckIns || 0) + Number(detail.overdueDevelopmentActions || 0)} />
                 </div>
-                <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">Manager workspace</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">Open the employee in the main workspace to review permitted check-ins, feedback, development, and history.</p>
+                <div className="rounded-lg border border-border p-4 dark:border-slate-800">
+                  <p className="text-sm font-bold text-foreground dark:text-slate-50">Manager workspace</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Open the employee in the main workspace to review permitted check-ins, feedback, development, and history.</p>
                   <Button className="mt-4 w-full bg-[#263f73] text-white hover:bg-[#1f345f]" onClick={() => { onSelectEmployee(String(detail.id)); setDetail(null); }}>Open performance detail</Button>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-900/50">
-                  <ShieldCheck className="h-5 w-5 text-slate-500" aria-hidden />
-                  <p className="mt-2 text-xs leading-5 text-slate-500">Payroll, medical, bank, government ID, private employee drafts, and feedback outside your permission are not included.</p>
+                <div className="rounded-lg bg-muted/40 p-4 dark:bg-slate-900/50">
+                  <ShieldCheck className="h-5 w-5 text-muted-foreground" aria-hidden />
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">Payroll, medical, bank, government ID, private employee drafts, and feedback outside your permission are not included.</p>
                 </div>
               </div>
             </>

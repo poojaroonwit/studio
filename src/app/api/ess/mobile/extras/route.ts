@@ -23,14 +23,8 @@ function iso(value: unknown) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
-function parseCorrectionExplanation(value: unknown) {
-  if (typeof value !== 'string' || !value.trim()) return {};
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
-  } catch {
-    return { reason: value };
-  }
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
 function parseBenefits(value: unknown) {
@@ -62,7 +56,7 @@ export async function GET(request: NextRequest) {
   if (!identity) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const pool = getPool();
-  const [scheduleResult, announcementResult, benefitsSetting, supportRequestResult, correctionResult] = await Promise.all([
+  const [scheduleResult, announcementResult, benefitsSetting, supportRequestResult, essRequestResult] = await Promise.all([
     pool.query(
       `SELECT id, shift_date, start_time, end_time, work_location, status
          FROM hr_shift_assignments
@@ -109,14 +103,23 @@ export async function GET(request: NextRequest) {
       [identity.employeeId],
     ).catch(() => ({ rows: [] as DbRow[] })),
     pool.query(
-      `SELECT x.id, x.status, x.explanation, x.reviewer_comment, x.reviewed_at, x.created_at, x.updated_at,
-              a.id AS attendance_record_id, a.work_date, a.clock_in, a.clock_out
-         FROM hr_attendance_exceptions x
-         JOIN hr_attendance_records a ON a.id = x.attendance_record_id
-        WHERE a.employee_id = $1
-          AND x.code = 'employee_correction_requested'
-        ORDER BY x.created_at DESC
-        LIMIT 60`,
+      `SELECT r.id, r.request_id, r.request_type, r.title, r.reason, r.status,
+              r.original_values, r.requested_values, r.submitted_at, r.created_at, r.updated_at,
+              latest.comment AS reviewer_comment, latest.created_at AS reviewed_at
+         FROM hr_ess_requests r
+         LEFT JOIN LATERAL (
+           SELECT a.comment, a.created_at
+             FROM hr_ess_request_activities a
+            WHERE a.request_id = r.id
+              AND a.comment IS NOT NULL
+              AND BTRIM(a.comment) <> ''
+            ORDER BY a.created_at DESC
+            LIMIT 1
+         ) latest ON TRUE
+        WHERE r.requester_employee_id = $1
+          AND r.request_type IN ('attendance_correction', 'profile_change')
+        ORDER BY r.created_at DESC
+        LIMIT 120`,
       [identity.employeeId],
     ).catch(() => ({ rows: [] as DbRow[] })),
   ]);
@@ -140,24 +143,43 @@ export async function GET(request: NextRequest) {
       expiresAt: iso(row.expires_at) || undefined,
     })),
     benefits: parseBenefits((benefitsSetting.rows[0] as DbRow | undefined)?.value),
-    attendanceCorrections: (correctionResult.rows as DbRow[]).map(row => {
-      const explanation = parseCorrectionExplanation(row.explanation);
-      return {
+    attendanceCorrections: (essRequestResult.rows as DbRow[])
+      .filter(row => row.request_type === 'attendance_correction')
+      .map(row => {
+        const values = objectValue(row.requested_values);
+        const original = objectValue(row.original_values);
+        return {
+          id: String(row.id),
+          requestNumber: text(row.request_id),
+          attendanceId: text(values.attendanceRecordId),
+          correctionType: text(values.correctionType),
+          workDate: text(values.workDate),
+          originalCheckIn: iso(original.clockIn) || undefined,
+          originalCheckOut: iso(original.clockOut) || undefined,
+          requestedCheckIn: iso(values.clockIn) || undefined,
+          requestedCheckOut: iso(values.clockOut) || undefined,
+          reason: text(row.reason) || undefined,
+          status: text(row.status) || 'submitted',
+          reviewerComment: text(row.reviewer_comment) || undefined,
+          reviewedAt: iso(row.reviewed_at) || undefined,
+          submittedAt: iso(row.submitted_at || row.created_at) || undefined,
+          updatedAt: iso(row.updated_at || row.created_at) || undefined,
+        };
+      }),
+    profileChangeRequests: (essRequestResult.rows as DbRow[])
+      .filter(row => row.request_type === 'profile_change')
+      .map(row => ({
         id: String(row.id),
-        attendanceId: String(row.attendance_record_id),
-        workDate: isoDate(row.work_date),
-        originalCheckIn: iso(row.clock_in) || undefined,
-        originalCheckOut: iso(row.clock_out) || undefined,
-        requestedCheckIn: iso(explanation.requestedCheckIn) || undefined,
-        requestedCheckOut: iso(explanation.requestedCheckOut) || undefined,
-        reason: text(explanation.reason) || undefined,
-        status: text(row.status) || 'open',
+        requestNumber: text(row.request_id),
+        title: text(row.title) || 'Profile change',
+        reason: text(row.reason) || undefined,
+        status: text(row.status) || 'submitted',
+        requestedValues: objectValue(row.requested_values),
         reviewerComment: text(row.reviewer_comment) || undefined,
         reviewedAt: iso(row.reviewed_at) || undefined,
-        submittedAt: iso(row.created_at) || undefined,
+        submittedAt: iso(row.submitted_at || row.created_at) || undefined,
         updatedAt: iso(row.updated_at || row.created_at) || undefined,
-      };
-    }),
+      })),
     supportRequests: (supportRequestResult.rows as DbRow[]).map(row => ({
       id: String(row.id),
       requestNumber: text(row.request_number),

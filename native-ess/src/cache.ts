@@ -14,6 +14,21 @@ export async function saveBootstrapCache(value: EssBootstrap) {
   await AsyncStorage.setItem(BOOTSTRAP_KEY, JSON.stringify(envelope))
 }
 
+function normalizeCachedBootstrap(value: EssBootstrap): EssBootstrap {
+  return {
+    ...value,
+    attendance: Array.isArray(value.attendance) ? value.attendance : [],
+    leaveRequests: Array.isArray(value.leaveRequests) ? value.leaveRequests : [],
+    documents: Array.isArray(value.documents) ? value.documents : [],
+    notifications: Array.isArray(value.notifications) ? value.notifications : [],
+    benefits: Array.isArray(value.benefits) ? value.benefits : [],
+    emergencyContacts: Array.isArray(value.emergencyContacts) ? value.emergencyContacts : [],
+    schedule: Array.isArray(value.schedule) ? value.schedule : [],
+    announcements: Array.isArray(value.announcements) ? value.announcements : [],
+    supportRequests: Array.isArray(value.supportRequests) ? value.supportRequests : [],
+  }
+}
+
 export async function loadBootstrapCache(): Promise<{ value: EssBootstrap; stale: boolean } | null> {
   try {
     const raw = await AsyncStorage.getItem(BOOTSTRAP_KEY)
@@ -21,7 +36,7 @@ export async function loadBootstrapCache(): Promise<{ value: EssBootstrap; stale
     const parsed = JSON.parse(raw) as CacheEnvelope
     if (!parsed || typeof parsed.savedAt !== 'number' || !parsed.value?.employee) return null
     return {
-      value: parsed.value,
+      value: normalizeCachedBootstrap(parsed.value),
       stale: Date.now() - parsed.savedAt > CACHE_MAX_AGE_MS,
     }
   } catch {

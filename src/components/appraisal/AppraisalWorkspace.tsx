@@ -219,7 +219,7 @@ export function AppraisalWorkspace({
         {error ? <AppraisalError message={error} onRetry={() => void load(true)} /> : null}
         <header className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-slate-600">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
+            <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-muted-foreground">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
             <h2 className="mt-2 text-lg font-semibold tracking-tight">{employee.name}&apos;s appraisal</h2>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -270,7 +270,7 @@ export function AppraisalWorkspace({
             <div className="relative overflow-hidden border-b border-border bg-background">
               <div className="flex flex-col gap-4 px-5 pb-4 pt-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-slate-600">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
+                  <p className="text-xs font-medium text-muted-foreground">Appraisal <span className="mx-2 text-muted-foreground">/</span> {String(currentCycle?.name || 'Current review cycle')}</p>
                   <h1 className="mt-3 flex items-center gap-2 text-xl font-semibold tracking-tight text-foreground">Review desk <Info className="h-4 w-4 text-muted-foreground" aria-hidden /></h1>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -296,7 +296,7 @@ export function AppraisalWorkspace({
                       <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="relative min-h-12 gap-2 rounded-none px-1 text-xs font-semibold text-slate-500 shadow-none transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#3459a8] after:opacity-0 hover:text-slate-900 data-[state=active]:bg-transparent data-[state=active]:text-[#263f73] data-[state=active]:shadow-none data-[state=active]:after:opacity-100 dark:text-slate-400 dark:hover:text-slate-100 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-blue-200 dark:data-[state=active]:after:bg-blue-400"
+                        className="relative min-h-12 gap-2 rounded-none px-1 text-xs font-semibold text-muted-foreground shadow-none transition-colors after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#3459a8] after:opacity-0 hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-[#263f73] data-[state=active]:shadow-none data-[state=active]:after:opacity-100 dark:text-muted-foreground/70 dark:hover:text-slate-100 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-blue-200 dark:data-[state=active]:after:bg-blue-400"
                       >
                         <Icon className="h-4 w-4" aria-hidden />
                         <span>{tab.label}</span>
@@ -309,7 +309,7 @@ export function AppraisalWorkspace({
                       aria-label="More appraisal sections"
                       value={secondaryTabs.some(tab => tab.value === safeTab) ? safeTab : ''}
                       onChange={event => event.target.value && setActiveTab(event.target.value)}
-                      className="min-h-10 border-0 bg-transparent px-1 text-xs font-semibold text-slate-500 outline-none dark:text-slate-400"
+                      className="min-h-10 border-0 bg-transparent px-1 text-xs font-semibold text-muted-foreground outline-none dark:text-muted-foreground/70"
                     >
                       <option value="">More</option>
                       {secondaryTabs.map(tab => <option key={tab.value} value={tab.value}>{tab.label}</option>)}
@@ -377,17 +377,17 @@ function AppraisalScopeSidebar({
 
   return (
     <aside aria-label={t('appraisal.workspace.scopeAria', 'Appraisal scope')} className="hidden min-h-full overflow-hidden bg-background lg:flex lg:flex-col">
-      <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800">
+      <div className="border-b border-border/60 px-4 py-4 dark:border-slate-800">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{teamScope ? t('appraisal.workspace.scope.population', 'Review population') : t('appraisal.workspace.scope.myAppraisals', 'My appraisals')}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{people.length} {teamScope ? t('appraisal.workspace.scope.inScope', 'in your scope') : t('appraisal.workspace.scope.assigned', 'assigned to you')}</p>
+            <p className="text-sm font-bold text-foreground dark:text-slate-50">{teamScope ? t('appraisal.workspace.scope.population', 'Review population') : t('appraisal.workspace.scope.myAppraisals', 'My appraisals')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{people.length} {teamScope ? t('appraisal.workspace.scope.inScope', 'in your scope') : t('appraisal.workspace.scope.assigned', 'assigned to you')}</p>
           </div>
           <ClipboardCheck className="h-5 w-5 text-[#3459a8] dark:text-blue-300" aria-hidden />
         </div>
         {people.length > 5 ? (
           <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" aria-hidden />
             <Input
               value={query}
               onChange={event => setQuery(event.target.value)}
@@ -411,16 +411,16 @@ function AppraisalScopeSidebar({
                   'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3459a8]',
                   activeTab === targetTab && index === 0
                     ? 'bg-[#eef3ff] text-[#263f73] dark:bg-blue-950/40 dark:text-blue-100'
-                    : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900',
+                    : 'text-foreground/80 hover:bg-muted/40 dark:text-slate-200 dark:hover:bg-slate-900',
                 )}
               >
-                <Avatar className="h-9 w-9 shrink-0 border border-slate-200 dark:border-slate-700">
+                <Avatar className="h-9 w-9 shrink-0 border border-border dark:border-slate-700">
                   {person.profilePhotoUrl ? <AvatarImage src={String(person.profilePhotoUrl)} alt="" /> : null}
-                  <AvatarFallback className="bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{initials(String(person.employeeName || t('appraisal.workspace.fallback.employee', 'Employee')))}</AvatarFallback>
+                  <AvatarFallback className="bg-muted text-xs font-bold text-foreground/80 dark:bg-slate-800 dark:text-slate-200">{initials(String(person.employeeName || t('appraisal.workspace.fallback.employee', 'Employee')))}</AvatarFallback>
                 </Avatar>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{String(person.employeeName || person.cycleName || t('appraisal.workspace.fallback.appraisal', 'Appraisal'))}</span>
-                  <span className="mt-0.5 block truncate text-xs text-slate-500">
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                     {teamScope
                       ? String(person.jobTitle || person.department || person.employeeNumber || t('appraisal.workspace.fallback.employee', 'Employee'))
                       : `${String(person.cycleName || t('appraisal.workspace.fallback.review', 'Review'))} · ${labelValue(person.reviewType, t('appraisal.workspace.fallback.review', 'Review'))}`
@@ -431,7 +431,7 @@ function AppraisalScopeSidebar({
             ))}
           </div>
         ) : (
-          <p className="px-3 py-8 text-center text-sm text-slate-500">{t('appraisal.workspace.scope.noMatch', 'No appraisal records match your search.')}</p>
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">{t('appraisal.workspace.scope.noMatch', 'No appraisal records match your search.')}</p>
         )}
       </div>
     </aside>

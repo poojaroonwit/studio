@@ -222,12 +222,12 @@ export function AttendanceRequestsReview({ requests, capabilities, refreshing, s
   };
 
   return (
-    <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
+    <main className="min-h-full w-full bg-transparent px-3 py-4 text-foreground sm:px-5 lg:px-7 dark:text-foreground">
       <div className="w-full max-w-none">
-        <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-zinc-800 sm:flex-row sm:items-end sm:justify-between">
+        <header className="flex flex-col gap-3 border-b border-border pb-4 dark:border-border sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-zinc-50">Attendance Requests</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">Review and take action on employee-submitted attendance corrections.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-zinc-50">Attendance Requests</h1>
+            <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">Review and take action on employee-submitted attendance corrections.</p>
           </div>
           <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing}><RefreshCw className={cn('mr-2 h-4 w-4', refreshing && 'animate-spin')} />Refresh</Button>
         </header>
@@ -236,43 +236,43 @@ export function AttendanceRequestsReview({ requests, capabilities, refreshing, s
         {error && <ErrorState message={error} onRetry={onRefresh} />}
 
         {!displayedRequests.length && !error ? <EmptyState title="No attendance requests" description="Employee-submitted attendance corrections will appear here for review." /> : (
-          <section className="grid min-h-[690px] border-y border-slate-200 xl:grid-cols-[190px_minmax(0,1fr)] dark:border-zinc-800">
-            <aside className="border-b border-slate-200 py-5 pr-5 xl:border-b-0 xl:border-r dark:border-zinc-800">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-zinc-500">Triage inbox</p>
+          <section className="grid min-h-[690px] border-y border-border xl:grid-cols-[190px_minmax(0,1fr)] dark:border-border">
+            <aside className="border-b border-border py-5 pr-5 xl:border-b-0 xl:border-r dark:border-border">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground dark:text-muted-foreground">Triage inbox</p>
               <nav className="mt-3 grid gap-1 sm:grid-cols-4 xl:grid-cols-1" aria-label="Attendance request queues">
                 {queueItems.map(item => {
                   const Icon = item.icon;
                   const active = queue === item.key;
-                  return <button key={item.key} type="button" onClick={() => setQueue(item.key)} className={cn('flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-medium transition', active ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'text-slate-600 hover:bg-slate-50 dark:text-zinc-400 dark:hover:bg-zinc-900')}><Icon className="h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 truncate">{item.label}</span><span className="tabular-nums">{counts[item.key]}</span></button>;
+                  return <button key={item.key} type="button" onClick={() => setQueue(item.key)} className={cn('flex min-h-10 items-center gap-2 rounded-md px-3 text-left text-sm font-medium transition', active ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'text-muted-foreground hover:bg-muted/40 dark:text-muted-foreground dark:hover:bg-card')}><Icon className="h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 truncate">{item.label}</span><span className="tabular-nums">{counts[item.key]}</span></button>;
                 })}
               </nav>
-              <div className="mt-5 border-t border-slate-200 pt-5 dark:border-zinc-800">
-                <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-zinc-500" htmlFor="attendance-request-team">Filter by team</label>
+              <div className="mt-5 border-t border-border pt-5 dark:border-border">
+                <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground dark:text-muted-foreground" htmlFor="attendance-request-team">Filter by team</label>
                 <div className="relative mt-2">
-                  <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <select id="attendance-request-team" value={team} onChange={event => setTeam(event.target.value)} className="h-10 w-full appearance-none rounded-md border border-slate-200 bg-white pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-700 dark:bg-zinc-950"><option value="all">All teams</option>{teams.map(value => <option key={value} value={value}>{value}</option>)}</select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+                  <select id="attendance-request-team" value={team} onChange={event => setTeam(event.target.value)} className="h-10 w-full appearance-none rounded-md border border-border bg-white pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-input dark:bg-background"><option value="all">All teams</option>{teams.map(value => <option key={value} value={value}>{value}</option>)}</select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                 </div>
               </div>
             </aside>
 
-            <div className="min-w-0 border-b border-slate-200 xl:border-b-0 dark:border-zinc-800">
-              <div className="grid grid-cols-[minmax(150px,1.55fr)_80px_84px_88px_92px] items-center border-b border-slate-200 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:border-zinc-800 dark:text-zinc-500"><span>Request</span><span>Type</span><span>Date</span><span>Submitted ↓</span><span>Status</span></div>
+            <div className="min-w-0 border-b border-border xl:border-b-0 dark:border-border">
+              <div className="grid grid-cols-[minmax(150px,1.55fr)_80px_84px_88px_92px] items-center border-b border-border px-4 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground dark:border-border dark:text-muted-foreground"><span>Request</span><span>Type</span><span>Date</span><span>Submitted ↓</span><span>Status</span></div>
               <div className="max-h-[690px] overflow-y-auto">
                 {visible.length ? grouped.map(group => <div key={group.label}>
-                  <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-500">{group.label} ({designPreview && group.label === 'Earlier' ? 2 : group.rows.length})</div>
+                  <div className="border-b border-border bg-muted/40 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground dark:border-border dark:bg-muted/40 dark:text-muted-foreground">{group.label} ({designPreview && group.label === 'Earlier' ? 2 : group.rows.length})</div>
                   {group.rows.map(row => {
                     const active = String(row.id) === String(selected?.id);
                     const meta = statusMeta(row);
-                    return <button key={String(row.id)} type="button" onClick={() => { setSelectedId(String(row.id)); setComment(''); }} className={cn('grid w-full grid-cols-[minmax(150px,1.55fr)_80px_84px_88px_92px] items-center border-b border-slate-100 px-4 py-3 text-left transition dark:border-zinc-800', active ? 'bg-blue-50/70 shadow-[inset_3px_0_0_#3b82f6] dark:bg-blue-950/30' : 'hover:bg-slate-50 dark:hover:bg-zinc-900/60')}>
-                      <span className="flex min-w-0 items-center gap-2.5"><EmployeeAvatar row={row} /><span className="min-w-0"><span className="block truncate text-sm font-semibold text-slate-950 dark:text-zinc-50">{employeeName(row)}</span><span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-zinc-400">{stringValue(row.department_name, 'Team')}</span></span></span>
-                      <span className="truncate pr-2 text-xs text-slate-600 dark:text-zinc-300">{humanize(row.title)}</span>
-                      <span className="text-xs text-slate-600 dark:text-zinc-300">{formatDate(workDate(row), { month: 'short', day: 'numeric' })}</span>
-                      <span className="text-xs leading-5 text-slate-500 dark:text-zinc-400">{formatDate(row.submitted_at || row.created_at, { month: 'short', day: 'numeric' })}<br />{formatTime(row.submitted_at || row.created_at)}</span>
+                    return <button key={String(row.id)} type="button" onClick={() => { setSelectedId(String(row.id)); setComment(''); }} className={cn('grid w-full grid-cols-[minmax(150px,1.55fr)_80px_84px_88px_92px] items-center border-b border-border/60 px-4 py-3 text-left transition dark:border-border', active ? 'bg-blue-50/70 shadow-[inset_3px_0_0_#3b82f6] dark:bg-blue-950/30' : 'hover:bg-muted/40 dark:hover:bg-muted/40')}>
+                      <span className="flex min-w-0 items-center gap-2.5"><EmployeeAvatar row={row} /><span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground dark:text-zinc-50">{employeeName(row)}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground dark:text-muted-foreground">{stringValue(row.department_name, 'Team')}</span></span></span>
+                      <span className="truncate pr-2 text-xs text-muted-foreground dark:text-foreground/80">{humanize(row.title)}</span>
+                      <span className="text-xs text-muted-foreground dark:text-foreground/80">{formatDate(workDate(row), { month: 'short', day: 'numeric' })}</span>
+                      <span className="text-xs leading-5 text-muted-foreground dark:text-muted-foreground">{formatDate(row.submitted_at || row.created_at, { month: 'short', day: 'numeric' })}<br />{formatTime(row.submitted_at || row.created_at)}</span>
                       <span className={cn('flex items-center gap-1.5 text-[11px] font-medium', meta.className)}><span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} /><span className="leading-4">{meta.label}</span></span>
                     </button>;
                   })}
-                </div>) : <div className="p-8 text-center text-sm text-slate-500">No requests match this queue.</div>}
+                </div>) : <div className="p-8 text-center text-sm text-muted-foreground">No requests match this queue.</div>}
               </div>
             </div>
 
@@ -330,13 +330,13 @@ function RequestDetail({ request, comment, onCommentChange, canDecide, saving, o
   return <div className="flex h-full min-h-0 flex-col">
     <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div><h2 className="text-xl font-bold tracking-tight text-slate-950 dark:text-zinc-50">{humanize(request.title)} · {formatDate(workDate(request), { weekday: 'short', month: 'short', day: 'numeric' })}</h2><div className="mt-3 flex items-center gap-3"><EmployeeAvatar row={request} /><div><p className="text-sm font-semibold">{employeeName(request)}</p><p className="text-xs text-slate-500 dark:text-zinc-400">{stringValue(request.job_title, 'Employee')} · {stringValue(request.department_name, 'Team')}</p></div></div></div>
-        <div className="flex items-center gap-3 pr-1"><span className={cn('flex items-center gap-1.5 text-xs font-semibold', meta.className)}><span className={cn('h-2 w-2 rounded-full', meta.dot)} />{meta.label}</span><button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="Close attendance request details"><X className="h-4 w-4" /></button></div>
+        <div><h2 className="text-xl font-bold tracking-tight text-foreground dark:text-zinc-50">{humanize(request.title)} · {formatDate(workDate(request), { weekday: 'short', month: 'short', day: 'numeric' })}</h2><div className="mt-3 flex items-center gap-3"><EmployeeAvatar row={request} /><div><p className="text-sm font-semibold">{employeeName(request)}</p><p className="text-xs text-muted-foreground dark:text-muted-foreground">{stringValue(request.job_title, 'Employee')} · {stringValue(request.department_name, 'Team')}</p></div></div></div>
+        <div className="flex items-center gap-3 pr-1"><span className={cn('flex items-center gap-1.5 text-xs font-semibold', meta.className)}><span className={cn('h-2 w-2 rounded-full', meta.dot)} />{meta.label}</span><button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-muted dark:hover:text-white" aria-label="Close attendance request details"><X className="h-4 w-4" /></button></div>
       </div>
 
       <SectionLabel>Comparison</SectionLabel>
-      <div className="overflow-hidden rounded-md border border-slate-200 dark:border-zinc-800">
-        <div className="grid grid-cols-[110px_1fr_1fr] bg-slate-50 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:bg-zinc-900 dark:text-zinc-500"><span className="p-2.5" /><span className="border-l border-slate-200 p-2.5 dark:border-zinc-800">Original (recorded)</span><span className="border-l border-slate-200 p-2.5 dark:border-zinc-800">Requested</span></div>
+      <div className="overflow-hidden rounded-md border border-border dark:border-border">
+        <div className="grid grid-cols-[110px_1fr_1fr] bg-muted/40 text-[10px] font-bold uppercase tracking-wide text-muted-foreground dark:bg-card dark:text-muted-foreground"><span className="p-2.5" /><span className="border-l border-border p-2.5 dark:border-border">Original (recorded)</span><span className="border-l border-border p-2.5 dark:border-border">Requested</span></div>
         <ComparisonRow label="Check-in" original={formatTime(original.clockIn)} requested={formatTime(requested.clockIn)} changed={formatTime(original.clockIn) !== formatTime(requested.clockIn)} />
         <ComparisonRow label="Check-out" original={formatTime(original.clockOut)} requested={formatTime(requested.clockOut)} changed={formatTime(original.clockOut) !== formatTime(requested.clockOut)} />
         <ComparisonRow label="Break" original={breakLabel(original)} requested={breakLabel(requested)} changed={numberValue(original.breakMinutes) !== numberValue(requested.breakMinutes)} />
@@ -344,33 +344,33 @@ function RequestDetail({ request, comment, onCommentChange, canDecide, saving, o
         <ComparisonRow label="Location" original={stringValue(original.workLocation, 'Office')} requested={stringValue(requested.workLocation, stringValue(original.workLocation, 'Office'))} />
       </div>
 
-      <SectionLabel>Employee reason</SectionLabel><p className="text-sm leading-6 text-slate-700 dark:text-zinc-300">{stringValue(request.reason, 'No reason provided.')}</p>
+      <SectionLabel>Employee reason</SectionLabel><p className="text-sm leading-6 text-foreground/80 dark:text-foreground/80">{stringValue(request.reason, 'No reason provided.')}</p>
       <SectionLabel>Attachment</SectionLabel>
-      {attachment?.url ? <a href={stringValue(attachment.url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-slate-50 dark:border-zinc-800 dark:text-blue-400 dark:hover:bg-zinc-900"><Paperclip className="h-4 w-4" /><span>{stringValue(attachment.name, 'Supporting evidence')} <span className="font-normal text-slate-500">({stringValue(attachment.size, '')})</span></span></a> : <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-400"><FileText className="h-4 w-4" />No attachment provided.</p>}
+      {attachment?.url ? <a href={stringValue(attachment.url)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-blue-600 hover:bg-muted/40 dark:border-border dark:text-blue-400 dark:hover:bg-card"><Paperclip className="h-4 w-4" /><span>{stringValue(attachment.name, 'Supporting evidence')} <span className="font-normal text-muted-foreground">({stringValue(attachment.size, '')})</span></span></a> : <p className="flex items-center gap-2 text-sm text-muted-foreground dark:text-muted-foreground"><FileText className="h-4 w-4" />No attachment provided.</p>}
 
       <SectionLabel>Policy check</SectionLabel><div className="space-y-2 text-sm">{warnings.length ? warnings.map((warning, index) => <PolicyLine key={index} text={stringValue(warning)} />) : <PolicyLine ok text="The server reported no policy warnings for this request." />}</div>
 
       <SectionLabel>Audit trail</SectionLabel>
-      <ol className="space-y-3 border-l border-slate-200 pl-4 text-xs dark:border-zinc-800">{(activity.length ? activity : [{ action: 'Submitted request', createdAt: request.submitted_at || request.created_at }]).map((item, index) => <li key={String(item.id || index)} className="relative grid gap-0.5 before:absolute before:-left-[1.19rem] before:top-1 before:h-2 before:w-2 before:rounded-full before:bg-slate-400"><time className="text-slate-500">{formatDate(item.createdAt || item.created_at, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} {formatTime(item.createdAt || item.created_at)}</time><strong className="font-medium text-slate-700 dark:text-zinc-300">{stringValue(item.action, 'Submitted request')}</strong></li>)}</ol>
+      <ol className="space-y-3 border-l border-border pl-4 text-xs dark:border-border">{(activity.length ? activity : [{ action: 'Submitted request', createdAt: request.submitted_at || request.created_at }]).map((item, index) => <li key={String(item.id || index)} className="relative grid gap-0.5 before:absolute before:-left-[1.19rem] before:top-1 before:h-2 before:w-2 before:rounded-full before:bg-slate-400"><time className="text-muted-foreground">{formatDate(item.createdAt || item.created_at, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} {formatTime(item.createdAt || item.created_at)}</time><strong className="font-medium text-foreground/80 dark:text-foreground/80">{stringValue(item.action, 'Submitted request')}</strong></li>)}</ol>
     </div>
 
-    <div className="border-t border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center justify-between"><label htmlFor="attendance-review-comment" className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Reviewer comment (optional)</label><span className="text-[11px] tabular-nums text-slate-400">{comment.length}/500</span></div>
+    <div className="border-t border-border bg-white p-4 dark:border-border dark:bg-background">
+      <div className="flex items-center justify-between"><label htmlFor="attendance-review-comment" className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">Reviewer comment (optional)</label><span className="text-[11px] tabular-nums text-muted-foreground/70">{comment.length}/500</span></div>
       <Textarea id="attendance-review-comment" value={comment} maxLength={500} onChange={event => onCommentChange(event.target.value)} disabled={!canDecide || saving} className="mt-2 min-h-16 resize-none" placeholder="Add a comment for the employee (optional)..." />
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><p className="max-w-56 text-xs leading-5 text-slate-500 dark:text-zinc-400">Approval applies the correction and recalculates attendance.</p><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" disabled={!canDecide || saving || comment.trim().length < 3} onClick={onReturn}><ArrowDownLeft className="mr-1.5 h-4 w-4" />Return for changes</Button><Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30" disabled={!canDecide || saving || comment.trim().length < 3} onClick={onReject}><X className="mr-1.5 h-4 w-4" />Reject</Button><Button size="sm" disabled={!canDecide || saving} onClick={onApprove}><Check className="mr-1.5 h-4 w-4" />Approve request</Button></div></div>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><p className="max-w-56 text-xs leading-5 text-muted-foreground dark:text-muted-foreground">Approval applies the correction and recalculates attendance.</p><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" disabled={!canDecide || saving || comment.trim().length < 3} onClick={onReturn}><ArrowDownLeft className="mr-1.5 h-4 w-4" />Return for changes</Button><Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30" disabled={!canDecide || saving || comment.trim().length < 3} onClick={onReject}><X className="mr-1.5 h-4 w-4" />Reject</Button><Button size="sm" disabled={!canDecide || saving} onClick={onApprove}><Check className="mr-1.5 h-4 w-4" />Approve request</Button></div></div>
     </div>
   </div>;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-zinc-500">{children}</h3>;
+  return <h3 className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground dark:text-muted-foreground">{children}</h3>;
 }
 
 function ComparisonRow({ label, original, requested, changed = false }: { label: string; original: string; requested: string; changed?: boolean }) {
-  return <div className="grid grid-cols-[110px_1fr_1fr] border-t border-slate-200 text-sm dark:border-zinc-800"><span className="p-2.5 font-medium">{label}</span><span className="border-l border-slate-200 p-2.5 text-slate-600 dark:border-zinc-800 dark:text-zinc-400">{original}</span><span className={cn('border-l border-slate-200 p-2.5 dark:border-zinc-800', changed && 'font-semibold text-emerald-700 dark:text-emerald-300')}>{changed && <span className="mr-1.5 text-slate-400">→</span>}{requested}</span></div>;
+  return <div className="grid grid-cols-[110px_1fr_1fr] border-t border-border text-sm dark:border-border"><span className="p-2.5 font-medium">{label}</span><span className="border-l border-border p-2.5 text-muted-foreground dark:border-border dark:text-muted-foreground">{original}</span><span className={cn('border-l border-border p-2.5 dark:border-border', changed && 'font-semibold text-emerald-700 dark:text-emerald-300')}>{changed && <span className="mr-1.5 text-muted-foreground/70">→</span>}{requested}</span></div>;
 }
 
 function PolicyLine({ ok = false, text }: { ok?: boolean; text: string }) {
   const Icon = ok ? ShieldCheck : AlertTriangle;
-  return <div className={cn('flex items-start gap-2', ok ? 'text-slate-700 dark:text-zinc-300' : 'text-amber-700 dark:text-amber-300')}><Icon className={cn('mt-0.5 h-4 w-4 shrink-0', ok && 'text-emerald-500')} /><span>{text}</span></div>;
+  return <div className={cn('flex items-start gap-2', ok ? 'text-foreground/80 dark:text-foreground/80' : 'text-amber-700 dark:text-amber-300')}><Icon className={cn('mt-0.5 h-4 w-4 shrink-0', ok && 'text-emerald-500')} /><span>{text}</span></div>;
 }

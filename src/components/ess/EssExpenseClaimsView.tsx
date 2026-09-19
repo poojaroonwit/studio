@@ -8,6 +8,7 @@ import { ExpenseStatusBadge, MoneyDisplay, PolicyWarningPanel } from '@/componen
 import { Button } from '@/components/ui/button';
 import type { ExpenseRecord, ExpenseSummary } from '@/lib/expenses/contracts';
 import { employeeExpenseActions, employeeExpenseQuery, type EmployeeExpenseAction } from './ess-expense';
+import { EssConfirmActionDialog } from './EssConfirmActionDialog';
 
 const emptySummary: ExpenseSummary = {
   primaryAmount: 0,
@@ -34,6 +35,7 @@ export function EssExpenseClaimsView() {
   const [creating, setCreating] = React.useState(false);
   const [selected, setSelected] = React.useState<ExpenseRecord | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [pendingAction, setPendingAction] = React.useState<EmployeeExpenseAction | null>(null);
   const deferredSearch = React.useDeferredValue(search);
 
   const load = React.useCallback(async (background = false) => {
@@ -200,7 +202,7 @@ export function EssExpenseClaimsView() {
                   {selectedActions.length > 0 && (
                     <div className="mt-4 grid gap-2">
                       {selectedActions.map(action => (
-                        <Button key={action} variant={action === 'withdraw' ? 'outline' : 'default'} className="min-h-11 capitalize" disabled={busy} onClick={() => void performAction(action)}>
+                        <Button key={action} variant={action === 'withdraw' ? 'outline' : 'default'} className="min-h-11 capitalize" disabled={busy} onClick={() => action === 'withdraw' ? setPendingAction(action) : void performAction(action)}>
                           {action === 'submit' ? 'Submit for review' : action === 'resubmit' ? 'Resubmit for review' : 'Withdraw claim'}
                         </Button>
                       ))}
@@ -218,6 +220,19 @@ export function EssExpenseClaimsView() {
             </div>
           )}
         </section>
+        <EssConfirmActionDialog
+          open={pendingAction === 'withdraw' && Boolean(selected)}
+          onOpenChange={open => { if (!open && !busy) setPendingAction(null); }}
+          title="Withdraw expense claim?"
+          description={selected ? `${selected.reference} will be removed from review. You can resubmit it later only when the claim lifecycle allows it.` : 'This claim will be removed from review.'}
+          confirmLabel="Withdraw claim"
+          destructive
+          busy={busy}
+          onConfirm={() => {
+            setPendingAction(null);
+            void performAction('withdraw');
+          }}
+        />
       </div>
     </main>
   );

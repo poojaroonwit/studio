@@ -499,7 +499,7 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
         style={s.drawerBackdropDismiss}
         onPress={onClose}
       />
-      <SafeAreaView pointerEvents="box-none" edges={['bottom']} style={s.drawerSafe}>
+      <SafeAreaView pointerEvents="auto" edges={['bottom']} style={s.drawerSafe}>
         <View style={s.drawer}>
           <View style={s.drawerHandle} />
           <View style={s.drawerHeader}>
@@ -621,9 +621,14 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   }, [kind])
 
   const chooseKind = (next: RequestKind) => {
-    setKind(next)
-    onFullPageChange?.(true)
+    // Close the native Modal first, then transition into the full-page form.
+    // On Android, changing the underlying screen in the same press frame can
+    // leave the drawer/backdrop owning the gesture and make the option appear inert.
     setChooserOpen(false)
+    requestAnimationFrame(() => {
+      setKind(next)
+      onFullPageChange?.(true)
+    })
   }
 
   if (kind) return <><Back label="Requests" onPress={closeRequest} /><RequestForm kind={kind} data={data} reload={reload} onDone={closeRequest} /></>
@@ -1513,9 +1518,12 @@ const s = StyleSheet.create({
   newRequestButton: { minHeight: controls.touch, paddingHorizontal: 13, borderRadius: radii.sm, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   newRequestButtonText: { color: colors.primaryText, fontSize: typography.sm, lineHeight: 16, fontWeight: '600' },
 
-  drawerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
-  drawerBackdropDismiss: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
-  drawerSafe: { width: '100%', maxHeight: '88%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden', zIndex: 1, elevation: 1 },
+  drawerBackdrop: { flex: 1, backgroundColor: colors.overlay },
+  // Keep the dismiss target physically above the sheet instead of layering an
+  // absolute Pressable behind it. This prevents Android hit-testing from
+  // swallowing taps on DrawerOption rows.
+  drawerBackdropDismiss: { flex: 1, width: '100%' },
+  drawerSafe: { width: '100%', maxHeight: '88%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, overflow: 'hidden', elevation: 8 },
   drawer: { width: '100%', maxHeight: '100%', backgroundColor: colors.surface, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, paddingTop: 10 },
   drawerHandle: { width: 36, height: 4, alignSelf: 'center', borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginBottom: spacing.xs },
   drawerHeader: { minHeight: 54, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

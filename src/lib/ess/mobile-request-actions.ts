@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { cancelOwnLeaveRequest, createEssGroupedLeaveRequest } from '@/lib/hr/ess-service';
 import { acknowledgeOwnDocument } from '@/lib/hr/ess-action-service';
+import { essRequestCreateSchema } from '@/lib/hr/ess-contracts';
+import { createEssRequest } from '@/lib/hr/ess-request-service';
 
 export type MobileEssRequestIdentity = {
   userId: string;
@@ -25,6 +27,77 @@ function isoDate(value: unknown) {
 
 function errorResponse(error: unknown, fallback: string) {
   return NextResponse.json({ error: error instanceof Error ? error.message : fallback }, { status: 400 });
+}
+
+export async function createMobileAttendanceCorrection(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
+  const attendanceId = text(body.attendanceId, 80);
+  const workDate = text(body.workDate, 10);
+  const reason = text(body.reason, 2000);
+  const correctionType = text(body.correctionType, 80);
+  const requestedCheckIn = text(body.requestedCheckIn, 80);
+  const requestedCheckOut = text(body.requestedCheckOut, 80);
+
+  const values: Record<string, unknown> = {
+    workDate,
+    correctionType,
+    attendanceRecordId: attendanceId || null,
+  };
+  if (['missing_check_in', 'incorrect_check_in'].includes(correctionType)) values.clockIn = requestedCheckIn || null;
+  if (['missing_check_out', 'incorrect_check_out'].includes(correctionType)) values.clockOut = requestedCheckOut || null;
+
+  const parsed = essRequestCreateSchema.safeParse({
+    requestType: 'attendance_correction',
+    title: workDate ? `Attendance correction · ${workDate}` : 'Attendance correction',
+    reason,
+    values,
+    originalValues: {},
+    supportingDocuments: [],
+    saveAsDraft: false,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid attendance correction request' }, { status: 400 });
+  }
+
+  try {
+    const data = await createEssRequest(identity.userId, identity.email, parsed.data);
+    return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error, 'Unable to create attendance correction');
+  }
+}
+
+export async function createMobileProfileChangeRequest(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
+  const field = text(body.field, 80);
+  const reason = text(body.reason, 2000);
+  const allowedFields = new Set(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
+  if (!allowedFields.has(field)) return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
+
+  const values = { [field]: body.value };
+  const labels: Record<string, string> = {
+    preferredName: 'Preferred name',
+    phone: 'Personal phone',
+    address: 'Address',
+    bankInformation: 'Bank information',
+    taxInformation: 'Tax information',
+  };
+  const parsed = essRequestCreateSchema.safeParse({
+    requestType: 'profile_change',
+    title: `Update ${labels[field] || 'profile'}`,
+    reason,
+    values,
+    originalValues: {},
+    saveAsDraft: false,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid profile change request' }, { status: 400 });
+  }
+
+  try {
+    const data = await createEssRequest(identity.userId, identity.email, parsed.data);
+    return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error, 'Unable to create profile change request');
+  }
 }
 
 export async function createMobileLeaveRequest(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {

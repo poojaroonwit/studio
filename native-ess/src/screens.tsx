@@ -406,9 +406,15 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
   children: React.ReactNode
 }) {
   return <Modal transparent visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-    <Pressable style={s.drawerBackdrop} onPress={onClose}>
-      <SafeAreaView edges={['bottom']} style={s.drawerSafe}>
-        <Pressable accessibilityRole="none" style={s.drawer} onPress={(event) => event.stopPropagation()}>
+    <View style={s.drawerBackdrop}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Close ${title}`}
+        style={StyleSheet.absoluteFill}
+        onPress={onClose}
+      />
+      <SafeAreaView pointerEvents="box-none" edges={['bottom']} style={s.drawerSafe}>
+        <View style={s.drawer}>
           <View style={s.drawerHandle} />
           <View style={s.drawerHeader}>
             <View style={s.flexOne}><AppText style={s.drawerTitle}>{title}</AppText>{subtitle ? <Muted>{subtitle}</Muted> : null}</View>
@@ -416,12 +422,12 @@ function BottomDrawer({ visible, title, subtitle, onClose, children }: {
               <Ionicons name="close" size={18} color={colors.text} />
             </Pressable>
           </View>
-          <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={s.drawerScroll} contentContainerStyle={s.drawerContent} keyboardShouldPersistTaps="always">
             {children}
           </ScrollView>
-        </Pressable>
+        </View>
       </SafeAreaView>
-    </Pressable>
+    </View>
   </Modal>
 }
 

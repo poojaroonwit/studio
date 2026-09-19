@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState, MetricStrip, Section, StatusBadge } from './EssShared';
 import type { EssDashboard, EssRow } from './ess-types';
 import { dateValue, statusLabel, stringValue } from './ess-types';
+import { EssConfirmActionDialog } from './EssConfirmActionDialog';
 
 export function PerformanceView({
   data,
@@ -25,6 +26,7 @@ export function PerformanceView({
   const activeGoals = data.goals.filter(item => !['completed', 'cancelled'].includes(String(item.status)));
   const averageProgress = activeGoals.length ? Math.round(activeGoals.reduce((total, goal) => total + Number(goal.progress || 0), 0) / activeGoals.length) : 0;
   const pendingActions = data.performance.filter(item => ['not_started', 'in_progress', 'returned_for_revision', 'completed'].includes(String(item.status))).length;
+  const [pendingAcknowledgment, setPendingAcknowledgment] = React.useState<EssRow | null>(null);
 
   return (
     <div className="space-y-4">
@@ -80,12 +82,25 @@ export function PerformanceView({
             {data.performance.length ? <div className="divide-y divide-border">{data.performance.map(review => (
               <article key={String(review.id)} className="flex flex-col justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center">
                 <div><p className="text-sm font-semibold">{stringValue(review.cycle_name, 'Performance review')}</p><p className="mt-0.5 text-xs text-muted-foreground">Completed {dateValue(review.completed_at)} · Rating {stringValue(review.rating, 'Not shared')}</p></div>
-                <div className="flex items-center gap-2"><StatusBadge status={review.status} />{review.status === 'completed' && <Button size="sm" variant="outline" disabled={submitting} onClick={() => void mutate('/api/ess/performance', 'PATCH', { action: 'acknowledge_review', id: review.id, expectedVersion: review.version }, 'Review acknowledged.')}>Acknowledge</Button>}</div>
+                <div className="flex items-center gap-2"><StatusBadge status={review.status} />{review.status === 'completed' && <Button size="sm" variant="outline" disabled={submitting} onClick={() => setPendingAcknowledgment(review)}>Acknowledge</Button>}</div>
               </article>
             ))}</div> : <EmptyState title="No previous reviews" description="Completed performance reviews will appear here." />}
           </Section>
         </TabsContent>
       </Tabs>
+      <EssConfirmActionDialog
+        open={Boolean(pendingAcknowledgment)}
+        onOpenChange={open => { if (!open && !submitting) setPendingAcknowledgment(null); }}
+        title="Acknowledge performance review?"
+        description="This records that you have reviewed the completed performance outcome. It does not change the rating or manager comments."
+        confirmLabel="Acknowledge review"
+        busy={submitting}
+        onConfirm={() => {
+          const review = pendingAcknowledgment;
+          setPendingAcknowledgment(null);
+          if (review) void mutate('/api/ess/performance', 'PATCH', { action: 'acknowledge_review', id: review.id, expectedVersion: review.version }, 'Review acknowledged.');
+        }}
+      />
     </div>
   );
 }

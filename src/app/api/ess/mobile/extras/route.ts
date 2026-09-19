@@ -168,18 +168,21 @@ export async function GET(request: NextRequest) {
       }),
     profileChangeRequests: (essRequestResult.rows as DbRow[])
       .filter(row => row.request_type === 'profile_change')
-      .map(row => ({
-        id: String(row.id),
-        requestNumber: text(row.request_id),
-        title: text(row.title) || 'Profile change',
-        reason: text(row.reason) || undefined,
-        status: text(row.status) || 'submitted',
-        requestedValues: objectValue(row.requested_values),
-        reviewerComment: text(row.reviewer_comment) || undefined,
-        reviewedAt: iso(row.reviewed_at) || undefined,
-        submittedAt: iso(row.submitted_at || row.created_at) || undefined,
-        updatedAt: iso(row.updated_at || row.created_at) || undefined,
-      })),
+      .map(row => {
+        const requested = objectValue(row.requested_values);
+        return {
+          id: String(row.id),
+          requestNumber: text(row.request_id),
+          title: text(row.title) || 'Profile change',
+          reason: text(row.reason) || undefined,
+          status: text(row.status) || 'submitted',
+          requestedFields: Object.keys(requested),
+          reviewerComment: text(row.reviewer_comment) || undefined,
+          reviewedAt: iso(row.reviewed_at) || undefined,
+          submittedAt: iso(row.submitted_at || row.created_at) || undefined,
+          updatedAt: iso(row.updated_at || row.created_at) || undefined,
+        };
+      }),
     supportRequests: (supportRequestResult.rows as DbRow[]).map(row => ({
       id: String(row.id),
       requestNumber: text(row.request_number),

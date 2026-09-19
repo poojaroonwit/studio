@@ -611,9 +611,9 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
   const policy = availablePolicies.find(item => item.id === policyId)
 
   useEffect(() => {
-    if (policyId && availablePolicies.some(item => item.id === policyId)) return
-    setPolicyId(availablePolicies[0]?.id || '')
-  }, [availablePolicies, policyId])
+    if (policyId && data.leavePolicies.some(item => item.id === policyId && item.year === start.getFullYear())) return
+    setPolicyId(data.leavePolicies.find(item => item.year === start.getFullYear())?.id || '')
+  }, [data.leavePolicies, policyId, start])
 
   const submit = async () => {
     if (!policyId) return Alert.alert('Leave request', 'No leave policy is currently available for your account.')
@@ -631,17 +631,15 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
     }
   }
 
-  if (availablePolicies.length === 0) {
-    return <><AppText style={s.pageTitle}>Leave request</AppText><EmptyState icon="calendar-outline" title="No leave policy available" subtitle={`No assigned leave balance is published for ${start.getFullYear()}.`} /></>
-  }
-
   return <><AppText style={s.pageTitle}>Leave request</AppText><Card>
-    <SelectField label="Leave policy" value={policy ? `${policy.name} · ${policy.balance.toFixed(1)} days available` : 'Choose a policy'} onPress={() => setPolicyOpen(true)} />
-    <DateField label="Start date" value={start} onChange={setStart} />
+    {availablePolicies.length > 0
+      ? <SelectField label="Leave policy" value={policy ? `${policy.name} · ${policy.balance.toFixed(1)} days available` : 'Choose a policy'} onPress={() => setPolicyOpen(true)} />
+      : <View style={s.inlineNotice}><Ionicons name="information-circle-outline" size={19} color={colors.warning} /><Muted style={s.flexOne}>{`No assigned leave balance is published for ${start.getFullYear()}. Choose dates in a year with an available policy.`}</Muted></View>}
+    <DateField label="Start date" value={start} onChange={(next) => { setStart(next); if (end < next) setEnd(next) }} />
     <DateField label="End date" value={end} onChange={setEnd} />
     <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" />
-    <Button title="Submit request" busy={busy} disabled={!policyId} onPress={() => void submit()} />
-  </Card><BottomDrawer visible={policyOpen} title="Leave policy" subtitle="Only policies assigned to you are shown." onClose={() => setPolicyOpen(false)}>
+    <Button title="Submit request" busy={busy} disabled={!policyId || availablePolicies.length === 0} onPress={() => void submit()} />
+  </Card><BottomDrawer visible={policyOpen && availablePolicies.length > 0} title="Leave policy" subtitle="Only policies assigned to you are shown." onClose={() => setPolicyOpen(false)}>
     {availablePolicies.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.balance.toFixed(1)} days available · ${item.year}`} selected={policyId === item.id} onPress={() => { setPolicyId(item.id); setPolicyOpen(false) }} />)}
   </BottomDrawer></>
 }
@@ -1065,6 +1063,7 @@ const s = StyleSheet.create({
   successCard: { backgroundColor: colors.successSurface },
   warningCard: { backgroundColor: colors.warningSurface },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  inlineNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.warningSurface, marginBottom: spacing.xs },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusSuccess: { backgroundColor: colors.successSurface },
   statusWarning: { backgroundColor: colors.warningSurface },

@@ -112,6 +112,7 @@ export function EssExpenseClaimsView() {
 
   const statuses = Array.from(new Set(summary.records.map(record => record.status))).sort();
   const selectedActions = selected ? employeeExpenseActions(selected.status) : [];
+  const blockingLoadError = Boolean(error) && summary.records.length === 0 && !loading;
 
   return (
     <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 sm:px-5 lg:px-7">
@@ -145,15 +146,15 @@ export function EssExpenseClaimsView() {
           </div>
         )}
 
-        <section className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-2 lg:grid-cols-5" aria-label="Expense claim summary">
+        {!blockingLoadError && <section className="grid overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-2 lg:grid-cols-5" aria-label="Expense claim summary">
           <SummaryCell label={summary.primaryLabel} value={<MoneyDisplay amount={summary.primaryAmount} currency={summary.currency} />} />
           <SummaryCell label="Drafts" value={summary.drafts} />
           <SummaryCell label="In review" value={summary.pending} />
           <SummaryCell label="Needs attention" value={summary.attention} />
           <SummaryCell label="Completed" value={summary.completed} />
-        </section>
+        </section>}
 
-        <section className="overflow-hidden rounded-lg border border-border bg-card">
+        {!blockingLoadError && <section className="overflow-hidden rounded-lg border border-border bg-card">
           <div className="flex flex-col gap-2 border-b border-border p-3 sm:flex-row">
             <label className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -219,7 +220,7 @@ export function EssExpenseClaimsView() {
               )}
             </div>
           )}
-        </section>
+        </section>}
         <EssConfirmActionDialog
           open={pendingAction === 'withdraw' && Boolean(selected)}
           onOpenChange={open => { if (!open && !busy) setPendingAction(null); }}

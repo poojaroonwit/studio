@@ -390,7 +390,7 @@ function AttendanceCard({ row, onCorrect }: { row: AttendanceRow; onCorrect?: ()
 function StatusPill({ value }: { value: string }) {
   const normalized = value.trim().toLowerCase()
   const success = ['approved', 'present', 'completed', 'complete', 'active', 'available', 'success'].includes(normalized)
-  const warning = ['pending', 'late', 'draft', 'waiting', 'scheduled'].includes(normalized)
+  const warning = ['pending', 'pending_approval', 'submitted', 'processing', 'late', 'draft', 'waiting', 'scheduled', 'returned_for_revision', 'withdrawn'].includes(normalized)
   const danger = ['rejected', 'cancelled', 'canceled', 'absent', 'failed', 'declined'].includes(normalized)
   return <View style={[s.status, success && s.statusSuccess, warning && s.statusWarning, danger && s.statusDanger]}>
     <AppText style={[s.statusText, success && s.statusTextSuccess, warning && s.statusTextWarning, danger && s.statusTextDanger]}>{value}</AppText>
@@ -490,6 +490,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   const [kind, setKind] = useState<RequestKind | null>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+  const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
 
   useEffect(() => {
     if (!openNewRequest) return
@@ -537,6 +538,12 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
     {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No requests yet" subtitle="Create a request when you need leave, an attendance correction or HR support." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
     <PaginationFooter visible={visible} total={data.leaveRequests.length} />
 
+    <AppText style={s.section}>Recent HR requests</AppText>
+    {data.supportRequests.length === 0
+      ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR requests yet" subtitle="Requests you submit to HR will remain visible here with their latest status." />
+      : data.supportRequests.slice(0, supportVisible).map((request) => <SupportRequestCard key={request.id} request={request} />)}
+    <PaginationFooter visible={supportVisible} total={data.supportRequests.length} />
+
     <BottomDrawer visible={chooserOpen} title="New request" subtitle="Choose the request you want to create." onClose={() => setChooserOpen(false)}>
       {requestKinds.map((item) => <DrawerOption key={item.id} icon={item.icon} title={item.title} subtitle={item.description} onPress={() => chooseKind(item.id)} />)}
     </BottomDrawer>
@@ -548,7 +555,7 @@ function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: 
   if (kind === 'attendance') return <AttendanceCorrectionForm data={data} reload={reload} onDone={onDone} />
   if (kind === 'bank-tax') return <BankTaxRequestForm reload={reload} onDone={onDone} />
   if (kind === 'emergency') return <EmergencyContactForm reload={reload} onDone={onDone} />
-  return <GeneralRequestForm onDone={onDone} />
+  return <GeneralRequestForm reload={reload} onDone={onDone} />
 }
 
 function DateField({ label, value, onChange }: { label: string; value: Date; onChange: (value: Date) => void }) {
@@ -582,13 +589,13 @@ function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, s
   return <>{showTitle ? <AppText style={s.pageTitle}>Attendance correction</AppText> : null}<Card><SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} /><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>{data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => { setAttendanceId(row.id); setRecordOpen(false) }} />)}</BottomDrawer></>
 }
 
-function GeneralRequestForm({ onDone }: { onDone: () => void }) {
+function GeneralRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
   const [subject, setSubject] = useState(''), [message, setMessage] = useState(''), [category, setCategory] = useState('general'), [busy, setBusy] = useState(false), [categoryOpen, setCategoryOpen] = useState(false)
   const categories = ['general', 'payroll', 'benefits', 'policy', 'workplace']
   const submit = async () => {
     if (!subject.trim() || !message.trim()) return Alert.alert('HR request', 'Subject and details are required.')
     setBusy(true)
-    try { await essApi.createHrTicket(subject.trim(), message.trim(), category); Alert.alert('HR request', 'Request submitted.'); onDone() }
+    try { await essApi.createHrTicket(subject.trim(), message.trim(), category); await reload(); Alert.alert('HR request', 'Request submitted.'); onDone() }
     catch (error) { Alert.alert('HR request', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
@@ -627,6 +634,15 @@ function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveReq
   const [busy, setBusy] = useState(false)
   const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
   return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{['draft', 'pending'].includes(request.status) ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
+}
+
+function SupportRequestCard({ request }: { request: EssBootstrap['supportRequests'][number] }) {
+  const category = request.category ? request.category.charAt(0).toUpperCase() + request.category.slice(1) : 'General'
+  return <Card>
+    <View style={s.between}><AppText style={s.cardTitle}>{request.subject}</AppText><StatusPill value={request.status} /></View>
+    <Muted>{request.requestNumber || 'HR request'} · {category}{request.submittedAt ? ` · ${formatDateTime(request.submittedAt)}` : ''}</Muted>
+    {request.description ? <Muted numberOfLines={3}>{request.description}</Muted> : null}
+  </Card>
 }
 
 export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
@@ -682,7 +698,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 }
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'hr-chat' ? <HrChatPage /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
 }
 
 function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
@@ -691,10 +707,24 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
   return <><AppText style={s.pageTitle}>My profile</AppText><Card><Muted>Outborn Account</Muted><AppText style={s.cardTitle}>{account?.name || data.employee.name}</AppText><Muted>{account?.email || 'Account email unavailable'}</Muted></Card><Card><Field label="Preferred name" value={preferredName} onChangeText={setPreferredName} /><Field label="Personal email" value={personalEmail} onChangeText={setPersonalEmail} keyboardType="email-address" autoCapitalize="none" /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><Field label="Address" value={address} onChangeText={setAddress} multiline /><Button title="Save profile" busy={busy} onPress={() => void submit()} /></Card><Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card></>
 }
 
-function HrChatPage() {
-  const [message, setMessage] = useState(''), [messages, setMessages] = useState<Array<{ id: string; body: string }>>([]), [busy, setBusy] = useState(false)
-  const send = async () => { const body = message.trim(); if (!body) return; setBusy(true); try { await essApi.createHrTicket('ESS chat', body, 'chat'); setMessages((current) => [...current, { id: `${Date.now()}`, body }]); setMessage('') } catch (error) { Alert.alert('Talk to HR', error instanceof Error ? error.message : 'Unable to send') } finally { setBusy(false) } }
-  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Messages create tracked HR support requests.</Muted><View style={s.chatArea}>{messages.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : messages.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.body}</AppText></View>)}</View><Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card></>
+function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
+  const [message, setMessage] = useState(''), [busy, setBusy] = useState(false)
+  const history = data.supportRequests.filter((item) => item.category === 'chat').slice(0, 10)
+  const send = async () => {
+    const body = message.trim()
+    if (!body) return
+    setBusy(true)
+    try {
+      await essApi.createHrTicket('ESS chat', body, 'chat')
+      setMessage('')
+      await reload()
+    } catch (error) {
+      Alert.alert('Talk to HR', error instanceof Error ? error.message : 'Unable to send')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Messages create tracked HR support requests.</Muted><View style={s.chatArea}>{history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : history.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.description || item.subject}</AppText><Muted>{item.requestNumber} · {item.status.replace(/_/g, ' ')}</Muted></View>)}</View><Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card></>
 }
 
 function CalendarPage({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {

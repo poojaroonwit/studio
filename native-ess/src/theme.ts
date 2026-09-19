@@ -31,10 +31,10 @@ export const colors = {
 
 export const radii = {
   xs: 8,
-  sm: 10,
-  md: 12,
-  lg: 16,
-  xl: 22,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 28,
   pill: 999,
 } as const
 
@@ -58,8 +58,8 @@ export const typography = {
 } as const
 
 export const controls = {
-  touch: 44,
-  input: 48,
-  button: 48,
-  nav: 68,
+  touch: 48,
+  input: 50,
+  button: 50,
+  nav: 72,
 } as const

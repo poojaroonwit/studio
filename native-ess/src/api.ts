@@ -11,7 +11,9 @@ export type AttendanceRow = {
 
 export type AttendanceCorrectionRow = {
   id: string
+  requestNumber?: string
   attendanceId: string
+  correctionType?: string
   workDate: string
   originalCheckIn?: string
   originalCheckOut?: string
@@ -19,6 +21,19 @@ export type AttendanceCorrectionRow = {
   requestedCheckOut?: string
   reason?: string
   status: string
+  reviewerComment?: string
+  reviewedAt?: string
+  submittedAt?: string
+  updatedAt?: string
+}
+
+export type ProfileChangeRequestRow = {
+  id: string
+  requestNumber?: string
+  title: string
+  reason?: string
+  status: string
+  requestedValues: Record<string, unknown>
   reviewerComment?: string
   reviewedAt?: string
   submittedAt?: string
@@ -164,6 +179,7 @@ export type EssBootstrap = {
   }
   attendance: AttendanceRow[]
   attendanceCorrections: AttendanceCorrectionRow[]
+  profileChangeRequests: ProfileChangeRequestRow[]
   leaveRequests: LeaveRequestRow[]
   leavePolicies: LeavePolicyOption[]
   documents: EssDocument[]
@@ -180,6 +196,7 @@ export type EssBootstrap = {
 
 type EssExtras = {
   attendanceCorrections?: AttendanceCorrectionRow[]
+  profileChangeRequests?: ProfileChangeRequestRow[]
   schedule?: EssScheduleItem[]
   announcements?: EssAnnouncement[]
   benefits?: EssBenefit[]
@@ -266,6 +283,9 @@ export const essApi = {
       attendanceCorrections: Array.isArray(extras.attendanceCorrections)
         ? extras.attendanceCorrections
         : Array.isArray(data.attendanceCorrections) ? data.attendanceCorrections : [],
+      profileChangeRequests: Array.isArray(extras.profileChangeRequests)
+        ? extras.profileChangeRequests
+        : Array.isArray(data.profileChangeRequests) ? data.profileChangeRequests : [],
       leaveRequests: Array.isArray(data.leaveRequests) ? data.leaveRequests : [],
       leavePolicies: Array.isArray(data.leavePolicies) ? data.leavePolicies : [],
       documents: Array.isArray(data.documents) ? data.documents : [],
@@ -295,7 +315,14 @@ export const essApi = {
     method: 'POST',
     body: JSON.stringify({ latitude, longitude }),
   }),
-  createAttendanceCorrection: (payload: { attendanceId: string; reason: string; requestedCheckIn?: string; requestedCheckOut?: string }) => request('/api/ess/attendance/corrections', {
+  createAttendanceCorrection: (payload: {
+    attendanceId: string
+    workDate: string
+    correctionType: 'missing_check_in' | 'incorrect_check_in' | 'missing_check_out' | 'incorrect_check_out'
+    reason: string
+    requestedCheckIn?: string
+    requestedCheckOut?: string
+  }) => request('/api/ess/attendance/corrections', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
@@ -312,6 +339,15 @@ export const essApi = {
   }),
   patchBankTax: (payload: { bankName?: string; accountNumber?: string; taxId?: string }) => request('/api/ess/bank-tax', {
     method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+
+  createProfileChangeRequest: (payload: {
+    field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation'
+    value: unknown
+    reason: string
+  }) => request('/api/ess/profile-change-requests', {
+    method: 'POST',
     body: JSON.stringify(payload),
   }),
 

@@ -769,16 +769,65 @@ function GeneralRequestForm({ reload, onDone }: { reload: () => Promise<void>; o
   return <><AppText style={s.pageTitle}>HR request</AppText><Card><SelectField label="Category" value={category.charAt(0).toUpperCase() + category.slice(1)} onPress={() => setCategoryOpen(true)} /><Field label="Subject" value={subject} onChangeText={setSubject} placeholder="What do you need help with?" /><Field label="Details" value={message} onChangeText={setMessage} multiline placeholder="Add the information HR needs" /><Button title="Submit HR request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={categoryOpen} title="Request category" onClose={() => setCategoryOpen(false)}>{categories.map((item) => <DrawerOption key={item} title={item.charAt(0).toUpperCase() + item.slice(1)} selected={category === item} onPress={() => { setCategory(item); setCategoryOpen(false) }} />)}</BottomDrawer></>
 }
 
-function BankTaxRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
-  const [bankName, setBankName] = useState(''), [accountNumber, setAccountNumber] = useState(''), [taxId, setTaxId] = useState(''), [busy, setBusy] = useState(false)
+function BankTaxRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
+  const [bankName, setBankName] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [taxId, setTaxId] = useState('')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const history = data.profileChangeRequests.filter(item => item.requestedValues.bankInformation !== undefined || item.requestedValues.taxInformation !== undefined)
+
   const submit = async () => {
-    if (!bankName.trim() && !accountNumber.trim() && !taxId.trim()) return Alert.alert('Bank & tax', 'Enter at least one value to update.')
+    const bankValue = {
+      ...(bankName.trim() ? { bankName: bankName.trim() } : {}),
+      ...(accountNumber.trim() ? { accountNumber: accountNumber.trim() } : {}),
+    }
+    const taxValue = taxId.trim() ? { taxId: taxId.trim() } : null
+    const changeCount = (Object.keys(bankValue).length > 0 ? 1 : 0) + (taxValue ? 1 : 0)
+
+    if (!changeCount) return Alert.alert('Bank & tax', 'Enter at least one bank or tax value to change.')
+    if (reason.trim().length < 3) return Alert.alert('Bank & tax', 'Add a short reason for this change request.')
+
     setBusy(true)
-    try { await essApi.patchBankTax({ bankName: bankName.trim() || undefined, accountNumber: accountNumber.trim() || undefined, taxId: taxId.trim() || undefined }); await reload(); Alert.alert('Bank & tax', 'Information updated.'); onDone() }
-    catch (error) { Alert.alert('Bank & tax', error instanceof Error ? error.message : 'Unable to update') }
-    finally { setBusy(false) }
+    try {
+      if (Object.keys(bankValue).length > 0) {
+        await essApi.createProfileChangeRequest({ field: 'bankInformation', value: bankValue, reason: reason.trim() })
+      }
+      if (taxValue) {
+        await essApi.createProfileChangeRequest({ field: 'taxInformation', value: taxValue, reason: reason.trim() })
+      }
+      setBankName('')
+      setAccountNumber('')
+      setTaxId('')
+      setReason('')
+      await reload()
+      Alert.alert('Bank & tax', `${changeCount === 1 ? 'Change request' : 'Change requests'} submitted for approval.`)
+      onDone()
+    } catch (error) {
+      Alert.alert('Bank & tax', error instanceof Error ? error.message : 'Unable to submit change request')
+    } finally {
+      setBusy(false)
+    }
   }
-  return <><AppText style={s.pageTitle}>Bank & tax</AppText><Card><Field label="Bank name" value={bankName} onChangeText={setBankName} /><Field label="Account number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" /><Field label="Tax ID" value={taxId} onChangeText={setTaxId} keyboardType="numeric" /><Button title="Update information" busy={busy} onPress={() => void submit()} /></Card></>
+
+  return <>
+    <AppText style={s.pageTitle}>Bank & tax</AppText>
+    <Card>
+      <AppText style={s.cardTitle}>Current information</AppText>
+      <Muted>Bank · {data.bankTax?.bankName || 'Not set'}</Muted>
+      <Muted>Account · {data.bankTax?.accountLast4 ? `•••• ${data.bankTax.accountLast4}` : 'Not set'}</Muted>
+      <Muted>Tax ID · {data.bankTax?.taxIdMasked || 'Not set'}</Muted>
+    </Card>
+    <Card>
+      <View style={s.inlineNotice}><Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} /><Muted style={s.flexOne}>Bank and tax changes are tracked requests. Current payroll data changes only after approval.</Muted></View>
+      <Field label="New bank name" value={bankName} onChangeText={setBankName} />
+      <Field label="New account number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" />
+      <Field label="New tax ID" value={taxId} onChangeText={setTaxId} keyboardType="numeric" />
+      <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why is this change needed?" />
+      <Button title="Submit change request" busy={busy} disabled={reason.trim().length < 3 || (!bankName.trim() && !accountNumber.trim() && !taxId.trim())} onPress={() => void submit()} />
+    </Card>
+    <ProfileChangeHistory items={history} empty="No bank or tax change requests yet." />
+  </>
 }
 
 function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { reload: () => Promise<void>; onDone: () => void; contact?: EmergencyContact; showTitle?: boolean }) {
@@ -981,13 +1030,85 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 }
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm reload={reload} onDone={() => setSection('menu')} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} onDone={() => setSection('menu')} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
 }
 
 function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
-  const [preferredName, setPreferredName] = useState(data.profile?.preferredName || ''), [personalEmail, setPersonalEmail] = useState(data.profile?.personalEmail || ''), [phone, setPhone] = useState(data.profile?.phone || ''), [address, setAddress] = useState(data.profile?.address || ''), [busy, setBusy] = useState(false)
-  const submit = async () => { setBusy(true); try { await essApi.patchProfile({ preferredName: preferredName.trim(), personalEmail: personalEmail.trim(), phone: phone.trim(), address: address.trim() }); await reload(); Alert.alert('My profile', 'Profile updated.') } catch (error) { Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to update profile') } finally { setBusy(false) } }
-  return <><AppText style={s.pageTitle}>My profile</AppText><Card><Muted>Outborn Account</Muted><AppText style={s.cardTitle}>{account?.name || data.employee.name}</AppText><Muted>{account?.email || 'Account email unavailable'}</Muted></Card><Card><Field label="Preferred name" value={preferredName} onChangeText={setPreferredName} /><Field label="Personal email" value={personalEmail} onChangeText={setPersonalEmail} keyboardType="email-address" autoCapitalize="none" /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><Field label="Address" value={address} onChangeText={setAddress} multiline /><Button title="Save profile" busy={busy} onPress={() => void submit()} /></Card><Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card></>
+  const [preferredName, setPreferredName] = useState(data.profile?.preferredName || '')
+  const [phone, setPhone] = useState(data.profile?.phone || '')
+  const [address, setAddress] = useState(data.profile?.address || '')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const history = data.profileChangeRequests.filter(item => item.requestedValues.preferredName !== undefined || item.requestedValues.phone !== undefined || item.requestedValues.address !== undefined)
+  const changed = preferredName.trim() !== (data.profile?.preferredName || '').trim()
+    || phone.trim() !== (data.profile?.phone || '').trim()
+    || address.trim() !== (data.profile?.address || '').trim()
+
+  const submit = async () => {
+    if (!changed) return Alert.alert('My profile', 'Change at least one profile field before submitting.')
+    if (reason.trim().length < 3) return Alert.alert('My profile', 'Add a short reason for this change request.')
+
+    const requests: Array<Parameters<typeof essApi.createProfileChangeRequest>[0]> = []
+    if (preferredName.trim() !== (data.profile?.preferredName || '').trim()) {
+      requests.push({ field: 'preferredName', value: preferredName.trim(), reason: reason.trim() })
+    }
+    if (phone.trim() !== (data.profile?.phone || '').trim()) {
+      requests.push({ field: 'phone', value: phone.trim(), reason: reason.trim() })
+    }
+    if (address.trim() !== (data.profile?.address || '').trim()) {
+      requests.push({ field: 'address', value: { formatted: address.trim() }, reason: reason.trim() })
+    }
+
+    setBusy(true)
+    try {
+      for (const request of requests) await essApi.createProfileChangeRequest(request)
+      setPreferredName(data.profile?.preferredName || '')
+      setPhone(data.profile?.phone || '')
+      setAddress(data.profile?.address || '')
+      setReason('')
+      await reload()
+      Alert.alert('My profile', `${requests.length === 1 ? 'Change request' : 'Change requests'} submitted for approval.`)
+    } catch (error) {
+      Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to submit profile change request')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>
+    <AppText style={s.pageTitle}>My profile</AppText>
+    <Card>
+      <Muted>Outborn Account</Muted>
+      <AppText style={s.cardTitle}>{account?.name || data.employee.name}</AppText>
+      <Muted>{account?.email || 'Account email unavailable'}</Muted>
+      <Muted>Account email is managed by Outborn Account.</Muted>
+    </Card>
+    <Card>
+      <View style={s.inlineNotice}><Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} /><Muted style={s.flexOne}>These profile changes are submitted for approval and stay visible in change history.</Muted></View>
+      <Field label="Preferred name" value={preferredName} onChangeText={setPreferredName} />
+      <Field label="Personal phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <Field label="Address" value={address} onChangeText={setAddress} multiline />
+      <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why is this change needed?" />
+      <Button title="Submit change request" busy={busy} disabled={!changed || reason.trim().length < 3} onPress={() => void submit()} />
+    </Card>
+    <Card><AppText style={s.cardTitle}>Employee information</AppText><Muted>Employee ID · {data.employee.employeeId}</Muted><Muted>{data.employee.position} · {data.employee.department}</Muted></Card>
+    <ProfileChangeHistory items={history} empty="No profile change requests yet." />
+  </>
+}
+
+function ProfileChangeHistory({ items, empty }: { items: EssBootstrap['profileChangeRequests']; empty: string }) {
+  if (items.length === 0) return <Card><AppText style={s.cardTitle}>Change history</AppText><Muted>{empty}</Muted></Card>
+  return <Card>
+    <AppText style={s.cardTitle}>Change history</AppText>
+    {items.slice(0, 8).map(item => <View key={item.id} style={s.historyRow}>
+      <View style={s.flexOne}>
+        <AppText>{item.title}</AppText>
+        <Muted>{item.requestNumber || 'Request'} · {formatDateTime(item.submittedAt)}</Muted>
+        {item.reviewerComment ? <Muted>Reviewer · {item.reviewerComment}</Muted> : null}
+      </View>
+      <StatusPill value={item.status} />
+    </View>)}
+  </Card>
 }
 
 function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
@@ -1202,6 +1323,7 @@ const s = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   inlineNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.warningSurface, marginBottom: spacing.xs },
   documentActions: { marginTop: spacing.sm, gap: spacing.xs },
+  historyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   warningText: { color: colors.warning, fontSize: typography.sm, lineHeight: 18, fontWeight: '600', marginTop: 4 },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusSuccess: { backgroundColor: colors.successSurface },

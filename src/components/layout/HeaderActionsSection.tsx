@@ -11,7 +11,6 @@ import { useLocalization } from '@/contexts/LocalizationContext';
 
 import { HeaderExpandableSearch } from "./HeaderExpandableSearch";
 import { HeaderDesktopUserMenu } from "./HeaderDesktopUserMenu";
-import { HeaderMobileUserDrawer } from "./HeaderMobileUserDrawer";
 import { HeaderOutbornApplicationLauncher } from "./HeaderOutbornApplicationLauncher";
 import type { HeaderUserMenuSharedProps } from "./HeaderTypes";
 
@@ -92,13 +91,11 @@ function HeaderLoadedActions({
       <div className="ml-0.5 [&_button]:!h-10 [&_button]:!w-10 [&_button]:!rounded-lg">
         <NotificationIcon />
       </div>
-      <div className="ml-0.5">
-        {isMobile ? (
-          <HeaderMobileUserDrawer {...userMenuProps} />
-        ) : (
+      {!isMobile ? (
+        <div className="ml-0.5">
           <HeaderDesktopUserMenu {...userMenuProps} />
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

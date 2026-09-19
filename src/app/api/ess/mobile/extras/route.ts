@@ -23,6 +23,16 @@ function iso(value: unknown) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
+function parseCorrectionExplanation(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return { reason: value };
+  }
+}
+
 function parseBenefits(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return [];
   try {
@@ -52,7 +62,7 @@ export async function GET(request: NextRequest) {
   if (!identity) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const pool = getPool();
-  const [scheduleResult, announcementResult, benefitsSetting, supportRequestResult] = await Promise.all([
+  const [scheduleResult, announcementResult, benefitsSetting, supportRequestResult, correctionResult] = await Promise.all([
     pool.query(
       `SELECT id, shift_date, start_time, end_time, work_location, status
          FROM hr_shift_assignments
@@ -98,6 +108,17 @@ export async function GET(request: NextRequest) {
         LIMIT 60`,
       [identity.employeeId],
     ).catch(() => ({ rows: [] as DbRow[] })),
+    pool.query(
+      `SELECT x.id, x.status, x.explanation, x.reviewer_comment, x.reviewed_at, x.created_at, x.updated_at,
+              a.id AS attendance_record_id, a.work_date, a.clock_in, a.clock_out
+         FROM hr_attendance_exceptions x
+         JOIN hr_attendance_records a ON a.id = x.attendance_record_id
+        WHERE a.employee_id = $1
+          AND x.code = 'employee_correction_requested'
+        ORDER BY x.created_at DESC
+        LIMIT 60`,
+      [identity.employeeId],
+    ).catch(() => ({ rows: [] as DbRow[] })),
   ]);
 
   return NextResponse.json({
@@ -119,6 +140,24 @@ export async function GET(request: NextRequest) {
       expiresAt: iso(row.expires_at) || undefined,
     })),
     benefits: parseBenefits((benefitsSetting.rows[0] as DbRow | undefined)?.value),
+    attendanceCorrections: (correctionResult.rows as DbRow[]).map(row => {
+      const explanation = parseCorrectionExplanation(row.explanation);
+      return {
+        id: String(row.id),
+        attendanceId: String(row.attendance_record_id),
+        workDate: isoDate(row.work_date),
+        originalCheckIn: iso(row.clock_in) || undefined,
+        originalCheckOut: iso(row.clock_out) || undefined,
+        requestedCheckIn: iso(explanation.requestedCheckIn) || undefined,
+        requestedCheckOut: iso(explanation.requestedCheckOut) || undefined,
+        reason: text(explanation.reason) || undefined,
+        status: text(row.status) || 'open',
+        reviewerComment: text(row.reviewer_comment) || undefined,
+        reviewedAt: iso(row.reviewed_at) || undefined,
+        submittedAt: iso(row.created_at) || undefined,
+        updatedAt: iso(row.updated_at || row.created_at) || undefined,
+      };
+    }),
     supportRequests: (supportRequestResult.rows as DbRow[]).map(row => ({
       id: String(row.id),
       requestNumber: text(row.request_number),

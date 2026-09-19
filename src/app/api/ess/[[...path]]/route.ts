@@ -532,6 +532,37 @@ async function createSupportTicket(identity: EssIdentity, body: Record<string, u
   return NextResponse.json({ id, status: 'submitted' }, { status: 201 });
 }
 
+async function replySupportTicket(identity: EssIdentity, id: string, body: Record<string, unknown>) {
+  const message = stringValue(body.message, 5000);
+  if (!message) return jsonError('Message is required', 400);
+
+  const owned = await getPool().query(
+    `SELECT id, status
+       FROM employee_support_requests
+      WHERE id = $1::uuid
+        AND employee_id = $2::uuid
+      LIMIT 1`,
+    [id, identity.employeeId],
+  );
+  const request = owned.rows[0] as DbRow | undefined;
+  if (!request) return jsonError('HR request not found', 404);
+  if (['resolved', 'closed', 'cancelled', 'canceled'].includes(String(request.status || '').toLowerCase())) {
+    return jsonError('This HR request is closed. Create a new request to continue.', 409);
+  }
+
+  await getPool().query(
+    `INSERT INTO employee_support_activities
+       (id, request_id, actor_user_id, action, message, visibility, metadata, created_at)
+     VALUES ($1, $2::uuid, $3::uuid, 'requester_message', $4, 'requester', '{}'::jsonb, NOW())`,
+    [randomUUID(), id, identity.userId, message],
+  );
+  await getPool().query(
+    `UPDATE employee_support_requests SET updated_at = NOW() WHERE id = $1::uuid AND employee_id = $2::uuid`,
+    [id, identity.employeeId],
+  );
+  return NextResponse.json({ success: true }, { status: 201 });
+}
+
 async function documentLink(request: NextRequest, identity: EssIdentity, id: string) {
   const result = await getPool().query(
     `SELECT id FROM hr_employee_documents WHERE id = $1 AND employee_id = $2 AND status NOT IN ('deleted', 'revoked') AND file_path IS NOT NULL`,
@@ -605,6 +636,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact, { status: 201 });
   }
   if (path.join('/') === 'hr-support/tickets') return createSupportTicket(identity, body);
+  if (path[0] === 'hr-support' && path[1] === 'tickets' && path[2] && path[3] === 'reply') return replySupportTicket(identity, path[2], body);
   if (path[0] === 'notifications' && path[1] && path[2] === 'read') {
     await getPool().query('UPDATE "Notification" SET "isRead" = TRUE, "updatedAt" = NOW() WHERE id = $1 AND "userId" = $2', [path[1], identity.userId]);
     return new NextResponse(null, { status: 204 });

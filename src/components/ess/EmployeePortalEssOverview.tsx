@@ -161,7 +161,7 @@ function ServiceLink({ icon: Icon, label, description, href }: { icon: React.Ele
 
 function RoleWorkspaceLinks({ user, directReports }: { user?: Parameters<typeof hasAnyPermission>[0]; directReports: number }) {
   const links = [
-    { label: 'Manager workspace', href: '/ess/team', icon: Users, show: directReports > 0 || user?.role === 'Hiring Manager' || hasAnyPermission(user, ['HR_WORKFORCE_VIEW', 'HR_WORKFORCE_MANAGE']) },
+    { label: 'Manager workspace', href: '/ess/team', icon: Users, show: directReports > 0 },
     { label: 'People operations', href: '/people', icon: Users, show: hasAnyPermission(user, ['HR_PEOPLE_VIEW', 'HR_PEOPLE_MANAGE']) },
     { label: 'Recruitment workspace', href: '/applicants', icon: BriefcaseBusiness, show: hasAnyPermission(user, ['applicantS_VIEW', 'POSITIONS_VIEW']) },
     { label: 'Payroll workspace', href: '/payroll', icon: Banknote, show: hasAnyPermission(user, ['HR_PAYROLL_VIEW', 'HR_PAYROLL_MANAGE']) },

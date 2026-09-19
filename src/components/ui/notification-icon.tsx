@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +9,13 @@ import { useSession } from 'next-auth/react';
 import { NotificationDrawer } from './notification-drawer';
 import { FloatingNotification } from './floating-notification';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function NotificationIcon() {
   const { data: session } = useSession();
   const { unreadCount, isLoading } = useNotifications();
+  const router = useRouter();
+  const isMobile = useIsMobile();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const isClickingRef = useRef(false);
 
@@ -22,13 +26,17 @@ export function NotificationIcon() {
     }
 
     isClickingRef.current = true;
-    setIsDrawerOpen(true);
+    if (isMobile) {
+      router.push('/notifications');
+    } else {
+      setIsDrawerOpen(true);
+    }
 
     // Reset click protection after animation
     setTimeout(() => {
       isClickingRef.current = false;
     }, 300);
-  }, []);
+  }, [isMobile, router]);
 
   const handleDrawerClose = useCallback(() => {
     setIsDrawerOpen(false);
@@ -41,13 +49,17 @@ export function NotificationIcon() {
     }
 
     isClickingRef.current = true;
-    setIsDrawerOpen(true);
+    if (isMobile) {
+      router.push('/notifications');
+    } else {
+      setIsDrawerOpen(true);
+    }
 
     // Reset click protection after animation
     setTimeout(() => {
       isClickingRef.current = false;
     }, 300);
-  }, []);
+  }, [isMobile, router]);
 
   if (!session?.user) {
     return null;
@@ -61,6 +73,7 @@ export function NotificationIcon() {
         onClick={handleNotificationClick}
         className="relative h-9 w-9 rounded-full border-0 bg-transparent text-slate-500 shadow-none transition-colors duration-200 ease-in-out hover:bg-[#f1f3f6] hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
         disabled={isLoading || isClickingRef.current}
+        aria-label="Open notifications"
       >
         <Bell className="h-4 w-4 transition-transform duration-200 ease-in-out group-hover:rotate-12" />
         {unreadCount > 0 && (
@@ -73,11 +86,13 @@ export function NotificationIcon() {
         )}
       </Button>
       
-      <NotificationDrawer
-        isOpen={isDrawerOpen}
-        onClose={handleDrawerClose}
-        onNotificationRead={() => {}} // Handled by context
-      />
+      {!isMobile ? (
+        <NotificationDrawer
+          isOpen={isDrawerOpen}
+          onClose={handleDrawerClose}
+          onNotificationRead={() => {}} // Handled by context
+        />
+      ) : null}
       
       <FloatingNotification onNavigate={handleFloatingNotificationClick} />
     </>

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppPage, AppPageContainer, AppPageIntro } from '@/components/layout/AppPage';
 import { cn } from '@/lib/utils';
 import type { EssEmployee, EssRow, EssView } from './ess-types';
 import { dateValue, statusLabel, stringValue } from './ess-types';
@@ -50,26 +51,25 @@ export function EssShell({
 }) {
   const current = viewMeta[view];
   return (
-    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7">
-      <div className="mx-auto max-w-[1440px] space-y-4">
-        <div className={cn('flex items-start justify-between gap-4', view === 'leave' && 'sr-only')}>
-          <div>
-            <h1 className="text-[clamp(1.35rem,2vw,1.75rem)] font-semibold tracking-tight">{current.label}</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">{current.description}</p>
-          </div>
-          {backgroundLoading && <RefreshCw className="mt-1 h-4 w-4 animate-spin text-muted-foreground" aria-label="Refreshing" />}
-        </div>
+    <AppPage>
+      <AppPageContainer className="space-y-4 py-4">
+        <AppPageIntro
+          className={view === 'leave' ? 'sr-only' : undefined}
+          title={current.label}
+          description={current.description}
+          actions={backgroundLoading ? <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Refreshing" /> : null}
+        />
         {error && <ErrorState message={error} onRetry={onRetry} compact />}
         {children}
-      </div>
-    </main>
+      </AppPageContainer>
+    </AppPage>
   );
 }
 
 export function EmployeeSummaryHeader({ employee }: { employee: EssEmployee }) {
   const initials = employee.name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <header className="relative overflow-hidden rounded-lg border border-border bg-card">
+    <header className="relative overflow-hidden rounded-2xl border border-border bg-card">
       <div className="absolute inset-y-0 left-0 w-1 bg-primary" aria-hidden />
       <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
@@ -128,7 +128,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={cn('rounded-lg border border-border bg-card', className)}>
+    <section className={cn('rounded-2xl border border-border bg-card', className)}>
       <div className="flex items-start justify-between gap-4 border-b border-border/60 px-4 py-3.5">
         <div>
           <h2 className="text-sm font-semibold">{title}{required ? <span className="ml-1 text-destructive" title="Required" aria-label="Required">*</span> : null}</h2>
@@ -163,7 +163,7 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-5 py-8 text-center">
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-5 py-8 text-center">
       <Check className="mb-3 h-5 w-5 text-muted-foreground" aria-hidden />
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
@@ -174,7 +174,7 @@ export function EmptyState({
 
 export function ErrorState({ message, onRetry, compact = false }: { message: string; onRetry: () => void; compact?: boolean }) {
   return (
-    <div role="alert" className={cn('rounded-lg border border-destructive/30 bg-destructive/5 p-5', compact && 'p-3')}>
+    <div role="alert" className={cn('rounded-2xl border border-destructive/30 bg-destructive/5 p-5', compact && 'p-3')}>
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -203,10 +203,10 @@ export function EssLoadingState() {
   return (
     <main className="px-3 py-4 sm:px-5 lg:px-7">
       <div className="mx-auto max-w-[1440px] space-y-4" aria-label="Loading employee self-service">
-        <Skeleton className="h-12 rounded-lg" />
+        <Skeleton className="h-12 rounded-2xl" />
         <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-72 rounded-lg lg:col-span-2" />
-          <Skeleton className="h-72 rounded-lg" />
+          <Skeleton className="h-72 rounded-2xl lg:col-span-2" />
+          <Skeleton className="h-72 rounded-2xl" />
         </div>
       </div>
     </main>
@@ -215,7 +215,7 @@ export function EssLoadingState() {
 
 export function MetricStrip({ items }: { items: Array<{ label: string; value: React.ReactNode; icon?: React.ElementType }> }) {
   return (
-    <div className="grid divide-y divide-border overflow-hidden rounded-lg border border-border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+    <div className="grid divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
       {items.map(item => {
         const Icon = item.icon || Gauge;
         return (

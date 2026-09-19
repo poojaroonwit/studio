@@ -23,6 +23,7 @@ function errorResponse(error: unknown) {
   if (code === 'FORBIDDEN') return NextResponse.json({ message: 'You do not have access to this request.' }, { status: 403 });
   if (code === 'CONFLICT') return NextResponse.json({ message: 'This request changed while you were viewing it. Reload and try again.' }, { status: 409 });
   if (code === 'COMMENT_REQUIRED') return NextResponse.json({ message: 'A comment is required for this decision.' }, { status: 400 });
+  if (code === 'NO_APPROVER') return NextResponse.json({ message: 'No manager approver is linked to your employee record. Contact the People team before submitting this request.' }, { status: 409 });
   if (code === 'INVALID_TRANSITION') return NextResponse.json({ message: 'This action is no longer available for the request.' }, { status: 409 });
   return NextResponse.json({ message: error instanceof Error ? error.message : 'Unable to process request.' }, { status: 400 });
 }

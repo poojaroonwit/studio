@@ -9,6 +9,7 @@ import {
   acknowledgeMobileDocument,
   cancelMobileLeaveRequest,
   createMobileAttendanceCorrection,
+  createLegacyMobileProfileChangeRequests,
   createMobileLeaveRequest,
   createMobileProfileChangeRequest,
   createMobileSupportTicket,
@@ -414,41 +415,6 @@ async function clock(identity: EssIdentity, mode: 'in' | 'out', body: Record<str
   }
 }
 
-async function patchProfile(identity: EssIdentity, body: Record<string, unknown>) {
-  const preferredName = stringValue(body.preferredName, 120);
-  const personalEmail = stringValue(body.personalEmail, 255);
-  const phone = stringValue(body.phone, 80);
-  const address = stringValue(body.address, 500);
-  await getPool().query(
-    `UPDATE hr_employees
-        SET preferred_name = CASE WHEN $2 <> '' THEN $2 ELSE preferred_name END,
-            phone = CASE WHEN $3 <> '' THEN $3 ELSE phone END,
-            personal_information = personal_information || CASE WHEN $4 <> '' THEN jsonb_build_object('email', $4) ELSE '{}'::jsonb END,
-            address = address || CASE WHEN $5 <> '' THEN jsonb_build_object('formatted', $5) ELSE '{}'::jsonb END,
-            updated_at = NOW(), version = version + 1
-      WHERE id = $1`,
-    [identity.employeeId, preferredName, phone, personalEmail, address],
-  );
-  return NextResponse.json({ success: true });
-}
-
-async function patchBankTax(identity: EssIdentity, body: Record<string, unknown>) {
-  const bankName = stringValue(body.bankName, 160);
-  const accountNumber = stringValue(body.accountNumber, 80);
-  const taxId = stringValue(body.taxId, 80);
-  await getPool().query(
-    `UPDATE hr_employees
-        SET bank_information = bank_information || jsonb_strip_nulls(jsonb_build_object(
-              'bankName', NULLIF($2, ''), 'accountNumber', NULLIF($3, '')
-            )),
-            tax_information = tax_information || jsonb_strip_nulls(jsonb_build_object('taxId', NULLIF($4, ''))),
-            updated_at = NOW(), version = version + 1
-      WHERE id = $1`,
-    [identity.employeeId, bankName, accountNumber, taxId],
-  );
-  return NextResponse.json({ success: true });
-}
-
 async function documentLink(request: NextRequest, identity: EssIdentity, id: string) {
   const result = await getPool().query(
     `SELECT id FROM hr_employee_documents WHERE id = $1 AND employee_id = $2 AND status NOT IN ('deleted', 'revoked') AND file_path IS NOT NULL`,
@@ -546,8 +512,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const { identity } = authResult;
   const body = await bodyJson(request);
   if (!body) return jsonError('Invalid JSON body', 400);
-  if (path.join('/') === 'profile') return patchProfile(identity, body);
-  if (path.join('/') === 'bank-tax') return patchBankTax(identity, body);
+  if (path.join('/') === 'profile') return createLegacyMobileProfileChangeRequests(identity, 'profile', body);
+  if (path.join('/') === 'bank-tax') return createLegacyMobileProfileChangeRequests(identity, 'bank-tax', body);
   const contactId = path[1];
   if (path[0] === 'emergency-contacts' && contactId) {
     const result = await writeMobileEmergencyContact(identity.employeeId, body, contactId);

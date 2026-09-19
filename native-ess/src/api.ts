@@ -277,7 +277,7 @@ export const essApi = {
     body: JSON.stringify(payload),
   }),
 
-  createLeave: (payload: { policyId: string; startDate: string; endDate: string; reason?: string }) => request('/api/ess/leave/requests', {
+  createLeave: (payload: { policyId: string; startDate: string; endDate: string; reason?: string; emergencyContact: string }) => request('/api/ess/leave/requests', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),

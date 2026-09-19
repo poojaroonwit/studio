@@ -34,6 +34,18 @@ export type EssNotification = {
   createdAt?: string
 }
 
+export type SupportRequestRow = {
+  id: string
+  requestNumber: string
+  category: string
+  subject: string
+  description?: string
+  status: string
+  priority: string
+  submittedAt?: string
+  updatedAt?: string
+}
+
 export type EmergencyContact = {
   id: string
   name: string
@@ -124,12 +136,14 @@ export type EssBootstrap = {
   attendancePolicy?: AttendancePolicy
   schedule: EssScheduleItem[]
   announcements: EssAnnouncement[]
+  supportRequests: SupportRequestRow[]
 }
 
 type EssExtras = {
   schedule?: EssScheduleItem[]
   announcements?: EssAnnouncement[]
   benefits?: EssBenefit[]
+  supportRequests?: SupportRequestRow[]
 }
 
 export class EssApiError extends Error {
@@ -223,6 +237,9 @@ export const essApi = {
       announcements: Array.isArray(extras.announcements)
         ? extras.announcements
         : Array.isArray(data.announcements) ? data.announcements : [],
+      supportRequests: Array.isArray(extras.supportRequests)
+        ? extras.supportRequests
+        : Array.isArray(data.supportRequests) ? data.supportRequests : [],
     }
   },
 

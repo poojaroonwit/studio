@@ -158,6 +158,7 @@ function useAttendanceAction(data: EssBootstrap, reload: () => Promise<void>, of
   }, [])
 
   const policy = data.attendancePolicy || {}
+  const policyAvailable = data.attendancePolicyAvailable !== false
   const relevantDates = new Set([bangkokDateOffset(-1), bangkokDate(), bangkokDateOffset(1)])
   const windows = data.schedule
     .filter((shift) => relevantDates.has(shift.date) && !['cancelled', 'deleted'].includes((shift.status || '').toLowerCase()))
@@ -171,7 +172,7 @@ function useAttendanceAction(data: EssBootstrap, reload: () => Promise<void>, of
   const workDate = activeWindow?.shift.date || bangkokDate()
   const attendance = attendanceForDate(data, workDate)
   const requiresShift = policy.requireScheduledShift === true
-  const hasActionWindow = !requiresShift || Boolean(activeWindow)
+  const hasActionWindow = policyAvailable && (!requiresShift || Boolean(activeWindow))
   const waitingForWindow = requiresShift && !activeWindow && Boolean(upcomingWindow)
   const windowClosed = requiresShift && !activeWindow && !upcomingWindow && windows.length > 0
   const canClockIn = !offline && hasActionWindow && !attendance?.checkIn
@@ -223,6 +224,7 @@ function useAttendanceAction(data: EssBootstrap, reload: () => Promise<void>, of
   return {
     attendance,
     policy,
+    policyAvailable,
     displayShift,
     activeWindow,
     upcomingWindow,
@@ -252,8 +254,10 @@ function AttendanceActionCard({ data, reload, offline = false, onViewAttendance 
   const blocked = !action.hasActionWindow || action.waitingForWindow || action.windowClosed
   const cardStyle = action.complete ? s.successCard : offline || blocked ? s.warningCard : undefined
 
-  const title = offline
-    ? action.complete ? 'Attendance complete · offline' : action.attendance?.checkIn && !action.attendance?.checkOut ? 'Reconnect to clock out' : 'Reconnect to clock in'
+  const title = !action.policyAvailable
+    ? 'Attendance policy unavailable'
+    : offline
+      ? action.complete ? 'Attendance complete · offline' : action.attendance?.checkIn && !action.attendance?.checkOut ? 'Reconnect to clock out' : 'Reconnect to clock in'
     : action.canClockIn ? 'Clock in'
       : action.canClockOut ? 'Clock out'
         : action.complete ? 'Attendance complete'
@@ -262,8 +266,10 @@ function AttendanceActionCard({ data, reload, offline = false, onViewAttendance 
               : action.requiresShift ? 'No clock action available'
                 : 'Attendance'
 
-  const detail = offline
-    ? 'Attendance data is cached. Reconnect before recording a clock action.'
+  const detail = !action.policyAvailable
+    ? 'Refresh attendance policy before recording a clock action.'
+    : offline
+      ? 'Attendance data is cached. Reconnect before recording a clock action.'
     : action.canClockIn ? 'Start your workday when you are ready.'
       : action.canClockOut ? `Clocked in ${formatBangkokTime(action.attendance?.checkIn || '')}${elapsed ? ` · ${elapsed}` : ''}`
         : action.complete ? `Clock in ${formatBangkokTime(action.attendance?.checkIn || '')} · Clock out ${formatBangkokTime(action.attendance?.checkOut || '')}`
@@ -295,7 +301,8 @@ function AttendanceActionCard({ data, reload, offline = false, onViewAttendance 
       <Muted style={s.flexOne}>{action.branchNames.length ? `Location verification required · ${action.branchNames.slice(0, 2).join(', ')}${action.branchNames.length > 2 ? ` +${action.branchNames.length - 2} more` : ''}` : 'Location verification is required, but no active branch location is configured.'}</Muted>
     </View> : null}
 
-    {offline ? <Button title="Reconnect" icon="refresh-outline" secondary busy={action.busy === 'sync'} onPress={() => void action.reconnect()} />
+    {!action.policyAvailable ? <Button title="Retry policy" icon="refresh-outline" secondary busy={action.busy === 'sync'} onPress={() => void action.reconnect()} />
+      : offline ? <Button title="Reconnect" icon="refresh-outline" secondary busy={action.busy === 'sync'} onPress={() => void action.reconnect()} />
       : action.canClockIn ? <Button title="Clock in" icon="enter-outline" large busy={action.busy === 'in'} onPress={() => void action.clock('in')} />
         : action.canClockOut ? <Button title="Clock out" icon="exit-outline" large busy={action.busy === 'out'} onPress={() => void action.clock('out')} />
           : onViewAttendance ? <Button title="View attendance" icon="time-outline" secondary onPress={onViewAttendance} /> : null}

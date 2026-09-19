@@ -585,11 +585,20 @@ function TimeField({ label, value, fallback, onChange }: { label: string; value:
   return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable accessibilityRole="button" style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{display}</AppText><Ionicons name="time-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={Number.isNaN(pickerValue.getTime()) ? new Date() : pickerValue} mode="time" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
 }
 
-function attendanceTimestamp(date: string, value: Date | null) {
+function offsetAttendanceDate(date: string, days: number) {
+  const anchor = new Date(`${date}T12:00:00+07:00`)
+  if (Number.isNaN(anchor.getTime())) return date
+  anchor.setUTCDate(anchor.getUTCDate() + days)
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(anchor)
+  const get = (type: string) => parts.find(part => part.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}
+
+function attendanceTimestamp(date: string, value: Date | null, dayOffset = 0) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined
   const hours = String(value.getHours()).padStart(2, '0')
   const minutes = String(value.getMinutes()).padStart(2, '0')
-  return `${date}T${hours}:${minutes}:00+07:00`
+  return `${offsetAttendanceDate(date, dayOffset)}T${hours}:${minutes}:00+07:00`
 }
 
 function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
@@ -657,16 +666,16 @@ function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, s
 
   const submit = async () => {
     if (!attendanceId || !selected || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
-    if (checkIn && checkOut && checkOut.getHours() * 60 + checkOut.getMinutes() <= checkIn.getHours() * 60 + checkIn.getMinutes()) {
-      return Alert.alert('Attendance correction', 'Requested clock out must be after requested clock in.')
-    }
+    const checkInMinutes = checkIn ? checkIn.getHours() * 60 + checkIn.getMinutes() : null
+    const checkOutMinutes = checkOut ? checkOut.getHours() * 60 + checkOut.getMinutes() : null
+    const overnight = checkInMinutes !== null && checkOutMinutes !== null && checkOutMinutes <= checkInMinutes
     setBusy(true)
     try {
       await essApi.createAttendanceCorrection({
         attendanceId,
         reason: reason.trim(),
         requestedCheckIn: attendanceTimestamp(selected.date, checkIn),
-        requestedCheckOut: attendanceTimestamp(selected.date, checkOut),
+        requestedCheckOut: attendanceTimestamp(selected.date, checkOut, overnight ? 1 : 0),
       })
       if (reload) await reload()
       Alert.alert('Attendance correction', 'Submitted for review.')

@@ -924,703 +924,703 @@ function PayrollBlockersDrawer({
 }
 
 function OverviewView({
-  data,
-  onResolve,
-  onReports,
+ data,
+ onResolve,
+ onReports,
 }: {
-  data: PayrollWorkspacePayload;
-  onResolve: () => void;
-  onReports: () => void;
+ data: PayrollWorkspacePayload;
+ onResolve: () => void;
+ onReports: () => void;
 }) {
-  const { locale } = useLocalization();
-  const thai = locale.toLowerCase().startsWith("th");
-  const integration = data.secondary[0] || {};
-  const summary = data.summary;
-  const currentSummaryRun = data.records[0] || {};
-  const previousSummaryRun = data.records[1] || {};
-  const readiness = Math.max(0, Math.min(100, Number(summary.readiness ?? 0)));
-  const employees = Number(summary.employees || 0);
-  const blockers = Number(
-    summary.notReady ||
-      data.issues.filter((issue) => String(issue.severity) === "blocking")
-        .length,
-  );
-  const money = (value: unknown) =>
-    new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number(value || 0));
-  const percent = (current: unknown, previous: unknown) => {
-    const currentValue = Number(current || 0);
-    const previousValue = Number(previous || 0);
-    return previousValue
-      ? ((currentValue - previousValue) / previousValue) * 100
-      : 0;
-  };
-  const ledgerCurrentPeriod = formatMonthLabel(
-    currentSummaryRun.pay_date,
-    thai ? "เดือนปัจจุบัน" : "Current period",
-  );
-  const ledgerPreviousPeriod = formatMonthLabel(
-    previousSummaryRun.pay_date,
-    thai ? "เดือนก่อนหน้า" : "Previous period",
-  );
-  const financialRows = [
-    {
-      label: thai ? "ค่าจ้างและรายได้รวม (Gross Pay)" : "Gross pay",
-      current: summary.gross,
-      previous: summary.priorGross,
-    },
-    {
-      label: thai ? "รายการหักรวม (Deductions)" : "Deductions",
-      current: summary.deductions,
-      previous: summary.priorDeductions,
-    },
-    {
-      label: thai
-        ? "เงินสมทบจากบริษัท (Employer Contributions)"
-        : "Employer contributions",
-      current: summary.employerContributions,
-      previous: summary.priorEmployerContributions,
-    },
-    {
-      label: thai ? "จ่ายสุทธิ (Net Pay)" : "Net pay",
-      current: summary.net,
-      previous: summary.priorNet,
-      emphasis: true,
-    },
-  ];
-  const sourceRows = [
-    [
-      thai ? "งวดบัญชีเงินเดือน" : "Payroll period",
-      integration.period_readiness,
-    ],
-    [
-      thai ? "โปรไฟล์เงินเดือน" : "Payroll profiles",
-      integration.payroll_profile_readiness,
-    ],
-    [thai ? "ค่าตอบแทน" : "Compensation", integration.compensation_readiness],
-    [
-      thai ? "กลุ่มเงินเดือน" : "Payroll groups",
-      integration.payroll_group_readiness,
-    ],
-    [
-      thai ? "ข้อมูลการชำระเงิน" : "Payment details",
-      integration.bank_details_readiness,
-    ],
-    [
-      thai ? "ข้อมูลภาษี" : "Tax information",
-      integration.tax_information_readiness,
-    ],
-  ];
-  const steps = [
-    thai ? "เตรียมข้อมูล" : "Prepare data",
-    thai ? "ตรวจสอบข้อมูล" : "Validate data",
-    thai ? "คำนวณเงินเดือน" : "Calculate payroll",
-    thai ? "ตรวจสอบและอนุมัติ" : "Review and approve",
-    thai ? "ประกาศสลิป" : "Release payslips",
-    thai ? "จ่ายเงินเดือน" : "Pay employees",
-  ];
-  const currentRunProgress = payrollProgressCursor(currentSummaryRun.status);
-  const overviewApprovalSteps = parseApprovalSteps(
-    currentSummaryRun.approval_steps,
-  );
-  const activeReviewer = payrollReviewerFromSteps(overviewApprovalSteps);
-  const reviewerName = String(
-    activeReviewer?.approverName ||
-      activeReviewer?.role ||
-      summary.reviewOwner ||
-      (thai ? "ยังไม่ระบุผู้ตรวจสอบ" : "Not assigned"),
-  );
-  const reviewerTitle = activeReviewer
-    ? thai
-      ? "ผู้อนุมัติปัจจุบัน"
-      : "Current approver"
-    : thai
-      ? "ผู้ตรวจสอบหลัก"
-      : "Primary reviewer";
-  const reviewerStyle = approvalStepStyle(
-    activeReviewer?.status || (summary.reviewOwner ? "approved" : "pending"),
-    thai,
-  );
-  const overviewStepState = steps.map((_, index) =>
-    payrollProgressStepState(index, currentRunProgress, steps.length),
-  );
+ const { locale } = useLocalization();
+ const thai = locale.toLowerCase().startsWith("th");
+ const integration = data.secondary[0] || {};
+ const summary = data.summary;
+ const currentSummaryRun = data.records[0] || {};
+ const previousSummaryRun = data.records[1] || {};
+ const readiness = Math.max(0, Math.min(100, Number(summary.readiness ?? 0)));
+ const employees = Number(summary.employees || 0);
+ const blockers = Number(
+  summary.notReady ||
+   data.issues.filter((issue) => String(issue.severity) === "blocking")
+    .length,
+ );
+ const money = (value: unknown) =>
+  new Intl.NumberFormat("en-US", {
+   minimumFractionDigits: 2,
+   maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+ const percent = (current: unknown, previous: unknown) => {
+  const currentValue = Number(current || 0);
+  const previousValue = Number(previous || 0);
+  return previousValue
+   ? ((currentValue - previousValue) / previousValue) * 100
+   : 0;
+ };
+ const ledgerCurrentPeriod = formatMonthLabel(
+  currentSummaryRun.pay_date,
+  thai ? "เดือนปัจจุบัน" : "Current period",
+ );
+ const ledgerPreviousPeriod = formatMonthLabel(
+  previousSummaryRun.pay_date,
+  thai ? "เดือนก่อนหน้า" : "Previous period",
+ );
+ const financialRows = [
+  {
+   label: thai ? "ค่าจ้างและรายได้รวม (Gross Pay)" : "Gross pay",
+   current: summary.gross,
+   previous: summary.priorGross,
+  },
+  {
+   label: thai ? "รายการหักรวม (Deductions)" : "Deductions",
+   current: summary.deductions,
+   previous: summary.priorDeductions,
+  },
+  {
+   label: thai
+    ? "เงินสมทบจากบริษัท (Employer Contributions)"
+    : "Employer contributions",
+   current: summary.employerContributions,
+   previous: summary.priorEmployerContributions,
+  },
+  {
+   label: thai ? "จ่ายสุทธิ (Net Pay)" : "Net pay",
+   current: summary.net,
+   previous: summary.priorNet,
+   emphasis: true,
+  },
+ ];
+ const sourceRows = [
+  [
+   thai ? "งวดบัญชีเงินเดือน" : "Payroll period",
+   integration.period_readiness,
+  ],
+  [
+   thai ? "โปรไฟล์เงินเดือน" : "Payroll profiles",
+   integration.payroll_profile_readiness,
+  ],
+  [thai ? "ค่าตอบแทน" : "Compensation", integration.compensation_readiness],
+  [
+   thai ? "กลุ่มเงินเดือน" : "Payroll groups",
+   integration.payroll_group_readiness,
+  ],
+  [
+   thai ? "ข้อมูลการชำระเงิน" : "Payment details",
+   integration.bank_details_readiness,
+  ],
+  [
+   thai ? "ข้อมูลภาษี" : "Tax information",
+   integration.tax_information_readiness,
+  ],
+ ];
+ const steps = [
+  thai ? "เตรียมข้อมูล" : "Prepare data",
+  thai ? "ตรวจสอบข้อมูล" : "Validate data",
+  thai ? "คำนวณเงินเดือน" : "Calculate payroll",
+  thai ? "ตรวจสอบและอนุมัติ" : "Review and approve",
+  thai ? "ประกาศสลิป" : "Release payslips",
+  thai ? "จ่ายเงินเดือน" : "Pay employees",
+ ];
+ const currentRunProgress = payrollProgressCursor(currentSummaryRun.status);
+ const overviewApprovalSteps = parseApprovalSteps(
+  currentSummaryRun.approval_steps,
+ );
+ const activeReviewer = payrollReviewerFromSteps(overviewApprovalSteps);
+ const reviewerName = String(
+  activeReviewer?.approverName ||
+   activeReviewer?.role ||
+   summary.reviewOwner ||
+   (thai ? "ยังไม่ระบุผู้ตรวจสอบ" : "Not assigned"),
+ );
+ const reviewerTitle = activeReviewer
+  ? thai
+   ? "ผู้อนุมัติปัจจุบัน"
+   : "Current approver"
+  : thai
+   ? "ผู้ตรวจสอบหลัก"
+   : "Primary reviewer";
+ const reviewerStyle = approvalStepStyle(
+  activeReviewer?.status || (summary.reviewOwner ? "approved" : "pending"),
+  thai,
+ );
+ const overviewStepState = steps.map((_, index) =>
+  payrollProgressStepState(index, currentRunProgress, steps.length),
+ );
 
-  return (
-    <div className="space-y-3">
-      <section
-        className="flex flex-wrap items-center border-y border-border/60 bg-card text-sm "
-        aria-label={thai ? "สรุปรอบบัญชีเงินเดือน" : "Payroll period summary"}
+ return (
+  <div className="space-y-3">
+   <section
+    className="flex flex-wrap items-center border-y border-border/60 bg-card text-sm "
+    aria-label={thai ? "สรุปรอบบัญชีเงินเดือน" : "Payroll period summary"}
+   >
+    {[
+     {
+      icon: CalendarDays,
+      label: thai ? "รอบบัญชีปัจจุบัน" : "Current period",
+      value: String(
+       summary.currentPeriod ||
+        (thai ? "ยังไม่ได้กำหนด" : "Not configured"),
+      ),
+     },
+     {
+      icon: Users,
+      label: thai ? "พนักงานทั้งหมด" : "Employees",
+      value: employees.toLocaleString(),
+     },
+     {
+      icon: WalletCards,
+      label: thai ? "ประมาณการจ่ายสุทธิ" : "Estimated net pay",
+      value: `${money(summary.net)} THB`,
+      valueClass: "text-emerald-600 dark:text-emerald-300",
+     },
+     {
+      icon: Clock3,
+      label: thai ? "ตัดรอบ" : "Cutoff",
+      value: String(summary.cutoffLabel || "-"),
+     },
+     {
+      icon: CalendarDays,
+      label: thai ? "วันจ่ายเงินเดือน" : "Pay date",
+      value: String(summary.payDateLabel || "-"),
+     },
+     {
+      icon: ShieldCheck,
+      label: thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness",
+      value: `${readiness}%`,
+      valueClass: "text-emerald-600 dark:text-emerald-300",
+     },
+    ].map(({ icon: Icon, label, value, valueClass }, index) => (
+     <div
+      key={label}
+      className={cn(
+       "flex min-h-11 min-w-0 items-center gap-2 px-3",
+       index > 0 && "border-l border-border/60",
+      )}
+     >
+      <Icon
+       className="h-4 w-4 shrink-0 text-muted-foreground"
+       aria-hidden="true"
+      />
+      <span className="text-[13px] leading-4 text-muted-foreground">
+       {label}:
+      </span>
+      <strong
+       className={cn(
+        "truncate text-[13px] font-semibold leading-4 tabular-nums text-foreground",
+        valueClass,
+       )}
       >
-        {[
-          {
-            icon: CalendarDays,
-            label: thai ? "รอบบัญชีปัจจุบัน" : "Current period",
-            value: String(
-              summary.currentPeriod ||
-                (thai ? "ยังไม่ได้กำหนด" : "Not configured"),
-            ),
-          },
-          {
-            icon: Users,
-            label: thai ? "พนักงานทั้งหมด" : "Employees",
-            value: employees.toLocaleString(),
-          },
-          {
-            icon: WalletCards,
-            label: thai ? "ประมาณการจ่ายสุทธิ" : "Estimated net pay",
-            value: `${money(summary.net)} THB`,
-            valueClass: "text-emerald-600 dark:text-emerald-300",
-          },
-          {
-            icon: Clock3,
-            label: thai ? "ตัดรอบ" : "Cutoff",
-            value: String(summary.cutoffLabel || "-"),
-          },
-          {
-            icon: CalendarDays,
-            label: thai ? "วันจ่ายเงินเดือน" : "Pay date",
-            value: String(summary.payDateLabel || "-"),
-          },
-          {
-            icon: ShieldCheck,
-            label: thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness",
-            value: `${readiness}%`,
-            valueClass: "text-emerald-600 dark:text-emerald-300",
-          },
-        ].map(({ icon: Icon, label, value, valueClass }, index) => (
-          <div
-            key={label}
-            className={cn(
-              "flex min-h-11 min-w-0 items-center gap-2 px-3",
-              index > 0 && "border-l border-border/60",
-            )}
-          >
-            <Icon
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <span className="text-[13px] leading-4 text-muted-foreground">
-              {label}:
-            </span>
-            <strong
-              className={cn(
-                "truncate text-[13px] font-semibold leading-4 tabular-nums text-foreground",
-                valueClass,
-              )}
-            >
-              {value}
-            </strong>
-          </div>
-        ))}
-      </section>
+       {value}
+      </strong>
+     </div>
+    ))}
+   </section>
 
-      <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="border border-border bg-card px-4 py-4 ">
-          <h2 className="text-sm font-bold">
-            {thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
-          </h2>
-          <div className="mt-4 grid grid-cols-[112px_minmax(0,1fr)] items-center gap-4">
-            <div
-              className={cn(
-                "flex h-28 w-28 flex-col items-center justify-center rounded-full border-[9px] text-center",
-                readiness === 100
-                  ? "border-emerald-400/80 bg-emerald-50 dark:bg-emerald-950/20"
-                  : "border-amber-400/80 bg-amber-50 dark:bg-amber-950/20",
-              )}
-              role="progressbar"
-              aria-label={thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={readiness}
-            >
-              <strong className="text-3xl font-bold tracking-[-0.04em] tabular-nums">
-                {readiness}%
-              </strong>
-              <span className="mt-1 text-[10px] font-medium text-muted-foreground">
-                {readiness === 100
-                  ? thai
-                    ? "ตั้งค่าพร้อมแล้ว"
-                    : "setup complete"
-                  : thai
-                    ? "ยังต้องดำเนินการ"
-                    : "action required"}
-              </span>
-            </div>
-            <dl className="space-y-3 text-[13px] leading-4">
-              <div>
-                <dt className="text-muted-foreground">
-                  {thai ? "ตัดรอบล่าสุด" : "Last cutoff"}
-                </dt>
-                <dd className="mt-0.5 font-semibold">
-                  {String(summary.cutoffLabel || "-")}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">
-                  {thai ? "พนักงานในรอบนี้" : "Employees in scope"}
-                </dt>
-                <dd className="mt-0.5 font-semibold tabular-nums">
-                  {employees.toLocaleString()} {thai ? "คน" : ""}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">
-                  {thai ? "วันจ่ายเงินเดือน" : "Pay date"}
-                </dt>
-                <dd className="mt-0.5 font-semibold">
-                  {String(summary.payDateLabel || "-")}
-                </dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="mt-5 border-t border-slate-200 pt-4 ">
-            <p className="text-xs text-muted-foreground">{reviewerTitle}</p>
-            <div className="mt-2 flex items-center gap-3">
-              <span
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white",
-                  reviewerStyle.initialsClass,
-                )}
-              >
-                {initialsFromName(reviewerName)}
-              </span>
-              <div>
-                <p className="text-sm font-semibold">{reviewerName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {thai ? "หน้าที่: " : "Role: "}
-                  {String(
-                    summary.reviewOwnerRole ||
-                      reviewerRoleLabel(activeReviewer?.role, thai) ||
-                      "Payroll owner",
-                  )}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              {thai ? "อัปเดตล่าสุด" : "Last reviewed"}
-            </p>
-            <p className="mt-0.5 text-xs font-medium">
-              {String(
-                summary.reviewedAtLabel ||
-                  (thai ? "ยังไม่ตรวจสอบล่าสุด" : "Not reviewed yet"),
-              )}
-            </p>
-            <p
-              className={cn(
-                "mt-2 flex items-center gap-1.5 text-xs font-semibold",
-                readiness === 100
-                  ? "text-emerald-600 dark:text-emerald-300"
-                  : "text-amber-600 dark:text-amber-300",
-              )}
-            >
-              {readiness === 100 ? (
-                <Check className="h-3.5 w-3.5" />
-              ) : (
-                <AlertCircle className="h-3.5 w-3.5" />
-              )}
-              {readiness === 100
-                ? thai
-                  ? "พร้อมตรวจสอบ"
-                  : "Ready for review"
-                : thai
-                  ? `ตั้งค่าเสร็จ ${readiness}%`
-                  : `${readiness}% setup complete`}
-            </p>
-          </div>
-
-          <Button
-            onClick={onResolve}
-            disabled={blockers === 0}
-            className="mt-4 min-h-11 w-full justify-between"
-          >
-            <span className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              {blockers
-                ? thai
-                  ? `แก้ไข ${blockers} รายการที่เป็นการบล็อก`
-                  : `Resolve ${blockers} blocking items`
-                : thai
-                  ? "ไม่มีรายการที่บล็อก"
-                  : "No blocking items"}
-            </span>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          <div className="mt-4 border-t border-slate-200 pt-4 ">
-            <h3 className="text-xs font-bold">
-              {thai ? "ความคืบหน้ารอบบัญชี" : "Payroll progress"}
-            </h3>
-            <ol className="mt-3 space-y-0">
-              {steps.map((step, index) => {
-                const state = overviewStepState[index];
-                return (
-                  <li
-                    key={step}
-                    className="relative flex min-h-10 items-center gap-3 pb-2 last:pb-0"
-                  >
-                    {index < steps.length - 1 && (
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "absolute left-[13px] top-7 h-6 w-px",
-                          state.completed ? "bg-emerald-400" : "bg-muted-foreground/50",
-                        )}
-                      />
-                    )}
-                    <span
-                      className={cn(
-                        "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
-                        state.completed
-                          ? "bg-emerald-500"
-                          : state.active
-                            ? "bg-blue-600 ring-4 ring-blue-500/15"
-                            : "bg-muted-foreground",
-                      )}
-                    >
-                      {state.completed ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        index + 1
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-4">
-                      {step}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs font-semibold",
-                        state.completed
-                          ? "text-emerald-600 dark:text-emerald-300"
-                          : state.active
-                            ? "text-blue-600 dark:text-blue-300"
-                            : "text-muted-foreground",
-                      )}
-                    >
-                      {state.label === "done"
-                        ? thai
-                          ? "เสร็จสิ้น"
-                          : "Done"
-                        : state.active
-                          ? thai
-                            ? "กำลังดำเนินการ"
-                            : "In progress"
-                          : thai
-                            ? "รอเริ่ม"
-                            : "Waiting"}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </aside>
-
-        <div className="min-w-0 border border-border bg-card px-5 py-4 ">
-          <section>
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-base font-bold">
-                {thai
-                  ? `บัญชีควบคุมทางการเงิน (${ledgerCurrentPeriod})`
-                  : `Financial control ledger (${ledgerCurrentPeriod})`}
-              </h2>
-              <button
-                type="button"
-                onClick={onReports}
-                className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
-              >
-                {thai ? "ดูรายงานฉบับเต็ม" : "View full report"}{" "}
-                <ChevronRight className="ml-1 inline h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-[13px] leading-4">
-                <thead className="bg-muted/40 text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">
-                      {thai ? "รายการทางการเงิน" : "Financial item"}
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium">
-                      {ledgerCurrentPeriod} (THB)
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium">
-                      {ledgerPreviousPeriod} (THB)
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium">
-                      {thai ? "เปลี่ยนแปลง (THB)" : "Change (THB)"}
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium">MoM</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {financialRows.map((row) => {
-                    const change =
-                      Number(row.current || 0) - Number(row.previous || 0);
-                    const delta = percent(row.current, row.previous);
-                    return (
-                      <tr
-                        key={row.label}
-                        className={cn(
-                          "border-b border-border",
-                          row.emphasis &&
-                            "border-t-2 border-t-slate-400 font-bold dark:border-t-slate-500",
-                        )}
-                      >
-                        <td className="px-3 py-2.5">{row.label}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
-                          {money(row.current)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
-                          {money(row.previous)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
-                          {change >= 0 ? "+" : ""}
-                          {money(change)}
-                        </td>
-                        <td
-                          className={cn(
-                            "px-3 py-2.5 text-right font-semibold tabular-nums",
-                            delta >= 0
-                              ? "text-emerald-600 dark:text-emerald-300"
-                              : "text-rose-600 dark:text-rose-300",
-                          )}
-                        >
-                          {delta >= 0 ? "+" : ""}
-                          {delta.toFixed(2)}%
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <div className="mt-4 grid border-t border-slate-200 pt-4 lg:grid-cols-2 lg:divide-x lg:divide-slate-200  dark:lg:divide-slate-800">
-            <section className="min-w-0 lg:pr-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold">
-                  {thai
-                    ? "รายการที่ต้องดำเนินการ (จัดลำดับความสำคัญ)"
-                    : "Prioritized actions"}
-                </h2>
-                <button
-                  type="button"
-                  onClick={onResolve}
-                  className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
-                >
-                  {thai ? "ดูทั้งหมด" : "View all"}
-                </button>
-              </div>
-              {data.issues.length ? (
-                <div className="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
-                  {data.issues.slice(0, 3).map((issue, index) => (
-                    <div
-                      key={`${issue.employee_id || "issue"}-${index}`}
-                      className={cn(
-                        "grid grid-cols-[18px_minmax(0,1fr)_auto] gap-2 border-l-2 py-2 pl-2",
-                        String(issue.severity) === "blocking"
-                          ? "border-l-rose-500"
-                          : "border-l-amber-500",
-                      )}
-                    >
-                      <AlertCircle
-                        className={cn(
-                          "mt-0.5 h-4 w-4",
-                          String(issue.severity) === "blocking"
-                            ? "text-rose-500"
-                            : "text-amber-500",
-                        )}
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold leading-4">
-                          {String(issue.reason || issue.employee_name)}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {String(
-                            issue.required_action || issue.source_module || "",
-                          )}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className={cn(
-                            "text-[13px] font-bold leading-4 tabular-nums",
-                            String(issue.severity) === "blocking"
-                              ? "text-rose-600 dark:text-rose-300"
-                              : "text-amber-600 dark:text-amber-300",
-                          )}
-                        >
-                          {Number(issue.employee_count || 1)} {thai ? "คน" : ""}
-                        </p>
-                        <p className="mt-0.5 text-xs font-semibold tabular-nums">
-                          {money(issue.exposure)} THB
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-emerald-600">
-                  {thai ? "ไม่พบรายการที่ต้องแก้ไข" : "No action items found"}
-                </p>
-              )}
-            </section>
-            <section className="min-w-0 pt-4 lg:pl-5 lg:pt-0">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold">
-                  {thai ? "แหล่งข้อมูลความพร้อม" : "Source readiness"}
-                </h2>
-                <button
-                  type="button"
-                  onClick={onResolve}
-                  className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
-                >
-                  {thai ? "ดูรายละเอียดแหล่งข้อมูล" : "View source details"}
-                </button>
-              </div>
-              <div className="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
-                {sourceRows.map(([label, value, status]) => {
-                  const ready = Number(value || 0);
-                  return (
-                    <div
-                      key={String(label)}
-                      className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 text-[13px] leading-4"
-                    >
-                      <span className="truncate font-medium">
-                        {String(label)}
-                      </span>
-                      <span
-                        className={cn(
-                          "font-semibold",
-                          ready >= 100
-                            ? "text-emerald-600 dark:text-emerald-300"
-                            : "text-amber-600 dark:text-amber-300",
-                        )}
-                      >
-                        {String(
-                          status ||
-                            (ready >= 100
-                              ? thai
-                                ? "พร้อม"
-                                : "Ready"
-                              : thai
-                                ? "มีประเด็น"
-                                : "Review"),
-                        )}
-                      </span>
-                      <strong
-                        className={cn(
-                          "w-10 text-right tabular-nums",
-                          ready >= 100
-                            ? "text-emerald-600 dark:text-emerald-300"
-                            : "text-amber-600 dark:text-amber-300",
-                        )}
-                      >
-                        {ready}%
-                      </strong>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-
-          <section className="mt-4 border-t border-slate-200 pt-4 ">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold">
-                {thai
-                  ? "ประวัติการรันบัญชีเงินเดือนล่าสุด"
-                  : "Recent payroll runs"}
-              </h2>
-              <button
-                type="button"
-                onClick={onResolve}
-                className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
-              >
-                {thai ? "ดูประวัติทั้งหมด" : "View history"}{" "}
-                <ChevronRight className="ml-1 inline h-3.5 w-3.5" />
-              </button>
-            </div>
-            {data.records.length ? (
-              <div className="mt-2 overflow-x-auto">
-                <table className="w-full min-w-[700px] text-left text-[13px] leading-4">
-                  <thead className="bg-muted/40 text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">
-                        {thai ? "งวดเงินเดือน" : "Period"}
-                      </th>
-                      <th className="px-3 py-2 font-medium">
-                        {thai ? "วันที่จ่าย" : "Pay date"}
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        {thai ? "พนักงาน" : "Employees"}
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        {thai ? "จ่ายสุทธิ (THB)" : "Net pay (THB)"}
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">MoM</th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        {thai ? "สถานะ" : "Status"}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.records.slice(0, 5).map((row, index) => (
-                      <tr
-                        key={String(row.id || index)}
-                        className="border-b border-border"
-                      >
-                        <td className="px-3 py-2 font-semibold">
-                          {String(row.period_name)}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {String(row.pay_date_label || date(row.pay_date))}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {Number(row.employee_count || 0)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums">
-                          {money(row.net_total)}
-                        </td>
-                        <td
-                          className={cn(
-                            "px-3 py-2 text-right font-semibold tabular-nums",
-                            Number(row.variance_pct || 0) >= 0
-                              ? "text-emerald-600 dark:text-emerald-300"
-                              : "text-rose-600 dark:text-rose-300",
-                          )}
-                        >
-                          {Number(row.variance_pct || 0) >= 0 ? "+" : ""}
-                          {Number(row.variance_pct || 0).toFixed(2)}%
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <PayrollStatus value={row.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <PayrollEmpty
-                title={
-                  thai ? "ยังไม่มีการรันบัญชีเงินเดือน" : "No payroll runs yet"
-                }
-                description={
-                  thai
-                    ? "สร้างรอบแรกเมื่อข้อมูลพร้อม"
-                    : "Create the first run when payroll data is ready."
-                }
-              />
-            )}
-          </section>
-        </div>
+   <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
+    <aside className="border border-border bg-card px-4 py-4 ">
+     <h2 className="text-sm font-bold">
+      {thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
+     </h2>
+     <div className="mt-4 grid grid-cols-[112px_minmax(0,1fr)] items-center gap-4">
+      <div
+       className={cn(
+        "flex h-28 w-28 flex-col items-center justify-center rounded-full border-[9px] text-center",
+        readiness === 100
+         ? "border-emerald-400/80 bg-emerald-50 dark:bg-emerald-950/20"
+         : "border-amber-400/80 bg-amber-50 dark:bg-amber-950/20",
+       )}
+       role="progressbar"
+       aria-label={thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
+       aria-valuemin={0}
+       aria-valuemax={100}
+       aria-valuenow={readiness}
+      >
+       <strong className="text-3xl font-bold tracking-[-0.04em] tabular-nums">
+        {readiness}%
+       </strong>
+       <span className="mt-1 text-[10px] font-medium text-muted-foreground">
+        {readiness === 100
+         ? thai
+          ? "ตั้งค่าพร้อมแล้ว"
+          : "setup complete"
+         : thai
+          ? "ยังต้องดำเนินการ"
+          : "action required"}
+       </span>
       </div>
+      <dl className="space-y-3 text-[13px] leading-4">
+       <div>
+        <dt className="text-muted-foreground">
+         {thai ? "ตัดรอบล่าสุด" : "Last cutoff"}
+        </dt>
+        <dd className="mt-0.5 font-semibold">
+         {String(summary.cutoffLabel || "-")}
+        </dd>
+       </div>
+       <div>
+        <dt className="text-muted-foreground">
+         {thai ? "พนักงานในรอบนี้" : "Employees in scope"}
+        </dt>
+        <dd className="mt-0.5 font-semibold tabular-nums">
+         {employees.toLocaleString()} {thai ? "คน" : ""}
+        </dd>
+       </div>
+       <div>
+        <dt className="text-muted-foreground">
+         {thai ? "วันจ่ายเงินเดือน" : "Pay date"}
+        </dt>
+        <dd className="mt-0.5 font-semibold">
+         {String(summary.payDateLabel || "-")}
+        </dd>
+       </div>
+      </dl>
+     </div>
+
+     <div className="mt-5 border-t border-border pt-4 ">
+      <p className="text-xs text-muted-foreground">{reviewerTitle}</p>
+      <div className="mt-2 flex items-center gap-3">
+       <span
+        className={cn(
+         "flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white",
+         reviewerStyle.initialsClass,
+        )}
+       >
+        {initialsFromName(reviewerName)}
+       </span>
+       <div>
+        <p className="text-sm font-semibold">{reviewerName}</p>
+        <p className="text-xs text-muted-foreground">
+         {thai ? "หน้าที่: " : "Role: "}
+         {String(
+          summary.reviewOwnerRole ||
+           reviewerRoleLabel(activeReviewer?.role, thai) ||
+           "Payroll owner",
+         )}
+        </p>
+       </div>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+       {thai ? "อัปเดตล่าสุด" : "Last reviewed"}
+      </p>
+      <p className="mt-0.5 text-xs font-medium">
+       {String(
+        summary.reviewedAtLabel ||
+         (thai ? "ยังไม่ตรวจสอบล่าสุด" : "Not reviewed yet"),
+       )}
+      </p>
+      <p
+       className={cn(
+        "mt-2 flex items-center gap-1.5 text-xs font-semibold",
+        readiness === 100
+         ? "text-emerald-600 dark:text-emerald-300"
+         : "text-amber-600 dark:text-amber-300",
+       )}
+      >
+       {readiness === 100 ? (
+        <Check className="h-3.5 w-3.5" />
+       ) : (
+        <AlertCircle className="h-3.5 w-3.5" />
+       )}
+       {readiness === 100
+        ? thai
+         ? "พร้อมตรวจสอบ"
+         : "Ready for review"
+        : thai
+         ? `ตั้งค่าเสร็จ ${readiness}%`
+         : `${readiness}% setup complete`}
+      </p>
+     </div>
+
+     <Button
+      onClick={onResolve}
+      disabled={blockers === 0}
+      className="mt-4 min-h-11 w-full justify-between"
+     >
+      <span className="flex items-center gap-2">
+       <AlertCircle className="h-4 w-4" />
+       {blockers
+        ? thai
+         ? `แก้ไข ${blockers} รายการที่เป็นการบล็อก`
+         : `Resolve ${blockers} blocking items`
+        : thai
+         ? "ไม่มีรายการที่บล็อก"
+         : "No blocking items"}
+      </span>
+      <ChevronRight className="h-4 w-4" />
+     </Button>
+
+     <div className="mt-4 border-t border-border pt-4 ">
+      <h3 className="text-xs font-bold">
+       {thai ? "ความคืบหน้ารอบบัญชี" : "Payroll progress"}
+      </h3>
+      <ol className="mt-3 space-y-0">
+       {steps.map((step, index) => {
+        const state = overviewStepState[index];
+        return (
+         <li
+          key={step}
+          className="relative flex min-h-10 items-center gap-3 pb-2 last:pb-0"
+         >
+          {index < steps.length - 1 && (
+           <span
+            aria-hidden="true"
+            className={cn(
+             "absolute left-[13px] top-7 h-6 w-px",
+             state.completed ? "bg-emerald-400" : "bg-muted-foreground/50",
+            )}
+           />
+          )}
+          <span
+           className={cn(
+            "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
+            state.completed
+             ? "bg-emerald-500"
+             : state.active
+              ? "bg-blue-600 ring-4 ring-blue-500/15"
+              : "bg-muted-foreground",
+           )}
+          >
+           {state.completed ? (
+            <Check className="h-3 w-3" />
+           ) : (
+            index + 1
+           )}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-4">
+           {step}
+          </span>
+          <span
+           className={cn(
+            "text-xs font-semibold",
+            state.completed
+             ? "text-emerald-600 dark:text-emerald-300"
+             : state.active
+              ? "text-blue-600 dark:text-blue-300"
+              : "text-muted-foreground",
+           )}
+          >
+           {state.label === "done"
+            ? thai
+             ? "เสร็จสิ้น"
+             : "Done"
+            : state.active
+             ? thai
+              ? "กำลังดำเนินการ"
+              : "In progress"
+             : thai
+              ? "รอเริ่ม"
+              : "Waiting"}
+          </span>
+         </li>
+        );
+       })}
+      </ol>
+     </div>
+    </aside>
+
+    <div className="min-w-0 border border-border bg-card px-5 py-4 ">
+     <section>
+      <div className="flex items-center justify-between gap-4">
+       <h2 className="text-base font-bold">
+        {thai
+         ? `บัญชีควบคุมทางการเงิน (${ledgerCurrentPeriod})`
+         : `Financial control ledger (${ledgerCurrentPeriod})`}
+       </h2>
+       <button
+        type="button"
+        onClick={onReports}
+        className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
+       >
+        {thai ? "ดูรายงานฉบับเต็ม" : "View full report"}{" "}
+        <ChevronRight className="ml-1 inline h-3.5 w-3.5" />
+       </button>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+       <table className="w-full min-w-[760px] text-left text-[13px] leading-4">
+        <thead className="bg-muted/40 text-xs text-muted-foreground">
+         <tr>
+          <th className="px-3 py-2 font-medium">
+           {thai ? "รายการทางการเงิน" : "Financial item"}
+          </th>
+          <th className="px-3 py-2 text-right font-medium">
+           {ledgerCurrentPeriod} (THB)
+          </th>
+          <th className="px-3 py-2 text-right font-medium">
+           {ledgerPreviousPeriod} (THB)
+          </th>
+          <th className="px-3 py-2 text-right font-medium">
+           {thai ? "เปลี่ยนแปลง (THB)" : "Change (THB)"}
+          </th>
+          <th className="px-3 py-2 text-right font-medium">MoM</th>
+         </tr>
+        </thead>
+        <tbody>
+         {financialRows.map((row) => {
+          const change =
+           Number(row.current || 0) - Number(row.previous || 0);
+          const delta = percent(row.current, row.previous);
+          return (
+           <tr
+            key={row.label}
+            className={cn(
+             "border-b border-border",
+             row.emphasis &&
+              "border-t-2 border-t-border font-bold",
+            )}
+           >
+            <td className="px-3 py-2.5">{row.label}</td>
+            <td className="px-3 py-2.5 text-right tabular-nums">
+             {money(row.current)}
+            </td>
+            <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
+             {money(row.previous)}
+            </td>
+            <td className="px-3 py-2.5 text-right tabular-nums">
+             {change >= 0 ? "+" : ""}
+             {money(change)}
+            </td>
+            <td
+             className={cn(
+              "px-3 py-2.5 text-right font-semibold tabular-nums",
+              delta >= 0
+               ? "text-emerald-600 dark:text-emerald-300"
+               : "text-rose-600 dark:text-rose-300",
+             )}
+            >
+             {delta >= 0 ? "+" : ""}
+             {delta.toFixed(2)}%
+            </td>
+           </tr>
+          );
+         })}
+        </tbody>
+       </table>
+      </div>
+     </section>
+
+     <div className="mt-4 grid border-t border-border pt-4 lg:grid-cols-2 lg:divide-x lg:divide-border">
+      <section className="min-w-0 lg:pr-5">
+       <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold">
+         {thai
+          ? "รายการที่ต้องดำเนินการ (จัดลำดับความสำคัญ)"
+          : "Prioritized actions"}
+        </h2>
+        <button
+         type="button"
+         onClick={onResolve}
+         className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
+        >
+         {thai ? "ดูทั้งหมด" : "View all"}
+        </button>
+       </div>
+       {data.issues.length ? (
+        <div className="mt-2 divide-y divide-border">
+         {data.issues.slice(0, 3).map((issue, index) => (
+          <div
+           key={`${issue.employee_id || "issue"}-${index}`}
+           className={cn(
+            "grid grid-cols-[18px_minmax(0,1fr)_auto] gap-2 border-l-2 py-2 pl-2",
+            String(issue.severity) === "blocking"
+             ? "border-l-rose-500"
+             : "border-l-amber-500",
+           )}
+          >
+           <AlertCircle
+            className={cn(
+             "mt-0.5 h-4 w-4",
+             String(issue.severity) === "blocking"
+              ? "text-rose-500"
+              : "text-amber-500",
+            )}
+           />
+           <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold leading-4">
+             {String(issue.reason || issue.employee_name)}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+             {String(
+              issue.required_action || issue.source_module || "",
+             )}
+            </p>
+           </div>
+           <div className="text-right">
+            <p
+             className={cn(
+              "text-[13px] font-bold leading-4 tabular-nums",
+              String(issue.severity) === "blocking"
+               ? "text-rose-600 dark:text-rose-300"
+               : "text-amber-600 dark:text-amber-300",
+             )}
+            >
+             {Number(issue.employee_count || 1)} {thai ? "คน" : ""}
+            </p>
+            <p className="mt-0.5 text-xs font-semibold tabular-nums">
+             {money(issue.exposure)} THB
+            </p>
+           </div>
+          </div>
+         ))}
+        </div>
+       ) : (
+        <p className="mt-4 text-sm text-emerald-600">
+         {thai ? "ไม่พบรายการที่ต้องแก้ไข" : "No action items found"}
+        </p>
+       )}
+      </section>
+      <section className="min-w-0 pt-4 lg:pl-5 lg:pt-0">
+       <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold">
+         {thai ? "แหล่งข้อมูลความพร้อม" : "Source readiness"}
+        </h2>
+        <button
+         type="button"
+         onClick={onResolve}
+         className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
+        >
+         {thai ? "ดูรายละเอียดแหล่งข้อมูล" : "View source details"}
+        </button>
+       </div>
+       <div className="mt-2 divide-y divide-border">
+        {sourceRows.map(([label, value, status]) => {
+         const ready = Number(value || 0);
+         return (
+          <div
+           key={String(label)}
+           className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 text-[13px] leading-4"
+          >
+           <span className="truncate font-medium">
+            {String(label)}
+           </span>
+           <span
+            className={cn(
+             "font-semibold",
+             ready >= 100
+              ? "text-emerald-600 dark:text-emerald-300"
+              : "text-amber-600 dark:text-amber-300",
+            )}
+           >
+            {String(
+             status ||
+              (ready >= 100
+               ? thai
+                ? "พร้อม"
+                : "Ready"
+               : thai
+                ? "มีประเด็น"
+                : "Review"),
+            )}
+           </span>
+           <strong
+            className={cn(
+             "w-10 text-right tabular-nums",
+             ready >= 100
+              ? "text-emerald-600 dark:text-emerald-300"
+              : "text-amber-600 dark:text-amber-300",
+            )}
+           >
+            {ready}%
+           </strong>
+          </div>
+         );
+        })}
+       </div>
+      </section>
+     </div>
+
+     <section className="mt-4 border-t border-border pt-4 ">
+      <div className="flex items-center justify-between">
+       <h2 className="text-sm font-bold">
+        {thai
+         ? "ประวัติการรันบัญชีเงินเดือนล่าสุด"
+         : "Recent payroll runs"}
+       </h2>
+       <button
+        type="button"
+        onClick={onResolve}
+        className="min-h-9 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-300"
+       >
+        {thai ? "ดูประวัติทั้งหมด" : "View history"}{" "}
+        <ChevronRight className="ml-1 inline h-3.5 w-3.5" />
+       </button>
+      </div>
+      {data.records.length ? (
+       <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[700px] text-left text-[13px] leading-4">
+         <thead className="bg-muted/40 text-xs text-muted-foreground">
+          <tr>
+           <th className="px-3 py-2 font-medium">
+            {thai ? "งวดเงินเดือน" : "Period"}
+           </th>
+           <th className="px-3 py-2 font-medium">
+            {thai ? "วันที่จ่าย" : "Pay date"}
+           </th>
+           <th className="px-3 py-2 text-right font-medium">
+            {thai ? "พนักงาน" : "Employees"}
+           </th>
+           <th className="px-3 py-2 text-right font-medium">
+            {thai ? "จ่ายสุทธิ (THB)" : "Net pay (THB)"}
+           </th>
+           <th className="px-3 py-2 text-right font-medium">MoM</th>
+           <th className="px-3 py-2 text-right font-medium">
+            {thai ? "สถานะ" : "Status"}
+           </th>
+          </tr>
+         </thead>
+         <tbody>
+          {data.records.slice(0, 5).map((row, index) => (
+           <tr
+            key={String(row.id || index)}
+            className="border-b border-border"
+           >
+            <td className="px-3 py-2 font-semibold">
+             {String(row.period_name)}
+            </td>
+            <td className="px-3 py-2 text-muted-foreground">
+             {String(row.pay_date_label || date(row.pay_date))}
+            </td>
+            <td className="px-3 py-2 text-right tabular-nums">
+             {Number(row.employee_count || 0)}
+            </td>
+            <td className="px-3 py-2 text-right font-semibold tabular-nums">
+             {money(row.net_total)}
+            </td>
+            <td
+             className={cn(
+              "px-3 py-2 text-right font-semibold tabular-nums",
+              Number(row.variance_pct || 0) >= 0
+               ? "text-emerald-600 dark:text-emerald-300"
+               : "text-rose-600 dark:text-rose-300",
+             )}
+            >
+             {Number(row.variance_pct || 0) >= 0 ? "+" : ""}
+             {Number(row.variance_pct || 0).toFixed(2)}%
+            </td>
+            <td className="px-3 py-2 text-right">
+             <PayrollStatus value={row.status} />
+            </td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      ) : (
+       <PayrollEmpty
+        title={
+         thai ? "ยังไม่มีการรันบัญชีเงินเดือน" : "No payroll runs yet"
+        }
+        description={
+         thai
+          ? "สร้างรอบแรกเมื่อข้อมูลพร้อม"
+          : "Create the first run when payroll data is ready."
+        }
+       />
+      )}
+     </section>
     </div>
-  );
+   </div>
+  </div>
+ );
 }
 
 function RunTable({

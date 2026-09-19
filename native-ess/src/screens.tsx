@@ -499,6 +499,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   const [chooserOpen, setChooserOpen] = useState(false)
   const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+  const correctionVisible = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
   const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
   const supportRequest = supportRequestId ? data.supportRequests.find(item => item.id === supportRequestId) : undefined
 
@@ -545,8 +546,14 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
     </View>
 
     <AppText style={s.section}>Recent leave requests</AppText>
-    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No requests yet" subtitle="Create a request when you need leave, an attendance correction or HR support." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
+    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No leave requests yet" subtitle="Submitted leave requests and their latest status will appear here." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
     <PaginationFooter visible={visible} total={data.leaveRequests.length} />
+
+    <AppText style={s.section}>Attendance corrections</AppText>
+    {data.attendanceCorrections.length === 0
+      ? <EmptyState icon="time-outline" title="No attendance corrections yet" subtitle="Corrections you submit will remain visible here while HR reviews them." />
+      : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} />)}
+    <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} />
 
     <AppText style={s.section}>Recent HR requests</AppText>
     {data.supportRequests.length === 0
@@ -773,6 +780,25 @@ function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveReq
   const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
   const canCancel = ['pending', 'submitted', 'pending_approval', 'approved'].includes(normalizeStatus(request.status))
   return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
+}
+
+function AttendanceCorrectionCard({ request }: { request: EssBootstrap['attendanceCorrections'][number] }) {
+  const requested = [
+    request.requestedCheckIn ? `In ${formatDateTime(request.requestedCheckIn)}` : null,
+    request.requestedCheckOut ? `Out ${formatDateTime(request.requestedCheckOut)}` : null,
+  ].filter(Boolean).join(' · ')
+  return <Card>
+    <View style={s.between}>
+      <View style={s.flexOne}>
+        <AppText style={s.cardTitle}>{request.workDate || 'Attendance correction'}</AppText>
+        <Muted>{requested || 'Requested time correction'}</Muted>
+      </View>
+      <StatusPill value={request.status} />
+    </View>
+    {request.reason ? <Muted>Reason · {request.reason}</Muted> : null}
+    {request.reviewerComment ? <View style={s.inlineNotice}><Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} /><Muted style={s.flexOne}>Reviewer · {request.reviewerComment}</Muted></View> : null}
+    <Muted>Submitted {formatDateTime(request.submittedAt)}</Muted>
+  </Card>
 }
 
 function SupportRequestCard({ request, onPress }: { request: EssBootstrap['supportRequests'][number]; onPress?: () => void }) {

@@ -28,7 +28,7 @@ import { colors, controls, radii, spacing, typography } from './theme'
 import { appBuildLabel } from './runtime'
 
 type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
-type RequestKind = 'leave' | 'attendance' | 'general' | 'bank-tax' | 'emergency'
+type RequestKind = 'leave' | 'attendance' | 'general'
 export type AccountSection = 'menu' | 'profile' | 'bank-tax' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
 
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
@@ -490,8 +490,6 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
   { id: 'leave', title: 'Leave', description: 'Annual, sick or other leave', icon: 'calendar-outline' },
   { id: 'attendance', title: 'Attendance correction', description: 'Correct missing or incorrect time', icon: 'time-outline' },
   { id: 'general', title: 'HR request', description: 'Payroll, benefits, policy or general support', icon: 'chatbubble-ellipses-outline' },
-  { id: 'bank-tax', title: 'Bank & tax', description: 'Update payroll payment or tax details', icon: 'card-outline' },
-  { id: 'emergency', title: 'Emergency contact', description: 'Add a contact for emergencies', icon: 'people-outline' },
 ]
 
 export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, openNewRequest = false, onNewRequestOpened }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void; openNewRequest?: boolean; onNewRequestOpened?: () => void }) {
@@ -574,8 +572,6 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
 function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
   if (kind === 'leave') return <LeaveRequestForm data={data} reload={reload} onDone={onDone} />
   if (kind === 'attendance') return <AttendanceCorrectionForm data={data} reload={reload} onDone={onDone} />
-  if (kind === 'bank-tax') return <BankTaxRequestForm reload={reload} onDone={onDone} />
-  if (kind === 'emergency') return <EmergencyContactForm reload={reload} onDone={onDone} />
   return <GeneralRequestForm reload={reload} onDone={onDone} />
 }
 

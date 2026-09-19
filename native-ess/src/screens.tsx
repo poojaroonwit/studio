@@ -601,18 +601,19 @@ function attendanceTimestamp(date: string, value: Date | null, dayOffset = 0) {
 }
 
 function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
-  const [policyId, setPolicyId] = useState(data.leavePolicies[0]?.id || '')
   const [start, setStart] = useState(new Date())
   const [end, setEnd] = useState(new Date())
+  const availablePolicies = data.leavePolicies.filter(item => item.year === start.getFullYear())
+  const [policyId, setPolicyId] = useState(availablePolicies[0]?.id || '')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
-  const policy = data.leavePolicies.find(item => item.id === policyId)
+  const policy = availablePolicies.find(item => item.id === policyId)
 
   useEffect(() => {
-    if (policyId && data.leavePolicies.some(item => item.id === policyId)) return
-    setPolicyId(data.leavePolicies[0]?.id || '')
-  }, [data.leavePolicies, policyId])
+    if (policyId && availablePolicies.some(item => item.id === policyId)) return
+    setPolicyId(availablePolicies[0]?.id || '')
+  }, [availablePolicies, policyId])
 
   const submit = async () => {
     if (!policyId) return Alert.alert('Leave request', 'No leave policy is currently available for your account.')
@@ -630,8 +631,8 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
     }
   }
 
-  if (data.leavePolicies.length === 0) {
-    return <><AppText style={s.pageTitle}>Leave request</AppText><EmptyState icon="calendar-outline" title="No leave policy available" subtitle="Your assigned leave policies and balances must be published before you can submit leave." /></>
+  if (availablePolicies.length === 0) {
+    return <><AppText style={s.pageTitle}>Leave request</AppText><EmptyState icon="calendar-outline" title="No leave policy available" subtitle={`No assigned leave balance is published for ${start.getFullYear()}.`} /></>
   }
 
   return <><AppText style={s.pageTitle}>Leave request</AppText><Card>
@@ -641,7 +642,7 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
     <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" />
     <Button title="Submit request" busy={busy} disabled={!policyId} onPress={() => void submit()} />
   </Card><BottomDrawer visible={policyOpen} title="Leave policy" subtitle="Only policies assigned to you are shown." onClose={() => setPolicyOpen(false)}>
-    {data.leavePolicies.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.balance.toFixed(1)} days available`} selected={policyId === item.id} onPress={() => { setPolicyId(item.id); setPolicyOpen(false) }} />)}
+    {availablePolicies.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.balance.toFixed(1)} days available · ${item.year}`} selected={policyId === item.id} onPress={() => { setPolicyId(item.id); setPolicyOpen(false) }} />)}
   </BottomDrawer></>
 }
 

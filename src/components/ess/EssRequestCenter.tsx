@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CalendarDays, Clock3, FileClock, Pencil, ReceiptText, RefreshCw, RotateCcw, Send, TimerReset, Undo2 } from 'lucide-react';
+import { CalendarDays, ChevronRight, Clock3, FileClock, Pencil, ReceiptText, RefreshCw, RotateCcw, Send, TimerReset, Undo2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { AppPage, AppPageContainer, AppPageIntro } from '@/components/layout/AppPage';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -156,6 +157,7 @@ export function EssRequestCenter() {
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState('open');
   const [editing, setEditing] = React.useState<EditableDraft | null>(null);
+  const [selectedRequest, setSelectedRequest] = React.useState<EssRow | null>(null);
   const [confirming, setConfirming] = React.useState<{ request: EssRow; action: 'withdraw' | 'cancel' } | null>(null);
 
   const load = React.useCallback(async (background = false) => {
@@ -256,16 +258,19 @@ export function EssRequestCenter() {
   }
 
   return (
-    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7">
-      <div className="mx-auto max-w-[1440px] space-y-4">
-        <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee self-service</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">My requests</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Start the right employee request, then return here for profile and document approval history.</p>
-          </div>
-          <Button variant="outline" disabled={refreshing} onClick={() => void load(true)}><RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />Refresh history</Button>
-        </header>
+    <AppPage>
+      <AppPageContainer className="space-y-4 py-4">
+        <AppPageIntro
+          eyebrow="Employee self-service"
+          title="My requests"
+          description="Start the right employee request, then return here to track approvals, revisions, and completed history."
+          actions={(
+            <Button variant="outline" disabled={refreshing} onClick={() => void load(true)}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh history
+            </Button>
+          )}
+        />
 
         <section aria-labelledby="request-journeys-title">
           <div className="mb-2">
@@ -310,7 +315,20 @@ export function EssRequestCenter() {
               const actions = ownerActions(request);
               const editable = ['profile_change', 'document_request'].includes(String(request.request_type));
               const id = String(request.id);
-              return <article key={id} className="p-4 sm:p-5">
+              return <article
+                key={id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${stringValue(request.title, statusLabel(request.request_type))}`}
+                onClick={() => setSelectedRequest(request)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedRequest(request);
+                  }
+                }}
+                className="group cursor-pointer p-4 outline-none transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{stringValue(request.title, statusLabel(request.request_type))}</h2><StatusBadge status={request.status} /></div>
@@ -318,7 +336,7 @@ export function EssRequestCenter() {
                     {Boolean(request.reason) && <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{stringValue(request.reason)}</p>}
                     {String(request.status) === 'returned_for_revision' && <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">This request was returned. Revise the requested values before resubmitting if changes are required.</p>}
                   </div>
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <div className="flex flex-wrap gap-2 sm:justify-end" onClick={event => event.stopPropagation()}>
                     {actions.includes('revise') && editable && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => beginRevision(request)}><Pencil className="mr-1.5 h-4 w-4" />Revise</Button>}
                     {actions.includes('submit') && <Button size="sm" disabled={busyId === id} onClick={() => void act(request, 'submit')}><Send className="mr-1.5 h-4 w-4" />Submit</Button>}
                     {actions.includes('resubmit') && <Button size="sm" disabled={busyId === id} onClick={() => void act(request, 'resubmit')}><RotateCcw className="mr-1.5 h-4 w-4" />Resubmit</Button>}
@@ -326,12 +344,85 @@ export function EssRequestCenter() {
                     {actions.includes('cancel') && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => setConfirming({ request, action: 'cancel' })}>Cancel</Button>}
                   </div>
                 </div>
-                {activity.length > 0 && <details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-primary">Approval activity</summary><div className="mt-3 max-w-2xl"><ApprovalTimeline activities={activity} /></div></details>}
+                {activity.length > 0 && <details className="mt-3" onClick={event => event.stopPropagation()}><summary className="cursor-pointer text-xs font-semibold text-primary">Approval activity</summary><div className="mt-3 max-w-2xl"><ApprovalTimeline activities={activity} /></div></details>}
+                <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-primary opacity-80 transition-opacity group-hover:opacity-100">
+                  View request <ChevronRight className="h-3.5 w-3.5" />
+                </div>
               </article>;
             })}
           </section>
         )}
-      </div>
+      </AppPageContainer>
+
+      <Dialog open={Boolean(selectedRequest)} onOpenChange={open => { if (!open) setSelectedRequest(null); }}>
+        <DialogContent placement="right" className="sm:max-w-xl">
+          <div className="flex h-full min-h-0 flex-col">
+            <DialogHeader className="border-b border-border px-5 py-5 sm:px-6">
+              <div className="flex flex-wrap items-center gap-2 pr-10">
+                <DialogTitle>{selectedRequest ? stringValue(selectedRequest.title, statusLabel(selectedRequest.request_type)) : 'Request details'}</DialogTitle>
+                {selectedRequest ? <StatusBadge status={selectedRequest.status} /> : null}
+              </div>
+              {selectedRequest ? (
+                <DialogDescription>
+                  {stringValue(selectedRequest.request_id)} · {statusLabel(selectedRequest.request_type)} · {dateValue(selectedRequest.created_at)}
+                </DialogDescription>
+              ) : null}
+            </DialogHeader>
+            {selectedRequest ? (
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                {Boolean(selectedRequest.reason) ? (
+                  <section>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Reason</h3>
+                    <p className="mt-2 text-sm leading-6">{stringValue(selectedRequest.reason)}</p>
+                  </section>
+                ) : null}
+
+                {Object.keys(objectValue(selectedRequest.requested_values)).length > 0 ? (
+                  <section>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Requested changes</h3>
+                    <dl className="mt-2 divide-y divide-border rounded-2xl border border-border bg-card px-4">
+                      {Object.entries(objectValue(selectedRequest.requested_values)).map(([key, value]) => (
+                        <div key={key} className="grid gap-1 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-4">
+                          <dt className="text-xs font-medium text-muted-foreground">{fieldLabel(key)}</dt>
+                          <dd className="break-words text-sm font-medium">{typeof value === 'object' && value !== null ? JSON.stringify(value) : stringValue(value)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ) : null}
+
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Approval activity</h3>
+                  <div className="mt-3">
+                    {Array.isArray(selectedRequest.activity) && selectedRequest.activity.length > 0
+                      ? <ApprovalTimeline activities={selectedRequest.activity as EssRow[]} />
+                      : <EmptyState title="No activity yet" description="Approval actions and comments will appear here." />}
+                  </div>
+                </section>
+              </div>
+            ) : null}
+            {selectedRequest && ownerActions(selectedRequest).length > 0 ? (
+              <DialogFooter className="border-t border-border px-5 py-4 sm:px-6">
+                {ownerActions(selectedRequest).includes('revise') && ['profile_change', 'document_request'].includes(String(selectedRequest.request_type)) ? (
+                  <Button variant="outline" onClick={() => { const request = selectedRequest; setSelectedRequest(null); beginRevision(request); }}>Revise</Button>
+                ) : null}
+                {ownerActions(selectedRequest).includes('submit') ? (
+                  <Button onClick={() => { const request = selectedRequest; setSelectedRequest(null); void act(request, 'submit'); }}>Submit</Button>
+                ) : null}
+                {ownerActions(selectedRequest).includes('resubmit') ? (
+                  <Button onClick={() => { const request = selectedRequest; setSelectedRequest(null); void act(request, 'resubmit'); }}>Resubmit</Button>
+                ) : null}
+                {ownerActions(selectedRequest).includes('withdraw') ? (
+                  <Button variant="outline" onClick={() => { const request = selectedRequest; setSelectedRequest(null); setConfirming({ request, action: 'withdraw' }); }}>Withdraw</Button>
+                ) : null}
+                {ownerActions(selectedRequest).includes('cancel') ? (
+                  <Button variant="destructive" onClick={() => { const request = selectedRequest; setSelectedRequest(null); setConfirming({ request, action: 'cancel' }); }}>Cancel request</Button>
+                ) : null}
+              </DialogFooter>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(editing)} onOpenChange={open => { if (!open) setEditing(null); }}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
@@ -377,7 +468,7 @@ export function EssRequestCenter() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </AppPage>
   );
 }
 

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { getPool } from '@/lib/db';
 import { cancelOwnLeaveRequest, createEssGroupedLeaveRequest } from '@/lib/hr/ess-service';
+import { acknowledgeOwnDocument } from '@/lib/hr/ess-action-service';
 
 export type MobileEssRequestIdentity = {
   userId: string;
@@ -119,4 +120,24 @@ export async function replyMobileSupportTicket(identity: MobileEssRequestIdentit
     [id, identity.employeeId],
   );
   return NextResponse.json({ success: true }, { status: 201 });
+}
+
+export async function acknowledgeMobileDocument(
+  identity: MobileEssRequestIdentity,
+  documentId: string,
+  request: { headers: Headers },
+) {
+  try {
+    const data = await acknowledgeOwnDocument({
+      userId: identity.userId,
+      email: identity.email,
+      documentId,
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+      userAgent: request.headers.get('user-agent'),
+    });
+    if (!data) return NextResponse.json({ error: 'Document not found or acknowledgment is not required' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return errorResponse(error, 'Unable to acknowledge document');
+  }
 }

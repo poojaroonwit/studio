@@ -1,3 +1,5 @@
+import type { EmployeeReadiness } from '@/lib/hr/employee-readiness';
+
 export type EssView =
   | 'profile'
   | 'leave'
@@ -35,6 +37,7 @@ export type EssEmployee = {
   location: string | null;
   profilePhotoUrl: string | null;
   profileCompletion: number;
+  readiness: EmployeeReadiness;
   profile: Record<string, unknown>;
   sensitive: Record<string, Record<string, unknown>>;
   fieldPermissions: Record<string, string>;

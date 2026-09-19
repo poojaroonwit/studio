@@ -416,7 +416,7 @@ const s = StyleSheet.create({
   authError: { color: colors.danger, textAlign: 'center', fontSize: typography.sm, lineHeight: 18 },
   pressed: { opacity: 0.66 },
 
-  header: { minHeight: 60, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.background },
+  header: { minHeight: 64, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.background },
   headerBrand: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerAction: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
   brand: { fontWeight: '600', fontSize: typography.md, lineHeight: 19, letterSpacing: -0.2 },
@@ -424,10 +424,10 @@ const s = StyleSheet.create({
   avatar: { backgroundColor: colors.surfaceStrong, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontWeight: '600', color: colors.text },
   body: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg },
-  contentFullPage: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
+  content: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xl },
+  contentFullPage: { paddingTop: spacing.sm, paddingBottom: spacing.xl },
 
-  tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', backgroundColor: colors.surface, paddingHorizontal: spacing.xs, paddingTop: 6, paddingBottom: spacing.xs, gap: 2 },
+  tabs: { minHeight: controls.nav, flexDirection: 'row', alignItems: 'stretch', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: spacing.xs, paddingTop: 6, paddingBottom: spacing.xs, gap: 2 },
   tab: { flex: 1, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: radii.sm },
   tabActive: { backgroundColor: colors.selected },
   tabPressed: { backgroundColor: colors.hover },

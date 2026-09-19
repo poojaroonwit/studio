@@ -2,9 +2,11 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle, Clock3, GraduationCap, Loader2, LockKeyhole, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, GraduationCap, LockKeyhole, RefreshCw } from 'lucide-react';
 
+import { AppPage, AppPageContainer, AppPageIntro } from '@/components/layout/AppPage';
 import { Button } from '@/components/ui/button';
+import { PageLoadingState } from '@/components/ui/PageLoadingState';
 import { Progress } from '@/components/ui/progress';
 import { StatusBadge } from './EssShared';
 
@@ -101,34 +103,34 @@ export function OnboardingView() {
     }
   }
 
-  if (loading) return <main className="grid min-h-[50vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading onboarding" /></main>;
+  if (loading) return <PageLoadingState className="min-h-[50vh]" message="Loading your onboarding journey…" />;
 
   return (
-    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 sm:px-5 lg:px-7">
-      <div className="mx-auto max-w-[1440px] space-y-4">
-        <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee self-service</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">My onboarding</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Complete the tasks you own and see what other teams are preparing for you.</p>
-          </div>
-          <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => void load(true)} aria-label="Refresh onboarding">
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </header>
+    <AppPage>
+      <AppPageContainer className="space-y-4 py-4">
+        <AppPageIntro
+          eyebrow="Employee self-service"
+          title="My onboarding"
+          description="Complete the tasks you own and see what HR, IT, and your manager are preparing for you."
+          actions={(
+            <Button variant="outline" size="icon" className="h-11 w-11 rounded-full" onClick={() => void load(true)} aria-label="Refresh onboarding">
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+        />
 
-        {message && <div role="status" className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">{message}</div>}
-        {error && <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
+        {message && <div role="status" className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">{message}</div>}
+        {error && <div role="alert" className="flex items-center justify-between gap-4 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
 
         {!journey ? (error ? null : (
-          <section className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <section className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
             <CheckCircle2 className="mx-auto h-9 w-9 text-muted-foreground" />
             <h2 className="mt-3 font-semibold">No onboarding journey assigned</h2>
             <p className="mt-1 text-sm text-muted-foreground">Your People team will assign onboarding here when needed.</p>
           </section>
         )) : (
           <>
-            <section className="rounded-lg border border-border bg-card p-5">
+            <section className="rounded-2xl border border-border bg-card p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">Your onboarding journey</h2><StatusBadge status={journey.status} /></div>
@@ -142,7 +144,7 @@ export function OnboardingView() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-border bg-card">
+            <section className="rounded-2xl border border-border bg-card">
               <div className="border-b border-border px-4 py-3"><h2 className="font-semibold">Onboarding checklist</h2><p className="mt-1 text-xs text-muted-foreground">Employee-owned tasks can be completed here. Tasks owned by IT, HR, or other teams are read-only.</p></div>
               <div className="divide-y divide-border">
                 {tasks.map(task => {
@@ -164,12 +166,12 @@ export function OnboardingView() {
             </section>
 
             <section className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-lg border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2"><GraduationCap className="h-5 w-5 text-primary" /><h2 className="font-semibold">Assigned learning</h2></div>
-                {outstandingLearning.length ? <div className="mt-3 space-y-3">{outstandingLearning.slice(0, 4).map(item => <div key={item.id} className="rounded-md border border-border p-3"><div className="flex items-center justify-between gap-3"><p className="font-medium">{item.courseTitle}</p><span className="text-xs text-muted-foreground">{item.progress}%</span></div><Progress value={item.progress} className="mt-2 h-1.5" />{item.dueDate && <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Due {new Date(item.dueDate).toLocaleDateString()}</p>}</div>)}</div> : <p className="mt-3 text-sm text-muted-foreground">No outstanding onboarding learning.</p>}
+                {outstandingLearning.length ? <div className="mt-3 space-y-3">{outstandingLearning.slice(0, 4).map(item => <div key={item.id} className="rounded-xl border border-border p-3"><div className="flex items-center justify-between gap-3"><p className="font-medium">{item.courseTitle}</p><span className="text-xs text-muted-foreground">{item.progress}%</span></div><Progress value={item.progress} className="mt-2 h-1.5" />{item.dueDate && <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Due {new Date(item.dueDate).toLocaleDateString()}</p>}</div>)}</div> : <p className="mt-3 text-sm text-muted-foreground">No outstanding onboarding learning.</p>}
                 <Button asChild variant="outline" className="mt-4 min-h-11"><Link href="/learning">Open My Learning</Link></Button>
               </div>
-              <div className="rounded-lg border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <h2 className="font-semibold">What happens next</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">Complete your employee-owned items. IT, your manager, and the People team complete their assigned steps separately. The onboarding case closes only after the workflow confirms all required owners are done.</p>
                 <p className="mt-3 text-sm font-medium">Your tasks: {employeeTasks.filter(task => String(task.status) === 'completed').length}/{employeeTasks.length} complete</p>
@@ -177,7 +179,7 @@ export function OnboardingView() {
             </section>
           </>
         )}
-      </div>
-    </main>
+      </AppPageContainer>
+    </AppPage>
   );
 }

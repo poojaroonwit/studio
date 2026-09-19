@@ -74,6 +74,15 @@ function formatDateTime(value?: string | null) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function normalizeStatus(value?: string | null) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function displayStatus(value?: string | null) {
+  const normalized = String(value || 'pending').trim().replace(/[_-]+/g, ' ').toLowerCase()
+  return normalized.replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
 function formatDate(value: Date) {
   const year = value.getFullYear()
   const month = String(value.getMonth() + 1).padStart(2, '0')
@@ -312,7 +321,7 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
   const recent = data.attendance.slice(0, 14)
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
   const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
-  const pending = data.leaveRequests.filter((item) => item.status === 'pending').length
+  const pending = data.leaveRequests.filter((item) => ['pending', 'submitted', 'pending_approval'].includes(normalizeStatus(item.status))).length
   const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
   const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
 
@@ -388,12 +397,12 @@ function AttendanceCard({ row, onCorrect }: { row: AttendanceRow; onCorrect?: ()
 }
 
 function StatusPill({ value }: { value: string }) {
-  const normalized = value.trim().toLowerCase()
+  const normalized = normalizeStatus(value)
   const success = ['approved', 'present', 'completed', 'complete', 'active', 'available', 'success'].includes(normalized)
   const warning = ['pending', 'pending_approval', 'submitted', 'processing', 'late', 'draft', 'waiting', 'scheduled', 'returned_for_revision', 'withdrawn'].includes(normalized)
   const danger = ['rejected', 'cancelled', 'canceled', 'absent', 'failed', 'declined'].includes(normalized)
   return <View style={[s.status, success && s.statusSuccess, warning && s.statusWarning, danger && s.statusDanger]}>
-    <AppText style={[s.statusText, success && s.statusTextSuccess, warning && s.statusTextWarning, danger && s.statusTextDanger]}>{value}</AppText>
+    <AppText style={[s.statusText, success && s.statusTextSuccess, warning && s.statusTextWarning, danger && s.statusTextDanger]}>{displayStatus(value)}</AppText>
   </View>
 }
 
@@ -633,7 +642,8 @@ function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { r
 function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
-  return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{['draft', 'pending'].includes(request.status) ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
+  const canCancel = ['draft', 'pending', 'submitted', 'pending_approval'].includes(normalizeStatus(request.status))
+  return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
 }
 
 function SupportRequestCard({ request }: { request: EssBootstrap['supportRequests'][number] }) {
@@ -724,7 +734,7 @@ function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promis
       setBusy(false)
     }
   }
-  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Messages create tracked HR support requests.</Muted><View style={s.chatArea}>{history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : history.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.description || item.subject}</AppText><Muted>{item.requestNumber} · {item.status.replace(/_/g, ' ')}</Muted></View>)}</View><Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card></>
+  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Messages create tracked HR support requests.</Muted><View style={s.chatArea}>{history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : history.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.description || item.subject}</AppText><Muted>{item.requestNumber} · {displayStatus(item.status)}</Muted></View>)}</View><Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card></>
 }
 
 function CalendarPage({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {

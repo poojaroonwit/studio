@@ -224,12 +224,12 @@ async function bootstrap(identity: EssIdentity) {
       [identity.employeeId],
     ),
     pool.query(
-      `SELECT p.id, p.name, p.leave_type, p.allow_half_day, p.allow_hourly, p.minimum_request_units,
+      `SELECT p.id, p.name, p.leave_type, p.allow_half_day, p.allow_hourly, p.minimum_request_units, b.year,
               (b.allocated + b.carry_forward + b.accrued - b.used - b.pending - b.reserved) AS balance
          FROM hr_leave_balances b
          JOIN hr_leave_policies p ON p.id = b.policy_id
         WHERE b.employee_id = $1
-          AND b.year = EXTRACT(YEAR FROM NOW())::int
+          AND b.year IN (EXTRACT(YEAR FROM NOW())::int, EXTRACT(YEAR FROM NOW())::int + 1)
           AND p.is_active = TRUE
           AND (p.effective_from IS NULL OR p.effective_from <= NOW())
           AND (p.effective_to IS NULL OR p.effective_to >= NOW())
@@ -317,6 +317,7 @@ async function bootstrap(identity: EssIdentity) {
       allowHalfDay: item.allow_half_day === true,
       allowHourly: item.allow_hourly === true,
       minimumRequestUnits: Number(item.minimum_request_units || 0.5),
+      year: Number(item.year || new Date().getFullYear()),
     })),
   };
 }
@@ -413,6 +414,7 @@ async function createLeave(identity: EssIdentity, body: Record<string, unknown>)
   const start = new Date(`${startDate}T00:00:00Z`);
   const end = new Date(`${endDate}T00:00:00Z`);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return jsonError('Invalid leave dates', 400);
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) return jsonError('Leave requests cannot span calendar years. Submit separate requests for each year.', 400);
   const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
 
   const policyResult = await getPool().query(
@@ -422,12 +424,12 @@ async function createLeave(identity: EssIdentity, body: Record<string, unknown>)
        JOIN hr_leave_balances b ON b.policy_id = p.id
       WHERE p.id = $1::uuid
         AND b.employee_id = $2::uuid
-        AND b.year = EXTRACT(YEAR FROM NOW())::int
+        AND b.year = EXTRACT(YEAR FROM $3::date)::int
         AND p.is_active = TRUE
         AND (p.effective_from IS NULL OR p.effective_from <= NOW())
         AND (p.effective_to IS NULL OR p.effective_to >= NOW())
       LIMIT 1`,
-    [policyId, identity.employeeId],
+    [policyId, identity.employeeId, startDate],
   );
   const policy = policyResult.rows[0] as DbRow | undefined;
   if (!policy) return jsonError('This leave policy is not available for your account', 400);

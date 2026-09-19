@@ -322,6 +322,8 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
   const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
   const pending = data.leaveRequests.filter((item) => ['pending', 'submitted', 'pending_approval'].includes(normalizeStatus(item.status))).length
+  const unread = Math.max(0, Number(data.employee.unreadNotifications || 0))
+  const needsAttention = pending + unread
   const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
 
   return <>
@@ -330,6 +332,23 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
 
     <AppText style={s.section}>Today</AppText>
     <AttendanceActionCard data={data} reload={reload} offline={offline} onViewAttendance={() => setTab('time')} />
+
+    {needsAttention > 0 ? <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${needsAttention} items need your attention`}
+      style={({ pressed }) => [s.attentionCard, pressed && s.controlPressed]}
+      onPress={() => pending > 0 ? setTab('requests') : setTab('account')}
+    >
+      <View style={s.attentionIcon}><Ionicons name="notifications-outline" size={20} color={colors.primary} /></View>
+      <View style={s.flexOne}>
+        <AppText style={s.cardTitle}>Needs your attention</AppText>
+        <Muted>{[
+          pending > 0 ? `${pending} request${pending === 1 ? '' : 's'} in progress` : null,
+          unread > 0 ? `${unread} unread notification${unread === 1 ? '' : 's'}` : null,
+        ].filter(Boolean).join(' · ')}</Muted>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+    </Pressable> : null}
 
     {data.announcements.length ? <>
       <AppText style={s.section}>Updates</AppText>
@@ -495,10 +514,14 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
 export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, openNewRequest = false, onNewRequestOpened }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void; openNewRequest?: boolean; onNewRequestOpened?: () => void }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
+  const [leaveRequestId, setLeaveRequestId] = useState<string | null>(null)
+  const [correctionRequestId, setCorrectionRequestId] = useState<string | null>(null)
   const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
   const correctionVisible = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
   const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
+  const leaveRequest = leaveRequestId ? data.leaveRequests.find(item => item.id === leaveRequestId) : undefined
+  const correctionRequest = correctionRequestId ? data.attendanceCorrections.find(item => item.id === correctionRequestId) : undefined
   const supportRequest = supportRequestId ? data.supportRequests.find(item => item.id === supportRequestId) : undefined
 
   useEffect(() => {
@@ -544,13 +567,13 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
     </View>
 
     <AppText style={s.section}>Recent leave requests</AppText>
-    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No leave requests yet" subtitle="Submitted leave requests and their latest status will appear here." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} reload={reload} />)}
+    {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No leave requests yet" subtitle="Submitted leave requests and their latest status will appear here." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} onPress={() => setLeaveRequestId(request.id)} />)}
     <PaginationFooter visible={visible} total={data.leaveRequests.length} />
 
     <AppText style={s.section}>Attendance corrections</AppText>
     {data.attendanceCorrections.length === 0
       ? <EmptyState icon="time-outline" title="No attendance corrections yet" subtitle="Corrections you submit will remain visible here while HR reviews them." />
-      : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} />)}
+      : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} onPress={() => setCorrectionRequestId(request.id)} />)}
     <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} />
 
     <AppText style={s.section}>Recent HR requests</AppText>
@@ -558,6 +581,14 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
       ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR requests yet" subtitle="Requests you submit to HR will remain visible here with their latest status." />
       : data.supportRequests.slice(0, supportVisible).map((request) => <SupportRequestCard key={request.id} request={request} onPress={() => setSupportRequestId(request.id)} />)}
     <PaginationFooter visible={supportVisible} total={data.supportRequests.length} />
+
+    <FullScreenTaskModal visible={Boolean(leaveRequest)} contextLabel="Leave request" onClose={() => setLeaveRequestId(null)}>
+      {leaveRequest ? <LeaveRequestDetail request={leaveRequest} reload={reload} onClose={() => setLeaveRequestId(null)} /> : null}
+    </FullScreenTaskModal>
+
+    <FullScreenTaskModal visible={Boolean(correctionRequest)} contextLabel="Attendance correction" onClose={() => setCorrectionRequestId(null)}>
+      {correctionRequest ? <AttendanceCorrectionDetail request={correctionRequest} /> : null}
+    </FullScreenTaskModal>
 
     <FullScreenTaskModal visible={Boolean(supportRequest)} contextLabel="HR request" onClose={() => setSupportRequestId(null)}>
       {supportRequest ? <SupportRequestDetail request={supportRequest} reload={reload} /> : null}
@@ -771,30 +802,86 @@ function EmergencyContactForm({ reload, onDone, contact, showTitle = true }: { r
   return <>{showTitle ? <AppText style={s.pageTitle}>{contact ? 'Edit emergency contact' : 'Emergency contact'}</AppText> : null}<Card><Field label="Name" value={name} onChangeText={setName} /><Field label="Relationship" value={relationship} onChangeText={setRelationship} /><Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><View style={s.switchRow}><View style={s.flexOne}><AppText>Primary contact</AppText><Muted>Use as the first person to contact.</Muted></View><Switch value={primary} onValueChange={setPrimary} trackColor={{ false: colors.surfaceStrong, true: colors.primary }} thumbColor={colors.surface} /></View><Button title={contact ? 'Save contact' : 'Add contact'} busy={busy} onPress={() => void submit()} /></Card></>
 }
 
-function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void> }) {
-  const [busy, setBusy] = useState(false)
-  const cancel = () => Alert.alert('Cancel leave request', 'Are you sure?', [{ text: 'Keep', style: 'cancel' }, { text: 'Cancel request', style: 'destructive', onPress: () => void (async () => { setBusy(true); try { await essApi.cancelLeave(request.id); await reload() } catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel') } finally { setBusy(false) } })() }])
-  const canCancel = ['pending', 'submitted', 'pending_approval', 'approved'].includes(normalizeStatus(request.status))
-  return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
+function LeaveRequestCard({ request, onPress }: { request: EssBootstrap['leaveRequests'][number]; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}>
+    <Card>
+      <View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{request.type}</AppText><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted></View><StatusPill value={request.status} /></View>
+      <View style={s.infoRow}><AppText style={s.linkText}>View request</AppText><Ionicons name="chevron-forward" size={16} color={colors.accent} /></View>
+    </Card>
+  </Pressable>
 }
 
-function AttendanceCorrectionCard({ request }: { request: EssBootstrap['attendanceCorrections'][number] }) {
+function LeaveRequestDetail({ request, reload, onClose }: { request: EssBootstrap['leaveRequests'][number]; reload: () => Promise<void>; onClose: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const canCancel = ['pending', 'submitted', 'pending_approval', 'approved'].includes(normalizeStatus(request.status))
+  const cancel = () => Alert.alert('Cancel leave request', 'This will stop the current request. Continue?', [
+    { text: 'Keep request', style: 'cancel' },
+    {
+      text: 'Cancel request',
+      style: 'destructive',
+      onPress: () => void (async () => {
+        setBusy(true)
+        try {
+          await essApi.cancelLeave(request.id)
+          await reload()
+          onClose()
+        } catch (error) {
+          Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to cancel')
+        } finally {
+          setBusy(false)
+        }
+      })(),
+    },
+  ])
+  return <>
+    <View style={s.between}><View style={s.flexOne}><AppText style={s.pageTitle}>{request.type}</AppText><Muted>{request.startDate} – {request.endDate}</Muted></View><StatusPill value={request.status} /></View>
+    <Card>
+      <DetailRow label="Duration" value={`${request.days} day(s)`} />
+      <DetailRow label="Start date" value={request.startDate} />
+      <DetailRow label="End date" value={request.endDate} />
+      <DetailRow label="Status" value={displayStatus(request.status)} last />
+    </Card>
+    {canCancel ? <Button title="Cancel request" secondary busy={busy} onPress={cancel} /> : null}
+  </>
+}
+
+function AttendanceCorrectionCard({ request, onPress }: { request: EssBootstrap['attendanceCorrections'][number]; onPress: () => void }) {
   const requested = [
     request.requestedCheckIn ? `In ${formatDateTime(request.requestedCheckIn)}` : null,
     request.requestedCheckOut ? `Out ${formatDateTime(request.requestedCheckOut)}` : null,
   ].filter(Boolean).join(' · ')
-  return <Card>
-    <View style={s.between}>
-      <View style={s.flexOne}>
-        <AppText style={s.cardTitle}>{request.workDate || 'Attendance correction'}</AppText>
-        <Muted>{requested || 'Requested time correction'}</Muted>
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}>
+    <Card>
+      <View style={s.between}>
+        <View style={s.flexOne}>
+          <AppText style={s.cardTitle}>{request.workDate || 'Attendance correction'}</AppText>
+          <Muted>{requested || 'Requested time correction'}</Muted>
+        </View>
+        <StatusPill value={request.status} />
       </View>
-      <StatusPill value={request.status} />
-    </View>
-    {request.reason ? <Muted>Reason · {request.reason}</Muted> : null}
-    {request.reviewerComment ? <View style={s.inlineNotice}><Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} /><Muted style={s.flexOne}>Reviewer · {request.reviewerComment}</Muted></View> : null}
-    <Muted>Submitted {formatDateTime(request.submittedAt)}</Muted>
-  </Card>
+      {request.reason ? <Muted numberOfLines={2}>Reason · {request.reason}</Muted> : null}
+      <View style={s.infoRow}><AppText style={s.linkText}>View request</AppText><Ionicons name="chevron-forward" size={16} color={colors.accent} /></View>
+    </Card>
+  </Pressable>
+}
+
+function AttendanceCorrectionDetail({ request }: { request: EssBootstrap['attendanceCorrections'][number] }) {
+  return <>
+    <View style={s.between}><View style={s.flexOne}><AppText style={s.pageTitle}>{request.workDate || 'Attendance correction'}</AppText><Muted>Submitted {formatDateTime(request.submittedAt)}</Muted></View><StatusPill value={request.status} /></View>
+    <Card>
+      <DetailRow label="Original clock in" value={formatDateTime(request.originalCheckIn)} />
+      <DetailRow label="Requested clock in" value={formatDateTime(request.requestedCheckIn)} />
+      <DetailRow label="Original clock out" value={formatDateTime(request.originalCheckOut)} />
+      <DetailRow label="Requested clock out" value={formatDateTime(request.requestedCheckOut)} />
+      <DetailRow label="Reason" value={request.reason || '—'} />
+      <DetailRow label="Reviewer comment" value={request.reviewerComment || '—'} />
+      <DetailRow label="Reviewed" value={formatDateTime(request.reviewedAt)} last />
+    </Card>
+  </>
+}
+
+function DetailRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  return <View style={[s.detailRow, last && s.detailRowLast]}><Muted style={s.detailLabel}>{label}</Muted><AppText style={s.detailValue}>{value}</AppText></View>
 }
 
 function SupportRequestCard({ request, onPress }: { request: EssBootstrap['supportRequests'][number]; onPress?: () => void }) {
@@ -1146,6 +1233,8 @@ const s = StyleSheet.create({
   buttonText: { color: colors.primaryText, fontSize: typography.base, lineHeight: 18, fontWeight: '600' },
   secondaryButtonText: { color: colors.text },
 
+  attentionCard: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.infoSurface, borderWidth: 1, borderColor: colors.infoBorder, borderRadius: radii.lg, padding: spacing.md, marginBottom: spacing.xs },
+  attentionIcon: { width: 42, height: 42, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
   announcementWrap: { gap: spacing.xs },
   announcementCard: { backgroundColor: colors.infoSurface },
 
@@ -1221,6 +1310,10 @@ const s = StyleSheet.create({
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
   linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },
   inlineCorrection: { minHeight: controls.touch, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'flex-start', marginTop: spacing.xxs },
+  detailRow: { minHeight: 52, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  detailRowLast: { borderBottomWidth: 0 },
+  detailLabel: { fontSize: typography.xs, lineHeight: 15, fontWeight: '600' },
+  detailValue: { marginTop: 3, fontSize: typography.base, lineHeight: 20, fontWeight: '500' },
   iconAction: { width: controls.touch, height: controls.touch, alignItems: 'center', justifyContent: 'center', borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   inlineActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 })

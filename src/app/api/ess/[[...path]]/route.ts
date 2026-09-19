@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
 import { getDownloadedStorageFile } from '@/app/api/download/download-route-storage';
 import { deleteMobileEmergencyContact, writeMobileEmergencyContact } from '@/lib/ess/mobile-emergency-contacts';
+import { cancelOwnLeaveRequest, createEssGroupedLeaveRequest } from '@/lib/hr/ess-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -300,7 +301,7 @@ async function bootstrap(identity: EssIdentity) {
       startDate: asIsoDate(item.start_date),
       endDate: asIsoDate(item.end_date),
       days: Number(item.days || 0),
-      status: ['draft', 'pending', 'approved', 'rejected', 'cancelled'].includes(String(item.status)) ? String(item.status) : 'pending',
+      status: String(item.status || 'pending'),
     })),
     documents: (documentResult.rows as DbRow[]).map(item => ({
       id: String(item.id),
@@ -408,61 +409,49 @@ async function createLeave(identity: EssIdentity, body: Record<string, unknown>)
   const startDate = stringValue(body.startDate, 10);
   const endDate = stringValue(body.endDate, 10);
   const reason = stringValue(body.reason, 1000);
+  const emergencyContact = stringValue(body.emergencyContact, 500);
+
   if (!policyId || !/^[0-9a-f-]{36}$/i.test(policyId) || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
     return jsonError('Choose an available leave policy and valid dates', 400);
   }
-  const start = new Date(`${startDate}T00:00:00Z`);
-  const end = new Date(`${endDate}T00:00:00Z`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return jsonError('Invalid leave dates', 400);
-  if (start.getUTCFullYear() !== end.getUTCFullYear()) return jsonError('Leave requests cannot span calendar years. Submit separate requests for each year.', 400);
-  const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  if (!emergencyContact) return jsonError('Choose an emergency contact before submitting leave', 400);
 
-  const policyResult = await getPool().query(
-    `SELECT p.id, p.name, p.leave_type, p.allow_negative_balance, p.negative_balance_limit,
-            (b.allocated + b.carry_forward + b.accrued - b.used - b.pending - b.reserved) AS balance
-       FROM hr_leave_policies p
-       JOIN hr_leave_balances b ON b.policy_id = p.id
-      WHERE p.id = $1::uuid
-        AND b.employee_id = $2::uuid
-        AND b.year = EXTRACT(YEAR FROM $3::date)::int
-        AND p.is_active = TRUE
-        AND (p.effective_from IS NULL OR p.effective_from <= NOW())
-        AND (p.effective_to IS NULL OR p.effective_to >= NOW())
-      LIMIT 1`,
-    [policyId, identity.employeeId, startDate],
-  );
-  const policy = policyResult.rows[0] as DbRow | undefined;
-  if (!policy) return jsonError('This leave policy is not available for your account', 400);
-
-  const available = Number(policy.balance || 0);
-  const allowNegative = policy.allow_negative_balance === true;
-  const negativeLimit = Math.max(0, Number(policy.negative_balance_limit || 0));
-  if (!allowNegative && days > available) return jsonError('This request exceeds your available leave balance', 400);
-  if (allowNegative && available - days < -negativeLimit) return jsonError('This request exceeds the allowed negative leave balance', 400);
-
-  const type = String(policy.name || policy.leave_type || 'Leave');
-  const result = await getPool().query(
-    `INSERT INTO hr_leave_requests
-       (id, employee_id, policy_id, start_date, end_date, days, reason, status, request_id, submitted_at, created_at, updated_at)
-     VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, 'pending', $8, NOW(), NOW(), NOW())
-     RETURNING id, start_date, end_date, days, status`,
-    [randomUUID(), identity.employeeId, policyId, startDate, endDate, days, reason || null, `ESS-${Date.now()}-${randomUUID().slice(0, 8)}`],
-  );
-  const row = result.rows[0] as DbRow;
-  return NextResponse.json({ id: String(row.id), type, startDate: asIsoDate(row.start_date), endDate: asIsoDate(row.end_date), days: Number(row.days), status: String(row.status) }, { status: 201 });
+  try {
+    const result = await createEssGroupedLeaveRequest(identity.userId, identity.email, {
+      startDate,
+      endDate,
+      policyId,
+      requestUnit: 'full_day',
+      halfDayPeriod: null,
+      requestedHours: null,
+      reason: reason || null,
+      emergencyContact,
+      handoverInformation: null,
+      actingEmployeeId: null,
+      saveAsDraft: false,
+    });
+    const segment = result.segments[0] as Record<string, unknown> | undefined;
+    return NextResponse.json({
+      id: segment?.id ? String(segment.id) : result.id,
+      requestGroupId: result.requestGroupId,
+      startDate: asIsoDate(segment?.start_date || startDate),
+      endDate: asIsoDate(segment?.end_date || endDate),
+      days: Number(segment?.days || 0),
+      status: String(segment?.status || 'pending_approval'),
+    }, { status: 201 });
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : 'Unable to create leave request', 400);
+  }
 }
 
 async function cancelLeave(identity: EssIdentity, id: string) {
-  const result = await getPool().query(
-    `UPDATE hr_leave_requests
-        SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW(), version = version + 1
-      WHERE id = $1 AND employee_id = $2 AND status IN ('draft', 'pending')
-      RETURNING id, start_date, end_date, days, status, policy_id`,
-    [id, identity.employeeId],
-  );
-  if (!result.rows[0]) return jsonError('Leave request not found or cannot be cancelled', 404);
-  const row = result.rows[0] as DbRow;
-  return NextResponse.json({ id: String(row.id), type: 'Leave', startDate: asIsoDate(row.start_date), endDate: asIsoDate(row.end_date), days: Number(row.days), status: 'cancelled' });
+  try {
+    const result = await cancelOwnLeaveRequest(identity.userId, identity.email, id, 'cancel');
+    if (!result) return jsonError('Leave request changed or can no longer be cancelled', 409);
+    return NextResponse.json(result);
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : 'Unable to cancel leave request', 400);
+  }
 }
 
 async function createCorrection(identity: EssIdentity, body: Record<string, unknown>) {

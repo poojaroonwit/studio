@@ -535,7 +535,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (path[0] === 'leave' && path[1] === 'requests' && requestId && path[3] === 'cancel') return cancelMobileLeaveRequest(identity, requestId);
   if (path.join('/') === 'emergency-contacts') {
     const result = await writeMobileEmergencyContact(identity.employeeId, body);
-    return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact, { status: 201 });
+    return 'error' in result ? jsonError(result.error || 'Unable to save emergency contact', result.status) : NextResponse.json(result.contact, { status: 201 });
   }
   if (path.join('/') === 'hr-support/tickets') return createMobileSupportTicket(identity, body);
   if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'reply') return replyMobileSupportTicket(identity, requestId, body);
@@ -562,7 +562,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const contactId = path[1];
   if (path[0] === 'emergency-contacts' && contactId) {
     const result = await writeMobileEmergencyContact(identity.employeeId, body, contactId);
-    return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact);
+    return 'error' in result ? jsonError(result.error || 'Unable to save emergency contact', result.status) : NextResponse.json(result.contact);
   }
   return jsonError('Not found', 404);
 }

@@ -352,7 +352,7 @@ export function AppraisalActionSheet({
       <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-2xl" sheetId="appraisal-action-sheet">
         {mode ? (
           <>
-            <SheetHeader className="border-b border-slate-200 bg-[#faf9f6] p-5 pr-14 text-left dark:border-slate-800 dark:bg-slate-950">
+            <SheetHeader className="border-b border-border bg-[#faf9f6] p-5 pr-14 text-left dark:border-slate-800 dark:bg-slate-950">
               <div className="flex items-start gap-3">
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#284a73] text-white">
                   {React.createElement(meta[mode].icon, { className: 'h-4 w-4' })}
@@ -466,7 +466,7 @@ function ActionForm({
             'flex min-h-9 items-center justify-between border px-3 text-xs font-semibold',
             autosaveState === 'conflict'
               ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200'
-              : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900',
+              : 'border-border bg-muted/40 text-muted-foreground dark:border-slate-800 dark:bg-slate-900',
           )}>
             <span>
               {autosaveState === 'saving'
@@ -495,7 +495,7 @@ function ActionForm({
         {['submit-self', 'submit-manager', 'generate-population', 'calculate', 'release'].includes(mode) ? <Confirmation mode={mode} /> : null}
         {error ? <p role="alert" className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">{error}</p> : null}
       </div>
-      <SheetFooter className="sticky bottom-0 gap-2 border-t border-slate-200 bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+      <SheetFooter className="sticky bottom-0 gap-2 border-t border-border bg-white/95 p-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <Button type="submit" disabled={saving || autosaveState === 'saving'} className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]">
           {saving ? t('appraisal.actionSheet.form.working', 'Working...') : meta[mode].submit}
         </Button>
@@ -508,11 +508,11 @@ function ActionForm({
 function ReviewContext({ record }: { record: Record<string, unknown> }) {
   const { t } = useLocalization();
   return (
-    <div className="border border-slate-200 bg-[#faf9f6] p-4 dark:border-slate-800 dark:bg-slate-900/40">
+    <div className="border border-border bg-[#faf9f6] p-4 dark:border-slate-800 dark:bg-slate-900/40">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{String(record.employeeName || record.name || t('appraisal.actionSheet.fallback.record', 'Appraisal record'))}</p>
-          <p className="mt-1 text-xs text-slate-500">{String(record.cycleName || '')}{record.department ? ` - ${String(record.department)}` : ''}</p>
+          <p className="text-sm font-bold text-foreground dark:text-slate-50">{String(record.employeeName || record.name || t('appraisal.actionSheet.fallback.record', 'Appraisal record'))}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{String(record.cycleName || '')}{record.department ? ` - ${String(record.department)}` : ''}</p>
         </div>
         <AppraisalStatusBadge status={record.status} />
       </div>
@@ -526,7 +526,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
       {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ id?: string }>, { id }) : children}
-      {hint ? <p className="text-xs leading-5 text-slate-500">{hint}</p> : null}
+      {hint ? <p className="text-xs leading-5 text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
@@ -544,11 +544,11 @@ function SelfFields({ form, update, record }: FieldsProps) {
       {goals.length ? (
         <div className="space-y-3">
           <Label>{t('appraisal.actionSheet.fields.goalAchievement.label', 'Goal achievement')}</Label>
-          <p className="text-xs leading-5 text-slate-500">{t('appraisal.actionSheet.fields.goalAchievement.hint', 'Progress is read-only and comes from Goal. Your rating and evidence are appraisal inputs only.')}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{t('appraisal.actionSheet.fields.goalAchievement.hint', 'Progress is read-only and comes from Goal. Your rating and evidence are appraisal inputs only.')}</p>
           {goals.map(goal => (
-            <div key={String(goal.id)} className="border border-slate-200 p-3 dark:border-slate-800">
+            <div key={String(goal.id)} className="border border-border p-3 dark:border-slate-800">
               <div className="flex items-start justify-between gap-3">
-                <div><p className="text-sm font-bold">{String(goal.title)}</p><p className="mt-1 text-xs text-slate-500">{Number(goal.progress || 0)}% {t('appraisal.actionSheet.fields.goalAchievement.officialProgress', 'official progress')} - {String(goal.status || t('appraisal.actionSheet.defaults.goalStatusActive', 'active'))}</p></div>
+                <div><p className="text-sm font-bold">{String(goal.title)}</p><p className="mt-1 text-xs text-muted-foreground">{Number(goal.progress || 0)}% {t('appraisal.actionSheet.fields.goalAchievement.officialProgress', 'official progress')} - {String(goal.status || t('appraisal.actionSheet.defaults.goalStatusActive', 'active'))}</p></div>
                 <Input aria-label={t('appraisal.actionSheet.fields.goalAchievement.goalRatingAria', `Achievement rating for ${String(goal.title)}`)} type="number" min="0" max="100" className="h-10 w-24" value={String(form[`goal:${String(goal.id)}`] || '')} onChange={event => update(`goal:${String(goal.id)}`, event.target.value)} placeholder={t('appraisal.actionSheet.placeholders.goalRating', '0-100')} />
               </div>
             </div>
@@ -577,14 +577,14 @@ function ManagerFields({ form, update, record }: FieldsProps) {
         <Field label={t('appraisal.actionSheet.fields.managerRating.label', 'Manager-proposed rating')} hint={t('appraisal.actionSheet.fields.managerRating.hint', 'Use the configured 0-100 scale. The label is resolved from the assigned rating model.')}>
           <Input type="number" min="0" max="100" step="0.1" value={String(form.rating)} onChange={event => update('rating', event.target.value)} required />
         </Field>
-        <div className="border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        <div className="border border-border bg-muted/40 p-3 text-xs leading-5 text-muted-foreground dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           {t('appraisal.actionSheet.manager.assistance', 'Employee self-rating remains evidence, not the official Goal result. Calibration preserves both your proposal and any later adjustment.')}
         </div>
       </div>
       {goals.map(goal => (
-        <div key={String(goal.id)} className="border border-slate-200 p-3 dark:border-slate-800">
+        <div key={String(goal.id)} className="border border-border p-3 dark:border-slate-800">
           <div className="grid gap-3 sm:grid-cols-[1fr_120px] sm:items-center">
-            <div><p className="text-sm font-bold">{String(goal.title)}</p><p className="mt-1 text-xs text-slate-500">{Number(goal.progress || 0)}% {t('appraisal.actionSheet.fields.goalAchievement.officialProgress', 'official progress')}</p></div>
+            <div><p className="text-sm font-bold">{String(goal.title)}</p><p className="mt-1 text-xs text-muted-foreground">{Number(goal.progress || 0)}% {t('appraisal.actionSheet.fields.goalAchievement.officialProgress', 'official progress')}</p></div>
             <Input aria-label={t('appraisal.actionSheet.fields.goalAchievement.managerRatingAria', `Manager rating for ${String(goal.title)}`)} type="number" min="0" max="100" value={String(form[`goal:${String(goal.id)}`] || '')} onChange={event => update(`goal:${String(goal.id)}`, event.target.value)} placeholder={t('appraisal.actionSheet.fields.goalAchievement.ratingPlaceholder', 'Rating')} />
           </div>
         </div>
@@ -658,8 +658,8 @@ function CycleFields({ form, update, data }: FieldsProps & { data: AppraisalWork
         </Select>
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex min-h-12 items-center gap-3 border border-slate-200 px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requirePeerReview)} onChange={event => update('requirePeerReview', event.target.checked)} />{t('appraisal.actionSheet.fields.requirePeerReview.label', 'Require peer review')}</label>
-        <label className="flex min-h-12 items-center gap-3 border border-slate-200 px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requireCalibration)} onChange={event => update('requireCalibration', event.target.checked)} />{t('appraisal.actionSheet.fields.requireCalibration.label', 'Require calibration')}</label>
+        <label className="flex min-h-12 items-center gap-3 border border-border px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requirePeerReview)} onChange={event => update('requirePeerReview', event.target.checked)} />{t('appraisal.actionSheet.fields.requirePeerReview.label', 'Require peer review')}</label>
+        <label className="flex min-h-12 items-center gap-3 border border-border px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requireCalibration)} onChange={event => update('requireCalibration', event.target.checked)} />{t('appraisal.actionSheet.fields.requireCalibration.label', 'Require calibration')}</label>
       </div>
     </>
   );
@@ -708,7 +708,7 @@ function CalibrationFields({ form, update, record }: FieldsProps) {
   const { t } = useLocalization();
   return (
     <>
-      <div className="grid grid-cols-3 gap-2 border-y border-slate-200 py-4 text-center dark:border-slate-800">
+      <div className="grid grid-cols-3 gap-2 border-y border-border py-4 text-center dark:border-slate-800">
         <RatingFact label={t('appraisal.actionSheet.labels.calculated', 'Calculated')} value={record?.calculatedRating} />
         <RatingFact label={t('appraisal.actionSheet.labels.manager', 'Manager')} value={record?.managerRating} />
         <RatingFact label={t('appraisal.actionSheet.labels.previous', 'Previous')} value={record?.rating} />
@@ -748,7 +748,7 @@ function AcknowledgmentFields({ form, update }: FieldsProps) {
         {t('appraisal.actionSheet.acknowledge.helper', 'By confirming, you acknowledge that you received and reviewed the appraisal. This is not a statement of agreement.')}
       </div>
       <Field label={t('appraisal.actionSheet.fields.acknowledgmentComment.label', 'Acknowledgment comment')}><Textarea value={String(form.comment)} onChange={event => update('comment', event.target.value)} className="min-h-28" /></Field>
-      <label className="flex min-h-12 items-center gap-3 border border-slate-200 px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requestDiscussion)} onChange={event => update('requestDiscussion', event.target.checked)} />{t('appraisal.actionSheet.fields.requestDiscussion.label', 'Request a follow-up discussion instead')}</label>
+      <label className="flex min-h-12 items-center gap-3 border border-border px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.requestDiscussion)} onChange={event => update('requestDiscussion', event.target.checked)} />{t('appraisal.actionSheet.fields.requestDiscussion.label', 'Request a follow-up discussion instead')}</label>
     </>
   );
 }
@@ -780,7 +780,7 @@ function ReviewerFields({ form, update, data }: FieldsProps & { data: AppraisalW
         <Field label={t('appraisal.actionSheet.fields.dueDate.label', 'Due date')}><Input type="date" value={String(form.dueDate)} onChange={event => update('dueDate', event.target.value)} required /></Field>
         <Field label={t('appraisal.actionSheet.fields.ratingWeight.label', 'Rating weight')}><Input type="number" min="0" max="100" value={String(form.weight)} onChange={event => update('weight', event.target.value)} /></Field>
       </div>
-      <label className="flex min-h-12 items-center gap-3 border border-slate-200 px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.isAnonymous)} onChange={event => update('isAnonymous', event.target.checked)} />{t('appraisal.actionSheet.fields.protectReviewerIdentity.label', 'Protect reviewer identity from the employee')}</label>
+      <label className="flex min-h-12 items-center gap-3 border border-border px-3 text-sm dark:border-slate-800"><input type="checkbox" checked={Boolean(form.isAnonymous)} onChange={event => update('isAnonymous', event.target.checked)} />{t('appraisal.actionSheet.fields.protectReviewerIdentity.label', 'Protect reviewer identity from the employee')}</label>
     </>
   );
 }
@@ -794,12 +794,12 @@ function Confirmation({ mode }: { mode: AppraisalActionMode }) {
     calculate: t('appraisal.actionSheet.confirmation.calculate', 'The calculation preserves manager, calibrated, and final ratings as separate values.'),
     release: t('appraisal.actionSheet.confirmation.release', 'After release, the employee can see the final rating and will receive an acknowledgment request.'),
   };
-  return <div className="border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">{text[mode]}</div>;
+  return <div className="border border-border bg-muted/40 p-4 text-sm leading-6 text-foreground/80 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">{text[mode]}</div>;
 }
 
 function RatingFact({ label: factLabel, value }: { label: string; value: unknown }) {
   const { t } = useLocalization();
-  return <div><p className="text-xs text-slate-500">{factLabel}</p><p className="mt-1 text-lg font-bold tabular-nums">{value == null ? t('appraisal.actionSheet.fallback.noValue', 'No value') : Number(value).toFixed(1)}</p></div>;
+  return <div><p className="text-xs text-muted-foreground">{factLabel}</p><p className="mt-1 text-lg font-bold tabular-nums">{value == null ? t('appraisal.actionSheet.fallback.noValue', 'No value') : Number(value).toFixed(1)}</p></div>;
 }
 
 function initialForm(mode: AppraisalActionMode, record: Record<string, unknown> | null, data: AppraisalWorkspaceData, t: Translate): FormState {

@@ -160,6 +160,8 @@ export async function createEssRequest(
 ) {
   const employee = await requireEmployeeAccess(userId, email);
   const managerUserId = await getManagerUserId(prisma, employee.manager_id);
+  const requiresApprover = input.requestType === 'profile_change' || input.requestType === 'attendance_correction';
+  if (!input.saveAsDraft && requiresApprover && !managerUserId) throw new Error('NO_APPROVER');
   const id = randomUUID();
   const status = input.saveAsDraft ? 'draft' : managerUserId ? 'pending_approval' : 'processing';
   const requestId = createHumanRequestId(requestPrefix(input.requestType), id);
@@ -538,6 +540,10 @@ export async function actOnEssRequest({
 
     const isOwner = request.requester_employee_id === employee.id;
     const isApprover = request.current_approver_user_id === userId || privileged;
+    const requiresApprover = request.request_type === 'profile_change' || request.request_type === 'attendance_correction';
+    if (['submit', 'resubmit'].includes(action) && requiresApprover && !request.current_approver_user_id) {
+      throw new Error('NO_APPROVER');
+    }
     if (request.company_id && employee.company_id && request.company_id !== employee.company_id) throw new Error('FORBIDDEN');
     const ownerActions = ['submit', 'withdraw', 'cancel', 'resubmit'];
     if (ownerActions.includes(action) && !isOwner) throw new Error('FORBIDDEN');

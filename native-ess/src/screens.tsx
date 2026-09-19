@@ -307,7 +307,7 @@ function PaginationFooter({ visible, total }: { visible: number; total: number }
   return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
 }
 
-export function HomeScreen({ data, setTab, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
+export function HomeScreen({ data, setTab, openNewRequest, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; openNewRequest?: () => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
   const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
   const recent = data.attendance.slice(0, 14)
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
@@ -333,7 +333,7 @@ export function HomeScreen({ data, setTab, account, reload, offline = false }: {
     <AppText style={s.section}>Quick actions</AppText>
     <View style={s.grid}>
       <Quick icon="time-outline" label="Attendance" onPress={() => setTab('time')} />
-      <Quick icon="add-circle-outline" label="New request" onPress={() => setTab('requests')} />
+      <Quick icon="add-circle-outline" label="New request" onPress={openNewRequest || (() => setTab('requests'))} />
       <Quick icon="folder-open-outline" label="Documents" onPress={() => setTab('documents')} />
       <Quick icon="person-circle-outline" label="Account" onPress={() => setTab('account')} />
     </View>
@@ -374,7 +374,7 @@ export function TimeScreen({ data, reload, loadMoreTick, offline = false }: { da
     <PaginationFooter visible={visible} total={data.attendance.length} />
 
     <FullScreenTaskModal visible={Boolean(correctionId)} contextLabel="Attendance correction" onClose={() => setCorrectionId(null)}>
-      <AttendanceCorrectionForm data={data} initialAttendanceId={correctionId || undefined} showTitle={false} onDone={() => { setCorrectionId(null); void reload() }} />
+      <AttendanceCorrectionForm data={data} reload={reload} initialAttendanceId={correctionId || undefined} showTitle={false} onDone={() => setCorrectionId(null)} />
     </FullScreenTaskModal>
   </>
 }
@@ -486,10 +486,16 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
   { id: 'emergency', title: 'Emergency contact', description: 'Add a contact for emergencies', icon: 'people-outline' },
 ]
 
-export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void }) {
+export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, openNewRequest = false, onNewRequestOpened }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void; openNewRequest?: boolean; onNewRequestOpened?: () => void }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+
+  useEffect(() => {
+    if (!openNewRequest) return
+    setChooserOpen(true)
+    onNewRequestOpened?.()
+  }, [openNewRequest, onNewRequestOpened])
 
   useEffect(() => {
     onFullPageChange?.(kind !== null)
@@ -539,7 +545,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange }:
 
 function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
   if (kind === 'leave') return <LeaveRequestForm reload={reload} onDone={onDone} />
-  if (kind === 'attendance') return <AttendanceCorrectionForm data={data} onDone={onDone} />
+  if (kind === 'attendance') return <AttendanceCorrectionForm data={data} reload={reload} onDone={onDone} />
   if (kind === 'bank-tax') return <BankTaxRequestForm reload={reload} onDone={onDone} />
   if (kind === 'emergency') return <EmergencyContactForm reload={reload} onDone={onDone} />
   return <GeneralRequestForm onDone={onDone} />
@@ -563,13 +569,13 @@ function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onD
   return <><AppText style={s.pageTitle}>Leave request</AppText><Card><SelectField label="Leave type" value={type} onPress={() => setTypeOpen(true)} /><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={typeOpen} title="Leave type" onClose={() => setTypeOpen(false)}>{leaveTypes.map((item) => <DrawerOption key={item} title={item} selected={type === item} onPress={() => { setType(item); setTypeOpen(false) }} />)}</BottomDrawer></>
 }
 
-function AttendanceCorrectionForm({ data, onDone, initialAttendanceId, showTitle = true }: { data: EssBootstrap; onDone: () => void; initialAttendanceId?: string; showTitle?: boolean }) {
+function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, showTitle = true }: { data: EssBootstrap; reload?: () => Promise<void>; onDone: () => void; initialAttendanceId?: string; showTitle?: boolean }) {
   const [attendanceId, setAttendanceId] = useState(initialAttendanceId || data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
   const selected = data.attendance.find((row) => row.id === attendanceId)
   const submit = async () => {
     if (!attendanceId || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
     setBusy(true)
-    try { await essApi.createAttendanceCorrection({ attendanceId, reason: reason.trim(), requestedCheckIn: checkIn.trim() || undefined, requestedCheckOut: checkOut.trim() || undefined }); Alert.alert('Attendance correction', 'Submitted for review.'); onDone() }
+    try { await essApi.createAttendanceCorrection({ attendanceId, reason: reason.trim(), requestedCheckIn: checkIn.trim() || undefined, requestedCheckOut: checkOut.trim() || undefined }); if (reload) await reload(); Alert.alert('Attendance correction', 'Submitted for review.'); onDone() }
     catch (error) { Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit') }
     finally { setBusy(false) }
   }
@@ -718,10 +724,31 @@ function BenefitsPage({ data }: { data: EssBootstrap }) {
 
 function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
   const [editing, setEditing] = useState<EmergencyContact | 'new' | null>(null)
-  const remove = (contact: EmergencyContact) => Alert.alert('Remove contact', `Remove ${contact.name}?`, [{ text: 'Keep', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => void (async () => { try { await essApi.deleteEmergencyContact(contact.id); await reload() } catch (error) { Alert.alert('Emergency contacts', error instanceof Error ? error.message : 'Unable to remove') } })() }])
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const remove = (contact: EmergencyContact) => {
+    if (busyId) return
+    Alert.alert('Remove contact', `Remove ${contact.name}?`, [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => void (async () => {
+          setBusyId(contact.id)
+          try {
+            await essApi.deleteEmergencyContact(contact.id)
+            await reload()
+          } catch (error) {
+            Alert.alert('Emergency contacts', error instanceof Error ? error.message : 'Unable to remove')
+          } finally {
+            setBusyId(null)
+          }
+        })(),
+      },
+    ])
+  }
   return <>
     <View style={s.between}><AppText style={s.pageTitle}>Emergency contacts</AppText><Pressable accessibilityRole="button" accessibilityLabel="Add emergency contact" style={({ pressed }) => [s.iconAction, pressed && s.controlPressed]} onPress={() => setEditing('new')}><Ionicons name="add" size={24} color={colors.text} /></Pressable></View>
-    {data.emergencyContacts.length === 0 ? <EmptyState icon="people-outline" title="No emergency contacts" subtitle="Add at least one person HR can contact in an emergency." /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><Pressable accessibilityRole="button" style={s.flexOne} onPress={() => setEditing(contact)}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></Pressable><View style={s.inlineActions}><Pressable accessibilityRole="button" accessibilityLabel={`Edit ${contact.name}`} style={s.inlineIconAction} onPress={() => setEditing(contact)}><Ionicons name="create-outline" size={20} color={colors.text} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${contact.name}`} style={s.inlineIconAction} onPress={() => remove(contact)}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable></View></View></Card>)}
+    {data.emergencyContacts.length === 0 ? <EmptyState icon="people-outline" title="No emergency contacts" subtitle="Add at least one person HR can contact in an emergency." /> : data.emergencyContacts.map((contact) => <Card key={contact.id}><View style={s.between}><Pressable accessibilityRole="button" disabled={Boolean(busyId)} style={s.flexOne} onPress={() => setEditing(contact)}><AppText style={s.cardTitle}>{contact.name}{contact.primary ? ' · Primary' : ''}</AppText><Muted>{contact.relationship} · {contact.phone}</Muted></Pressable><View style={s.inlineActions}><Pressable accessibilityRole="button" accessibilityLabel={`Edit ${contact.name}`} disabled={Boolean(busyId)} style={s.inlineIconAction} onPress={() => setEditing(contact)}><Ionicons name="create-outline" size={20} color={colors.text} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${contact.name}`} disabled={Boolean(busyId)} style={s.inlineIconAction} onPress={() => remove(contact)}>{busyId === contact.id ? <ActivityIndicator size="small" color={colors.danger} /> : <Ionicons name="trash-outline" size={20} color={colors.danger} />}</Pressable></View></View></Card>)}
     <FullScreenTaskModal visible={editing !== null} contextLabel="Emergency contacts" onClose={() => setEditing(null)}>
       {editing ? <EmergencyContactForm contact={editing === 'new' ? undefined : editing} reload={reload} showTitle={false} onDone={() => setEditing(null)} /> : null}
     </FullScreenTaskModal>
@@ -734,8 +761,10 @@ function SecurityPage() {
     void (async () => {
       try {
         const available = await LocalAuthentication.hasHardwareAsync() && await LocalAuthentication.isEnrolledAsync()
+        const storedEnabled = (await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1'
+        if (!available && storedEnabled) await SecureStore.deleteItemAsync(BIOMETRIC_KEY)
         setSupported(available)
-        setEnabled((await SecureStore.getItemAsync(BIOMETRIC_KEY)) === '1')
+        setEnabled(available && storedEnabled)
       } catch (error) {
         console.warn('Obsi People biometric settings unavailable', error)
         setSupported(false)

@@ -498,8 +498,10 @@ const requestKinds: Array<{ id: RequestKind; title: string; description: string;
 export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, openNewRequest = false, onNewRequestOpened }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; onFullPageChange?: (active: boolean) => void; openNewRequest?: boolean; onNewRequestOpened?: () => void }) {
   const [kind, setKind] = useState<RequestKind | null>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
+  const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
   const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
+  const supportRequest = supportRequestId ? data.supportRequests.find(item => item.id === supportRequestId) : undefined
 
   useEffect(() => {
     if (!openNewRequest) return
@@ -550,8 +552,12 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
     <AppText style={s.section}>Recent HR requests</AppText>
     {data.supportRequests.length === 0
       ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR requests yet" subtitle="Requests you submit to HR will remain visible here with their latest status." />
-      : data.supportRequests.slice(0, supportVisible).map((request) => <SupportRequestCard key={request.id} request={request} />)}
+      : data.supportRequests.slice(0, supportVisible).map((request) => <SupportRequestCard key={request.id} request={request} onPress={() => setSupportRequestId(request.id)} />)}
     <PaginationFooter visible={supportVisible} total={data.supportRequests.length} />
+
+    <FullScreenTaskModal visible={Boolean(supportRequest)} contextLabel="HR request" onClose={() => setSupportRequestId(null)}>
+      {supportRequest ? <SupportRequestDetail request={supportRequest} reload={reload} /> : null}
+    </FullScreenTaskModal>
 
     <BottomDrawer visible={chooserOpen} title="New request" subtitle="Choose the request you want to create." onClose={() => setChooserOpen(false)}>
       {requestKinds.map((item) => <DrawerOption key={item.id} icon={item.icon} title={item.title} subtitle={item.description} onPress={() => chooseKind(item.id)} />)}
@@ -560,7 +566,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
 }
 
 function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
-  if (kind === 'leave') return <LeaveRequestForm reload={reload} onDone={onDone} />
+  if (kind === 'leave') return <LeaveRequestForm data={data} reload={reload} onDone={onDone} />
   if (kind === 'attendance') return <AttendanceCorrectionForm data={data} reload={reload} onDone={onDone} />
   if (kind === 'bank-tax') return <BankTaxRequestForm reload={reload} onDone={onDone} />
   if (kind === 'emergency') return <EmergencyContactForm reload={reload} onDone={onDone} />
@@ -572,30 +578,115 @@ function DateField({ label, value, onChange }: { label: string; value: Date; onC
   return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
 }
 
-function LeaveRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
-  const [type, setType] = useState('Annual leave'), [start, setStart] = useState(new Date()), [end, setEnd] = useState(new Date()), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [typeOpen, setTypeOpen] = useState(false)
-  const leaveTypes = ['Annual leave', 'Sick leave', 'Personal leave', 'Unpaid leave']
+function TimeField({ label, value, fallback, onChange }: { label: string; value: Date | null; fallback?: string | null; onChange: (value: Date) => void }) {
+  const [open, setOpen] = useState(false)
+  const pickerValue = value || (fallback ? new Date(fallback) : new Date())
+  const display = value ? value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : fallback ? formatBangkokTime(fallback) : 'Choose time'
+  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable accessibilityRole="button" style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{display}</AppText><Ionicons name="time-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={Number.isNaN(pickerValue.getTime()) ? new Date() : pickerValue} mode="time" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
+}
+
+function attendanceTimestamp(date: string, value: Date | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined
+  const hours = String(value.getHours()).padStart(2, '0')
+  const minutes = String(value.getMinutes()).padStart(2, '0')
+  return `${date}T${hours}:${minutes}:00+07:00`
+}
+
+function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
+  const [policyId, setPolicyId] = useState(data.leavePolicies[0]?.id || '')
+  const [start, setStart] = useState(new Date())
+  const [end, setEnd] = useState(new Date())
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [policyOpen, setPolicyOpen] = useState(false)
+  const policy = data.leavePolicies.find(item => item.id === policyId)
+
+  useEffect(() => {
+    if (policyId && data.leavePolicies.some(item => item.id === policyId)) return
+    setPolicyId(data.leavePolicies[0]?.id || '')
+  }, [data.leavePolicies, policyId])
+
   const submit = async () => {
+    if (!policyId) return Alert.alert('Leave request', 'No leave policy is currently available for your account.')
     if (end < start) return Alert.alert('Leave request', 'End date cannot be before start date.')
     setBusy(true)
-    try { await essApi.createLeave({ type, startDate: formatDate(start), endDate: formatDate(end), reason: reason.trim() }); await reload(); Alert.alert('Leave request', 'Submitted successfully.'); onDone() }
-    catch (error) { Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to submit') }
-    finally { setBusy(false) }
+    try {
+      await essApi.createLeave({ policyId, startDate: formatDate(start), endDate: formatDate(end), reason: reason.trim() })
+      await reload()
+      Alert.alert('Leave request', 'Submitted successfully.')
+      onDone()
+    } catch (error) {
+      Alert.alert('Leave request', error instanceof Error ? error.message : 'Unable to submit')
+    } finally {
+      setBusy(false)
+    }
   }
-  return <><AppText style={s.pageTitle}>Leave request</AppText><Card><SelectField label="Leave type" value={type} onPress={() => setTypeOpen(true)} /><DateField label="Start date" value={start} onChange={setStart} /><DateField label="End date" value={end} onChange={setEnd} /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" /><Button title="Submit request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={typeOpen} title="Leave type" onClose={() => setTypeOpen(false)}>{leaveTypes.map((item) => <DrawerOption key={item} title={item} selected={type === item} onPress={() => { setType(item); setTypeOpen(false) }} />)}</BottomDrawer></>
+
+  if (data.leavePolicies.length === 0) {
+    return <><AppText style={s.pageTitle}>Leave request</AppText><EmptyState icon="calendar-outline" title="No leave policy available" subtitle="Your assigned leave policies and balances must be published before you can submit leave." /></>
+  }
+
+  return <><AppText style={s.pageTitle}>Leave request</AppText><Card>
+    <SelectField label="Leave policy" value={policy ? `${policy.name} · ${policy.balance.toFixed(1)} days available` : 'Choose a policy'} onPress={() => setPolicyOpen(true)} />
+    <DateField label="Start date" value={start} onChange={setStart} />
+    <DateField label="End date" value={end} onChange={setEnd} />
+    <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Optional reason" />
+    <Button title="Submit request" busy={busy} disabled={!policyId} onPress={() => void submit()} />
+  </Card><BottomDrawer visible={policyOpen} title="Leave policy" subtitle="Only policies assigned to you are shown." onClose={() => setPolicyOpen(false)}>
+    {data.leavePolicies.map((item) => <DrawerOption key={item.id} title={item.name} subtitle={`${item.balance.toFixed(1)} days available`} selected={policyId === item.id} onPress={() => { setPolicyId(item.id); setPolicyOpen(false) }} />)}
+  </BottomDrawer></>
 }
 
 function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, showTitle = true }: { data: EssBootstrap; reload?: () => Promise<void>; onDone: () => void; initialAttendanceId?: string; showTitle?: boolean }) {
-  const [attendanceId, setAttendanceId] = useState(initialAttendanceId || data.attendance[0]?.id || ''), [checkIn, setCheckIn] = useState(''), [checkOut, setCheckOut] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [recordOpen, setRecordOpen] = useState(false)
+  const initialId = initialAttendanceId || data.attendance[0]?.id || ''
+  const initialRecord = data.attendance.find(row => row.id === initialId)
+  const [attendanceId, setAttendanceId] = useState(initialId)
+  const [checkIn, setCheckIn] = useState<Date | null>(() => initialRecord?.checkIn ? new Date(initialRecord.checkIn) : null)
+  const [checkOut, setCheckOut] = useState<Date | null>(() => initialRecord?.checkOut ? new Date(initialRecord.checkOut) : null)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [recordOpen, setRecordOpen] = useState(false)
   const selected = data.attendance.find((row) => row.id === attendanceId)
-  const submit = async () => {
-    if (!attendanceId || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
-    setBusy(true)
-    try { await essApi.createAttendanceCorrection({ attendanceId, reason: reason.trim(), requestedCheckIn: checkIn.trim() || undefined, requestedCheckOut: checkOut.trim() || undefined }); if (reload) await reload(); Alert.alert('Attendance correction', 'Submitted for review.'); onDone() }
-    catch (error) { Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit') }
-    finally { setBusy(false) }
+
+  const chooseRecord = (row: AttendanceRow) => {
+    setAttendanceId(row.id)
+    setCheckIn(row.checkIn ? new Date(row.checkIn) : null)
+    setCheckOut(row.checkOut ? new Date(row.checkOut) : null)
+    setRecordOpen(false)
   }
-  return <>{showTitle ? <AppText style={s.pageTitle}>Attendance correction</AppText> : null}<Card><SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} /><Field label="Requested clock in" value={checkIn} onChangeText={setCheckIn} placeholder="e.g. 2026-09-17 09:00" /><Field label="Requested clock out" value={checkOut} onChangeText={setCheckOut} placeholder="e.g. 2026-09-17 18:00" /><Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" /><Button title="Submit correction" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>{data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => { setAttendanceId(row.id); setRecordOpen(false) }} />)}</BottomDrawer></>
+
+  const submit = async () => {
+    if (!attendanceId || !selected || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
+    if (checkIn && checkOut && checkOut.getHours() * 60 + checkOut.getMinutes() <= checkIn.getHours() * 60 + checkIn.getMinutes()) {
+      return Alert.alert('Attendance correction', 'Requested clock out must be after requested clock in.')
+    }
+    setBusy(true)
+    try {
+      await essApi.createAttendanceCorrection({
+        attendanceId,
+        reason: reason.trim(),
+        requestedCheckIn: attendanceTimestamp(selected.date, checkIn),
+        requestedCheckOut: attendanceTimestamp(selected.date, checkOut),
+      })
+      if (reload) await reload()
+      Alert.alert('Attendance correction', 'Submitted for review.')
+      onDone()
+    } catch (error) {
+      Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>{showTitle ? <AppText style={s.pageTitle}>Attendance correction</AppText> : null}<Card>
+    <SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} />
+    <TimeField label="Requested clock in" value={checkIn} fallback={selected?.checkIn} onChange={setCheckIn} />
+    <TimeField label="Requested clock out" value={checkOut} fallback={selected?.checkOut} onChange={setCheckOut} />
+    <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" />
+    <Button title="Submit correction" busy={busy} disabled={!selected} onPress={() => void submit()} />
+  </Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>
+    {data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => chooseRecord(row)} />)}
+  </BottomDrawer></>
 }
 
 function GeneralRequestForm({ reload, onDone }: { reload: () => Promise<void>; onDone: () => void }) {
@@ -646,13 +737,51 @@ function LeaveRequestCard({ request, reload }: { request: EssBootstrap['leaveReq
   return <Card><View style={s.between}><AppText style={s.cardTitle}>{request.type}</AppText><StatusPill value={request.status} /></View><Muted>{request.startDate} – {request.endDate} · {request.days} day(s)</Muted>{canCancel ? <Pressable disabled={busy} onPress={cancel}><AppText style={s.danger}>{busy ? 'Cancelling…' : 'Cancel request'}</AppText></Pressable> : null}</Card>
 }
 
-function SupportRequestCard({ request }: { request: EssBootstrap['supportRequests'][number] }) {
+function SupportRequestCard({ request, onPress }: { request: EssBootstrap['supportRequests'][number]; onPress?: () => void }) {
   const category = request.category ? request.category.charAt(0).toUpperCase() + request.category.slice(1) : 'General'
-  return <Card>
-    <View style={s.between}><AppText style={s.cardTitle}>{request.subject}</AppText><StatusPill value={request.status} /></View>
-    <Muted>{request.requestNumber || 'HR request'} · {category}{request.submittedAt ? ` · ${formatDateTime(request.submittedAt)}` : ''}</Muted>
+  return <Pressable accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}><Card>
+    <View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{request.subject}</AppText><Muted>{request.requestNumber || 'HR request'} · {category}{request.submittedAt ? ` · ${formatDateTime(request.submittedAt)}` : ''}</Muted></View><StatusPill value={request.status} /></View>
     {request.description ? <Muted numberOfLines={3}>{request.description}</Muted> : null}
-  </Card>
+    {onPress ? <View style={s.infoRow}><AppText style={s.linkText}>View request</AppText><Ionicons name="chevron-forward" size={16} color={colors.accent} /></View> : null}
+  </Card></Pressable>
+}
+
+function SupportRequestDetail({ request, reload }: { request: EssBootstrap['supportRequests'][number]; reload: () => Promise<void> }) {
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const closed = ['resolved', 'closed', 'cancelled', 'canceled'].includes(normalizeStatus(request.status))
+  const reply = async () => {
+    const body = message.trim()
+    if (!body || busy || closed) return
+    setBusy(true)
+    try {
+      await essApi.replyHrTicket(request.id, body)
+      setMessage('')
+      await reload()
+    } catch (error) {
+      Alert.alert('HR request', error instanceof Error ? error.message : 'Unable to send reply')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <>
+    <View style={s.between}><View style={s.flexOne}><AppText style={s.pageTitle}>{request.subject}</AppText><Muted>{request.requestNumber} · {formatDateTime(request.submittedAt)}</Muted></View><StatusPill value={request.status} /></View>
+    <View style={s.chatArea}>
+      <View style={[s.chatBubble, s.chatBubbleOwn]}><AppText>{request.description || request.subject}</AppText><Muted>Submitted</Muted></View>
+      {(request.activities || []).map(activity => {
+        const own = normalizeStatus(activity.action).includes('requester')
+        return <View key={activity.id} style={[s.chatBubble, own ? s.chatBubbleOwn : s.chatBubbleHr]}>
+          {activity.message ? <AppText>{activity.message}</AppText> : <AppText>{displayStatus(activity.action)}</AppText>}
+          <Muted>{own ? 'You' : 'HR'}{activity.createdAt ? ` · ${formatDateTime(activity.createdAt)}` : ''}</Muted>
+        </View>
+      })}
+    </View>
+    {closed ? <Card><Muted>This request is closed. Start a new HR request if you need more help.</Muted></Card> : <Card>
+      <TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Reply to HR" placeholderTextColor={colors.textSubtle} />
+      <Button title="Send reply" icon="send-outline" busy={busy} disabled={!message.trim()} onPress={() => void reply()} />
+    </Card>}
+  </>
 }
 
 export function DocumentsScreen({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
@@ -718,8 +847,12 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
 }
 
 function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
-  const [message, setMessage] = useState(''), [busy, setBusy] = useState(false)
-  const history = data.supportRequests.filter((item) => item.category === 'chat').slice(0, 10)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const history = data.supportRequests.filter((item) => item.category === 'chat').slice(0, 20)
+  const selected = selectedId ? history.find(item => item.id === selectedId) : undefined
+
   const send = async () => {
     const body = message.trim()
     if (!body) return
@@ -734,7 +867,15 @@ function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promis
       setBusy(false)
     }
   }
-  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Messages create tracked HR support requests.</Muted><View style={s.chatArea}>{history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="Start a conversation with HR" /> : history.map((item) => <View key={item.id} style={s.chatBubble}><AppText>{item.description || item.subject}</AppText><Muted>{item.requestNumber} · {displayStatus(item.status)}</Muted></View>)}</View><Card><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} onPress={() => void send()} /></Card></>
+
+  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Start a tracked conversation or open an existing request to continue it.</Muted>
+    <View style={s.spacer} />
+    {history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR conversations yet" subtitle="Send a message below to start one." /> : history.map(item => <SupportRequestCard key={item.id} request={item} onPress={() => setSelectedId(item.id)} />)}
+    <Card><AppText style={s.cardTitle}>New conversation</AppText><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} disabled={!message.trim()} onPress={() => void send()} /></Card>
+    <FullScreenTaskModal visible={Boolean(selected)} contextLabel="Talk to HR" onClose={() => setSelectedId(null)}>
+      {selected ? <SupportRequestDetail request={selected} reload={reload} /> : null}
+    </FullScreenTaskModal>
+  </>
 }
 
 function CalendarPage({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
@@ -952,7 +1093,9 @@ const s = StyleSheet.create({
   version: { textAlign: 'center', fontSize: typography.xs, lineHeight: 15, color: colors.textSubtle, marginTop: spacing.xs },
 
   chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: spacing.xs, marginVertical: spacing.sm },
-  chatBubble: { alignSelf: 'flex-end', maxWidth: '85%', backgroundColor: colors.infoSurface, paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: radii.lg },
+  chatBubble: { maxWidth: '88%', paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: radii.lg },
+  chatBubbleOwn: { alignSelf: 'flex-end', backgroundColor: colors.infoSurface },
+  chatBubbleHr: { alignSelf: 'flex-start', backgroundColor: colors.surfaceMuted },
   unreadCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
   linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },

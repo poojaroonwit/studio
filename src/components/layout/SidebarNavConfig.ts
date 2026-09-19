@@ -670,6 +670,20 @@ export const sidebarConfigData = [
         section: "Employee service"
       },
       {
+        label: "My Requests",
+        icon: "ClipboardCheck",
+        href: "/ess/requests",
+        description: "Track profile and document approval requests",
+        section: "Employee service"
+      },
+      {
+        label: "My Onboarding",
+        icon: "ListTodo",
+        href: "/ess/onboarding",
+        description: "Complete onboarding tasks and follow progress",
+        section: "Employee service"
+      },
+      {
         label: "My Leave",
         icon: "CalendarDays",
         href: "/ess/leave",
@@ -709,6 +723,20 @@ export const sidebarConfigData = [
         icon: "Folder",
         href: "/ess/documents",
         description: "Employee documents and requested uploads",
+        section: "Employee service"
+      },
+      {
+        label: "Expenses",
+        icon: "Banknotes",
+        href: "/ess/expenses",
+        description: "Create and track your expense claims",
+        section: "Employee service"
+      },
+      {
+        label: "Payslips",
+        icon: "FileText",
+        href: "/ess/payslips",
+        description: "View released payroll statements",
         section: "Employee service"
       },
       {

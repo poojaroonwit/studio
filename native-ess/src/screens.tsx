@@ -834,18 +834,19 @@ function BankTaxRequestForm({ data, reload, onDone }: { data: EssBootstrap; relo
 
     setBusy(true)
     try {
-      if (Object.keys(bankValue).length > 0) {
-        await essApi.createProfileChangeRequest({ field: 'bankInformation', value: bankValue, reason: reason.trim() })
-      }
-      if (taxValue) {
-        await essApi.createProfileChangeRequest({ field: 'taxInformation', value: taxValue, reason: reason.trim() })
-      }
+      await essApi.createProfileChangeRequest({
+        changes: {
+          ...(Object.keys(bankValue).length > 0 ? { bankInformation: bankValue } : {}),
+          ...(taxValue ? { taxInformation: taxValue } : {}),
+        },
+        reason: reason.trim(),
+      })
       setBankName('')
       setAccountNumber('')
       setTaxId('')
       setReason('')
       await reload()
-      Alert.alert('Bank & tax', `${changeCount === 1 ? 'Change request' : 'Change requests'} submitted for approval.`)
+      Alert.alert('Bank & tax', 'Change request submitted for approval.')
       onDone()
     } catch (error) {
       Alert.alert('Bank & tax', error instanceof Error ? error.message : 'Unable to submit change request')
@@ -1182,26 +1183,26 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
     if (!changed) return Alert.alert('My profile', 'Change at least one profile field before submitting.')
     if (reason.trim().length < 3) return Alert.alert('My profile', 'Add a short reason for this change request.')
 
-    const requests: Array<Parameters<typeof essApi.createProfileChangeRequest>[0]> = []
+    const changes: Parameters<typeof essApi.createProfileChangeRequest>[0]['changes'] = {}
     if (preferredName.trim() !== (data.profile?.preferredName || '').trim()) {
-      requests.push({ field: 'preferredName', value: preferredName.trim(), reason: reason.trim() })
+      changes.preferredName = preferredName.trim()
     }
     if (phone.trim() !== (data.profile?.phone || '').trim()) {
-      requests.push({ field: 'phone', value: phone.trim(), reason: reason.trim() })
+      changes.phone = phone.trim()
     }
     if (address.trim() !== (data.profile?.address || '').trim()) {
-      requests.push({ field: 'address', value: { formatted: address.trim() }, reason: reason.trim() })
+      changes.address = { formatted: address.trim() }
     }
 
     setBusy(true)
     try {
-      for (const request of requests) await essApi.createProfileChangeRequest(request)
+      await essApi.createProfileChangeRequest({ changes, reason: reason.trim() })
       setPreferredName(data.profile?.preferredName || '')
       setPhone(data.profile?.phone || '')
       setAddress(data.profile?.address || '')
       setReason('')
       await reload()
-      Alert.alert('My profile', `${requests.length === 1 ? 'Change request' : 'Change requests'} submitted for approval.`)
+      Alert.alert('My profile', 'Change request submitted for approval.')
     } catch (error) {
       Alert.alert('My profile', error instanceof Error ? error.message : 'Unable to submit profile change request')
     } finally {

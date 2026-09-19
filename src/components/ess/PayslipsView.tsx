@@ -60,8 +60,8 @@ export function PayslipsView() {
 
   return (
     <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 sm:px-5 lg:px-7">
-      <div className="mx-auto max-w-5xl space-y-4">
-        <header className="flex items-end justify-between gap-4 border-b border-border pb-5">
+      <div className="mx-auto max-w-[1440px] space-y-4">
+        <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee self-service</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">My payslips</h1>

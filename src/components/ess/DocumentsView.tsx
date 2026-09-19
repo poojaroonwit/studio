@@ -14,6 +14,7 @@ import type { EssDashboard, EssRow } from './ess-types';
 import { dateValue, statusLabel, stringValue } from './ess-types';
 import type { DocumentTemplate } from '@/lib/document-templates';
 import { sanitizeRichHtml } from '@/lib/security';
+import { EssConfirmActionDialog } from './EssConfirmActionDialog';
 
 type SelfServiceTemplateData = {
   templates: DocumentTemplate[];
@@ -250,6 +251,7 @@ function DocumentCard({ document, submitting, mutate }: {
   mutate: (url: string, method: 'POST' | 'PATCH', body: unknown, successMessage: string) => Promise<unknown>;
 }) {
   const requiresAck = Boolean(document.requires_acknowledgment && !document.acknowledged_at);
+  const [confirmAcknowledgment, setConfirmAcknowledgment] = React.useState(false);
   return (
     <article className="flex min-h-48 flex-col rounded-md border border-border bg-background p-4">
       <div className="flex items-start justify-between gap-3"><FileCheck2 className="h-5 w-5 text-primary" /><StatusBadge status={requiresAck ? 'acknowledgment_required' : document.status} /></div>
@@ -259,8 +261,20 @@ function DocumentCard({ document, submitting, mutate }: {
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
         {Boolean(document.file_path) && <Button asChild size="sm" variant="outline"><a href={`/api/ess/files?kind=document&id=${document.id}`} target="_blank" rel="noreferrer"><Eye className="mr-1 h-3.5 w-3.5" />Preview</a></Button>}
         {Boolean(document.file_path) && <Button asChild size="sm" variant="ghost"><a href={`/api/ess/files?kind=document&id=${document.id}`} download><Download className="mr-1 h-3.5 w-3.5" />Download</a></Button>}
-        {requiresAck && <Button size="sm" disabled={submitting} onClick={() => void mutate('/api/ess/documents', 'PATCH', { id: document.id, action: 'acknowledge' }, 'Document acknowledged.')}>Acknowledge</Button>}
+        {requiresAck && <Button size="sm" disabled={submitting} onClick={() => setConfirmAcknowledgment(true)}>Acknowledge</Button>}
       </div>
+      <EssConfirmActionDialog
+        open={confirmAcknowledgment}
+        onOpenChange={open => { if (!submitting) setConfirmAcknowledgment(open); }}
+        title="Acknowledge this document?"
+        description="Your acknowledgment is recorded as a durable employee action. Confirm only after you have reviewed the document."
+        confirmLabel="Acknowledge document"
+        busy={submitting}
+        onConfirm={() => {
+          setConfirmAcknowledgment(false);
+          void mutate('/api/ess/documents', 'PATCH', { id: document.id, action: 'acknowledge' }, 'Document acknowledged.');
+        }}
+      />
     </article>
   );
 }

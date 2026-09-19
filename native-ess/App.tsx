@@ -362,7 +362,7 @@ export default function App() {
             onNewRequestOpened={() => setRequestComposerPending(false)}
           />
         : tab === 'documents'
-          ? <DocumentsScreen data={data} loadMoreTick={loadMoreTick} />
+          ? <DocumentsScreen data={data} loadMoreTick={loadMoreTick} reload={load} />
           : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} section={accountSection} onSectionChange={setAccountSection} onSignOut={() => void signOut()} onFullPageChange={setFullPage} />
 
   return <SafeAreaProvider><SafeAreaView style={s.root}><StatusBar style="dark" />

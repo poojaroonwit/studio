@@ -98,31 +98,31 @@ export function ApplicantReviewDecisionPanel({
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-white px-5 py-4 text-[#263451]">
+    <div className="h-full overflow-y-auto bg-background px-5 py-4 text-foreground">
       {showHiringDetails && (
         <div aria-live="polite">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#68758e]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Hiring details
           </p>
-          <p className="mt-1 text-[12px] leading-5 text-[#68758e]">
+          <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
             Offer considerations, ownership, documents, and consent records.
           </p>
         </div>
       )}
 
-      <section className="border-b border-[#e2e7ef] pb-4">
+      <section className="border-b border-border pb-4">
         <button
           type="button"
           aria-controls="review-decision-hiring-details"
           aria-expanded={showHiringDetails}
           onClick={() => setShowHiringDetails(current => !current)}
-          className="mt-4 flex w-full items-center justify-between border-t border-[#edf0f4] pt-3 text-left text-[12px] font-semibold text-[#0b63e6] transition-colors hover:text-[#084fae] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b63e6]/25"
+          className="mt-4 flex w-full items-center justify-between border-t border-border/60 pt-3 text-left text-[12px] font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           <span>{showHiringDetails ? "Show less Hiring details" : "Show more Hiring details"}</span>
           <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${showHiringDetails ? "rotate-180" : ""}`} aria-hidden="true" />
         </button>
         {showHiringDetails && (
-          <div id="review-decision-hiring-details" className="-mx-5 mt-3 border-t border-[#e2e7ef]">
+          <div id="review-decision-hiring-details" className="-mx-5 mt-3 border-t border-border">
             <ApplicantHiringBrief
               applicant={applicant}
               resumes={resumes}
@@ -164,18 +164,18 @@ export function ApplicantReviewDecisionPanel({
         )}
       </section>
 
-      <section className="border-b border-[#e2e7ef] py-4">
-        <h3 className="text-[14px] font-semibold text-[#12213d]">Hiring team note</h3>
-        <p className="mt-2 text-[13px] leading-5 text-[#3d4c68]">
+      <section className="border-b border-border py-4">
+        <h3 className="text-[14px] font-semibold text-foreground">Hiring team note</h3>
+        <p className="mt-2 text-[13px] leading-5 text-muted-foreground">
           {latestNote?.content || "No hiring note has been added yet."}
         </p>
         {latestNote?.author && (
-          <p className="mt-2 text-xs text-slate-500">— {typeof latestNote.author === "string" ? latestNote.author : latestNote.author.name}</p>
+          <p className="mt-2 text-xs text-muted-foreground">— {typeof latestNote.author === "string" ? latestNote.author : latestNote.author.name}</p>
         )}
       </section>
 
-      <section className="border-b border-[#e2e7ef] py-4">
-        <h3 className="text-[14px] font-semibold text-[#12213d]">Add a comment (@mention)</h3>
+      <section className="border-b border-border py-4">
+        <h3 className="text-[14px] font-semibold text-foreground">Add a comment (@mention)</h3>
         <div className="relative mt-2.5">
           <Textarea
             value={comment}
@@ -184,7 +184,7 @@ export function ApplicantReviewDecisionPanel({
               if ((event.metaKey || event.ctrlKey) && event.key === "Enter") void submitComment();
             }}
             placeholder="Write a comment..."
-            className="h-[46px] min-h-[46px] w-full resize-none overflow-hidden rounded-md border-[#d8dee8] bg-white py-3 pl-3 pr-12 text-[12px] text-[#263451] placeholder:text-[#9aa4b7] dark:bg-white dark:text-[#263451]"
+            className="h-[46px] min-h-[46px] w-full resize-none overflow-hidden rounded-md border-input bg-background py-3 pl-3 pr-12 text-[12px] text-[#263451] placeholder:text-[#9aa4b7] dark:bg-background "
           />
           <Button
             type="button"
@@ -192,18 +192,18 @@ export function ApplicantReviewDecisionPanel({
             title={savingComment ? "Sending comment" : "Send comment"}
             disabled={!comment.trim() || savingComment}
             onClick={submitComment}
-            className="absolute right-1.5 top-1.5 h-8 w-8 shrink-0 rounded bg-[#0b63e6] p-0 text-white shadow-none hover:bg-[#0957c9]"
+            className="absolute right-1.5 top-1.5 h-8 w-8 shrink-0 rounded bg-primary p-0 text-white shadow-none hover:bg-primary/90"
           >
             <PaperAirplaneIcon className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </section>
 
-      <section className="space-y-2.5 border-b border-[#e2e7ef] py-4">
+      <section className="space-y-2.5 border-b border-border py-4">
         <DecisionAction
           icon={ArrowRightIcon}
           label={nextStage ? `Next stage: ${nextStage.name}` : "No next stage"}
-          className="!border-[#06afb1] !text-[#06a6a8] hover:!bg-[#effcfc]"
+          className="!border-success/40 !text-success hover:!bg-success/10"
           stage={nextStage || undefined}
           isStatusUpdating={isStatusUpdating}
           onStatusUpdate={onStatusUpdate}
@@ -211,7 +211,7 @@ export function ApplicantReviewDecisionPanel({
         <DecisionAction
           icon={ClockIcon}
           label="Hold"
-          className="!border-[#f5a000] !text-[#ec9800] hover:!bg-[#fff9eb]"
+          className="!border-warning/40 !text-warning hover:!bg-warning/10"
           stage={actions.hold}
           isStatusUpdating={isStatusUpdating}
           onStatusUpdate={onStatusUpdate}
@@ -220,7 +220,7 @@ export function ApplicantReviewDecisionPanel({
           icon={NoSymbolIcon}
           label="Reject"
           confirmation="dialog"
-          className="!border-[#ff5263] !text-[#f23f52] hover:!bg-[#fff3f5]"
+          className="!border-destructive/40 !text-destructive hover:!bg-destructive/10"
           stage={actions.reject}
           isStatusUpdating={isStatusUpdating}
           onStatusUpdate={onStatusUpdate}
@@ -252,16 +252,16 @@ function DecisionFact({
 }) {
   return (
     <div className="grid grid-cols-[18px_82px_minmax(0,1fr)] items-center gap-2 text-[13px]">
-      <Icon className="h-4 w-4 text-[#61708b]" aria-hidden="true" />
-      <dt className="text-[#536079]">{label}</dt>
-      <dd className="min-w-0 font-medium text-[#12213d]">
+      <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 font-medium text-foreground">
         <div className="flex min-w-0 items-center gap-2">
-          {accent && <CheckCircleIcon className="h-3.5 w-3.5 shrink-0 text-[#0b63e6]" aria-hidden="true" />}
+          {accent && <CheckCircleIcon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />}
           {visual}
           {valueNode || <span className="truncate">{value}</span>}
         </div>
         {secondary && (
-          <p className="mt-0.5 truncate text-[11px] font-normal text-[#68758e]">
+          <p className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">
             {secondary}
           </p>
         )}
@@ -284,7 +284,7 @@ function RecruiterProfilePopover({ recruiter }: { recruiter: NonNullable<Applica
         <button
           type="button"
           aria-label={`View ${recruiter.name} profile`}
-          className="flex min-w-0 items-center gap-2 rounded text-left outline-none hover:text-[#0b63e6] focus-visible:ring-2 focus-visible:ring-[#0b63e6]/25"
+          className="flex min-w-0 items-center gap-2 rounded text-left outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           <RecruiterAvatarCompact
             user={avatarUser}
@@ -299,15 +299,15 @@ function RecruiterProfilePopover({ recruiter }: { recruiter: NonNullable<Applica
         <div className="flex items-center gap-3">
           <RecruiterAvatarCompact user={avatarUser} size="md" showBorder={false} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#12213d]">{recruiter.name}</p>
-            <p className="text-xs text-[#68758e]">Recruiter</p>
+            <p className="truncate text-sm font-semibold text-foreground">{recruiter.name}</p>
+            <p className="text-xs text-muted-foreground">Recruiter</p>
           </div>
         </div>
-        <div className="mt-3 border-t border-[#e2e7ef] pt-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[#68758e]">Email</p>
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Email</p>
           <a
             href={`mailto:${recruiter.email}`}
-            className="mt-1 block truncate text-[13px] font-medium text-[#0b63e6] hover:underline"
+            className="mt-1 block truncate text-[13px] font-medium text-primary hover:underline"
           >
             {recruiter.email}
           </a>
@@ -322,7 +322,7 @@ function SourceThumbnail({ source }: { source: Applicant["source"] }) {
     return (
       <SourceLogo
         source={source}
-        className="h-[28px] w-[28px] shrink-0 rounded-full border border-[#dfe5ee] bg-white object-contain p-1"
+        className="h-[28px] w-[28px] shrink-0 rounded-full border border-border bg-background object-contain p-1"
       />
     );
   }
@@ -331,7 +331,7 @@ function SourceThumbnail({ source }: { source: Applicant["source"] }) {
   return (
     <span
       aria-hidden="true"
-      className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full bg-[#edf2f8] text-[9px] font-bold text-[#526079]"
+      className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground"
     >
       {initials}
     </span>
@@ -391,15 +391,15 @@ function DecisionAction({
     return (
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
-          <Button type="button" variant="outline" disabled={!stage || isStatusUpdating} className={`h-[42px] w-full rounded-md bg-white text-[14px] font-semibold shadow-none outline-none focus-visible:ring-0 dark:bg-white ${className}`}>
+          <Button type="button" variant="outline" disabled={!stage || isStatusUpdating} className={`h-[42px] w-full rounded-md bg-background text-[14px] font-semibold shadow-none outline-none focus-visible:ring-0 dark:bg-background ${className}`}>
             <Icon className="mr-2 h-4 w-4" />
             {label}
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="max-w-md border-slate-200 bg-white text-[#12213d]">
+        <AlertDialogContent className="max-w-md border-border bg-background text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Reject this applicant?</AlertDialogTitle>
-            <AlertDialogDescription className="text-[#536079]">
+            <AlertDialogDescription className="text-muted-foreground">
               This moves the applicant to {stage?.name || "Rejected"}. You can include a note explaining the decision.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -407,13 +407,13 @@ function DecisionAction({
             value={note}
             onChange={event => setNote(event.target.value)}
             placeholder="Optional rejection note..."
-            className="min-h-[96px] resize-none border-slate-200 bg-slate-50 text-[#263451] dark:bg-slate-50 dark:text-[#263451]"
+            className="min-h-[96px] resize-none border-border bg-muted/30 text-[#263451] dark:bg-muted/30 "
           />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isStatusUpdating}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={!stage || isStatusUpdating}
-              className="bg-[#e23d4f] text-white hover:bg-[#c92f40]"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async event => {
                 event.preventDefault();
                 if (!stage) return;
@@ -435,19 +435,19 @@ function DecisionAction({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" disabled={!stage || isStatusUpdating} className={`h-[42px] w-full rounded-md bg-white text-[14px] font-semibold shadow-none outline-none focus-visible:ring-0 dark:bg-white ${className}`}>
+        <Button type="button" variant="outline" disabled={!stage || isStatusUpdating} className={`h-[42px] w-full rounded-md bg-background text-[14px] font-semibold shadow-none outline-none focus-visible:ring-0 dark:bg-background ${className}`}>
           <Icon className="mr-2 h-4 w-4" />
           {label}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" side="left" className="w-72 border-slate-200 bg-white text-slate-900">
+      <PopoverContent align="end" side="left" className="w-72 border-border bg-background text-foreground">
         <h4 className="text-sm font-semibold">Confirm {label}</h4>
-        <p className="mt-1 text-xs text-slate-500">Move this applicant to {stage?.name}.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Move this applicant to {stage?.name}.</p>
         <Textarea
           value={note}
           onChange={event => setNote(event.target.value)}
           placeholder="Optional note..."
-          className="mt-3 min-h-[82px] resize-none bg-slate-50 text-slate-800 dark:bg-slate-50 dark:text-slate-800"
+          className="mt-3 min-h-[82px] resize-none bg-muted/30 text-foreground/80 dark:bg-muted/30 dark:text-foreground/80"
         />
         <div className="mt-3 flex justify-end gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

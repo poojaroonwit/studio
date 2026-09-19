@@ -24,16 +24,16 @@ export function EmployeeProfileScaffold({
   className?: string;
 }) {
   return (
-    <main className={cn('flex h-full min-h-[calc(100vh-4rem)] w-full flex-col bg-background text-foreground', className)}>
+    <main className={cn('flex h-full min-h-[calc(100vh-4rem)] w-full flex-col bg-[hsl(var(--app-page-background,var(--background)))] text-foreground', className)}>
       {header}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 bg-muted/10 p-3 sm:gap-4 sm:p-4 sm:pt-3 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)]">
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-background shadow-lg">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
           {navigation}
           <div className="flex-1 overflow-y-auto bg-background p-4 pb-20 sm:p-6">
             {children}
           </div>
         </section>
-        <aside className="flex min-h-[360px] flex-col overflow-hidden lg:min-h-0">
+        <aside className="flex min-h-[360px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-sm lg:min-h-0">
           {sidebarNavigation}
           <div className="flex-1 overflow-y-auto">{sidebar}</div>
         </aside>

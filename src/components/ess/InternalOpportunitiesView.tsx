@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { EssConfirmActionDialog } from './EssConfirmActionDialog';
 
 type MobilityApplication = {
   id: string;
@@ -77,6 +78,7 @@ export function InternalOpportunitiesView() {
   const [composerMode, setComposerMode] = React.useState<ComposerMode>('apply');
   const [statement, setStatement] = React.useState('');
   const [saving, setSaving] = React.useState(false);
+  const [pendingWithdraw, setPendingWithdraw] = React.useState<Opportunity | null>(null);
 
   const load = React.useCallback(async (background = false) => {
     background ? setRefreshing(true) : setLoading(true);
@@ -311,7 +313,7 @@ export function InternalOpportunitiesView() {
                         <Button onClick={() => openComposer(opportunity, 'resubmit')}>Edit & resubmit</Button>
                       ) : null}
                       {canWithdraw ? (
-                        <Button variant="outline" disabled={saving} onClick={() => void withdraw(opportunity)}>
+                        <Button variant="outline" disabled={saving} onClick={() => setPendingWithdraw(opportunity)}>
                           Withdraw
                         </Button>
                       ) : null}
@@ -360,6 +362,20 @@ export function InternalOpportunitiesView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <EssConfirmActionDialog
+        open={Boolean(pendingWithdraw)}
+        onOpenChange={open => { if (!open && !saving) setPendingWithdraw(null); }}
+        title="Withdraw internal application?"
+        description={pendingWithdraw ? `Your application for “${pendingWithdraw.title}” will be removed from manager review. You can resubmit later only when the application lifecycle allows it.` : 'Your application will be removed from manager review.'}
+        confirmLabel="Withdraw application"
+        destructive
+        busy={saving}
+        onConfirm={() => {
+          const opportunity = pendingWithdraw;
+          setPendingWithdraw(null);
+          if (opportunity) void withdraw(opportunity);
+        }}
+      />
     </main>
   );
 }

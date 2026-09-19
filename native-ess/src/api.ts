@@ -26,6 +26,7 @@ export type LeavePolicyOption = {
   allowHalfDay?: boolean
   allowHourly?: boolean
   minimumRequestUnits?: number
+  year: number
 }
 
 export type EssDocument = {

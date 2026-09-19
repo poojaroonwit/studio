@@ -120,13 +120,13 @@ export function OnboardingView() {
         {message && <div role="status" className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">{message}</div>}
         {error && <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
 
-        {!journey && !error ? (
+        {!journey ? (error ? null : (
           <section className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
             <CheckCircle2 className="mx-auto h-9 w-9 text-muted-foreground" />
             <h2 className="mt-3 font-semibold">No onboarding journey assigned</h2>
             <p className="mt-1 text-sm text-muted-foreground">Your People team will assign onboarding here when needed.</p>
           </section>
-        ) : (
+        )) : (
           <>
             <section className="rounded-lg border border-border bg-card p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

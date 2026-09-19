@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
 import { getDownloadedStorageFile } from '@/app/api/download/download-route-storage';
+import { deleteMobileEmergencyContact, writeMobileEmergencyContact } from '@/lib/ess/mobile-emergency-contacts';
 
 export const dynamic = 'force-dynamic';
 
@@ -472,50 +473,6 @@ async function patchBankTax(identity: EssIdentity, body: Record<string, unknown>
   return NextResponse.json({ success: true });
 }
 
-function emergencyContactIndex(contacts: Array<Record<string, unknown>>, contactId: string) {
-  const exact = contacts.findIndex(item => String(item.id || '') === contactId);
-  if (exact >= 0) return exact;
-
-  const synthetic = contactId.match(/^contact-(\d+)$/);
-  if (!synthetic) return -1;
-  const index = Number(synthetic[1]);
-  if (!Number.isInteger(index) || index < 0 || index >= contacts.length) return -1;
-  return contacts[index]?.id ? -1 : index;
-}
-
-async function writeEmergencyContact(identity: EssIdentity, body: Record<string, unknown>, contactId?: string) {
-  const employeeResult = await getPool().query('SELECT emergency_contacts FROM hr_employees WHERE id = $1', [identity.employeeId]);
-  const contacts = jsonArray((employeeResult.rows[0] as DbRow | undefined)?.emergency_contacts);
-  const index = contactId ? emergencyContactIndex(contacts, contactId) : -1;
-  if (contactId && index < 0) return { response: jsonError('Emergency contact not found', 404) };
-
-  const previous = index >= 0 ? contacts[index] : {};
-  const id = stringValue(previous.id, 80) || randomUUID();
-  const next = {
-    ...previous,
-    id,
-    name: stringValue(body.name ?? previous.name, 120),
-    relationship: stringValue(body.relationship ?? previous.relationship, 80),
-    phone: stringValue(body.phone ?? previous.phone, 50),
-    primary: typeof body.primary === 'boolean' ? body.primary : previous.primary === true,
-  };
-  if (!next.name || !next.relationship || !next.phone) return { response: jsonError('Name, relationship and phone are required', 400) };
-  if (next.primary) contacts.forEach(item => { item.primary = false; });
-  if (index >= 0) contacts[index] = next; else contacts.push(next);
-  await getPool().query('UPDATE hr_employees SET emergency_contacts = $2::jsonb, updated_at = NOW(), version = version + 1 WHERE id = $1', [identity.employeeId, JSON.stringify(contacts)]);
-  return { contact: next };
-}
-
-async function deleteEmergencyContact(identity: EssIdentity, contactId: string) {
-  const employeeResult = await getPool().query('SELECT emergency_contacts FROM hr_employees WHERE id = $1', [identity.employeeId]);
-  const contacts = jsonArray((employeeResult.rows[0] as DbRow | undefined)?.emergency_contacts);
-  const index = emergencyContactIndex(contacts, contactId);
-  if (index < 0) return jsonError('Emergency contact not found', 404);
-  contacts.splice(index, 1);
-  await getPool().query('UPDATE hr_employees SET emergency_contacts = $2::jsonb, updated_at = NOW(), version = version + 1 WHERE id = $1', [identity.employeeId, JSON.stringify(contacts)]);
-  return new NextResponse(null, { status: 204 });
-}
-
 async function createSupportTicket(identity: EssIdentity, body: Record<string, unknown>) {
   const subject = stringValue(body.subject, 180);
   const message = stringValue(body.message, 5000);
@@ -601,8 +558,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (path.join('/') === 'leave/requests') return createLeave(identity, body);
   if (path[0] === 'leave' && path[1] === 'requests' && path[2] && path[3] === 'cancel') return cancelLeave(identity, path[2]);
   if (path.join('/') === 'emergency-contacts') {
-    const result = await writeEmergencyContact(identity, body);
-    return 'response' in result ? result.response : NextResponse.json(result.contact, { status: 201 });
+    const result = await writeMobileEmergencyContact(identity.employeeId, body);
+    return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact, { status: 201 });
   }
   if (path.join('/') === 'hr-support/tickets') return createSupportTicket(identity, body);
   if (path[0] === 'notifications' && path[1] && path[2] === 'read') {
@@ -626,8 +583,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (path.join('/') === 'profile') return patchProfile(identity, body);
   if (path.join('/') === 'bank-tax') return patchBankTax(identity, body);
   if (path[0] === 'emergency-contacts' && path[1]) {
-    const result = await writeEmergencyContact(identity, body, path[1]);
-    return 'response' in result ? result.response : NextResponse.json(result.contact);
+    const result = await writeMobileEmergencyContact(identity.employeeId, body, path[1]);
+    return 'error' in result ? jsonError(result.error, result.status) : NextResponse.json(result.contact);
   }
   return jsonError('Not found', 404);
 }
@@ -636,6 +593,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const path = await pathParts(context);
   const authResult = await requireIdentity(request);
   if ('response' in authResult) return authResult.response;
-  if (path[0] === 'emergency-contacts' && path[1]) return deleteEmergencyContact(authResult.identity, path[1]);
+  if (path[0] === 'emergency-contacts' && path[1]) {
+    const deleted = await deleteMobileEmergencyContact(authResult.identity.employeeId, path[1]);
+    return deleted ? new NextResponse(null, { status: 204 }) : jsonError('Emergency contact not found', 404);
+  }
   return jsonError('Not found', 404);
 }

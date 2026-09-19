@@ -19,6 +19,7 @@ function normalizeCachedBootstrap(value: EssBootstrap): EssBootstrap {
     ...value,
     attendance: Array.isArray(value.attendance) ? value.attendance : [],
     attendanceCorrections: Array.isArray(value.attendanceCorrections) ? value.attendanceCorrections : [],
+    profileChangeRequests: Array.isArray(value.profileChangeRequests) ? value.profileChangeRequests : [],
     leaveRequests: Array.isArray(value.leaveRequests) ? value.leaveRequests : [],
     leavePolicies: Array.isArray(value.leavePolicies) ? value.leavePolicies : [],
     documents: Array.isArray(value.documents) ? value.documents : [],

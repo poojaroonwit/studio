@@ -291,13 +291,13 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
   const actions = selected ? actionOptions(resource, selected, summary) : [];
 
   return (
-    <main className="min-h-full bg-[#f6f7f9] text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+    <main className="min-h-full bg-background text-foreground">
       {!online && (
         <div role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm font-medium text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
           You are offline. Existing data remains visible; financial actions will resume when your connection returns.
         </div>
       )}
-      <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div className="border-b border-border bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
           <HrisWorkspaceHeader
             eyebrow={config.eyebrow}
@@ -310,7 +310,7 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
             {(summary.access.canFinance || summary.access.canAudit) && (
               <Link
                 href={`/api/expenses/reports?report=${resource}`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-input bg-white px-4 text-sm font-semibold text-foreground hover:bg-muted/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
               >
                 <ArrowDownTrayIcon className="h-4 w-4" /> Export current report
               </Link>
@@ -353,9 +353,9 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
       )}
 
       <section className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6" aria-label={`${config.title} summary`}>
-        <div className="grid overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-2 lg:grid-cols-5 dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-200 p-4 sm:col-span-2 sm:border-r lg:border-b-0 dark:border-slate-800">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{summary.primaryLabel}</p>
+        <div className="grid overflow-hidden rounded-lg border border-border bg-white sm:grid-cols-2 lg:grid-cols-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-border p-4 sm:col-span-2 sm:border-r lg:border-b-0 dark:border-slate-800">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{summary.primaryLabel}</p>
             <MoneyDisplay amount={summary.primaryAmount} currency={summary.currency} className="mt-2 block text-2xl font-bold tracking-tight" />
           </div>
           {[
@@ -365,10 +365,10 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
             ['Completed', summary.completed],
           ].map(([label, value], index) => (
             <div key={String(label)} className={cn(
-              'border-b border-slate-200 p-4 sm:border-r lg:border-b-0 dark:border-slate-800',
+              'border-b border-border p-4 sm:border-r lg:border-b-0 dark:border-slate-800',
               index === 3 && 'sm:border-r-0 lg:border-r-0',
             )}>
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
               <p className="mt-2 text-2xl font-bold tabular-nums">{value}</p>
             </div>
           ))}
@@ -376,24 +376,24 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
       </section>
 
       <section className="mx-auto max-w-[1600px] px-4 pb-10 sm:px-6">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between dark:border-slate-800">
-            <div className="flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800" aria-label="Record scope">
-              <button type="button" onClick={() => setScope('self')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'self' ? 'bg-white text-slate-950 shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-slate-600 dark:text-slate-300')}>My records</button>
-              {summary.access.canApprove && <button type="button" onClick={() => setScope('team')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'team' ? 'bg-white text-slate-950 shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-slate-600 dark:text-slate-300')}>Team review</button>}
-              {(summary.access.canFinance || summary.access.canAudit) && <button type="button" onClick={() => setScope('finance')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'finance' ? 'bg-white text-slate-950 shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-slate-600 dark:text-slate-300')}>Finance scope</button>}
+        <div className="overflow-hidden rounded-lg border border-border bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between dark:border-slate-800">
+            <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1 dark:bg-slate-800" aria-label="Record scope">
+              <button type="button" onClick={() => setScope('self')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'self' ? 'bg-white text-foreground shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-muted-foreground dark:text-slate-300')}>My records</button>
+              {summary.access.canApprove && <button type="button" onClick={() => setScope('team')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'team' ? 'bg-white text-foreground shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-muted-foreground dark:text-slate-300')}>Team review</button>}
+              {(summary.access.canFinance || summary.access.canAudit) && <button type="button" onClick={() => setScope('finance')} className={cn('min-h-9 rounded-md px-3 text-sm font-semibold', scope === 'finance' ? 'bg-white text-foreground shadow-sm dark:bg-slate-950 dark:text-slate-50' : 'text-muted-foreground dark:text-slate-300')}>Finance scope</button>}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <label className="relative min-w-0 sm:w-72">
                 <span className="sr-only">Search {config.title}</span>
-                <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search reference or title" className="min-h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950" />
+                <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search reference or title" className="min-h-10 w-full rounded-lg border border-input bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950" />
               </label>
-              <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value)} className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-950">
+              <select aria-label="Filter by status" value={status} onChange={event => setStatus(event.target.value)} className="min-h-10 rounded-lg border border-input bg-white px-3 text-sm font-medium dark:border-slate-700 dark:bg-slate-950">
                 <option value="">All statuses</option>
                 {availableStatuses.map(value => <option key={value} value={value}>{value.replace(/_/g, ' ')}</option>)}
               </select>
-              <button type="button" aria-label="Refresh expense records" onClick={() => load(true)} className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+              <button type="button" aria-label="Refresh expense records" onClick={() => load(true)} className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-input hover:bg-muted/40 dark:border-slate-700 dark:hover:bg-slate-800">
                 <ArrowPathIcon className={cn('h-4 w-4', refreshing && 'animate-spin')} />
               </button>
             </div>
@@ -405,10 +405,10 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
             <ExpenseEmpty resourceLabel={config.singular} canCreate={summary.access.canCreate && resource !== 'accounting'} onCreate={() => setCreating(true)} />
           ) : (
             <div className={cn('grid', selected && 'xl:grid-cols-[minmax(0,1fr)_420px]')}>
-              <div className={cn('min-w-0', selected && 'xl:border-r xl:border-slate-200 dark:xl:border-slate-800')}>
+              <div className={cn('min-w-0', selected && 'xl:border-r xl:border-border dark:xl:border-slate-800')}>
                 <div className="hidden overflow-x-auto md:block">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500 dark:bg-slate-950">
+                    <thead className="bg-muted/40 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground dark:bg-slate-950">
                       <tr>
                         <th className="px-4 py-3">Reference</th>
                         <th className="px-4 py-3">Request</th>
@@ -420,14 +420,14 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                       {summary.records.map(record => (
-                        <tr key={record.id} className={cn('transition hover:bg-slate-50 dark:hover:bg-slate-800/60', selected?.id === record.id && 'bg-blue-50 dark:bg-blue-950/40')}>
+                        <tr key={record.id} className={cn('transition hover:bg-muted/40 dark:hover:bg-slate-800/60', selected?.id === record.id && 'bg-blue-50 dark:bg-blue-950/40')}>
                           <td className="whitespace-nowrap px-4 py-3 font-semibold text-blue-800 dark:text-blue-300">{record.reference}</td>
-                          <td className="max-w-xs px-4 py-3"><p className="truncate font-semibold">{record.title}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(record.updatedAt).toLocaleDateString()}</p></td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{record.employeeName}</td>
+                          <td className="max-w-xs px-4 py-3"><p className="truncate font-semibold">{record.title}</p><p className="mt-0.5 text-xs text-muted-foreground">{new Date(record.updatedAt).toLocaleDateString()}</p></td>
+                          <td className="px-4 py-3 text-muted-foreground dark:text-slate-300">{record.employeeName}</td>
                           <td className="px-4 py-3"><ExpenseStatusBadge status={record.status} /></td>
                           <td className="whitespace-nowrap px-4 py-3 text-right font-semibold"><MoneyDisplay amount={record.amount} currency={record.currency} /></td>
                           <td className="px-2 py-3">
-                            <button type="button" onClick={() => setSelected(record)} aria-label={`Open ${record.reference}`} className="grid min-h-10 min-w-10 place-items-center rounded-lg hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 dark:hover:bg-slate-800">
+                            <button type="button" onClick={() => setSelected(record)} aria-label={`Open ${record.reference}`} className="grid min-h-10 min-w-10 place-items-center rounded-lg hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 dark:hover:bg-slate-800">
                               <ChevronRightIcon className="h-4 w-4" />
                             </button>
                           </td>
@@ -439,14 +439,14 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
 
                 <div className="divide-y divide-slate-200 md:hidden dark:divide-slate-800">
                   {summary.records.map(record => (
-                    <button key={record.id} type="button" onClick={() => setSelected(record)} className="block min-h-28 w-full p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <button key={record.id} type="button" onClick={() => setSelected(record)} className="block min-h-28 w-full p-4 text-left hover:bg-muted/40 dark:hover:bg-slate-800">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-[0.08em] text-blue-700 dark:text-blue-300">{record.reference}</p>
                           <p className="mt-1 truncate font-bold">{record.title}</p>
-                          <p className="mt-1 text-xs text-slate-500">{record.employeeName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{record.employeeName}</p>
                         </div>
-                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                        <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-3">
                         <ExpenseStatusBadge status={record.status} />
@@ -458,14 +458,14 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
               </div>
 
               {selected && (
-                <aside className="border-t border-slate-200 bg-slate-50/50 xl:border-t-0 dark:border-slate-800 dark:bg-slate-950/50" aria-label={`${selected.reference} details`}>
+                <aside className="border-t border-border bg-muted/30 xl:border-t-0 dark:border-slate-800 dark:bg-slate-950/50" aria-label={`${selected.reference} details`}>
                   <div className="sticky top-0">
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                    <div className="flex items-start justify-between gap-3 border-b border-border bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                       <div>
                         <p className="text-xs font-bold uppercase tracking-[0.12em] text-blue-700 dark:text-blue-300">{selected.reference}</p>
                         <h2 className="mt-1 text-lg font-bold">{selected.title}</h2>
                       </div>
-                      <button type="button" onClick={() => setSelected(null)} aria-label="Close details" className="grid min-h-10 min-w-10 place-items-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <button type="button" onClick={() => setSelected(null)} aria-label="Close details" className="grid min-h-10 min-w-10 place-items-center rounded-lg hover:bg-muted dark:hover:bg-slate-800">
                         <XMarkIcon className="h-5 w-5" />
                       </button>
                     </div>
@@ -474,18 +474,18 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
                         <ExpenseStatusBadge status={selected.status} />
                         <MoneyDisplay amount={selected.amount} currency={selected.currency} className="text-lg font-bold" />
                       </div>
-                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-slate-200 py-4 text-sm dark:border-slate-800">
-                        <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Employee</dt><dd className="mt-1 font-semibold">{selected.employeeName}</dd></div>
-                        <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Last updated</dt><dd className="mt-1 font-semibold">{new Date(selected.updatedAt).toLocaleString()}</dd></div>
-                        <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Version</dt><dd className="mt-1 font-semibold">{selected.version}</dd></div>
-                        <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Approved</dt><dd className="mt-1 font-semibold">{selected.approvedAmount === undefined ? 'Pending' : <MoneyDisplay amount={selected.approvedAmount} currency={selected.currency} />}</dd></div>
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-border py-4 text-sm dark:border-slate-800">
+                        <div><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Employee</dt><dd className="mt-1 font-semibold">{selected.employeeName}</dd></div>
+                        <div><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Last updated</dt><dd className="mt-1 font-semibold">{new Date(selected.updatedAt).toLocaleString()}</dd></div>
+                        <div><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Version</dt><dd className="mt-1 font-semibold">{selected.version}</dd></div>
+                        <div><dt className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Approved</dt><dd className="mt-1 font-semibold">{selected.approvedAmount === undefined ? 'Pending' : <MoneyDisplay amount={selected.approvedAmount} currency={selected.currency} />}</dd></div>
                       </dl>
 
                       {resource !== 'accounting' && <PolicyWarningPanel results={selected.policyResults || []} />}
                       {resource === 'accounting' && (
-                        <div className="border-y border-slate-200 py-4 text-sm dark:border-slate-800">
+                        <div className="border-y border-border py-4 text-sm dark:border-slate-800">
                           <div className="flex items-center gap-2 font-bold"><ShieldCheckIcon className="h-4 w-4 text-blue-700" /> Journal controls</div>
-                          <p className="mt-2 text-slate-600 dark:text-slate-300">
+                          <p className="mt-2 text-muted-foreground dark:text-slate-300">
                             Debit and credit are validated before export. Posted financial fields are immutable and reversals create a linked journal.
                           </p>
                           {Boolean(selected.metadata?.postingError) && <p className="mt-3 text-rose-700 dark:text-rose-300">{String(selected.metadata?.postingError)}</p>}
@@ -493,7 +493,7 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
                       )}
 
                       {resource === 'claims' && selected.status === 'draft' && (
-                        <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-400 px-4 text-sm font-semibold text-slate-700 hover:border-blue-500 hover:bg-blue-50 dark:text-slate-200 dark:hover:bg-blue-950">
+                        <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-400 px-4 text-sm font-semibold text-foreground/80 hover:border-blue-500 hover:bg-blue-50 dark:text-slate-200 dark:hover:bg-blue-950">
                           <PaperClipIcon className="h-4 w-4" />
                           {actionBusy ? 'Uploading receipt…' : 'Upload receipt or PDF'}
                           <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={actionBusy} onChange={event => {
@@ -517,7 +517,7 @@ export function ExpensesWorkspace({ resource }: { resource: ExpenseResource }) {
                                   ? 'border-blue-700 bg-blue-700 text-white hover:bg-blue-800'
                                   : option.tone === 'danger'
                                     ? 'border-rose-300 bg-white text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950'
-                                    : 'border-slate-300 bg-white text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+                                    : 'border-input bg-white text-foreground hover:bg-muted/40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
                               )}
                             >
                               {actionBusy ? 'Processing financial action…' : option.label}

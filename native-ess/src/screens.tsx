@@ -676,41 +676,59 @@ function LeaveRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload
 function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, showTitle = true }: { data: EssBootstrap; reload?: () => Promise<void>; onDone: () => void; initialAttendanceId?: string; showTitle?: boolean }) {
   const initialId = initialAttendanceId || data.attendance[0]?.id || ''
   const initialRecord = data.attendance.find(row => row.id === initialId)
+  const defaultTarget = initialRecord?.checkIn ? (initialRecord?.checkOut ? 'check_in' : 'check_out') : 'check_in'
   const [attendanceId, setAttendanceId] = useState(initialId)
+  const [target, setTarget] = useState<'check_in' | 'check_out'>(defaultTarget)
   const [checkIn, setCheckIn] = useState<Date | null>(() => initialRecord?.checkIn ? new Date(initialRecord.checkIn) : null)
   const [checkOut, setCheckOut] = useState<Date | null>(() => initialRecord?.checkOut ? new Date(initialRecord.checkOut) : null)
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [recordOpen, setRecordOpen] = useState(false)
+  const [targetOpen, setTargetOpen] = useState(false)
   const selected = data.attendance.find((row) => row.id === attendanceId)
 
   const chooseRecord = (row: AttendanceRow) => {
     setAttendanceId(row.id)
     setCheckIn(row.checkIn ? new Date(row.checkIn) : null)
     setCheckOut(row.checkOut ? new Date(row.checkOut) : null)
+    setTarget(row.checkIn ? (row.checkOut ? 'check_in' : 'check_out') : 'check_in')
     setRecordOpen(false)
   }
 
   const submit = async () => {
     if (!attendanceId || !selected || !reason.trim()) return Alert.alert('Attendance correction', 'Choose an attendance record and enter a reason.')
+
     const checkInMinutes = checkIn ? checkIn.getHours() * 60 + checkIn.getMinutes() : null
     const checkOutMinutes = checkOut ? checkOut.getHours() * 60 + checkOut.getMinutes() : null
     const overnight = checkInMinutes !== null && checkOutMinutes !== null && checkOutMinutes <= checkInMinutes
     const requestedCheckIn = attendanceTimestamp(selected.date, checkIn)
     const requestedCheckOut = attendanceTimestamp(selected.date, checkOut, overnight ? 1 : 0)
-    if (sameAttendanceMinute(requestedCheckIn, selected.checkIn) && sameAttendanceMinute(requestedCheckOut, selected.checkOut)) {
-      return Alert.alert('Attendance correction', 'Change the requested clock in or clock out time before submitting.')
+    const requestedValue = target === 'check_in' ? requestedCheckIn : requestedCheckOut
+    const currentValue = target === 'check_in' ? selected.checkIn : selected.checkOut
+
+    if (!requestedValue) {
+      return Alert.alert('Attendance correction', `Choose the requested ${target === 'check_in' ? 'clock-in' : 'clock-out'} time.`)
     }
+    if (sameAttendanceMinute(requestedValue, currentValue)) {
+      return Alert.alert('Attendance correction', `Change the requested ${target === 'check_in' ? 'clock-in' : 'clock-out'} time before submitting.`)
+    }
+
+    const correctionType = target === 'check_in'
+      ? selected.checkIn ? 'incorrect_check_in' : 'missing_check_in'
+      : selected.checkOut ? 'incorrect_check_out' : 'missing_check_out'
+
     setBusy(true)
     try {
       await essApi.createAttendanceCorrection({
         attendanceId,
+        workDate: selected.date,
+        correctionType,
         reason: reason.trim(),
-        requestedCheckIn,
-        requestedCheckOut,
+        requestedCheckIn: target === 'check_in' ? requestedCheckIn : undefined,
+        requestedCheckOut: target === 'check_out' ? requestedCheckOut : undefined,
       })
       if (reload) await reload()
-      Alert.alert('Attendance correction', 'Submitted for review.')
+      Alert.alert('Attendance correction', 'Submitted for approval.')
       onDone()
     } catch (error) {
       Alert.alert('Attendance correction', error instanceof Error ? error.message : 'Unable to submit')
@@ -720,13 +738,21 @@ function AttendanceCorrectionForm({ data, reload, onDone, initialAttendanceId, s
   }
 
   return <>{showTitle ? <AppText style={s.pageTitle}>Attendance correction</AppText> : null}<Card>
+    <View style={s.inlineNotice}><Ionicons name="shield-checkmark-outline" size={19} color={colors.textMuted} /><Muted style={s.flexOne}>Corrections are submitted as tracked requests and may require approval before the attendance record changes.</Muted></View>
     <SelectField label="Attendance record" value={selected?.date || 'Choose a record'} onPress={() => setRecordOpen(true)} />
-    <TimeField label="Requested clock in" value={checkIn} fallback={selected?.checkIn} onChange={setCheckIn} />
-    <TimeField label="Requested clock out" value={checkOut} fallback={selected?.checkOut} onChange={setCheckOut} />
+    <SelectField label="Correct" value={target === 'check_in' ? 'Clock in' : 'Clock out'} onPress={() => setTargetOpen(true)} />
+    {target === 'check_in'
+      ? <TimeField label="Requested clock in" value={checkIn} fallback={selected?.checkIn} onChange={setCheckIn} />
+      : <TimeField label="Requested clock out" value={checkOut} fallback={selected?.checkOut} onChange={setCheckOut} />}
     <Field label="Reason" value={reason} onChangeText={setReason} multiline placeholder="Why should this record be corrected?" />
-    <Button title="Submit correction" busy={busy} disabled={!selected} onPress={() => void submit()} />
-  </Card><BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>
+    <Button title="Submit for approval" busy={busy} disabled={!selected || !reason.trim()} onPress={() => void submit()} />
+  </Card>
+  <BottomDrawer visible={recordOpen} title="Attendance record" subtitle="Choose the record that needs correction." onClose={() => setRecordOpen(false)}>
     {data.attendance.slice(0, 20).map((row) => <DrawerOption key={row.id} title={row.date} subtitle={`${formatDateTime(row.checkIn)} → ${formatDateTime(row.checkOut)}`} selected={attendanceId === row.id} onPress={() => chooseRecord(row)} />)}
+  </BottomDrawer>
+  <BottomDrawer visible={targetOpen} title="Correction field" subtitle="Submit one corrected time per request." onClose={() => setTargetOpen(false)}>
+    <DrawerOption title="Clock in" subtitle={selected?.checkIn ? `Current · ${formatDateTime(selected.checkIn)}` : 'Currently missing'} selected={target === 'check_in'} onPress={() => { setTarget('check_in'); setTargetOpen(false) }} />
+    <DrawerOption title="Clock out" subtitle={selected?.checkOut ? `Current · ${formatDateTime(selected.checkOut)}` : 'Currently missing'} selected={target === 'check_out'} onPress={() => { setTarget('check_out'); setTargetOpen(false) }} />
   </BottomDrawer></>
 }
 

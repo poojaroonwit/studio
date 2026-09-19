@@ -109,13 +109,12 @@ export async function createMobileAttendanceCorrection(identity: MobileEssReques
   }
 }
 
-export async function createMobileProfileChangeRequest(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
-  const field = text(body.field, 80);
-  const reason = text(body.reason, 2000);
-  const allowedFields = new Set(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
-  if (!allowedFields.has(field)) return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
-
-  const values = { [field]: body.value };
+async function createProfileChange(
+  identity: MobileEssRequestIdentity,
+  field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
+  value: unknown,
+  reason: string,
+) {
   const labels: Record<string, string> = {
     preferredName: 'Preferred name',
     phone: 'Personal phone',
@@ -127,17 +126,77 @@ export async function createMobileProfileChangeRequest(identity: MobileEssReques
     requestType: 'profile_change',
     title: `Update ${labels[field] || 'profile'}`,
     reason,
-    values,
+    values: { [field]: value },
     originalValues: {},
     saveAsDraft: false,
   });
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid profile change request' }, { status: 400 });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid profile change request');
+  return createEssRequest(identity.userId, identity.email, parsed.data);
+}
+
+export async function createMobileProfileChangeRequest(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
+  const field = text(body.field, 80);
+  const reason = text(body.reason, 2000);
+  const allowedFields = new Set(['preferredName', 'phone', 'address', 'bankInformation', 'taxInformation']);
+  if (!allowedFields.has(field)) return NextResponse.json({ error: 'This profile field cannot be changed from mobile' }, { status: 400 });
+
+  try {
+    const data = await createProfileChange(
+      identity,
+      field as 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation',
+      body.value,
+      reason,
+    );
+    return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
+  } catch (error) {
+    return errorResponse(error, 'Unable to create profile change request');
+  }
+}
+
+export async function createLegacyMobileProfileChangeRequests(
+  identity: MobileEssRequestIdentity,
+  kind: 'profile' | 'bank-tax',
+  body: Record<string, unknown>,
+) {
+  const changes: Array<{
+    field: 'preferredName' | 'phone' | 'address' | 'bankInformation' | 'taxInformation';
+    value: unknown;
+  }> = [];
+
+  if (kind === 'profile') {
+    const preferredName = text(body.preferredName, 120);
+    const phone = text(body.phone, 80);
+    const address = text(body.address, 500);
+    if (preferredName) changes.push({ field: 'preferredName', value: preferredName });
+    if (phone) changes.push({ field: 'phone', value: phone });
+    if (address) changes.push({ field: 'address', value: { formatted: address } });
+  } else {
+    const bankName = text(body.bankName, 160);
+    const accountNumber = text(body.accountNumber, 80);
+    const taxId = text(body.taxId, 80);
+    const bankInformation = {
+      ...(bankName ? { bankName } : {}),
+      ...(accountNumber ? { accountNumber } : {}),
+    };
+    if (Object.keys(bankInformation).length > 0) changes.push({ field: 'bankInformation', value: bankInformation });
+    if (taxId) changes.push({ field: 'taxInformation', value: { taxId } });
+  }
+
+  if (changes.length === 0) {
+    return NextResponse.json({
+      error: kind === 'profile'
+        ? 'No supported profile changes were provided. Account email is managed by Outborn Account.'
+        : 'Enter at least one bank or tax value to change.',
+    }, { status: 400 });
   }
 
   try {
-    const data = await createEssRequest(identity.userId, identity.email, parsed.data);
-    return NextResponse.json({ id: data.id, requestNumber: data.request_id, status: data.status }, { status: 201 });
+    const requests = [];
+    for (const change of changes) {
+      const data = await createProfileChange(identity, change.field, change.value, 'Requested from mobile account settings');
+      requests.push({ id: data.id, requestNumber: data.request_id, status: data.status });
+    }
+    return NextResponse.json({ success: true, requests }, { status: 202 });
   } catch (error) {
     return errorResponse(error, 'Unable to create profile change request');
   }

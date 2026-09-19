@@ -14,6 +14,7 @@ import {
 import type { HrModuleKey } from './hr-module-config';
 import { getLeaveBlockValidationError } from './leave-block-utils';
 import { assertAllocationCanBeSaved } from './organization-headcount-allocation';
+import { calculateEmployeeReadiness } from './employee-readiness';
 
 export type HrCrudRecord = Record<string, unknown> & { id: string };
 
@@ -363,7 +364,7 @@ export async function getHrCrudRecord(moduleKey: HrModuleKey, id: string, view?:
   if (!rows[0]) return null;
   const record = rowToClientRecord(rows[0], config);
   if (config.key === 'people') {
-    const [documents, linkedApplicant, profileRequests, onboarding, onboardingTasks] = await Promise.all([
+    const [documents, linkedApplicant, profileRequests, onboarding, onboardingTasks, readinessRows] = await Promise.all([
       prisma.$queryRawUnsafe<Record<string, unknown>[]>(
         `SELECT id, title, type, status, file_path AS "filePath", expires_at AS "expiresAt", created_at AS "createdAt", updated_at AS "updatedAt"
          FROM "hr_employee_documents"
@@ -414,12 +415,72 @@ export async function getHrCrudRecord(moduleKey: HrModuleKey, id: string, view?:
          ORDER BY task.sort_order ASC, task.created_at ASC`,
         id,
       ).catch(() => []),
+      prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        `SELECT
+           compensation.base_salary AS "baseSalary",
+           compensation.currency AS "compensationCurrency",
+           compensation.pay_frequency AS "payFrequency",
+           compensation.effective_from AS "compensationEffectiveFrom",
+           payroll.id AS "payrollProfileId",
+           payroll.payroll_group_id AS "payrollGroupId",
+           payroll.payment_method AS "paymentMethod",
+           payroll.bank_account_reference AS "bankAccountReference",
+           payroll.tax_profile_reference AS "taxProfileReference",
+           payroll.statutory_profile_reference AS "statutoryProfileReference",
+           payroll.payroll_start_date AS "payrollStartDate",
+           (
+             SELECT COUNT(*)::int
+             FROM "hr_employee_documents" document
+             WHERE document.employee_id = employee.id
+               AND document.status <> 'archived'
+               AND document.requires_acknowledgment = TRUE
+               AND document.acknowledged_at IS NULL
+           ) AS "requiredDocumentOpenCount",
+           (
+             SELECT COUNT(*)::int
+             FROM "hr_employee_onboarding" eo
+             JOIN "hr_onboarding_tasks" task ON task.template_id = eo.template_id
+             LEFT JOIN "hr_employee_onboarding_task_progress" progress
+               ON progress.onboarding_id = eo.id AND progress.task_id = task.id
+             WHERE eo.id = (
+               SELECT latest.id
+               FROM "hr_employee_onboarding" latest
+               WHERE latest.employee_id = employee.id
+               ORDER BY latest.updated_at DESC
+               LIMIT 1
+             )
+               AND task.is_required = TRUE
+               AND COALESCE(progress.status, 'pending') <> 'completed'
+           ) AS "requiredOnboardingOpenCount"
+         FROM "hr_employees" employee
+         LEFT JOIN LATERAL (
+           SELECT package.base_salary, package.currency, package.pay_frequency, package.effective_from
+           FROM "hr_compensation_packages" package
+           WHERE package.employee_id = employee.id
+             AND package.status = 'approved'
+             AND package.effective_from <= CURRENT_DATE
+             AND (package.effective_to IS NULL OR package.effective_to >= CURRENT_DATE)
+           ORDER BY package.effective_from DESC
+           LIMIT 1
+         ) compensation ON TRUE
+         LEFT JOIN "hr_employee_payroll_profiles" payroll
+           ON payroll.employee_id = employee.id AND payroll.status = 'active'
+         WHERE employee.id = $1::uuid
+         LIMIT 1`,
+        id,
+      ).catch(() => []),
     ]);
     record.documents = documents;
     record.applicant = linkedApplicant;
     record.profileRequests = profileRequests;
     record.onboarding = onboarding[0] || null;
     record.onboardingTasks = onboardingTasks;
+    record.employeeReadiness = calculateEmployeeReadiness({
+      ...record,
+      ...(readinessRows[0] || {}),
+      onboardingAssigned: Boolean(onboarding[0]),
+      onboardingCaseId: onboarding[0]?.id || null,
+    });
   }
   return record;
 }

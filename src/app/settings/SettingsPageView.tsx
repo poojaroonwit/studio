@@ -123,7 +123,7 @@ export function SettingsPageView({
   if (activeTab === 'Billing') return <BillingWorkspace />;
 
   return (
-    <div className="settings-page-grid flex h-full min-h-0 flex-col text-[#20242c] dark:text-zinc-100">
+    <div className="settings-page-grid flex h-full min-h-0 flex-col text-foreground">
       {accessibleItems.length === 0 ? (
         <SettingsPageEmptyState />
       ) : sections.length === 0 || !selectedItem ? (
@@ -208,21 +208,21 @@ function InlineAdminCenterConfig({
   return (
     <section
       className={cn(
-        'flex min-h-[520px] flex-col overflow-hidden bg-white dark:bg-zinc-900',
+        'flex min-h-[520px] flex-col overflow-hidden bg-background',
         flush
           ? 'h-full min-h-0'
-          : 'h-[calc(100dvh-170px)] rounded-[4px] border border-[#dfe2e8] shadow-[0_1px_3px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:shadow-none',
+          : 'h-[calc(100dvh-170px)] rounded-lg border border-border/70 shadow-sm',
       )}
     >
-      <div className="shrink-0 border-b border-[#dfe2e8] bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900 sm:px-5">
+      <div className="shrink-0 border-b border-border/60 bg-background px-4 py-3 sm:px-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[4px] border border-[#e1e6ed] bg-[#f7f9fc] text-[#55709a] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border/70 bg-muted/60 text-primary">
               <ItemIcon className="h-4 w-4" strokeWidth={1.7} />
             </span>
             <div className="min-w-0">
               <h2 className="truncate text-[13px] font-semibold leading-4 tracking-normal">{item.label}</h2>
-              <p className="mt-0.5 truncate text-xs leading-4 text-[#777c86] dark:text-zinc-400">{item.description}</p>
+              <p className="mt-0.5 truncate text-xs leading-4 text-muted-foreground">{item.description}</p>
             </div>
           </div>
           {isFieldManagement && (
@@ -273,10 +273,10 @@ function InlineAdminCenterConfig({
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 bg-[#f5f6f9] dark:bg-zinc-950">
+      <div className="relative min-h-0 flex-1 bg-muted/20">
         {isLoading && <InlineAdminCenterConfigSkeleton />}
         {loadFailed && (
-          <div className="absolute inset-0 z-20 grid place-items-center bg-[#f5f6f9] p-6 dark:bg-zinc-950" role="alert">
+          <div className="absolute inset-0 z-20 grid place-items-center bg-muted/20 p-6" role="alert">
             <div className="max-w-md text-center">
               <h3 className="text-base font-semibold">Configuration took too long to load</h3>
               <p className="mt-2 text-sm text-muted-foreground">Check the service connection, then retry this configuration.</p>

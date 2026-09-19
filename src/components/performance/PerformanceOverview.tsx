@@ -60,44 +60,44 @@ export function PerformanceOverview({
       <section className="grid overflow-hidden border-b border-border bg-background md:grid-cols-[1.15fr_0.85fr]">
         <div className="relative px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#3459a8] dark:text-blue-300">Current performance state</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary ">Current performance state</p>
             <PerformanceStatusBadge status={performanceStatus} />
           </div>
-          <h2 className="mt-3 max-w-2xl text-xl font-bold tracking-[-0.03em] text-slate-950 dark:text-slate-50 sm:text-2xl">
+          <h2 className="mt-3 max-w-2xl text-xl font-bold tracking-[-0.03em] text-foreground  sm:text-2xl">
             {data.alerts.length
               ? `${data.alerts.length} item${data.alerts.length === 1 ? '' : 's'} need attention`
               : 'You are clear to focus on progress'}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground ">
             {data.alerts[0]?.requiredAction || 'No overdue performance actions were found in the current records.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             {data.alerts[0] ? (
-              <Button type="button" className="min-h-11 bg-[#263f73] text-white hover:bg-[#1f345f]" onClick={() => onTabChange('overview')}>
+              <Button type="button" className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onTabChange('overview')}>
                 Resolve priority action
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="button" className="min-h-11 bg-[#263f73] text-white hover:bg-[#1f345f]" onClick={() => onAction('check-in')}>
+              <Button type="button" className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('check-in')}>
                 Schedule a check-in
               </Button>
             )}
             <Button type="button" variant="outline" className="min-h-11" onClick={() => onAction('feedback')}>Request or give feedback</Button>
           </div>
         </div>
-        <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-5 dark:border-slate-800 dark:bg-slate-900/40 md:border-l md:border-t-0">
-          <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Current review context</p>
+        <div className="border-t border-border/60 bg-muted/40 px-5 py-5   md:border-l md:border-t-0">
+          <p className="text-xs font-bold text-foreground ">Current review context</p>
           {review ? (
             <div className="mt-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">{String(review.cycleName || 'Performance review')}</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatDate(review.cycleStartDate)} – {formatDate(review.cycleEndDate)}</p>
+                  <p className="text-sm font-bold text-foreground ">{String(review.cycleName || 'Performance review')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(review.cycleStartDate)} – {formatDate(review.cycleEndDate)}</p>
                 </div>
                 <PerformanceStatusBadge status={review.status} />
               </div>
               <ReviewSteps status={review.status} />
-              <p className="mt-4 text-xs text-slate-500">Employees complete self-assessments and acknowledgements in My Performance.</p>
+              <p className="mt-4 text-xs text-muted-foreground">Employees complete self-assessments and acknowledgements in My Performance.</p>
             </div>
           ) : (
             <EmptyPerformanceState title="No active appraisal cycle" description="When Appraisal assigns a review, its status and due dates will appear here." />
@@ -126,12 +126,12 @@ export function PerformanceOverview({
                     <div key={String(goal.id)}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{String(goal.title)}</p>
-                          <p className="mt-1 text-xs text-slate-500">Due {formatDate(goal.dueDate)}</p>
+                          <p className="truncate text-sm font-semibold text-foreground ">{String(goal.title)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Due {formatDate(goal.dueDate)}</p>
                         </div>
-                        <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-slate-100">{percent(goal.progress)}%</span>
+                        <span className="text-sm font-bold tabular-nums text-foreground ">{percent(goal.progress)}%</span>
                       </div>
-                      <Progress value={percent(goal.progress)} className="mt-2 h-1.5 bg-slate-100 [&>div]:bg-[#3459a8] dark:bg-slate-800" />
+                      <Progress value={percent(goal.progress)} className="mt-2 h-1.5 bg-muted [&>div]:bg-primary " />
                     </div>
                   ))}
                 </div>
@@ -146,10 +146,10 @@ export function PerformanceOverview({
                     return (
                       <div key={competency.name}>
                         <div className="flex items-center justify-between gap-3 text-xs">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{competency.name}</span>
-                          <span className="text-slate-500">Level {competency.currentLevel} / {competency.expectedLevel}</span>
+                          <span className="font-semibold text-foreground/80 ">{competency.name}</span>
+                          <span className="text-muted-foreground">Level {competency.currentLevel} / {competency.expectedLevel}</span>
                         </div>
-                        <Progress value={score} className="mt-2 h-1.5 bg-slate-100 [&>div]:bg-emerald-600 dark:bg-slate-800" />
+                        <Progress value={score} className="mt-2 h-1.5 bg-muted [&>div]:bg-emerald-600 " />
                       </div>
                     );
                   })}
@@ -162,14 +162,14 @@ export function PerformanceOverview({
             {data.developmentActions.length ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 {data.developmentActions.slice(0, 4).map(action => (
-                  <article key={String(action.id)} className="rounded-lg bg-slate-50 p-4 dark:bg-slate-900/60">
+                  <article key={String(action.id)} className="rounded-lg bg-muted/40 p-4 ">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{String(action.title)}</p>
+                      <p className="text-sm font-bold text-foreground ">{String(action.title)}</p>
                       <PerformanceStatusBadge status={action.status} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">{String(action.actionType || '').replace(/_/g, ' ')} · Due {formatDate(action.dueDate)}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{String(action.actionType || '').replace(/_/g, ' ')} · Due {formatDate(action.dueDate)}</p>
                     <div className="mt-3 flex items-center gap-3">
-                      <Progress value={percent(action.progress)} className="h-1.5 flex-1 bg-white [&>div]:bg-emerald-600 dark:bg-slate-800" />
+                      <Progress value={percent(action.progress)} className="h-1.5 flex-1 bg-muted [&>div]:bg-emerald-600 " />
                       <span className="text-xs font-bold tabular-nums">{percent(action.progress)}%</span>
                     </div>
                     {action.learningCourseId ? <SmallLink href="/learning">Continue in Learning</SmallLink> : null}
@@ -203,13 +203,13 @@ export function PerformanceOverview({
           <WorkspaceSection className="-mt-px xl:border-l-0" title="Next check-in" action={<Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onAction('check-in')}>Schedule</Button>}>
             {upcomingCheckIn ? (
               <div className="flex items-start gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-[#3459a8] dark:bg-blue-950/40 dark:text-blue-300">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary  ">
                   <CalendarClock className="h-5 w-5" aria-hidden />
                 </div>
                 <div>
-                  <p className="text-sm font-bold capitalize text-slate-900 dark:text-slate-100">{String(upcomingCheckIn.type || 'Check-in').replace(/_/g, ' ')}</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatDate(upcomingCheckIn.meetingDate)} · {String(upcomingCheckIn.managerName || 'Manager')}</p>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(upcomingCheckIn.agenda || 'Agenda not prepared yet.')}</p>
+                  <p className="text-sm font-bold capitalize text-foreground ">{String(upcomingCheckIn.type || 'Check-in').replace(/_/g, ' ')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(upcomingCheckIn.meetingDate)} · {String(upcomingCheckIn.managerName || 'Manager')}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground ">{String(upcomingCheckIn.agenda || 'Agenda not prepared yet.')}</p>
                 </div>
               </div>
             ) : <EmptyPerformanceState title="No upcoming check-in" description="Schedule a focused one-on-one, development, or career conversation." />}
@@ -221,11 +221,11 @@ export function PerformanceOverview({
                 {data.feedback.filter(item => item.status === 'published').slice(0, 3).map(item => (
                   <article key={String(item.id)}>
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-bold capitalize text-slate-900 dark:text-slate-100">{String(item.feedbackType || 'Feedback').replace(/_/g, ' ')}</p>
-                      <span className="text-[11px] text-slate-500">{formatDate(item.createdAt)}</span>
+                      <p className="text-xs font-bold capitalize text-foreground ">{String(item.feedbackType || 'Feedback').replace(/_/g, ' ')}</p>
+                      <span className="text-[11px] text-muted-foreground">{formatDate(item.createdAt)}</span>
                     </div>
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{String(item.wentWell || item.context || item.improvementSuggestion || '')}</p>
-                    <p className="mt-2 text-xs font-semibold text-slate-500">{String(item.providerName || 'Feedback provider')}</p>
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground ">{String(item.wentWell || item.context || item.improvementSuggestion || '')}</p>
+                    <p className="mt-2 text-xs font-semibold text-muted-foreground">{String(item.providerName || 'Feedback provider')}</p>
                   </article>
                 ))}
               </div>
@@ -256,13 +256,13 @@ function SummaryCell({
 }) {
   return (
     <div className="bg-background px-4 py-4 sm:px-5">
-      <div className="flex items-center gap-2 text-slate-500">
-        <Icon className="h-4 w-4 text-[#3459a8] dark:text-blue-300" aria-hidden />
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-4 w-4 text-primary " aria-hidden />
         <p className="text-[11px] font-bold uppercase tracking-[0.1em]">{label}</p>
       </div>
-      <p className="mt-3 text-xl font-bold tabular-nums tracking-[-0.03em] text-slate-950 dark:text-slate-50">{value}</p>
-      {typeof progress === 'number' ? <Progress value={progress} className="mt-3 h-1.5 bg-slate-100 [&>div]:bg-[#3459a8] dark:bg-slate-800" /> : null}
-      <p className="mt-2 text-xs leading-5 text-slate-500">{helper}</p>
+      <p className="mt-3 text-xl font-bold tabular-nums tracking-[-0.03em] text-foreground ">{value}</p>
+      {typeof progress === 'number' ? <Progress value={progress} className="mt-3 h-1.5 bg-muted [&>div]:bg-primary " /> : null}
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{helper}</p>
     </div>
   );
 }
@@ -276,8 +276,8 @@ function ReviewSteps({ status }: { status: unknown }) {
     <ol className="my-5 grid grid-cols-4 gap-2" aria-label="Appraisal progress">
       {labels.map((label, index) => (
         <li key={label}>
-          <span className={`block h-1.5 rounded-full ${index <= current ? 'bg-[#3459a8]' : 'bg-slate-200 dark:bg-slate-700'}`} aria-hidden />
-          <span className="mt-2 block text-[10px] leading-4 text-slate-500">{label}</span>
+          <span className={`block h-1.5 rounded-full ${index <= current ? 'bg-primary' : 'bg-muted '}`} aria-hidden />
+          <span className="mt-2 block text-[10px] leading-4 text-muted-foreground">{label}</span>
         </li>
       ))}
     </ol>
@@ -322,7 +322,7 @@ function PerformanceTrend({ reviews }: { reviews: Array<Record<string, unknown>>
         <desc id="performance-trend-desc">{released.map(item => `${String(item.cycleName)}: ${String(item.rating)}`).join(', ')}</desc>
         {[0, 1, 2, 3].map(index => {
           const y = paddingY + (index / 3) * (height - paddingY * 2);
-          return <line key={index} x1={paddingX} x2={width - paddingX} y1={y} y2={y} stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="4 6" />;
+          return <line key={index} x1={paddingX} x2={width - paddingX} y1={y} y2={y} stroke="currentColor" className="text-slate-200 dark:text-foreground/80" strokeDasharray="4 6" />;
         })}
         <path d={path} fill="none" stroke="#3459a8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((point, index) => (
@@ -333,7 +333,7 @@ function PerformanceTrend({ reviews }: { reviews: Array<Record<string, unknown>>
           </g>
         ))}
       </svg>
-      <figcaption className="mt-2 flex items-center gap-2 text-xs text-slate-500"><Sparkles className="h-3.5 w-3.5" aria-hidden />Recorded ratings; no predictive score is shown.</figcaption>
+      <figcaption className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Sparkles className="h-3.5 w-3.5" aria-hidden />Recorded ratings; no predictive score is shown.</figcaption>
     </figure>
   );
 }

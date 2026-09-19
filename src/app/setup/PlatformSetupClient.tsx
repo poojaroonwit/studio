@@ -265,12 +265,12 @@ export default function PlatformSetupClient({ initialAdminCreated = false }: { i
           <div className="w-full max-w-xl">
             <div className="mb-8 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                <span className="font-semibold text-foreground/80">
                   {stage === 'account' ? 'Administrator account' : stage === 'environment' ? 'Installation environment' : stage === 'ai' ? 'AI connection' : stage === 'tour' ? 'Activation preview' : 'Account ready'}
                 </span>
                 <span className="text-muted-foreground">{stage === 'environment' && isInitializingEnvironment ? `${environmentProgress}% complete` : 'A few guided steps'}</span>
               </div>
-              <Progress value={progress} className="h-1.5 bg-slate-200 dark:bg-slate-800" />
+              <Progress value={progress} className="h-1.5 bg-muted" />
             </div>
 
             {stage === 'account' && (
@@ -278,7 +278,7 @@ export default function PlatformSetupClient({ initialAdminCreated = false }: { i
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">Step 1</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight">Create the first administrator</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     This account owns platform configuration, permissions, and the initial team setup.
                   </p>
                 </div>
@@ -321,7 +321,7 @@ export default function PlatformSetupClient({ initialAdminCreated = false }: { i
                 <div className="space-y-2">
                   <Label htmlFor="setup-password">Password</Label>
                   <div className="relative">
-                    <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                     <Input
                       id="setup-password"
                       type={showPassword ? 'text' : 'password'}
@@ -342,7 +342,7 @@ export default function PlatformSetupClient({ initialAdminCreated = false }: { i
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <p className="text-xs leading-5 text-slate-500">Use uppercase, lowercase, a number, and a special character.</p>
+                  <p className="text-xs leading-5 text-muted-foreground">Use uppercase, lowercase, a number, and a special character.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -359,8 +359,8 @@ export default function PlatformSetupClient({ initialAdminCreated = false }: { i
                   />
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
-                  <p className="max-w-xs text-xs leading-5 text-slate-500">You will choose Demo or Production before setup closes.</p>
+                <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between ">
+                  <p className="max-w-xs text-xs leading-5 text-muted-foreground">You will choose Demo or Production before setup closes.</p>
                   <Button type="submit" disabled={isSubmitting} className="sm:min-w-44">
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                     Create administrator

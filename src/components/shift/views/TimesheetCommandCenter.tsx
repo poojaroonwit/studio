@@ -206,7 +206,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
                 Submit week
               </Button>
             </div>
-            <p className="order-6 hidden items-center gap-2 text-[11px] text-slate-500 2xl:flex">
+            <p className="order-6 hidden items-center gap-2 text-[11px] text-muted-foreground 2xl:flex">
               <Cloud className="h-3.5 w-3.5" />
               {ownSheet?.updated_at ? `Updated ${formatDate(ownSheet.updated_at)} ${formatTime(ownSheet.updated_at)}` : 'No saved timesheet'}
             </p>
@@ -215,7 +215,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
 
         <div className="contents">
           <div className="order-2 flex flex-wrap items-center gap-2">
-            <div className="inline-flex h-9 items-center rounded-md border border-slate-200 dark:border-zinc-700">
+            <div className="inline-flex h-9 items-center rounded-md border border-border dark:border-input">
               <Button
                 variant="ghost"
                 size="icon"
@@ -225,7 +225,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="flex min-w-48 items-center justify-center gap-2 border-x border-slate-200 px-3 text-center text-sm font-semibold dark:border-zinc-700">
+              <div className="flex min-w-48 items-center justify-center gap-2 border-x border-border px-3 text-center text-sm font-semibold dark:border-input">
                 <CalendarDays className="h-4 w-4" />
                 {formatDate(days[0], { month: "short", day: "numeric" })}–
                 {formatDate(days[6], {
@@ -258,7 +258,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
             </Button>
           </div>
           <div
-            className="order-3 inline-flex w-fit rounded-md border border-slate-200 p-0.5 dark:border-zinc-700"
+            className="order-3 inline-flex w-fit rounded-md border border-border p-0.5 dark:border-input"
             aria-label="Timesheet view"
           >
             <ViewButton
@@ -368,9 +368,9 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
                 </div>
               )}
               {selectedEmployeeId === selfEmployeeId && ['draft', 'returned'].includes(stringValue(ownSheet?.status)) && arrayValue(ownSheet?.entries).length > 0 && (
-                <div className="mt-3 rounded-md border border-slate-200 dark:border-zinc-800">
-                  <div className="border-b border-slate-200 px-3 py-2 text-xs font-bold dark:border-zinc-800">Editable entries</div>
-                  {arrayValue(ownSheet?.entries).map(entry => <div key={String(entry.id)} className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-sm last:border-0 dark:border-zinc-900"><span className="min-w-0 truncate">{formatDate(entry.workDate || entry.work_date)} · {stringValue(entry.project)} · {formatDuration(entry.durationMinutes || entry.duration_minutes)}</span><span className="flex gap-1"><Button variant="ghost" size="sm" disabled={state.saving} onClick={() => { setEditingEntry(entry); setEntryDate(String(entry.workDate || entry.work_date).slice(0, 10)); setEntryOpen(true); }}>Edit</Button><Button variant="ghost" size="sm" className="text-rose-600" disabled={state.saving} onClick={() => void state.mutate({ action: 'delete_timesheet_entry', entryId: entry.id, expectedVersion: numberValue(entry.version) }, 'Timesheet entry deleted.')}>Delete</Button></span></div>)}
+                <div className="mt-3 rounded-md border border-border dark:border-border">
+                  <div className="border-b border-border px-3 py-2 text-xs font-bold dark:border-border">Editable entries</div>
+                  {arrayValue(ownSheet?.entries).map(entry => <div key={String(entry.id)} className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 text-sm last:border-0 dark:border-border/60"><span className="min-w-0 truncate">{formatDate(entry.workDate || entry.work_date)} · {stringValue(entry.project)} · {formatDuration(entry.durationMinutes || entry.duration_minutes)}</span><span className="flex gap-1"><Button variant="ghost" size="sm" disabled={state.saving} onClick={() => { setEditingEntry(entry); setEntryDate(String(entry.workDate || entry.work_date).slice(0, 10)); setEntryOpen(true); }}>Edit</Button><Button variant="ghost" size="sm" className="text-rose-600" disabled={state.saving} onClick={() => void state.mutate({ action: 'delete_timesheet_entry', entryId: entry.id, expectedVersion: numberValue(entry.version) }, 'Timesheet entry deleted.')}>Delete</Button></span></div>)}
                 </div>
               )}
               <div className="mt-4">
@@ -404,7 +404,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
                   <>
                     <div className="mb-3 flex items-center justify-between">
                       <div className="relative w-72">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                         <Input
                           value={query}
                           onChange={(event) => setQuery(event.target.value)}
@@ -412,7 +412,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
                           className="pl-9"
                         />
                       </div>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         {visibleResources.length} resources
                       </span>
                     </div>
@@ -429,7 +429,7 @@ export function TimesheetCommandCenter({ employeeSelfService = false }: { employ
                   </>
                 )}
               </div>
-              <div className="mt-4 flex h-11 items-center justify-between border-t border-slate-200 px-3 text-xs text-slate-500 dark:border-zinc-800">
+              <div className="mt-4 flex h-11 items-center justify-between border-t border-border px-3 text-xs text-muted-foreground dark:border-border">
                 <span>{stringValue(selectedEmployee.status, 'draft').replace(/_/g, ' ')}</span>
                 <span>{selectedEmployee.updated_at ? `Updated ${formatDate(selectedEmployee.updated_at)} ${formatTime(selectedEmployee.updated_at)}` : 'Not saved'}</span>
               </div>
@@ -449,7 +449,7 @@ function TimesheetDecisionBar({ sheet, saving, onDecision }: { sheet: ShiftRecor
 
 function Page({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-full w-full bg-transparent text-slate-950 dark:text-zinc-100">
+    <main className="min-h-full w-full bg-transparent text-foreground dark:text-foreground">
       <div className="flex w-full max-w-none flex-col gap-4">
         {children}
       </div>
@@ -475,7 +475,7 @@ function ViewButton({
         "inline-flex h-8 items-center gap-2 rounded px-3 text-sm font-semibold transition",
         active
           ? "bg-blue-600 text-white"
-          : "text-slate-600 hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white",
+          : "text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-white",
       )}
       onClick={onClick}
     >
@@ -513,29 +513,29 @@ function SelectedEmployeeHeader({
   const utilization =
     attendance > 0 ? Math.round((allocated / attendance) * 100) : 0;
   return (
-    <section className="flex min-h-28 flex-col gap-4 border-b border-slate-200 px-6 py-4 xl:flex-row xl:items-center dark:border-zinc-800">
+    <section className="flex min-h-28 flex-col gap-4 border-b border-border px-6 py-4 xl:flex-row xl:items-center dark:border-border">
       <div className="flex min-w-72 items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xl font-bold text-slate-700 dark:bg-slate-700 dark:text-white">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted text-xl font-bold text-foreground/80 dark:bg-slate-700 dark:text-white">
           {initials}
         </div>
         <div>
           <h1 className="text-xl font-bold">{employeeName(resource)}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {stringValue(resource.job_title, "Employee")} ·{" "}
             {stringValue(resource.department_name, "Unassigned")}
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Employee ID: {stringValue(resource.employee_number, "No ID")}
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap overflow-hidden rounded-md border border-slate-200 dark:border-zinc-700">
+      <div className="flex flex-wrap overflow-hidden rounded-md border border-border dark:border-input">
         {metrics.map(([label, value]) => (
           <div
             key={label}
-            className="min-w-24 border-r border-slate-200 px-3 py-2 dark:border-zinc-700"
+            className="min-w-24 border-r border-border px-3 py-2 dark:border-input"
           >
-            <p className="text-[11px] text-slate-500">{label}</p>
+            <p className="text-[11px] text-muted-foreground">{label}</p>
             <p
               className={cn(
                 "mt-0.5 text-sm font-bold tabular-nums",
@@ -548,7 +548,7 @@ function SelectedEmployeeHeader({
           </div>
         ))}
         <div className="min-w-24 px-3 py-2">
-          <p className="text-[11px] text-slate-500">Utilization</p>
+          <p className="text-[11px] text-muted-foreground">Utilization</p>
           <p className="mt-0.5 text-sm font-bold tabular-nums">
             {utilization}%
           </p>
@@ -579,7 +579,7 @@ function WorkspaceToolbar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex h-10 items-center rounded-md border border-slate-200 dark:border-zinc-700">
+      <div className="inline-flex h-10 items-center rounded-md border border-border dark:border-input">
         <Button
           variant="ghost"
           size="icon"
@@ -589,7 +589,7 @@ function WorkspaceToolbar({
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex min-w-60 items-center justify-center gap-2 border-x border-slate-200 px-3 text-sm font-semibold dark:border-zinc-700">
+        <div className="flex min-w-60 items-center justify-center gap-2 border-x border-border px-3 text-sm font-semibold dark:border-input">
           <CalendarDays className="h-4 w-4" />
           {formatDate(days[0], {
             weekday: "short",
@@ -618,7 +618,7 @@ function WorkspaceToolbar({
         Today
       </Button>
       <div
-        className="inline-flex rounded-md border border-slate-200 p-0.5 dark:border-zinc-700"
+        className="inline-flex rounded-md border border-border p-0.5 dark:border-input"
         aria-label="Timesheet view"
       >
         <ViewButton
@@ -682,14 +682,14 @@ function EmployeeSidebar({
       .entries(),
   );
   return (
-    <aside className="min-h-full border-r border-slate-200 dark:border-zinc-800">
-      <div className="border-b border-slate-200 p-4 dark:border-zinc-800">
+    <aside className="min-h-full border-r border-border dark:border-border">
+      <div className="border-b border-border p-4 dark:border-border">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Employees</p>
-          <SlidersHorizontal className="h-4 w-4 text-slate-500" />
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="relative mt-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
@@ -701,7 +701,7 @@ function EmployeeSidebar({
       <div className="max-h-[660px] overflow-y-auto">
         {groups.map(([group, employees]) => (
           <div key={group}>
-            <p className="border-b border-slate-200 px-4 py-3 text-xs font-bold dark:border-zinc-800">
+            <p className="border-b border-border px-4 py-3 text-xs font-bold dark:border-border">
               {group}
             </p>
             {employees.map((resource) => {
@@ -718,10 +718,10 @@ function EmployeeSidebar({
                   key={id}
                   type="button"
                   className={cn(
-                    "flex w-full items-center gap-3 border-b border-slate-200 px-4 py-3 text-left transition dark:border-zinc-800",
+                    "flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left transition dark:border-border",
                     active
                       ? "border-l-2 border-l-blue-500 bg-blue-950/60 text-white"
-                      : "hover:bg-slate-100 dark:hover:bg-zinc-900",
+                      : "hover:bg-muted dark:hover:bg-card",
                   )}
                   onClick={() => onSelect(id)}
                 >
@@ -730,7 +730,7 @@ function EmployeeSidebar({
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                       active
                         ? "bg-blue-600 text-white"
-                        : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-white",
+                        : "bg-muted text-foreground/80 dark:bg-slate-700 dark:text-white",
                     )}
                   >
                     {initials}
@@ -739,7 +739,7 @@ function EmployeeSidebar({
                     <span className="block truncate text-xs font-semibold">
                       {employeeName(resource)}
                     </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-slate-500">
+                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                       {stringValue(resource.job_title, "Employee")}
                     </span>
                   </span>
@@ -749,14 +749,14 @@ function EmployeeSidebar({
           </div>
         ))}
         {!resources.length && (
-          <p className="px-3 py-8 text-center text-xs text-slate-500">
+          <p className="px-3 py-8 text-center text-xs text-muted-foreground">
             No employees found.
           </p>
         )}
       </div>
       <button
         type="button"
-        className="m-4 flex items-center gap-2 text-xs font-semibold text-blue-500"
+        className="m-4 flex items-center gap-2 text-xs font-semibold text-primary"
       >
         <Plus className="h-4 w-4 rounded-full border border-current p-0.5" />
         Add employee
@@ -784,13 +784,13 @@ function SummaryRail({
     ["Billable", formatDuration(billable), false],
   ] as const;
   return (
-    <section className="flex flex-wrap items-center gap-x-0 gap-y-2 border-y border-slate-200 py-2 dark:border-zinc-800">
+    <section className="flex flex-wrap items-center gap-x-0 gap-y-2 border-y border-border py-2 dark:border-border">
       {items.map(([label, value, alert]) => (
         <div
           key={label}
-          className="flex min-w-[150px] items-baseline gap-2 border-r border-slate-200 px-4 first:pl-0 last:border-r-0 dark:border-zinc-800"
+          className="flex min-w-[150px] items-baseline gap-2 border-r border-border px-4 first:pl-0 last:border-r-0 dark:border-border"
         >
-          <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-500">
+          <span className="text-[11px] font-medium text-muted-foreground dark:text-muted-foreground">
             {label}
           </span>
           <span
@@ -845,16 +845,16 @@ function SelectedAllocationMatrix({
     displayAttendanceForDay(resource, dateKey(day), days),
   );
   return (
-    <section className="overflow-x-auto border border-slate-200 dark:border-zinc-700">
+    <section className="overflow-x-auto border border-border dark:border-input">
       <div className="min-w-[970px] text-[13px]">
         <div
-          className="grid border-b border-slate-200 dark:border-zinc-700"
+          className="grid border-b border-border dark:border-input"
           style={{ gridTemplateColumns: columns }}
         >
           <div className="flex items-center justify-center px-4 py-4 text-sm font-semibold">
             Project / Task
           </div>
-          <div className="flex items-center justify-center border-l border-slate-200 px-3 py-4 text-sm font-semibold dark:border-zinc-700">
+          <div className="flex items-center justify-center border-l border-border px-3 py-4 text-sm font-semibold dark:border-input">
             Billable
           </div>
           {days.map((day) => {
@@ -862,7 +862,7 @@ function SelectedAllocationMatrix({
             return (
               <div
                 key={key}
-                className="relative border-l border-slate-200 px-2 py-4 text-center dark:border-zinc-700"
+                className="relative border-l border-border px-2 py-4 text-center dark:border-input"
               >
                 {key === todayKey && (
                   <span className="absolute inset-x-0 top-0 bg-blue-600 py-0.5 text-[11px] font-semibold text-white">
@@ -882,7 +882,7 @@ function SelectedAllocationMatrix({
               </div>
             );
           })}
-          <div className="border-l border-slate-200 px-3 py-4 text-center text-sm font-semibold dark:border-zinc-700">
+          <div className="border-l border-border px-3 py-4 text-center text-sm font-semibold dark:border-input">
             <p>Total</p>
             <p>h</p>
           </div>
@@ -905,21 +905,21 @@ function SelectedAllocationMatrix({
           return (
             <div
               key={`${group.project}-${group.task}-${group.billable}`}
-              className="grid min-h-[62px] border-b border-slate-200 dark:border-zinc-700"
+              className="grid min-h-[62px] border-b border-border dark:border-input"
               style={{ gridTemplateColumns: columns }}
             >
               <div className="flex min-w-0 items-center gap-3 px-3 py-3">
-                <GripVertical className="h-5 w-5 shrink-0 text-slate-400" />
+                <GripVertical className="h-5 w-5 shrink-0 text-muted-foreground/70" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
                     {group.project}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {group.task}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center justify-center border-l border-slate-200 dark:border-zinc-700">
+              <div className="flex items-center justify-center border-l border-border dark:border-input">
                 <button
                   type="button"
                   aria-label={`${group.project} billable`}
@@ -945,7 +945,7 @@ function SelectedAllocationMatrix({
                       "inline-flex h-9 w-[66px] items-center justify-center rounded border text-sm font-semibold tabular-nums",
                       key === todayKey
                         ? "border-blue-500 ring-1 ring-blue-500"
-                        : "border-slate-300 dark:border-zinc-600",
+                        : "border-input dark:border-input",
                     )}
                   >
                     {decimalHours(totals[index])}
@@ -955,25 +955,25 @@ function SelectedAllocationMatrix({
                   <button
                     key={key}
                     type="button"
-                    className="border-l border-slate-200 px-2 py-3 text-center dark:border-zinc-700"
+                    className="border-l border-border px-2 py-3 text-center dark:border-input"
                     onClick={() => canEdit && onCellClick(key)}
                   >
                     {field}
                   </button>
                 );
               })}
-              <div className="flex items-center justify-center border-l border-slate-200 px-3 py-3 text-sm font-semibold tabular-nums dark:border-zinc-700">
+              <div className="flex items-center justify-center border-l border-border px-3 py-3 text-sm font-semibold tabular-nums dark:border-input">
                 {decimalHours(totals.reduce((sum, total) => sum + total, 0))}
               </div>
             </div>
           );
         })}
         {!groups.length && (
-          <div className="border-b border-slate-200 px-4 py-10 text-center dark:border-zinc-800">
+          <div className="border-b border-border px-4 py-10 text-center dark:border-border">
             <p className="text-sm font-semibold">
               No project allocations this week
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               This employee has no project or task entries for the selected
               week.
             </p>
@@ -991,7 +991,7 @@ function SelectedAllocationMatrix({
         )}
         <button
           type="button"
-          className="flex h-12 w-full items-center gap-2 border-b border-slate-200 px-4 text-sm font-semibold text-blue-500 dark:border-zinc-700"
+          className="flex h-12 w-full items-center gap-2 border-b border-border px-4 text-sm font-semibold text-primary dark:border-input"
           onClick={() => canEdit && onCellClick(dateKey(days[0]))}
         >
           <Plus className="h-5 w-5 rounded-full border border-current p-0.5" />
@@ -1002,27 +1002,27 @@ function SelectedAllocationMatrix({
           {dailyTotals.map((total, index) => (
             <div
               key={dateKey(days[index])}
-              className="border-l border-slate-200 px-2 py-3 text-center font-semibold tabular-nums dark:border-zinc-700"
+              className="border-l border-border px-2 py-3 text-center font-semibold tabular-nums dark:border-input"
             >
               {decimalHours(total)}
             </div>
           ))}
-          <div className="border-l border-slate-200 px-3 py-3 text-center font-semibold dark:border-zinc-700">
+          <div className="border-l border-border px-3 py-3 text-center font-semibold dark:border-input">
             {decimalHours(dailyTotals.reduce((sum, total) => sum + total, 0))}
           </div>
-          <div className="col-span-2 border-t border-slate-200 dark:border-zinc-700" />
+          <div className="col-span-2 border-t border-border dark:border-input" />
           {attendanceTotals.map((total, index) => (
             <div
               key={`attendance-${dateKey(days[index])}`}
               className={cn(
-                "border-l border-t border-slate-200 px-2 py-3 text-center text-xs text-slate-500 dark:border-zinc-700",
-                dateKey(days[index]) === todayKey && "text-blue-500",
+                "border-l border-t border-border px-2 py-3 text-center text-xs text-muted-foreground dark:border-input",
+                dateKey(days[index]) === todayKey && "text-primary",
               )}
             >
               {Math.floor(total / 60)}h {String(total % 60).padStart(2, "0")}m
             </div>
           ))}
-          <div className="border-l border-t border-slate-200 px-3 py-2 text-center text-xs text-slate-500 dark:border-zinc-700">
+          <div className="border-l border-t border-border px-3 py-2 text-center text-xs text-muted-foreground dark:border-input">
             <p>
               {Math.floor(attendanceTotals.reduce((a, b) => a + b, 0) / 60)}h{" "}
               {String(
@@ -1066,11 +1066,11 @@ function SelectedWeekTimeline({
     0,
   );
   return (
-    <section className="border border-slate-200 dark:border-zinc-800">
-      <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+    <section className="border border-border dark:border-border">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-border">
         <div>
           <h2 className="font-bold">Weekly reconciliation timeline</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Day rows compare project allocations with attendance from 08:00 to
             18:00.
           </p>
@@ -1086,16 +1086,16 @@ function SelectedWeekTimeline({
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[900px]">
-          <div className="grid grid-cols-[180px_minmax(0,1fr)_110px] border-b border-slate-200 bg-slate-50/70 text-xs font-bold uppercase tracking-wide text-slate-500 dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="grid grid-cols-[180px_minmax(0,1fr)_110px] border-b border-border bg-muted/40 text-xs font-bold uppercase tracking-wide text-muted-foreground dark:border-border dark:bg-muted/40">
             <div className="px-4 py-2">Day</div>
-            <div className="grid grid-cols-6 border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800">
+            <div className="grid grid-cols-6 border-l border-border px-3 py-2 text-center dark:border-border">
               {["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"].map(
                 (time) => (
                   <span key={time}>{time}</span>
                 ),
               )}
             </div>
-            <div className="border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800">
+            <div className="border-l border-border px-3 py-2 text-center dark:border-border">
               Gap
             </div>
           </div>
@@ -1110,7 +1110,7 @@ function SelectedWeekTimeline({
                 key={key}
                 type="button"
                 className={cn(
-                  "grid min-h-24 w-full grid-cols-[180px_minmax(0,1fr)_110px] border-b border-slate-200 text-left last:border-b-0 dark:border-zinc-800",
+                  "grid min-h-24 w-full grid-cols-[180px_minmax(0,1fr)_110px] border-b border-border text-left last:border-b-0 dark:border-border",
                   selectedDay === key && "bg-blue-50/50 dark:bg-blue-950/15",
                 )}
                 onClick={() => onSelectDay(key)}
@@ -1119,20 +1119,20 @@ function SelectedWeekTimeline({
                   <p className="text-sm font-bold">
                     {day.toLocaleDateString(undefined, { weekday: "long" })}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {day.toLocaleDateString(undefined, {
                       month: "short",
                       day: "numeric",
                     })}
                     {key === todayKey ? " · Today" : ""}
                   </p>
-                  <p className="mt-2 text-[11px] text-slate-500">
+                  <p className="mt-2 text-[11px] text-muted-foreground">
                     {formatDuration(allocated)} allocated ·{" "}
                     {formatDuration(evidence)} attendance
                   </p>
                 </div>
-                <div className="relative flex items-center gap-1 border-l border-slate-200 px-3 dark:border-zinc-800">
-                  <div className="absolute left-3 right-3 top-1/2 h-px bg-slate-300 dark:bg-zinc-700" />
+                <div className="relative flex items-center gap-1 border-l border-border px-3 dark:border-border">
+                  <div className="absolute left-3 right-3 top-1/2 h-px bg-border dark:bg-zinc-700" />
                   {rows.length ? (
                     rows.map((row, index) => (
                       <div
@@ -1165,7 +1165,7 @@ function SelectedWeekTimeline({
                       </div>
                     ))
                   ) : (
-                    <span className="relative z-10 text-xs text-slate-500">
+                    <span className="relative z-10 text-xs text-muted-foreground">
                       No allocations
                     </span>
                   )}
@@ -1178,7 +1178,7 @@ function SelectedWeekTimeline({
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-center border-l border-slate-200 px-3 text-sm font-bold tabular-nums text-amber-700 dark:border-zinc-800 dark:text-amber-300">
+                <div className="flex items-center justify-center border-l border-border px-3 text-sm font-bold tabular-nums text-amber-700 dark:border-border dark:text-amber-300">
                   {gap ? formatDuration(gap) : "—"}
                 </div>
               </button>
@@ -1187,7 +1187,7 @@ function SelectedWeekTimeline({
         </div>
       </div>
       {canAdd && (
-        <div className="flex justify-end border-t border-slate-200 px-4 py-3 dark:border-zinc-800">
+        <div className="flex justify-end border-t border-border px-4 py-3 dark:border-border">
           <Button size="sm" onClick={() => onAdd(selectedDay)}>
             <Plus className="mr-2 h-4 w-4" />
             Add allocation to selected day
@@ -1228,13 +1228,13 @@ function AllocationMatrix({
     ),
   );
   return (
-    <section className="overflow-x-auto border border-slate-200 dark:border-zinc-800">
+    <section className="overflow-x-auto border border-border dark:border-border">
       <div className="min-w-[1120px]">
         <div
-          className="grid border-b border-slate-200 bg-slate-50/70 dark:border-zinc-800 dark:bg-zinc-900/60"
+          className="grid border-b border-border bg-muted/40 dark:border-border dark:bg-muted/40"
           style={{ gridTemplateColumns: columns }}
         >
-          <div className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
             Employee / resource
           </div>
           {days.map((day) => {
@@ -1243,7 +1243,7 @@ function AllocationMatrix({
               <div
                 key={key}
                 className={cn(
-                  "border-l border-slate-200 px-2 py-2 text-center dark:border-zinc-800",
+                  "border-l border-border px-2 py-2 text-center dark:border-border",
                   key === todayKey && "bg-blue-600 text-white",
                 )}
               >
@@ -1255,7 +1255,7 @@ function AllocationMatrix({
               </div>
             );
           })}
-          <div className="border-l border-slate-200 px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-slate-500 dark:border-zinc-800">
+          <div className="border-l border-border px-3 py-3 text-center text-xs font-bold uppercase tracking-wide text-muted-foreground dark:border-border">
             Total
           </div>
         </div>
@@ -1265,7 +1265,7 @@ function AllocationMatrix({
           return (
             <div
               key={stringValue(resource.employee_id)}
-              className="grid border-b border-slate-200 last:border-b-0 dark:border-zinc-800"
+              className="grid border-b border-border last:border-b-0 dark:border-border"
               style={{ gridTemplateColumns: columns }}
             >
               <ResourceLabel resource={resource} />
@@ -1278,7 +1278,7 @@ function AllocationMatrix({
                       "inline-flex min-w-16 justify-center rounded border px-2 py-1.5 text-sm font-semibold tabular-nums",
                       minutes
                         ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
-                        : "border-slate-200 text-slate-400 dark:border-zinc-700",
+                        : "border-border text-muted-foreground/70 dark:border-input",
                     )}
                   >
                     {decimalHours(minutes)}
@@ -1289,7 +1289,7 @@ function AllocationMatrix({
                     key={key}
                     type="button"
                     className={cn(
-                      "border-l border-slate-200 px-2 py-3 text-center transition hover:bg-blue-50 dark:border-zinc-800 dark:hover:bg-blue-950/20",
+                      "border-l border-border px-2 py-3 text-center transition hover:bg-blue-50 dark:border-border dark:hover:bg-blue-950/20",
                       key === todayKey && "bg-blue-50/40 dark:bg-blue-950/10",
                     )}
                     onClick={() => onCellClick(key)}
@@ -1301,7 +1301,7 @@ function AllocationMatrix({
                   <div
                     key={key}
                     className={cn(
-                      "border-l border-slate-200 px-2 py-3 text-center dark:border-zinc-800",
+                      "border-l border-border px-2 py-3 text-center dark:border-border",
                       key === todayKey && "bg-blue-50/40 dark:bg-blue-950/10",
                     )}
                   >
@@ -1309,11 +1309,11 @@ function AllocationMatrix({
                   </div>
                 );
               })}
-              <div className="border-l border-slate-200 px-3 py-3 text-center dark:border-zinc-800">
+              <div className="border-l border-border px-3 py-3 text-center dark:border-border">
                 <p className="text-sm font-bold tabular-nums">
                   {formatDuration(resource.total_minutes)}
                 </p>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   {formatDuration(resource.billable_minutes)} billable
                 </p>
               </div>
@@ -1321,27 +1321,27 @@ function AllocationMatrix({
           );
         })}
         {!resources.length && (
-          <div className="p-10 text-center text-sm text-slate-500">
+          <div className="p-10 text-center text-sm text-muted-foreground">
             No employees match this search.
           </div>
         )}
         <div
-          className="grid bg-slate-50/70 text-sm dark:bg-zinc-900/60"
+          className="grid bg-muted/40 text-sm dark:bg-muted/40"
           style={{ gridTemplateColumns: columns }}
         >
           <div className="px-4 py-3 font-bold">Daily total</div>
           {dailyTotals.map((total, index) => (
             <div
               key={dateKey(days[index])}
-              className="border-l border-slate-200 px-2 py-2 text-center dark:border-zinc-800"
+              className="border-l border-border px-2 py-2 text-center dark:border-border"
             >
               <p className="font-bold tabular-nums">{formatDuration(total)}</p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-muted-foreground">
                 {formatDuration(attendanceTotals[index])} attendance
               </p>
             </div>
           ))}
-          <div className="border-l border-slate-200 px-3 py-3 text-center font-bold dark:border-zinc-800">
+          <div className="border-l border-border px-3 py-3 text-center font-bold dark:border-border">
             {formatDuration(dailyTotals.reduce((sum, total) => sum + total, 0))}
           </div>
         </div>
@@ -1354,11 +1354,11 @@ function ResourceLabel({ resource }: { resource: ShiftRecord }) {
   return (
     <div className="min-w-0 px-4 py-3">
       <p className="truncate text-sm font-bold">{employeeName(resource)}</p>
-      <p className="mt-0.5 truncate text-xs text-slate-500">
+      <p className="mt-0.5 truncate text-xs text-muted-foreground">
         {stringValue(resource.job_title, "Employee")} ·{" "}
         {stringValue(resource.department_name, "Unassigned")}
       </p>
-      <p className="mt-1 text-[11px] font-semibold capitalize text-slate-500">
+      <p className="mt-1 text-[11px] font-semibold capitalize text-muted-foreground">
         {stringValue(resource.status, "not started").replace(/_/g, " ")}
       </p>
     </div>
@@ -1393,8 +1393,8 @@ function ReconciliationTimeline({
     0,
   );
   return (
-    <section className="border border-slate-200 dark:border-zinc-800">
-      <div className="grid grid-cols-7 border-b border-slate-200 dark:border-zinc-800">
+    <section className="border border-border dark:border-border">
+      <div className="grid grid-cols-7 border-b border-border dark:border-border">
         {days.map((day) => {
           const key = dateKey(day);
           const allocated = resources.reduce(
@@ -1410,7 +1410,7 @@ function ReconciliationTimeline({
               key={key}
               type="button"
               className={cn(
-                "border-r border-slate-200 px-2 py-2 text-center last:border-r-0 dark:border-zinc-800",
+                "border-r border-border px-2 py-2 text-center last:border-r-0 dark:border-border",
                 selectedDay === key && "bg-blue-600 text-white",
               )}
               onClick={() => onSelectDay(key)}
@@ -1427,7 +1427,7 @@ function ReconciliationTimeline({
           );
         })}
       </div>
-      <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-border">
         <div>
           <h2 className="font-bold">
             {selectedDate.toLocaleDateString(undefined, {
@@ -1437,7 +1437,7 @@ function ReconciliationTimeline({
               year: "numeric",
             })}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {formatDuration(dayAllocated)} allocated ·{" "}
             {formatDuration(dayAttendance)} attendance ·{" "}
             {formatDuration(Math.max(0, dayAttendance - dayAllocated))} gap
@@ -1452,16 +1452,16 @@ function ReconciliationTimeline({
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[900px]">
-          <div className="grid grid-cols-[220px_minmax(0,1fr)_110px] border-b border-slate-200 bg-slate-50/70 text-xs font-bold uppercase tracking-wide text-slate-500 dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="grid grid-cols-[220px_minmax(0,1fr)_110px] border-b border-border bg-muted/40 text-xs font-bold uppercase tracking-wide text-muted-foreground dark:border-border dark:bg-muted/40">
             <div className="px-4 py-2">Resource</div>
-            <div className="grid grid-cols-6 border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800">
+            <div className="grid grid-cols-6 border-l border-border px-3 py-2 text-center dark:border-border">
               {["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"].map(
                 (time) => (
                   <span key={time}>{time}</span>
                 ),
               )}
             </div>
-            <div className="border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800">
+            <div className="border-l border-border px-3 py-2 text-center dark:border-border">
               Gap
             </div>
           </div>
@@ -1477,11 +1477,11 @@ function ReconciliationTimeline({
             return (
               <div
                 key={stringValue(resource.employee_id)}
-                className="grid min-h-20 grid-cols-[220px_minmax(0,1fr)_110px] border-b border-slate-200 last:border-b-0 dark:border-zinc-800"
+                className="grid min-h-20 grid-cols-[220px_minmax(0,1fr)_110px] border-b border-border last:border-b-0 dark:border-border"
               >
                 <ResourceLabel resource={resource} />
-                <div className="relative flex items-center gap-1 border-l border-slate-200 px-3 dark:border-zinc-800">
-                  <div className="absolute left-3 right-3 top-4 h-px bg-slate-300 dark:bg-zinc-700" />
+                <div className="relative flex items-center gap-1 border-l border-border px-3 dark:border-border">
+                  <div className="absolute left-3 right-3 top-4 h-px bg-border dark:bg-zinc-700" />
                   {rows.length ? (
                     rows.map((row, index) => (
                       <div
@@ -1514,7 +1514,7 @@ function ReconciliationTimeline({
                       </div>
                     ))
                   ) : (
-                    <span className="relative z-10 text-xs text-slate-500">
+                    <span className="relative z-10 text-xs text-muted-foreground">
                       No allocations
                     </span>
                   )}
@@ -1527,14 +1527,14 @@ function ReconciliationTimeline({
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-center border-l border-slate-200 px-3 text-sm font-bold tabular-nums text-amber-700 dark:border-zinc-800 dark:text-amber-300">
+                <div className="flex items-center justify-center border-l border-border px-3 text-sm font-bold tabular-nums text-amber-700 dark:border-border dark:text-amber-300">
                   {gap ? formatDuration(gap) : "—"}
                 </div>
               </div>
             );
           })}
           {!resources.length && (
-            <div className="p-10 text-center text-sm text-slate-500">
+            <div className="p-10 text-center text-sm text-muted-foreground">
               No employees match this search.
             </div>
           )}
@@ -1565,11 +1565,11 @@ function ProjectResourceMatrix({
 }) {
   const columns = "minmax(260px,1.8fr) repeat(7,minmax(96px,1fr)) 110px";
   return (
-    <section className="border border-slate-200 dark:border-zinc-800">
-      <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+    <section className="border border-border dark:border-border">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-border">
         <div>
           <h2 className="font-bold">Resources by project</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             Select a project to see every employee as a resource row.
           </p>
         </div>
@@ -1590,22 +1590,22 @@ function ProjectResourceMatrix({
       <div className="overflow-x-auto">
         <div className="min-w-[1050px]">
           <div
-            className="grid border-b border-slate-200 bg-slate-50/70 dark:border-zinc-800 dark:bg-zinc-900/60"
+            className="grid border-b border-border bg-muted/40 dark:border-border dark:bg-muted/40"
             style={{ gridTemplateColumns: columns }}
           >
-            <div className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <div className="px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Resource
             </div>
             {days.map((day) => (
               <div
                 key={dateKey(day)}
-                className="border-l border-slate-200 px-2 py-3 text-center text-xs font-bold dark:border-zinc-800"
+                className="border-l border-border px-2 py-3 text-center text-xs font-bold dark:border-border"
               >
                 {day.toLocaleDateString(undefined, { weekday: "short" })}{" "}
                 {day.getDate()}
               </div>
             ))}
-            <div className="border-l border-slate-200 px-2 py-3 text-center text-xs font-bold uppercase text-slate-500 dark:border-zinc-800">
+            <div className="border-l border-border px-2 py-3 text-center text-xs font-bold uppercase text-muted-foreground dark:border-border">
               Total
             </div>
           </div>
@@ -1618,7 +1618,7 @@ function ProjectResourceMatrix({
             return (
               <div
                 key={stringValue(resource.employee_id)}
-                className="grid border-b border-slate-200 last:border-b-0 dark:border-zinc-800"
+                className="grid border-b border-border last:border-b-0 dark:border-border"
                 style={{ gridTemplateColumns: columns }}
               >
                 <ResourceLabel resource={resource} />
@@ -1627,7 +1627,7 @@ function ProjectResourceMatrix({
                     <button
                       key={dateKey(day)}
                       type="button"
-                      className="border-l border-slate-200 px-2 py-3 text-center text-sm font-semibold tabular-nums transition hover:bg-blue-50 dark:border-zinc-800 dark:hover:bg-blue-950/20"
+                      className="border-l border-border px-2 py-3 text-center text-sm font-semibold tabular-nums transition hover:bg-blue-50 dark:border-border dark:hover:bg-blue-950/20"
                       onClick={() => onCellClick(dateKey(day))}
                     >
                       {decimalHours(totals[index])}
@@ -1635,13 +1635,13 @@ function ProjectResourceMatrix({
                   ) : (
                     <div
                       key={dateKey(day)}
-                      className="border-l border-slate-200 px-2 py-3 text-center text-sm font-semibold tabular-nums dark:border-zinc-800"
+                      className="border-l border-border px-2 py-3 text-center text-sm font-semibold tabular-nums dark:border-border"
                     >
                       {decimalHours(totals[index])}
                     </div>
                   ),
                 )}
-                <div className="border-l border-slate-200 px-2 py-3 text-center text-sm font-bold tabular-nums dark:border-zinc-800">
+                <div className="border-l border-border px-2 py-3 text-center text-sm font-bold tabular-nums dark:border-border">
                   {formatDuration(
                     totals.reduce((sum, value) => sum + value, 0),
                   )}
@@ -1650,7 +1650,7 @@ function ProjectResourceMatrix({
             );
           })}
           {!resources.length && (
-            <div className="p-10 text-center text-sm text-slate-500">
+            <div className="p-10 text-center text-sm text-muted-foreground">
               No resources match this search.
             </div>
           )}
@@ -1687,7 +1687,7 @@ function EntryPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-bold">{entry ? "Edit time allocation" : "Add time allocation"}</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
             Entries update allocation only; attendance evidence stays unchanged.
           </p>
         </div>

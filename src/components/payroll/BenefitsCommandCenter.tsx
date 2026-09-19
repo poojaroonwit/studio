@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalization } from "@/contexts/LocalizationContext";
 import { useDropdownOptions } from "@/hooks/use-dropdown-options";
@@ -72,7 +73,7 @@ const planIconStyles = [
   "bg-blue-600 text-white",
   "bg-emerald-600 text-white",
   "bg-violet-600 text-white",
-  "bg-amber-500 text-slate-950",
+  "bg-amber-500 text-foreground",
   "bg-cyan-600 text-white",
   "bg-orange-600 text-white",
 ] as const;
@@ -153,11 +154,11 @@ function PercentBar({
   const safeValue = Math.max(0, Math.min(100, value));
   return (
     <div className="grid grid-cols-[112px_minmax(90px,1fr)_74px] items-center gap-3 text-[11px]">
-      <span className="truncate text-foreground/75 dark:text-slate-300">
+      <span className="truncate text-foreground/75">
         {label}
       </span>
       <span
-        className="relative h-3 overflow-hidden rounded-sm bg-muted dark:bg-slate-700"
+        className="relative h-3 overflow-hidden rounded-sm bg-muted "
         aria-hidden="true"
       >
         <span
@@ -168,7 +169,7 @@ function PercentBar({
           {safeValue >= 12 ? `${safeValue.toFixed(1)}%` : ""}
         </span>
       </span>
-      <span className="text-right font-medium tabular-nums text-foreground/80 dark:text-slate-200">
+      <span className="text-right font-medium tabular-nums text-foreground/80">
         {safeValue.toFixed(1)}%{count !== undefined ? ` (${count})` : ""}
       </span>
     </div>
@@ -186,7 +187,7 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 px-4 py-4 first:pl-4 sm:px-6">
-      <p className="text-xs font-medium text-muted-foreground dark:text-slate-400">
+      <p className="text-xs font-medium text-muted-foreground">
         {label}
       </p>
       <div
@@ -470,15 +471,15 @@ export function BenefitsCommandCenter({
 
   return (
     <div className="space-y-3">
-      <header className="flex flex-col gap-4 border-b border-border dark:border-slate-800 pb-4 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
             {t("payroll.benefitsEyebrow", "Coverage and contributions")}
           </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-[-0.03em] text-foreground dark:text-white">
             {t("payroll.benefitsTitle", "Benefits")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage benefit plans, monitor enrollment status, and control payroll
             impact.
           </p>
@@ -486,7 +487,7 @@ export function BenefitsCommandCenter({
         {data.access.canManage && (
           <div className="flex flex-wrap gap-2">
             <Button
-              className="h-10 bg-blue-600 text-white hover:bg-blue-500"
+              className="h-10 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={openNewPlan}
             >
               <PlusIcon className="mr-2 h-4 w-4" />
@@ -494,7 +495,7 @@ export function BenefitsCommandCenter({
             </Button>
             <Button
               variant="outline"
-              className="h-10 border-border dark:border-slate-600 bg-transparent text-foreground dark:text-white hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white"
+              className="h-10 border-border  bg-transparent text-foreground dark:text-white hover:bg-muted  hover:text-foreground "
               onClick={() => openEnroll()}
             >
               <UserPlusIcon className="mr-2 h-4 w-4" />
@@ -506,7 +507,7 @@ export function BenefitsCommandCenter({
 
       <section
         aria-label="Benefits summary"
-        className="grid overflow-hidden rounded-md border border-border dark:border-slate-800 bg-muted/50 dark:bg-[#111927] sm:grid-cols-2 xl:grid-cols-4 [&>*+*]:border-border dark:border-slate-700 sm:[&>*+*]:border-l"
+        className="grid overflow-hidden rounded-md border border-border bg-muted/50 dark:bg-[#111927] sm:grid-cols-2 xl:grid-cols-4 [&>*+*]:border-border sm:[&>*+*]:border-l"
       >
         <Metric
           label="Active plans"
@@ -527,8 +528,8 @@ export function BenefitsCommandCenter({
         />
       </section>
 
-      <section className="overflow-hidden rounded-md border border-border dark:border-slate-800 bg-card dark:bg-[#101824]">
-        <div className="border-b border-border dark:border-slate-800 px-4 py-3">
+      <section className="overflow-hidden rounded-md border border-border bg-card dark:bg-[#101824]">
+        <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold text-foreground dark:text-white">
             Needs attention
           </h2>
@@ -540,21 +541,21 @@ export function BenefitsCommandCenter({
             {allPending.length > 0 && (
               <button
                 type="button"
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted dark:hover:bg-slate-800/70"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted /70"
                 onClick={() => {
                   setSelectedId(null);
                   setApprovalsOpen(true);
                 }}
               >
                 <ExclamationTriangleIcon className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span className="min-w-0 flex-1 text-foreground/75 dark:text-slate-300">
+                <span className="min-w-0 flex-1 text-foreground/75">
                   {allPending.length} enrollment
                   {allPending.length === 1 ? "" : "s"} pending approval
                 </span>
-                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                <span className="text-xs font-semibold text-primary">
                   Review approvals
                 </span>
-                <ChevronRightIcon className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                <ChevronRightIcon className="h-4 w-4 text-primary" />
               </button>
             )}
             {data.records
@@ -564,77 +565,77 @@ export function BenefitsCommandCenter({
                 <button
                   key={String(item.id)}
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted dark:hover:bg-slate-800/70"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted /70"
                   onClick={() => setSelectedId(String(item.id))}
                 >
-                  <InformationCircleIcon className="h-5 w-5 shrink-0 text-blue-700 dark:text-blue-400" />
-                  <span className="min-w-0 flex-1 truncate text-foreground/75 dark:text-slate-300">
+                  <InformationCircleIcon className="h-5 w-5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1 truncate text-foreground/75">
                     {String(item.name)} is inactive and excluded from new
                     enrollment
                   </span>
-                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                  <span className="text-xs font-semibold text-primary">
                     View plan
                   </span>
-                  <ChevronRightIcon className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                  <ChevronRightIcon className="h-4 w-4 text-primary" />
                 </button>
               ))}
             {activePlansWithoutEnrollment.slice(0, 2).map((item) => (
               <button
                 key={`unenrolled-${String(item.id)}`}
                 type="button"
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted dark:hover:bg-slate-800/70"
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted /70"
                 onClick={() => setSelectedId(String(item.id))}
               >
                 <ExclamationTriangleIcon className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span className="min-w-0 flex-1 truncate text-foreground/75 dark:text-slate-300">
+                <span className="min-w-0 flex-1 truncate text-foreground/75">
                   {String(item.name)} has no active employee enrollments
                 </span>
-                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                <span className="text-xs font-semibold text-primary">
                   Enroll employees
                 </span>
-                <ChevronRightIcon className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+                <ChevronRightIcon className="h-4 w-4 text-primary" />
               </button>
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-3 px-4 py-4 text-sm text-foreground/75 dark:text-slate-300">
+          <div className="flex items-center gap-3 px-4 py-4 text-sm text-foreground/75">
             <CheckCircleIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             All active plans have enrollments and no approval issues.
           </div>
         )}
       </section>
 
-      <section className="overflow-hidden rounded-md border border-border dark:border-slate-800 bg-card dark:bg-[#101824]">
-        <div className="flex flex-col gap-3 border-b border-border dark:border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between">
+      <section className="overflow-hidden rounded-md border border-border bg-card dark:bg-[#101824]">
+        <div className="flex flex-col gap-3 border-b border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-foreground dark:text-white">
               Benefit plans
             </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground dark:text-slate-500">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Plan costs and enrollment coverage used by Payroll.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground dark:text-slate-500" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search plans or provider"
-                className="h-9 w-60 border-border dark:border-slate-700 bg-background dark:bg-[#0b111b] pl-9 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-slate-500"
+                className="h-9 w-60 border-border bg-background dark:bg-[#0b111b] pl-9 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-muted-foreground"
               />
             </label>
             <select
               aria-label="Plan status"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-9 rounded-md border border-border dark:border-slate-700 bg-background dark:bg-[#0b111b] px-3 text-xs font-medium text-foreground/80 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-9 rounded-md border border-border bg-background dark:bg-[#0b111b] px-3 text-xs font-medium text-foreground/80 outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <span className="px-2 text-xs text-muted-foreground dark:text-slate-400">
+            <span className="px-2 text-xs text-muted-foreground">
               {filteredPlans.length} plans
             </span>
           </div>
@@ -642,7 +643,7 @@ export function BenefitsCommandCenter({
         {filteredPlans.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[930px] text-left text-xs">
-              <thead className="border-b border-border dark:border-slate-800 bg-muted dark:bg-[#121c2a] text-[11px] font-medium text-muted-foreground dark:text-slate-400">
+              <thead className="border-b border-border bg-muted dark:bg-[#121c2a] text-[11px] font-medium text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Plan / Provider</th>
                   <th className="px-3 py-3">Coverage</th>
@@ -693,7 +694,7 @@ export function BenefitsCommandCenter({
                         }
                       }}
                       className={cn(
-                        "h-[58px] cursor-pointer transition-colors hover:bg-muted dark:hover:bg-slate-800/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500",
+                        "h-[58px] cursor-pointer transition-colors hover:bg-muted /60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500",
                         isSelected &&
                           "bg-blue-50 dark:bg-blue-950/45 ring-1 ring-inset ring-blue-500",
                       )}
@@ -705,7 +706,7 @@ export function BenefitsCommandCenter({
                             <p className="font-semibold text-foreground dark:text-white">
                               {String(item.name || "Benefit plan")}
                             </p>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground dark:text-slate-400">
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">
                               {String(
                                 item.provider ||
                                   fallbackProviders[String(item.type)] ||
@@ -715,7 +716,7 @@ export function BenefitsCommandCenter({
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 text-foreground/75 dark:text-slate-300">
+                      <td className="px-3 text-foreground/75">
                         {planTypeLabel(item.type)}
                       </td>
                       <td className="px-3 text-center">
@@ -723,26 +724,26 @@ export function BenefitsCommandCenter({
                           {enrolled}
                         </p>
                         {base > 0 && (
-                          <p className="text-[10px] tabular-nums text-muted-foreground dark:text-slate-500">
+                          <p className="text-[10px] tabular-nums text-muted-foreground">
                             ({((enrolled / base) * 100).toFixed(1)}%)
                           </p>
                         )}
                       </td>
-                      <td className="px-3 text-right text-foreground/80 dark:text-slate-200">
+                      <td className="px-3 text-right text-foreground/80">
                         <Money value={item.employee_cost} />
-                        <span className="text-[10px] text-muted-foreground dark:text-slate-500">
+                        <span className="text-[10px] text-muted-foreground">
                           {" "}
                           /mo
                         </span>
                       </td>
-                      <td className="px-3 text-right text-foreground/80 dark:text-slate-200">
+                      <td className="px-3 text-right text-foreground/80">
                         <Money value={item.employer_cost} />
-                        <span className="text-[10px] text-muted-foreground dark:text-slate-500">
+                        <span className="text-[10px] text-muted-foreground">
                           {" "}
                           /mo
                         </span>
                       </td>
-                      <td className="px-3 text-foreground/75 dark:text-slate-300">
+                      <td className="px-3 text-foreground/75">
                         {dateLabel(item.effective_from)}
                       </td>
                       <td className="px-3">
@@ -751,14 +752,14 @@ export function BenefitsCommandCenter({
                         />
                       </td>
                       <td className="pr-3">
-                        <ChevronRightIcon className="h-4 w-4 text-muted-foreground dark:text-slate-400" />
+                        <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            <div className="border-t border-border dark:border-slate-800 px-4 py-3 text-[11px] text-muted-foreground dark:text-slate-500">
+            <div className="border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
               Showing 1 to {filteredPlans.length} of {data.records.length} plans
             </div>
           </div>
@@ -978,20 +979,25 @@ export function BenefitsCommandCenter({
         </DialogContent>
       </Dialog>
 
-      {selected && (
-        <>
-          <button
-            aria-label="Close benefit plan details"
-            className="fixed inset-0 top-[100px] z-[120] bg-slate-950/20"
-            onClick={() => setSelectedId(null)}
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${selected.name} benefit plan details`}
-            className="fixed bottom-3 right-3 top-[110px] z-[130] flex w-[min(470px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border border-border dark:border-slate-700 bg-card dark:bg-[#101927] text-foreground dark:text-slate-100 shadow-[-20px_0_60px_rgba(0,0,0,0.45)]"
-          >
-            <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border dark:border-slate-700 px-5 py-4">
+      <Sheet
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          hideCloseButton
+          sheetId="benefit-plan-details-drawer"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[470px]"
+        >
+          <SheetTitle className="sr-only">Benefit plan details</SheetTitle>
+          <SheetDescription className="sr-only">
+            Review benefit plan details, enrollments, documents, and management actions.
+          </SheetDescription>
+          {selected && (
+            <aside className="flex h-full min-h-0 flex-col">
+              <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
               <div className="flex min-w-0 gap-3">
                 <PlanIcon
                   type={selected.type}
@@ -1007,7 +1013,7 @@ export function BenefitsCommandCenter({
                       value={selected.is_active ? "active" : "inactive"}
                     />
                   </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground dark:text-slate-400">
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
                     {String(
                       selected.provider ||
                         fallbackProviders[String(selected.type)] ||
@@ -1019,7 +1025,7 @@ export function BenefitsCommandCenter({
               <button
                 type="button"
                 aria-label="Close drawer"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground dark:text-slate-400 hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted  hover:text-foreground "
                 onClick={() => setSelectedId(null)}
               >
                 <XMarkIcon className="h-5 w-5" />
@@ -1028,7 +1034,7 @@ export function BenefitsCommandCenter({
             <div
               role="tablist"
               aria-label="Benefit plan sections"
-              className="flex h-11 shrink-0 border-b border-border dark:border-slate-700 px-4"
+              className="flex h-11 shrink-0 border-b border-border px-4"
             >
               {(["overview", "enrollments", "documents"] as DrawerTab[]).map(
                 (tab) => (
@@ -1038,9 +1044,9 @@ export function BenefitsCommandCenter({
                     aria-selected={drawerTab === tab}
                     onClick={() => setDrawerTab(tab)}
                     className={cn(
-                      "relative flex-1 capitalize text-xs font-semibold text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white",
+                      "relative flex-1 capitalize text-xs font-semibold text-muted-foreground hover:text-foreground ",
                       drawerTab === tab &&
-                        "text-foreground dark:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-blue-500",
+                        "text-foreground dark:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-primary",
                     )}
                   >
                     {tab}
@@ -1050,15 +1056,15 @@ export function BenefitsCommandCenter({
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {drawerTab === "overview" && (
-                <div className="divide-y divide-border dark:divide-slate-700">
+                <div className="divide-y divide-border ">
                   <section className="px-5 py-4">
                     <h3 className="text-sm font-semibold">Plan details</h3>
                     <dl className="mt-3 grid grid-cols-[128px_1fr] gap-y-2 text-xs">
-                      <dt className="text-muted-foreground dark:text-slate-400">
+                      <dt className="text-muted-foreground">
                         Plan type
                       </dt>
                       <dd>{planTypeLabel(selected.type)}</dd>
-                      <dt className="text-muted-foreground dark:text-slate-400">
+                      <dt className="text-muted-foreground">
                         Coverage
                       </dt>
                       <dd>
@@ -1066,15 +1072,15 @@ export function BenefitsCommandCenter({
                           selected.coverage || planTypeLabel(selected.type),
                         )}
                       </dd>
-                      <dt className="text-muted-foreground dark:text-slate-400">
+                      <dt className="text-muted-foreground">
                         Effective date
                       </dt>
                       <dd>{dateLabel(selected.effective_from)}</dd>
-                      <dt className="text-muted-foreground dark:text-slate-400">
+                      <dt className="text-muted-foreground">
                         Renewal date
                       </dt>
                       <dd>{dateLabel(selected.effective_to)}</dd>
-                      <dt className="text-muted-foreground dark:text-slate-400">
+                      <dt className="text-muted-foreground">
                         Provider
                       </dt>
                       <dd>
@@ -1089,13 +1095,13 @@ export function BenefitsCommandCenter({
                   <section className="px-5 py-4">
                     <h3 className="text-sm font-semibold">
                       Contribution split{" "}
-                      <span className="font-normal text-muted-foreground dark:text-slate-400">
+                      <span className="font-normal text-muted-foreground">
                         (per employee)
                       </span>
                     </h3>
-                    <div className="mt-3 flex h-8 overflow-hidden rounded-sm bg-muted dark:bg-slate-700">
+                    <div className="mt-3 flex h-8 overflow-hidden rounded-sm bg-muted ">
                       <span
-                        className="grid place-items-center bg-blue-500 text-xs font-bold"
+                        className="grid place-items-center bg-primary text-primary-foreground text-xs font-bold"
                         style={{ width: `${employeeShare}%` }}
                       >
                         {employeeShare >= 10
@@ -1103,7 +1109,7 @@ export function BenefitsCommandCenter({
                           : ""}
                       </span>
                       <span
-                        className="grid place-items-center bg-muted dark:bg-slate-600 text-xs font-bold"
+                        className="grid place-items-center bg-muted  text-xs font-bold"
                         style={{ width: `${employerShare}%` }}
                       >
                         {employerShare >= 10
@@ -1113,7 +1119,7 @@ export function BenefitsCommandCenter({
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-3 text-[11px]">
                       <div>
-                        <p className="text-muted-foreground dark:text-slate-400">
+                        <p className="text-muted-foreground">
                           Employee {employeeShare.toFixed(1)}%
                         </p>
                         <p className="mt-1 font-semibold">
@@ -1121,15 +1127,15 @@ export function BenefitsCommandCenter({
                         </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground dark:text-slate-400">
+                        <p className="text-muted-foreground">
                           Employer {employerShare.toFixed(1)}%
                         </p>
                         <p className="mt-1 font-semibold">
                           {compactMoney(employerCost)} /month
                         </p>
                       </div>
-                      <div className="border-l border-border dark:border-slate-700 pl-3">
-                        <p className="text-muted-foreground dark:text-slate-400">
+                      <div className="border-l border-border pl-3">
+                        <p className="text-muted-foreground">
                           Total
                         </p>
                         <p className="mt-1 font-semibold">
@@ -1143,7 +1149,7 @@ export function BenefitsCommandCenter({
                       Enrollment summary
                     </h3>
                     <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground dark:text-slate-400">
+                      <span className="text-muted-foreground">
                         Eligible employees
                       </span>
                       <strong className="tabular-nums">
@@ -1185,7 +1191,7 @@ export function BenefitsCommandCenter({
                     </h3>
                     <dl className="mt-3 space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground dark:text-slate-400">
+                        <dt className="text-muted-foreground">
                           Employee deductions
                         </dt>
                         <dd className="font-semibold">
@@ -1200,7 +1206,7 @@ export function BenefitsCommandCenter({
                         </dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground dark:text-slate-400">
+                        <dt className="text-muted-foreground">
                           Employer cost
                         </dt>
                         <dd className="font-semibold">
@@ -1214,7 +1220,7 @@ export function BenefitsCommandCenter({
                           /month
                         </dd>
                       </div>
-                      <div className="flex justify-between border-t border-border dark:border-slate-700 pt-2">
+                      <div className="flex justify-between border-t border-border pt-2">
                         <dt className="font-semibold">Total payroll impact</dt>
                         <dd className="font-semibold">
                           {compactMoney(
@@ -1238,7 +1244,7 @@ export function BenefitsCommandCenter({
                         <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
                         <div>
                           <p>Plan details last updated</p>
-                          <p className="mt-0.5 text-muted-foreground dark:text-slate-400">
+                          <p className="mt-0.5 text-muted-foreground">
                             {dateLabel(
                               selected.updated_at || selected.created_at,
                             )}
@@ -1254,7 +1260,7 @@ export function BenefitsCommandCenter({
                               {pendingEnrollments.length === 1 ? "" : "s"}{" "}
                               awaiting approval
                             </p>
-                            <p className="mt-0.5 text-muted-foreground dark:text-slate-400">
+                            <p className="mt-0.5 text-muted-foreground">
                               Review before the next payroll cutoff
                             </p>
                           </div>
@@ -1265,7 +1271,7 @@ export function BenefitsCommandCenter({
                 </div>
               )}
               {drawerTab === "enrollments" && (
-                <div className="divide-y divide-border dark:divide-slate-700">
+                <div className="divide-y divide-border ">
                   {selectedEnrollments.length ? (
                     selectedEnrollments.map((item) => (
                       <article key={String(item.id)} className="px-5 py-4">
@@ -1274,7 +1280,7 @@ export function BenefitsCommandCenter({
                             <p className="text-sm font-semibold">
                               {String(item.employee_name)}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                            <p className="mt-1 text-xs text-muted-foreground">
                               {String(item.employee_number)} · Coverage{" "}
                               {dateLabel(item.effective_from)}
                             </p>
@@ -1282,11 +1288,11 @@ export function BenefitsCommandCenter({
                           <PayrollStatus value={item.status} />
                         </div>
                         <div className="mt-3 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground dark:text-slate-400">
+                          <span className="text-muted-foreground">
                             Employee{" "}
                             <Money value={item.employee_contribution} />
                           </span>
-                          <span className="text-muted-foreground dark:text-slate-400">
+                          <span className="text-muted-foreground">
                             Employer{" "}
                             <Money value={item.employer_contribution} />
                           </span>
@@ -1295,7 +1301,7 @@ export function BenefitsCommandCenter({
                           item.status === "pending_approval" && (
                             <Button
                               size="sm"
-                              className="mt-3 w-full bg-blue-600 text-white hover:bg-blue-500"
+                              className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                               disabled={Boolean(busy)}
                               onClick={() =>
                                 void mutate(
@@ -1338,7 +1344,7 @@ export function BenefitsCommandCenter({
                     ))
                   ) : (
                     <div className="px-5 py-12 text-center">
-                      <UserPlusIcon className="mx-auto h-8 w-8 text-muted-foreground dark:text-slate-500" />
+                      <UserPlusIcon className="mx-auto h-8 w-8 text-muted-foreground" />
                       <p className="mt-3 text-sm font-semibold">
                         No enrollments for this plan
                       </p>
@@ -1396,7 +1402,7 @@ export function BenefitsCommandCenter({
                           key={String(document.id)}
                           className="flex items-center gap-3 py-3"
                         >
-                          <DocumentTextIcon className="h-6 w-6 shrink-0 text-blue-700 dark:text-blue-400" />
+                          <DocumentTextIcon className="h-6 w-6 shrink-0 text-primary" />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">
                               {String(document.name)}
@@ -1450,17 +1456,17 @@ export function BenefitsCommandCenter({
               )}
             </div>
             {data.access.canManage && (
-              <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-border dark:border-slate-700 p-4">
+              <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-border p-4">
                 <Button
                   variant="outline"
-                  className="border-border dark:border-slate-600 bg-transparent text-foreground dark:text-white hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white"
+                  className="border-border  bg-transparent text-foreground dark:text-white hover:bg-muted  hover:text-foreground "
                   onClick={openEditPlan}
                 >
                   <PencilSquareIcon className="mr-2 h-4 w-4" />
                   Edit plan
                 </Button>
                 <Button
-                  className="bg-blue-600 text-white hover:bg-blue-500"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => openEnroll(String(selected.id))}
                 >
                   <UserPlusIcon className="mr-2 h-4 w-4" />
@@ -1468,9 +1474,11 @@ export function BenefitsCommandCenter({
                 </Button>
               </footer>
             )}
-          </aside>
-        </>
-      )}
+          
+            </aside>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <BenefitPlanEditor
         open={mode === "plan_v2"}

@@ -322,7 +322,7 @@ function OvertimeHeader({
   const end = new Date(`${weekStart}T00:00:00Z`);
   end.setUTCDate(end.getUTCDate() + 6);
   return (
-    <header className="flex flex-col gap-2 border-b border-slate-200 pb-2 xl:flex-row xl:items-end xl:justify-between dark:border-zinc-800">
+    <header className="flex flex-col gap-2 border-b border-border pb-2 xl:flex-row xl:items-end xl:justify-between dark:border-border">
       <div className="flex items-end gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-500">
@@ -331,7 +331,7 @@ function OvertimeHeader({
           <h1 className="mt-0.5 text-[22px] font-bold">Overtime</h1>
         </div>
         <div
-          className="mb-0.5 inline-flex h-8 items-center rounded-md border border-zinc-700 p-0.5"
+          className="mb-0.5 inline-flex h-8 items-center rounded-md border border-input p-0.5"
           aria-label="Overtime view"
         >
           <ViewButton
@@ -351,7 +351,7 @@ function OvertimeHeader({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex h-9 items-center rounded-md border border-zinc-700">
+        <div className="inline-flex h-9 items-center rounded-md border border-input">
           <button
             type="button"
             onClick={() => moveWeek(-1)}
@@ -360,7 +360,7 @@ function OvertimeHeader({
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="border-x border-zinc-700 px-3 text-sm font-semibold">
+          <span className="border-x border-input px-3 text-sm font-semibold">
             {formatDate(weekStart, { month: "short", day: "numeric" })}–
             {formatDate(end, {
               month: "short",
@@ -405,7 +405,7 @@ function OvertimeHeader({
           ))}
         </select>
         <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchText}
             onChange={(event) => onSearchChange(event.target.value)}
@@ -433,7 +433,7 @@ function OvertimeSummary({
     0,
   );
   return (
-    <section className="grid min-h-14 grid-cols-2 divide-x divide-slate-200 overflow-hidden rounded-md border border-slate-200 bg-white text-xs md:grid-cols-5 dark:divide-zinc-700 dark:border-zinc-700 dark:bg-[#0b1623]">
+    <section className="grid min-h-14 grid-cols-2 divide-x divide-slate-200 overflow-hidden rounded-md border border-border bg-white text-xs md:grid-cols-5 dark:divide-zinc-700 dark:border-input dark:bg-[#0b1623]">
       <SummaryMetric
         icon={Clock3}
         label="Pending"
@@ -484,13 +484,13 @@ function SummaryMetric({
   return (
     <div className="flex min-h-14 items-center gap-3 px-4 py-2">
       <Icon
-        className={cn("h-5 w-5", alert ? "text-amber-500" : "text-slate-500")}
+        className={cn("h-5 w-5", alert ? "text-amber-500" : "text-muted-foreground")}
       />
       <div className="flex flex-wrap items-baseline gap-1.5">
         <p className={cn("text-base font-bold", alert && "text-amber-500")}>
           {value}
         </p>
-        <p className="text-slate-400">{label}</p>
+        <p className="text-muted-foreground/70">{label}</p>
       </div>
     </div>
   );
@@ -512,7 +512,7 @@ function ViewButton({
       onClick={onClick}
       className={cn(
         "inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-semibold",
-        active ? "bg-blue-600 text-white" : "text-slate-400 hover:bg-zinc-800",
+        active ? "bg-blue-600 text-white" : "text-muted-foreground/70 hover:bg-muted",
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -556,9 +556,9 @@ function RequestQueue({
         (newestFirst ? 1 : -1),
     );
   return (
-    <section className="overflow-hidden rounded-md border border-zinc-700 bg-[#0b1623]">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-zinc-700 px-4 py-2">
-        <div className="inline-flex rounded-md bg-zinc-900 p-0.5">
+    <section className="overflow-hidden rounded-md border border-input bg-[#0b1623]">
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-input px-4 py-2">
+        <div className="inline-flex rounded-md bg-card p-0.5">
           <button
             type="button"
             onClick={() => setQueue("pending_approval")}
@@ -566,7 +566,7 @@ function RequestQueue({
               "px-3 py-2 text-xs font-semibold",
               queue === "pending_approval"
                 ? "rounded bg-blue-600 text-white"
-                : "text-slate-400",
+                : "text-muted-foreground/70",
             )}
           >
             Pending {pending.length}
@@ -578,7 +578,7 @@ function RequestQueue({
               "px-3 py-2 text-xs",
               queue === "approved"
                 ? "rounded bg-blue-600 font-semibold text-white"
-                : "text-slate-400",
+                : "text-muted-foreground/70",
             )}
           >
             Approved
@@ -590,7 +590,7 @@ function RequestQueue({
               "px-3 py-2 text-xs",
               queue === "rejected"
                 ? "rounded bg-blue-600 font-semibold text-white"
-                : "text-slate-400",
+                : "text-muted-foreground/70",
             )}
           >
             Rejected
@@ -602,7 +602,7 @@ function RequestQueue({
               "px-3 py-2 text-xs",
               queue === "all"
                 ? "rounded bg-blue-600 font-semibold text-white"
-                : "text-slate-400",
+                : "text-muted-foreground/70",
             )}
           >
             All
@@ -627,7 +627,7 @@ function RequestQueue({
       ) : (
         <div className="overflow-x-auto">
           <div className="min-w-[760px] text-xs">
-            <div className="grid grid-cols-[1.35fr_1.1fr_1.2fr_1fr_.72fr_.65fr_116px] border-b border-zinc-700 px-4 py-2.5 text-[11px] font-medium text-slate-300">
+            <div className="grid grid-cols-[1.35fr_1.1fr_1.2fr_1fr_.72fr_.65fr_116px] border-b border-input px-4 py-2.5 text-[11px] font-medium text-slate-300">
               <span>Employee</span>
               <span>Requested time</span>
               <span>Reason</span>
@@ -656,7 +656,7 @@ function RequestQueue({
                     }
                   }}
                   className={cn(
-                    "grid min-h-[63px] w-full cursor-pointer grid-cols-[1.35fr_1.1fr_1.2fr_1fr_.72fr_.65fr_116px] items-center border-b border-zinc-700 px-4 py-2 text-left hover:bg-zinc-900/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500",
+                    "grid min-h-[63px] w-full cursor-pointer grid-cols-[1.35fr_1.1fr_1.2fr_1fr_.72fr_.65fr_116px] items-center border-b border-input px-4 py-2 text-left hover:bg-card/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500",
                     (selectedId === id ||
                       (selectedId === "__first__" && rowIndex === 0)) &&
                       "border-l-2 border-l-blue-500 bg-blue-950/30",
@@ -668,7 +668,7 @@ function RequestQueue({
                       <strong className="block truncate">
                         {employeeName(row)}
                       </strong>
-                      <span className="block truncate text-[11px] text-slate-500">
+                      <span className="block truncate text-[11px] text-muted-foreground">
                         {stringValue(row.job_title || row.department_name)}
                       </span>
                     </span>
@@ -681,7 +681,7 @@ function RequestQueue({
                         day: "numeric",
                       })}
                     </strong>
-                    <span className="text-slate-400">
+                    <span className="text-muted-foreground/70">
                       {formatTime(row.requested_start_at)}–
                       {formatTime(row.requested_end_at)} (
                       {formatDuration(requestDuration(row))})
@@ -752,13 +752,13 @@ function RequestQueue({
                 </div>
               );
             })}
-            <div className="flex items-center justify-between px-4 py-4 text-xs text-slate-400">
+            <div className="flex items-center justify-between px-4 py-4 text-xs text-muted-foreground/70">
               <span>
                 Showing 1–{requests.length} of {requests.length} requests
               </span>
               <span className="inline-flex items-center gap-3">
                 <ChevronLeft className="h-4 w-4" />
-                <span className="grid h-8 w-8 place-items-center rounded border border-zinc-600 text-white">
+                <span className="grid h-8 w-8 place-items-center rounded border border-input text-white">
                   1
                 </span>
                 <ChevronRight className="h-4 w-4" />
@@ -784,16 +784,16 @@ function CapacityPlanner({
     new Map(requests.map((row) => [String(row.employee_id), row])).values(),
   );
   return (
-    <section className="overflow-x-auto rounded-lg border border-zinc-800 bg-[#071321]">
+    <section className="overflow-x-auto rounded-lg border border-border bg-[#071321]">
       <div className="min-w-[1050px] text-xs">
-        <div className="grid border-b border-zinc-800" style={{ gridTemplateColumns: `250px repeat(${Math.max(1, dates.length)}, minmax(110px, 1fr))` }}>
+        <div className="grid border-b border-border" style={{ gridTemplateColumns: `250px repeat(${Math.max(1, dates.length)}, minmax(110px, 1fr))` }}>
           <div className="px-3 py-3 font-semibold">Employees</div>
           {dates.map((day) => {
             const total = requests.filter(row => String(row.work_date).slice(0, 10) === day).reduce((sum, row) => sum + requestDuration(row), 0);
             return (
             <div
               key={day}
-              className="border-l border-zinc-800 px-3 py-2 text-center"
+              className="border-l border-border px-3 py-2 text-center"
             >
               <p className="font-bold">{formatDate(day, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
               <p className="mt-1 text-blue-400">{formatDuration(total)}</p>
@@ -803,7 +803,7 @@ function CapacityPlanner({
         {employees.map((employee, rowIndex) => (
           <div
             key={employeeName(employee)}
-            className="grid min-h-16 border-b border-zinc-800"
+            className="grid min-h-16 border-b border-border"
             style={{ gridTemplateColumns: `250px repeat(${Math.max(1, dates.length)}, minmax(110px, 1fr))` }}
           >
             <div className="flex items-center gap-2 px-3">
@@ -812,11 +812,11 @@ function CapacityPlanner({
                 <p className="truncate font-semibold">
                   {employeeName(employee)}
                 </p>
-                <p className="truncate text-[11px] text-slate-500">
+                <p className="truncate text-[11px] text-muted-foreground">
                   {stringValue(employee.department_name)}
                 </p>
               </div>
-              <span className="text-[11px] text-slate-500">{formatDuration(numberValue(employee.scheduled_minutes))}</span>
+              <span className="text-[11px] text-muted-foreground">{formatDuration(numberValue(employee.scheduled_minutes))}</span>
             </div>
             {dates.map((day) => {
               const rows = requests.filter(row => String(row.employee_id) === String(employee.employee_id) && String(row.work_date).slice(0, 10) === day);
@@ -828,9 +828,9 @@ function CapacityPlanner({
                   key={day}
                   onClick={() => onSelect(String(employee.id))}
                   className={cn(
-                    "border-l border-zinc-800 text-center font-semibold",
+                    "border-l border-border text-center font-semibold",
                     minutes === 0
-                      ? "text-slate-500"
+                      ? "text-muted-foreground"
                       : risky
                         ? "bg-rose-950/70 text-rose-300"
                         : "bg-teal-950/65 text-teal-200",
@@ -863,14 +863,14 @@ function OvertimeOverview({
   return (
     <div className="grid gap-3 lg:grid-cols-[1.7fr_1fr]">
       <div className="space-y-3">
-        <section className="rounded-lg border border-zinc-800 bg-[#071321] p-4">
+        <section className="rounded-lg border border-border bg-[#071321] p-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold">Overtime cost trend</h2>
-            <select className="h-8 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs">
+            <select className="h-8 rounded border border-input bg-background px-2 text-xs">
               <option>Daily</option>
             </select>
           </div>
-          <div className="mt-5 flex h-64 items-end gap-2 border-b border-l border-zinc-700 px-3 pb-1">
+          <div className="mt-5 flex h-64 items-end gap-2 border-b border-l border-input px-3 pb-1">
             {Array.from({ length: 16 }, (_, index) => (
               <div
                 key={index}
@@ -880,20 +880,20 @@ function OvertimeOverview({
               />
             ))}
           </div>
-          <div className="mt-2 flex justify-between text-[10px] text-slate-500">
+          <div className="mt-2 flex justify-between text-[10px] text-muted-foreground">
             <span>Aug 1</span>
             <span className="text-blue-400">Aug 13 · Today</span>
             <span>Aug 31</span>
           </div>
         </section>
-        <section className="overflow-hidden rounded-lg border border-zinc-800 bg-[#071321]">
-          <h2 className="border-b border-zinc-800 px-4 py-3 font-bold">
+        <section className="overflow-hidden rounded-lg border border-border bg-[#071321]">
+          <h2 className="border-b border-border px-4 py-3 font-bold">
             Department overtime ranking
           </h2>
           {departments.map((department, index) => (
             <div
               key={department}
-              className="grid grid-cols-[1fr_100px_120px_110px] items-center border-b border-zinc-800 px-4 py-3 text-xs"
+              className="grid grid-cols-[1fr_100px_120px_110px] items-center border-b border-border px-4 py-3 text-xs"
             >
               <strong>
                 {index + 1}. {department}
@@ -912,8 +912,8 @@ function OvertimeOverview({
           ))}
         </section>
       </div>
-      <aside className="rounded-lg border border-zinc-800 bg-[#071321] p-4">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+      <aside className="rounded-lg border border-border bg-[#071321] p-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <h2 className="font-bold">Risks & approvals</h2>
           <Button size="sm" onClick={onReview}>
             Review requests {numberValue(metrics.pending)}
@@ -929,7 +929,7 @@ function OvertimeOverview({
         ].map((item, index) => (
           <div
             key={item}
-            className="flex items-center gap-3 border-b border-zinc-800 py-4"
+            className="flex items-center gap-3 border-b border-border py-4"
           >
             <span
               className={cn(
@@ -943,14 +943,14 @@ function OvertimeOverview({
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{item}</p>
-              <p className="text-xs text-slate-500">Due Aug {13 + index}</p>
+              <p className="text-xs text-muted-foreground">Due Aug {13 + index}</p>
             </div>
             <Button variant="outline" size="sm">
               Review
             </Button>
           </div>
         ))}
-        <div className="mt-5 rounded border border-zinc-800 p-4">
+        <div className="mt-5 rounded border border-border p-4">
           <h3 className="font-bold">Projected month-end</h3>
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <Summary label="Hours" value="182h" />
@@ -1005,12 +1005,12 @@ function RequestDrawer({
         </span>
         <div>
           <p className="font-bold">{employeeName(row)}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             {stringValue(row.job_title || row.department_name)}
           </p>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-8 border-b border-zinc-700 pb-4 text-sm">
+      <div className="mt-4 flex items-center gap-8 border-b border-input pb-4 text-sm">
         <span className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4" />
           {formatDate(row.work_date, {
@@ -1031,7 +1031,7 @@ function RequestDrawer({
         <p className="text-xs font-bold">Reason</p>
         <p className="mt-1 text-sm">{stringValue(row.business_reason)}</p>
       </section>
-      <section className="border-t border-zinc-800 py-4">
+      <section className="border-t border-border py-4">
         <h3 className="text-sm font-bold">Policy assessment</h3>
         <div className="mt-3 space-y-3 text-xs">
           <PolicyLine label="Weekly scheduled hours" value={`${formatDuration(row.scheduled_minutes)} / ${formatDuration(row.weekly_limit_minutes)} configured`} ok={numberValue(row.scheduled_minutes) + requestDuration(row) <= numberValue(row.weekly_limit_minutes)} />
@@ -1047,9 +1047,9 @@ function RequestDrawer({
           />
         </div>
       </section>
-      <section className="border-t border-zinc-800 py-4">
+      <section className="border-t border-border py-4">
         <h3 className="text-sm font-bold">Team capacity</h3>
-        <div className="mt-3 h-2 overflow-hidden rounded bg-zinc-800">
+        <div className="mt-3 h-2 overflow-hidden rounded bg-muted">
           <div
             className="h-full rounded bg-blue-600"
             style={{
@@ -1057,7 +1057,7 @@ function RequestDrawer({
             }}
           />
         </div>
-        <div className="mt-2 flex justify-between text-xs text-slate-500">
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
           <span>{formatDuration(row.scheduled_minutes)} scheduled</span>
           <span>+{formatDuration(requestDuration(row))} requested</span>
           <span>
@@ -1068,7 +1068,7 @@ function RequestDrawer({
           </span>
         </div>
       </section>
-      {!employeeSelfService && <label className="block border-t border-zinc-800 pt-4 text-xs font-bold">
+      {!employeeSelfService && <label className="block border-t border-border pt-4 text-xs font-bold">
         Manager note
         <Textarea
           value={note}
@@ -1135,14 +1135,14 @@ function RequestDrawer({
           </Button>
         </div>
       )}
-      <section className="mt-4 border-t border-zinc-700 py-4">
+      <section className="mt-4 border-t border-input py-4">
         <h3 className="text-sm font-bold">Audit timeline</h3>
         <div className="mt-3 space-y-3 text-xs">
           <div className="flex gap-3">
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
             <div>
               <p className="font-semibold">Submitted by {employeeName(row)}</p>
-              <p className="text-slate-500">
+              <p className="text-muted-foreground">
                 {formatDate(row.created_at, {
                   weekday: "short",
                   month: "short",
@@ -1152,7 +1152,7 @@ function RequestDrawer({
                 {formatTime(row.created_at)}
               </p>
             </div>
-            <span className="ml-auto text-slate-500">
+            <span className="ml-auto text-muted-foreground">
               {stringValue(row.submitted_label, "32m ago")}
             </span>
           </div>
@@ -1160,14 +1160,14 @@ function RequestDrawer({
             <span className="h-4 w-4 rounded-full border-2 border-blue-500" />
             <div>
               <p className="font-semibold">Manager review</p>
-              <p className="text-slate-500">Pending</p>
+              <p className="text-muted-foreground">Pending</p>
             </div>
           </div>
           <div className="flex gap-3">
             <span className="h-4 w-4 rounded-full border-2 border-slate-500" />
             <div>
               <p className="font-semibold">Payroll impact</p>
-              <p className="text-slate-500">Pending</p>
+              <p className="text-muted-foreground">Pending</p>
             </div>
           </div>
         </div>
@@ -1188,7 +1188,7 @@ function PolicyLine({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-slate-500">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span
         className={cn(
           "flex items-center gap-1.5 font-semibold",
@@ -1208,7 +1208,7 @@ function PolicyLine({
 
 function Workspace({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
+    <main className="min-h-full w-full bg-transparent px-3 py-4 text-foreground sm:px-5 lg:px-7 dark:text-foreground">
       <div className="flex w-full max-w-none flex-col gap-4">{children}</div>
     </main>
   );
@@ -1232,11 +1232,11 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="border-b border-slate-200 p-4 dark:border-zinc-800">
+    <section className="rounded-lg border border-border bg-white dark:border-border dark:bg-background">
+      <div className="border-b border-border p-4 dark:border-border">
         <h2 className="font-bold">{title}</h2>
         {description && (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
       <div className="p-4">{children}</div>
@@ -1467,7 +1467,7 @@ function OvertimeForm({
           </Field>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 divide-x divide-slate-200 rounded-md border border-slate-200 bg-slate-50 p-3 text-center dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/60">
+      <div className="mt-4 grid grid-cols-3 divide-x divide-slate-200 rounded-md border border-border bg-muted/40 p-3 text-center dark:divide-zinc-800 dark:border-border dark:bg-muted/40">
         <Summary
           label="Scheduled"
           value={
@@ -1485,7 +1485,7 @@ function OvertimeForm({
       <div className="mt-3">
         <PolicyWarnings warnings={warnings} />
       </div>
-      <div className="sticky bottom-0 mt-4 flex justify-end gap-2 border-t border-slate-200 bg-white pt-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="sticky bottom-0 mt-4 flex justify-end gap-2 border-t border-border bg-white pt-4 dark:border-border dark:bg-background">
         {!initialRequest && <Button
           variant="outline"
           disabled={
@@ -1555,19 +1555,19 @@ function OvertimeHistory({
             return (
               <article
                 key={id}
-                className="rounded-md border border-slate-200 p-4 dark:border-zinc-800"
+                className="rounded-md border border-border p-4 dark:border-border"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="font-semibold">
                       {stringValue(request.request_id)}
                     </p>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+                    <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
                       {stringValue(request.overtime_type).replace(/_/g, " ")} ·{" "}
                       {formatDate(request.work_date)}
                     </p>
                     {Boolean(request.first_name) && (
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {employeeName(request)} ·{" "}
                         {stringValue(request.department_name)}
                       </p>
@@ -1575,7 +1575,7 @@ function OvertimeHistory({
                   </div>
                   <ShiftStatusBadge status={status} />
                 </div>
-                <div className="mt-3 grid grid-cols-3 divide-x divide-slate-200 rounded-md bg-slate-50 py-3 text-center dark:divide-zinc-800 dark:bg-zinc-900/60">
+                <div className="mt-3 grid grid-cols-3 divide-x divide-slate-200 rounded-md bg-muted/40 py-3 text-center dark:divide-zinc-800 dark:bg-muted/40">
                   <Summary
                     label="Requested"
                     value={formatDuration(request.requested_minutes)}
@@ -1622,7 +1622,7 @@ function OvertimeHistory({
                 </div>
                 <PolicyWarnings warnings={request.policy_warnings} />
                 {canApprove && status === "pending_approval" && (
-                  <div className="mt-3 border-t border-slate-200 pt-3 dark:border-zinc-800">
+                  <div className="mt-3 border-t border-border pt-3 dark:border-border">
                     <Textarea
                       value={comments[id] || ""}
                       onChange={(event) =>
@@ -1678,7 +1678,7 @@ function OvertimeHistory({
                   </div>
                 )}
                 {canApprove && status === "approved" && (
-                  <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3 sm:grid-cols-[1fr_1fr_auto] dark:border-zinc-800">
+                  <div className="mt-3 grid gap-2 border-t border-border pt-3 sm:grid-cols-[1fr_1fr_auto] dark:border-border">
                     <Input
                       type="number"
                       min="0"
@@ -1759,7 +1759,7 @@ function Field({
 function Summary({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 px-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 truncate text-sm font-bold capitalize">{value}</p>

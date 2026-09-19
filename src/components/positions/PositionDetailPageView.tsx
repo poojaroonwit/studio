@@ -185,11 +185,11 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
     >
       <div className="grid min-h-full lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_350px]">
         <div className="flex min-h-0 flex-col">
-        <header className="shrink-0 border-b border-[#dfe5ee] px-5 pb-0 pt-4 sm:px-8">
+        <header className="shrink-0 border-b border-border px-5 pb-0 pt-4 sm:px-8">
           <button
             type="button"
             onClick={() => router.push("/positions")}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1769e8] hover:underline"
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back to Job Openings
@@ -200,33 +200,33 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
               {isEditingOverview ? (
                 <div className="grid max-w-[760px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <EditField label="Position title" className="sm:col-span-2">
-                    <Input {...contentProps.form.register("title")} className="h-9 bg-white text-sm font-semibold" />
+                    <Input {...contentProps.form.register("title")} className="h-9 bg-background text-sm font-semibold" />
                   </EditField>
                   <EditField label="Status">
-                    <select {...contentProps.form.register("isOpen", { setValueAs: (value) => value === true || value === "true" })} className="h-9 w-full rounded-md border border-[#d8e0eb] bg-white px-3 text-sm">
+                    <select {...contentProps.form.register("isOpen", { setValueAs: (value) => value === true || value === "true" })} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
                       <option value="true">Open</option>
                       <option value="false">Closed</option>
                     </select>
                   </EditField>
-                  <EditField label="Department"><Input {...contentProps.form.register("department")} className="h-9 bg-white text-sm" /></EditField>
-                  <EditField label="Location"><Input {...contentProps.form.register("location")} className="h-9 bg-white text-sm" /></EditField>
-                  <EditField label="Employment type"><Input {...contentProps.form.register("employmentType")} className="h-9 bg-white text-sm" /></EditField>
-                  <EditField label="Work model"><Input {...contentProps.form.register("workModel")} className="h-9 bg-white text-sm" /></EditField>
-                  <EditField label="Position level"><Input {...contentProps.form.register("positionLevel")} className="h-9 bg-white text-sm" /></EditField>
+                  <EditField label="Department"><Input {...contentProps.form.register("department")} className="h-9 bg-background text-sm" /></EditField>
+                  <EditField label="Location"><Input {...contentProps.form.register("location")} className="h-9 bg-background text-sm" /></EditField>
+                  <EditField label="Employment type"><Input {...contentProps.form.register("employmentType")} className="h-9 bg-background text-sm" /></EditField>
+                  <EditField label="Work model"><Input {...contentProps.form.register("workModel")} className="h-9 bg-background text-sm" /></EditField>
+                  <EditField label="Position level"><Input {...contentProps.form.register("positionLevel")} className="h-9 bg-background text-sm" /></EditField>
                 </div>
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-[26px] font-bold leading-8 tracking-[-0.02em] text-[#12213d]">{position.title}</h1>
+                    <h1 className="text-[26px] font-bold leading-8 tracking-[-0.02em] text-foreground">{position.title}</h1>
                     <span className={cn(
                       "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                      position.isOpen ? "bg-[#e5f8f4] text-[#008f83]" : "bg-slate-100 text-slate-600",
+                      position.isOpen ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
                     )}>
-                      <SolidCheckCircleIcon className={cn("h-3.5 w-3.5", position.isOpen ? "text-[#10b5a5]" : "text-slate-400")} />
+                      <SolidCheckCircleIcon className={cn("h-3.5 w-3.5", position.isOpen ? "text-success" : "text-muted-foreground/70")} />
                       {position.isOpen ? "Open" : "Closed"}
                     </span>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-[#52617a]">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted-foreground">
                     <span className="inline-flex items-center gap-2"><BriefcaseIcon className="h-4 w-4" />{position.department || "Department not provided"}</span>
                     <span className="inline-flex items-center gap-2"><MapPinIcon className="h-4 w-4" />{location}</span>
                     <span className="inline-flex items-center gap-2"><ClockIcon className="h-4 w-4" />{employmentType}</span>
@@ -237,9 +237,9 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
             </div>
 
             <div className="flex items-center gap-2">
-              {isEditingOverview && <Button variant="outline" className="h-9 bg-white px-4 text-[13px]" onClick={contentProps.onCancel}>Cancel</Button>}
+              {isEditingOverview && <Button variant="outline" className="h-9 bg-background px-4 text-[13px]" onClick={contentProps.onCancel}>Cancel</Button>}
               <Button
-                className="h-9 bg-[#1769e8] px-5 text-[13px] font-semibold hover:bg-[#1058c7]"
+                className="h-9 bg-primary px-5 text-[13px] font-semibold hover:bg-primary/90"
                 disabled={editActions.isSaving}
                 onClick={isEditingOverview ? contentProps.form.handleSubmit(contentProps.onSave) : startEditingAll}
               >
@@ -247,13 +247,13 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-9 gap-2 border-[#d8e0eb] bg-white px-3 text-[13px] !text-[#12213d] hover:bg-[#f5f7fa]">
+                  <Button variant="outline" className="h-9 gap-2 border-input bg-background px-3 text-[13px] !text-foreground hover:bg-muted">
                     <EllipsisVerticalIcon className="h-4 w-4" />
                     Actions
                     <ChevronDownIcon className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 bg-white text-[#12213d]">
+                <DropdownMenuContent align="end" className="w-52 bg-background text-foreground">
                   <DropdownMenuItem onSelect={startEditingAll}>
                     <PencilSquareIcon className="mr-2 h-4 w-4" />Edit position
                   </DropdownMenuItem>
@@ -265,7 +265,7 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto border-y border-[#dfe5ed]">
+          <div className="mt-4 overflow-x-auto border-y border-border">
             <div className="grid min-w-[760px] grid-cols-[1.18fr_1.22fr_1fr_0.65fr] py-[19px]">
               <LifecycleStep icon="complete" label="Draft complete" value={formatDate(position.createdAt)} connector />
               <LifecycleStep icon="complete" label="Approval approved" value={formatDate(position.updatedAt)} connector />
@@ -285,12 +285,12 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
                 type="button"
                 onClick={() => contentProps.onTabChange(tab.id)}
                 className={cn(
-                  "relative h-12 shrink-0 text-[13px] font-medium text-[#52617a]",
-                  contentProps.activeTab === tab.id && "font-semibold text-[#1769e8] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#1769e8]",
+                  "relative h-12 shrink-0 text-[13px] font-medium text-muted-foreground",
+                  contentProps.activeTab === tab.id && "font-semibold text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary",
                 )}
               >
                 {tab.label}
-                {tab.id === "Applicants" && <span className="ml-1.5 rounded-full bg-[#eef1f6] px-2 py-0.5 text-[11px] text-[#46536a]">{applicantTabTotal}</span>}
+                {tab.id === "Applicants" && <span className="ml-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{applicantTabTotal}</span>}
               </button>
             ))}
           </nav>
@@ -301,8 +301,8 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
               <main className="min-h-full min-w-0 px-5 py-5 sm:px-8 lg:h-full lg:min-h-0 lg:overflow-y-auto">
                 <OverviewSection title="Role summary" action={!isEditingOverview ? <SectionEditButton onClick={startEditingAll} /> : undefined}>
                   {isEditingOverview ? (
-                    <Textarea {...contentProps.form.register("description")} rows={5} className="max-w-[820px] resize-y bg-white text-[13px] leading-5" />
-                  ) : <p className="max-w-[760px] text-[13px] leading-[1.55] text-[#33425c]">{summary}</p>}
+                    <Textarea {...contentProps.form.register("description")} rows={5} className="max-w-[820px] resize-y bg-background text-[13px] leading-5" />
+                  ) : <p className="max-w-[760px] text-[13px] leading-[1.55] text-foreground/80">{summary}</p>}
                 </OverviewSection>
 
                 <OverviewSection title="What success looks like (first 90 days)" action={!isEditingOverview ? <SectionEditButton onClick={startEditingAll} /> : undefined}>
@@ -326,11 +326,11 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
                       onChange={(items) => contentProps.form.setValue("coreResponsibilities", items, { shouldDirty: true })}
                     />
                   ) : coreResponsibilities.length > 0
-                    ? <ul className="space-y-1 pl-5 text-[13px] leading-5 text-[#33425c] marker:text-[#1769e8]">{coreResponsibilities.map((item) => <li key={item}>{item}</li>)}</ul>
+                    ? <ul className="space-y-1 pl-5 text-[13px] leading-5 text-foreground/80 marker:text-primary">{coreResponsibilities.map((item) => <li key={item}>{item}</li>)}</ul>
                     : <EmptyOverviewValue text="No core responsibilities have been configured." />}
                 </OverviewSection>
 
-                <div className="grid gap-8 border-t border-[#e4e9f0] py-5 md:grid-cols-2">
+                <div className="grid gap-8 border-t border-border py-5 md:grid-cols-2">
                   <SkillGroup
                     title="Required skills"
                     skills={isEditingOverview ? contentProps.form.watch("requiredSkills") : editableRequiredSkills}
@@ -354,29 +354,29 @@ export function PositionDetailPageView({ controller, contentProps }: PositionDet
                       value={contentProps.form.watch("matchCriteriaPreview")}
                       onChange={(items) => contentProps.form.setValue("matchCriteriaPreview", items, { shouldDirty: true })}
                     />
-                  ) : criteriaPreview.length > 0 ? <div className="max-w-[720px] text-[12px] text-[#33425c]">
+                  ) : criteriaPreview.length > 0 ? <div className="max-w-[720px] text-[12px] text-foreground/80">
                     {criteriaPreview.map((row, index) => {
                       const [criterion, weight = "0"] = row.split("|");
                       return (
-                      <div key={`${criterion}-${index}`} className="grid grid-cols-[minmax(0,1fr)_64px] border-b border-[#e4e9f0] py-2 first:border-t">
+                      <div key={`${criterion}-${index}`} className="grid grid-cols-[minmax(0,1fr)_64px] border-b border-border py-2 first:border-t">
                         <span>{criterion.trim()}</span><span className="text-right font-semibold">{weight.trim().replace(/%$/, "")}%</span>
                       </div>
                     )})}
-                  </div> : <p className="max-w-[760px] whitespace-pre-wrap text-[13px] leading-[1.55] text-[#33425c]">{criteriaText || "No match criteria have been configured."}</p>}
+                  </div> : <p className="max-w-[760px] whitespace-pre-wrap text-[13px] leading-[1.55] text-foreground/80">{criteriaText || "No match criteria have been configured."}</p>}
                 </OverviewSection>
 
                 {isEditingOverview && (
                   <OverviewSection title="Hiring details">
                     <div className="grid max-w-[820px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      <EditField label="Salary range"><Input {...contentProps.form.register("salaryRange")} className="h-9 bg-white text-sm" /></EditField>
-                      <EditField label="Target start"><Input {...contentProps.form.register("targetStartDate")} className="h-9 bg-white text-sm" /></EditField>
-                      <EditField label="Hiring manager"><Input {...contentProps.form.register("hiringManagerName")} className="h-9 bg-white text-sm" /></EditField>
+                      <EditField label="Salary range"><Input {...contentProps.form.register("salaryRange")} className="h-9 bg-background text-sm" /></EditField>
+                      <EditField label="Target start"><Input {...contentProps.form.register("targetStartDate")} className="h-9 bg-background text-sm" /></EditField>
+                      <EditField label="Hiring manager"><Input {...contentProps.form.register("hiringManagerName")} className="h-9 bg-background text-sm" /></EditField>
                     </div>
                   </OverviewSection>
                 )}
               </main>
           ) : (
-            <div className="flex h-full min-h-[640px] flex-col overflow-hidden bg-white">
+            <div className="flex h-full min-h-[640px] flex-col overflow-hidden bg-background">
               <PositionDetailDrawerActivePanel {...contentProps} />
             </div>
           )}

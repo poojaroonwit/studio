@@ -104,32 +104,32 @@ export function AdminCenterOverview({
   }, [snapshot.setup]);
 
   return (
-    <div className="min-h-full bg-background dark:bg-[#0b0f14] text-foreground dark:text-[#e7edf4]">
-      <header className="border-b border-border dark:border-[#202936] bg-card dark:bg-[#10161e] px-4 py-4 sm:px-5 lg:px-7">
+    <div className="min-h-full bg-background text-foreground">
+      <header className="border-b border-border bg-card px-4 py-4 sm:px-5 lg:px-7">
         <div className="mx-auto flex w-full max-w-[1500px] flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 place-items-center rounded-md border border-border dark:border-[#29405a] bg-info/10 dark:bg-[#142333] text-info dark:text-[#69aaf0]">
+              <span className="grid h-8 w-8 place-items-center rounded-md border border-border bg-info/10 text-info">
                 <Server className="h-[17px] w-[17px]" strokeWidth={1.8} />
               </span>
               <div>
-                <h1 className="text-base font-semibold tracking-[-0.01em] text-foreground dark:text-white">Admin Center</h1>
-                <p className="mt-0.5 text-xs text-muted-foreground dark:text-[#8d9aac]">Platform health, runtime signals, and configuration readiness</p>
+                <h1 className="text-base font-semibold tracking-[-0.01em] text-foreground">Admin Center</h1>
+                <p className="mt-0.5 text-xs text-muted-foreground">Platform health, runtime signals, and configuration readiness</p>
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-border dark:border-[#2a3442] bg-muted dark:bg-[#151c25] px-3 py-2 text-xs font-medium text-foreground/80 dark:text-[#b8c3d1]">
+            <span className="rounded-md border border-border bg-muted px-3 py-2 text-xs font-medium text-foreground/80">
               Production
             </span>
-            <span className="rounded-md border border-border dark:border-[#2a3442] bg-muted dark:bg-[#151c25] px-3 py-2 text-xs text-muted-foreground dark:text-[#8d9aac]">
+            <span className="rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
               Live · 30s refresh
             </span>
             <button
               type="button"
               onClick={refresh}
               disabled={refreshing}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-border dark:border-[#315b82] bg-info/10 dark:bg-[#15324c] px-3 text-xs font-semibold text-info dark:text-[#cde7ff] transition hover:bg-info/20 dark:hover:bg-[#1a3c5b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5aa7ef] disabled:cursor-wait disabled:opacity-70"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-info/10 px-3 text-xs font-semibold text-info transition hover:bg-info/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-70"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
@@ -141,7 +141,7 @@ export function AdminCenterOverview({
       <main className="mx-auto w-full max-w-[1500px] px-4 py-5 sm:px-5 lg:px-7 lg:py-6">
         <StatusBand state={state} checkedAt={snapshot.checkedAt} error={error} />
 
-        <section aria-label="Platform health metrics" className="mt-4 grid gap-px overflow-hidden rounded-lg border border-border dark:border-[#222c39] bg-border dark:bg-[#222c39] sm:grid-cols-2 xl:grid-cols-5">
+        <section aria-label="Platform health metrics" className="mt-4 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 xl:grid-cols-5">
           <Metric icon={Activity} label="API probe" value={snapshot.latencyMs === undefined ? '—' : `${snapshot.latencyMs} ms`} note="Browser to application" tone="blue" />
           <Metric icon={Database} label="Database" value={snapshot.database?.timings?.total === undefined ? '—' : `${snapshot.database.timings.total} ms`} note="Connection + queries" tone={snapshot.database?.status === 'unhealthy' ? 'red' : 'green'} />
           <Metric icon={Clock3} label="Server uptime" value={formatServerUptime(snapshot.runtime?.uptimeSeconds ?? snapshot.api?.uptime)} note={snapshot.runtime?.runtime || 'Current process'} tone="purple" />
@@ -150,19 +150,19 @@ export function AdminCenterOverview({
         </section>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(310px,0.75fr)]">
-          <Panel title="Live probe latency" subtitle="Real round-trip samples collected while this console is open" action={<span className="text-[11px] text-muted-foreground dark:text-[#77869a]">Last {probes.length} probes</span>}>
+          <Panel title="Live probe latency" subtitle="Real round-trip samples collected while this console is open" action={<span className="text-[11px] text-muted-foreground">Last {probes.length} probes</span>}>
             <AdminCenterProbeChart probes={probes} />
           </Panel>
-          <Panel title="Setup health" subtitle="Required platform configuration" action={<Link href="/settings?adminTab=hr-setup" className="text-[11px] font-semibold text-info dark:text-[#71b5f5] hover:text-info dark:hover:text-[#a6d4ff]">Open setup</Link>}>
+          <Panel title="Setup health" subtitle="Required platform configuration" action={<Link href="/settings?adminTab=hr-setup" className="text-[11px] font-semibold text-info hover:text-info">Open setup</Link>}>
             <SetupGauge progress={setup} />
           </Panel>
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <Panel title="Service health" subtitle="Checks from the running application" action={<Link href="/system-status" className="inline-flex items-center gap-1 text-[11px] font-semibold text-info dark:text-[#71b5f5] hover:text-info dark:hover:text-[#a6d4ff]">System status <ExternalLink className="h-3 w-3" /></Link>}>
+          <Panel title="Service health" subtitle="Checks from the running application" action={<Link href="/system-status" className="inline-flex items-center gap-1 text-[11px] font-semibold text-info hover:text-info">System status <ExternalLink className="h-3 w-3" /></Link>}>
             <ServiceTable snapshot={snapshot} loading={loading || isLoading} />
           </Panel>
-          <Panel title="Runtime resources" subtitle="Current Node.js process memory" action={<span className="text-[11px] text-muted-foreground dark:text-[#77869a]">{snapshot.runtime?.version ? `v${snapshot.runtime.version}` : 'Application server'}</span>}>
+          <Panel title="Runtime resources" subtitle="Current Node.js process memory" action={<span className="text-[11px] text-muted-foreground">{snapshot.runtime?.version ? `v${snapshot.runtime.version}` : 'Application server'}</span>}>
             <RuntimeResources memory={memory} heapPercent={heapPercent} />
           </Panel>
         </div>
@@ -274,11 +274,11 @@ function StatusBand({ state, checkedAt, error }: { state: AdminHealthState; chec
       <div className="flex items-center gap-3">
         <Icon className={`h-5 w-5 shrink-0 ${state === 'checking' ? 'animate-spin' : ''}`} style={{ color: content.color }} />
         <div>
-          <h2 className="text-sm font-semibold text-foreground dark:text-white">{content.title}</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground dark:text-[#9eabb9]">{content.detail}</p>
+          <h2 className="text-sm font-semibold text-foreground">{content.title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{content.detail}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-[#8d9aac]">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: content.color }} />
         {checkedAt ? `Checked ${new Date(checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Starting checks'}
       </div>
@@ -289,23 +289,23 @@ function StatusBand({ state, checkedAt, error }: { state: AdminHealthState; chec
 function Metric({ icon: Icon, label, value, note, tone }: { icon: typeof Activity; label: string; value: string; note: string; tone: 'blue' | 'green' | 'amber' | 'red' | 'purple' }) {
   const colors = { blue: 'hsl(var(--info))', green: 'hsl(var(--success))', amber: 'hsl(var(--warning))', red: 'hsl(var(--destructive))', purple: 'hsl(var(--chart-5))' };
   return (
-    <div className="min-h-[112px] bg-card dark:bg-[#111821] p-4">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground dark:text-[#7f8da0]">
+    <div className="min-h-[112px] bg-card p-4">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" style={{ color: colors[tone] }} strokeWidth={1.8} /> {label}
       </div>
-      <div className="mt-3 text-[22px] font-semibold tracking-[-0.035em] text-foreground dark:text-white">{value}</div>
-      <p className="mt-1 truncate text-[11px] text-muted-foreground dark:text-[#748296]">{note}</p>
+      <div className="mt-3 text-[22px] font-semibold tracking-[-0.035em] text-foreground">{value}</div>
+      <p className="mt-1 truncate text-[11px] text-muted-foreground">{note}</p>
     </div>
   );
 }
 
 function Panel({ title, subtitle, action, children }: { title: string; subtitle: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-border dark:border-[#222c39] bg-card dark:bg-[#111821]">
-      <div className="flex min-h-[62px] items-center justify-between gap-3 border-b border-border dark:border-[#222c39] px-4 py-3">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex min-h-[62px] items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div>
-          <h2 className="text-[13px] font-semibold text-foreground dark:text-[#eef3f8]">{title}</h2>
-          <p className="mt-0.5 text-[11px] text-muted-foreground dark:text-[#77869a]">{subtitle}</p>
+          <h2 className="text-[13px] font-semibold text-foreground">{title}</h2>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>
         </div>
         {action}
       </div>
@@ -319,14 +319,14 @@ function SetupGauge({ progress }: { progress?: SetupHealthResponse['progress'] }
   return (
     <div className="flex min-h-[248px] items-center justify-center gap-8 p-5">
       <div className="relative grid h-36 w-36 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(hsl(var(--success)) ${percentage * 3.6}deg, hsl(var(--muted)) 0deg)` }}>
-        <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-card dark:bg-[#111821] text-center">
-          <div><div className="text-3xl font-semibold tracking-[-0.04em] text-foreground dark:text-white">{progress ? `${percentage}%` : '—'}</div><div className="mt-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground dark:text-[#758397]">Ready</div></div>
+        <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-card text-center">
+          <div><div className="text-3xl font-semibold tracking-[-0.04em] text-foreground">{progress ? `${percentage}%` : '—'}</div><div className="mt-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Ready</div></div>
         </div>
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground dark:text-[#8e9bad]">Required configuration</p>
-        <p className="mt-2 text-xl font-semibold text-foreground dark:text-white">{progress ? `${progress.completed} / ${progress.total}` : 'Loading'}</p>
-        <p className="mt-1 text-[11px] leading-5 text-muted-foreground dark:text-[#77869a]">Complete the remaining setup items to make every enabled workflow ready for your team.</p>
+        <p className="text-xs text-muted-foreground">Required configuration</p>
+        <p className="mt-2 text-xl font-semibold text-foreground">{progress ? `${progress.completed} / ${progress.total}` : 'Loading'}</p>
+        <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Complete the remaining setup items to make every enabled workflow ready for your team.</p>
       </div>
     </div>
   );
@@ -340,7 +340,7 @@ function ServiceTable({ snapshot, loading }: { snapshot: HealthSnapshot; loading
     { name: 'Platform configuration', detail: snapshot.setup ? `${snapshot.setup.progress.completed} required items ready` : 'Setup readiness', status: snapshot.setup?.progress.percentage === 100 ? 'Operational' : snapshot.setup ? 'Attention' : 'Checking' },
   ];
   return (
-    <div className="divide-y divide-border dark:divide-[#202a36]">
+    <div className="divide-y divide-border">
       {services.map(service => <ServiceRow key={service.name} {...service} />)}
     </div>
   );
@@ -350,9 +350,9 @@ function ServiceRow({ name, detail, status, latency }: { name: string; detail: s
   const color = status === 'Operational' ? 'hsl(var(--success))' : status === 'Checking' ? 'hsl(var(--info))' : status === 'Attention' ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
   return (
     <div className="grid min-h-[61px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3">
-      <div className="min-w-0"><p className="truncate text-xs font-semibold text-foreground dark:text-[#dfe7ef]">{name}</p><p className="mt-1 truncate text-[10px] text-muted-foreground dark:text-[#718095]">{detail}</p></div>
+      <div className="min-w-0"><p className="truncate text-xs font-semibold text-foreground">{name}</p><p className="mt-1 truncate text-[10px] text-muted-foreground">{detail}</p></div>
       <div className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color }}><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />{status}</div>
-      <div className="w-14 text-right font-mono text-[10px] text-muted-foreground dark:text-[#77869a]">{latency === undefined ? '—' : `${latency} ms`}</div>
+      <div className="w-14 text-right font-mono text-[10px] text-muted-foreground">{latency === undefined ? '—' : `${latency} ms`}</div>
     </div>
   );
 }
@@ -368,22 +368,22 @@ function RuntimeResources({ memory, heapPercent }: { memory?: RuntimeHealthRespo
     <div className="grid gap-3 p-4 sm:grid-cols-3">
       {resources.map(resource => {
         const Icon = resource.icon;
-        return <div key={resource.label} className="rounded-md border border-border dark:border-[#222c39] bg-muted/40 dark:bg-[#0d141c] p-3.5"><div className="flex items-center justify-between"><Icon className="h-4 w-4" style={{ color: resource.color }} /><span className="text-base font-semibold text-foreground dark:text-white">{resource.value}</span></div><p className="mt-4 text-[11px] font-semibold text-muted-foreground dark:text-[#a8b3c1]">{resource.label}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted dark:bg-[#26313e]"><div className="h-full rounded-full" style={{ width: `${resource.percent}%`, backgroundColor: resource.color }} /></div><p className="mt-2 truncate text-[10px] text-muted-foreground dark:text-[#657488]">{resource.detail}</p></div>;
+        return <div key={resource.label} className="rounded-md border border-border bg-muted/40 p-3.5"><div className="flex items-center justify-between"><Icon className="h-4 w-4" style={{ color: resource.color }} /><span className="text-base font-semibold text-foreground">{resource.value}</span></div><p className="mt-4 text-[11px] font-semibold text-muted-foreground">{resource.label}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${resource.percent}%`, backgroundColor: resource.color }} /></div><p className="mt-2 truncate text-[10px] text-muted-foreground">{resource.detail}</p></div>;
       })}
     </div>
   );
 }
 
 function SetupAttention({ issues, loading }: { issues: Array<PlatformSetupFeatureStatus & { definition: (typeof platformSetupFeatures)[number] | undefined }>; loading: boolean }) {
-  if (loading) return <div className="flex h-32 items-center justify-center text-xs text-muted-foreground dark:text-[#718095]"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Checking configuration</div>;
-  if (!issues.length) return <div className="flex h-32 flex-col items-center justify-center text-center"><CheckCircle2 className="h-6 w-6 text-success" /><p className="mt-2 text-xs font-semibold text-foreground dark:text-[#dfe7ef]">Required setup is complete</p></div>;
+  if (loading) return <div className="flex h-32 items-center justify-center text-xs text-muted-foreground"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Checking configuration</div>;
+  if (!issues.length) return <div className="flex h-32 flex-col items-center justify-center text-center"><CheckCircle2 className="h-6 w-6 text-success" /><p className="mt-2 text-xs font-semibold text-foreground">Required setup is complete</p></div>;
   return (
-    <div className="divide-y divide-border dark:divide-[#202a36]">
+    <div className="divide-y divide-border">
       {issues.map(issue => (
-        <Link key={issue.id} href={issue.definition?.href || '/settings'} className="group flex min-h-[58px] items-center gap-3 px-4 py-3 hover:bg-muted dark:hover:bg-[#151e28] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#5aa7ef]">
+        <Link key={issue.id} href={issue.definition?.href || '/settings'} className="group flex min-h-[58px] items-center gap-3 px-4 py-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
           <span className="h-2 w-2 shrink-0 rounded-full bg-warning" />
-          <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-foreground dark:text-[#dfe7ef]">{issue.definition?.title}</span><span className="mt-0.5 block truncate text-[10px] text-muted-foreground dark:text-[#718095]">{issue.definition?.description}</span></span>
-          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground dark:text-[#627186] transition-transform group-hover:translate-x-0.5 group-hover:text-info dark:hover:text-[#89bff2]" />
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-foreground">{issue.definition?.title}</span><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{issue.definition?.description}</span></span>
+          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-info" />
         </Link>
       ))}
     </div>
@@ -391,5 +391,5 @@ function SetupAttention({ issues, loading }: { issues: Array<PlatformSetupFeatur
 }
 
 function Note({ icon: Icon, title, text }: { icon: typeof Activity; title: string; text: string }) {
-  return <div className="rounded-md border border-border dark:border-[#222c39] bg-muted/40 dark:bg-[#0d141c] p-3.5"><Icon className="h-4 w-4 text-info dark:text-[#69aaf0]" /><h3 className="mt-3 text-xs font-semibold text-foreground dark:text-[#dfe7ef]">{title}</h3><p className="mt-1.5 text-[11px] leading-5 text-muted-foreground dark:text-[#718095]">{text}</p></div>;
+  return <div className="rounded-md border border-border bg-muted/40 p-3.5"><Icon className="h-4 w-4 text-info" /><h3 className="mt-3 text-xs font-semibold text-foreground">{title}</h3><p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">{text}</p></div>;
 }

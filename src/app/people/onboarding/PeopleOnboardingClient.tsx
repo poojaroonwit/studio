@@ -362,7 +362,7 @@ export function PeopleOnboardingClient() {
   };
 
   return (
-    <main className="min-h-full bg-[#f8fafc] text-[#14213d] dark:bg-zinc-950 dark:text-zinc-50">
+    <main className="min-h-full bg-[#f8fafc] text-[#14213d] dark:bg-background dark:text-zinc-50">
       <div className="w-full px-4 py-5 sm:px-6 lg:px-7">
         <PageHeader canManage={canManageOnboarding} onStart={() => setCreateOpen(true)} />
 
@@ -434,15 +434,15 @@ function PageHeader({ canManage, onStart }: { canManage: boolean; onStart: () =>
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-[26px] font-bold tracking-[-0.035em]">Onboarding readiness</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">Review upcoming hires, prioritize exceptions, and open an employee journey for action.</p>
+        <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">Review upcoming hires, prioritize exceptions, and open an employee journey for action.</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         {canManage && (
           <>
-          <Button asChild variant="outline" className="h-10 bg-white dark:bg-zinc-900">
+          <Button asChild variant="outline" className="h-10 bg-white dark:bg-card">
             <Link href="/settings?adminTab=hr-setup&config=onboarding"><Cog6ToothIcon className="mr-2 h-4 w-4" />Configure</Link>
           </Button>
-          <Button type="button" onClick={onStart} className="h-10 bg-[#155bd7] px-4 hover:bg-[#104dbb]"><PlusIcon className="mr-2 h-4 w-4" />Start onboarding</Button>
+          <Button type="button" onClick={onStart} className="h-10 bg-primary px-4 hover:bg-primary/90"><PlusIcon className="mr-2 h-4 w-4" />Start onboarding</Button>
           </>
         )}
       </div>
@@ -469,8 +469,8 @@ function FilterBar({ searchQuery, onSearch, startDate, onStartDate, department, 
     <div className="mt-4 flex flex-wrap items-center gap-2">
       <label className="relative min-w-[220px] flex-1">
         <span className="sr-only">Search hires</span>
-        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <Input value={searchQuery} onChange={event => onSearch(event.target.value)} placeholder="Search hires" className="h-9 bg-white pl-9 dark:bg-zinc-900" />
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+        <Input value={searchQuery} onChange={event => onSearch(event.target.value)} placeholder="Search hires" className="h-9 bg-white pl-9 dark:bg-card" />
       </label>
       <FilterSelect
         label="Start date"
@@ -485,7 +485,7 @@ function FilterBar({ searchQuery, onSearch, startDate, onStartDate, department, 
       <FilterSelect label="Department" value={department} onChange={onDepartment} options={departments} />
       <FilterSelect label="Location" value={location} onChange={onLocation} options={locations} />
       <FilterSelect label="Owner" value={owner} onChange={onOwner} options={owners} />
-      <Button type="button" variant="outline" className="h-9 bg-white px-3 dark:bg-zinc-900" aria-label="More filters"><FunnelIcon className="mr-2 h-4 w-4" />Filters</Button>
+      <Button type="button" variant="outline" className="h-9 bg-white px-3 dark:bg-card" aria-label="More filters"><FunnelIcon className="mr-2 h-4 w-4" />Filters</Button>
     </div>
   );
 }
@@ -494,7 +494,7 @@ function FilterSelect({ label: selectLabel, value: selectValue, onChange, option
   return (
     <label className="relative">
       <span className="sr-only">{selectLabel}</span>
-      <select value={selectValue} onChange={event => onChange(event.target.value)} className="h-9 min-w-[145px] appearance-none rounded-md border border-input bg-white pl-3 pr-8 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-zinc-900">
+      <select value={selectValue} onChange={event => onChange(event.target.value)} className="h-9 min-w-[145px] appearance-none rounded-md border border-input bg-white pl-3 pr-8 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-card">
         <option value="all">{selectLabel}: All</option>
         {options.map(option => {
           const optionValue = typeof option === 'string' ? option : option.value;
@@ -502,21 +502,21 @@ function FilterSelect({ label: selectLabel, value: selectValue, onChange, option
           return <option key={optionValue} value={optionValue}>{optionLabel}</option>;
         })}
       </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
     </label>
   );
 }
 
 function JourneyTable({ rows, selectedCaseId, selectedProgress, onSelect }: { rows: JourneyRow[]; selectedCaseId: string | null; selectedProgress: number; onSelect: (caseId: string) => void }) {
   if (!rows.length) {
-    return <div className="grid min-h-[360px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-700 dark:bg-zinc-900"><div><FunnelIcon className="mx-auto h-7 w-7 text-slate-400" /><h2 className="mt-3 font-semibold">No journeys match these filters</h2><p className="mt-1 text-sm text-slate-500">Try widening the status, department, or search filters.</p></div></div>;
+    return <div className="grid min-h-[360px] place-items-center rounded-xl border border-dashed border-input bg-white px-6 text-center dark:border-input dark:bg-card"><div><FunnelIcon className="mx-auto h-7 w-7 text-muted-foreground/70" /><h2 className="mt-3 font-semibold">No journeys match these filters</h2><p className="mt-1 text-sm text-muted-foreground">Try widening the status, department, or search filters.</p></div></div>;
   }
 
   return (
-    <section aria-label="Onboarding journeys" className="mt-4 min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <section aria-label="Onboarding journeys" className="mt-4 min-w-0 overflow-hidden rounded-xl border border-border bg-white dark:border-border dark:bg-card">
       <div className="overflow-x-auto">
         <div className="min-w-[920px]">
-          <div className="grid grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
+          <div className="grid grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-border bg-muted/50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground dark:border-border dark:bg-muted/20 dark:text-muted-foreground">
             <span>Employee</span><span>Start date</span><span>Phase</span><span>Readiness</span><span>Top blocker</span><span>Next action</span><span>Owner</span>
           </div>
           {GROUPS.map(group => {
@@ -524,10 +524,10 @@ function JourneyTable({ rows, selectedCaseId, selectedProgress, onSelect }: { ro
             if (!groupRows.length) return null;
             return (
               <div key={group.id}>
-                <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50/50 px-4 py-2 text-xs font-semibold dark:border-zinc-800 dark:bg-zinc-950/25">
-                  <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
+                <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2 text-xs font-semibold dark:border-border dark:bg-muted/15">
+                  <ChevronDownIcon className="h-3.5 w-3.5 text-muted-foreground/70" />
                   <GroupIcon group={group.id} />
-                  {group.label} <span className="font-normal text-slate-400">({groupRows.length})</span>
+                  {group.label} <span className="font-normal text-muted-foreground/70">({groupRows.length})</span>
                 </div>
                 {groupRows.map(row => <JourneyTableRow key={row.caseItem.id} row={row} selected={selectedCaseId === row.caseItem.id} selectedProgress={selectedProgress} onSelect={() => onSelect(row.caseItem.id)} />)}
               </div>
@@ -542,7 +542,7 @@ function JourneyTable({ rows, selectedCaseId, selectedProgress, onSelect }: { ro
 function GroupIcon({ group, className }: { group: JourneyGroup; className?: string }) {
   if (group === 'needs_action') return <ExclamationCircleIcon className={cn('h-4 w-4 text-rose-500', className)} />;
   if (group === 'starting_soon') return <ClockIcon className={cn('h-4 w-4 text-amber-500', className)} />;
-  if (group === 'completed') return <CheckCircleIcon className={cn('h-4 w-4 text-slate-400', className)} />;
+  if (group === 'completed') return <CheckCircleIcon className={cn('h-4 w-4 text-muted-foreground/70', className)} />;
   return <CheckCircleIcon className={cn('h-4 w-4 text-emerald-500', className)} />;
 }
 
@@ -553,22 +553,22 @@ function JourneyTableRow({ row, selected, selectedProgress, onSelect }: { row: J
       type="button"
       onClick={onSelect}
       className={cn(
-        'relative grid w-full grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-slate-100 px-4 py-3 text-left text-xs transition-colors last:border-b-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#155bd7] dark:border-zinc-800/70 dark:hover:bg-zinc-800/40',
+        'relative grid w-full grid-cols-[minmax(200px,1.25fr)_116px_106px_120px_minmax(160px,1fr)_minmax(145px,0.9fr)_92px] items-center border-b border-border/60 px-4 py-3 text-left text-xs transition-colors last:border-b-0 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:border-border/70 dark:hover:bg-muted/30',
         selected && 'bg-blue-50/80 hover:bg-blue-50 dark:bg-blue-950/25 dark:hover:bg-blue-950/30',
       )}
     >
-      {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#155bd7]" />}
+      {selected && <span className="absolute inset-y-0 left-0 w-[3px] bg-primary" />}
       <span className="flex min-w-0 items-center gap-3 pl-1">
-        <span className={cn('h-3 w-3 shrink-0 rounded-full border', selected ? 'border-[#155bd7] ring-2 ring-blue-100 dark:ring-blue-950' : 'border-slate-300 dark:border-zinc-700')} />
+        <span className={cn('h-3 w-3 shrink-0 rounded-full border', selected ? 'border-primary ring-2 ring-primary/15' : 'border-input dark:border-input')} />
         <EmployeeAvatar row={row} size="sm" />
-        <span className="min-w-0"><span className="block truncate font-semibold text-slate-900 dark:text-zinc-100">{row.name}</span><span className="mt-0.5 block truncate text-slate-500 dark:text-zinc-400">{row.role}</span></span>
+        <span className="min-w-0"><span className="block truncate font-semibold text-foreground dark:text-foreground">{row.name}</span><span className="mt-0.5 block truncate text-muted-foreground dark:text-muted-foreground">{row.role}</span></span>
       </span>
-      <span><span className="block font-medium">{row.startDateLabel}</span><span className="mt-0.5 block text-slate-500">{relativeStart(row.daysToStart)}</span></span>
-      <span><span className="block font-medium">{row.phase}</span><span className="mt-0.5 block text-slate-500 capitalize">{row.status}</span></span>
-      <span className="pr-5"><span className="font-semibold tabular-nums">{visibleProgress}%</span><span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><span className={cn('block h-full rounded-full', visibleProgress >= 90 ? 'bg-emerald-500' : 'bg-[#155bd7]')} style={{ width: `${visibleProgress}%` }} /></span></span>
-      <span className="flex min-w-0 items-start gap-1.5 pr-3"><GroupIcon group={row.group} className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="min-w-0"><span className="block truncate font-medium">{row.topBlocker}</span><span className="mt-0.5 block truncate text-slate-500">{row.group === 'needs_action' ? 'Needs review' : row.group === 'starting_soon' ? relativeStart(row.daysToStart) : 'Current status'}</span></span></span>
-      <span><span className="block truncate font-medium">{row.nextAction}</span><span className="mt-0.5 block truncate text-slate-500">Open journey to review</span></span>
-      <span className="capitalize"><span className="block truncate font-medium">{row.owner}</span><span className="mt-0.5 block text-slate-500">Owner</span></span>
+      <span><span className="block font-medium">{row.startDateLabel}</span><span className="mt-0.5 block text-muted-foreground">{relativeStart(row.daysToStart)}</span></span>
+      <span><span className="block font-medium">{row.phase}</span><span className="mt-0.5 block text-muted-foreground capitalize">{row.status}</span></span>
+      <span className="pr-5"><span className="font-semibold tabular-nums">{visibleProgress}%</span><span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-muted dark:bg-zinc-700"><span className={cn('block h-full rounded-full', visibleProgress >= 90 ? 'bg-emerald-500' : 'bg-primary')} style={{ width: `${visibleProgress}%` }} /></span></span>
+      <span className="flex min-w-0 items-start gap-1.5 pr-3"><GroupIcon group={row.group} className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="min-w-0"><span className="block truncate font-medium">{row.topBlocker}</span><span className="mt-0.5 block truncate text-muted-foreground">{row.group === 'needs_action' ? 'Needs review' : row.group === 'starting_soon' ? relativeStart(row.daysToStart) : 'Current status'}</span></span></span>
+      <span><span className="block truncate font-medium">{row.nextAction}</span><span className="mt-0.5 block truncate text-muted-foreground">Open journey to review</span></span>
+      <span className="capitalize"><span className="block truncate font-medium">{row.owner}</span><span className="mt-0.5 block text-muted-foreground">Owner</span></span>
     </button>
   );
 }
@@ -658,9 +658,9 @@ function JourneyDrawer({ open, row, employeeDetail, tasks, progress, completedTa
         <SheetTitle className="sr-only">{row.name}</SheetTitle>
         <SheetDescription className="sr-only">Review onboarding readiness, blockers, tasks, and next actions for {row.name}.</SheetDescription>
         <aside aria-label="Journey details" className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-zinc-800">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4 dark:border-border">
         <h2 className="text-lg font-bold tracking-[-0.025em]">{row.name}</h2>
-        <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7] dark:hover:bg-zinc-800 dark:hover:text-white" aria-label="Close journey details"><XMarkIcon className="h-4 w-4" /></button>
+        <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-muted dark:hover:text-white" aria-label="Close journey details"><XMarkIcon className="h-4 w-4" /></button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -676,45 +676,45 @@ function JourneyDrawer({ open, row, employeeDetail, tasks, progress, completedTa
           <>
         <div className="flex items-start gap-3">
           <EmployeeAvatar row={row} size="lg" />
-          <div className="min-w-0"><h3 className="truncate text-base font-bold">{row.name}</h3><p className="mt-0.5 truncate text-sm text-slate-500">{row.role}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><CalendarDaysIcon className="h-4 w-4" />Starts {row.startDateLabel} <span className="font-medium text-slate-600 dark:text-zinc-300">({relativeStart(row.daysToStart)})</span></p><p className="mt-1 text-xs text-slate-500">Manager: <span className="font-medium text-slate-700 dark:text-zinc-200">{manager}</span></p></div>
+          <div className="min-w-0"><h3 className="truncate text-base font-bold">{row.name}</h3><p className="mt-0.5 truncate text-sm text-muted-foreground">{row.role}</p><p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><CalendarDaysIcon className="h-4 w-4" />Starts {row.startDateLabel} <span className="font-medium text-muted-foreground dark:text-foreground/80">({relativeStart(row.daysToStart)})</span></p><p className="mt-1 text-xs text-muted-foreground">Manager: <span className="font-medium text-foreground/80 dark:text-foreground/80">{manager}</span></p></div>
         </div>
 
-        <div className="mt-5 border-y border-slate-200 py-4 dark:border-zinc-800">
-          <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-slate-500">Overall readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{progress}%</p></div><p className="text-right text-xs text-slate-500">{row.phase}<br />{completedTasks} of {tasks.length || 0} complete</p></div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full rounded-full bg-[#155bd7]" style={{ width: `${progress}%` }} /></div>
+        <div className="mt-5 border-y border-border py-4 dark:border-border">
+          <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-muted-foreground">Overall readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{progress}%</p></div><p className="text-right text-xs text-muted-foreground">{row.phase}<br />{completedTasks} of {tasks.length || 0} complete</p></div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted dark:bg-zinc-700"><div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} /></div>
         </div>
 
         <div className="divide-y divide-slate-200 dark:divide-zinc-800">
           <div className="py-4">
-            <p className="text-xs font-medium text-slate-500">Top blocker</p>
-            <div className="mt-2.5 flex items-start gap-2.5"><GroupIcon group={row.group} className="mt-0.5 h-4 w-4 shrink-0" /><div className="min-w-0"><p className="text-sm font-semibold">{row.topBlocker}</p><p className="mt-1 text-xs text-slate-500">{blockerDueDate ? <>Due {formatDate(blockerDueDate)}{blockerOverdueDays > 0 && <span className="text-rose-500"> · Overdue by {blockerOverdueDays} day{blockerOverdueDays === 1 ? '' : 's'}</span>}</> : row.group === 'needs_action' ? 'Needs attention now' : 'No urgent blocker recorded'}</p></div></div>
+            <p className="text-xs font-medium text-muted-foreground">Top blocker</p>
+            <div className="mt-2.5 flex items-start gap-2.5"><GroupIcon group={row.group} className="mt-0.5 h-4 w-4 shrink-0" /><div className="min-w-0"><p className="text-sm font-semibold">{row.topBlocker}</p><p className="mt-1 text-xs text-muted-foreground">{blockerDueDate ? <>Due {formatDate(blockerDueDate)}{blockerOverdueDays > 0 && <span className="text-rose-500"> · Overdue by {blockerOverdueDays} day{blockerOverdueDays === 1 ? '' : 's'}</span>}</> : row.group === 'needs_action' ? 'Needs attention now' : 'No urgent blocker recorded'}</p></div></div>
           </div>
-          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="group flex items-center gap-2.5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7]">
-            <CheckCircleIcon className="h-4 w-4 shrink-0 text-[#155bd7]" />
-            <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-slate-500">Next action</span><span className="mt-1 block truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{row.nextAction}</span><span className="mt-1 block text-xs text-slate-500">Due {nextActionDue}</span></span>
-            <ChevronRightIcon className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-0.5" />
+          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="group flex items-center gap-2.5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <CheckCircleIcon className="h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1"><span className="block text-xs font-medium text-muted-foreground">Next action</span><span className="mt-1 block truncate text-sm font-semibold text-foreground dark:text-foreground">{row.nextAction}</span><span className="mt-1 block text-xs text-muted-foreground">Due {nextActionDue}</span></span>
+            <ChevronRightIcon className="h-4 w-4 text-muted-foreground/70 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
 
-        <section className="border-t border-slate-200 py-4 dark:border-zinc-800">
-          <h3 className="text-xs font-medium text-slate-500">Journey progress</h3>
+        <section className="border-t border-border py-4 dark:border-border">
+          <h3 className="text-xs font-medium text-muted-foreground">Journey progress</h3>
           <div className="mt-3 space-y-3">
             {stageProgress.map((stage, index) => (
               <button type="button" key={stage.id} disabled={!stage.tasks.length} onClick={() => stage.tasks.length && setActiveStage(stage.id)} className="group flex w-full items-start gap-3 text-left disabled:cursor-default">
                 {stage.complete ? (
                   <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                 ) : (
-                  <span className={cn('mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] font-bold', stage.inProgress ? 'border-[#155bd7] bg-[#155bd7] text-white' : 'border-slate-300 bg-slate-100 text-slate-500 dark:border-zinc-600 dark:bg-zinc-800')}>{index + 1}</span>
+                  <span className={cn('mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] font-bold', stage.inProgress ? 'border-primary bg-primary text-white' : 'border-input bg-muted text-muted-foreground dark:border-input dark:bg-muted')}>{index + 1}</span>
                 )}
-                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900 dark:text-zinc-100">{stage.label}</span><span className="mt-1 block text-xs text-slate-500">{stage.helper}</span></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-foreground dark:text-foreground">{stage.label}</span><span className="mt-1 block text-xs text-muted-foreground">{stage.helper}</span></span>
                 {stage.tasks.length > 0 && <ChevronRightIcon className="mt-1 h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 dark:text-zinc-600" />}
               </button>
             ))}
           </div>
         </section>
 
-        <div className="border-t border-slate-200 pt-4 dark:border-zinc-800">
-          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="inline-flex items-center gap-2 text-sm font-medium text-[#155bd7] hover:text-[#104dbb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155bd7]">View full journey <ArrowTopRightOnSquareIcon className="h-4 w-4" /></Link>
+        <div className="border-t border-border pt-4 dark:border-border">
+          <Link href={`/people/${row.employeeId}?tab=Onboarding`} className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">View full journey <ArrowTopRightOnSquareIcon className="h-4 w-4" /></Link>
         </div>
           </>
         )}
@@ -732,7 +732,7 @@ function StatusOverview({ activeFilter, counts, onChange }: {
 }) {
   return (
     <section aria-label="Onboarding status overview">
-      <nav aria-label="Onboarding status" className="flex gap-6 overflow-x-auto border-b border-slate-200 dark:border-zinc-800">
+      <nav aria-label="Onboarding status" className="flex gap-6 overflow-x-auto border-b border-border dark:border-border">
         {FILTERS.map(filter => (
           <button
             key={filter.id}
@@ -740,12 +740,12 @@ function StatusOverview({ activeFilter, counts, onChange }: {
             onClick={() => onChange(filter.id)}
             className={cn(
               'relative flex h-11 shrink-0 items-center gap-1.5 text-xs font-semibold transition-colors',
-              activeFilter === filter.id ? 'text-[#155bd7]' : 'text-slate-600 hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white',
+              activeFilter === filter.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-white',
             )}
           >
             {filter.id !== 'all' && <GroupIcon group={filter.id} className="h-3.5 w-3.5" />}
-            {filter.label} <span className="font-normal text-slate-400">({counts[filter.id] || 0})</span>
-            {activeFilter === filter.id && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#155bd7]" />}
+            {filter.label} <span className="font-normal text-muted-foreground/70">({counts[filter.id] || 0})</span>
+            {activeFilter === filter.id && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}
           </button>
         ))}
       </nav>
@@ -809,51 +809,51 @@ function JourneyStageDetails({ row, stage, canManage, onBack, onTaskUpdated }: {
 
   return (
     <section aria-label={`${stage.label} stage details`}>
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-[#155bd7] hover:text-[#104dbb]">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
         <ArrowLeftIcon className="h-4 w-4" />Journey overview
       </button>
 
       <div className="mt-5">
         <div className="flex items-start justify-between gap-4">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Journey stage</p><h3 className="mt-1 text-2xl font-bold tracking-[-0.03em]">{stage.label}</h3></div>
-          <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', stage.value >= 100 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-[#155bd7] dark:bg-blue-950 dark:text-blue-300')}>{stage.value >= 100 ? 'Complete' : 'In progress'}</span>
+          <div><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Journey stage</p><h3 className="mt-1 text-2xl font-bold tracking-[-0.03em]">{stage.label}</h3></div>
+          <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', stage.value >= 100 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-primary dark:bg-blue-950 dark:text-blue-300')}>{stage.value >= 100 ? 'Complete' : 'In progress'}</span>
         </div>
-        <p className="mt-2 text-sm leading-6 text-slate-500">Complete the assigned {stage.label.toLowerCase()} actions for {row.name}.</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Complete the assigned {stage.label.toLowerCase()} actions for {row.name}.</p>
       </div>
 
-      <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/35">
-        <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-slate-500">Stage readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{stage.value}%</p></div><p className="text-right text-xs text-slate-500">{completed} of {stage.tasks.length}<br />tasks completed</p></div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700"><div className="h-full origin-left rounded-full bg-[#155bd7] transition-transform" style={{ transform: `scaleX(${stage.value / 100})` }} /></div>
+      <div className="mt-5 rounded-xl border border-border bg-muted/40 p-4 dark:border-border dark:bg-muted/20">
+        <div className="flex items-end justify-between"><div><p className="text-xs font-medium text-muted-foreground">Stage readiness</p><p className="mt-1 text-3xl font-bold tabular-nums">{stage.value}%</p></div><p className="text-right text-xs text-muted-foreground">{completed} of {stage.tasks.length}<br />tasks completed</p></div>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted dark:bg-zinc-700"><div className="h-full origin-left rounded-full bg-primary transition-transform" style={{ transform: `scaleX(${stage.value / 100})` }} /></div>
       </div>
 
       <div className="mt-6 flex items-center justify-between">
-        <div><h4 className="text-sm font-bold">Stage checklist</h4><p className="mt-0.5 text-xs text-slate-500">Updates are saved to the employee journey.</p></div>
+        <div><h4 className="text-sm font-bold">Stage checklist</h4><p className="mt-0.5 text-xs text-muted-foreground">Updates are saved to the employee journey.</p></div>
         {canManage && <Button asChild size="sm" variant="outline"><Link href="/settings?adminTab=hr-setup&config=onboarding">Configure</Link></Button>}
       </div>
 
       {updateError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{updateError}</p>}
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800">
+      <div className="mt-3 overflow-hidden rounded-xl border border-border dark:border-border">
         {stage.tasks.map(task => {
           const isCompleted = label(task.status, 'pending').toLowerCase() === 'completed';
           const dueDay = Number(value(task, 'dueDay', 'due_day') || 0);
           const dueDate = row.startDate ? new Date(row.startDate.getTime() + dueDay * 86_400_000) : null;
           const overdue = Boolean(!isCompleted && dueDate && dueDate.getTime() < Date.now());
           return (
-            <article key={task.id} className="flex gap-3 border-b border-slate-200 p-4 last:border-b-0 dark:border-zinc-800">
+            <article key={task.id} className="flex gap-3 border-b border-border p-4 last:border-b-0 dark:border-border">
               <button
                 type="button"
                 disabled={!canManage || updatingTaskId !== null}
                 onClick={() => void toggleTask(task)}
                 aria-label={`${isCompleted ? 'Reopen' : 'Complete'} ${label(task.title, 'onboarding task')}`}
-                className={cn('mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50', isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 hover:border-[#155bd7] dark:border-zinc-600')}
+                className={cn('mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50', isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-input hover:border-primary dark:border-input')}
               >
                 {isCompleted && <CheckCircleIcon className="h-4 w-4" />}
               </button>
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3"><h5 className={cn('text-sm font-semibold', isCompleted && 'text-slate-400 line-through')}>{label(task.title, 'Checklist task')}</h5>{overdue && <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">Overdue</span>}</div>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{label(task.description, 'No additional instructions.')}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500"><span className="capitalize">Owner: <strong className="font-semibold text-slate-700 dark:text-zinc-300">{label(value(task, 'ownerRole', 'owner_role'), 'Employee')}</strong></span><span>Due: <strong className={cn('font-semibold text-slate-700 dark:text-zinc-300', overdue && 'text-rose-600 dark:text-rose-400')}>{dueDate ? formatDate(dueDate) : `Day ${dueDay}`}</strong></span></div>
+                <div className="flex items-start justify-between gap-3"><h5 className={cn('text-sm font-semibold', isCompleted && 'text-muted-foreground/70 line-through')}>{label(task.title, 'Checklist task')}</h5>{overdue && <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">Overdue</span>}</div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{label(task.description, 'No additional instructions.')}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground"><span className="capitalize">Owner: <strong className="font-semibold text-foreground/80 dark:text-foreground/80">{label(value(task, 'ownerRole', 'owner_role'), 'Employee')}</strong></span><span>Due: <strong className={cn('font-semibold text-foreground/80 dark:text-foreground/80', overdue && 'text-rose-600 dark:text-rose-400')}>{dueDate ? formatDate(dueDate) : `Day ${dueDay}`}</strong></span></div>
               </div>
             </article>
           );
@@ -861,9 +861,9 @@ function JourneyStageDetails({ row, stage, canManage, onBack, onTaskUpdated }: {
       </div>
 
       {canManage && stage.tasks.length > 0 && (
-        <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-2 border-t border-slate-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="sticky bottom-0 -mx-6 mt-6 flex items-center gap-2 border-t border-border bg-white px-6 py-4 dark:border-border dark:bg-card">
           <Button type="button" variant="outline" className="flex-1" onClick={onBack}>Back</Button>
-          <Button type="button" className="flex-1 bg-[#155bd7] hover:bg-[#104dbb]" disabled={!incompleteTasks.length || updatingTaskId !== null} onClick={() => void completeStage()}>{updatingTaskId === 'stage' ? 'Saving…' : incompleteTasks.length ? 'Mark stage complete' : 'Stage complete'}</Button>
+          <Button type="button" className="flex-1 bg-primary hover:bg-primary/90" disabled={!incompleteTasks.length || updatingTaskId !== null} onClick={() => void completeStage()}>{updatingTaskId === 'stage' ? 'Saving…' : incompleteTasks.length ? 'Mark stage complete' : 'Stage complete'}</Button>
         </div>
       )}
     </section>
@@ -871,15 +871,15 @@ function JourneyStageDetails({ row, stage, canManage, onBack, onTaskUpdated }: {
 }
 
 function EmployeeAvatar({ row, size }: { row: JourneyRow; size: 'sm' | 'lg' }) {
-  return <Avatar size={size === 'lg' ? 'lg' : 'sm'} className={cn('rounded-full border border-slate-200 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800', size === 'lg' && 'h-12 w-12')}><AvatarImage src={row.avatarUrl || undefined} alt="" /><AvatarFallback className="rounded-full bg-blue-50 text-xs font-bold text-[#155bd7] dark:bg-blue-950 dark:text-blue-300">{row.initials}</AvatarFallback></Avatar>;
+  return <Avatar size={size === 'lg' ? 'lg' : 'sm'} className={cn('rounded-full border border-border bg-muted dark:border-input dark:bg-muted', size === 'lg' && 'h-12 w-12')}><AvatarImage src={row.avatarUrl || undefined} alt="" /><AvatarFallback className="rounded-full bg-blue-50 text-xs font-bold text-primary dark:bg-blue-950 dark:text-blue-300">{row.initials}</AvatarFallback></Avatar>;
 }
 
 function OnboardingSkeleton() {
-  return <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" aria-label="Loading onboarding journeys"><div className="h-10 animate-pulse bg-slate-100 dark:bg-zinc-800" />{Array.from({ length: 7 }).map((_, index) => <div key={index} className="flex items-center gap-4 border-t border-slate-100 px-4 py-4 dark:border-zinc-800"><span className="h-8 w-8 animate-pulse rounded-full bg-slate-200 dark:bg-zinc-700" /><span className="h-3 w-36 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /><span className="ml-auto h-2 w-28 animate-pulse rounded bg-slate-200 dark:bg-zinc-700" /></div>)}</div>;
+  return <div className="mt-4 overflow-hidden rounded-xl border border-border bg-white dark:border-border dark:bg-card" aria-label="Loading onboarding journeys"><div className="h-10 animate-pulse bg-muted dark:bg-muted" />{Array.from({ length: 7 }).map((_, index) => <div key={index} className="flex items-center gap-4 border-t border-border/60 px-4 py-4 dark:border-border"><span className="h-8 w-8 animate-pulse rounded-full bg-muted dark:bg-zinc-700" /><span className="h-3 w-36 animate-pulse rounded bg-muted dark:bg-zinc-700" /><span className="ml-auto h-2 w-28 animate-pulse rounded bg-muted dark:bg-zinc-700" /></div>)}</div>;
 }
 
 function EmptyState({ canManage, onStart }: { canManage: boolean; onStart: () => void }) {
-  return <div className="mt-6 grid min-h-[420px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center dark:border-zinc-700 dark:bg-zinc-900"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-[#155bd7] dark:bg-blue-950"><UserGroupIcon className="h-6 w-6" /></span><h2 className="mt-4 text-lg font-bold">No onboarding journeys yet</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Start the first employee journey to track readiness, owners, tasks, assets, and learning in one place.</p>{canManage && <Button type="button" onClick={onStart} className="mt-5 bg-[#155bd7] hover:bg-[#104dbb]"><PlusIcon className="mr-2 h-4 w-4" />Start onboarding</Button>}</div></div>;
+  return <div className="mt-6 grid min-h-[420px] place-items-center rounded-xl border border-dashed border-input bg-white px-6 text-center dark:border-input dark:bg-card"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-blue-50 text-primary dark:bg-blue-950"><UserGroupIcon className="h-6 w-6" /></span><h2 className="mt-4 text-lg font-bold">No onboarding journeys yet</h2><p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Start the first employee journey to track readiness, owners, tasks, assets, and learning in one place.</p>{canManage && <Button type="button" onClick={onStart} className="mt-5 bg-primary hover:bg-primary/90"><PlusIcon className="mr-2 h-4 w-4" />Start onboarding</Button>}</div></div>;
 }
 
 function StartOnboardingDialog({ open, onOpenChange, form, templates, setForm, isSaving, onSubmit }: {

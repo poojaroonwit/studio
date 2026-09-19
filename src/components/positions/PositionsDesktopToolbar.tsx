@@ -45,15 +45,15 @@ interface PositionsDesktopToolbarProps {
 
 function PositionsDesktopToolbarSkeleton() {
   return (
-    <div className="hidden flex-shrink-0 flex-col gap-3 border-b border-slate-100 bg-white p-4 md:flex lg:flex-row lg:items-center lg:justify-between dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="hidden flex-shrink-0 flex-col gap-3 border-b border-border/60 bg-background p-4 md:flex lg:flex-row lg:items-center lg:justify-between">
       <div className="space-y-2">
-        <div className="h-5 w-36 animate-pulse rounded bg-slate-100 dark:bg-zinc-800" />
-        <div className="h-3 w-24 animate-pulse rounded bg-slate-100 dark:bg-zinc-800" />
+        <div className="h-5 w-36 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-24 animate-pulse rounded bg-muted" />
       </div>
       <div className="flex gap-2">
-        <div className="h-10 w-72 animate-pulse rounded-[8px] bg-slate-100 dark:bg-zinc-800" />
-        <div className="h-10 w-24 animate-pulse rounded-[8px] bg-slate-100 dark:bg-zinc-800" />
-        <div className="h-10 w-32 animate-pulse rounded-[8px] bg-slate-100 dark:bg-zinc-800" />
+        <div className="h-10 w-72 animate-pulse rounded-[8px] bg-muted" />
+        <div className="h-10 w-24 animate-pulse rounded-[8px] bg-muted" />
+        <div className="h-10 w-32 animate-pulse rounded-[8px] bg-muted" />
       </div>
     </div>
   );
@@ -93,10 +93,10 @@ export function PositionsDesktopToolbar({
   const nonSearchFilterCount = Math.max(0, activeFilterCount - (searchTerm ? 1 : 0));
 
   return (
-    <div className="hidden flex-shrink-0 flex-col gap-3 border-b border-slate-100 bg-white p-4 md:flex lg:flex-row lg:items-center lg:justify-between dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="hidden flex-shrink-0 flex-col gap-3 border-b border-border/60 bg-background p-4 md:flex lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <h1 className="text-xl font-bold text-slate-950 dark:text-zinc-50">Positions</h1>
-        <p className="text-sm text-slate-500 dark:text-zinc-400">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Positions</h1>
+        <p className="text-sm text-muted-foreground">
           {total} {total === 1 ? "position" : "positions"}
           {openPositionCount > 0 && ` · ${openPositionCount} open`}
         </p>
@@ -104,11 +104,11 @@ export function PositionsDesktopToolbar({
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative block w-72 xl:w-80">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={searchTerm}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="h-10 w-full rounded-[8px] border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm text-slate-950 outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-indigo-500 dark:focus:bg-zinc-950 dark:focus:ring-indigo-950"
+            className="h-10 w-full rounded-lg border border-input bg-muted/30 pl-9 pr-9 text-sm text-foreground outline-none transition focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-ring/20"
             placeholder="Search positions"
             aria-label="Search positions"
           />
@@ -116,7 +116,7 @@ export function PositionsDesktopToolbar({
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-[6px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              className="absolute right-1 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
               aria-label="Clear position search"
             >
               <X className="h-4 w-4" />
@@ -159,7 +159,7 @@ export function PositionsDesktopToolbar({
               Import / Export
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-[8px]">
+          <DropdownMenuContent align="end" className="w-56 rounded-lg">
             <DropdownMenuItem onClick={onImportPositions}>
               <Upload className="mr-2 h-4 w-4" />
               Import Positions

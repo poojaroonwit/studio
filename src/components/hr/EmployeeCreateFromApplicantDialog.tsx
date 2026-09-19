@@ -221,7 +221,7 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
               type="button"
               variant="ghost"
               size="sm"
-              className="mb-1 h-8 w-fit gap-1.5 px-2 text-slate-600"
+              className="mb-1 h-8 w-fit gap-1.5 px-2 text-muted-foreground"
               onClick={() => {
                 setCreationSource(null);
                 setSelectedApplicantId("");
@@ -249,13 +249,13 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
               <button
                 type="button"
                 onClick={chooseDirect}
-                className="group flex min-h-48 flex-col items-start rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="group flex min-h-48 flex-col items-start rounded-lg border border-border bg-white p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 <span className="grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-700 transition-colors group-hover:bg-blue-100">
                   <UserIcon className="h-5 w-5" />
                 </span>
-                <span className="mt-5 text-base font-semibold text-slate-950">Create directly</span>
-                <span className="mt-1 text-sm leading-5 text-slate-600">
+                <span className="mt-5 text-base font-semibold text-foreground">Create directly</span>
+                <span className="mt-1 text-sm leading-5 text-muted-foreground">
                   Add a new employee without an applicant or recruitment record.
                 </span>
                 <span className="mt-auto pt-5 text-sm font-medium text-blue-700">Start employee details →</span>
@@ -263,13 +263,13 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
               <button
                 type="button"
                 onClick={() => setCreationSource("applicant")}
-                className="group flex min-h-48 flex-col items-start rounded-lg border border-slate-200 bg-white p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="group flex min-h-48 flex-col items-start rounded-lg border border-border bg-white p-5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-100 text-slate-700 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
+                <span className="grid h-10 w-10 place-items-center rounded-lg bg-muted text-foreground/80 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
                   <DocumentTextIcon className="h-5 w-5" />
                 </span>
-                <span className="mt-5 text-base font-semibold text-slate-950">Choose from applicant</span>
-                <span className="mt-1 text-sm leading-5 text-slate-600">
+                <span className="mt-5 text-base font-semibold text-foreground">Choose from applicant</span>
+                <span className="mt-1 text-sm leading-5 text-muted-foreground">
                   Start from a hired applicant and carry their recruitment details forward.
                 </span>
                 <span className="mt-auto pt-5 text-sm font-medium text-blue-700">Select an applicant →</span>
@@ -351,15 +351,15 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
           </div>}
 
           {creationSource === "applicant" && selectedApplicant && (
-            <div className="rounded-[6px] border border-blue-100 bg-blue-50/60 p-3">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
               <div className="flex items-start gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
                   {getApplicantInitials(selectedApplicant.name)}
                 </span>
                 <div className="min-w-0 text-sm">
-                  <p className="font-semibold text-slate-900">{selectedApplicant.name}</p>
-                  <p className="truncate text-xs text-slate-600">{selectedApplicant.email}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="font-semibold text-foreground">{selectedApplicant.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{selectedApplicant.email}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {selectedApplicant.positionTitle || "No position assigned"} - {selectedApplicant.statusName}
                   </p>
                 </div>
@@ -368,8 +368,8 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
           )}
 
           {creationSource === "direct" && (
-            <div className="grid min-h-[510px] border-t border-slate-200 pt-5 md:grid-cols-[230px_minmax(0,1fr)]">
-              <nav aria-label="Employee creation progress" className="border-b border-slate-200 pb-5 md:border-b-0 md:border-r md:pb-0 md:pr-5">
+            <div className="grid min-h-[510px] border-t border-border pt-5 md:grid-cols-[230px_minmax(0,1fr)]">
+              <nav aria-label="Employee creation progress" className="border-b border-border pb-5 md:border-b-0 md:border-r md:pb-0 md:pr-5">
                 <ol className="grid grid-cols-5 gap-2 md:block md:space-y-0">
                   {directSteps.map((step, index) => {
                     const percent = completion[step.id];
@@ -384,11 +384,11 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
                             className="grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition-transform group-hover:scale-[1.03]"
                             style={{ background: `conic-gradient(${active ? "#2563eb" : "#64748b"} ${percent * 3.6}deg, #e2e8f0 0deg)` }}
                           >
-                            <span className={cn("grid h-full w-full place-items-center rounded-full bg-white text-xs font-bold", active ? "text-blue-700" : "text-slate-700")}>{percent}%</span>
+                            <span className={cn("grid h-full w-full place-items-center rounded-full bg-white text-xs font-bold", active ? "text-blue-700" : "text-foreground/80")}>{percent}%</span>
                           </span>
                           <span className="hidden pt-1 md:block">
-                            <span className={cn("block text-sm font-semibold", active ? "text-blue-700 dark:text-blue-400" : "text-slate-900 dark:text-slate-200")}>{step.label}</span>
-                            <span className="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{step.description}</span>
+                            <span className={cn("block text-sm font-semibold", active ? "text-blue-700 dark:text-blue-400" : "text-foreground dark:text-slate-200")}>{step.label}</span>
+                            <span className="mt-0.5 block text-xs leading-4 text-muted-foreground dark:text-muted-foreground/70">{step.description}</span>
                           </span>
                         </button>
                       </li>
@@ -400,10 +400,10 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
               <section className="pt-5 md:pl-7 md:pt-0" aria-labelledby="direct-step-heading">
                 <div className="mb-6 flex items-start justify-between gap-4">
                   <div>
-                    <h3 id="direct-step-heading" className="text-lg font-semibold text-slate-950 dark:text-slate-100">{directSteps.find(step => step.id === activeDirectStep)?.label}</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{directSteps.find(step => step.id === activeDirectStep)?.description}</p>
+                    <h3 id="direct-step-heading" className="text-lg font-semibold text-foreground dark:text-slate-100">{directSteps.find(step => step.id === activeDirectStep)?.label}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground/70">{directSteps.find(step => step.id === activeDirectStep)?.description}</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Step {directSteps.findIndex(step => step.id === activeDirectStep) + 1} of 5</span>
+                  <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">Step {directSteps.findIndex(step => step.id === activeDirectStep) + 1} of 5</span>
                 </div>
 
                 {activeDirectStep === "core" && <div className="space-y-4">
@@ -411,7 +411,7 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
                   {[["employeeNumber", "Employee number", "text"], ["firstName", "First name", "text"], ["lastName", "Last name", "text"], ["email", "Work email", "email"]].map(([key, label, type]) => <HorizontalFieldRow key={key} label={label} htmlFor={`new-employee-${key}`} required><Input id={`new-employee-${key}`} type={type} required value={details[key]} onChange={event => setDetails(current => ({ ...current, [key]: event.target.value }))} /></HorizontalFieldRow>)}
                   <HorizontalFieldRow label="Employment type" htmlFor="new-employee-type" required><select id="new-employee-type" required value={details.employmentType} onChange={event => setDetails(current => ({ ...current, employmentType: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select employment type</option>{employmentTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></HorizontalFieldRow>
                   <HorizontalFieldRow label="Status" htmlFor="new-employee-status" required><select id="new-employee-status" required value={details.status} onChange={event => setDetails(current => ({ ...current, status: event.target.value }))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select starting status</option>{['onboarding', 'probation', 'active', 'inactive'].map(value => <option key={value} value={value}>{value}</option>)}</select></HorizontalFieldRow>
-                  <p className="border-t border-slate-200 pt-3 text-right text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">{6 - ["employeeNumber", "firstName", "lastName", "email", "employmentType", "status"].filter(key => details[key]?.trim()).length} required fields remaining</p>
+                  <p className="border-t border-border pt-3 text-right text-xs text-muted-foreground dark:border-slate-700 dark:text-muted-foreground/70">{6 - ["employeeNumber", "firstName", "lastName", "email", "employmentType", "status"].filter(key => details[key]?.trim()).length} required fields remaining</p>
                 </div>}
 
                 {activeDirectStep === "work" && <div className="space-y-4">
@@ -432,23 +432,23 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
 
                 {activeDirectStep === "compliance" && <div className="space-y-4">
                   {[["endDate", details.employmentType === "full_time" ? "End date" : "Contract end date", "date"], ["contractNoticeDays", "Contract notice (days)", "number"], ["probationPeriodDays", "Probation period (days)", "number"], ["probationEvaluationFrequencyDays", "Evaluation frequency", "number"], ["profileCompletion", "Profile completion (%)", "number"]].map(([key, label, type]) => <HorizontalFieldRow key={key} label={label} htmlFor={`new-employee-${key}`} required={key === "endDate" && details.employmentType !== "full_time"}><Input id={`new-employee-${key}`} type={type} value={details[key]} onChange={event => setDetails(current => ({ ...current, [key]: event.target.value }))} /></HorizontalFieldRow>)}
-                  <div className="border-t border-slate-200 pt-5"><p className="mb-4 text-xs text-slate-500">Structured attributes use JSON objects or arrays.</p><div className="space-y-4">{structuredEmployeeFields.map(([key, label]) => <HorizontalFieldRow key={key} label={label} htmlFor={`new-${key}`}><Textarea id={`new-${key}`} className="min-h-20 font-mono text-xs" value={details[key]} onChange={event => setDetails(current => ({ ...current, [key]: event.target.value }))} /></HorizontalFieldRow>)}</div></div>
+                  <div className="border-t border-border pt-5"><p className="mb-4 text-xs text-muted-foreground">Structured attributes use JSON objects or arrays.</p><div className="space-y-4">{structuredEmployeeFields.map(([key, label]) => <HorizontalFieldRow key={key} label={label} htmlFor={`new-${key}`}><Textarea id={`new-${key}`} className="min-h-20 font-mono text-xs" value={details[key]} onChange={event => setDetails(current => ({ ...current, [key]: event.target.value }))} /></HorizontalFieldRow>)}</div></div>
                 </div>}
 
                 {activeDirectStep === "review" && <div className="space-y-5">
-                  <div className={cn("rounded-lg border p-4", directRequirementsMet ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40" : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40")}><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{directRequirementsMet ? "Ready to create" : "Required details are incomplete"}</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{directRequirementsMet ? "Review the summary, then create the employee record." : "Return to Core record and complete every required field."}</p></div>
-                  <dl className="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">{[["Employee", `${details.firstName || "—"} ${details.lastName || ""}`.trim()], ["Employee number", details.employeeNumber || "—"], ["Work email", details.email || "—"], ["Employment", details.employmentType || "—"], ["Status", details.status || "—"], ["Job title", details.jobTitle || "—"], ["Start date", details.hireDate || "—"]].map(([label, value]) => <div key={label} className="grid grid-cols-[150px_1fr] gap-4 px-4 py-3 text-sm"><dt className="text-slate-500 dark:text-slate-400">{label}</dt><dd className="font-medium text-slate-900 dark:text-slate-100">{value}</dd></div>)}</dl>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{directSteps.slice(0, 4).map(step => <button key={step.id} type="button" onClick={() => setActiveDirectStep(step.id)} className="rounded-lg border border-slate-200 p-3 text-left hover:border-blue-300 dark:border-slate-700"><span className="block text-xs text-slate-500 dark:text-slate-400">{step.label}</span><span className="mt-1 block text-lg font-semibold text-slate-900 dark:text-slate-100">{completion[step.id]}%</span></button>)}</div>
+                  <div className={cn("rounded-lg border p-4", directRequirementsMet ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40" : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40")}><p className="text-sm font-semibold text-foreground dark:text-slate-100">{directRequirementsMet ? "Ready to create" : "Required details are incomplete"}</p><p className="mt-1 text-xs text-muted-foreground dark:text-muted-foreground/70">{directRequirementsMet ? "Review the summary, then create the employee record." : "Return to Core record and complete every required field."}</p></div>
+                  <dl className="divide-y divide-slate-200 rounded-lg border border-border dark:divide-slate-700 dark:border-slate-700">{[["Employee", `${details.firstName || "—"} ${details.lastName || ""}`.trim()], ["Employee number", details.employeeNumber || "—"], ["Work email", details.email || "—"], ["Employment", details.employmentType || "—"], ["Status", details.status || "—"], ["Job title", details.jobTitle || "—"], ["Start date", details.hireDate || "—"]].map(([label, value]) => <div key={label} className="grid grid-cols-[150px_1fr] gap-4 px-4 py-3 text-sm"><dt className="text-muted-foreground dark:text-muted-foreground/70">{label}</dt><dd className="font-medium text-foreground dark:text-slate-100">{value}</dd></div>)}</dl>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{directSteps.slice(0, 4).map(step => <button key={step.id} type="button" onClick={() => setActiveDirectStep(step.id)} className="rounded-lg border border-border p-3 text-left hover:border-blue-300 dark:border-slate-700"><span className="block text-xs text-muted-foreground dark:text-muted-foreground/70">{step.label}</span><span className="mt-1 block text-lg font-semibold text-foreground dark:text-slate-100">{completion[step.id]}%</span></button>)}</div>
                 </div>}
               </section>
             </div>
           )}
 
           {creationSource === "applicant" && selectedApplicant && (
-            <div className="space-y-5 border-t border-slate-200 pt-5">
+            <div className="space-y-5 border-t border-border pt-5">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">Employee details</h3>
-                <p className="text-xs text-slate-500">Complete the employment record before creating the employee.</p>
+                <h3 className="text-sm font-semibold text-foreground">Employee details</h3>
+                <p className="text-xs text-muted-foreground">Complete the employment record before creating the employee.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[["phone", "Phone", "text"], ["jobTitle", "Job title", "text"], ["hireDate", "Hire date", "date"], ["location", "Location", "text"]].map(([key, label, type]) => <div key={key} className="space-y-2"><Label htmlFor={`applicant-employee-${key}`}>{label}</Label><Input id={`applicant-employee-${key}`} type={type} value={details[key] || ""} onChange={event => setDetails(current => ({ ...current, [key]: event.target.value }))} /></div>)}
@@ -463,7 +463,7 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
             </div>
           )}
 
-          {creationSource === "applicant" && <div className="flex gap-3 rounded-[6px] bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+          {creationSource === "applicant" && <div className="flex gap-3 rounded-lg bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
             <UserPlusIcon className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
             <p>
               The standalone person profile was initialized when this person entered recruitment
@@ -473,13 +473,13 @@ const directRequirementsMet = hasRequiredDirectEmployeeDetails(details);
           </div>}
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-slate-200 pt-4">
+        <DialogFooter className="shrink-0 border-t border-border pt-4">
           {creationSource === "direct" ? <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button type="button" variant="ghost" className="justify-start text-slate-600" onClick={() => { setCreationSource(null); setDetails(initialEmployeeDetails()); }} disabled={isCreating}>
+            <Button type="button" variant="ghost" className="justify-start text-muted-foreground" onClick={() => { setCreationSource(null); setDetails(initialEmployeeDetails()); }} disabled={isCreating}>
               <ArrowLeftIcon className="mr-1.5 h-4 w-4" />Back to methods
             </Button>
             <div className="flex items-center justify-end gap-2">
-              {draftSavedAt && <span className="hidden text-xs text-slate-500 lg:inline">Saved {draftSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+              {draftSavedAt && <span className="hidden text-xs text-muted-foreground lg:inline">Saved {draftSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
               <Button type="button" variant="outline" onClick={() => { const savedAt = new Date(); setDraftSavedAt(savedAt); toastSuccess("Draft saved for this session."); }} disabled={isCreating}>Save draft</Button>
               {activeDirectStep === "review" ? <Button type="button" onClick={() => void handleCreate()} disabled={!directRequirementsMet || isCreating}><UserPlusIcon className="mr-1.5 h-4 w-4" />{isCreating ? "Creating..." : "Create employee"}</Button> : <Button type="button" onClick={goToNextDirectStep}>Continue</Button>}
             </div>

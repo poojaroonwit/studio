@@ -21,9 +21,9 @@
 }
 
 .dashboard-container {
-  min-height: 100vh;
+  min-height: 100%;
   overflow-x: hidden;
-  background: linear-gradient(180deg, #eef3f9 0, var(--dashboard-bg) 22rem);
+  background: var(--dashboard-bg);
 }
 
 .dashboard-content {
@@ -254,7 +254,7 @@ button.dashboard-compact-metric {
 
 .dashboard-compact-metric.is-clickable:hover {
   border-color: var(--dashboard-border);
-  background: #f4f7fb;
+  background: var(--dashboard-surface-muted);
   box-shadow: none;
   transform: none;
 }
@@ -1147,18 +1147,10 @@ button.dashboard-compact-metric {
   }
 }
 
-.dark .dashboard-container {
-  background: linear-gradient(180deg, #111b2a 0, var(--dashboard-bg) 22rem);
-}
-
 .dark .dashboard-header {
   border-color: #35547c;
   background: #172f52;
   box-shadow: 0 12px 30px rgba(2, 8, 23, 0.28);
-}
-
-.dark .dashboard-compact-metric.is-clickable:hover {
-  background: #1c2635;
 }
 
 .dark .onboarding-progress-track,

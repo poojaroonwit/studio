@@ -138,18 +138,18 @@ function PlanList({ plans, onOpen, onCreate }: { plans: Plan[]; onOpen: (plan: P
     <section className="min-h-[670px] bg-background px-5 py-5 sm:px-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-[-0.025em] text-slate-950 dark:text-slate-50">Development plans</h2>
+          <h2 className="text-xl font-bold tracking-[-0.025em] text-foreground ">Development plans</h2>
           <div className="mt-5 flex divide-x divide-border">
             <Summary label="Active plans" value={active} />
             <Summary label="Due soon" value={dueSoon} tone="warning" />
             <Summary label="Completed" value={completed} tone="success" />
           </div>
         </div>
-        <Button onClick={onCreate} className="bg-[#0b46b5] text-white hover:bg-[#083b9b]">Create development plan</Button>
+        <Button onClick={onCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">Create development plan</Button>
       </header>
 
       <div className="mt-6 overflow-x-auto border-y border-border">
-        <div className="hidden min-w-[930px] grid-cols-[minmax(220px,1.45fr)_120px_130px_115px_130px_84px_80px] gap-3 border-b border-border px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500 xl:grid">
+        <div className="hidden min-w-[930px] grid-cols-[minmax(220px,1.45fr)_120px_130px_115px_130px_84px_80px] gap-3 border-b border-border px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground xl:grid">
           <span>Plan title &amp; competency</span><span>Progress</span><span>Next action</span><span>Due date</span><span>Owner / Manager</span><span>Status</span><span className="text-right">View</span>
         </div>
         {plans.map((plan, index) => (
@@ -158,30 +158,30 @@ function PlanList({ plans, onOpen, onCreate }: { plans: Plan[]; onOpen: (plan: P
             type="button"
             onClick={() => onOpen(plan)}
             className={cn(
-              'group grid w-full gap-4 border-b border-border px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-blue-50/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3459a8] dark:hover:bg-blue-950/20 xl:min-w-[930px] xl:grid-cols-[minmax(220px,1.45fr)_120px_130px_115px_130px_84px_80px] xl:items-center xl:gap-3',
+              'group grid w-full gap-4 border-b border-border px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-blue-50/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-blue-950/20 xl:min-w-[930px] xl:grid-cols-[minmax(220px,1.45fr)_120px_130px_115px_130px_84px_80px] xl:items-center xl:gap-3',
               index === 0 && 'bg-blue-50/35 dark:bg-blue-950/10',
             )}
           >
             <div className="min-w-0">
-              <p className="font-bold text-[#0b55c4] group-hover:underline">{plan.title}</p>
-              <p className="mt-1 text-xs text-slate-500">{plan.competency}</p>
+              <p className="font-bold text-primary group-hover:underline">{plan.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{plan.competency}</p>
             </div>
             <div>
-              <div className="flex items-center gap-3"><span className="w-8 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300">{plan.progress}%</span><Progress value={plan.progress} className="h-1.5 flex-1 bg-slate-100 [&>div]:bg-[#0b55c4] dark:bg-slate-800" /></div>
+              <div className="flex items-center gap-3"><span className="w-8 text-xs font-semibold tabular-nums text-foreground/80 ">{plan.progress}%</span><Progress value={plan.progress} className="h-1.5 flex-1 bg-muted [&>div]:bg-primary " /></div>
             </div>
             <DateCell value={plan.nextActionDate} helper={plan.status === 'completed' ? 'Completed' : plan.nextAction} />
             <DateCell value={plan.dueDate} helper={plan.status === 'completed' ? 'Completed' : undefined} />
-            <div className="text-xs leading-5 text-slate-700 dark:text-slate-300"><p>{plan.employeeName}</p><p className="text-slate-500">{plan.managerName}</p></div>
+            <div className="text-xs leading-5 text-foreground/80 "><p>{plan.employeeName}</p><p className="text-muted-foreground">{plan.managerName}</p></div>
             <PlanStatus status={plan.status} />
-            <div className="flex items-center justify-end gap-1.5"><span className="text-xs font-semibold text-[#0b55c4]">View plan</span><ChevronRight className="h-4 w-4 text-[#0b55c4]" aria-hidden /></div>
+            <div className="flex items-center justify-end gap-1.5"><span className="text-xs font-semibold text-primary">View plan</span><ChevronRight className="h-4 w-4 text-primary" aria-hidden /></div>
           </button>
         ))}
       </div>
 
       <section className="mt-6">
         <div className="mb-3">
-          <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">Learning recommendations</h3>
-          <p className="mt-1 text-xs text-slate-500">Based on evidence and competency gaps.</p>
+          <h3 className="text-sm font-bold text-foreground ">Learning recommendations</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Based on evidence and competency gaps.</p>
         </div>
         <div className="divide-y divide-border border-y border-border">
           <LearningRow title="Strategic Account Planning Fundamentals" linked="Strengthen strategic account planning" duration="25 min" />
@@ -197,17 +197,17 @@ function PlanDetail({ plan, onBack, onAction, onUpdate }: { plan: Plan; onBack: 
   return (
     <section className="min-h-[670px] bg-background">
       <div className="border-b border-border px-5 py-4">
-        <Button variant="ghost" size="sm" className="-ml-2 h-8 gap-1.5 px-2 text-xs text-[#3459a8]" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden />Development plans</Button>
+        <Button variant="ghost" size="sm" className="-ml-2 h-8 gap-1.5 px-2 text-xs text-primary" onClick={onBack}><ArrowLeft className="h-4 w-4" aria-hidden />Development plans</Button>
       </div>
       <div className="grid xl:grid-cols-[minmax(0,1.7fr)_430px]">
         <div className="px-5 py-5 xl:border-r xl:border-border">
           <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500">Development goal</p>
-              <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-slate-950 dark:text-slate-50">{plan.title}</h2>
-              <p className="mt-2 text-xs text-slate-500">Target date {formatDate(plan.dueDate)}</p>
+              <p className="text-xs font-semibold text-muted-foreground">Development goal</p>
+              <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-foreground ">{plan.title}</h2>
+              <p className="mt-2 text-xs text-muted-foreground">Target date {formatDate(plan.dueDate)}</p>
             </div>
-            <Button variant="outline" onClick={() => onAction('development')} className="border-[#9db0d2] text-[#173d7a]">Add development action</Button>
+            <Button variant="outline" onClick={() => onAction('development')} className="border-primary/30 text-primary">Add development action</Button>
           </div>
 
           <div className="grid gap-5 border-b border-border py-5 md:grid-cols-2">
@@ -216,18 +216,18 @@ function PlanDetail({ plan, onBack, onAction, onUpdate }: { plan: Plan; onBack: 
           </div>
 
           <div className="border-b border-border py-5">
-            <p className="text-xs font-bold text-slate-900 dark:text-slate-100">Progress</p>
-            <div className="mt-2 flex items-center gap-4"><span className="text-lg font-bold tabular-nums">{plan.progress}%</span><Progress value={plan.progress} className="h-2 flex-1 bg-slate-100 [&>div]:bg-[#0b55c4] dark:bg-slate-800" /><span className="text-xs text-slate-500">{plan.progress}% complete</span></div>
+            <p className="text-xs font-bold text-foreground ">Progress</p>
+            <div className="mt-2 flex items-center gap-4"><span className="text-lg font-bold tabular-nums">{plan.progress}%</span><Progress value={plan.progress} className="h-2 flex-1 bg-muted [&>div]:bg-primary " /><span className="text-xs text-muted-foreground">{plan.progress}% complete</span></div>
           </div>
 
           <div className="py-5">
-            <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">Action plan</h3>
+            <h3 className="text-sm font-bold text-foreground ">Action plan</h3>
             <div className="mt-3 overflow-x-auto">
               <div className="min-w-[690px]">
-                <div className="grid grid-cols-[minmax(300px,1fr)_120px_120px_120px] gap-3 border-b border-border px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500"><span>Action</span><span>Status</span><span>Due date</span><span>Evidence</span></div>
+                <div className="grid grid-cols-[minmax(300px,1fr)_120px_120px_120px] gap-3 border-b border-border px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-muted-foreground"><span>Action</span><span>Status</span><span>Due date</span><span>Evidence</span></div>
                 {plan.actions.map((action, index) => (
-                  <button key={action.id} type="button" onClick={() => action.raw ? onUpdate(action.raw) : onAction('development')} className="grid w-full grid-cols-[minmax(300px,1fr)_120px_120px_120px] gap-3 border-b border-border px-2 py-3 text-left text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3459a8] dark:hover:bg-slate-900/50">
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{index + 1}. {action.title}</span><ActionStatus status={action.status} /><span className="text-slate-600 dark:text-slate-400">{formatDate(action.dueDate)}</span><span className={action.evidence ? 'text-[#0b55c4]' : 'text-slate-400'}>{action.evidence || '—'}</span>
+                  <button key={action.id} type="button" onClick={() => action.raw ? onUpdate(action.raw) : onAction('development')} className="grid w-full grid-cols-[minmax(300px,1fr)_120px_120px_120px] gap-3 border-b border-border px-2 py-3 text-left text-xs hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/50">
+                    <span className="font-medium text-foreground/80 ">{index + 1}. {action.title}</span><ActionStatus status={action.status} /><span className="text-muted-foreground dark:text-muted-foreground/70">{formatDate(action.dueDate)}</span><span className={action.evidence ? 'text-primary' : 'text-muted-foreground/70'}>{action.evidence || '—'}</span>
                   </button>
                 ))}
               </div>
@@ -235,7 +235,7 @@ function PlanDetail({ plan, onBack, onAction, onUpdate }: { plan: Plan; onBack: 
           </div>
 
           <div className="border-t border-border py-5">
-            <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">Recent activity &amp; evidence</h3>
+            <h3 className="text-sm font-bold text-foreground ">Recent activity &amp; evidence</h3>
             <div className="mt-4 space-y-4">
               <Activity icon="done" date="Jul 15, 2026" title="Completed Strategic Account Planning workshop" detail="Evidence added: Certificate" />
               <Activity icon="active" date="Jul 30, 2026" title="Added account insights deck for Acme Corp." detail="Evidence added: Insights deck" />
@@ -247,8 +247,8 @@ function PlanDetail({ plan, onBack, onAction, onUpdate }: { plan: Plan; onBack: 
         <aside className="px-5 py-5">
           <section className="border-b border-border pb-5">
             <div className="flex items-start justify-between gap-3"><h3 className="text-sm font-bold">Next best action</h3><span className="text-xs font-semibold text-amber-600">Due {formatDate(plan.nextActionDate)}</span></div>
-            <div className="mt-4 flex gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-blue-200 text-[#0b55c4]"><TrendingUp className="h-5 w-5" aria-hidden /></span><div><p className="text-sm font-bold">Update progress on “{nextAction?.title}”</p><p className="mt-1 text-xs leading-5 text-slate-500">Share what changed, what’s next, and any help you need.</p></div></div>
-            <Button className="mt-4 w-full bg-[#0b46b5] text-white hover:bg-[#083b9b]" onClick={() => nextAction?.raw ? onUpdate(nextAction.raw) : onAction('development')}>Update progress</Button>
+            <div className="mt-4 flex gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-primary/20 text-primary"><TrendingUp className="h-5 w-5" aria-hidden /></span><div><p className="text-sm font-bold">Update progress on “{nextAction?.title}”</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Share what changed, what’s next, and any help you need.</p></div></div>
+            <Button className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => nextAction?.raw ? onUpdate(nextAction.raw) : onAction('development')}>Update progress</Button>
           </section>
 
           <section className="border-b border-border py-5">
@@ -259,7 +259,7 @@ function PlanDetail({ plan, onBack, onAction, onUpdate }: { plan: Plan; onBack: 
 
           <section className="border-b border-border py-5">
             <h3 className="text-sm font-bold">Related competency gap</h3>
-            <div className="mt-3 flex gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-violet-50 text-violet-600 dark:bg-violet-950/30"><Target className="h-5 w-5" aria-hidden /></span><div><p className="text-sm font-bold">{plan.competency}</p><p className="mt-1 text-xs leading-5 text-slate-500">Strengthen the ability to anticipate customer needs and build long-term growth strategies.</p><button type="button" className="mt-2 text-xs font-semibold text-[#0b55c4]">View in competencies</button></div></div>
+            <div className="mt-3 flex gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-violet-50 text-violet-600 dark:bg-violet-950/30"><Target className="h-5 w-5" aria-hidden /></span><div><p className="text-sm font-bold">{plan.competency}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Strengthen the ability to anticipate customer needs and build long-term growth strategies.</p><button type="button" className="mt-2 text-xs font-semibold text-primary">View in competencies</button></div></div>
           </section>
 
           <section className="border-b border-border py-5">
@@ -293,12 +293,12 @@ function buildPlans(data: PerformanceWorkspaceData): Plan[] {
 }
 
 function Summary({ label, value, tone = 'default' }: { label: string; value: number; tone?: 'default' | 'warning' | 'success' }) {
-  return <div className="min-w-[108px] px-5 first:pl-0"><p className="text-xs font-semibold text-slate-600 dark:text-slate-400">{label}</p><p className={cn('mt-1 text-xl font-bold tabular-nums', tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : 'text-slate-950 dark:text-slate-50')}>{value}</p></div>;
+  return <div className="min-w-[108px] px-5 first:pl-0"><p className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground/70">{label}</p><p className={cn('mt-1 text-xl font-bold tabular-nums', tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : 'text-foreground ')}>{value}</p></div>;
 }
-function DateCell({ value, helper }: { value: string; helper?: string }) { return <div className="text-xs leading-5"><p className="font-medium text-slate-700 dark:text-slate-300">{formatDate(value)}</p>{helper ? <p className="truncate text-slate-500">{helper}</p> : null}</div>; }
-function PlanStatus({ status }: { status: string }) { const completed = status === 'completed'; return <Badge variant="outline" className={cn('w-fit rounded-md px-2 py-1 text-[11px] font-semibold', completed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-blue-200 bg-blue-50 text-blue-700')}>{completed ? 'Completed' : 'Active'}</Badge>; }
-function Definition({ label, value }: { label: string; value: string }) { return <div><p className="text-xs font-bold text-slate-900 dark:text-slate-100">{label}</p><p className="mt-1 max-w-[58ch] text-sm leading-6 text-slate-600 dark:text-slate-300">{value}</p></div>; }
-function ActionStatus({ status }: { status: string }) { const completed = status === 'completed'; const active = status === 'in_progress'; return <span className={cn('inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold', completed ? 'bg-emerald-50 text-emerald-700' : active ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600')} >{completed ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}{completed ? 'Completed' : active ? 'In progress' : 'Not started'}</span>; }
-function Person({ label, initials, name, role }: { label: string; initials: string; name: string; role: string }) { return <div className="mt-3"><p className="mb-1 text-[11px] text-slate-500">{label}</p><div className="flex items-center gap-3 border-b border-border pb-3 last:border-0"><Avatar className="h-8 w-8 rounded-md"><AvatarFallback className="rounded-md text-[11px] font-bold">{initials}</AvatarFallback></Avatar><div><p className="text-xs font-semibold">{name}</p><p className="mt-0.5 text-[11px] text-slate-500">{role}</p></div></div></div>; }
-function LearningRow({ title, linked, duration }: { title: string; linked: string; duration: string }) { return <a href="/workforce/learning" className="flex items-center gap-3 px-2 py-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#3459a8] dark:hover:bg-slate-900/50"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#0b2c62] text-white"><BookOpenCheck className="h-4 w-4" aria-hidden /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">{title}</p><p className="mt-1 truncate text-[11px] text-slate-500">Linked to: {linked}</p></div><span className="text-xs text-slate-500">{duration}</span><ArrowUpRight className="h-4 w-4 text-[#0b55c4]" aria-hidden /></a>; }
-function Activity({ icon, date, title, detail }: { icon: 'done' | 'active' | 'future'; date: string; title: string; detail: string }) { return <div className="grid grid-cols-[18px_74px_minmax(0,1fr)] gap-3 text-xs"><span className={cn('mt-1 grid h-4 w-4 place-items-center rounded-full', icon === 'done' ? 'text-emerald-600' : icon === 'active' ? 'bg-blue-600' : 'bg-slate-300')}>{icon === 'done' ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : null}</span><span className="text-slate-500">{date}</span><div><p className="font-medium text-slate-700 dark:text-slate-300">{title}</p><p className="mt-1 text-slate-500">{detail}</p></div></div>; }
+function DateCell({ value, helper }: { value: string; helper?: string }) { return <div className="text-xs leading-5"><p className="font-medium text-foreground/80 ">{formatDate(value)}</p>{helper ? <p className="truncate text-muted-foreground">{helper}</p> : null}</div>; }
+function PlanStatus({ status }: { status: string }) { const completed = status === 'completed'; return <Badge variant="outline" className={cn('w-fit rounded-md px-2 py-1 text-[11px] font-semibold', completed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-primary/20 bg-blue-50 text-blue-700')}>{completed ? 'Completed' : 'Active'}</Badge>; }
+function Definition({ label, value }: { label: string; value: string }) { return <div><p className="text-xs font-bold text-foreground ">{label}</p><p className="mt-1 max-w-[58ch] text-sm leading-6 text-muted-foreground ">{value}</p></div>; }
+function ActionStatus({ status }: { status: string }) { const completed = status === 'completed'; const active = status === 'in_progress'; return <span className={cn('inline-flex w-fit items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold', completed ? 'bg-emerald-50 text-emerald-700' : active ? 'bg-blue-50 text-blue-700' : 'bg-muted text-muted-foreground')} >{completed ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}{completed ? 'Completed' : active ? 'In progress' : 'Not started'}</span>; }
+function Person({ label, initials, name, role }: { label: string; initials: string; name: string; role: string }) { return <div className="mt-3"><p className="mb-1 text-[11px] text-muted-foreground">{label}</p><div className="flex items-center gap-3 border-b border-border pb-3 last:border-0"><Avatar className="h-8 w-8 rounded-md"><AvatarFallback className="rounded-md text-[11px] font-bold">{initials}</AvatarFallback></Avatar><div><p className="text-xs font-semibold">{name}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{role}</p></div></div></div>; }
+function LearningRow({ title, linked, duration }: { title: string; linked: string; duration: string }) { return <a href="/workforce/learning" className="flex items-center gap-3 px-2 py-3 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/50"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground"><BookOpenCheck className="h-4 w-4" aria-hidden /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-foreground ">{title}</p><p className="mt-1 truncate text-[11px] text-muted-foreground">Linked to: {linked}</p></div><span className="text-xs text-muted-foreground">{duration}</span><ArrowUpRight className="h-4 w-4 text-primary" aria-hidden /></a>; }
+function Activity({ icon, date, title, detail }: { icon: 'done' | 'active' | 'future'; date: string; title: string; detail: string }) { return <div className="grid grid-cols-[18px_74px_minmax(0,1fr)] gap-3 text-xs"><span className={cn('mt-1 grid h-4 w-4 place-items-center rounded-full', icon === 'done' ? 'text-emerald-600' : icon === 'active' ? 'bg-blue-600' : 'bg-border')}>{icon === 'done' ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : null}</span><span className="text-muted-foreground">{date}</span><div><p className="font-medium text-foreground/80 ">{title}</p><p className="mt-1 text-muted-foreground">{detail}</p></div></div>; }

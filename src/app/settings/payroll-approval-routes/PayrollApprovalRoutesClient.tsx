@@ -279,21 +279,21 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
   if (!selectedRoute) return null;
 
   return (
-    <main className="min-h-full bg-background dark:bg-[#0b1119] p-3 text-foreground dark:text-[#e8edf4] sm:p-4">
-      <div className="mx-auto grid min-h-[720px] max-w-[1120px] overflow-hidden rounded-[6px] border border-border dark:border-[#273240] bg-card dark:bg-[#101821] lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="border-b border-border dark:border-[#273240] bg-muted/40 dark:bg-[#0d151e] lg:border-b-0 lg:border-r">
-          <div className="border-b border-border dark:border-[#273240] p-4">
-            <h1 className="text-sm font-semibold text-foreground dark:text-white">
+    <main className="min-h-full bg-background p-3 text-foreground sm:p-4">
+      <div className="mx-auto grid min-h-[720px] max-w-[1120px] overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-muted/40 lg:border-b-0 lg:border-r">
+          <div className="border-b border-border p-4">
+            <h1 className="text-sm font-semibold text-foreground">
               Approval routes
             </h1>
             <div className="relative mt-3">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground dark:text-[#718096]" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search routes"
                 aria-label="Search payroll approval routes"
-                className="h-9 border-border bg-background pl-9 text-xs text-foreground placeholder:text-muted-foreground dark:border-[#334150] dark:bg-[#111c27] dark:text-white dark:placeholder:text-[#718096]"
+                className="h-9 border-border bg-background pl-9 text-xs text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <Button
@@ -309,7 +309,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
 
           <nav
             aria-label="Payroll approval routes"
-            className="divide-y divide-border dark:divide-[#273240]"
+            className="divide-y divide-border"
           >
             {visibleRoutes.map((route) => (
               <button
@@ -319,15 +319,15 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                 className={cn(
                   "group flex w-full items-center gap-3 px-4 py-4 text-left transition-colors",
                   selectedRoute.id === route.id
-                    ? "border-l-2 border-blue-400 bg-info/10 dark:bg-[#172a47] pl-[14px]"
-                    : "border-l-2 border-transparent hover:bg-muted dark:hover:bg-[#141f2b]",
+                    ? "border-l-2 border-primary bg-info/10 pl-[14px]"
+                    : "border-l-2 border-transparent hover:bg-muted",
                 )}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-semibold text-foreground dark:text-white">
+                  <span className="block truncate text-xs font-semibold text-foreground">
                     {route.name}
                   </span>
-                  <span className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground dark:text-[#8d9caf]">
+                  <span className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <span
                       className={cn(
                         "h-2 w-2 rounded-full",
@@ -335,7 +335,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                           ? "bg-emerald-400"
                           : route.isActive
                             ? "bg-blue-400"
-                            : "bg-slate-500",
+                            : "bg-muted/400",
                       )}
                     />
                     {route.isDefault
@@ -344,22 +344,22 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                         ? "Custom route"
                         : "Inactive"}
                   </span>
-                  <span className="mt-1 block text-[11px] text-muted-foreground dark:text-[#718096]">
+                  <span className="mt-1 block text-[11px] text-muted-foreground">
                     {route.steps.length} approval step
                     {route.steps.length === 1 ? "" : "s"}
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground dark:text-[#728196] transition-transform group-hover:translate-x-0.5" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </button>
             ))}
           </nav>
         </aside>
 
         <section className="min-w-0">
-          <header className="flex flex-col gap-4 border-b border-border dark:border-[#273240] px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+          <header className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-lg font-semibold tracking-[-0.01em] text-foreground dark:text-white">
+                <h2 className="truncate text-lg font-semibold tracking-[-0.01em] text-foreground">
                   {selectedRoute.name}
                 </h2>
                 {selectedRoute.isDefault && (
@@ -368,13 +368,13 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground dark:text-[#8d9caf]">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Configure the ordered reviews applied when a payroll run is
                 submitted.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              <label className="flex items-center gap-2 text-xs font-semibold text-foreground dark:text-[#d8e0ea]">
+              <label className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 Active
                 <Switch
                   checked={selectedRoute.isActive}
@@ -400,13 +400,13 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
             </div>
           </header>
 
-          <section className="border-b border-border dark:border-[#273240] px-5 py-5">
+          <section className="border-b border-border px-5 py-5">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <h3 className="text-sm font-semibold text-foreground dark:text-white">
+                <h3 className="text-sm font-semibold text-foreground">
                   Approval sequence
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground dark:text-[#8d9caf]">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Approvals occur in the order shown.
                 </p>
               </div>
@@ -418,7 +418,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                   key={`${selectedRoute.id}-${index}`}
                   className="flex shrink-0 snap-start items-center gap-2"
                 >
-                  <article className="w-[184px] overflow-hidden rounded-[5px] border border-border dark:border-[#344353] bg-background dark:bg-[#111c27]">
+                  <article className="w-[184px] overflow-hidden rounded-md border border-border bg-background">
                     <div className="p-3">
                       <div className="flex items-center gap-2">
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">
@@ -431,13 +431,13 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                           onChange={(event) =>
                             updateStep(index, { title: event.target.value })
                           }
-                          className="h-8 border-0 bg-transparent px-0 text-xs font-semibold text-foreground focus-visible:ring-0 dark:text-white"
+                          className="h-8 border-0 bg-transparent px-0 text-xs font-semibold text-foreground focus-visible:ring-0"
                         />
                       </div>
-                      <label className="mt-4 block text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground dark:text-[#718096]">
+                      <label className="mt-4 block text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
                         Approver role
                       </label>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-foreground/80 dark:text-[#d6dee8]">
+                      <div className="mt-1 flex items-center gap-2 text-xs text-foreground/80">
                         <UserRound className="h-4 w-4 text-blue-700 dark:text-blue-400" />
                         <Input
                           aria-label={`Approver role for step ${index + 1}`}
@@ -476,15 +476,15 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                         ))}
                       </select>
                     </div>
-                    <div className="grid grid-cols-4 divide-x divide-border dark:divide-[#344353] border-t border-border dark:border-[#344353]">
-                      <span className="grid h-9 place-items-center text-muted-foreground dark:text-[#718096]">
+                    <div className="grid grid-cols-4 divide-x divide-border border-t border-border">
+                      <span className="grid h-9 place-items-center text-muted-foreground">
                         <GripVertical className="h-4 w-4" />
                       </span>
                       <button
                         type="button"
                         disabled={!canEdit || index === 0}
                         onClick={() => moveStep(index, -1)}
-                        className="grid h-9 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-25 dark:text-[#8d9caf] dark:hover:text-white"
+                        className="grid h-9 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-25 dark:hover:text-white"
                         aria-label={`Move ${step.title} left`}
                       >
                         <ArrowUp className="h-4 w-4 -rotate-90" />
@@ -495,7 +495,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                           !canEdit || index === selectedRoute.steps.length - 1
                         }
                         onClick={() => moveStep(index, 1)}
-                        className="grid h-9 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-25 dark:text-[#8d9caf] dark:hover:text-white"
+                        className="grid h-9 place-items-center text-muted-foreground hover:text-foreground disabled:opacity-25 dark:hover:text-white"
                         aria-label={`Move ${step.title} right`}
                       >
                         <ArrowDown className="h-4 w-4 -rotate-90" />
@@ -518,7 +518,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                     </div>
                   </article>
                   {index < selectedRoute.steps.length - 1 && (
-                    <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground dark:text-[#8190a4]" />
+                    <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
                   )}
                 </div>
               ))}
@@ -533,7 +533,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                     ],
                   })
                 }
-                className="flex min-h-[184px] w-[145px] shrink-0 flex-col items-center justify-center rounded-[5px] border border-dashed border-border text-xs text-muted-foreground transition hover:border-blue-500 hover:text-blue-700 disabled:opacity-40 dark:border-[#526174] dark:text-[#a4b0bf] dark:hover:text-blue-300"
+                className="flex min-h-[184px] w-[145px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground transition hover:border-primary hover:text-primary disabled:opacity-40 dark:hover:text-blue-300"
               >
                 <Plus className="mb-3 h-6 w-6" />
                 Add approval step
@@ -542,15 +542,15 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
           </section>
 
           <div className="grid md:grid-cols-2">
-            <section className="border-b border-border dark:border-[#273240] p-5 md:border-b-0 md:border-r">
-              <h3 className="text-sm font-semibold text-foreground dark:text-white">
+            <section className="border-b border-border p-5 md:border-b-0 md:border-r">
+              <h3 className="text-sm font-semibold text-foreground">
                 Route details
               </h3>
               <div className="mt-4 space-y-4">
-                <label className="block text-xs font-medium text-foreground/80 dark:text-[#cbd4df]">
+                <label className="block text-xs font-medium text-foreground/80">
                   Path name
                   <Input
-                    className="mt-1.5 h-9 border-border dark:border-[#344353] bg-background dark:bg-[#111c27] text-xs"
+                    className="mt-1.5 h-9 border-border bg-background text-xs"
                     value={selectedRoute.name}
                     disabled={!canEdit}
                     onChange={(event) =>
@@ -558,18 +558,18 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                     }
                   />
                 </label>
-                <label className="block text-xs font-medium text-foreground/80 dark:text-[#cbd4df]">
+                <label className="block text-xs font-medium text-foreground/80">
                   Path ID
                   <Input
-                    className="mt-1.5 h-9 border-border dark:border-[#344353] bg-background dark:bg-[#111c27] text-xs text-muted-foreground dark:text-[#8290a3]"
+                    className="mt-1.5 h-9 border-border bg-background text-xs text-muted-foreground"
                     value={selectedRoute.id}
                     disabled
                   />
                 </label>
-                <label className="block text-xs font-medium text-foreground/80 dark:text-[#cbd4df]">
+                <label className="block text-xs font-medium text-foreground/80">
                   Description
                   <Textarea
-                    className="mt-1.5 min-h-24 border-border dark:border-[#344353] bg-background dark:bg-[#111c27] text-xs"
+                    className="mt-1.5 min-h-24 border-border bg-background text-xs"
                     value={selectedRoute.description}
                     disabled={!canEdit}
                     onChange={(event) =>
@@ -656,34 +656,34 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
               </div>
             </section>
 
-            <section className="border-b border-border dark:border-[#273240] p-5 md:border-b-0">
-              <h3 className="text-sm font-semibold text-foreground dark:text-white">
+            <section className="border-b border-border p-5 md:border-b-0">
+              <h3 className="text-sm font-semibold text-foreground">
                 Submission behavior
               </h3>
-              <dl className="mt-4 divide-y divide-border dark:divide-[#273240] text-xs">
+              <dl className="mt-4 divide-y divide-border text-xs">
                 <div className="pb-4">
-                  <dt className="font-medium text-foreground/80 dark:text-[#cbd4df]">
+                  <dt className="font-medium text-foreground/80">
                     Requester record
                   </dt>
-                  <dd className="mt-1 leading-5 text-muted-foreground dark:text-[#8d9caf]">
+                  <dd className="mt-1 leading-5 text-muted-foreground">
                     The requester is recorded automatically before these
                     reviewers.
                   </dd>
                 </div>
                 <div className="py-4">
-                  <dt className="font-medium text-foreground/80 dark:text-[#cbd4df]">
+                  <dt className="font-medium text-foreground/80">
                     Step reassignment
                   </dt>
-                  <dd className="mt-1 leading-5 text-muted-foreground dark:text-[#8d9caf]">
+                  <dd className="mt-1 leading-5 text-muted-foreground">
                     Users with Payroll Approve permission can reassign the
                     current pending step.
                   </dd>
                 </div>
                 <div className="pt-4">
-                  <dt className="font-medium text-foreground/80 dark:text-[#cbd4df]">
+                  <dt className="font-medium text-foreground/80">
                     Completion policy
                   </dt>
-                  <dd className="mt-1 leading-5 text-muted-foreground dark:text-[#8d9caf]">
+                  <dd className="mt-1 leading-5 text-muted-foreground">
                     Every step in the sequence must be approved.
                   </dd>
                 </div>
@@ -693,7 +693,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-5 border-border dark:border-[#344353] bg-transparent text-xs text-foreground dark:text-[#d7e0eb]"
+                  className="mt-5 border-border bg-transparent text-xs text-foreground"
                   disabled={!canEdit}
                   onClick={setDefault}
                 >
@@ -1127,7 +1127,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
             </div>
           </section>
 
-          <footer className="flex items-center justify-between border-t border-border dark:border-[#273240] px-5 py-4">
+          <footer className="flex items-center justify-between border-t border-border px-5 py-4">
             <Button
               type="button"
               variant="outline"
@@ -1139,7 +1139,7 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
               <Trash2 className="mr-2 h-4 w-4" />
               Delete route
             </Button>
-            <span className="text-[11px] text-muted-foreground dark:text-[#718096]">
+            <span className="text-[11px] text-muted-foreground">
               {routes.length} route{routes.length === 1 ? "" : "s"} configured
             </span>
           </footer>
@@ -1151,9 +1151,9 @@ export function PayrollApprovalRoutesClient({ canEdit }: { canEdit: boolean }) {
 
 function RouteCanvasSkeleton() {
   return (
-    <div className="min-h-full bg-background dark:bg-[#0b1119] p-4">
-      <div className="mx-auto grid min-h-[720px] max-w-[1120px] overflow-hidden rounded-[6px] border border-border dark:border-[#273240] bg-card dark:bg-[#101821] lg:grid-cols-[250px_1fr]">
-        <aside className="space-y-3 border-r border-border dark:border-[#273240] p-4">
+    <div className="min-h-full bg-background p-4">
+      <div className="mx-auto grid min-h-[720px] max-w-[1120px] overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[250px_1fr]">
+        <aside className="space-y-3 border-r border-border p-4">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-full" />

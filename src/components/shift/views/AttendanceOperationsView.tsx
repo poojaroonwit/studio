@@ -122,7 +122,7 @@ export function AttendanceOperationsView() {
       {state.error && <InlineError message={state.error} />}
       <AttendanceMetrics metrics={metrics} />
 
-      <section data-selected-record-id={selectedRecordId || undefined} onClickCapture={captureRecordSelection} className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-[#071321]">
+      <section data-selected-record-id={selectedRecordId || undefined} onClickCapture={captureRecordSelection} className="overflow-hidden rounded-lg border border-border bg-white dark:border-border dark:bg-[#071321]">
         <AttendanceToolbar
           mode={mode}
           onModeChange={setMode}
@@ -190,7 +190,7 @@ export function AttendanceOperationsView() {
 }
 
 function Workspace({ children }: { children: React.ReactNode }) {
-  return <main className="min-h-full w-full bg-transparent px-3 py-3 text-slate-950 sm:px-5 lg:px-6 dark:text-zinc-100"><div className="flex w-full max-w-none flex-col gap-3">{children}</div></main>;
+  return <main className="min-h-full w-full bg-transparent px-3 py-3 text-foreground sm:px-5 lg:px-6 dark:text-foreground"><div className="flex w-full max-w-none flex-col gap-3">{children}</div></main>;
 }
 
 function CompactHeader({
@@ -213,28 +213,28 @@ function CompactHeader({
   };
 
   return (
-    <header className="flex flex-col gap-2 border-b border-slate-200 pb-2 lg:flex-row lg:items-end lg:justify-between dark:border-zinc-800">
+    <header className="flex flex-col gap-2 border-b border-border pb-2 lg:flex-row lg:items-end lg:justify-between dark:border-border">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">Time · Employee attendance</p>
         <h1 className="text-lg font-bold tracking-tight">Attendance</h1>
       </div>
       <div className="flex flex-wrap items-center gap-1">
         <div className="inline-flex h-9 items-center" aria-label="Attendance date">
-          <button type="button" onClick={() => moveDate(-1)} aria-label="Previous day" className="flex h-9 w-9 items-center justify-center text-slate-500 transition-colors hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white">
+          <button type="button" onClick={() => moveDate(-1)} aria-label="Previous day" className="flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground dark:hover:text-white">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <label className="relative flex h-9 min-w-40 cursor-pointer items-center justify-center gap-2 px-2 text-sm font-semibold hover:text-blue-600 dark:hover:text-blue-400">
-            <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden />
+            <CalendarDays className="h-4 w-4 text-muted-foreground/70" aria-hidden />
             <span>{formatHeaderDate(date)}</span>
             <input type="date" value={date} onChange={event => onDateChange(event.target.value)} aria-label="Choose date" className="absolute inset-0 cursor-pointer opacity-0" />
           </label>
-          <button type="button" onClick={() => moveDate(1)} aria-label="Next day" className="flex h-9 w-9 items-center justify-center text-slate-500 transition-colors hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white">
+          <button type="button" onClick={() => moveDate(1)} aria-label="Next day" className="flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-foreground dark:text-muted-foreground dark:hover:text-white">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
         <div className="flex h-9 min-w-44 items-center justify-between px-3 text-sm font-semibold">
           <span>{activePeriod ? `${formatDate(activePeriod.start_date, { month: 'short', day: 'numeric' })}–${formatDate(activePeriod.end_date, { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Current period'}</span>
-          <ChevronDown className="h-4 w-4 text-slate-400" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground/70" />
         </div>
         <Button variant="ghost" size="sm" className="h-9" disabled={records.length === 0} onClick={() => void onExport()}>
           <ArrowDownToLine className="mr-2 h-4 w-4" />Export
@@ -254,13 +254,13 @@ function AttendanceMetrics({ metrics }: { metrics: Record<string, unknown> }) {
     { label: 'Open exceptions', value: numberValue(metrics.exceptions), tone: 'text-amber-600 dark:text-amber-400', icon: AlertTriangle },
   ];
   return (
-    <section className="grid grid-cols-2 border-y border-slate-200 bg-white/40 sm:grid-cols-3 xl:grid-cols-6 dark:border-zinc-800 dark:bg-transparent">
+    <section className="grid grid-cols-2 border-y border-border bg-white/40 sm:grid-cols-3 xl:grid-cols-6 dark:border-border dark:bg-transparent">
       {items.map((item, index) => {
         const Icon = item.icon;
         return (
-          <div key={item.label} className={cn('flex min-h-11 items-center gap-2 px-3 py-1.5', index > 0 && 'border-l border-slate-100 dark:border-zinc-800')}>
+          <div key={item.label} className={cn('flex min-h-11 items-center gap-2 px-3 py-1.5', index > 0 && 'border-l border-border/60 dark:border-border')}>
             <Icon className={cn('h-4 w-4 shrink-0', item.tone)} />
-            <p className="min-w-0 truncate text-xs text-slate-500 dark:text-zinc-500">{item.label}</p>
+            <p className="min-w-0 truncate text-xs text-muted-foreground dark:text-muted-foreground">{item.label}</p>
             <p className={cn('ml-auto text-sm font-bold tabular-nums', item.tone)}>{item.value}</p>
           </div>
         );
@@ -303,7 +303,7 @@ function AttendanceToolbar({
 }) {
   const listMode = mode === 'list';
   return (
-    <div className="flex flex-col gap-2 border-b border-slate-200 p-3 xl:flex-row xl:items-center dark:border-zinc-800">
+    <div className="flex flex-col gap-2 border-b border-border p-3 xl:flex-row xl:items-center dark:border-border">
       <SearchField value={queryText} onChange={onQueryChange} placeholder={listMode ? 'Search exceptions' : 'Search by name or ID'} />
       {!listMode && <SelectFilter value={department} onChange={onDepartmentChange} label="All departments" options={departments} />}
       {!listMode && <SelectFilter value={location} onChange={onLocationChange} label="All locations" options={locations} />}
@@ -316,14 +316,14 @@ function AttendanceToolbar({
       {listMode && <SelectFilter value={exceptionType} onChange={onExceptionTypeChange} label="All exception types" options={exceptionTypes} />}
       {listMode && <SelectFilter value={status} onChange={onStatusChange} label="All review status" options={[["new", "New"], ["in_review", "In review"], ["on_hold", "On hold"]]} />}
       {(status || severity || department || location || exceptionType) && <Button variant="ghost" size="sm" className="h-10 text-blue-600" onClick={() => { onStatusChange(''); onSeverityChange(''); onDepartmentChange(''); onLocationChange(''); onExceptionTypeChange(''); }}>Clear</Button>}
-      <div className="ml-auto inline-flex h-10 min-w-56 rounded-md border border-slate-200 bg-slate-50 p-1 dark:border-zinc-800 dark:bg-zinc-900" aria-label="Attendance view">
+      <div className="ml-auto inline-flex h-10 min-w-56 rounded-md border border-border bg-muted/40 p-1 dark:border-border dark:bg-card" aria-label="Attendance view">
         {(['timeline', 'list'] as AttendanceMode[]).map(value => (
           <button
             key={value}
             type="button"
             onClick={() => onModeChange(value)}
             aria-pressed={mode === value}
-            className={cn('flex-1 rounded px-4 text-sm font-semibold capitalize transition-colors', mode === value ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white')}
+            className={cn('flex-1 rounded px-4 text-sm font-semibold capitalize transition-colors', mode === value ? 'bg-blue-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-white')}
           >
             {value}
           </button>
@@ -336,7 +336,7 @@ function AttendanceToolbar({
 function SelectFilter({ value, onChange, label, options }: { value: string; onChange: (value: string) => void; label: string; options: Array<[string, string]> }) {
   return (
     <label className="relative min-w-44">
-      <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
       <select value={value} onChange={event => onChange(event.target.value)} className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-8 text-sm">
         <option value="">{label}</option>
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
@@ -352,7 +352,7 @@ function TimelineView({ records, metrics, onOpen }: { records: ShiftRecord[]; me
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[1120px]">
-        <div className="grid grid-cols-[220px_minmax(760px,1fr)_130px] border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500 dark:border-zinc-800 dark:bg-[#0b1928] dark:text-zinc-400">
+        <div className="grid grid-cols-[220px_minmax(760px,1fr)_130px] border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground dark:border-border dark:bg-[#0b1928] dark:text-muted-foreground">
           <div className="px-4 py-3">Employee</div>
           <div className="relative flex justify-between px-5 py-3">
             {timeTicks.map(hour => <span key={hour} className="tabular-nums">{String(hour).padStart(2, '0')}:00</span>)}
@@ -367,8 +367,8 @@ function TimelineView({ records, metrics, onOpen }: { records: ShiftRecord[]; me
           )}
           {records.map(row => <TimelineRow key={String(row.id)} row={row} onOpen={onOpen} />)}
           {numberValue(metrics.onLeave) > 0 && (
-            <div className="grid grid-cols-[220px_minmax(760px,1fr)_130px] border-t border-slate-100 dark:border-zinc-800">
-              <div className="flex items-center gap-3 px-4 py-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-950 text-blue-400"><CalendarDays className="h-5 w-5" /></span><div><p className="text-sm font-semibold">On leave</p><p className="text-xs text-slate-500">{numberValue(metrics.onLeave)} employees</p></div></div>
+            <div className="grid grid-cols-[220px_minmax(760px,1fr)_130px] border-t border-border/60 dark:border-border">
+              <div className="flex items-center gap-3 px-4 py-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-950 text-blue-400"><CalendarDays className="h-5 w-5" /></span><div><p className="text-sm font-semibold">On leave</p><p className="text-xs text-muted-foreground">{numberValue(metrics.onLeave)} employees</p></div></div>
               <div className="p-3"><div className="h-12 rounded border border-blue-800/60 bg-[repeating-linear-gradient(-45deg,rgba(37,99,235,.14),rgba(37,99,235,.14)_8px,rgba(37,99,235,.06)_8px,rgba(37,99,235,.06)_16px)] px-4 py-2 text-xs text-blue-300"><p className="font-semibold">On leave</p><p>All day</p></div></div>
               <div className="flex items-center px-4"><ShiftStatusBadge status="on_leave" /></div>
             </div>
@@ -396,15 +396,15 @@ function TimelineRow({ row, onOpen }: { row: ShiftRecord; onOpen: (row: ShiftRec
   const checkedOut = Boolean(row.clock_out);
   const statusLabel = missing ? 'Missing' : late ? 'Late start' : checkedOut ? 'Present' : 'Working';
   return (
-    <div className="grid w-full grid-cols-[220px_minmax(760px,1fr)_130px] border-b border-slate-100 text-left transition-colors hover:bg-slate-50 dark:border-zinc-800 dark:hover:bg-zinc-900/60">
-      <button type="button" data-attendance-record-id={String(row.id)} onClick={() => onOpen(row)} aria-label={`Open ${employeeName(row)} attendance record`} className="flex items-center gap-3 px-4 py-3 text-left"><EmployeeAvatar row={row} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{employeeName(row)}</p><p className="truncate text-[11px] text-slate-500">{stringValue(row.employee_number)}</p><p className="truncate text-[11px] text-slate-500">{stringValue(row.department_name)}</p></div>{hasException(row) ? <AlertTriangle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}</button>
-      <div className="relative my-2.5 h-14 border-x border-slate-100 bg-[linear-gradient(to_right,transparent_8.25%,rgba(148,163,184,.10)_8.33%,transparent_8.41%)] bg-[length:8.333%_100%] dark:border-zinc-800">
+    <div className="grid w-full grid-cols-[220px_minmax(760px,1fr)_130px] border-b border-border/60 text-left transition-colors hover:bg-muted/40 dark:border-border dark:hover:bg-muted/40">
+      <button type="button" data-attendance-record-id={String(row.id)} onClick={() => onOpen(row)} aria-label={`Open ${employeeName(row)} attendance record`} className="flex items-center gap-3 px-4 py-3 text-left"><EmployeeAvatar row={row} /><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{employeeName(row)}</p><p className="truncate text-[11px] text-muted-foreground">{stringValue(row.employee_number)}</p><p className="truncate text-[11px] text-muted-foreground">{stringValue(row.department_name)}</p></div>{hasException(row) ? <AlertTriangle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}</button>
+      <div className="relative my-2.5 h-14 border-x border-border/60 bg-[linear-gradient(to_right,transparent_8.25%,rgba(148,163,184,.10)_8.33%,transparent_8.41%)] bg-[length:8.333%_100%] dark:border-border">
         <div className="absolute top-0 h-14 rounded border border-dashed border-blue-500/70 bg-blue-950/10" style={{ left: `${scheduleLeft}%`, width: `${scheduleWidth}%` }} />
-        <div className="absolute top-1.5 text-[10px] leading-4 text-slate-400" style={{ left: `calc(${scheduleLeft}% + 12px)` }}><p>{formatClock(scheduledStart)} – {formatClock(scheduledEnd)}</p><p>Planned shift</p></div>
+        <div className="absolute top-1.5 text-[10px] leading-4 text-muted-foreground/70" style={{ left: `calc(${scheduleLeft}% + 12px)` }}><p>{formatClock(scheduledStart)} – {formatClock(scheduledEnd)}</p><p>Planned shift</p></div>
         {clockIn !== null && !missing && <><div className={cn('absolute top-7 h-5 rounded-sm', late ? 'bg-gradient-to-r from-amber-500 to-amber-600/55' : 'bg-gradient-to-r from-emerald-500 to-emerald-600/55')} style={{ left: `${workLeft}%`, width: `${workWidth}%` }}><span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-white">Working</span></div><span className={cn('absolute top-[1.6rem] z-10 flex h-5 w-5 items-center justify-center rounded-full border text-[10px]', late ? 'border-amber-300 bg-amber-600 text-white' : 'border-emerald-300 bg-emerald-600 text-white')} style={{ left: `calc(${workLeft}% - 10px)` }}><Check className="h-3 w-3" /></span><span className={cn('absolute top-7 text-[11px] font-semibold', late ? 'text-amber-400' : 'text-emerald-400')} style={{ left: `calc(${workLeft}% + 15px)` }}>{formatClock(clockIn)}</span>{checkedOut && <Flag className="absolute top-7 h-4 w-4 text-blue-400" style={{ left: `calc(${workLeft + workWidth}% - 18px)` }} />}</>}
         {missing && <div className="absolute top-7 flex h-5 items-center gap-1 px-2 text-[11px] font-semibold text-rose-400" style={{ left: `${Math.max(scheduleLeft + 23, workLeft)}%` }}><CircleAlert className="h-3.5 w-3.5" />No check-in</div>}
       </div>
-      <button type="button" data-attendance-record-id={String(row.id)} onClick={() => onOpen(row)} aria-label={`Open ${employeeName(row)} status details`} className="flex flex-col justify-center gap-1 px-4 text-left"><span className={cn('w-fit rounded border px-2 py-1 text-[11px] font-semibold', missing ? 'border-rose-700 text-rose-400' : late ? 'border-amber-700 text-amber-400' : 'border-emerald-700 text-emerald-400')}>{statusLabel}</span><span className="flex items-center gap-1 text-[11px] text-slate-500"><Clock3 className="h-3 w-3" />{formatDuration(row.worked_minutes || numberValue(row.hours_worked) * 60)}</span></button>
+      <button type="button" data-attendance-record-id={String(row.id)} onClick={() => onOpen(row)} aria-label={`Open ${employeeName(row)} status details`} className="flex flex-col justify-center gap-1 px-4 text-left"><span className={cn('w-fit rounded border px-2 py-1 text-[11px] font-semibold', missing ? 'border-rose-700 text-rose-400' : late ? 'border-amber-700 text-amber-400' : 'border-emerald-700 text-emerald-400')}>{statusLabel}</span><span className="flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" />{formatDuration(row.worked_minutes || numberValue(row.hours_worked) * 60)}</span></button>
     </div>
   );
 }

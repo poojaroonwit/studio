@@ -232,13 +232,13 @@ export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
   return (
     <main
       id="payroll-main"
-      className="min-h-full bg-[#f7f8fa] text-slate-950 dark:bg-[#0b1019] dark:text-slate-50"
+      className="min-h-full bg-background text-foreground"
     >
       {resource !== "runs" &&
         resource !== "payslips" &&
         resource !== "compensation" &&
         resource !== "benefits" && (
-          <div className="border-b border-slate-200 bg-[#f1f4f7] px-4 pb-1 pt-2 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-[#111824]">
+          <div className="border-b border-border/60 bg-muted/20 px-4 pb-1 pt-2 sm:px-6 lg:px-8">
             <div className="w-full">
               <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
@@ -252,7 +252,7 @@ export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
                     {meta.description}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <ShieldCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                   <span>
                     {t("payroll.headerCompanyScoped", "Company scoped")}
@@ -505,7 +505,7 @@ function PayrollBlockersDrawer({
         side="right"
         hideCloseButton
         sheetId="payroll-blockers-drawer"
-        className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(470px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border dark:border-slate-700 bg-card dark:bg-[#0b1626] p-0 text-foreground dark:text-slate-100 shadow-2xl sm:!max-w-[470px]"
+        className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(470px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground shadow-2xl sm:!max-w-[470px]"
       >
         <SheetTitle className="sr-only">Payroll readiness items</SheetTitle>
         <SheetDescription className="sr-only">
@@ -515,21 +515,21 @@ function PayrollBlockersDrawer({
           className="flex h-full min-h-0 flex-col"
           aria-label="Payroll readiness items"
         >
-          <header className="flex shrink-0 items-center justify-between border-b border-border dark:border-slate-700 px-5 py-5">
+          <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-5">
             <h2 className="text-xl font-semibold tracking-[-0.02em]">
               Payroll readiness items
             </h2>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-md p-2 text-muted-foreground dark:text-slate-400 transition-colors hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted dark:hover:bg-muted hover:text-foreground dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close payroll readiness items"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </header>
 
-          <div className="shrink-0 border-b border-border dark:border-slate-700 px-5 py-4">
+          <div className="shrink-0 border-b border-border px-5 py-4">
             <div className="flex items-start gap-3">
               <AlertCircle
                 className="mt-0.5 h-6 w-6 shrink-0 text-rose-400"
@@ -539,16 +539,16 @@ function PayrollBlockersDrawer({
                 <p className="font-semibold">
                   {blockingCount} blocking · {reviewCount} require review
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   These items come from current employee and payroll records.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 border-b border-border dark:border-slate-700 px-5 py-3 text-sm text-foreground/75 dark:text-slate-300">
+          <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-3 text-sm text-foreground/75">
             <CalendarDays
-              className="h-4 w-4 text-muted-foreground dark:text-slate-400"
+              className="h-4 w-4 text-muted-foreground"
               aria-hidden="true"
             />
             <span>
@@ -570,15 +570,15 @@ function PayrollBlockersDrawer({
                   <article
                     key={task.id}
                     className={cn(
-                      "border-b border-border dark:border-slate-700",
-                      active && "bg-muted/70 dark:bg-slate-800/45",
+                      "border-b border-border",
+                      active && "bg-muted/70 dark:bg-muted/45",
                     )}
                   >
                     <div className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-start gap-3 px-5 py-4">
                       <button
                         type="button"
                         onClick={() => setSelectedId(task.id)}
-                        className="mt-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="mt-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-label={`Select ${task.title}`}
                         aria-pressed={active}
                       >
@@ -587,7 +587,7 @@ function PayrollBlockersDrawer({
                             "h-5 w-5",
                             active
                               ? "fill-blue-500 text-blue-300"
-                              : "text-muted-foreground dark:text-slate-500",
+                              : "text-muted-foreground",
                           )}
                           aria-hidden="true"
                         />
@@ -595,7 +595,7 @@ function PayrollBlockersDrawer({
                       <button
                         type="button"
                         onClick={() => setSelectedId(task.id)}
-                        className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <span className="flex items-center gap-2">
                           <AlertCircle
@@ -611,7 +611,7 @@ function PayrollBlockersDrawer({
                             {task.title}
                           </span>
                         </span>
-                        <span className="mt-1 block truncate text-sm text-foreground/75 dark:text-slate-300">
+                        <span className="mt-1 block truncate text-sm text-foreground/75">
                           {task.subject}
                         </span>
                       </button>
@@ -627,7 +627,7 @@ function PayrollBlockersDrawer({
                         <button
                           type="button"
                           onClick={() => setSelectedId(task.id)}
-                          className="mt-2 block rounded p-1 text-muted-foreground dark:text-slate-400 hover:bg-muted dark:hover:bg-slate-700 hover:text-foreground dark:hover:text-white"
+                          className="mt-2 block rounded p-1 text-muted-foreground hover:bg-muted dark:hover:bg-muted-foreground/70 hover:text-foreground dark:hover:text-white"
                           aria-label={
                             active
                               ? `Collapse ${task.title}`
@@ -646,33 +646,33 @@ function PayrollBlockersDrawer({
                     </div>
 
                     {active ? (
-                      <div className="mx-5 mb-4 rounded-lg border border-border bg-muted p-4 dark:border-slate-600 dark:bg-slate-800/70">
+                      <div className="mx-5 mb-4 rounded-lg border border-border bg-muted p-4 dark:border-input dark:bg-muted/70">
                         <dl className="grid grid-cols-[104px_minmax(0,1fr)] gap-x-3 gap-y-3 text-xs leading-5">
-                          <dt className="text-muted-foreground dark:text-slate-400">
+                          <dt className="text-muted-foreground">
                             Employee
                           </dt>
-                          <dd className="font-medium text-foreground dark:text-slate-100">
+                          <dd className="font-medium text-foreground">
                             {task.subject}
-                            <span className="block font-normal text-muted-foreground dark:text-slate-400">
+                            <span className="block font-normal text-muted-foreground">
                               {task.detail}
                             </span>
                           </dd>
-                          <dt className="text-muted-foreground dark:text-slate-400">
+                          <dt className="text-muted-foreground">
                             What&apos;s missing
                           </dt>
-                          <dd className="text-foreground/80 dark:text-slate-200">
+                          <dd className="text-foreground/80">
                             {task.title}
                           </dd>
-                          <dt className="text-muted-foreground dark:text-slate-400">
+                          <dt className="text-muted-foreground">
                             Impact on payroll
                           </dt>
-                          <dd className="text-foreground/80 dark:text-slate-200">
+                          <dd className="text-foreground/80">
                             {task.impact}
                           </dd>
-                          <dt className="text-muted-foreground dark:text-slate-400">
+                          <dt className="text-muted-foreground">
                             How to fix
                           </dt>
-                          <dd className="text-foreground/80 dark:text-slate-200">
+                          <dd className="text-foreground/80">
                             {task.fix}
                           </dd>
                         </dl>
@@ -680,7 +680,7 @@ function PayrollBlockersDrawer({
                         profileTaskId === task.id ? (
                           data.groups.length ? (
                             <form
-                              className="mt-4 space-y-3 border-t border-border dark:border-slate-600 pt-4"
+                              className="mt-4 space-y-3 border-t border-border dark:border-input pt-4"
                               onSubmit={(event) =>
                                 void submitProfileAssignment(event, task)
                               }
@@ -688,7 +688,7 @@ function PayrollBlockersDrawer({
                               <div>
                                 <label
                                   htmlFor={`payroll-group-${task.id}`}
-                                  className="text-xs font-medium text-foreground/75 dark:text-slate-300"
+                                  className="text-xs font-medium text-foreground/75"
                                 >
                                   Payroll group
                                 </label>
@@ -702,7 +702,7 @@ function PayrollBlockersDrawer({
                                       payrollGroupId: event.target.value,
                                     }))
                                   }
-                                  className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-slate-600 bg-card dark:bg-[#0b1626] px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                                  className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-input bg-card px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                                 >
                                   <option value="" disabled>
                                     Select payroll group
@@ -722,7 +722,7 @@ function PayrollBlockersDrawer({
                                 <div>
                                   <label
                                     htmlFor={`payment-method-${task.id}`}
-                                    className="text-xs font-medium text-foreground/75 dark:text-slate-300"
+                                    className="text-xs font-medium text-foreground/75"
                                   >
                                     Payment method
                                   </label>
@@ -735,7 +735,7 @@ function PayrollBlockersDrawer({
                                         paymentMethod: event.target.value,
                                       }))
                                     }
-                                    className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-slate-600 bg-card dark:bg-[#0b1626] px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                                    className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-input bg-card px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                                   >
                                     <option value="bank_transfer">
                                       Bank transfer
@@ -747,7 +747,7 @@ function PayrollBlockersDrawer({
                                 <div>
                                   <label
                                     htmlFor={`currency-${task.id}`}
-                                    className="text-xs font-medium text-foreground/75 dark:text-slate-300"
+                                    className="text-xs font-medium text-foreground/75"
                                   >
                                     Currency
                                   </label>
@@ -760,7 +760,7 @@ function PayrollBlockersDrawer({
                                         paymentCurrency: event.target.value,
                                       }))
                                     }
-                                    className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-slate-600 bg-card dark:bg-[#0b1626] px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                                    className="mt-1 min-h-10 w-full rounded-md border border-border dark:border-input bg-card px-3 text-sm text-foreground dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
                                   >
                                     <option value="THB">THB</option>
                                     <option value="USD">USD</option>
@@ -772,7 +772,7 @@ function PayrollBlockersDrawer({
                                 <div>
                                   <label
                                     htmlFor={`start-date-${task.id}`}
-                                    className="text-xs font-medium text-foreground/75 dark:text-slate-300"
+                                    className="text-xs font-medium text-foreground/75"
                                   >
                                     Payroll start
                                   </label>
@@ -787,13 +787,13 @@ function PayrollBlockersDrawer({
                                         payrollStartDate: event.target.value,
                                       }))
                                     }
-                                    className="mt-1 border-border dark:border-slate-600 bg-card dark:bg-[#0b1626] text-foreground dark:text-white dark:[color-scheme:dark]"
+                                    className="mt-1 border-border dark:border-input bg-card text-foreground dark:text-white dark:[color-scheme:dark]"
                                   />
                                 </div>
                                 <div>
                                   <label
                                     htmlFor={`bank-reference-${task.id}`}
-                                    className="text-xs font-medium text-foreground/75 dark:text-slate-300"
+                                    className="text-xs font-medium text-foreground/75"
                                   >
                                     Payment reference
                                   </label>
@@ -808,7 +808,7 @@ function PayrollBlockersDrawer({
                                       }))
                                     }
                                     placeholder="Optional"
-                                    className="mt-1 border-border dark:border-slate-600 bg-card dark:bg-[#0b1626] text-foreground dark:text-white placeholder:text-muted-foreground dark:text-slate-500"
+                                    className="mt-1 border-border dark:border-input bg-card text-foreground dark:text-white placeholder:text-muted-foreground"
                                   />
                                 </div>
                               </div>
@@ -818,14 +818,14 @@ function PayrollBlockersDrawer({
                                   variant="outline"
                                   disabled={busy}
                                   onClick={() => setProfileTaskId("")}
-                                  className="border-border dark:border-slate-600 bg-transparent text-foreground dark:text-slate-100 hover:bg-muted dark:hover:bg-slate-700 hover:text-foreground dark:hover:text-white"
+                                  className="border-border dark:border-input bg-transparent text-foreground hover:bg-muted dark:hover:bg-muted-foreground/70 hover:text-foreground dark:hover:text-white"
                                 >
                                   Cancel
                                 </Button>
                                 <Button
                                   type="submit"
                                   disabled={busy || !profileForm.payrollGroupId}
-                                  className="bg-blue-600 text-white hover:bg-blue-500"
+                                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                                 >
                                   {busy ? (
                                     <RefreshCw
@@ -860,7 +860,7 @@ function PayrollBlockersDrawer({
                                   onOpenChange(false);
                                   router.push("/payroll/runs");
                                 }}
-                                className="mt-3 bg-amber-500 text-slate-950 hover:bg-amber-400"
+                                className="mt-3 bg-amber-500 text-foreground hover:bg-amber-400"
                               >
                                 Open payroll setup
                               </Button>
@@ -870,7 +870,7 @@ function PayrollBlockersDrawer({
                           <Button
                             type="button"
                             onClick={() => navigateToResolution(task)}
-                            className="mt-4 bg-blue-600 text-white hover:bg-blue-500"
+                            className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
                           >
                             <UserRoundCheck
                               className="mr-2 h-4 w-4"
@@ -891,19 +891,19 @@ function PayrollBlockersDrawer({
                   aria-hidden="true"
                 />
                 <p className="mt-3 font-semibold">Payroll is ready</p>
-                <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   No blocking items need attention.
                 </p>
               </div>
             )}
           </div>
 
-          <footer className="grid shrink-0 grid-cols-[132px_minmax(0,1fr)] gap-3 border-t border-border dark:border-slate-700 bg-card dark:bg-[#0b1626] p-5">
+          <footer className="grid shrink-0 grid-cols-[132px_minmax(0,1fr)] gap-3 border-t border-border bg-card p-5">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-border dark:border-slate-600 bg-transparent text-foreground dark:text-slate-100 hover:bg-muted dark:hover:bg-slate-800 hover:text-foreground dark:hover:text-white"
+              className="border-border dark:border-input bg-transparent text-foreground hover:bg-muted dark:hover:bg-muted hover:text-foreground dark:hover:text-white"
             >
               Review later
             </Button>
@@ -911,7 +911,7 @@ function PayrollBlockersDrawer({
               type="button"
               disabled={!selected || busy}
               onClick={() => navigateToResolution(selected)}
-              className="bg-blue-600 text-white hover:bg-blue-500"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Check className="mr-2 h-4 w-4" aria-hidden="true" />
               Resolve selected item
@@ -1050,7 +1050,7 @@ function OverviewView({
   return (
     <div className="space-y-3">
       <section
-        className="flex flex-wrap items-center border-y border-slate-200 bg-white text-sm dark:border-slate-800 dark:bg-[#07111f]"
+        className="flex flex-wrap items-center border-y border-border/60 bg-card text-sm"
         aria-label={thai ? "สรุปรอบบัญชีเงินเดือน" : "Payroll period summary"}
       >
         {[
@@ -1094,19 +1094,19 @@ function OverviewView({
             key={label}
             className={cn(
               "flex min-h-11 min-w-0 items-center gap-2 px-3",
-              index > 0 && "border-l border-slate-200 dark:border-slate-800",
+              index > 0 && "border-l border-border/60",
             )}
           >
             <Icon
-              className="h-4 w-4 shrink-0 text-slate-500"
+              className="h-4 w-4 shrink-0 text-muted-foreground"
               aria-hidden="true"
             />
-            <span className="text-[13px] leading-4 text-slate-500">
+            <span className="text-[13px] leading-4 text-muted-foreground">
               {label}:
             </span>
             <strong
               className={cn(
-                "truncate text-[13px] font-semibold leading-4 tabular-nums text-slate-900 dark:text-slate-100",
+                "truncate text-[13px] font-semibold leading-4 tabular-nums text-foreground",
                 valueClass,
               )}
             >
@@ -1117,7 +1117,7 @@ function OverviewView({
       </section>
 
       <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="border border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-[#07111f]">
+        <aside className="border border-border bg-card px-4 py-4">
           <h2 className="text-sm font-bold">
             {thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
           </h2>
@@ -1138,7 +1138,7 @@ function OverviewView({
               <strong className="text-3xl font-bold tracking-[-0.04em] tabular-nums">
                 {readiness}%
               </strong>
-              <span className="mt-1 text-[10px] font-medium text-slate-500">
+              <span className="mt-1 text-[10px] font-medium text-muted-foreground">
                 {readiness === 100
                   ? thai
                     ? "ตั้งค่าพร้อมแล้ว"
@@ -1150,7 +1150,7 @@ function OverviewView({
             </div>
             <dl className="space-y-3 text-[13px] leading-4">
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "ตัดรอบล่าสุด" : "Last cutoff"}
                 </dt>
                 <dd className="mt-0.5 font-semibold">
@@ -1158,7 +1158,7 @@ function OverviewView({
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "พนักงานในรอบนี้" : "Employees in scope"}
                 </dt>
                 <dd className="mt-0.5 font-semibold tabular-nums">
@@ -1166,7 +1166,7 @@ function OverviewView({
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "วันจ่ายเงินเดือน" : "Pay date"}
                 </dt>
                 <dd className="mt-0.5 font-semibold">
@@ -1176,8 +1176,8 @@ function OverviewView({
             </dl>
           </div>
 
-          <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-            <p className="text-xs text-slate-500">{reviewerTitle}</p>
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">{reviewerTitle}</p>
             <div className="mt-2 flex items-center gap-3">
               <span
                 className={cn(
@@ -1189,7 +1189,7 @@ function OverviewView({
               </span>
               <div>
                 <p className="text-sm font-semibold">{reviewerName}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {thai ? "หน้าที่: " : "Role: "}
                   {String(
                     summary.reviewOwnerRole ||
@@ -1199,7 +1199,7 @@ function OverviewView({
                 </p>
               </div>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-muted-foreground">
               {thai ? "อัปเดตล่าสุด" : "Last reviewed"}
             </p>
             <p className="mt-0.5 text-xs font-medium">
@@ -1234,7 +1234,7 @@ function OverviewView({
           <Button
             onClick={onResolve}
             disabled={blockers === 0}
-            className="mt-4 min-h-11 w-full justify-between bg-blue-600 text-white hover:bg-blue-500"
+            className="mt-4 min-h-11 w-full justify-between"
           >
             <span className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
@@ -1249,7 +1249,7 @@ function OverviewView({
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="mt-4 border-t border-border pt-4">
             <h3 className="text-xs font-bold">
               {thai ? "ความคืบหน้ารอบบัญชี" : "Payroll progress"}
             </h3>
@@ -1266,7 +1266,7 @@ function OverviewView({
                         aria-hidden="true"
                         className={cn(
                           "absolute left-[13px] top-7 h-6 w-px",
-                          state.completed ? "bg-emerald-400" : "bg-slate-700",
+                          state.completed ? "bg-emerald-400" : "bg-muted-foreground/50",
                         )}
                       />
                     )}
@@ -1277,7 +1277,7 @@ function OverviewView({
                           ? "bg-emerald-500"
                           : state.active
                             ? "bg-blue-600 ring-4 ring-blue-500/15"
-                            : "bg-slate-600",
+                            : "bg-muted-foreground",
                       )}
                     >
                       {state.completed ? (
@@ -1295,8 +1295,8 @@ function OverviewView({
                         state.completed
                           ? "text-emerald-600 dark:text-emerald-300"
                           : state.active
-                            ? "text-blue-600 dark:text-blue-300"
-                            : "text-slate-500",
+                            ? "text-primary"
+                            : "text-muted-foreground",
                       )}
                     >
                       {state.label === "done"
@@ -1318,7 +1318,7 @@ function OverviewView({
           </div>
         </aside>
 
-        <div className="min-w-0 border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-[#07111f]">
+        <div className="min-w-0 border border-border bg-card px-5 py-4">
           <section>
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-base font-bold">
@@ -1337,7 +1337,7 @@ function OverviewView({
             </div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[760px] text-left text-[13px] leading-4">
-                <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900">
+                <thead className="bg-muted/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">
                       {thai ? "รายการทางการเงิน" : "Financial item"}
@@ -1363,16 +1363,16 @@ function OverviewView({
                       <tr
                         key={row.label}
                         className={cn(
-                          "border-b border-slate-200 dark:border-slate-800",
+                          "border-b border-border",
                           row.emphasis &&
-                            "border-t-2 border-t-slate-400 font-bold dark:border-t-slate-500",
+                            "border-t-2 border-t-border font-bold",
                         )}
                       >
                         <td className="px-3 py-2.5">{row.label}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">
                           {money(row.current)}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
                           {money(row.previous)}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums">
@@ -1398,7 +1398,7 @@ function OverviewView({
             </div>
           </section>
 
-          <div className="mt-4 grid border-t border-slate-200 pt-4 lg:grid-cols-2 lg:divide-x lg:divide-slate-200 dark:border-slate-800 dark:lg:divide-slate-800">
+          <div className="mt-4 grid border-t border-border pt-4 lg:grid-cols-2 lg:divide-x lg:divide-border">
             <section className="min-w-0 lg:pr-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold">
@@ -1415,7 +1415,7 @@ function OverviewView({
                 </button>
               </div>
               {data.issues.length ? (
-                <div className="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
+                <div className="mt-2 divide-y divide-border">
                   {data.issues.slice(0, 3).map((issue, index) => (
                     <div
                       key={`${issue.employee_id || "issue"}-${index}`}
@@ -1438,7 +1438,7 @@ function OverviewView({
                         <p className="truncate text-[13px] font-semibold leading-4">
                           {String(issue.reason || issue.employee_name)}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {String(
                             issue.required_action || issue.source_module || "",
                           )}
@@ -1481,7 +1481,7 @@ function OverviewView({
                   {thai ? "ดูรายละเอียดแหล่งข้อมูล" : "View source details"}
                 </button>
               </div>
-              <div className="mt-2 divide-y divide-slate-200 dark:divide-slate-800">
+              <div className="mt-2 divide-y divide-border">
                 {sourceRows.map(([label, value, status]) => {
                   const ready = Number(value || 0);
                   return (
@@ -1528,7 +1528,7 @@ function OverviewView({
             </section>
           </div>
 
-          <section className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <section className="mt-4 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold">
                 {thai
@@ -1547,7 +1547,7 @@ function OverviewView({
             {data.records.length ? (
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[700px] text-left text-[13px] leading-4">
-                  <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900">
+                  <thead className="bg-muted/40 text-xs text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2 font-medium">
                         {thai ? "งวดเงินเดือน" : "Period"}
@@ -1571,12 +1571,12 @@ function OverviewView({
                     {data.records.slice(0, 5).map((row, index) => (
                       <tr
                         key={String(row.id || index)}
-                        className="border-b border-slate-200 dark:border-slate-800"
+                        className="border-b border-border"
                       >
                         <td className="px-3 py-2 font-semibold">
                           {String(row.period_name)}
                         </td>
-                        <td className="px-3 py-2 text-slate-500">
+                        <td className="px-3 py-2 text-muted-foreground">
                           {String(row.pay_date_label || date(row.pay_date))}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
@@ -1632,10 +1632,10 @@ function RunTable({
 }) {
   const { t } = useLocalization();
   return (
-    <div className="overflow-hidden border-y border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <div className="overflow-hidden border-y border-border bg-white dark:border-border dark:bg-card">
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="bg-slate-50 text-[0.68rem] uppercase tracking-[0.08em] text-slate-500 dark:bg-slate-900">
+          <thead className="bg-muted/40 text-[0.68rem] uppercase tracking-[0.08em] text-muted-foreground dark:bg-muted/40">
             <tr>
               <th className="px-4 py-3">
                 {t("payroll.table.period", "Period")}
@@ -1659,13 +1659,13 @@ function RunTable({
                         t("payroll.placeholder.unassigned", "Unassigned"),
                     )}
                   </p>
-                  <p className="text-xs text-slate-500">{date(row.pay_date)}</p>
+                  <p className="text-xs text-muted-foreground">{date(row.pay_date)}</p>
                 </td>
                 <td>
                   <p className="capitalize">
                     {String(row.run_type || "regular").replaceAll("_", " ")}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {String(
                       row.payroll_group_name ||
                         t("payroll.allEmployees", "All employees"),
@@ -1689,7 +1689,7 @@ function RunTable({
                 </td>
                 <td className="pr-4">
                   {actions?.(row) || (
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       {Number(row.exception_count || 0)}{" "}
                       {t("payroll.exceptions", "exceptions")}
                     </span>
@@ -1711,7 +1711,7 @@ function RunTable({
                       t("payroll.placeholder.payrollRun", "Payroll run"),
                   )}
                 </h3>
-                <p className="text-xs capitalize text-slate-500">
+                <p className="text-xs capitalize text-muted-foreground">
                   {String(row.run_type || "regular").replaceAll("_", " ")}
                 </p>
               </div>
@@ -1719,7 +1719,7 @@ function RunTable({
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-xs text-slate-500">
+                <dt className="text-xs text-muted-foreground">
                   {t("payroll.table.netPay", "Net pay")}
                 </dt>
                 <dd>
@@ -1727,7 +1727,7 @@ function RunTable({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-slate-500">
+                <dt className="text-xs text-muted-foreground">
                   {t("payroll.table.employees", "Employees")}
                 </dt>
                 <dd className="font-semibold">
@@ -2628,15 +2628,15 @@ function PayrollRunRegisterDesign({
       aria-label={thai ? "ทะเบียนรอบบัญชีเงินเดือน" : "Payroll run register"}
       className="space-y-3"
     >
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
+      <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between dark:border-border">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
             {thai ? "ทะเบียนและการควบคุม" : "Register and control"}
           </p>
           <h2 className="mt-1 text-2xl font-semibold tracking-[-0.025em]">
             {thai ? "รอบบัญชีเงินเดือน" : "Payroll Runs"}
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {thai
               ? "ภาพรวมรอบบัญชีเงินเดือน การดำเนินงานสถานะ และการควบคุมการจ่ายเงิน"
               : "Monitor every payroll run, lifecycle state, and payment control in one register."}
@@ -2652,7 +2652,7 @@ function PayrollRunRegisterDesign({
         )}
       </div>
 
-      <div className="grid border-y border-slate-200 bg-white sm:grid-cols-2 xl:grid-cols-4 dark:border-slate-800 dark:bg-[#07111f]">
+      <div className="grid border-y border-border bg-white sm:grid-cols-2 xl:grid-cols-4 dark:border-border">
         {[
           [
             CalendarDays,
@@ -2660,13 +2660,13 @@ function PayrollRunRegisterDesign({
             Number(
               data.summary.runCount || data.records.length,
             ).toLocaleString(),
-            "text-slate-900 dark:text-slate-100",
+            "text-foreground dark:text-foreground",
           ],
           [
             Clock3,
             thai ? "กำลังดำเนินการ" : "In progress",
             runningCount.toLocaleString(),
-            "text-blue-600 dark:text-blue-300",
+            "text-primary",
           ],
           [
             UserRoundCheck,
@@ -2686,16 +2686,16 @@ function PayrollRunRegisterDesign({
             className={cn(
               "flex min-h-[76px] items-center gap-3 px-5",
               index > 0 &&
-                "border-t border-slate-200 sm:border-l sm:border-t-0 dark:border-slate-800",
+                "border-t border-border sm:border-l sm:border-t-0 dark:border-border",
               index === 2 && "sm:border-t xl:border-t-0",
             )}
           >
             {React.createElement(Icon as React.ElementType, {
-              className: "h-5 w-5 text-slate-500",
+              className: "h-5 w-5 text-muted-foreground",
               "aria-hidden": true,
             })}
             <div>
-              <p className="text-xs text-slate-500">{String(label)}</p>
+              <p className="text-xs text-muted-foreground">{String(label)}</p>
               <p
                 className={cn(
                   "mt-1 text-xl font-semibold tabular-nums",
@@ -2711,11 +2711,11 @@ function PayrollRunRegisterDesign({
 
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <label className="relative min-w-0 flex-1 lg:max-w-[230px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-10 border-slate-300 bg-white pl-9 dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 border-input bg-white pl-9 dark:border-border"
             placeholder={
               thai ? "ค้นหารอบบัญชีเงินเดือน" : "Search payroll runs"
             }
@@ -2726,7 +2726,7 @@ function PayrollRunRegisterDesign({
             aria-label={thai ? "ช่วงเวลา" : "Period"}
             value={periodFilter}
             onChange={(event) => setPeriodFilter(event.target.value)}
-            className="h-10 min-w-[142px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[142px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             {periodOptions.map((option) => (
               <option key={option.id} value={option.id}>
@@ -2738,7 +2738,7 @@ function PayrollRunRegisterDesign({
             aria-label={thai ? "ประเภท" : "Type"}
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value)}
-            className="h-10 min-w-[112px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[112px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             <option value="all">
               {thai ? "ประเภท: ทั้งหมด" : "All types"}
@@ -2757,7 +2757,7 @@ function PayrollRunRegisterDesign({
               setGroupFilter(event.target.value);
               setPage(1);
             }}
-            className="h-10 min-w-[138px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[138px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             <option value="all">
               {thai ? "กลุ่มการจ่าย: ทั้งหมด" : "All payroll groups"}
@@ -2775,7 +2775,7 @@ function PayrollRunRegisterDesign({
             aria-label={thai ? "สถานะ" : "Status"}
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 min-w-[118px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[118px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             <option value="all">
               {thai ? "สถานะ: ทั้งหมด" : "All statuses"}
@@ -2801,7 +2801,7 @@ function PayrollRunRegisterDesign({
               setOwnerFilter(event.target.value);
               setPage(1);
             }}
-            className="h-10 min-w-[120px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[120px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             <option value="all">
               {thai ? "เจ้าของ: ทั้งหมด" : "All owners"}
@@ -2825,7 +2825,7 @@ function PayrollRunRegisterDesign({
             aria-label="Sort runs"
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
-            className="h-10 min-w-[130px] border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-[#0b1422]"
+            className="h-10 min-w-[130px] border border-input bg-white px-3 text-sm dark:border-border"
           >
             <option value="pay_date_desc">
               {thai ? "วันที่จ่ายล่าสุด" : "Latest pay date"}
@@ -2848,10 +2848,10 @@ function PayrollRunRegisterDesign({
 
       {data.records.length ? (
         <div className="min-w-0">
-          <div className="min-w-0 overflow-hidden border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#07111f]">
+          <div className="min-w-0 overflow-hidden border border-border bg-white dark:border-border">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] table-fixed text-left text-[11px] leading-4">
-                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-500 dark:border-slate-800 dark:bg-[#101a28]">
+                <thead className="border-b border-border bg-muted/40 text-[11px] font-medium text-muted-foreground dark:border-border">
                   <tr>
                     <th className="w-9 px-2 py-3">
                       <span className="sr-only">Select</span>
@@ -2906,7 +2906,7 @@ function PayrollRunRegisterDesign({
                         aria-label={`${String(row.period_name || "Payroll run")} · ${String(row.run_type || "regular").replaceAll("_", " ")}`}
                         aria-selected={isSelected}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:bg-slate-900/70",
+                          "cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-slate-900/70",
                           isSelected && "bg-blue-50/80 dark:bg-blue-950/30",
                         )}
                       >
@@ -2916,7 +2916,7 @@ function PayrollRunRegisterDesign({
                               "flex h-4 w-4 items-center justify-center border",
                               isSelected
                                 ? "border-blue-500 bg-blue-600 text-white"
-                                : "border-slate-400",
+                                : "border-border",
                             )}
                           >
                             {isSelected && <Check className="h-3 w-3" />}
@@ -2935,7 +2935,7 @@ function PayrollRunRegisterDesign({
                               " ",
                             )}
                           </p>
-                          <p className="truncate text-[11px] text-slate-500">
+                          <p className="truncate text-[11px] text-muted-foreground">
                             {String(
                               row.payroll_group_name ||
                                 (thai ? "พนักงานทั้งหมด" : "All employees"),
@@ -2954,7 +2954,7 @@ function PayrollRunRegisterDesign({
                         <td className="px-2 py-2 text-right font-semibold tabular-nums">
                           {moneyValue(row.net_total)}
                         </td>
-                        <td className="px-2 py-2 text-slate-500">
+                        <td className="px-2 py-2 text-muted-foreground">
                           {String(row.pay_date_label || date(row.pay_date))}
                         </td>
                         <td className="px-2 py-2">
@@ -2963,10 +2963,10 @@ function PayrollRunRegisterDesign({
                         <td className="px-2 py-2">
                           <div className="flex items-center gap-2">
                             <div className="min-w-0 flex-1">
-                              <span className="text-[10px] tabular-nums text-slate-500">
+                              <span className="text-[10px] tabular-nums text-muted-foreground">
                                 {completion}%
                               </span>
-                              <span className="mt-1 block h-1 bg-slate-200 dark:bg-slate-800">
+                              <span className="mt-1 block h-1 bg-muted dark:bg-muted">
                                 <span
                                   className="block h-full bg-blue-500"
                                   style={{
@@ -2983,7 +2983,7 @@ function PayrollRunRegisterDesign({
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500 dark:border-slate-800">
+            <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground dark:border-border">
               <span>
                 {thai
                   ? `แสดง ${rows.length} จาก ${filteredRows.length} รายการ`
@@ -3030,7 +3030,7 @@ function PayrollRunRegisterDesign({
               side="right"
               hideCloseButton
               sheetId="payroll-run-details-drawer"
-              className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground shadow-2xl dark:border-slate-700 dark:bg-[#0b1626] dark:text-slate-100 sm:!max-w-[560px]"
+              className="!bottom-4 !left-auto !right-4 !top-4 !h-[calc(100dvh-2rem)] !w-[min(560px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card p-0 text-foreground shadow-2xl dark:border-border dark:text-foreground sm:!max-w-[560px]"
             >
               <SheetTitle className="sr-only">
                 {thai ? "รายละเอียดรอบบัญชีเงินเดือน" : "Payroll run details"}
@@ -3048,8 +3048,8 @@ function PayrollRunRegisterDesign({
                   }
                 >
                   <div className="min-h-0 flex-1 overflow-y-auto">
-                    <div className="border-b border-slate-200 px-4 py-4 dark:border-slate-800">
-                      <p className="text-xs text-slate-500">
+                    <div className="border-b border-border px-4 py-4 dark:border-border">
+                      <p className="text-xs text-muted-foreground">
                         {thai
                           ? "รายละเอียดรอบที่เลือก"
                           : "Selected run details"}
@@ -3063,7 +3063,7 @@ function PayrollRunRegisterDesign({
                               " ",
                             )}
                           </h3>
-                          <p className="mt-0.5 text-xs text-slate-500">
+                          <p className="mt-0.5 text-xs text-muted-foreground">
                             {String(selected.id)}
                           </p>
                         </div>
@@ -3072,7 +3072,7 @@ function PayrollRunRegisterDesign({
                           <button
                             type="button"
                             onClick={() => setSelectedId("")}
-                            className="flex h-10 w-10 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-800 dark:hover:text-white"
+                            className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-muted dark:hover:text-white"
                             aria-label={
                               thai ? "ปิดรายละเอียดรอบ" : "Close run details"
                             }
@@ -3083,7 +3083,7 @@ function PayrollRunRegisterDesign({
                       </div>
                       <dl className="mt-4 grid grid-cols-3 gap-3 text-xs">
                         <div>
-                          <dt className="text-slate-500">
+                          <dt className="text-muted-foreground">
                             {thai ? "พนักงาน" : "Employees"}
                           </dt>
                           <dd className="mt-1 font-semibold tabular-nums">
@@ -3092,7 +3092,7 @@ function PayrollRunRegisterDesign({
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-slate-500">
+                          <dt className="text-muted-foreground">
                             {thai ? "วันที่จ่าย" : "Pay date"}
                           </dt>
                           <dd className="mt-1 font-semibold">
@@ -3103,7 +3103,7 @@ function PayrollRunRegisterDesign({
                           </dd>
                         </div>
                         <div>
-                          <dt className="text-slate-500">
+                          <dt className="text-muted-foreground">
                             {thai ? "เจ้าของรอบ" : "Owner"}
                           </dt>
                           <dd className="mt-1 font-semibold">
@@ -3117,10 +3117,10 @@ function PayrollRunRegisterDesign({
                     <div className="px-4 py-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {thai ? "สถานะรอบ" : "Run status"}
                           </p>
-                          <p className="mt-1 font-semibold text-blue-600 dark:text-blue-300">
+                          <p className="mt-1 font-semibold text-primary">
                             {currentStageLabel}
                           </p>
                         </div>
@@ -3158,7 +3158,7 @@ function PayrollRunRegisterDesign({
                                     ? "border-emerald-500 bg-emerald-500 text-white"
                                     : state?.active
                                       ? "border-blue-500 bg-blue-600 text-white"
-                                      : "border-slate-600 bg-[#07111f] text-slate-500",
+                                      : "border-slate-600 bg-[#07111f] text-muted-foreground",
                                 )}
                               >
                                 {state?.completed ? (
@@ -3173,7 +3173,7 @@ function PayrollRunRegisterDesign({
                                     "absolute left-[9px] top-5 h-[27px] w-px",
                                     state?.completed
                                       ? "bg-emerald-500"
-                                      : "bg-slate-700",
+                                      : "bg-muted-foreground/70",
                                   )}
                                 />
                               )}
@@ -3182,12 +3182,12 @@ function PayrollRunRegisterDesign({
                                   className={cn(
                                     "text-xs font-semibold",
                                     state?.active &&
-                                      "text-blue-600 dark:text-blue-300",
+                                      "text-primary",
                                   )}
                                 >
                                   {stage}
                                 </p>
-                                <p className="mt-0.5 text-[10px] text-slate-500">
+                                <p className="mt-0.5 text-[10px] text-muted-foreground">
                                   {state?.completed
                                     ? completedLabel ||
                                       (thai ? "เสร็จสิ้น" : "Completed")
@@ -3241,7 +3241,7 @@ function PayrollRunRegisterDesign({
                           {selectedIssues.slice(0, 8).map((issue) => (
                             <div
                               key={String(issue.id)}
-                              className="border border-slate-200 p-2 text-[11px] dark:border-slate-800"
+                              className="border border-border p-2 text-[11px] dark:border-border"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <span>
@@ -3249,7 +3249,7 @@ function PayrollRunRegisterDesign({
                                   {issue.employee_name
                                     ? ` · ${String(issue.employee_name)}`
                                     : ""}
-                                  <span className="mt-0.5 block text-slate-500">
+                                  <span className="mt-0.5 block text-muted-foreground">
                                     {String(issue.message)}
                                   </span>
                                 </span>
@@ -3326,13 +3326,13 @@ function PayrollRunRegisterDesign({
                                       )}
                                     </span>
                                     <span>
-                                      <span className="font-medium text-slate-700 dark:text-slate-200">
+                                      <span className="font-medium text-foreground/80 dark:text-foreground/80">
                                         {step.approverName ||
                                           step.role ||
                                           (thai ? "ผู้รับผิดชอบ" : "Approver")}
                                       </span>
                                       {step.role ? (
-                                        <span className="text-slate-500">
+                                        <span className="text-muted-foreground">
                                           {step.role}
                                         </span>
                                       ) : null}
@@ -3362,7 +3362,7 @@ function PayrollRunRegisterDesign({
                                               "reassign_approval",
                                             );
                                         }}
-                                        className="h-8 max-w-[130px] border border-slate-300 bg-white px-2 text-[10px] dark:border-slate-700 dark:bg-[#0b1422]"
+                                        className="h-8 max-w-[130px] border border-input bg-white px-2 text-[10px] dark:border-border"
                                       >
                                         <option value="">
                                           Assign approver
@@ -3385,7 +3385,7 @@ function PayrollRunRegisterDesign({
                               );
                             })
                           ) : (
-                            <p className="text-slate-500">
+                            <p className="text-muted-foreground">
                               {thai
                                 ? "ผู้อนุมัติจะถูกกำหนดจากเส้นทางอนุมัติที่เกี่ยวข้องเมื่อส่งรอบนี้"
                                 : String(selected.status) === "draft"
@@ -3395,14 +3395,14 @@ function PayrollRunRegisterDesign({
                           )}
                         </div>
                       </div>
-                      <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+                      <div className="mt-4 border-t border-border pt-4 dark:border-border">
                         <div className="flex items-baseline justify-between">
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-muted-foreground">
                             {thai ? "จ่ายสุทธิ" : "Net pay"}
                           </span>
                           <strong className="text-lg tabular-nums">
                             {moneyValue(selected.net_total)}{" "}
-                            <span className="text-xs font-medium text-slate-500">
+                            <span className="text-xs font-medium text-muted-foreground">
                               THB
                             </span>
                           </strong>
@@ -3411,7 +3411,7 @@ function PayrollRunRegisterDesign({
                           <Button
                             disabled={Boolean(busy)}
                             onClick={() => onAction(selected, selectedAction)}
-                            className="mt-3 min-h-11 w-full bg-blue-600 text-white hover:bg-blue-500"
+                            className="mt-3 min-h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                           >
                             {busy === `${selected.id}-${selectedAction}`
                               ? thai
@@ -3466,7 +3466,7 @@ function PayrollRunRegisterDesign({
                               : "View audit log"}
                         </Button>
                         {showAudit && (
-                          <div className="mt-2 max-h-56 space-y-2 overflow-y-auto border-y border-slate-200 py-2 dark:border-slate-800">
+                          <div className="mt-2 max-h-56 space-y-2 overflow-y-auto border-y border-border py-2 dark:border-border">
                             {selectedAudit.length ? (
                               selectedAudit.map((event) => (
                                 <div
@@ -3476,14 +3476,14 @@ function PayrollRunRegisterDesign({
                                   <p className="font-medium">
                                     {String(event.message)}
                                   </p>
-                                  <p className="text-slate-500">
+                                  <p className="text-muted-foreground">
                                     {String(event.actor_name || "System")} ·{" "}
                                     {formatDateTime(event.occurred_at)}
                                   </p>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-muted-foreground">
                                 No audit events recorded for this run.
                               </p>
                             )}
@@ -3497,7 +3497,7 @@ function PayrollRunRegisterDesign({
                           "reconciled",
                           "closed",
                         ].includes(String(selected.status)) && (
-                          <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+                          <div className="border-t border-border px-4 py-3 dark:border-border">
                             <p className="mb-2 text-xs font-semibold">
                               Generated outputs
                             </p>
@@ -3690,11 +3690,11 @@ function ReportsView({ data }: { data: PayrollWorkspacePayload }) {
           )}
         />
         {data.secondary.length ? (
-          <div className="grid gap-px border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-3 dark:border-slate-800 dark:bg-slate-800">
+          <div className="grid gap-px border border-border bg-muted sm:grid-cols-2 xl:grid-cols-3 dark:border-border dark:bg-muted">
             {data.secondary.map((item, index) => (
               <article
                 key={`${item.id || item.reference}-${index}`}
-                className="bg-white p-5 dark:bg-slate-950"
+                className="bg-white p-5 dark:bg-card"
               >
                 <div className="flex items-start justify-between gap-3">
                   <FileSpreadsheet className="h-5 w-5 text-[#315d87] dark:text-blue-300" />
@@ -3707,7 +3707,7 @@ function ReportsView({ data }: { data: PayrollWorkspacePayload }) {
                       t("payroll.placeholder.payrollOutput", "Payroll output"),
                   ).replaceAll("_", " ")}
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {String(item.period_name || date(item.accounting_date))}
                 </p>
                 {item.total_debit !== undefined && (
@@ -4040,7 +4040,7 @@ function PayslipsView({
 
   return (
     <div className="space-y-4">
-      <section className="border-b border-slate-200 pb-3 dark:border-slate-800">
+      <section className="border-b border-border pb-3 dark:border-border">
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="w-[150px] shrink-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2f74b5] dark:text-blue-400">
@@ -4051,8 +4051,8 @@ function PayslipsView({
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 pb-0.5">
-            <label className="flex h-10 min-w-0 items-center border border-slate-300 bg-white text-sm font-semibold dark:border-slate-700 dark:bg-slate-950">
-              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-slate-500" />
+            <label className="flex h-10 min-w-0 items-center border border-input bg-white text-sm font-semibold dark:border-border dark:bg-card">
+              <CalendarDays className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
               <select
                 aria-label="Payroll period"
                 className="min-w-0 flex-1 bg-transparent px-2 outline-none"
@@ -4065,7 +4065,7 @@ function PayslipsView({
                   </option>
                 ))}
               </select>
-              <span className="grid h-full w-10 place-items-center border-l border-slate-300 text-slate-500 dark:border-slate-700">
+              <span className="grid h-full w-10 place-items-center border-l border-input text-muted-foreground dark:border-border">
                 <ChevronRight className="h-4 w-4" />
               </span>
             </label>
@@ -4091,7 +4091,7 @@ function PayslipsView({
             </Button>
           </div>
         </div>
-        <div className="mt-4 flex overflow-x-auto border border-slate-200 bg-white px-3 py-3 text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+        <div className="mt-4 flex overflow-x-auto border border-border bg-white px-3 py-3 text-foreground dark:border-border dark:bg-card dark:text-foreground">
           {timeline.map(([step, label, detail], index) => (
             <div key={step} className="min-w-[170px] flex-1 px-1">
               <div className="flex items-center">
@@ -4116,24 +4116,24 @@ function PayslipsView({
                   <span className="mx-2 h-px min-w-5 flex-1 bg-emerald-500" />
                 )}
               </div>
-              <p className="ml-8 mt-1 text-[10px] text-slate-500">{detail}</p>
+              <p className="ml-8 mt-1 text-[10px] text-muted-foreground">{detail}</p>
             </div>
           ))}
         </div>
       </section>
 
       <div className="grid gap-4">
-        <section className="min-w-0 border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
+        <section className="min-w-0 border border-border bg-white dark:border-border dark:bg-card">
+          <div className="flex flex-col gap-3 border-b border-border p-4 dark:border-border lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="font-bold">Employee release register</h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {selectedPeriodLabel} · {periodFilteredRows.length} records
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <label className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -4147,13 +4147,13 @@ function PayslipsView({
               </Button>
             </div>
           </div>
-          <div className="flex gap-5 overflow-x-auto border-b border-slate-200 px-4 dark:border-slate-800">
+          <div className="flex gap-5 overflow-x-auto border-b border-border px-4 dark:border-border">
             {filters.map(([value, label, count]) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
                 className={cn(
-                  "relative min-h-11 whitespace-nowrap text-xs font-semibold text-slate-500",
+                  "relative min-h-11 whitespace-nowrap text-xs font-semibold text-muted-foreground",
                   filter === value &&
                     "text-[#315d87] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#315d87] dark:text-blue-300",
                 )}
@@ -4164,7 +4164,7 @@ function PayslipsView({
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[930px] text-left text-xs">
-              <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500 dark:bg-slate-900">
+              <thead className="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground dark:bg-muted/40">
                 <tr>
                   <th className="w-9 px-3 py-2">
                     <span className="sr-only">Select employee</span>
@@ -4212,17 +4212,17 @@ function PayslipsView({
                       />
                     </td>
                     <td className="whitespace-nowrap px-2">
-                      <span className="mr-1 text-slate-500">
+                      <span className="mr-1 text-muted-foreground">
                         {pageStart + index + 1}.
                       </span>
                       <span className="font-semibold">
                         {String(row.employee_name)}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-2 text-slate-500">
+                    <td className="whitespace-nowrap px-2 text-muted-foreground">
                       {String(row.employee_number)}
                     </td>
-                    <td className="max-w-36 truncate px-2 text-slate-600 dark:text-slate-300">
+                    <td className="max-w-36 truncate px-2 text-muted-foreground dark:text-foreground/75">
                       {String(row.department || "-")}
                     </td>
                     <td className="whitespace-nowrap px-2 text-right tabular-nums">
@@ -4248,7 +4248,7 @@ function PayslipsView({
                         {statusLabel(row.delivery_status)}
                       </span>
                     </td>
-                    <td className="px-2 text-sm text-slate-500">
+                    <td className="px-2 text-sm text-muted-foreground">
                       {String(row.period_label || "-")}
                     </td>
                     <td className="whitespace-nowrap px-2">
@@ -4264,7 +4264,7 @@ function PayslipsView({
                       >
                         {statusLabel(row.delivery_status)}
                       </span>
-                      <p className="text-[9px] text-slate-500">
+                      <p className="text-[9px] text-muted-foreground">
                         {String(row.last_activity || "")
                           ? formatDateTime(row.last_activity)
                           : "-"}
@@ -4276,7 +4276,7 @@ function PayslipsView({
             </table>
             {!rows.length && (
               <div className="p-12 text-center">
-                <Search className="mx-auto h-6 w-6 text-slate-400" />
+                <Search className="mx-auto h-6 w-6 text-muted-foreground/70" />
                 <p className="mt-3 font-semibold">
                   No employees match this view
                 </p>
@@ -4295,15 +4295,15 @@ function PayslipsView({
           {!!rows.length && (
             <nav
               aria-label="Employee register pagination"
-              className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-xs sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
+              className="flex flex-col gap-3 border-t border-border px-4 py-3 text-xs sm:flex-row sm:items-center sm:justify-between dark:border-border"
             >
-              <p className="text-slate-500">
+              <p className="text-muted-foreground">
                 Showing{" "}
-                <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
+                <span className="font-semibold tabular-nums text-foreground/80 dark:text-foreground/80">
                   {pageStart + 1}–{pageEnd}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
+                <span className="font-semibold tabular-nums text-foreground/80 dark:text-foreground/80">
                   {rows.length}
                 </span>{" "}
                 employees
@@ -4342,21 +4342,25 @@ function PayslipsView({
         </section>
       </div>
 
-      {selected && (
-        <>
-          <button
-            aria-label="Close payslip drawer"
-            className="fixed inset-0 z-[90] !mt-0 bg-slate-950/60 backdrop-blur-[1px]"
-            onClick={() => setSelected(null)}
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Payslip for ${selected.employee_name}`}
-            style={{ width: "min(580px, calc(100vw - 2rem))" }}
-            className="fixed bottom-4 right-4 top-4 z-[100] !mt-0 flex flex-col overflow-hidden rounded-xl border border-border dark:border-[#31536d] bg-card dark:bg-[#071927] shadow-[-24px_0_80px_rgba(0,0,0,0.55)]"
-          >
-            <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border dark:border-[#27445f] bg-muted dark:bg-[#0a2030] px-5">
+      <Sheet
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          hideCloseButton
+          sheetId="payslip-details-drawer"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[580px]"
+        >
+          <SheetTitle className="sr-only">Payslip details</SheetTitle>
+          <SheetDescription className="sr-only">
+            Review payslip details, breakdown, delivery status, and employee payroll information.
+          </SheetDescription>
+          {selected && (
+            <aside className="flex h-full min-h-0 flex-col">
+              <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-border bg-muted px-5">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-500 text-sm font-bold text-foreground dark:text-white">
                   {String(selected.employee_name)
@@ -4370,7 +4374,7 @@ function PayslipsView({
                   <h2 className="truncate text-base font-bold text-foreground dark:text-white">
                     {String(selected.employee_name)}
                   </h2>
-                  <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                  <p className="text-[11px] text-muted-foreground">
                     {String(selected.employee_number)} ·{" "}
                     {String(selected.department || "-")}
                   </p>
@@ -4406,7 +4410,7 @@ function PayslipsView({
             <div
               role="tablist"
               aria-label="Payslip drawer sections"
-              className="flex h-11 shrink-0 border-b border-border dark:border-[#27445f] bg-muted/60 dark:bg-[#081c2b] px-3"
+              className="flex h-11 shrink-0 border-b border-border bg-muted/60 px-3"
             >
               <button
                 id="payslip-preview-tab"
@@ -4415,7 +4419,7 @@ function PayslipsView({
                 aria-controls="payslip-preview-panel"
                 onClick={() => setDrawerTab("preview")}
                 className={cn(
-                  "relative flex-1 px-3 text-xs font-semibold text-muted-foreground dark:text-slate-400 transition-colors hover:text-foreground dark:hover:text-white",
+                  "relative flex-1 px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground dark:hover:text-white",
                   drawerTab === "preview" &&
                     "text-foreground dark:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-blue-400",
                 )}
@@ -4429,7 +4433,7 @@ function PayslipsView({
                 aria-controls="payslip-details-panel"
                 onClick={() => setDrawerTab("details")}
                 className={cn(
-                  "relative flex-1 px-3 text-xs font-semibold text-muted-foreground dark:text-slate-400 transition-colors hover:text-foreground dark:hover:text-white",
+                  "relative flex-1 px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground dark:hover:text-white",
                   drawerTab === "details" &&
                     "text-foreground dark:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-blue-400",
                 )}
@@ -4583,9 +4587,9 @@ function PayslipsView({
                     drawerTab !== "details" && "hidden",
                   )}
                 >
-                  <div className="flex items-center justify-between border border-border dark:border-[#27445f] bg-muted dark:bg-[#0a2030] p-4">
+                  <div className="flex items-center justify-between border border-border bg-muted p-4">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground dark:text-slate-400">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                         Delivery status
                       </p>
                       <p className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-400">
@@ -4594,11 +4598,11 @@ function PayslipsView({
                     </div>
                     <UserRoundCheck className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
                   </div>
-                  <div className="border border-border dark:border-[#27445f] bg-muted dark:bg-[#0a2030] p-4">
+                  <div className="border border-border bg-muted p-4">
                     <p className="text-xs font-bold">
                       Document delivery history
                     </p>
-                    <ol className="mt-4 space-y-4 border-l border-info/40 dark:border-[#315d87] pl-4 text-xs">
+                    <ol className="mt-4 space-y-4 border-l border-info/40 pl-4 text-xs">
                       {[
                         [
                           "Document generated",
@@ -4619,16 +4623,16 @@ function PayslipsView({
                       ].map(([label, itemDate], index) => (
                         <li key={`${label}-${index}`}>
                           <p className="font-bold">{label}</p>
-                          <p className="text-muted-foreground dark:text-slate-400">
+                          <p className="text-muted-foreground">
                             {itemDate}
                           </p>
                         </li>
                       ))}
                     </ol>
-                    <div className="mt-4 grid gap-4 border-t border-border dark:border-[#27445f] pt-4 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
                       <div>
                         <p className="font-bold">Access policy</p>
-                        <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           Employee can view own payslips in this portal.
                         </p>
                       </div>
@@ -4639,9 +4643,9 @@ function PayslipsView({
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 border-t border-border dark:border-[#27445f] pt-4">
+                    <div className="mt-4 border-t border-border pt-4">
                       <p className="font-bold">File status</p>
-                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         Download enabled: {selected.downloadable ? "Yes" : "No"}
                       </p>
                     </div>
@@ -4657,7 +4661,7 @@ function PayslipsView({
                   <div className="flex gap-1">
                     <Button
                       variant="outline"
-                      className="h-9 flex-1 border-info/40 dark:border-[#315d87] bg-transparent px-2 text-xs text-foreground dark:text-white hover:bg-info/10 dark:hover:bg-[#123148] hover:text-foreground dark:hover:text-white"
+                      className="h-9 flex-1 border-info/40 bg-transparent px-2 text-xs text-foreground dark:text-white hover:bg-info/10 dark:hover:bg-[#123148] hover:text-foreground dark:hover:text-white"
                       onClick={() =>
                         void sendPayslipReminder(selected.id).catch((error) =>
                           toast.error(
@@ -4675,9 +4679,11 @@ function PayslipsView({
                 </div>
               </div>
             </div>
-          </aside>
-        </>
-      )}
+          
+            </aside>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -4690,14 +4696,14 @@ function FinancialList({
 }) {
   const { t } = useLocalization();
   return (
-    <div className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 md:grid-cols-2 xl:grid-cols-3 dark:border-slate-800 dark:bg-slate-800">
+    <div className="grid gap-px overflow-hidden border border-border bg-muted md:grid-cols-2 xl:grid-cols-3 dark:border-border dark:bg-muted">
       {rows.map((row) => (
         <article
           key={String(row.id)}
-          className="bg-white p-5 dark:bg-slate-950"
+          className="bg-white p-5 dark:bg-card"
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-[#315d87] dark:bg-slate-900 dark:text-blue-300">
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-muted text-[#315d87] dark:bg-muted/40 dark:text-blue-300">
               {kind === "compensation" ? (
                 <Scale className="h-4 w-4" />
               ) : kind === "benefits" ? (
@@ -4718,13 +4724,13 @@ function FinancialList({
                 t("payroll.card.defaultRecordTitle", "Payroll record"),
             )}
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {String(row.employee_number || row.type || date(row.pay_date))}
           </p>
-          <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="mt-5 border-t border-border pt-4 dark:border-border">
             {kind === "compensation" ? (
               <>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {t("payroll.card.monthlyBaseSalary", "Monthly base salary")}
                 </p>
                 <p className="mt-1 text-lg">
@@ -4733,7 +4739,7 @@ function FinancialList({
                     currency={String(row.currency || "THB")}
                   />
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-muted-foreground">
                   {t("payroll.label.effective", "Effective")}{" "}
                   {date(row.effective_from)}
                 </p>
@@ -4741,13 +4747,13 @@ function FinancialList({
             ) : kind === "benefits" ? (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("payroll.label.employee", "Employee")}
                   </p>
                   <Money value={row.employee_cost} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("payroll.label.employer", "Employer")}
                   </p>
                   <Money value={row.employer_cost} />
@@ -4756,13 +4762,13 @@ function FinancialList({
             ) : (
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("payroll.label.gross", "Gross")}
                   </p>
                   <Money value={row.gross_pay} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {t("payroll.label.net", "Net")}
                   </p>
                   <Money value={row.net_pay} />
@@ -4784,7 +4790,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="grid gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+    <label className="grid gap-1.5 text-sm font-semibold text-foreground/80 dark:text-foreground/80">
       <span>{label}</span>
       {children}
     </label>

@@ -30,12 +30,12 @@ export function MyTeamView({
   submitting: boolean;
   mutate: (url: string, method: 'POST' | 'PATCH', body: unknown, successMessage: string) => Promise<unknown>;
 }) {
+  const [selectedReport, setSelectedReport] = React.useState<EssRow | null>(null);
   if (!team || data.metrics.directReports <= 0) {
     return <EmptyState title="Manager access required" description="My Team is available to people managers with linked direct reports." />;
   }
   const approvals = team.approvals || team.pendingLeave;
   const approvalTasks = approvals.map(toApprovalTask);
-  const [selectedReport, setSelectedReport] = React.useState<EssRow | null>(null);
   const decideApproval = (task: HrisApprovalTask, action: HrisApprovalDecision, comment: string) => {
     const item = task.source as EssRow;
     const isBenefit = item.request_type === 'benefit_enrollment';

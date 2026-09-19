@@ -21,6 +21,14 @@ type SelfServiceTemplateData = {
   company: { name: string; legalName: string; address: string; taxId: string; hrContact: string; logo: string };
 };
 
+type DocumentTab = 'library' | 'generate' | 'payslips' | 'request' | 'upload' | 'history';
+
+function documentTab(value: string | null): DocumentTab {
+  return ['library', 'generate', 'payslips', 'request', 'upload', 'history'].includes(value || '')
+    ? value as DocumentTab
+    : 'library';
+}
+
 const requestTypes = [
   ['employment_certificate', 'Employment certificate'],
   ['salary_certificate', 'Salary certificate'],
@@ -41,7 +49,8 @@ export function DocumentsView({
   upload: (formData: FormData, successMessage: string) => Promise<boolean>;
 }) {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'payslips' ? 'payslips' : 'library';
+  const requestedTab = documentTab(searchParams.get('tab'));
+  const [activeTab, setActiveTab] = React.useState<DocumentTab>(requestedTab);
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('all');
   const [uploadFile, setUploadFile] = React.useState<File | null>(null);
@@ -75,6 +84,9 @@ export function DocumentsView({
   React.useEffect(() => {
     void loadTemplates();
   }, [loadTemplates]);
+  React.useEffect(() => {
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
   const documentRequests = data.requests.filter(item => item.request_type === 'document_request');
   const filtered = data.documents.filter(document => {
     const text = `${document.title || ''} ${document.type || ''} ${document.category || ''}`.toLowerCase();
@@ -109,7 +121,7 @@ export function DocumentsView({
   };
 
   return (
-    <Tabs defaultValue={initialTab} className="space-y-4">
+    <Tabs value={activeTab} onValueChange={value => setActiveTab(documentTab(value))} className="space-y-4">
       <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="library" className="min-h-9">My documents</TabsTrigger>
         <TabsTrigger value="generate" className="min-h-9">Generate a document</TabsTrigger>

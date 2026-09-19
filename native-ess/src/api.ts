@@ -373,11 +373,11 @@ export const essApi = {
   markNotificationRead: (id: string) => request(`/api/ess/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
   markAllNotificationsRead: () => request('/api/ess/notifications/read-all', { method: 'POST' }),
 
-  createHrTicket: (subject: string, message: string, category = 'general') => request('/api/ess/hr-support/tickets', {
+  createHrTicket: (subject: string, message: string, category = 'general') => request<{ id: string; status: string }>('/api/ess/hr-support/tickets', {
     method: 'POST',
     body: JSON.stringify({ subject, message, category }),
   }),
-  replyHrTicket: (id: string, message: string) => request(`/api/ess/hr-support/tickets/${encodeURIComponent(id)}/reply`, {
+  replyHrTicket: (id: string, message: string) => request<{ success: boolean }>(`/api/ess/hr-support/tickets/${encodeURIComponent(id)}/reply`, {
     method: 'POST',
     body: JSON.stringify({ message }),
   }),

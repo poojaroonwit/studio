@@ -189,6 +189,7 @@ export type EssBootstrap = {
   profile?: EssProfile
   bankTax?: BankTaxProfile
   attendancePolicy?: AttendancePolicy
+  attendancePolicyAvailable?: boolean
   schedule: EssScheduleItem[]
   announcements: EssAnnouncement[]
   supportRequests: SupportRequestRow[]
@@ -260,16 +261,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 
-async function optionalRequest<T>(path: string, fallback: T): Promise<T> {
-  try {
-    return await request<T>(path)
-  } catch (error) {
-    if (isAuthRequired(error)) throw error
-    console.warn(`Optional ESS endpoint unavailable: ${path}`, error)
-    return fallback
-  }
-}
-
 async function optionalRequestResult<T>(path: string, fallback: T): Promise<{ value: T; available: boolean }> {
   try {
     return { value: await request<T>(path), available: true }
@@ -283,14 +274,16 @@ async function optionalRequestResult<T>(path: string, fallback: T): Promise<{ va
 
 export const essApi = {
   bootstrap: async () => {
-    const [data, attendancePolicy, extrasResult] = await Promise.all([
+    const [data, attendancePolicyResult, extrasResult] = await Promise.all([
       request<EssBootstrap>('/api/ess/mobile/bootstrap'),
-      optionalRequest<AttendancePolicy>('/api/ess/mobile/attendance-policy', {}),
+      optionalRequestResult<AttendancePolicy>('/api/ess/mobile/attendance-policy', {}),
       optionalRequestResult<EssExtras>('/api/ess/mobile/extras', {}),
     ])
+    const attendancePolicy = attendancePolicyResult.value
     const extras = extrasResult.value
     return {
       ...data,
+      attendancePolicyAvailable: attendancePolicyResult.available,
       extrasAvailable: extrasResult.available,
       attendance: Array.isArray(data.attendance) ? data.attendance : [],
       attendanceCorrections: Array.isArray(extras.attendanceCorrections)

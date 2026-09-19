@@ -233,10 +233,10 @@ export function RosterView() {
         )}
       </Dialog>
 
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-zinc-800 dark:bg-[#071321]">
-        <div className="flex flex-col gap-2 border-b border-slate-200 p-2.5 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+      <section className="overflow-hidden rounded-lg border border-border bg-white dark:border-border dark:bg-[#071321]">
+        <div className="flex flex-col gap-2 border-b border-border p-2.5 sm:flex-row sm:items-center sm:justify-between dark:border-border">
           <div
-            className="inline-flex w-fit rounded-md border border-slate-200 p-0.5 dark:border-zinc-700"
+            className="inline-flex w-fit rounded-md border border-border p-0.5 dark:border-input"
             aria-label="Roster view"
           >
             <LayoutButton
@@ -376,7 +376,7 @@ function RosterHeader({
     onStartChange(next.toISOString().slice(0, 10));
   };
   return (
-    <header className="flex flex-col gap-3 border-b border-slate-200 pb-3 dark:border-zinc-800">
+    <header className="flex flex-col gap-3 border-b border-border pb-3 dark:border-border">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">
@@ -387,7 +387,7 @@ function RosterHeader({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex h-9 items-center rounded-md border border-slate-200 dark:border-zinc-700">
+          <div className="inline-flex h-9 items-center rounded-md border border-border dark:border-input">
             <button
               type="button"
               onClick={() => moveWeek(-1)}
@@ -396,7 +396,7 @@ function RosterHeader({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="border-x border-slate-200 px-3 text-sm font-semibold tabular-nums dark:border-zinc-700">
+            <span className="border-x border-border px-3 text-sm font-semibold tabular-nums dark:border-input">
               {formatDate(days[0], { month: "short", day: "numeric" })}–
               {formatDate(days[6], {
                 month: "short",
@@ -441,7 +441,7 @@ function RosterHeader({
             ))}
           </select>
           <label className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchText}
               onChange={(event) => onSearchChange(event.target.value)}
@@ -473,8 +473,8 @@ function RosterSummary({
   activePeriod?: ShiftRecord;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-      <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-zinc-200">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-foreground/80">
         <Clock3 className="h-3.5 w-3.5" />
         {activePeriod
           ? stringValue(activePeriod.status, "Draft").replace(/_/g, " ")
@@ -542,19 +542,19 @@ function EmployeeGrid({
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[1120px] text-xs">
-        <div className="grid grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-slate-200 dark:border-zinc-800">
-          <div className="px-3 py-3 font-semibold uppercase tracking-wide text-slate-500">
+        <div className="grid grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-border dark:border-border">
+          <div className="px-3 py-3 font-semibold uppercase tracking-wide text-muted-foreground">
             Employee
           </div>
           {days.map((day) => (
             <div
               key={dateKey(day)}
               className={cn(
-                "border-l border-slate-200 px-3 py-2 text-center dark:border-zinc-800",
+                "border-l border-border px-3 py-2 text-center dark:border-border",
                 dateKey(day) === dateKey(new Date()) && "bg-blue-950/30",
               )}
             >
-              <p className="text-[10px] font-semibold uppercase text-slate-500">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">
                 {day.toLocaleDateString(undefined, { weekday: "short" })}
               </p>
               <p className="mt-0.5 font-bold">
@@ -573,7 +573,7 @@ function EmployeeGrid({
           return (
             <div
               key={employeeRowKey(employee)}
-              className="grid min-h-70 grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-slate-100 dark:border-zinc-800"
+              className="grid min-h-70 grid-cols-[220px_repeat(7,minmax(128px,1fr))] border-b border-border/60 dark:border-border"
             >
               <div className="flex items-center gap-2.5 px-3 py-2">
                 <EmployeeAvatar row={employee} />
@@ -581,11 +581,11 @@ function EmployeeGrid({
                   <p className="truncate font-semibold">
                     {employeeName(employee)}
                   </p>
-                  <p className="truncate text-[11px] text-slate-500">
+                  <p className="truncate text-[11px] text-muted-foreground">
                     {stringValue(employee.job_title)}
                   </p>
                 </div>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-muted-foreground">
                   {assignmentHours(employeeAssignments).toFixed(1)}h
                 </span>
               </div>
@@ -598,8 +598,8 @@ function EmployeeGrid({
                   <div
                     key={dateKey(day)}
                     className={cn(
-                      "border-l border-slate-100 p-1.5 dark:border-zinc-800",
-                      weekend && "bg-slate-50/40 dark:bg-zinc-950/30",
+                      "border-l border-border/60 p-1.5 dark:border-border",
+                      weekend && "bg-muted/40/40 dark:bg-background/30",
                     )}
                   >
                     {assignment ? (
@@ -637,7 +637,7 @@ function EmployeeGrid({
                         type="button"
                         onClick={() => onCreate({ employeeId: employeeRowKey(employee), shiftDate: dateKey(day) })}
                         aria-label={`Create shift for ${employeeName(employee)} on ${formatDate(day)}`}
-                        className="grid h-full min-h-14 w-full place-items-center rounded border border-dashed border-transparent text-slate-600 hover:border-slate-600 hover:text-slate-400"
+                        className="grid h-full min-h-14 w-full place-items-center rounded border border-dashed border-transparent text-muted-foreground hover:border-slate-600 hover:text-muted-foreground/70"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -663,7 +663,7 @@ function EmployeeGrid({
             return (
               <div
                 key={dateKey(day)}
-                className="border-l border-zinc-800 p-1.5"
+                className="border-l border-border p-1.5"
               >
                 {open && (
                   <button
@@ -704,11 +704,11 @@ function TimeCalendar({
   const times = Array.from({ length: 9 }, (_, index) => 6 + index * 2);
   return (
     <div className="grid min-h-[600px] grid-cols-[56px_repeat(7,minmax(132px,1fr))] overflow-x-auto text-xs">
-      <div className="border-r border-zinc-800 pt-14">
+      <div className="border-r border-border pt-14">
         {times.map((time) => (
           <div
             key={time}
-            className="h-16 border-t border-zinc-800 pr-2 pt-1 text-right text-[10px] text-slate-500"
+            className="h-16 border-t border-border pr-2 pt-1 text-right text-[10px] text-muted-foreground"
           >
             {String(time).padStart(2, "0")}:00
           </div>
@@ -725,12 +725,12 @@ function TimeCalendar({
           <section
             key={dateKey(day)}
             className={cn(
-              "relative border-r border-zinc-800",
+              "relative border-r border-border",
               dateKey(day) === dateKey(new Date()) && "bg-blue-950/15",
             )}
           >
-            <header className="h-14 border-b border-zinc-800 px-2 py-2 text-center">
-              <p className="text-[10px] uppercase text-slate-500">
+            <header className="h-14 border-b border-border px-2 py-2 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">
                 {day.toLocaleDateString(undefined, { weekday: "short" })}
               </p>
               <p className="font-bold">
@@ -808,7 +808,7 @@ function RosterList({
   );
   return (
     <div className="text-xs">
-      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] border-b border-zinc-800 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] border-b border-border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span>Employee</span>
         <span>Role</span>
         <span>Shift</span>
@@ -829,7 +829,7 @@ function RosterList({
                 setExpanded((value) => ({ ...value, [key]: !value[key] }))
               }
               className={cn(
-                "flex w-full items-center justify-between border-b border-zinc-800 px-3 py-2.5 text-left font-semibold",
+                "flex w-full items-center justify-between border-b border-border px-3 py-2.5 text-left font-semibold",
                 isExpanded && "bg-blue-950/30",
               )}
             >
@@ -843,7 +843,7 @@ function RosterList({
                   day: "numeric",
                 })}
               </span>
-              <span className="text-slate-500">
+              <span className="text-muted-foreground">
                 {rows.length} scheduled · {assignmentHours(rows).toFixed(1)}h
               </span>
             </button>
@@ -854,7 +854,7 @@ function RosterList({
                   key={String(row.id)}
                   onClick={() => onSelect(String(row.id))}
                   className={cn(
-                    "grid w-full grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] items-center border-b border-zinc-800 px-3 py-2 text-left hover:bg-zinc-900/50",
+                    "grid w-full grid-cols-[1.6fr_1fr_1fr_1fr_70px_90px_40px] items-center border-b border-border px-3 py-2 text-left hover:bg-card/50",
                     selectedId === String(row.id) &&
                       "border-l-2 border-l-blue-500 bg-blue-950/25",
                   )}
@@ -863,7 +863,7 @@ function RosterList({
                     <EmployeeAvatar row={row} />
                     <strong className="truncate">{employeeName(row)}</strong>
                   </span>
-                  <span className="truncate text-slate-400">
+                  <span className="truncate text-muted-foreground/70">
                     {stringValue(row.job_title)}
                   </span>
                   <span>
@@ -950,7 +950,7 @@ function ShiftEditDrawer({
         <EmployeeAvatar row={row} />
         <div>
           <p className="font-bold">{employeeName(row)}</p>
-          <p className="text-xs text-slate-500">{stringValue(row.job_title)}</p>
+          <p className="text-xs text-muted-foreground">{stringValue(row.job_title)}</p>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1023,7 +1023,7 @@ function ShiftEditDrawer({
           />
         </Field>
       </div>
-      <div className="mt-6 flex items-center justify-between border-t border-zinc-800 pt-4">
+      <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
         <Button
           variant="ghost"
           disabled={saving || form.reason.trim().length < 3}
@@ -1100,7 +1100,7 @@ function parseHour(value: unknown, fallback: number) {
 
 function Workspace({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-full w-full bg-transparent px-3 py-4 text-slate-950 sm:px-5 lg:px-7 dark:text-zinc-100">
+    <main className="min-h-full w-full bg-transparent px-3 py-4 text-foreground sm:px-5 lg:px-7 dark:text-foreground">
       <div className="flex w-full max-w-none flex-col gap-4">{children}</div>
     </main>
   );
@@ -1133,7 +1133,7 @@ function LayoutButton({
         "inline-flex min-h-9 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition",
         active
           ? "bg-slate-900 text-white dark:bg-zinc-100 dark:text-zinc-950"
-          : "text-slate-600 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
+          : "text-muted-foreground hover:bg-muted dark:text-muted-foreground dark:hover:bg-card",
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -1167,16 +1167,16 @@ function RosterCalendar({
           return (
             <section
               key={key}
-              className="min-h-[480px] bg-slate-50/35 dark:bg-zinc-950"
+              className="min-h-[480px] bg-muted/40/35 dark:bg-background"
             >
               <header
                 className={cn(
-                  "sticky top-0 z-10 border-b border-slate-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950",
+                  "sticky top-0 z-10 border-b border-border bg-white px-3 py-2 dark:border-border dark:bg-background",
                   key === dateKey(new Date()) &&
                     "bg-indigo-50 dark:bg-indigo-950/25",
                 )}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {day.toLocaleDateString(undefined, { weekday: "short" })}
                 </p>
                 <p className="mt-0.5 text-sm font-bold">
@@ -1231,7 +1231,7 @@ function RosterCalendar({
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-muted-foreground">
                   No shifts scheduled.
                 </p>
               )}
@@ -1248,17 +1248,17 @@ function RosterAssignmentCard({ row }: { row: ShiftRecord }) {
   return (
     <article
       className={cn(
-        "rounded-md border bg-white p-2.5 dark:bg-zinc-900",
+        "rounded-md border bg-white p-2.5 dark:bg-card",
         conflict
           ? "border-amber-300 dark:border-amber-800"
-          : "border-slate-200 dark:border-zinc-800",
+          : "border-border dark:border-border",
       )}
     >
       <div className="flex items-start gap-2">
         <EmployeeAvatar row={row} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-bold">{employeeName(row)}</p>
-          <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-zinc-500">
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground dark:text-muted-foreground">
             {stringValue(row.job_title, "Unassigned position")}
           </p>
         </div>
@@ -1276,7 +1276,7 @@ function RosterAssignmentCard({ row }: { row: ShiftRecord }) {
         </span>
         <ShiftStatusBadge status={row.publication_status || row.status} />
       </div>
-      <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-zinc-500">
+      <p className="mt-1 truncate text-[11px] text-muted-foreground dark:text-muted-foreground">
         {stringValue(row.schedule_name, "Custom shift")} ·{" "}
         {stringValue(
           row.work_location || row.employee_location,
@@ -1319,7 +1319,7 @@ function RosterAgenda({
               <p className="font-bold">
                 {day.toLocaleDateString(undefined, { weekday: "long" })}
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 {day.toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
@@ -1332,7 +1332,7 @@ function RosterAgenda({
                   <RosterAssignmentCard key={String(row.id)} row={row} />
                 ))
               ) : (
-                <p className="py-3 text-sm text-slate-500">No assignments.</p>
+                <p className="py-3 text-sm text-muted-foreground">No assignments.</p>
               )}
             </div>
           </div>
@@ -1380,7 +1380,7 @@ function CoverageView({
               <p className="font-semibold">
                 {day.toLocaleDateString(undefined, { weekday: "long" })}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {day.toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
@@ -1388,7 +1388,7 @@ function CoverageView({
               </p>
             </div>
             <div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
+              <div className="h-2 overflow-hidden rounded-full bg-muted dark:bg-muted">
                 <div
                   className={cn(
                     "h-full rounded-full",
@@ -1399,7 +1399,7 @@ function CoverageView({
                   }}
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {planned.length} assigned · {needed} coverage gap
               </p>
             </div>
@@ -1433,7 +1433,7 @@ function PublishButton({
   return (
     <div className="flex w-full flex-col gap-2 rounded-md border border-indigo-200 bg-indigo-50 p-2 sm:w-auto sm:flex-row dark:border-indigo-900 dark:bg-indigo-950/25">
       <Input
-        className="h-9 min-w-56 bg-white dark:bg-zinc-950"
+        className="h-9 min-w-56 bg-white dark:bg-background"
         value={reason}
         onChange={(event) => setReason(event.target.value)}
         placeholder="Publication reason"
@@ -1512,7 +1512,7 @@ function AssignmentComposer({
       onEscapeKeyDown={(event) => saving && event.preventDefault()}
       onPointerDownOutside={(event) => saving && event.preventDefault()}
     >
-      <DialogHeader className="border-b border-slate-200 px-5 py-4 pr-14 dark:border-zinc-800">
+      <DialogHeader className="border-b border-border px-5 py-4 pr-14 dark:border-border">
         <DialogTitle>Create shift assignment</DialogTitle>
         <DialogDescription>
           Select one or more eligible employees. Overlapping shifts are blocked
@@ -1523,7 +1523,7 @@ function AssignmentComposer({
         <div>
           <Label>Employees</Label>
           <div className="relative mt-1.5">
-            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
             <Input
               value={employeeQuery}
               onChange={(event) => onEmployeeQueryChange(event.target.value)}
@@ -1532,7 +1532,7 @@ function AssignmentComposer({
               autoFocus
             />
           </div>
-          <div className="mt-1.5 grid max-h-48 gap-1 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="mt-1.5 grid max-h-48 gap-1 overflow-y-auto rounded-md border border-border bg-white p-2 sm:grid-cols-2 dark:border-border dark:bg-background">
             {employees.map((employee) => {
               const id = String(employee.id);
               const checked = selected.includes(id);
@@ -1543,7 +1543,7 @@ function AssignmentComposer({
                     "flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm",
                     checked
                       ? "bg-indigo-50 dark:bg-indigo-950/40"
-                      : "hover:bg-slate-50 dark:hover:bg-zinc-900",
+                      : "hover:bg-muted/40 dark:hover:bg-card",
                   )}
                 >
                   <input
@@ -1562,7 +1562,7 @@ function AssignmentComposer({
                     <span className="block truncate font-semibold">
                       {employeeName(employee)}
                     </span>
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {stringValue(employee.job_title)}
                     </span>
                   </span>
@@ -1570,12 +1570,12 @@ function AssignmentComposer({
               );
             })}
             {employees.length === 0 && (
-              <p className="col-span-full px-2 py-6 text-center text-sm text-slate-500">
+              <p className="col-span-full px-2 py-6 text-center text-sm text-muted-foreground">
                 No employees match “{employeeQuery.trim()}”.
               </p>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {selected.length === 0
               ? "No employees selected"
               : `${selected.length} employee${selected.length === 1 ? "" : "s"} selected`}
@@ -1657,7 +1657,7 @@ function AssignmentComposer({
           </Field>
         </div>
       </div>
-      <DialogFooter className="border-t border-slate-200 px-5 py-3 dark:border-zinc-800">
+      <DialogFooter className="border-t border-border px-5 py-3 dark:border-border">
         <Button variant="outline" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
@@ -1702,7 +1702,7 @@ function Field({
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+      <span className="text-xs font-semibold text-foreground/80 dark:text-foreground/80">
         {label}
       </span>
       {children}

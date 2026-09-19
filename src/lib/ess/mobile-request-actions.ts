@@ -25,32 +25,75 @@ function isoDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 }
 
+function iso(value: unknown) {
+  if (!(value instanceof Date) && typeof value !== 'string') return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
+function sameMinute(left: string, right: unknown) {
+  if (!left || !right) return false;
+  const leftDate = new Date(left);
+  const rightDate = right instanceof Date ? right : new Date(String(right));
+  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) return false;
+  return Math.floor(leftDate.getTime() / 60_000) === Math.floor(rightDate.getTime() / 60_000);
+}
+
 function errorResponse(error: unknown, fallback: string) {
   return NextResponse.json({ error: error instanceof Error ? error.message : fallback }, { status: 400 });
 }
 
 export async function createMobileAttendanceCorrection(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
   const attendanceId = text(body.attendanceId, 80);
-  const workDate = text(body.workDate, 10);
   const reason = text(body.reason, 2000);
   const correctionType = text(body.correctionType, 80);
   const requestedCheckIn = text(body.requestedCheckIn, 80);
   const requestedCheckOut = text(body.requestedCheckOut, 80);
 
+  if (!attendanceId) return NextResponse.json({ error: 'Choose an attendance record' }, { status: 400 });
+
+  const owned = await getPool().query(
+    `SELECT id, work_date, clock_in, clock_out
+       FROM hr_attendance_records
+      WHERE id = $1::uuid AND employee_id = $2::uuid
+      LIMIT 1`,
+    [attendanceId, identity.employeeId],
+  ).catch(() => ({ rows: [] as DbRow[] }));
+  const record = owned.rows[0] as DbRow | undefined;
+  if (!record) return NextResponse.json({ error: 'Attendance record not found' }, { status: 404 });
+
+  const workDate = isoDate(record.work_date);
+  const correctsCheckIn = ['missing_check_in', 'incorrect_check_in'].includes(correctionType);
+  const correctsCheckOut = ['missing_check_out', 'incorrect_check_out'].includes(correctionType);
+  if (!correctsCheckIn && !correctsCheckOut) {
+    return NextResponse.json({ error: 'Choose whether to correct clock in or clock out' }, { status: 400 });
+  }
+  if (correctsCheckIn && !requestedCheckIn) return NextResponse.json({ error: 'Choose the requested clock-in time' }, { status: 400 });
+  if (correctsCheckOut && !requestedCheckOut) return NextResponse.json({ error: 'Choose the requested clock-out time' }, { status: 400 });
+  if (correctsCheckIn && sameMinute(requestedCheckIn, record.clock_in)) {
+    return NextResponse.json({ error: 'Requested clock-in time matches the current record' }, { status: 400 });
+  }
+  if (correctsCheckOut && sameMinute(requestedCheckOut, record.clock_out)) {
+    return NextResponse.json({ error: 'Requested clock-out time matches the current record' }, { status: 400 });
+  }
+
   const values: Record<string, unknown> = {
     workDate,
     correctionType,
-    attendanceRecordId: attendanceId || null,
+    attendanceRecordId: attendanceId,
   };
-  if (['missing_check_in', 'incorrect_check_in'].includes(correctionType)) values.clockIn = requestedCheckIn || null;
-  if (['missing_check_out', 'incorrect_check_out'].includes(correctionType)) values.clockOut = requestedCheckOut || null;
+  if (correctsCheckIn) values.clockIn = requestedCheckIn;
+  if (correctsCheckOut) values.clockOut = requestedCheckOut;
 
   const parsed = essRequestCreateSchema.safeParse({
     requestType: 'attendance_correction',
-    title: workDate ? `Attendance correction · ${workDate}` : 'Attendance correction',
+    title: `Attendance correction · ${workDate}`,
     reason,
     values,
-    originalValues: {},
+    originalValues: {
+      clockIn: iso(record.clock_in) || null,
+      clockOut: iso(record.clock_out) || null,
+    },
     supportingDocuments: [],
     saveAsDraft: false,
   });

@@ -323,7 +323,7 @@ function PaginationFooter({ visible, total }: { visible: number; total: number }
   return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
 }
 
-export function HomeScreen({ data, setTab, openNewRequest, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; openNewRequest?: () => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
+export function HomeScreen({ data, setTab, openNewRequest, openNotifications, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; openNewRequest?: () => void; openNotifications?: () => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
   const firstName = (account?.name || data.employee.name).trim().split(/\s+/)[0] || 'there'
   const recent = data.attendance.slice(0, 14)
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
@@ -344,7 +344,7 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
       accessibilityRole="button"
       accessibilityLabel={`${needsAttention} items need your attention`}
       style={({ pressed }) => [s.attentionCard, pressed && s.controlPressed]}
-      onPress={() => pending > 0 ? setTab('requests') : setTab('account')}
+      onPress={() => pending > 0 ? setTab('requests') : openNotifications ? openNotifications() : setTab('account')}
     >
       <View style={s.attentionIcon}><Ionicons name="notifications-outline" size={20} color={colors.primary} /></View>
       <View style={s.flexOne}>
@@ -395,21 +395,49 @@ function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap;
   </Pressable>
 }
 
-export function TimeScreen({ data, reload, loadMoreTick, offline = false }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; offline?: boolean }) {
+export function TimeScreen({ data, reload, loadMoreTick, offline = false, onFullPageChange }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; offline?: boolean; onFullPageChange?: (active: boolean) => void }) {
   const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
   const [correctionId, setCorrectionId] = useState<string | null>(null)
+
+  const openCorrection = (id: string) => {
+    onFullPageChange?.(true)
+    setCorrectionId(id)
+  }
+
+  const closeCorrection = () => {
+    onFullPageChange?.(false)
+    setCorrectionId(null)
+  }
+
+  useEffect(() => {
+    onFullPageChange?.(Boolean(correctionId))
+  }, [correctionId, onFullPageChange])
+
+  useEffect(() => {
+    if (!correctionId) return
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeCorrection()
+      return true
+    })
+    return () => subscription.remove()
+  }, [correctionId])
+
+  useEffect(() => () => onFullPageChange?.(false), [onFullPageChange])
+
+  if (correctionId) {
+    return <>
+      <Back label="Time & attendance" onPress={closeCorrection} />
+      <AttendanceCorrectionForm data={data} reload={reload} initialAttendanceId={correctionId} onDone={closeCorrection} />
+    </>
+  }
 
   return <>
     <AppText style={s.pageTitle}>Time & attendance</AppText>
     <AttendanceActionCard data={data} reload={reload} offline={offline} />
 
     <AppText style={s.section}>Recent attendance</AppText>
-    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => setCorrectionId(row.id)} />)}
+    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => openCorrection(row.id)} />)}
     <PaginationFooter visible={visible} total={data.attendance.length} />
-
-    <FullScreenTaskModal visible={Boolean(correctionId)} contextLabel="Attendance correction" onClose={() => setCorrectionId(null)}>
-      <AttendanceCorrectionForm data={data} reload={reload} initialAttendanceId={correctionId || undefined} showTitle={false} onDone={() => setCorrectionId(null)} />
-    </FullScreenTaskModal>
   </>
 }
 
@@ -633,7 +661,7 @@ function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: 
 
 function DateField({ label, value, onChange }: { label: string; value: Date; onChange: (value: Date) => void }) {
   const [open, setOpen] = useState(false)
-  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
+  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable accessibilityRole="button" style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
 }
 
 function TimeField({ label, value, fallback, onChange }: { label: string; value: Date | null; fallback?: string | null; onChange: (value: Date) => void }) {
@@ -1244,18 +1272,29 @@ function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: 
 }
 
 function ProfileChangeHistory({ items, empty }: { items: EssBootstrap['profileChangeRequests']; empty: string }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = selectedId ? items.find(item => item.id === selectedId) : undefined
+
   if (items.length === 0) return <Card><AppText style={s.cardTitle}>Change history</AppText><Muted>{empty}</Muted></Card>
-  return <Card>
-    <AppText style={s.cardTitle}>Change history</AppText>
-    {items.slice(0, 8).map(item => <View key={item.id} style={s.historyRow}>
-      <View style={s.flexOne}>
-        <AppText>{item.title}</AppText>
-        <Muted>{item.requestNumber || 'Request'} · {formatDateTime(item.submittedAt)}</Muted>
-        {item.reviewerComment ? <Muted>Reviewer · {item.reviewerComment}</Muted> : null}
-      </View>
-      <StatusPill value={item.status} />
-    </View>)}
-  </Card>
+  return <>
+    <Card>
+      <AppText style={s.cardTitle}>Change history</AppText>
+      {items.slice(0, 8).map(item => <Pressable key={item.id} accessibilityRole="button" style={({ pressed }) => [s.historyRow, pressed && s.controlPressed]} onPress={() => setSelectedId(item.id)}>
+        <View style={s.flexOne}>
+          <AppText>{item.title}</AppText>
+          <Muted>{item.requestNumber || 'Request'} · {formatDateTime(item.submittedAt)}</Muted>
+          {item.reviewerComment ? <Muted>Reviewer · {item.reviewerComment}</Muted> : null}
+        </View>
+        <View style={s.historyAction}>
+          <StatusPill value={item.status} />
+          <Ionicons name="chevron-forward" size={17} color={colors.textSubtle} />
+        </View>
+      </Pressable>)}
+    </Card>
+    <FullScreenTaskModal visible={Boolean(selected)} contextLabel="Account change" onClose={() => setSelectedId(null)}>
+      {selected ? <ProfileChangeRequestDetail request={selected} /> : null}
+    </FullScreenTaskModal>
+  </>
 }
 
 function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
@@ -1312,7 +1351,20 @@ function BenefitsPage({ data }: { data: EssBootstrap }) {
       Alert.alert('Benefits', error instanceof Error ? error.message : 'Unable to open benefit link')
     }
   }
-  return <><AppText style={s.pageTitle}>Benefits</AppText>{data.benefits.length === 0 ? <EmptyState icon="heart-outline" title="No benefits published yet" subtitle="Benefits configured by HR will appear here." /> : data.benefits.map((item) => <Pressable key={item.id} disabled={!item.url} onPress={() => item.url ? void open(item.url) : undefined}><Card><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.name}</AppText>{item.description ? <Muted>{item.description}</Muted> : null}{item.provider ? <Muted>{item.provider}</Muted> : null}</View>{item.url ? <Ionicons name="open-outline" size={20} color={colors.textMuted} /> : <StatusPill value={item.status || 'available'} />}</View></Card></Pressable>)}</>
+
+  const content = (item: EssBootstrap['benefits'][number]) => <Card>
+    <View style={s.between}>
+      <View style={s.flexOne}>
+        <AppText style={s.cardTitle}>{item.name}</AppText>
+        {item.description ? <Muted>{item.description}</Muted> : null}
+        {item.provider ? <Muted>{item.provider}</Muted> : null}
+        {!item.url ? <Muted>No external benefit link has been provided.</Muted> : null}
+      </View>
+      {item.url ? <Ionicons name="open-outline" size={20} color={colors.textMuted} /> : <StatusPill value={item.status || 'available'} />}
+    </View>
+  </Card>
+
+  return <><AppText style={s.pageTitle}>Benefits</AppText>{data.benefits.length === 0 ? <EmptyState icon="heart-outline" title="No benefits published yet" subtitle="Benefits configured by HR will appear here." /> : data.benefits.map((item) => item.url ? <Pressable key={item.id} accessibilityRole="link" onPress={() => void open(item.url!)}>{content(item)}</Pressable> : <View key={item.id}>{content(item)}</View>)}</>
 }
 
 function ContactsPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
@@ -1473,7 +1525,8 @@ const s = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   inlineNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.warningSurface, marginBottom: spacing.xs },
   documentActions: { marginTop: spacing.sm, gap: spacing.xs },
-  historyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  historyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border, borderRadius: radii.sm, paddingHorizontal: spacing.xs },
+  historyAction: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   warningText: { color: colors.warning, fontSize: typography.sm, lineHeight: 18, fontWeight: '600', marginTop: 4 },
   status: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radii.pill, backgroundColor: colors.surfaceMuted },
   statusSuccess: { backgroundColor: colors.successSurface },

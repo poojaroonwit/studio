@@ -22,14 +22,14 @@ import { dateValue, statusLabel, stringValue } from './ess-types';
 
 const viewMeta: Record<EssView, { label: string; description: string }> = {
   profile: { label: 'My Profile', description: 'Personal details and employment information' },
-  leave: { label: 'My Requests', description: 'Track your time away and manage leave requests' },
-  attendance: { label: 'Attendance', description: 'Today, history, and corrections' },
+  leave: { label: 'My Leave', description: 'Track your time away and manage leave requests' },
+  attendance: { label: 'My Attendance', description: 'Today, history, and corrections' },
   'shift-requests': { label: 'Shift Requests', description: 'Request schedule changes, swaps, or open shifts' },
   'attendance-corrections': { label: 'Corrections', description: 'Correct missing or inaccurate attendance records' },
   overtime: { label: 'Overtime', description: 'Submit and track overtime requests' },
-  timesheet: { label: 'Timesheet', description: 'Allocate worked time, submit the week, and respond to review feedback' },
-  documents: { label: 'Document', description: 'Secure HR documents and requests' },
-  performance: { label: 'Performance', description: 'Goals, check-ins, and reviews' },
+  timesheet: { label: 'My Timesheet', description: 'Allocate worked time, submit the week, and respond to review feedback' },
+  documents: { label: 'My Documents', description: 'Secure HR documents and requests' },
+  performance: { label: 'My Performance', description: 'Goals, check-ins, and reviews' },
   team: { label: 'My Team', description: 'Direct reports and approvals' },
 };
 

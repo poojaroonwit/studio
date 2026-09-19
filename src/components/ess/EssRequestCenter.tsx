@@ -28,6 +28,108 @@ function objectValue(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+type RevisionPath = Array<string | number>;
+
+function fieldLabel(value: string) {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function updateNestedValue(value: unknown, path: RevisionPath, next: unknown): unknown {
+  if (path.length === 0) return next;
+  const [head, ...rest] = path;
+  if (Array.isArray(value)) {
+    const copy = [...value];
+    const index = Number(head);
+    copy[index] = updateNestedValue(copy[index], rest, next);
+    return copy;
+  }
+  const record = objectValue(value);
+  return { ...record, [String(head)]: updateNestedValue(record[String(head)], rest, next) };
+}
+
+function RevisionValueField({
+  label,
+  value,
+  path,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  path: RevisionPath;
+  onChange: (path: RevisionPath, value: unknown) => void;
+}) {
+  if (Array.isArray(value)) {
+    return (
+      <fieldset className="space-y-3 rounded-lg border border-border p-3">
+        <legend className="px-1 text-sm font-medium">{fieldLabel(label)}</legend>
+        {value.length === 0 ? <p className="text-xs text-muted-foreground">No values in this field.</p> : value.map((item, index) => (
+          <RevisionValueField
+            key={index}
+            label={typeof item === 'object' && item ? 'Item ' + (index + 1) : fieldLabel(label) + ' ' + (index + 1)}
+            value={item}
+            path={[...path, index]}
+            onChange={onChange}
+          />
+        ))}
+      </fieldset>
+    );
+  }
+
+  if (value && typeof value === 'object') {
+    return (
+      <fieldset className="space-y-3 rounded-lg border border-border p-3">
+        <legend className="px-1 text-sm font-medium">{fieldLabel(label)}</legend>
+        {Object.entries(value as Record<string, unknown>).map(([key, child]) => (
+          <RevisionValueField key={key} label={key} value={child} path={[...path, key]} onChange={onChange} />
+        ))}
+      </fieldset>
+    );
+  }
+
+  const id = 'revision-' + path.join('-');
+  if (typeof value === 'boolean') {
+    return (
+      <div className="space-y-1.5">
+        <Label htmlFor={id}>{fieldLabel(label)}</Label>
+        <select
+          id={id}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          value={value ? 'true' : 'false'}
+          onChange={event => onChange(path, event.target.value === 'true')}
+        >
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+    );
+  }
+
+  const text = value === null || value === undefined ? '' : String(value);
+  const multiline = text.length > 80 || /(address|details|purpose|description|reason|information|contact)/i.test(label);
+  const onTextChange = (nextText: string) => {
+    if (typeof value === 'number') {
+      const parsed = Number(nextText);
+      onChange(path, Number.isFinite(parsed) ? parsed : value);
+      return;
+    }
+    onChange(path, nextText);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{fieldLabel(label)}</Label>
+      {multiline ? (
+        <Textarea id={id} className="min-h-24" value={text} onChange={event => onTextChange(event.target.value)} />
+      ) : (
+        <Input id={id} value={text} onChange={event => onTextChange(event.target.value)} />
+      )}
+    </div>
+  );
+}
+
 function ownerActions(request: EssRow): OwnerAction[] {
   const status = String(request.status || '');
   if (status === 'draft') return ['submit'];
@@ -45,7 +147,7 @@ export function EssRequestCenter() {
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState('open');
   const [editing, setEditing] = React.useState<EditableDraft | null>(null);
-  const [valuesText, setValuesText] = React.useState('{}');
+  const [confirming, setConfirming] = React.useState<{ request: EssRow; action: 'withdraw' | 'cancel' } | null>(null);
 
   const load = React.useCallback(async (background = false) => {
     background ? setRefreshing(true) : setLoading(true);
@@ -109,18 +211,19 @@ export function EssRequestCenter() {
       values,
       expectedVersion: Number(request.version || 1),
     });
-    setValuesText(JSON.stringify(values, null, 2));
+  }
+
+  function updateRevisionValue(path: RevisionPath, value: unknown) {
+    setEditing(current => current ? {
+      ...current,
+      values: updateNestedValue(current.values, path, value) as Record<string, unknown>,
+    } : current);
   }
 
   async function saveRevision() {
     if (!editing) return;
-    let values: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(valuesText);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
-      values = parsed as Record<string, unknown>;
-    } catch {
-      toast.error('Requested values must be a valid JSON object.');
+    if (Object.keys(editing.values).length === 0) {
+      toast.error('This request has no editable values.');
       return;
     }
     setBusyId(editing.id);
@@ -129,7 +232,7 @@ export function EssRequestCenter() {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editing, values }),
+        body: JSON.stringify(editing),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.message || 'Unable to save the revision.');
@@ -190,8 +293,8 @@ export function EssRequestCenter() {
                     {actions.includes('revise') && editable && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => beginRevision(request)}><Pencil className="mr-1.5 h-4 w-4" />Revise</Button>}
                     {actions.includes('submit') && <Button size="sm" disabled={busyId === id} onClick={() => void act(request, 'submit')}><Send className="mr-1.5 h-4 w-4" />Submit</Button>}
                     {actions.includes('resubmit') && <Button size="sm" disabled={busyId === id} onClick={() => void act(request, 'resubmit')}><RotateCcw className="mr-1.5 h-4 w-4" />Resubmit</Button>}
-                    {actions.includes('withdraw') && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => void act(request, 'withdraw')}><Undo2 className="mr-1.5 h-4 w-4" />Withdraw</Button>}
-                    {actions.includes('cancel') && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => void act(request, 'cancel')}>Cancel</Button>}
+                    {actions.includes('withdraw') && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => setConfirming({ request, action: 'withdraw' })}><Undo2 className="mr-1.5 h-4 w-4" />Withdraw</Button>}
+                    {actions.includes('cancel') && <Button size="sm" variant="outline" disabled={busyId === id} onClick={() => setConfirming({ request, action: 'cancel' })}>Cancel</Button>}
                   </div>
                 </div>
                 {activity.length > 0 && <details className="mt-3"><summary className="cursor-pointer text-xs font-semibold text-primary">Approval activity</summary><div className="mt-3 max-w-2xl"><ApprovalTimeline activities={activity} /></div></details>}
@@ -207,9 +310,42 @@ export function EssRequestCenter() {
           {editing && <div className="grid gap-4 py-2">
             <div className="space-y-1.5"><Label htmlFor="revision-title">Title</Label><Input id="revision-title" value={editing.title} onChange={event => setEditing(current => current ? { ...current, title: event.target.value } : current)} /></div>
             <div className="space-y-1.5"><Label htmlFor="revision-reason">Reason</Label><Textarea id="revision-reason" className="min-h-20" value={editing.reason} onChange={event => setEditing(current => current ? { ...current, reason: event.target.value } : current)} /></div>
-            <div className="space-y-1.5"><Label htmlFor="revision-values">Requested values</Label><Textarea id="revision-values" className="min-h-56 font-mono text-xs" value={valuesText} onChange={event => setValuesText(event.target.value)} /><p className="text-xs text-muted-foreground">Keep the field names shown here; update only the values that need correction.</p></div>
+            <div className="space-y-3">
+              <div><Label>Requested changes</Label><p className="mt-1 text-xs text-muted-foreground">Update the fields HR returned for revision. Technical field names are converted to readable labels automatically.</p></div>
+              {Object.entries(editing.values).map(([key, value]) => (
+                <RevisionValueField key={key} label={key} value={value} path={[key]} onChange={updateRevisionValue} />
+              ))}
+            </div>
           </div>}
           <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button><Button disabled={!editing || busyId === editing.id || editing.title.trim().length < 3 || editing.reason.trim().length < 3} onClick={() => void saveRevision()}>{busyId === editing?.id ? 'Saving…' : 'Save revision'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(confirming)} onOpenChange={open => { if (!open) setConfirming(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{confirming?.action === 'cancel' ? 'Cancel request?' : 'Withdraw request?'}</DialogTitle>
+            <DialogDescription>
+              {confirming?.action === 'cancel'
+                ? 'This stops the approved or processing request. Continue only if you no longer need it.'
+                : 'This removes the request from the approval queue. You can resubmit a withdrawn request later.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirming(null)}>Keep request</Button>
+            <Button
+              variant="destructive"
+              disabled={!confirming || busyId === String(confirming.request.id || '')}
+              onClick={() => {
+                if (!confirming) return;
+                const next = confirming;
+                setConfirming(null);
+                void act(next.request, next.action);
+              }}
+            >
+              {confirming?.action === 'cancel' ? 'Cancel request' : 'Withdraw request'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </main>

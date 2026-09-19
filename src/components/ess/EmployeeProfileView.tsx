@@ -13,6 +13,7 @@ import { getUnderlineNavTriggerClassName } from '@/components/ui/underline-nav';
 import { EmployeeProfileScaffold } from '@/components/hr/EmployeeProfileScaffold';
 import { EmployeeSharedPersonProfile } from '@/components/hr/EmployeeSharedPersonProfile';
 import type { HrCrudRecord } from '@/lib/hr/hr-crud';
+import type { EmployeeReadiness } from '@/lib/hr/employee-readiness';
 import { cn } from '@/lib/utils';
 import { ApprovalTimeline, EmptyState, InfoRow, Section, StatusBadge } from './EssShared';
 import type { EssDashboard, EssRow } from './ess-types';
@@ -65,6 +66,7 @@ export function EmployeeProfileView({
   mutate: (url: string, method: 'POST' | 'PATCH', body: unknown, successMessage: string) => Promise<unknown>;
 }) {
   const employee = data.employee;
+  const readiness = employee.readiness;
   const [field, setField] = React.useState<RequestableField>('preferredName');
   const [requestedValue, setRequestedValue] = React.useState('');
   const [reason, setReason] = React.useState('');
@@ -134,15 +136,18 @@ export function EmployeeProfileView({
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <StatusBadge status={employee.status} />
                     <Badge variant={employee.profileCompletion === 100 ? 'success' : 'outline'} className="rounded-full">
-                      {employee.profileCompletion}% profile complete
+                      Profile {employee.profileCompletion}%
+                    </Badge>
+                    <Badge variant={readiness.ready ? 'success' : 'outline'} className="rounded-full">
+                      Setup {readiness.percent}%{readiness.ready ? ' ready' : ` · ${readiness.missingCount} remaining`}
                     </Badge>
                   </div>
                   <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{employee.name}</h1>
-                  <div className="mt-3 flex max-w-sm items-center gap-3" aria-label={`Profile ${employee.profileCompletion}% complete`}>
+                  <div className="mt-3 flex max-w-sm items-center gap-3" aria-label={`Employee setup ${readiness.percent}% ready`}>
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${employee.profileCompletion}%` }} />
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${readiness.percent}%` }} />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground">{employee.profileCompletion}%</span>
+                    <span className="text-xs font-medium text-muted-foreground">{readiness.percent}% ready</span>
                   </div>
                   <p className="mt-1 truncate text-sm text-muted-foreground">{employee.jobTitle || 'Role not assigned'} <span aria-hidden>•</span> {employee.employeeNumber}</p>
                 </div>
@@ -182,6 +187,7 @@ export function EmployeeProfileView({
         <div className="lg:col-span-2 rounded-lg border border-border bg-card p-4 sm:p-6">
           <EmployeeSharedPersonProfile employee={sharedEmployee} />
         </div>
+        <SetupReadiness readiness={readiness} />
         <Section title="Employment information" description={<><span>HR-controlled fields are read-only in ESS. </span><span className="font-medium text-foreground"><span className="text-destructive">*</span> Required</span></>}>
           <InfoRow label="Legal name" value={employee.legalName} permission="hr_controlled" required />
           <InfoRow label="Employee ID" value={employee.employeeNumber} permission="hr_controlled" required />
@@ -241,6 +247,65 @@ export function EmployeeProfileView({
         </Section>
       )}
     </EmployeeProfileScaffold>
+  );
+}
+
+function SetupReadiness({ readiness }: { readiness: EmployeeReadiness }) {
+  const ownerLabel: Record<string, string> = {
+    employee: 'Your action',
+    people: 'People team',
+    payroll: 'Payroll',
+    it: 'IT / account admin',
+  };
+
+  return (
+    <section className="lg:col-span-2 rounded-lg border border-border bg-card p-4 sm:p-6" aria-label="Employee setup readiness">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Employee setup readiness</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Operational readiness includes employment, compensation, payroll, identity, account access, and required onboarding—not only profile fields.
+          </p>
+        </div>
+        <Badge variant={readiness.ready ? 'success' : 'secondary'} className="w-fit rounded-full">
+          {readiness.ready ? 'Ready' : `${readiness.missingCount} actions remaining`}
+        </Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {readiness.sections.map(section => (
+          <div key={section.id} className="rounded-lg border border-border/70 bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">{section.label}</p>
+              <span className="text-xs font-semibold tabular-nums text-muted-foreground">{section.percent}%</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${section.percent}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {section.complete}/{section.total} required checks complete
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {!readiness.ready ? (
+        <div className="mt-5 border-t border-border pt-4">
+          <h3 className="text-sm font-semibold">What is still missing</h3>
+          <div className="mt-2 divide-y divide-border/60">
+            {readiness.missing.slice(0, 8).map(item => (
+              <div key={item.id} className="flex items-center justify-between gap-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{readiness.sections.find(section => section.id === item.section)?.label}</p>
+                </div>
+                <Badge variant="outline" className="shrink-0 rounded-full">{ownerLabel[item.owner] || statusLabel(item.owner)}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

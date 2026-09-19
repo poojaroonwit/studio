@@ -37,7 +37,7 @@ export function PerformanceView({
         { label: 'Actions due', value: pendingActions, icon: MessageSquareText },
       ]} />
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="h-auto">
+        <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview" className="min-h-9">Overview</TabsTrigger>
           <TabsTrigger value="goals" className="min-h-9">Goals</TabsTrigger>
           <TabsTrigger value="assessment" className="min-h-9">Self-assessment</TabsTrigger>

@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, ClockAlert, Users } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   HrisApprovalInbox,
@@ -30,10 +31,11 @@ export function MyTeamView({
   mutate: (url: string, method: 'POST' | 'PATCH', body: unknown, successMessage: string) => Promise<unknown>;
 }) {
   if (!team || data.metrics.directReports <= 0) {
-    return <EmptyState title="Manager access required" description="My Team is available only to people managers or users with explicit team permission." />;
+    return <EmptyState title="Manager access required" description="My Team is available to people managers with linked direct reports." />;
   }
   const approvals = team.approvals || team.pendingLeave;
   const approvalTasks = approvals.map(toApprovalTask);
+  const [selectedReport, setSelectedReport] = React.useState<EssRow | null>(null);
   const decideApproval = (task: HrisApprovalTask, action: HrisApprovalDecision, comment: string) => {
     const item = task.source as EssRow;
     const isBenefit = item.request_type === 'benefit_enrollment';
@@ -84,7 +86,7 @@ export function MyTeamView({
         <TabsContent value="overview" className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <Section title="Direct reports" description="Only manager-permitted employment and operational fields are shown.">
             <div className="grid gap-3 sm:grid-cols-2">
-              {team.reports.map(report => <TeamMemberCard key={String(report.id)} report={report} />)}
+              {team.reports.map(report => <TeamMemberCard key={String(report.id)} report={report} onOpen={() => setSelectedReport(report)} />)}
             </div>
           </Section>
           <div className="space-y-4">
@@ -143,6 +145,28 @@ export function MyTeamView({
           </Section>
         </TabsContent>
       </Tabs>
+      <Dialog open={Boolean(selectedReport)} onOpenChange={open => { if (!open) setSelectedReport(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedReport ? stringValue(selectedReport.name, 'Employee') : 'Employee quick view'}</DialogTitle>
+            <DialogDescription>Manager-safe direct-report details from your team workspace.</DialogDescription>
+          </DialogHeader>
+          {selectedReport ? (
+            <div className="grid gap-3 py-1 sm:grid-cols-2">
+              <QuickViewField label="Role" value={stringValue(selectedReport.jobTitle, 'Role not assigned')} />
+              <QuickViewField label="Status" value={statusLabel(selectedReport.status)} />
+              <QuickViewField label="Location" value={stringValue(selectedReport.location, 'Not assigned')} />
+              <QuickViewField label="Work email" value={stringValue(selectedReport.email, 'Not available')} />
+              {Boolean(selectedReport.employeeNumber || selectedReport.employee_number) ? (
+                <QuickViewField label="Employee number" value={stringValue(selectedReport.employeeNumber || selectedReport.employee_number)} />
+              ) : null}
+              {Boolean(selectedReport.department || selectedReport.departmentName) ? (
+                <QuickViewField label="Department" value={stringValue(selectedReport.department || selectedReport.departmentName)} />
+              ) : null}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -186,7 +210,7 @@ function toApprovalTask(item: EssRow): HrisApprovalTask {
   };
 }
 
-function TeamMemberCard({ report }: { report: EssRow }) {
+function TeamMemberCard({ report, onOpen }: { report: EssRow; onOpen: () => void }) {
   const name = stringValue(report.name, 'Employee');
   const initials = name.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   return (
@@ -197,12 +221,16 @@ function TeamMemberCard({ report }: { report: EssRow }) {
         <StatusBadge status={report.status} />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-        <div><dt className="text-muted-foreground">Location</dt><dd className="mt-0.5 font-medium">{stringValue(report.location)}</dd></div>
-        <div><dt className="text-muted-foreground">Work email</dt><dd className="mt-0.5 truncate font-medium">{stringValue(report.email)}</dd></div>
+        <div><dt className="text-muted-foreground">Location</dt><dd className="mt-0.5 font-medium">{stringValue(report.location, 'Not assigned')}</dd></div>
+        <div><dt className="text-muted-foreground">Work email</dt><dd className="mt-0.5 truncate font-medium">{stringValue(report.email, 'Not available')}</dd></div>
       </dl>
-      <Button asChild size="sm" variant="outline" className="mt-4 w-full"><a href={`/people/${report.id}`}>Employee quick view</a></Button>
+      <Button type="button" size="sm" variant="outline" className="mt-4 w-full" onClick={onOpen}>Employee quick view</Button>
     </article>
   );
+}
+
+function QuickViewField({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-semibold">{value}</p></div>;
 }
 
 function CompactAlert({ title, meta, status }: { title: string; meta: string; status: unknown }) {

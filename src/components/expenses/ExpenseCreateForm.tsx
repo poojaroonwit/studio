@@ -27,7 +27,7 @@ function isoDate(daysFromNow = 0) {
   return date.toISOString().slice(0, 10);
 }
 
-const baseInput = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:ring-blue-950';
+const baseInput = 'min-h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:focus:ring-blue-950';
 
 function Field({
   label,
@@ -44,7 +44,7 @@ function Field({
     <label className={cn('grid gap-1.5 text-sm font-semibold text-slate-800 dark:text-slate-200', className)}>
       <span>{label}</span>
       {children}
-      {hint && <span className="text-xs font-normal text-slate-500">{hint}</span>}
+      {hint && <span className="text-xs font-normal text-muted-foreground">{hint}</span>}
     </label>
   );
 }
@@ -207,16 +207,16 @@ export function ExpenseCreateForm({
   }
 
   return (
-    <section className="border-b border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-950" aria-labelledby="expense-create-heading">
+    <section className="border-b border-border bg-muted/40 dark:border-slate-800 dark:bg-slate-950" aria-labelledby="expense-create-heading">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">New request</p>
-            <h2 id="expense-create-heading" className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-50">
+            <h2 id="expense-create-heading" className="mt-1 text-xl font-bold text-foreground dark:text-slate-50">
               {resource === 'advances' ? 'Request an employee advance' : resource === 'claims' ? 'Create an expense claim' : 'Plan business travel'}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900">
+          <button type="button" onClick={onClose} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900">
             Close form
           </button>
         </div>
@@ -288,7 +288,7 @@ export function ExpenseCreateForm({
               </Field>
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Expense items</h3>
+                  <h3 className="text-sm font-bold text-foreground dark:text-slate-100">Expense items</h3>
                   <button type="button" onClick={() => setItems(current => [...current, {
                     categoryId: summary.categories[0]?.id || '',
                     expenseDate: isoDate(),
@@ -302,7 +302,7 @@ export function ExpenseCreateForm({
                     <PlusIcon className="h-4 w-4" /> Add expense
                   </button>
                 </div>
-                <div className="mt-2 divide-y divide-slate-200 border-y border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                <div className="mt-2 divide-y divide-slate-200 border-y border-border dark:divide-slate-800 dark:border-slate-800">
                   {items.map((item, index) => (
                     <div key={index} className="grid gap-3 py-4 sm:grid-cols-2 lg:grid-cols-4">
                       <Field label="Category">
@@ -396,8 +396,8 @@ export function ExpenseCreateForm({
           )}
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-6 flex flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50/95 py-4 backdrop-blur sm:flex-row sm:justify-end dark:border-slate-800 dark:bg-slate-950/95">
-          <button type="button" disabled={busy} onClick={() => create(true)} className="min-h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+        <div className="sticky bottom-0 z-10 mt-6 flex flex-col-reverse gap-2 border-t border-border bg-muted/40/95 py-4 backdrop-blur sm:flex-row sm:justify-end dark:border-slate-800 dark:bg-slate-950/95">
+          <button type="button" disabled={busy} onClick={() => create(true)} className="min-h-11 rounded-lg border border-input bg-white px-4 text-sm font-semibold text-foreground hover:bg-muted/40 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
             {busy ? 'Saving your request…' : 'Save draft'}
           </button>
           <button type="button" disabled={busy} onClick={() => create(false)} className="min-h-11 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">

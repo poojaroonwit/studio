@@ -40,7 +40,13 @@ function sameMinute(left: string, right: unknown) {
 }
 
 function errorResponse(error: unknown, fallback: string) {
-  return NextResponse.json({ error: error instanceof Error ? error.message : fallback }, { status: 400 });
+  const message = error instanceof Error ? error.message : fallback;
+  if (message === 'NO_APPROVER') {
+    return NextResponse.json({
+      error: 'No manager approver is linked to your employee record. Contact the People team before submitting this request.',
+    }, { status: 409 });
+  }
+  return NextResponse.json({ error: message }, { status: 400 });
 }
 
 export async function createMobileAttendanceCorrection(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {

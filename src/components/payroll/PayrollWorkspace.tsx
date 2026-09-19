@@ -232,13 +232,13 @@ export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
   return (
     <main
       id="payroll-main"
-      className="min-h-full bg-[#f7f8fa] text-slate-950 dark:bg-[#0b1019] dark:text-slate-50"
+      className="min-h-full bg-background text-foreground"
     >
       {resource !== "runs" &&
         resource !== "payslips" &&
         resource !== "compensation" &&
         resource !== "benefits" && (
-          <div className="border-b border-slate-200 bg-[#f1f4f7] px-4 pb-1 pt-2 sm:px-6 lg:px-8 dark:border-slate-800 dark:bg-[#111824]">
+          <div className="border-b border-border/60 bg-muted/20 px-4 pb-1 pt-2 sm:px-6 lg:px-8">
             <div className="w-full">
               <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
@@ -252,7 +252,7 @@ export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
                     {meta.description}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <ShieldCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                   <span>
                     {t("payroll.headerCompanyScoped", "Company scoped")}
@@ -1050,7 +1050,7 @@ function OverviewView({
   return (
     <div className="space-y-3">
       <section
-        className="flex flex-wrap items-center border-y border-slate-200 bg-white text-sm dark:border-slate-800 dark:bg-[#07111f]"
+        className="flex flex-wrap items-center border-y border-border/60 bg-card text-sm "
         aria-label={thai ? "สรุปรอบบัญชีเงินเดือน" : "Payroll period summary"}
       >
         {[
@@ -1094,19 +1094,19 @@ function OverviewView({
             key={label}
             className={cn(
               "flex min-h-11 min-w-0 items-center gap-2 px-3",
-              index > 0 && "border-l border-slate-200 dark:border-slate-800",
+              index > 0 && "border-l border-border/60",
             )}
           >
             <Icon
-              className="h-4 w-4 shrink-0 text-slate-500"
+              className="h-4 w-4 shrink-0 text-muted-foreground"
               aria-hidden="true"
             />
-            <span className="text-[13px] leading-4 text-slate-500">
+            <span className="text-[13px] leading-4 text-muted-foreground">
               {label}:
             </span>
             <strong
               className={cn(
-                "truncate text-[13px] font-semibold leading-4 tabular-nums text-slate-900 dark:text-slate-100",
+                "truncate text-[13px] font-semibold leading-4 tabular-nums text-foreground",
                 valueClass,
               )}
             >
@@ -1117,7 +1117,7 @@ function OverviewView({
       </section>
 
       <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="border border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-[#07111f]">
+        <aside className="border border-border bg-card px-4 py-4 ">
           <h2 className="text-sm font-bold">
             {thai ? "ความพร้อมในการตั้งค่า" : "Setup readiness"}
           </h2>
@@ -1138,7 +1138,7 @@ function OverviewView({
               <strong className="text-3xl font-bold tracking-[-0.04em] tabular-nums">
                 {readiness}%
               </strong>
-              <span className="mt-1 text-[10px] font-medium text-slate-500">
+              <span className="mt-1 text-[10px] font-medium text-muted-foreground">
                 {readiness === 100
                   ? thai
                     ? "ตั้งค่าพร้อมแล้ว"
@@ -1150,7 +1150,7 @@ function OverviewView({
             </div>
             <dl className="space-y-3 text-[13px] leading-4">
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "ตัดรอบล่าสุด" : "Last cutoff"}
                 </dt>
                 <dd className="mt-0.5 font-semibold">
@@ -1158,7 +1158,7 @@ function OverviewView({
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "พนักงานในรอบนี้" : "Employees in scope"}
                 </dt>
                 <dd className="mt-0.5 font-semibold tabular-nums">
@@ -1166,7 +1166,7 @@ function OverviewView({
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">
+                <dt className="text-muted-foreground">
                   {thai ? "วันจ่ายเงินเดือน" : "Pay date"}
                 </dt>
                 <dd className="mt-0.5 font-semibold">
@@ -1176,8 +1176,8 @@ function OverviewView({
             </dl>
           </div>
 
-          <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-            <p className="text-xs text-slate-500">{reviewerTitle}</p>
+          <div className="mt-5 border-t border-slate-200 pt-4 ">
+            <p className="text-xs text-muted-foreground">{reviewerTitle}</p>
             <div className="mt-2 flex items-center gap-3">
               <span
                 className={cn(
@@ -1189,7 +1189,7 @@ function OverviewView({
               </span>
               <div>
                 <p className="text-sm font-semibold">{reviewerName}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {thai ? "หน้าที่: " : "Role: "}
                   {String(
                     summary.reviewOwnerRole ||
@@ -1199,7 +1199,7 @@ function OverviewView({
                 </p>
               </div>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-muted-foreground">
               {thai ? "อัปเดตล่าสุด" : "Last reviewed"}
             </p>
             <p className="mt-0.5 text-xs font-medium">
@@ -1234,7 +1234,7 @@ function OverviewView({
           <Button
             onClick={onResolve}
             disabled={blockers === 0}
-            className="mt-4 min-h-11 w-full justify-between bg-blue-600 text-white hover:bg-blue-500"
+            className="mt-4 min-h-11 w-full justify-between"
           >
             <span className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
@@ -1249,7 +1249,7 @@ function OverviewView({
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="mt-4 border-t border-slate-200 pt-4 ">
             <h3 className="text-xs font-bold">
               {thai ? "ความคืบหน้ารอบบัญชี" : "Payroll progress"}
             </h3>
@@ -1266,7 +1266,7 @@ function OverviewView({
                         aria-hidden="true"
                         className={cn(
                           "absolute left-[13px] top-7 h-6 w-px",
-                          state.completed ? "bg-emerald-400" : "bg-slate-700",
+                          state.completed ? "bg-emerald-400" : "bg-muted-foreground/50",
                         )}
                       />
                     )}
@@ -1277,7 +1277,7 @@ function OverviewView({
                           ? "bg-emerald-500"
                           : state.active
                             ? "bg-blue-600 ring-4 ring-blue-500/15"
-                            : "bg-slate-600",
+                            : "bg-muted-foreground",
                       )}
                     >
                       {state.completed ? (
@@ -1296,7 +1296,7 @@ function OverviewView({
                           ? "text-emerald-600 dark:text-emerald-300"
                           : state.active
                             ? "text-blue-600 dark:text-blue-300"
-                            : "text-slate-500",
+                            : "text-muted-foreground",
                       )}
                     >
                       {state.label === "done"
@@ -1318,7 +1318,7 @@ function OverviewView({
           </div>
         </aside>
 
-        <div className="min-w-0 border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-[#07111f]">
+        <div className="min-w-0 border border-border bg-card px-5 py-4 ">
           <section>
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-base font-bold">
@@ -1337,7 +1337,7 @@ function OverviewView({
             </div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[760px] text-left text-[13px] leading-4">
-                <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900">
+                <thead className="bg-muted/40 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">
                       {thai ? "รายการทางการเงิน" : "Financial item"}
@@ -1363,7 +1363,7 @@ function OverviewView({
                       <tr
                         key={row.label}
                         className={cn(
-                          "border-b border-slate-200 dark:border-slate-800",
+                          "border-b border-border",
                           row.emphasis &&
                             "border-t-2 border-t-slate-400 font-bold dark:border-t-slate-500",
                         )}
@@ -1372,7 +1372,7 @@ function OverviewView({
                         <td className="px-3 py-2.5 text-right tabular-nums">
                           {money(row.current)}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
                           {money(row.previous)}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums">
@@ -1398,7 +1398,7 @@ function OverviewView({
             </div>
           </section>
 
-          <div className="mt-4 grid border-t border-slate-200 pt-4 lg:grid-cols-2 lg:divide-x lg:divide-slate-200 dark:border-slate-800 dark:lg:divide-slate-800">
+          <div className="mt-4 grid border-t border-slate-200 pt-4 lg:grid-cols-2 lg:divide-x lg:divide-slate-200  dark:lg:divide-slate-800">
             <section className="min-w-0 lg:pr-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold">
@@ -1438,7 +1438,7 @@ function OverviewView({
                         <p className="truncate text-[13px] font-semibold leading-4">
                           {String(issue.reason || issue.employee_name)}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {String(
                             issue.required_action || issue.source_module || "",
                           )}
@@ -1528,7 +1528,7 @@ function OverviewView({
             </section>
           </div>
 
-          <section className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <section className="mt-4 border-t border-slate-200 pt-4 ">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold">
                 {thai
@@ -1547,7 +1547,7 @@ function OverviewView({
             {data.records.length ? (
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[700px] text-left text-[13px] leading-4">
-                  <thead className="bg-slate-50 text-xs text-slate-500 dark:bg-slate-900">
+                  <thead className="bg-muted/40 text-xs text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2 font-medium">
                         {thai ? "งวดเงินเดือน" : "Period"}
@@ -1571,12 +1571,12 @@ function OverviewView({
                     {data.records.slice(0, 5).map((row, index) => (
                       <tr
                         key={String(row.id || index)}
-                        className="border-b border-slate-200 dark:border-slate-800"
+                        className="border-b border-border"
                       >
                         <td className="px-3 py-2 font-semibold">
                           {String(row.period_name)}
                         </td>
-                        <td className="px-3 py-2 text-slate-500">
+                        <td className="px-3 py-2 text-muted-foreground">
                           {String(row.pay_date_label || date(row.pay_date))}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">

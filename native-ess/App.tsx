@@ -73,6 +73,7 @@ export default function App() {
   const [locked, setLocked] = useState(false)
   const [loadMoreTick, setLoadMoreTick] = useState(0)
   const [fullPage, setFullPage] = useState(false)
+  const [requestComposerPending, setRequestComposerPending] = useState(false)
   const [accountSection, setAccountSection] = useState<AccountSection>('menu')
   const lastLoadMoreAt = useRef(0)
   const scrollRef = useRef<ScrollView>(null)
@@ -290,6 +291,7 @@ export default function App() {
 
   const navigateTab = (next: Tab) => {
     setFullPage(false)
+    if (next !== 'requests') setRequestComposerPending(false)
     setAccountSection('menu')
     setTab(next)
     requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }))
@@ -337,11 +339,28 @@ export default function App() {
   }
 
   const screen = tab === 'home'
-    ? <HomeScreen data={data} setTab={navigateTab} account={account} reload={load} offline={offline} />
+    ? <HomeScreen
+        data={data}
+        setTab={navigateTab}
+        openNewRequest={() => {
+          setRequestComposerPending(true)
+          navigateTab('requests')
+        }}
+        account={account}
+        reload={load}
+        offline={offline}
+      />
     : tab === 'time'
       ? <TimeScreen data={data} reload={load} loadMoreTick={loadMoreTick} offline={offline} />
       : tab === 'requests'
-        ? <RequestsScreen data={data} reload={load} loadMoreTick={loadMoreTick} onFullPageChange={setFullPage} />
+        ? <RequestsScreen
+            data={data}
+            reload={load}
+            loadMoreTick={loadMoreTick}
+            onFullPageChange={setFullPage}
+            openNewRequest={requestComposerPending}
+            onNewRequestOpened={() => setRequestComposerPending(false)}
+          />
         : tab === 'documents'
           ? <DocumentsScreen data={data} loadMoreTick={loadMoreTick} />
           : <AccountScreen data={data} account={account} appIdentity={appIdentity} reload={load} loadMoreTick={loadMoreTick} section={accountSection} onSectionChange={setAccountSection} onSignOut={() => void signOut()} onFullPageChange={setFullPage} />

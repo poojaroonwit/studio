@@ -323,7 +323,6 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
   const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
   const pending = data.leaveRequests.filter((item) => ['pending', 'submitted', 'pending_approval'].includes(normalizeStatus(item.status))).length
   const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
-  const leaveScale = Math.min(100, Math.round((leaveBalance / Math.max(leaveBalance + pending, 1)) * 100))
 
   return <>
     <AppText style={s.pageTitle}>Hi, {firstName}</AppText>
@@ -351,10 +350,10 @@ export function HomeScreen({ data, setTab, openNewRequest, account, reload, offl
     <Card>
       <View style={s.metricRow}>
         <View style={s.metricBlock}><AppText style={s.metric}>{leaveBalance}</AppText><Muted>leave days</Muted></View>
-        <View style={s.metricBlock}><AppText style={s.metric}>{pending}</AppText><Muted>pending</Muted></View>
+        <View style={s.metricBlock}><AppText style={s.metric}>{pending}</AppText><Muted>pending leave</Muted></View>
         <View style={s.metricBlock}><AppText style={s.metric}>{data.employee.unreadNotifications || 0}</AppText><Muted>unread</Muted></View>
       </View>
-      <View style={s.chartGroup}><ChartBar label="Attendance · recent 14" value={attendanceRate} /><ChartBar label="Leave availability" value={leaveScale} /></View>
+      <View style={s.chartGroup}><ChartBar label="Attendance · recent 14" value={attendanceRate} /></View>
     </Card>
   </>
 }

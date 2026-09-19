@@ -31,6 +31,17 @@ type Tab = 'home' | 'time' | 'requests' | 'documents' | 'account'
 type RequestKind = 'leave' | 'attendance' | 'general'
 export type AccountSection = 'menu' | 'profile' | 'bank-tax' | 'hr-chat' | 'notifications' | 'benefits' | 'contacts' | 'calendar' | 'security'
 
+type HrChatCategoryId = 'chat-payroll' | 'chat-leave' | 'chat-attendance' | 'chat-benefits' | 'chat-employment' | 'chat-general'
+
+const HR_CHAT_CATEGORIES: Array<{ id: HrChatCategoryId; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap }> = [
+  { id: 'chat-payroll', title: 'Payroll & salary', subtitle: 'Salary, payslips, tax or deductions', icon: 'wallet-outline' },
+  { id: 'chat-leave', title: 'Leave & time off', subtitle: 'Leave balance, policy or request questions', icon: 'calendar-outline' },
+  { id: 'chat-attendance', title: 'Attendance & shifts', subtitle: 'Clock in, clock out, schedule or corrections', icon: 'time-outline' },
+  { id: 'chat-benefits', title: 'Benefits', subtitle: 'Coverage, claims and employee benefits', icon: 'heart-outline' },
+  { id: 'chat-employment', title: 'Employment & documents', subtitle: 'Contracts, letters, profile or work documents', icon: 'document-text-outline' },
+  { id: 'chat-general', title: 'Other HR questions', subtitle: 'Anything else you want to ask HR', icon: 'chatbubble-ellipses-outline' },
+]
+
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
 
 function AppText({ children, style, ...props }: React.ComponentProps<typeof Text>) {
@@ -1242,9 +1253,9 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 }
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+  if (section === 'hr-chat') return <HrChatPage data={data} reload={reload} onBack={() => setSection('menu')} />
+  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
 }
-
 function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
   const [preferredName, setPreferredName] = useState(data.profile?.preferredName || '')
   const [phone, setPhone] = useState(data.profile?.phone || '')
@@ -1334,19 +1345,68 @@ function ProfileChangeHistory({ items, empty }: { items: EssBootstrap['profileCh
   </>
 }
 
-function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
+function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () => Promise<void>; onBack: () => void }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [categoryId, setCategoryId] = useState<HrChatCategoryId | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const history = data.supportRequests.filter((item) => item.category === 'chat').slice(0, 20)
-  const selected = selectedId ? history.find(item => item.id === selectedId) : undefined
+  const conversations = data.supportRequests
+    .filter((item) => item.category === 'chat' || item.category.startsWith('chat-'))
+    .slice(0, 30)
+  const category = categoryId ? HR_CHAT_CATEGORIES.find((item) => item.id === categoryId) : undefined
+  const selected = selectedId ? conversations.find((item) => item.id === selectedId) : undefined
+  const closed = selected ? ['resolved', 'closed', 'cancelled', 'canceled'].includes(normalizeStatus(selected.status)) : false
+
+  const categoryForRequest = (value?: string | null) => {
+    if (!value || value === 'chat') return HR_CHAT_CATEGORIES[HR_CHAT_CATEGORIES.length - 1]
+    return HR_CHAT_CATEGORIES.find((item) => item.id === value) || HR_CHAT_CATEGORIES[HR_CHAT_CATEGORIES.length - 1]
+  }
+
+  const openCategory = (next: HrChatCategoryId) => {
+    const active = conversations.find((item) => categoryForRequest(item.category).id === next && isActiveRequestStatus(item.status))
+    setCategoryId(next)
+    setSelectedId(active?.id || null)
+    setMessage('')
+  }
+
+  const openConversation = (request: EssBootstrap['supportRequests'][number]) => {
+    setCategoryId(categoryForRequest(request.category).id)
+    setSelectedId(request.id)
+    setMessage('')
+  }
+
+  const goBack = () => {
+    if (categoryId) {
+      setCategoryId(null)
+      setSelectedId(null)
+      setMessage('')
+      return
+    }
+    onBack()
+  }
+
+  useEffect(() => {
+    if (!categoryId) return
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setCategoryId(null)
+      setSelectedId(null)
+      setMessage('')
+      return true
+    })
+    return () => subscription.remove()
+  }, [categoryId])
 
   const send = async () => {
     const body = message.trim()
-    if (!body) return
+    if (!body || busy || !category || closed) return
     setBusy(true)
     try {
-      await essApi.createHrTicket('ESS chat', body, 'chat')
+      if (selectedId) {
+        await essApi.replyHrTicket(selectedId, body)
+      } else {
+        const created = await essApi.createHrTicket(`${category.title} · HR chat`, body, category.id)
+        setSelectedId(created.id)
+      }
       setMessage('')
       await reload()
     } catch (error) {
@@ -1356,16 +1416,93 @@ function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promis
     }
   }
 
-  return <><AppText style={s.pageTitle}>Talk to HR</AppText><Muted>Start a tracked conversation or open an existing request to continue it.</Muted>
-    <View style={s.spacer} />
-    {history.length === 0 ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR conversations yet" subtitle="Send a message below to start one." /> : history.map(item => <SupportRequestCard key={item.id} request={item} onPress={() => setSelectedId(item.id)} />)}
-    <Card><AppText style={s.cardTitle}>New conversation</AppText><TextInput style={[s.input, s.multi]} value={message} onChangeText={setMessage} multiline placeholder="Message HR" placeholderTextColor={colors.textSubtle} /><Button title="Send" icon="send-outline" busy={busy} disabled={!message.trim()} onPress={() => void send()} /></Card>
-    <FullScreenTaskModal visible={Boolean(selected)} contextLabel="Talk to HR" onClose={() => setSelectedId(null)}>
-      {selected ? <SupportRequestDetail request={selected} reload={reload} /> : null}
-    </FullScreenTaskModal>
-  </>
-}
+  if (!category) {
+    return <>
+      <Back label="Account" onPress={goBack} />
+      <AppText style={s.pageTitle}>Talk to HR</AppText>
+      <Muted>Choose a topic first. We’ll open a focused conversation with HR.</Muted>
+      <View style={s.spacer} />
+      <View style={s.hrCategoryList}>
+        {HR_CHAT_CATEGORIES.map((item) => {
+          const activeCount = conversations.filter((request) => categoryForRequest(request.category).id === item.id && isActiveRequestStatus(request.status)).length
+          return <Pressable key={item.id} accessibilityRole="button" style={({ pressed }) => [s.hrCategoryRow, pressed && s.controlPressed]} onPress={() => openCategory(item.id)}>
+            <View style={s.hrCategoryIcon}><Ionicons name={item.icon} size={22} color={colors.primary} /></View>
+            <View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText><Muted>{item.subtitle}</Muted></View>
+            {activeCount > 0 ? <View style={s.hrCategoryCount}><AppText style={s.hrCategoryCountText}>{activeCount}</AppText></View> : null}
+            <Ionicons name="chevron-forward" size={19} color={colors.textSubtle} />
+          </Pressable>
+        })}
+      </View>
+      {conversations.length > 0 ? <>
+        <AppText style={s.section}>Recent conversations</AppText>
+        {conversations.slice(0, 5).map((item) => <SupportRequestCard key={item.id} request={item} onPress={() => openConversation(item)} />)}
+      </> : null}
+    </>
+  }
 
+  const messages = selected ? [
+    { id: `${selected.id}-initial`, own: true, message: selected.description || selected.subject, createdAt: selected.submittedAt },
+    ...(selected.activities || []).map((activity) => ({
+      id: activity.id,
+      own: normalizeStatus(activity.action).includes('requester'),
+      message: activity.message || displayStatus(activity.action),
+      createdAt: activity.createdAt,
+    })),
+  ] : []
+
+  return <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={8}>
+    <View style={s.hrChatHeader}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back to HR topics" style={({ pressed }) => [s.hrChatBack, pressed && s.controlPressed]} onPress={goBack}>
+        <Ionicons name="arrow-back" size={22} color={colors.text} />
+      </Pressable>
+      <View style={s.hrChatAvatar}><Ionicons name={category.icon} size={21} color={colors.primary} /></View>
+      <View style={s.flexOne}>
+        <AppText style={s.hrChatHeaderTitle}>{category.title}</AppText>
+        <Muted style={s.hrChatHeaderSubtitle}>{selected?.requestNumber || 'HR Support'}{selected ? ` · ${displayStatus(selected.status)}` : ' · New conversation'}</Muted>
+      </View>
+      {selected ? <Pressable accessibilityRole="button" accessibilityLabel="Start another conversation" style={({ pressed }) => [s.hrChatNew, pressed && s.controlPressed]} onPress={() => { setSelectedId(null); setMessage('') }}><Ionicons name="add" size={22} color={colors.text} /></Pressable> : null}
+    </View>
+
+    <View style={s.hrChatThread}>
+      {messages.length === 0 ? <View style={s.hrChatIntro}>
+        <View style={s.hrChatIntroIcon}><Ionicons name="chatbubble-ellipses-outline" size={28} color={colors.primary} /></View>
+        <AppText style={s.cardTitle}>Start your {category.title.toLowerCase()} conversation</AppText>
+        <Muted style={s.centerText}>Your first message creates a tracked HR conversation. Replies stay together here like a messenger thread.</Muted>
+      </View> : messages.map((item) => <View key={item.id} style={[s.chatBubble, item.own ? s.chatBubbleOwn : s.chatBubbleHr]}>
+        <AppText>{item.message}</AppText>
+        {item.createdAt ? <Muted style={s.chatBubbleMeta}>{item.own ? 'You' : 'HR'} · {formatDateTime(item.createdAt)}</Muted> : null}
+      </View>)}
+      {busy ? <View style={s.chatTyping}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Sending…</Muted></View> : null}
+    </View>
+
+    {closed ? <View style={s.messengerClosed}>
+      <Ionicons name="checkmark-circle-outline" size={20} color={colors.textMuted} />
+      <Muted style={s.flexOne}>This conversation is closed.</Muted>
+      <Pressable accessibilityRole="button" onPress={() => { setSelectedId(null); setMessage('') }}><AppText style={s.linkText}>Start new</AppText></Pressable>
+    </View> : <View style={s.messengerComposer}>
+      <TextInput
+        style={s.messengerInput}
+        value={message}
+        onChangeText={setMessage}
+        multiline
+        maxLength={5000}
+        placeholder="Message HR"
+        placeholderTextColor={colors.textSubtle}
+        textAlignVertical="center"
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Send message"
+        accessibilityState={{ disabled: !message.trim() || busy, busy }}
+        disabled={!message.trim() || busy}
+        style={({ pressed }) => [s.messengerSend, (!message.trim() || busy) && s.messengerSendDisabled, pressed && s.pressed]}
+        onPress={() => void send()}
+      >
+        {busy ? <ActivityIndicator size="small" color={colors.primaryText} /> : <Ionicons name="send" size={19} color={colors.primaryText} />}
+      </Pressable>
+    </View>}
+  </KeyboardAvoidingView>
+}
 function CalendarPage({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
   const schedulePage = useProgressiveCount(data.schedule.length, loadMoreTick, 20)
   const visible = schedulePage.count
@@ -1625,9 +1762,30 @@ const s = StyleSheet.create({
   version: { textAlign: 'center', fontSize: typography.xs, lineHeight: 15, color: colors.textSubtle, marginTop: spacing.xs },
 
   chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: spacing.xs, marginVertical: spacing.sm },
-  chatBubble: { maxWidth: '88%', paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: radii.lg },
-  chatBubbleOwn: { alignSelf: 'flex-end', backgroundColor: colors.infoSurface },
-  chatBubbleHr: { alignSelf: 'flex-start', backgroundColor: colors.surfaceMuted },
+  chatBubble: { maxWidth: '84%', paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: 18, gap: 3 },
+  chatBubbleOwn: { alignSelf: 'flex-end', backgroundColor: colors.infoSurface, borderBottomRightRadius: 6 },
+  chatBubbleHr: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderBottomLeftRadius: 6 },
+  chatBubbleMeta: { fontSize: typography.xs, lineHeight: 14, marginTop: 2 },
+  hrCategoryList: { backgroundColor: colors.surface, borderRadius: radii.lg, overflow: 'hidden' },
+  hrCategoryRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  hrCategoryIcon: { width: 42, height: 42, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
+  hrCategoryCount: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: radii.pill, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  hrCategoryCountText: { color: colors.primaryText, fontSize: typography.xs, lineHeight: 14, fontWeight: '700' },
+  hrChatHeader: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  hrChatBack: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
+  hrChatAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
+  hrChatHeaderTitle: { fontSize: typography.md, lineHeight: 20, fontWeight: '700', letterSpacing: -0.2 },
+  hrChatHeaderSubtitle: { fontSize: typography.xs, lineHeight: 15 },
+  hrChatNew: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
+  hrChatThread: { minHeight: 430, justifyContent: 'flex-end', gap: 8, paddingVertical: spacing.md },
+  hrChatIntro: { minHeight: 310, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingHorizontal: spacing.lg },
+  hrChatIntroIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected, marginBottom: spacing.xs },
+  chatTyping: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: 9, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
+  messengerComposer: { minHeight: 58, flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, padding: 6, borderRadius: 24, backgroundColor: colors.surfaceMuted },
+  messengerInput: { flex: 1, minHeight: 46, maxHeight: 112, color: colors.text, backgroundColor: colors.surface, borderRadius: 21, paddingHorizontal: spacing.sm, paddingTop: 12, paddingBottom: 10, fontSize: typography.base, lineHeight: 20 },
+  messengerSend: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  messengerSendDisabled: { opacity: 0.42 },
+  messengerClosed: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
   unreadCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },
   linkText: { color: colors.accent, fontWeight: '600', fontSize: typography.sm, lineHeight: 16 },

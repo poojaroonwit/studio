@@ -237,8 +237,8 @@ function GuidedSetupView({ items, statuses, progress, progressLoading, selectedI
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
             <div
-              className="h-full rounded-full bg-primary transition-[width]"
-              style={{ width: `${Math.max(0, Math.min(100, progress?.percentage ?? 0))}%` }}
+              className="h-full w-full origin-left rounded-full bg-primary transition-transform"
+              style={{ transform: `scaleX(${Math.max(0, Math.min(100, progress?.percentage ?? 0)) / 100})` }}
             />
           </div>
         </div>

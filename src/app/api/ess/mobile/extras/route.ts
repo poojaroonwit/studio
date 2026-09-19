@@ -76,10 +76,25 @@ export async function GET(request: NextRequest) {
     ).catch(() => ({ rows: [] as DbRow[] })),
     pool.query(`SELECT value FROM "SystemSetting" WHERE key = 'essBenefitsConfiguration' LIMIT 1`),
     pool.query(
-      `SELECT id, request_number, category, subject, description, status, priority, submitted_at, created_at, updated_at
-         FROM employee_support_requests
-        WHERE employee_id = $1
-        ORDER BY COALESCE(submitted_at, created_at) DESC
+      `SELECT r.id, r.request_number, r.category, r.subject, r.description, r.status, r.priority,
+              r.submitted_at, r.created_at, r.updated_at,
+              COALESCE((
+                SELECT jsonb_agg(
+                  jsonb_build_object(
+                    'id', a.id,
+                    'action', a.action,
+                    'message', a.message,
+                    'createdAt', a.created_at
+                  )
+                  ORDER BY a.created_at ASC
+                )
+                FROM employee_support_activities a
+                WHERE a.request_id = r.id
+                  AND a.visibility = 'requester'
+              ), '[]'::jsonb) AS activities
+         FROM employee_support_requests r
+        WHERE r.employee_id = $1
+        ORDER BY COALESCE(r.submitted_at, r.created_at) DESC
         LIMIT 60`,
       [identity.employeeId],
     ).catch(() => ({ rows: [] as DbRow[] })),
@@ -114,6 +129,7 @@ export async function GET(request: NextRequest) {
       priority: text(row.priority) || 'normal',
       submittedAt: iso(row.submitted_at || row.created_at),
       updatedAt: iso(row.updated_at || row.submitted_at || row.created_at),
+      activities: Array.isArray(row.activities) ? row.activities : [],
     })),
   }, { headers: { 'Cache-Control': 'no-store' } });
 }

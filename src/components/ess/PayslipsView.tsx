@@ -72,11 +72,11 @@ export function PayslipsView() {
           </Button>
         </header>
 
-        {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">{error}</div>}
+        {error && <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
 
         {loading ? (
           <div className="grid min-h-56 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Loading payslips" /></div>
-        ) : items.length === 0 ? (
+        ) : error && items.length === 0 ? null : items.length === 0 ? (
           <section className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
             <FileText className="mx-auto h-9 w-9 text-muted-foreground" />
             <h2 className="mt-3 font-semibold">No released payslips yet</h2>

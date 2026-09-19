@@ -183,8 +183,8 @@ export function InternalOpportunitiesView() {
   }
 
   return (
-    <main className="min-h-full bg-background px-4 py-5 text-foreground sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-5">
+    <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7">
+      <div className="mx-auto max-w-[1440px] space-y-4">
         <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee growth</p>

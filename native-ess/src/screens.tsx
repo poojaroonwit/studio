@@ -83,6 +83,10 @@ function displayStatus(value?: string | null) {
   return normalized.replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
+function isActiveRequestStatus(value?: string | null) {
+  return ['draft', 'pending', 'submitted', 'pending_approval', 'returned_for_revision', 'waiting', 'processing'].includes(normalizeStatus(value))
+}
+
 function formatDate(value: Date) {
   const year = value.getFullYear()
   const month = String(value.getMonth() + 1).padStart(2, '0')
@@ -315,12 +319,16 @@ function useProgressiveCount(total: number, loadMoreTick: number, pageSize = 12)
   useEffect(() => {
     if (loadMoreTick > 0) setCount((current) => Math.min(total, current + pageSize))
   }, [loadMoreTick, pageSize, total])
-  return count
+  const loadMore = () => setCount((current) => Math.min(total, current + pageSize))
+  return { count, loadMore }
 }
 
-function PaginationFooter({ visible, total }: { visible: number; total: number }) {
+function PaginationFooter({ visible, total, onLoadMore }: { visible: number; total: number; onLoadMore: () => void }) {
   if (visible >= total) return null
-  return <View style={s.loadMore}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Loading more…</Muted></View>
+  return <Pressable accessibilityRole="button" style={({ pressed }) => [s.loadMore, pressed && s.controlPressed]} onPress={onLoadMore}>
+    <AppText style={s.linkText}>Load more</AppText>
+    <Ionicons name="chevron-down" size={17} color={colors.accent} />
+  </Pressable>
 }
 
 export function HomeScreen({ data, setTab, openNewRequest, openNotifications, account, reload, offline = false }: { data: EssBootstrap; setTab: (tab: Tab) => void; openNewRequest?: () => void; openNotifications?: () => void; account?: AccountIdentity | null; reload: () => Promise<void>; offline?: boolean }) {
@@ -328,9 +336,13 @@ export function HomeScreen({ data, setTab, openNewRequest, openNotifications, ac
   const recent = data.attendance.slice(0, 14)
   const present = recent.filter((item) => item.status === 'present' || item.status === 'late').length
   const attendanceRate = recent.length ? Math.round((present / recent.length) * 100) : 0
-  const pending = data.leaveRequests.filter((item) => ['pending', 'submitted', 'pending_approval'].includes(normalizeStatus(item.status))).length
+  const pending = [
+    ...data.leaveRequests,
+    ...data.attendanceCorrections,
+    ...data.profileChangeRequests,
+    ...data.supportRequests,
+  ].filter((item) => isActiveRequestStatus(item.status)).length
   const unread = Math.max(0, Number(data.employee.unreadNotifications || 0))
-  const needsAttention = pending + unread
   const leaveBalance = Math.max(0, Number(data.employee.leaveBalanceDays || 0))
 
   return <>
@@ -340,19 +352,30 @@ export function HomeScreen({ data, setTab, openNewRequest, openNotifications, ac
     <AppText style={s.section}>Today</AppText>
     <AttendanceActionCard data={data} reload={reload} offline={offline} onViewAttendance={() => setTab('time')} />
 
-    {needsAttention > 0 ? <Pressable
+    {pending > 0 ? <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${needsAttention} items need your attention`}
+      accessibilityLabel={`${pending} active request${pending === 1 ? '' : 's'}`}
       style={({ pressed }) => [s.attentionCard, pressed && s.controlPressed]}
-      onPress={() => pending > 0 ? setTab('requests') : openNotifications ? openNotifications() : setTab('account')}
+      onPress={() => setTab('requests')}
+    >
+      <View style={s.attentionIcon}><Ionicons name="clipboard-outline" size={20} color={colors.primary} /></View>
+      <View style={s.flexOne}>
+        <AppText style={s.cardTitle}>Request activity</AppText>
+        <Muted>{`${pending} request${pending === 1 ? '' : 's'} in progress or awaiting action`}</Muted>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+    </Pressable> : null}
+
+    {unread > 0 ? <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${unread} unread notification${unread === 1 ? '' : 's'}`}
+      style={({ pressed }) => [s.attentionCard, pressed && s.controlPressed]}
+      onPress={() => openNotifications ? openNotifications() : setTab('account')}
     >
       <View style={s.attentionIcon}><Ionicons name="notifications-outline" size={20} color={colors.primary} /></View>
       <View style={s.flexOne}>
-        <AppText style={s.cardTitle}>Needs your attention</AppText>
-        <Muted>{[
-          pending > 0 ? `${pending} request${pending === 1 ? '' : 's'} in progress` : null,
-          unread > 0 ? `${unread} unread notification${unread === 1 ? '' : 's'}` : null,
-        ].filter(Boolean).join(' · ')}</Muted>
+        <AppText style={s.cardTitle}>Unread notifications</AppText>
+        <Muted>{`${unread} notification${unread === 1 ? '' : 's'} waiting to be read`}</Muted>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
     </Pressable> : null}
@@ -396,7 +419,8 @@ function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap;
 }
 
 export function TimeScreen({ data, reload, loadMoreTick, offline = false, onFullPageChange }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number; offline?: boolean; onFullPageChange?: (active: boolean) => void }) {
-  const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
+  const attendancePage = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
+  const visible = attendancePage.count
   const [correctionId, setCorrectionId] = useState<string | null>(null)
 
   const openCorrection = (id: string) => {
@@ -437,7 +461,7 @@ export function TimeScreen({ data, reload, loadMoreTick, offline = false, onFull
 
     <AppText style={s.section}>Recent attendance</AppText>
     {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => openCorrection(row.id)} />)}
-    <PaginationFooter visible={visible} total={data.attendance.length} />
+    <PaginationFooter visible={visible} total={data.attendance.length} onLoadMore={attendancePage.loadMore} />
   </>
 }
 
@@ -553,10 +577,14 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   const [correctionRequestId, setCorrectionRequestId] = useState<string | null>(null)
   const [profileRequestId, setProfileRequestId] = useState<string | null>(null)
   const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
-  const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
-  const correctionVisible = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
-  const profileVisible = useProgressiveCount(data.profileChangeRequests.length, loadMoreTick, 10)
-  const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
+  const leavePage = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
+  const correctionPage = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
+  const profilePage = useProgressiveCount(data.profileChangeRequests.length, loadMoreTick, 10)
+  const supportPage = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
+  const visible = leavePage.count
+  const correctionVisible = correctionPage.count
+  const profileVisible = profilePage.count
+  const supportVisible = supportPage.count
   const leaveRequest = leaveRequestId ? data.leaveRequests.find(item => item.id === leaveRequestId) : undefined
   const correctionRequest = correctionRequestId ? data.attendanceCorrections.find(item => item.id === correctionRequestId) : undefined
   const profileRequest = profileRequestId ? data.profileChangeRequests.find(item => item.id === profileRequestId) : undefined
@@ -611,25 +639,25 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
 
     <AppText style={s.section}>Recent leave requests</AppText>
     {data.leaveRequests.length === 0 ? <EmptyState icon="document-text-outline" title="No leave requests yet" subtitle="Submitted leave requests and their latest status will appear here." /> : data.leaveRequests.slice(0, visible).map((request) => <LeaveRequestCard key={request.id} request={request} onPress={() => setLeaveRequestId(request.id)} />)}
-    <PaginationFooter visible={visible} total={data.leaveRequests.length} />
+    <PaginationFooter visible={visible} total={data.leaveRequests.length} onLoadMore={leavePage.loadMore} />
 
     <AppText style={s.section}>Attendance corrections</AppText>
     {data.attendanceCorrections.length === 0
       ? <EmptyState icon="time-outline" title="No attendance corrections yet" subtitle="Corrections you submit will remain visible here while HR reviews them." />
       : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} onPress={() => setCorrectionRequestId(request.id)} />)}
-    <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} />
+    <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} onLoadMore={correctionPage.loadMore} />
 
     <AppText style={s.section}>Account changes</AppText>
     {data.profileChangeRequests.length === 0
       ? <EmptyState icon="person-outline" title="No account change requests yet" subtitle="Profile, bank, and tax changes submitted from Account will appear here." />
       : data.profileChangeRequests.slice(0, profileVisible).map((request) => <ProfileChangeRequestSummaryCard key={request.id} request={request} onPress={() => setProfileRequestId(request.id)} />)}
-    <PaginationFooter visible={profileVisible} total={data.profileChangeRequests.length} />
+    <PaginationFooter visible={profileVisible} total={data.profileChangeRequests.length} onLoadMore={profilePage.loadMore} />
 
     <AppText style={s.section}>Recent HR requests</AppText>
     {data.supportRequests.length === 0
       ? <EmptyState icon="chatbubble-ellipses-outline" title="No HR requests yet" subtitle="Requests you submit to HR will remain visible here with their latest status." />
       : data.supportRequests.slice(0, supportVisible).map((request) => <SupportRequestCard key={request.id} request={request} onPress={() => setSupportRequestId(request.id)} />)}
-    <PaginationFooter visible={supportVisible} total={data.supportRequests.length} />
+    <PaginationFooter visible={supportVisible} total={data.supportRequests.length} onLoadMore={supportPage.loadMore} />
 
     <FullScreenTaskModal visible={Boolean(leaveRequest)} contextLabel="Leave request" onClose={() => setLeaveRequestId(null)}>
       {leaveRequest ? <LeaveRequestDetail request={leaveRequest} reload={reload} onClose={() => setLeaveRequestId(null)} /> : null}
@@ -853,7 +881,7 @@ function GeneralRequestForm({ reload, onDone }: { reload: () => Promise<void>; o
   return <><AppText style={s.pageTitle}>HR request</AppText><Card><SelectField label="Category" value={category.charAt(0).toUpperCase() + category.slice(1)} onPress={() => setCategoryOpen(true)} /><Field label="Subject" value={subject} onChangeText={setSubject} placeholder="What do you need help with?" /><Field label="Details" value={message} onChangeText={setMessage} multiline placeholder="Add the information HR needs" /><Button title="Submit HR request" busy={busy} onPress={() => void submit()} /></Card><BottomDrawer visible={categoryOpen} title="Request category" onClose={() => setCategoryOpen(false)}>{categories.map((item) => <DrawerOption key={item} title={item.charAt(0).toUpperCase() + item.slice(1)} selected={category === item} onPress={() => { setCategory(item); setCategoryOpen(false) }} />)}</BottomDrawer></>
 }
 
-function BankTaxRequestForm({ data, reload, onDone }: { data: EssBootstrap; reload: () => Promise<void>; onDone: () => void }) {
+function BankTaxRequestForm({ data, reload }: { data: EssBootstrap; reload: () => Promise<void> }) {
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
   const [taxId, setTaxId] = useState('')
@@ -887,7 +915,6 @@ function BankTaxRequestForm({ data, reload, onDone }: { data: EssBootstrap; relo
       setReason('')
       await reload()
       Alert.alert('Bank & tax', 'Change request submitted for approval.')
-      onDone()
     } catch (error) {
       Alert.alert('Bank & tax', error instanceof Error ? error.message : 'Unable to submit change request')
     } finally {
@@ -1049,11 +1076,14 @@ function ProfileChangeRequestDetail({ request }: { request: EssBootstrap['profil
 
 function SupportRequestCard({ request, onPress }: { request: EssBootstrap['supportRequests'][number]; onPress?: () => void }) {
   const category = request.category ? request.category.charAt(0).toUpperCase() + request.category.slice(1) : 'General'
-  return <Pressable accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}><Card>
+  const content = <Card>
     <View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{request.subject}</AppText><Muted>{request.requestNumber || 'HR request'} · {category}{request.submittedAt ? ` · ${formatDateTime(request.submittedAt)}` : ''}</Muted></View><StatusPill value={request.status} /></View>
     {request.description ? <Muted numberOfLines={3}>{request.description}</Muted> : null}
     {onPress ? <View style={s.infoRow}><AppText style={s.linkText}>View request</AppText><Ionicons name="chevron-forward" size={16} color={colors.accent} /></View> : null}
-  </Card></Pressable>
+  </Card>
+  return onPress
+    ? <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [pressed && s.pressed]}>{content}</Pressable>
+    : <View>{content}</View>
 }
 
 function SupportRequestDetail({ request, reload }: { request: EssBootstrap['supportRequests'][number]; reload: () => Promise<void> }) {
@@ -1097,7 +1127,8 @@ function SupportRequestDetail({ request, reload }: { request: EssBootstrap['supp
 export function DocumentsScreen({ data, loadMoreTick, reload }: { data: EssBootstrap; loadMoreTick: number; reload?: () => Promise<void> }) {
   const [opening, setOpening] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
-  const visible = useProgressiveCount(data.documents.length, loadMoreTick, 12)
+  const documentPage = useProgressiveCount(data.documents.length, loadMoreTick, 12)
+  const visible = documentPage.count
 
   const open = async (id: string) => {
     if (opening || acknowledging) return
@@ -1160,7 +1191,7 @@ export function DocumentsScreen({ data, loadMoreTick, reload }: { data: EssBoots
         </View>
       </Card>
     })}
-    <PaginationFooter visible={visible} total={data.documents.length} />
+    <PaginationFooter visible={visible} total={data.documents.length} onLoadMore={documentPage.loadMore} />
   </>
 }
 
@@ -1172,6 +1203,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
   }, [section, onFullPageChange])
 
   const openSection = (next: AccountSection) => {
+    onFullPageChange?.(next !== 'menu')
     onSectionChange(next)
   }
 
@@ -1205,7 +1237,7 @@ export function AccountScreen({ data, account, appIdentity, reload, onSignOut, l
 }
 
 function AccountSubpage({ section, setSection, data, account, reload, loadMoreTick }: { section: AccountSection; setSection: (value: AccountSection) => void; data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void>; loadMoreTick: number }) {
-  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} onDone={() => setSection('menu')} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
+  return <><Back label="Account" onPress={() => setSection('menu')} />{section === 'profile' ? <ProfilePage data={data} account={account} reload={reload} /> : null}{section === 'bank-tax' ? <BankTaxRequestForm data={data} reload={reload} /> : null}{section === 'hr-chat' ? <HrChatPage data={data} reload={reload} /> : null}{section === 'calendar' ? <CalendarPage data={data} loadMoreTick={loadMoreTick} /> : null}{section === 'notifications' ? <NotificationsPage data={data} reload={reload} loadMoreTick={loadMoreTick} /> : null}{section === 'benefits' ? <BenefitsPage data={data} /> : null}{section === 'contacts' ? <ContactsPage data={data} reload={reload} /> : null}{section === 'security' ? <SecurityPage /> : null}</>
 }
 
 function ProfilePage({ data, account, reload }: { data: EssBootstrap; account?: AccountIdentity | null; reload: () => Promise<void> }) {
@@ -1330,16 +1362,36 @@ function HrChatPage({ data, reload }: { data: EssBootstrap; reload: () => Promis
 }
 
 function CalendarPage({ data, loadMoreTick }: { data: EssBootstrap; loadMoreTick: number }) {
-  const visible = useProgressiveCount(data.schedule.length, loadMoreTick, 20)
-  return <><AppText style={s.pageTitle}>Calendar</AppText><Muted>Your assigned shifts and work locations.</Muted><View style={s.spacer} />{data.schedule.length === 0 ? <EmptyState icon="calendar-outline" title="No schedule published" /> : data.schedule.slice(0, visible).map((item) => <Card key={item.id}><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.date}</AppText><Muted>{item.startTime || '—'} – {item.endTime || '—'}</Muted>{item.location ? <Muted>{item.location}</Muted> : null}</View><StatusPill value={item.status} /></View></Card>)}<PaginationFooter visible={visible} total={data.schedule.length} /></>
+  const schedulePage = useProgressiveCount(data.schedule.length, loadMoreTick, 20)
+  const visible = schedulePage.count
+  return <><AppText style={s.pageTitle}>Calendar</AppText><Muted>Your assigned shifts and work locations.</Muted><View style={s.spacer} />{data.schedule.length === 0 ? <EmptyState icon="calendar-outline" title="No schedule published" /> : data.schedule.slice(0, visible).map((item) => <Card key={item.id}><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.date}</AppText><Muted>{item.startTime || '—'} – {item.endTime || '—'}</Muted>{item.location ? <Muted>{item.location}</Muted> : null}</View><StatusPill value={item.status} /></View></Card>)}<PaginationFooter visible={visible} total={data.schedule.length} onLoadMore={schedulePage.loadMore} /></>
 }
 
 function NotificationsPage({ data, reload, loadMoreTick }: { data: EssBootstrap; reload: () => Promise<void>; loadMoreTick: number }) {
   const [busy, setBusy] = useState<string | null>(null)
-  const visible = useProgressiveCount(data.notifications.length, loadMoreTick, 15)
+  const notificationPage = useProgressiveCount(data.notifications.length, loadMoreTick, 15)
+  const visible = notificationPage.count
   const read = async (id: string) => { setBusy(id); try { await essApi.markNotificationRead(id); await reload() } catch (error) { Alert.alert('Notifications', error instanceof Error ? error.message : 'Unable to update') } finally { setBusy(null) } }
   const readAll = async () => { setBusy('all'); try { await essApi.markAllNotificationsRead(); await reload() } catch (error) { Alert.alert('Notifications', error instanceof Error ? error.message : 'Unable to update') } finally { setBusy(null) } }
-  return <><View style={s.between}><AppText style={s.pageTitle}>Notifications</AppText>{data.notifications.some((item) => !item.read) ? <Pressable disabled={Boolean(busy)} onPress={() => void readAll()}><AppText style={s.linkText}>Mark all read</AppText></Pressable> : null}</View>{data.notifications.length === 0 ? <EmptyState icon="notifications-outline" title="No notifications" /> : data.notifications.slice(0, visible).map((item) => <Pressable key={item.id} disabled={Boolean(busy) || item.read} onPress={() => void read(item.id)}><Card style={!item.read ? s.unreadCard : undefined}><View style={s.between}><View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText>{item.body ? <Muted>{item.body}</Muted> : null}<Muted>{formatDateTime(item.createdAt)}</Muted></View>{busy === item.id ? <ActivityIndicator /> : !item.read ? <View style={s.unreadDot} /> : null}</View></Card></Pressable>)}<PaginationFooter visible={visible} total={data.notifications.length} /></>
+
+  return <>
+    <View style={s.between}>
+      <AppText style={s.pageTitle}>Notifications</AppText>
+      {data.notifications.some((item) => !item.read) ? <Pressable accessibilityRole="button" disabled={Boolean(busy)} onPress={() => void readAll()}><AppText style={s.linkText}>Mark all read</AppText></Pressable> : null}
+    </View>
+    {data.notifications.length === 0 ? <EmptyState icon="notifications-outline" title="No notifications" /> : data.notifications.slice(0, visible).map((item) => {
+      const content = <Card style={!item.read ? s.unreadCard : undefined}>
+        <View style={s.between}>
+          <View style={s.flexOne}><AppText style={s.cardTitle}>{item.title}</AppText>{item.body ? <Muted>{item.body}</Muted> : null}<Muted>{formatDateTime(item.createdAt)}</Muted></View>
+          {busy === item.id ? <ActivityIndicator /> : !item.read ? <View style={s.unreadDot} /> : <Ionicons name="checkmark" size={18} color={colors.textSubtle} />}
+        </View>
+      </Card>
+      return item.read
+        ? <View key={item.id}>{content}</View>
+        : <Pressable key={item.id} accessibilityRole="button" disabled={Boolean(busy)} onPress={() => void read(item.id)}>{content}</Pressable>
+    })}
+    <PaginationFooter visible={visible} total={data.notifications.length} onLoadMore={notificationPage.loadMore} />
+  </>
 }
 
 function BenefitsPage({ data }: { data: EssBootstrap }) {

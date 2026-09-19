@@ -9,6 +9,22 @@ export type AttendanceRow = {
   status: string
 }
 
+export type AttendanceCorrectionRow = {
+  id: string
+  attendanceId: string
+  workDate: string
+  originalCheckIn?: string
+  originalCheckOut?: string
+  requestedCheckIn?: string
+  requestedCheckOut?: string
+  reason?: string
+  status: string
+  reviewerComment?: string
+  reviewedAt?: string
+  submittedAt?: string
+  updatedAt?: string
+}
+
 export type LeaveRequestRow = {
   id: string
   type: string
@@ -147,6 +163,7 @@ export type EssBootstrap = {
     unreadNotifications?: number
   }
   attendance: AttendanceRow[]
+  attendanceCorrections: AttendanceCorrectionRow[]
   leaveRequests: LeaveRequestRow[]
   leavePolicies: LeavePolicyOption[]
   documents: EssDocument[]
@@ -162,6 +179,7 @@ export type EssBootstrap = {
 }
 
 type EssExtras = {
+  attendanceCorrections?: AttendanceCorrectionRow[]
   schedule?: EssScheduleItem[]
   announcements?: EssAnnouncement[]
   benefits?: EssBenefit[]
@@ -245,6 +263,9 @@ export const essApi = {
     return {
       ...data,
       attendance: Array.isArray(data.attendance) ? data.attendance : [],
+      attendanceCorrections: Array.isArray(extras.attendanceCorrections)
+        ? extras.attendanceCorrections
+        : Array.isArray(data.attendanceCorrections) ? data.attendanceCorrections : [],
       leaveRequests: Array.isArray(data.leaveRequests) ? data.leaveRequests : [],
       leavePolicies: Array.isArray(data.leavePolicies) ? data.leavePolicies : [],
       documents: Array.isArray(data.documents) ? data.documents : [],

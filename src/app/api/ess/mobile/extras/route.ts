@@ -88,7 +88,17 @@ export async function GET(request: NextRequest) {
                     'id', a.id,
                     'action', a.action,
                     'message', a.message,
-                    'createdAt', a.created_at
+                    'createdAt', a.created_at,
+                    'attachment', CASE
+                      WHEN a.metadata ? 'attachment' THEN jsonb_build_object(
+                        'id', a.id,
+                        'name', a.metadata->'attachment'->>'name',
+                        'mimeType', a.metadata->'attachment'->>'mimeType',
+                        'size', a.metadata->'attachment'->'size',
+                        'kind', a.metadata->'attachment'->>'kind'
+                      )
+                      ELSE NULL
+                    END
                   )
                   ORDER BY a.created_at ASC
                 )

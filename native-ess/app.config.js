@@ -26,7 +26,12 @@ module.exports = {
       '@react-native-firebase/analytics',
       ['expo-secure-store', { configureAndroidBackup: false }],
       ['expo-local-authentication', { faceIDPermission: 'Allow Obsi People ESS to use Face ID to protect your employee information.' }],
-      ['expo-location', { locationWhenInUsePermission: 'Allow Obsi People ESS to use your location when your organization requires location verification for clock in or clock out.' }]
+      ['expo-location', { locationWhenInUsePermission: 'Allow Obsi People ESS to use your location when your organization requires location verification for clock in or clock out.' }],
+      ['expo-image-picker', {
+        cameraPermission: 'Allow Obsi People ESS to use your camera to attach a photo to an HR conversation.',
+        photosPermission: 'Allow Obsi People ESS to access photos you choose to share with HR.',
+        microphonePermission: false
+      }]
     ],
     extra: {
       apiUrl: process.env.EXPO_PUBLIC_HRIVE_API_URL || 'https://people.outborn.co',

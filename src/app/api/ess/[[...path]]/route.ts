@@ -13,7 +13,9 @@ import {
   createMobileLeaveRequest,
   createMobileProfileChangeRequest,
   createMobileSupportTicket,
+  getMobileSupportAttachmentUrl,
   replyMobileSupportTicket,
+  uploadMobileSupportAttachment,
 } from '@/lib/ess/mobile-request-actions';
 
 export const dynamic = 'force-dynamic';
@@ -470,6 +472,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     catch (error) { console.error('ESS bootstrap failed', error); return jsonError('Unable to load employee self-service', 500); }
   }
   if (path[0] === 'documents' && resourceId && path[2] === 'download') return documentLink(request, identity, resourceId);
+  const ticketId = path[2];
+  const activityId = path[4];
+  if (path[0] === 'hr-support' && path[1] === 'tickets' && ticketId && path[3] === 'attachments' && activityId) {
+    return getMobileSupportAttachmentUrl(identity, ticketId, activityId);
+  }
   return jsonError('Not found', 404);
 }
 
@@ -478,8 +485,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const authResult = await requireIdentity(request);
   if ('response' in authResult) return authResult.response;
   const { identity } = authResult;
-  const body = await bodyJson(request) || {};
   const requestId = path[2];
+  if (path[0] === 'hr-support' && path[1] === 'tickets' && requestId && path[3] === 'attachments') {
+    try {
+      return uploadMobileSupportAttachment(identity, requestId, await request.formData());
+    } catch (error) {
+      console.error('ESS HR support attachment upload failed', error);
+      return jsonError('Unable to attach file', 400);
+    }
+  }
+  const body = await bodyJson(request) || {};
   const notificationId = path[1];
   if (path.join('/') === 'attendance/clock-in') return clock(identity, 'in', body, request);
   if (path.join('/') === 'attendance/clock-out') return clock(identity, 'out', body, request);

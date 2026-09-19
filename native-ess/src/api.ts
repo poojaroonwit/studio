@@ -78,11 +78,27 @@ export type EssNotification = {
   createdAt?: string
 }
 
+export type SupportAttachmentRow = {
+  id: string
+  name: string
+  mimeType?: string
+  size?: number
+  kind?: 'image' | 'file'
+}
+
 export type SupportActivityRow = {
   id: string
   action: string
   message?: string
   createdAt?: string
+  attachment?: SupportAttachmentRow
+}
+
+export type HrAttachmentUpload = {
+  uri: string
+  name: string
+  mimeType: string
+  size?: number
 }
 
 export type SupportRequestRow = {
@@ -224,6 +240,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!token) throw new EssApiError('Sign in is required', 401, 'AUTH_REQUIRED')
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
+  const isFormDataBody = typeof FormData !== 'undefined' && init?.body instanceof FormData
   try {
     const res = await fetch(`${apiUrl}${path}`, {
       ...init,
@@ -231,7 +248,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
-        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(init?.body && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
         ...(init?.headers || {}),
       },
     })
@@ -381,6 +398,21 @@ export const essApi = {
     method: 'POST',
     body: JSON.stringify({ message }),
   }),
+  uploadHrTicketAttachment: (id: string, attachment: HrAttachmentUpload) => {
+    const formData = new FormData()
+    formData.append('file', {
+      uri: attachment.uri,
+      name: attachment.name,
+      type: attachment.mimeType,
+    } as unknown as Blob)
+    return request<{ activity: SupportActivityRow }>(`/api/ess/hr-support/tickets/${encodeURIComponent(id)}/attachments`, {
+      method: 'POST',
+      body: formData,
+    })
+  },
+  hrTicketAttachmentUrl: (ticketId: string, activityId: string) => request<{ url: string }>(
+    `/api/ess/hr-support/tickets/${encodeURIComponent(ticketId)}/attachments/${encodeURIComponent(activityId)}`,
+  ),
 }
 
 export const peopleApiUrl = apiUrl

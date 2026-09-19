@@ -17,6 +17,8 @@ import {
   View,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
+import * as DocumentPicker from 'expo-document-picker'
+import * as ImagePicker from 'expo-image-picker'
 import * as LocalAuthentication from 'expo-local-authentication'
 import * as Location from 'expo-location'
 import * as SecureStore from 'expo-secure-store'
@@ -53,6 +55,46 @@ const HR_CHAT_CATEGORIES: Array<{ id: HrChatCategoryId; title: string; subtitle:
   { id: 'chat-employment', title: 'Employment & documents', subtitle: 'Contracts, letters, profile or work documents', icon: 'document-text-outline' },
   { id: 'chat-general', title: 'Other HR questions', subtitle: 'Anything else you want to ask HR', icon: 'chatbubble-ellipses-outline' },
 ]
+
+type PendingHrAttachment = {
+  id: string
+  uri: string
+  name: string
+  mimeType: string
+  size?: number
+  kind: 'image' | 'file'
+}
+
+const HR_ATTACHMENT_LIMIT = 5
+const HR_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+
+function hrAttachmentMimeType(name: string, mimeType?: string | null) {
+  if (mimeType && mimeType !== 'application/octet-stream') return mimeType
+  const extension = name.toLowerCase().split('.').pop()
+  const byExtension: Record<string, string> = {
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    txt: 'text/plain',
+    rtf: 'application/rtf',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    bmp: 'image/bmp',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    xls: 'application/vnd.ms-excel',
+    csv: 'text/csv',
+  }
+  return extension ? byExtension[extension] || 'application/octet-stream' : 'application/octet-stream'
+}
+
+function formatAttachmentSize(size?: number) {
+  if (!size || size < 1) return 'Attachment'
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
+  return `${(size / (1024 * 1024)).toFixed(size >= 10 * 1024 * 1024 ? 0 : 1)} MB`
+}
 
 const BIOMETRIC_KEY = 'obsi.people.ess.biometric_lock'
 
@@ -1418,12 +1460,20 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
   const [busy, setBusy] = useState(false)
   const [categoryId, setCategoryId] = useState<HrChatCategoryId | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [pendingAttachments, setPendingAttachments] = useState<PendingHrAttachment[]>([])
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<string | null>(null)
   const conversations = data.supportRequests
     .filter((item) => item.category === 'chat' || item.category.startsWith('chat-'))
     .slice(0, 30)
   const category = categoryId ? HR_CHAT_CATEGORIES.find((item) => item.id === categoryId) : undefined
   const selected = selectedId ? conversations.find((item) => item.id === selectedId) : undefined
   const closed = selected ? ['resolved', 'closed', 'cancelled', 'canceled'].includes(normalizeStatus(selected.status)) : false
+  const canSend = Boolean(message.trim() || pendingAttachments.length > 0) && !busy && !closed
+
+  const clearDraft = () => {
+    setMessage('')
+    setPendingAttachments([])
+  }
 
   const categoryForRequest = (value?: string | null) => {
     if (!value || value === 'chat') return HR_CHAT_CATEGORIES[HR_CHAT_CATEGORIES.length - 1]
@@ -1434,20 +1484,20 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
     const active = conversations.find((item) => categoryForRequest(item.category).id === next && isActiveRequestStatus(item.status))
     setCategoryId(next)
     setSelectedId(active?.id || null)
-    setMessage('')
+    clearDraft()
   }
 
   const openConversation = (request: EssBootstrap['supportRequests'][number]) => {
     setCategoryId(categoryForRequest(request.category).id)
     setSelectedId(request.id)
-    setMessage('')
+    clearDraft()
   }
 
   const goBack = () => {
     if (categoryId) {
       setCategoryId(null)
       setSelectedId(null)
-      setMessage('')
+      clearDraft()
       return
     }
     onBack()
@@ -1458,25 +1508,146 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       setCategoryId(null)
       setSelectedId(null)
-      setMessage('')
+      clearDraft()
       return true
     })
     return () => subscription.remove()
   }, [categoryId])
 
+  const addPendingAttachment = (attachment: PendingHrAttachment) => {
+    if (attachment.size && attachment.size > HR_ATTACHMENT_MAX_BYTES) {
+      Alert.alert('Attachment too large', 'Choose a file smaller than 10 MB.')
+      return
+    }
+    if (pendingAttachments.length >= HR_ATTACHMENT_LIMIT) {
+      Alert.alert('Attachment limit', `You can attach up to ${HR_ATTACHMENT_LIMIT} files to one message.`)
+      return
+    }
+    if (pendingAttachments.some((item) => item.uri === attachment.uri && item.name === attachment.name)) return
+    setPendingAttachments((current) => [...current, attachment].slice(0, HR_ATTACHMENT_LIMIT))
+  }
+
+  const attachFile = async () => {
+    if (busy) return
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+          'application/rtf',
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/bmp',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+          'text/csv',
+        ],
+        copyToCacheDirectory: true,
+        multiple: false,
+      })
+      if (result.canceled) return
+      const asset = result.assets[0]
+      const mimeType = hrAttachmentMimeType(asset.name, asset.mimeType)
+      if (mimeType === 'application/octet-stream') {
+        Alert.alert('Unsupported file', 'Attach a PDF, Word, text, image, Excel or CSV file.')
+        return
+      }
+      addPendingAttachment({
+        id: `file-${Date.now()}`,
+        uri: asset.uri,
+        name: asset.name,
+        mimeType,
+        size: asset.size,
+        kind: mimeType.startsWith('image/') ? 'image' : 'file',
+      })
+    } catch (error) {
+      Alert.alert('Attach file', error instanceof Error ? error.message : 'Unable to open the file picker.')
+    }
+  }
+
+  const takePhoto = async () => {
+    if (busy) return
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) {
+        Alert.alert('Camera permission', 'Allow camera access to take a photo for this HR conversation.')
+        return
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.82,
+        exif: false,
+      })
+      if (result.canceled) return
+      const asset = result.assets[0]
+      const name = asset.fileName || `hr-photo-${Date.now()}.jpg`
+      addPendingAttachment({
+        id: `photo-${Date.now()}`,
+        uri: asset.uri,
+        name,
+        mimeType: hrAttachmentMimeType(name, asset.mimeType || 'image/jpeg'),
+        size: asset.fileSize,
+        kind: 'image',
+      })
+    } catch (error) {
+      Alert.alert('Take photo', error instanceof Error ? error.message : 'Unable to open the camera.')
+    }
+  }
+
+  const openAttachment = async (ticketId: string, activityId: string) => {
+    if (openingAttachmentId) return
+    setOpeningAttachmentId(activityId)
+    try {
+      const { url } = await essApi.hrTicketAttachmentUrl(ticketId, activityId)
+      if (!/^https:\/\//i.test(url)) throw new Error('Attachment link is unavailable.')
+      await Linking.openURL(url)
+    } catch (error) {
+      Alert.alert('Attachment', error instanceof Error ? error.message : 'Unable to open this attachment.')
+    } finally {
+      setOpeningAttachmentId(null)
+    }
+  }
+
   const send = async () => {
     const body = message.trim()
-    if (!body || busy || !category || closed) return
+    const attachments = [...pendingAttachments]
+    if ((!body && attachments.length === 0) || busy || !category || closed) return
+
     setBusy(true)
+    let ticketId = selectedId
     try {
-      if (selectedId) {
-        await essApi.replyHrTicket(selectedId, body)
-      } else {
-        const created = await essApi.createHrTicket(`${category.title} · HR chat`, body, category.id)
+      if (!ticketId) {
+        const starter = body || (attachments[0]?.kind === 'image' ? 'Shared a photo' : 'Shared an attachment')
+        const created = await essApi.createHrTicket(`${category.title} · HR chat`, starter, category.id)
+        ticketId = created.id
         setSelectedId(created.id)
+        setMessage('')
+      } else if (body) {
+        await essApi.replyHrTicket(ticketId, body)
+        setMessage('')
       }
-      setMessage('')
+
+      const failed: PendingHrAttachment[] = []
+      if (ticketId) {
+        for (const attachment of attachments) {
+          try {
+            await essApi.uploadHrTicketAttachment(ticketId, attachment)
+          } catch {
+            failed.push(attachment)
+          }
+        }
+      }
+      setPendingAttachments(failed)
       await reload()
+      if (failed.length > 0) {
+        Alert.alert(
+          'Some attachments were not sent',
+          `${failed.length} attachment${failed.length === 1 ? '' : 's'} remain in the composer so you can retry.`,
+        )
+      }
     } catch (error) {
       Alert.alert('Talk to HR', error instanceof Error ? error.message : 'Unable to send')
     } finally {
@@ -1509,12 +1680,15 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
   }
 
   const messages = selected ? [
-    { id: `${selected.id}-initial`, own: true, message: selected.description || selected.subject, createdAt: selected.submittedAt },
+    { id: `${selected.id}-initial`, own: true, message: selected.description || selected.subject, createdAt: selected.submittedAt, attachment: undefined },
     ...(selected.activities || []).map((activity) => ({
       id: activity.id,
       own: normalizeStatus(activity.action).includes('requester'),
-      message: activity.message || displayStatus(activity.action),
+      message: activity.attachment && normalizeStatus(activity.action) === 'requester_attachment'
+        ? ''
+        : activity.message || displayStatus(activity.action),
       createdAt: activity.createdAt,
+      attachment: activity.attachment,
     })),
   ] : []
 
@@ -1528,16 +1702,34 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
         <AppText style={s.hrChatHeaderTitle}>{category.title}</AppText>
         <Muted style={s.hrChatHeaderSubtitle}>{selected?.requestNumber || 'HR Support'}{selected ? ` · ${displayStatus(selected.status)}` : ' · New conversation'}</Muted>
       </View>
-      {selected ? <Pressable accessibilityRole="button" accessibilityLabel="Start another conversation" style={({ pressed }) => [s.hrChatNew, pressed && s.controlPressed]} onPress={() => { setSelectedId(null); setMessage('') }}><Ionicons name="add" size={22} color={colors.text} /></Pressable> : null}
+      {selected ? <Pressable accessibilityRole="button" accessibilityLabel="Start another conversation" style={({ pressed }) => [s.hrChatNew, pressed && s.controlPressed]} onPress={() => { setSelectedId(null); clearDraft() }}><Ionicons name="add" size={22} color={colors.text} /></Pressable> : null}
     </View>
 
     <View style={s.hrChatThread}>
       {messages.length === 0 ? <View style={s.hrChatIntro}>
         <View style={s.hrChatIntroIcon}><Ionicons name="chatbubble-ellipses-outline" size={28} color={colors.primary} /></View>
         <AppText style={s.cardTitle}>Start your {category.title.toLowerCase()} conversation</AppText>
-        <Muted style={s.centerText}>Your first message creates a tracked HR conversation. Replies stay together here like a messenger thread.</Muted>
+        <Muted style={s.centerText}>Message HR, attach a file, or take a photo. Everything stays together in this conversation.</Muted>
       </View> : messages.map((item) => <View key={item.id} style={[s.chatBubble, item.own ? s.chatBubbleOwn : s.chatBubbleHr]}>
-        <AppText>{item.message}</AppText>
+        {item.message ? <AppText>{item.message}</AppText> : null}
+        {item.attachment && selected ? <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open attachment ${item.attachment.name}`}
+          disabled={Boolean(openingAttachmentId)}
+          style={({ pressed }) => [s.chatAttachment, pressed && s.controlPressed]}
+          onPress={() => void openAttachment(selected.id, item.attachment!.id)}
+        >
+          <View style={s.chatAttachmentIcon}>
+            {openingAttachmentId === item.attachment.id
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Ionicons name={item.attachment.kind === 'image' ? 'image-outline' : 'document-outline'} size={20} color={colors.primary} />}
+          </View>
+          <View style={s.flexOne}>
+            <AppText numberOfLines={1} style={s.chatAttachmentName}>{item.attachment.name}</AppText>
+            <Muted style={s.chatAttachmentMeta}>{formatAttachmentSize(item.attachment.size)}</Muted>
+          </View>
+          <Ionicons name="open-outline" size={17} color={colors.textSubtle} />
+        </Pressable> : null}
         {item.createdAt ? <Muted style={s.chatBubbleMeta}>{item.own ? 'You' : 'HR'} · {formatDateTime(item.createdAt)}</Muted> : null}
       </View>)}
       {busy ? <View style={s.chatTyping}><ActivityIndicator size="small" color={colors.textMuted} /><Muted>Sending…</Muted></View> : null}
@@ -1546,28 +1738,61 @@ function HrChatPage({ data, reload, onBack }: { data: EssBootstrap; reload: () =
     {closed ? <View style={s.messengerClosed}>
       <Ionicons name="checkmark-circle-outline" size={20} color={colors.textMuted} />
       <Muted style={s.flexOne}>This conversation is closed.</Muted>
-      <Pressable accessibilityRole="button" onPress={() => { setSelectedId(null); setMessage('') }}><AppText style={s.linkText}>Start new</AppText></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => { setSelectedId(null); clearDraft() }}><AppText style={s.linkText}>Start new</AppText></Pressable>
     </View> : <View style={s.messengerComposer}>
-      <TextInput
-        style={s.messengerInput}
-        value={message}
-        onChangeText={setMessage}
-        multiline
-        maxLength={5000}
-        placeholder="Message HR"
-        placeholderTextColor={colors.textSubtle}
-        textAlignVertical="center"
-      />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Send message"
-        accessibilityState={{ disabled: !message.trim() || busy, busy }}
-        disabled={!message.trim() || busy}
-        style={({ pressed }) => [s.messengerSend, (!message.trim() || busy) && s.messengerSendDisabled, pressed && s.pressed]}
-        onPress={() => void send()}
+      {pendingAttachments.length > 0 ? <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.messengerAttachmentTray}
+        contentContainerStyle={s.messengerAttachmentTrayContent}
+        keyboardShouldPersistTaps="handled"
       >
-        {busy ? <ActivityIndicator size="small" color={colors.primaryText} /> : <Ionicons name="send" size={19} color={colors.primaryText} />}
-      </Pressable>
+        {pendingAttachments.map((attachment) => <View key={attachment.id} style={s.pendingAttachment}>
+          {attachment.kind === 'image'
+            ? <Image source={{ uri: attachment.uri }} style={s.pendingAttachmentImage} />
+            : <View style={s.pendingAttachmentIcon}><Ionicons name="document-outline" size={18} color={colors.primary} /></View>}
+          <View style={s.pendingAttachmentCopy}>
+            <AppText numberOfLines={1} style={s.pendingAttachmentName}>{attachment.name}</AppText>
+            <Muted style={s.chatAttachmentMeta}>{formatAttachmentSize(attachment.size)}</Muted>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${attachment.name}`}
+            style={s.pendingAttachmentRemove}
+            onPress={() => setPendingAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+          >
+            <Ionicons name="close" size={14} color={colors.textMuted} />
+          </Pressable>
+        </View>)}
+      </ScrollView> : null}
+      <View style={s.messengerComposerRow}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Attach file" disabled={busy} style={({ pressed }) => [s.messengerTool, pressed && s.controlPressed]} onPress={() => void attachFile()}>
+          <Ionicons name="attach" size={21} color={colors.textMuted} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Take photo" disabled={busy} style={({ pressed }) => [s.messengerTool, pressed && s.controlPressed]} onPress={() => void takePhoto()}>
+          <Ionicons name="camera-outline" size={21} color={colors.textMuted} />
+        </Pressable>
+        <TextInput
+          style={s.messengerInput}
+          value={message}
+          onChangeText={setMessage}
+          multiline
+          maxLength={5000}
+          placeholder="Message HR"
+          placeholderTextColor={colors.textSubtle}
+          textAlignVertical="center"
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{ disabled: !canSend, busy }}
+          disabled={!canSend}
+          style={({ pressed }) => [s.messengerSend, !canSend && s.messengerSendDisabled, pressed && s.pressed]}
+          onPress={() => void send()}
+        >
+          {busy ? <ActivityIndicator size="small" color={colors.primaryText} /> : <Ionicons name="send" size={18} color={colors.primaryText} />}
+        </Pressable>
+      </View>
     </View>}
   </KeyboardAvoidingView>
 }
@@ -1830,10 +2055,14 @@ const s = StyleSheet.create({
   version: { textAlign: 'center', fontSize: typography.xs, lineHeight: 15, color: colors.textSubtle, marginTop: spacing.xs },
 
   chatArea: { minHeight: 180, justifyContent: 'flex-end', gap: spacing.xs, marginVertical: spacing.sm },
-  chatBubble: { maxWidth: '84%', paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: 18, gap: 3 },
+  chatBubble: { maxWidth: '86%', paddingHorizontal: spacing.sm, paddingVertical: 10, borderRadius: 18, gap: 6 },
   chatBubbleOwn: { alignSelf: 'flex-end', backgroundColor: colors.infoSurface, borderBottomRightRadius: 6 },
   chatBubbleHr: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderBottomLeftRadius: 6 },
-  chatBubbleMeta: { fontSize: typography.xs, lineHeight: 14, marginTop: 2 },
+  chatBubbleMeta: { fontSize: typography.xs, lineHeight: 14, marginTop: 1 },
+  chatAttachment: { minWidth: 210, maxWidth: 300, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: 7, borderRadius: radii.md, backgroundColor: colors.surfaceMuted },
+  chatAttachmentIcon: { width: 36, height: 36, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
+  chatAttachmentName: { fontSize: typography.sm, lineHeight: 17, fontWeight: '600' },
+  chatAttachmentMeta: { fontSize: typography.xs, lineHeight: 14 },
   hrCategoryList: { backgroundColor: colors.surface, borderRadius: radii.lg, overflow: 'hidden' },
   hrCategoryRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   hrCategoryIcon: { width: 42, height: 42, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
@@ -1845,14 +2074,24 @@ const s = StyleSheet.create({
   hrChatHeaderTitle: { fontSize: typography.md, lineHeight: 20, fontWeight: '700', letterSpacing: -0.2 },
   hrChatHeaderSubtitle: { fontSize: typography.xs, lineHeight: 15 },
   hrChatNew: { width: controls.touch, height: controls.touch, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  hrChatThread: { minHeight: 430, justifyContent: 'flex-end', gap: 8, paddingVertical: spacing.md },
-  hrChatIntro: { minHeight: 310, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingHorizontal: spacing.lg },
+  hrChatThread: { minHeight: 380, justifyContent: 'flex-end', gap: 8, paddingVertical: spacing.md },
+  hrChatIntro: { minHeight: 270, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingHorizontal: spacing.lg },
   hrChatIntroIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected, marginBottom: spacing.xs },
   chatTyping: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: 9, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
-  messengerComposer: { minHeight: 58, flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, padding: 6, borderRadius: 24, backgroundColor: colors.surfaceMuted },
-  messengerInput: { flex: 1, minHeight: 46, maxHeight: 112, color: colors.text, backgroundColor: colors.surface, borderRadius: 21, paddingHorizontal: spacing.sm, paddingTop: 12, paddingBottom: 10, fontSize: typography.base, lineHeight: 20 },
-  messengerSend: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  messengerSendDisabled: { opacity: 0.42 },
+  messengerComposer: { gap: 5, padding: 6, borderRadius: 26, backgroundColor: colors.surfaceMuted },
+  messengerAttachmentTray: { maxHeight: 62 },
+  messengerAttachmentTrayContent: { gap: 6, paddingHorizontal: 1, paddingBottom: 2 },
+  pendingAttachment: { width: 196, height: 56, flexDirection: 'row', alignItems: 'center', gap: 6, padding: 5, borderRadius: radii.md, backgroundColor: colors.surface },
+  pendingAttachmentImage: { width: 44, height: 44, borderRadius: radii.sm, backgroundColor: colors.surfaceStrong },
+  pendingAttachmentIcon: { width: 44, height: 44, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.selected },
+  pendingAttachmentCopy: { flex: 1, minWidth: 0 },
+  pendingAttachmentName: { fontSize: typography.xs, lineHeight: 15, fontWeight: '600' },
+  pendingAttachmentRemove: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted },
+  messengerComposerRow: { minHeight: 48, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  messengerTool: { width: 40, height: 44, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  messengerInput: { flex: 1, minHeight: 44, maxHeight: 112, color: colors.text, backgroundColor: 'transparent', borderRadius: 20, paddingHorizontal: 7, paddingTop: 11, paddingBottom: 9, fontSize: typography.base, lineHeight: 20 },
+  messengerSend: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', margin: 1 },
+  messengerSendDisabled: { opacity: 0.36 },
   messengerClosed: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radii.lg, backgroundColor: colors.surfaceMuted },
   unreadCard: { backgroundColor: colors.infoSurface, borderColor: colors.infoBorder },
   unreadDot: { width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.accent },

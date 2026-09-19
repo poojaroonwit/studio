@@ -2,6 +2,8 @@ import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 
 import { getPool } from '@/lib/db';
+import { ensureBucketExists, getSignedUrl, minioClient, MINIO_BUCKET } from '@/lib/minio';
+import { validateFileUpload } from '@/lib/security-file-upload';
 import { cancelOwnLeaveRequest, createEssGroupedLeaveRequest } from '@/lib/hr/ess-service';
 import { acknowledgeOwnDocument } from '@/lib/hr/ess-action-service';
 import { essRequestCreateSchema } from '@/lib/hr/ess-contracts';
@@ -315,6 +317,125 @@ export async function cancelMobileLeaveRequest(identity: MobileEssRequestIdentit
   }
 }
 
+
+function safeSupportAttachmentName(value: string) {
+  const cleaned = value.replace(/[\\/\u0000-\u001f\u007f]/g, '_').trim().slice(0, 180);
+  return cleaned || 'attachment';
+}
+
+function supportAttachmentExtension(name: string) {
+  const match = name.toLowerCase().match(/\.[a-z0-9]{1,10}$/);
+  return match?.[0] || '';
+}
+
+async function ownedOpenSupportRequest(identity: MobileEssRequestIdentity, id: string) {
+  const owned = await getPool().query(
+    `SELECT id, status FROM employee_support_requests
+      WHERE id = $1::uuid AND employee_id = $2::uuid LIMIT 1`,
+    [id, identity.employeeId],
+  );
+  const request = owned.rows[0] as DbRow | undefined;
+  if (!request) return { error: NextResponse.json({ error: 'HR request not found' }, { status: 404 }) };
+  if (['resolved', 'closed', 'cancelled', 'canceled'].includes(String(request.status || '').toLowerCase())) {
+    return { error: NextResponse.json({ error: 'This HR request is closed. Create a new request to continue.' }, { status: 409 }) };
+  }
+  return { request };
+}
+
+export async function uploadMobileSupportAttachment(identity: MobileEssRequestIdentity, id: string, formData: FormData) {
+  const access = await ownedOpenSupportRequest(identity, id);
+  if ('error' in access) return access.error;
+
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return NextResponse.json({ error: 'Choose a file to attach' }, { status: 400 });
+  }
+
+  const validation = await validateFileUpload(file.name, file.type || 'application/octet-stream', file.size);
+  if (!validation.valid) {
+    return NextResponse.json({ error: validation.errors[0] || 'This file cannot be attached', errors: validation.errors }, { status: 400 });
+  }
+
+  const safeName = safeSupportAttachmentName(file.name);
+  const extension = supportAttachmentExtension(safeName);
+  const objectName = `ess-support/${identity.employeeId}/${id}/${randomUUID()}${extension}`;
+  const mimeType = file.type || 'application/octet-stream';
+  const kind = mimeType.startsWith('image/') ? 'image' : 'file';
+  const activityId = randomUUID();
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await ensureBucketExists();
+  await minioClient.putObject(
+    MINIO_BUCKET,
+    objectName,
+    buffer,
+    buffer.length,
+    {
+      'Content-Type': mimeType,
+      'x-amz-meta-originalname': safeName,
+      'x-amz-meta-uploaded-by': identity.userId,
+      'x-amz-meta-support-request-id': id,
+    },
+  );
+
+  try {
+    const attachment = { name: safeName, mimeType, size: file.size, kind, objectName };
+    await getPool().query(
+      `INSERT INTO employee_support_activities
+         (id, request_id, actor_user_id, action, message, visibility, metadata, created_at)
+       VALUES ($1, $2::uuid, $3::uuid, 'requester_attachment', $4, 'requester', $5::jsonb, NOW())`,
+      [activityId, id, identity.userId, safeName, JSON.stringify({ attachment })],
+    );
+    await getPool().query(
+      `UPDATE employee_support_requests SET updated_at = NOW() WHERE id = $1::uuid AND employee_id = $2::uuid`,
+      [id, identity.employeeId],
+    );
+    return NextResponse.json({
+      activity: {
+        id: activityId,
+        action: 'requester_attachment',
+        message: safeName,
+        createdAt: new Date().toISOString(),
+        attachment: { id: activityId, name: safeName, mimeType, size: file.size, kind },
+      },
+    }, { status: 201 });
+  } catch (error) {
+    await minioClient.removeObject(MINIO_BUCKET, objectName).catch(() => undefined);
+    throw error;
+  }
+}
+
+export async function getMobileSupportAttachmentUrl(identity: MobileEssRequestIdentity, ticketId: string, activityId: string) {
+  const result = await getPool().query(
+    `SELECT a.metadata
+       FROM employee_support_activities a
+       JOIN employee_support_requests r ON r.id = a.request_id
+      WHERE r.id = $1::uuid
+        AND r.employee_id = $2::uuid
+        AND a.id = $3::uuid
+        AND a.visibility = 'requester'
+      LIMIT 1`,
+    [ticketId, identity.employeeId, activityId],
+  );
+  const row = result.rows[0] as DbRow | undefined;
+  const metadata = row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+    ? row.metadata as Record<string, unknown>
+    : {};
+  const attachment = metadata.attachment && typeof metadata.attachment === 'object' && !Array.isArray(metadata.attachment)
+    ? metadata.attachment as Record<string, unknown>
+    : {};
+  const objectName = text(attachment.objectName, 1000);
+  if (!objectName || !objectName.startsWith(`ess-support/${identity.employeeId}/${ticketId}/`)) {
+    return NextResponse.json({ error: 'Attachment not found' }, { status: 404 });
+  }
+
+  try {
+    return NextResponse.json({ url: await getSignedUrl(objectName, 5 * 60) });
+  } catch {
+    return NextResponse.json({ error: 'Unable to open attachment' }, { status: 503 });
+  }
+}
+
 export async function createMobileSupportTicket(identity: MobileEssRequestIdentity, body: Record<string, unknown>) {
   const subject = text(body.subject, 180);
   const message = text(body.message, 5000);
@@ -336,16 +457,8 @@ export async function replyMobileSupportTicket(identity: MobileEssRequestIdentit
   const message = text(body.message, 5000);
   if (!message) return NextResponse.json({ error: 'Message is required' }, { status: 400 });
 
-  const owned = await getPool().query(
-    `SELECT id, status FROM employee_support_requests
-      WHERE id = $1::uuid AND employee_id = $2::uuid LIMIT 1`,
-    [id, identity.employeeId],
-  );
-  const request = owned.rows[0] as DbRow | undefined;
-  if (!request) return NextResponse.json({ error: 'HR request not found' }, { status: 404 });
-  if (['resolved', 'closed', 'cancelled', 'canceled'].includes(String(request.status || '').toLowerCase())) {
-    return NextResponse.json({ error: 'This HR request is closed. Create a new request to continue.' }, { status: 409 });
-  }
+  const access = await ownedOpenSupportRequest(identity, id);
+  if ('error' in access) return access.error;
 
   await getPool().query(
     `INSERT INTO employee_support_activities

@@ -8,7 +8,9 @@ import { deleteMobileEmergencyContact, writeMobileEmergencyContact } from '@/lib
 import {
   acknowledgeMobileDocument,
   cancelMobileLeaveRequest,
+  createMobileAttendanceCorrection,
   createMobileLeaveRequest,
+  createMobileProfileChangeRequest,
   createMobileSupportTicket,
   replyMobileSupportTicket,
 } from '@/lib/ess/mobile-request-actions';
@@ -412,57 +414,6 @@ async function clock(identity: EssIdentity, mode: 'in' | 'out', body: Record<str
   }
 }
 
-async function createCorrection(identity: EssIdentity, body: Record<string, unknown>) {
-  const attendanceId = stringValue(body.attendanceId, 80);
-  const reason = stringValue(body.reason, 1000);
-  const requestedCheckIn = stringValue(body.requestedCheckIn, 80);
-  const requestedCheckOut = stringValue(body.requestedCheckOut, 80);
-  if (!attendanceId || !reason) return jsonError('Attendance record and reason are required', 400);
-  if (!requestedCheckIn && !requestedCheckOut) return jsonError('Change at least one attendance time before submitting', 400);
-
-  const owned = await getPool().query(
-    'SELECT id, clock_in, clock_out FROM hr_attendance_records WHERE id = $1 AND employee_id = $2',
-    [attendanceId, identity.employeeId],
-  );
-  const record = owned.rows[0] as DbRow | undefined;
-  if (!record) return jsonError('Attendance record not found', 404);
-
-  const parseRequested = (value: string) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-  };
-  const requestedInDate = parseRequested(requestedCheckIn);
-  const requestedOutDate = parseRequested(requestedCheckOut);
-  if (requestedInDate === undefined || requestedOutDate === undefined) return jsonError('Requested attendance time is invalid', 400);
-  if (requestedInDate && requestedOutDate && requestedOutDate <= requestedInDate) {
-    return jsonError('Requested clock out must be after requested clock in', 400);
-  }
-
-  const sameMinute = (requested: Date | null, current: unknown) => {
-    if (!requested && !current) return true;
-    if (!requested || (!current && current !== 0)) return false;
-    const currentDate = current instanceof Date ? current : new Date(String(current));
-    if (Number.isNaN(currentDate.getTime())) return false;
-    return Math.floor(requested.getTime() / 60_000) === Math.floor(currentDate.getTime() / 60_000);
-  };
-  const checkInChanged = requestedInDate ? !sameMinute(requestedInDate, record.clock_in) : false;
-  const checkOutChanged = requestedOutDate ? !sameMinute(requestedOutDate, record.clock_out) : false;
-  if (!checkInChanged && !checkOutChanged) return jsonError('Requested attendance times match the current record', 400);
-
-  await getPool().query(
-    `INSERT INTO hr_attendance_exceptions
-       (id, attendance_record_id, code, severity, status, explanation, created_at, updated_at)
-     VALUES ($1, $2, 'employee_correction_requested', 'warning', 'open', $3, NOW(), NOW())`,
-    [randomUUID(), attendanceId, JSON.stringify({ reason, requestedCheckIn: requestedCheckIn || null, requestedCheckOut: requestedCheckOut || null, requestedBy: identity.userId })],
-  );
-  await getPool().query(
-    `UPDATE hr_attendance_records SET exception_status = 'needs_review', review_status = 'open', updated_at = NOW() WHERE id = $1`,
-    [attendanceId],
-  );
-  return NextResponse.json({ success: true }, { status: 201 });
-}
-
 async function patchProfile(identity: EssIdentity, body: Record<string, unknown>) {
   const preferredName = stringValue(body.preferredName, 120);
   const personalEmail = stringValue(body.personalEmail, 255);
@@ -566,7 +517,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const notificationId = path[1];
   if (path.join('/') === 'attendance/clock-in') return clock(identity, 'in', body, request);
   if (path.join('/') === 'attendance/clock-out') return clock(identity, 'out', body, request);
-  if (path.join('/') === 'attendance/corrections') return createCorrection(identity, body);
+  if (path.join('/') === 'attendance/corrections') return createMobileAttendanceCorrection(identity, body);
+  if (path.join('/') === 'profile-change-requests') return createMobileProfileChangeRequest(identity, body);
   if (path.join('/') === 'leave/requests') return createMobileLeaveRequest(identity, body);
   if (path[0] === 'leave' && path[1] === 'requests' && requestId && path[3] === 'cancel') return cancelMobileLeaveRequest(identity, requestId);
   if (path.join('/') === 'emergency-contacts') {

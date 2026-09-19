@@ -5,5 +5,5 @@ export default async function EssPage() {
   const session = await getValidatedAuthSession();
   if (!session) redirect('/auth/signin');
 
-  redirect('/employee-portal');
+  redirect('/my-workday');
 }

@@ -37,12 +37,17 @@ describe('HR sidebar links', () => {
       .find(group => group.label === 'ESS');
     expect(ess?.items.map(item => [item.label, item.href])).toEqual([
       ['My Profile', '/ess/profile'],
+      ['My Requests', '/ess/requests'],
+      ['My Onboarding', '/ess/onboarding'],
       ['My Leave', '/ess/leave'],
       ['My Attendance', '/ess/attendance'],
       ['Shift Requests', '/ess/shift-requests'],
       ['Attendance Corrections', '/ess/attendance-corrections'],
       ['Overtime Requests', '/ess/overtime'],
+      ['My Timesheet', '/ess/timesheet'],
       ['My Documents', '/ess/documents'],
+      ['Expenses', '/ess/expenses'],
+      ['Payslips', '/ess/payslips'],
       ['My Benefits', '/ess/benefits'],
       ['My Performance', '/ess/performance'],
       ['Career Opportunities', '/ess/opportunities'],

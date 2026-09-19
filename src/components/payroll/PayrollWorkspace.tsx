@@ -210,7 +210,6 @@ export function PayrollWorkspace({ resource }: { resource: PayrollResource }) {
           );
         toast.success(t("payroll.success.updated", "Payroll record updated."));
         await load(true);
-        router.refresh();
         return payload.data;
       } catch (caught) {
         const message =

@@ -34,7 +34,7 @@ type RecordItem = Record<string, unknown> & { id: string };
 type ResourceResponse = { resource?: { records?: RecordItem[] }; records?: RecordItem[]; data?: RecordItem };
 type JourneyFilter = 'all' | 'needs_action' | 'starting_soon' | 'on_track' | 'completed';
 type JourneyGroup = 'needs_action' | 'starting_soon' | 'on_track' | 'completed';
-type JourneyStageId = 'personal_information' | 'employment_details' | 'equipment' | 'compliance' | 'orientation';
+type JourneyStageId = 'personal_information' | 'employment_details' | 'payroll' | 'account_access' | 'equipment' | 'compliance' | 'orientation';
 
 type JourneyRow = {
   caseItem: RecordItem;
@@ -576,6 +576,8 @@ function JourneyTableRow({ row, selected, selectedProgress, onSelect }: { row: J
 const JOURNEY_STAGES: Array<{ id: JourneyStageId; label: string }> = [
   { id: 'personal_information', label: 'Personal information' },
   { id: 'employment_details', label: 'Employment details' },
+  { id: 'payroll', label: 'Compensation & payroll' },
+  { id: 'account_access', label: 'Account & access' },
   { id: 'equipment', label: 'Equipment' },
   { id: 'compliance', label: 'Compliance' },
   { id: 'orientation', label: 'Orientation' },
@@ -584,8 +586,10 @@ const JOURNEY_STAGES: Array<{ id: JourneyStageId; label: string }> = [
 function journeyStageForTask(task: RecordItem): JourneyStageId {
   const taskText = `${label(task.title, '')} ${label(task.description, '')}`.toLowerCase();
   if (/personal|profile|contact|emergency/.test(taskText)) return 'personal_information';
-  if (/employment|contract|payroll|bank|benefit/.test(taskText)) return 'employment_details';
-  if (/equipment|laptop|device|hardware|access|account/.test(taskText)) return 'equipment';
+  if (/salary|compensation|payroll|bank|benefit|payment/.test(taskText)) return 'payroll';
+  if (/employment|contract|position|department/.test(taskText)) return 'employment_details';
+  if (/equipment|laptop|device|hardware/.test(taskText)) return 'equipment';
+  if (/access|account|login|credential/.test(taskText)) return 'account_access';
   if (/compliance|policy|i-9|tax|document|background|acknowledg/.test(taskText)) return 'compliance';
   return 'orientation';
 }
@@ -615,13 +619,35 @@ function JourneyDrawer({ open, row, employeeDetail, tasks, progress, completedTa
     .sort((a, b) => Number(value(a, 'dueDay', 'due_day') || 0) - Number(value(b, 'dueDay', 'due_day') || 0))
     .slice(0, 5);
   const manager = firstText(employeeDetail, [['managerName', 'manager_name'], ['reportsToName', 'reports_to_name']], 'Not assigned');
+  const readinessRecord =
+    employeeDetail?.employeeReadiness && typeof employeeDetail.employeeReadiness === 'object'
+      ? employeeDetail.employeeReadiness as Record<string, unknown>
+      : null;
+  const readinessSections = Array.isArray(readinessRecord?.sections)
+    ? readinessRecord.sections.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+    : [];
+  const readinessSectionByStage: Partial<Record<JourneyStageId, string>> = {
+    personal_information: 'personal',
+    employment_details: 'employment',
+    payroll: 'payroll',
+    account_access: 'account',
+    compliance: 'compliance',
+  };
   const stageProgress = JOURNEY_STAGES.map(stage => {
     const stageTasks = tasks.filter(task => journeyStageForTask(task) === stage.id);
     const stageCompleted = stageTasks.filter(task => label(task.status, 'pending').toLowerCase() === 'completed').length;
-    const profileComplete = stage.id === 'personal_information' && Boolean(employeeDetail || row.employee);
-    const employmentComplete = stage.id === 'employment_details' && row.role !== 'Role not set' && Boolean(row.startDate);
-    const complete = profileComplete || employmentComplete || (stageTasks.length > 0 && stageCompleted === stageTasks.length);
-    const inProgress = !complete && stageCompleted > 0;
+    const readinessSectionId = readinessSectionByStage[stage.id];
+    const readinessSection = readinessSectionId
+      ? readinessSections.find(section => String(section.id) === readinessSectionId)
+      : null;
+    const readinessMissing = readinessSection ? Number(readinessSection.missing || 0) : null;
+    const legacyProfileComplete = stage.id === 'personal_information' && Boolean(employeeDetail || row.employee);
+    const legacyEmploymentComplete = stage.id === 'employment_details' && row.role !== 'Role not set' && Boolean(row.startDate);
+    const readinessComplete = readinessMissing !== null && readinessMissing === 0;
+    const complete = readinessSection
+      ? readinessComplete
+      : legacyProfileComplete || legacyEmploymentComplete || (stageTasks.length > 0 && stageCompleted === stageTasks.length);
+    const inProgress = !complete && (stageCompleted > 0 || (readinessMissing !== null && readinessMissing > 0));
     const completedAt = stageTasks
       .map(task => dateValue(value(task, 'completedAt', 'completed_at')))
       .filter((date): date is Date => Boolean(date))
@@ -633,12 +659,20 @@ function JourneyDrawer({ open, row, employeeDetail, tasks, progress, completedTa
       inProgress,
       helper: complete
         ? completedAt ? `Completed ${formatDate(completedAt)}` : 'Completed'
-        : inProgress
-          ? `${stageTasks.length - stageCompleted} task${stageTasks.length - stageCompleted === 1 ? '' : 's'} remaining`
-          : stage.id === 'orientation' && courseCount
-            ? `${courseCount} learning assignment${courseCount === 1 ? '' : 's'}`
-            : 'Not started',
-      value: complete ? 100 : stageTasks.length ? Math.round((stageCompleted / stageTasks.length) * 100) : 0,
+        : readinessMissing !== null && readinessMissing > 0
+          ? `${readinessMissing} setup check${readinessMissing === 1 ? '' : 's'} remaining`
+          : inProgress
+            ? `${stageTasks.length - stageCompleted} task${stageTasks.length - stageCompleted === 1 ? '' : 's'} remaining`
+            : stage.id === 'orientation' && courseCount
+              ? `${courseCount} learning assignment${courseCount === 1 ? '' : 's'}`
+              : 'Not started',
+      value: complete
+        ? 100
+        : readinessSection
+          ? Math.max(0, Math.min(100, Number(readinessSection.percent || 0)))
+          : stageTasks.length
+            ? Math.round((stageCompleted / stageTasks.length) * 100)
+            : 0,
     };
   });
   const selectedStage = stageProgress.find(stage => stage.id === activeStage) || null;

@@ -399,7 +399,15 @@ export function TimeScreen({ data, reload, loadMoreTick, offline = false, onFull
   const visible = useProgressiveCount(data.attendance.length, loadMoreTick, 14)
   const [correctionId, setCorrectionId] = useState<string | null>(null)
 
-  const closeCorrection = () => setCorrectionId(null)
+  const openCorrection = (id: string) => {
+    onFullPageChange?.(true)
+    setCorrectionId(id)
+  }
+
+  const closeCorrection = () => {
+    onFullPageChange?.(false)
+    setCorrectionId(null)
+  }
 
   useEffect(() => {
     onFullPageChange?.(Boolean(correctionId))
@@ -428,7 +436,7 @@ export function TimeScreen({ data, reload, loadMoreTick, offline = false, onFull
     <AttendanceActionCard data={data} reload={reload} offline={offline} />
 
     <AppText style={s.section}>Recent attendance</AppText>
-    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => setCorrectionId(row.id)} />)}
+    {data.attendance.length === 0 ? <EmptyState icon="time-outline" title="No attendance yet" /> : data.attendance.slice(0, visible).map((row) => <AttendanceCard key={row.id} row={row} onCorrect={() => openCorrection(row.id)} />)}
     <PaginationFooter visible={visible} total={data.attendance.length} />
   </>
 }
@@ -653,7 +661,7 @@ function RequestForm({ kind, data, reload, onDone }: { kind: RequestKind; data: 
 
 function DateField({ label, value, onChange }: { label: string; value: Date; onChange: (value: Date) => void }) {
   const [open, setOpen] = useState(false)
-  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
+  return <View style={s.field}><Muted style={s.fieldLabel}>{label}</Muted><Pressable accessibilityRole="button" style={s.inputPressable} onPress={() => setOpen(true)}><AppText>{formatDate(value)}</AppText><Ionicons name="calendar-outline" size={18} color={colors.textMuted} /></Pressable>{open ? <DateTimePicker value={value} mode="date" onChange={(_, next) => { setOpen(false); if (next) onChange(next) }} /> : null}</View>
 }
 
 function TimeField({ label, value, fallback, onChange }: { label: string; value: Date | null; fallback?: string | null; onChange: (value: Date) => void }) {

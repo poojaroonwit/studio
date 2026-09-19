@@ -60,6 +60,13 @@ export const essSidebarConfigData = {
       section: "Employee service",
     },
     {
+      label: "My Timesheet",
+      icon: "Clock",
+      href: "/ess/timesheet",
+      description: "Review and submit worked time",
+      section: "Employee service",
+    },
+    {
       label: "My Documents",
       icon: "Folder",
       href: "/ess/documents",

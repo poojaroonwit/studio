@@ -498,6 +498,7 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
   const [supportRequestId, setSupportRequestId] = useState<string | null>(null)
   const visible = useProgressiveCount(data.leaveRequests.length, loadMoreTick, 10)
   const correctionVisible = useProgressiveCount(data.attendanceCorrections.length, loadMoreTick, 10)
+  const profileVisible = useProgressiveCount(data.profileChangeRequests.length, loadMoreTick, 10)
   const supportVisible = useProgressiveCount(data.supportRequests.length, loadMoreTick, 10)
   const supportRequest = supportRequestId ? data.supportRequests.find(item => item.id === supportRequestId) : undefined
 
@@ -552,6 +553,12 @@ export function RequestsScreen({ data, reload, loadMoreTick, onFullPageChange, o
       ? <EmptyState icon="time-outline" title="No attendance corrections yet" subtitle="Corrections you submit will remain visible here while HR reviews them." />
       : data.attendanceCorrections.slice(0, correctionVisible).map((request) => <AttendanceCorrectionCard key={request.id} request={request} />)}
     <PaginationFooter visible={correctionVisible} total={data.attendanceCorrections.length} />
+
+    <AppText style={s.section}>Account changes</AppText>
+    {data.profileChangeRequests.length === 0
+      ? <EmptyState icon="person-outline" title="No account change requests yet" subtitle="Profile, bank, and tax changes submitted from Account will appear here." />
+      : data.profileChangeRequests.slice(0, profileVisible).map((request) => <ProfileChangeRequestSummaryCard key={request.id} request={request} />)}
+    <PaginationFooter visible={profileVisible} total={data.profileChangeRequests.length} />
 
     <AppText style={s.section}>Recent HR requests</AppText>
     {data.supportRequests.length === 0
@@ -869,6 +876,20 @@ function AttendanceCorrectionCard({ request }: { request: EssBootstrap['attendan
     {request.reason ? <Muted>Reason · {request.reason}</Muted> : null}
     {request.reviewerComment ? <View style={s.inlineNotice}><Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} /><Muted style={s.flexOne}>Reviewer · {request.reviewerComment}</Muted></View> : null}
     <Muted>Submitted {formatDateTime(request.submittedAt)}</Muted>
+  </Card>
+}
+
+function ProfileChangeRequestSummaryCard({ request }: { request: EssBootstrap['profileChangeRequests'][number] }) {
+  return <Card>
+    <View style={s.between}>
+      <View style={s.flexOne}>
+        <AppText style={s.cardTitle}>{request.title}</AppText>
+        <Muted>{request.requestNumber || 'Request'} · {formatDateTime(request.submittedAt)}</Muted>
+      </View>
+      <StatusPill value={request.status} />
+    </View>
+    {request.reason ? <Muted>Reason · {request.reason}</Muted> : null}
+    {request.reviewerComment ? <View style={s.inlineNotice}><Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} /><Muted style={s.flexOne}>Reviewer · {request.reviewerComment}</Muted></View> : null}
   </Card>
 }
 

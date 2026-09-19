@@ -120,6 +120,7 @@ export function EmployeePortalEssOverview() {
             <ServiceLink icon={FileCheck2} label="My benefits" description="Coverage and applications" href="/ess/benefits" />
             <ServiceLink icon={Banknote} label="Expenses" description="Claims and reimbursement" href="/ess/expenses" />
             <ServiceLink icon={FileCheck2} label="Payslips" description="Published payroll documents" href="/ess/payslips" />
+            <ServiceLink icon={Clock3} label="Timesheet" description="Worked time and submissions" href="/ess/timesheet" />
             <ServiceLink icon={GraduationCap} label="Learning" description="Courses, paths, and credentials" href="/ess/learning" />
             <ServiceLink icon={Target} label="Surveys" description="Required and optional responses" href="/ess/surveys" />
           </div>

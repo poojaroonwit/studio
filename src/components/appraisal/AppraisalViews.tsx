@@ -90,27 +90,27 @@ export function AppraisalOverview({
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-6 border-b border-border pb-7 dark:border-slate-800 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+      <section className="grid gap-6 border-b border-border pb-7  lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#a75c2f]">{t('appraisal.overview.attentionNotice', 'Now requiring attention')}</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-[-0.045em] text-foreground dark:text-slate-50">{title}</h2>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-warning">{t('appraisal.overview.attentionNotice', 'Now requiring attention')}</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-[-0.045em] text-foreground ">{title}</h2>
           {primary ? (
-            <div className="mt-5 border-l-2 border-[#cc7a3b] pl-4">
+            <div className="mt-5 border-l-2 border-warning pl-4">
               <div className="flex flex-wrap items-center gap-2">
                 <AppraisalStatusBadge status={primary.status} />
                 <DueDate value={nextDue(primary)} />
               </div>
-            <p className="mt-3 text-lg font-bold text-foreground dark:text-slate-50">{String(primary.cycleName || t('appraisal.overview.currentAppraisal', 'Current appraisal'))}</p>
+            <p className="mt-3 text-lg font-bold text-foreground ">{String(primary.cycleName || t('appraisal.overview.currentAppraisal', 'Current appraisal'))}</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {role === 'employee'
                   ? nextEmployeeInstruction(primary, t)
                   : `${String(primary.employeeName || t('appraisal.overview.employeePlaceholder', 'Employee'))} - ${nextManagerInstruction(primary, t)}`}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {role === 'employee' && canEditSelf(primary) ? <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('self', primary)}>{t('appraisal.overview.continueSelfAssessment', 'Continue self-assessment')}</Button> : null}
-                {role === 'employee' && primary.releasedAt && !['acknowledged', 'discussion_requested', 'disputed'].includes(String(primary.acknowledgmentStatus)) ? <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('acknowledge', primary)}>{t('appraisal.overview.reviewAndAcknowledge', 'Review and acknowledge')}</Button> : null}
-                {role === 'manager' && canEditManager(primary) ? <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('manager', primary)}>{t('appraisal.overview.openManagerAssessment', 'Open manager assessment')}</Button> : null}
-                {(role === 'hr' || role === 'administrator') && primary.status === 'awaiting_calibration' ? <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('calibrate', primary)}>{t('appraisal.overview.openCalibrationCase', 'Open calibration case')}</Button> : null}
+                {role === 'employee' && canEditSelf(primary) ? <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('self', primary)}>{t('appraisal.overview.continueSelfAssessment', 'Continue self-assessment')}</Button> : null}
+                {role === 'employee' && primary.releasedAt && !['acknowledged', 'discussion_requested', 'disputed'].includes(String(primary.acknowledgmentStatus)) ? <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('acknowledge', primary)}>{t('appraisal.overview.reviewAndAcknowledge', 'Review and acknowledge')}</Button> : null}
+                {role === 'manager' && canEditManager(primary) ? <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('manager', primary)}>{t('appraisal.overview.openManagerAssessment', 'Open manager assessment')}</Button> : null}
+                {(role === 'hr' || role === 'administrator') && primary.status === 'awaiting_calibration' ? <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('calibrate', primary)}>{t('appraisal.overview.openCalibrationCase', 'Open calibration case')}</Button> : null}
                 <Button variant="outline" className="min-h-11" onClick={() => onTabChange(role === 'employee' ? 'my-reviews' : role === 'reviewer' ? 'feedback' : 'team')}>{t('appraisal.overview.viewAll', 'View all')}</Button>
               </div>
             </div>
@@ -118,8 +118,8 @@ export function AppraisalOverview({
             <AppraisalEmpty title={t('appraisal.overview.emptyNoActionTitle', 'No appraisal action is waiting')} description={t('appraisal.overview.emptyNoActionDescription', 'Required work appears here as soon as a cycle or review assignment reaches your stage.')} />
           )}
         </div>
-        <div className="border border-border bg-[#faf9f6] p-5 dark:border-slate-800 dark:bg-slate-900/40">
-          <h3 className="text-sm font-bold text-foreground dark:text-slate-50">{t('appraisal.overview.workflowPulse', 'Workflow pulse')}</h3>
+        <div className="border border-border bg-muted/20 p-5  ">
+          <h3 className="text-sm font-bold text-foreground ">{t('appraisal.overview.workflowPulse', 'Workflow pulse')}</h3>
           <div className="mt-5 space-y-5">
             <PulseRow label={t('appraisal.overview.pulseYourAppraisals', 'Your appraisals')} value={data.reviews.length} helper={`${data.reviews.filter(isComplete).length} ${t('appraisal.overview.pulseComplete', 'complete')}`} />
             <PulseRow label={t('appraisal.overview.pulseTeamReviews', 'Team reviews')} value={data.teamReviews.length} helper={`${pendingTeam.length} ${t('appraisal.overview.pulseStillActive', 'still active')}`} />
@@ -145,11 +145,11 @@ export function AppraisalOverview({
 
       <AppraisalSection title={t('appraisal.overview.recentActivityTitle', 'Recent appraisal activity')} description={t('appraisal.overview.recentActivityDescription', 'A concise, immutable trail of review actions visible in your scope.')}>
         {data.timeline.length ? (
-          <div className="divide-y divide-slate-200 border-y border-border dark:divide-slate-800 dark:border-slate-800">
+          <div className="divide-y divide-border border-y border-border  ">
             {data.timeline.slice(0, 6).map(item => (
               <div key={String(item.id)} className="grid gap-2 py-3 sm:grid-cols-[160px_1fr_auto] sm:items-center">
                 <p className="text-xs text-muted-foreground">{formatDateTime(item.createdAt, t)}</p>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label(item.eventType)}</p>
+                <p className="text-sm font-semibold text-slate-800 ">{label(item.eventType)}</p>
                 <p className="text-xs text-muted-foreground">{String(item.actor || t('appraisal.overview.authorizedUser', 'Authorized user'))}</p>
               </div>
             ))}
@@ -175,8 +175,8 @@ export function MyAppraisalsView({ data, onAction }: { data: AppraisalWorkspaceD
           <button key={String(item.id)} type="button" onClick={() => setSelectedId(String(item.id))} className={cn(
             'w-full border p-3 text-left transition-colors',
             String(item.id) === String(selected.id)
-              ? 'border-[#284a73] bg-[#eef3f7] dark:bg-blue-950/20'
-              : 'border-border bg-white hover:border-input dark:border-slate-800 dark:bg-slate-950',
+              ? 'border-primary bg-primary/10 '
+              : 'border-border bg-card hover:border-input  ',
           )}>
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-bold">{String(item.cycleName)}</p>
@@ -189,10 +189,10 @@ export function MyAppraisalsView({ data, onAction }: { data: AppraisalWorkspaceD
       </aside>
 
       <div className="min-w-0">
-        <header className="border-b border-border pb-5 dark:border-slate-800">
+        <header className="border-b border-border pb-5 ">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#a75c2f]">{label(selected.reviewType)}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.13em] text-warning">{label(selected.reviewType)}</p>
               <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em]">{String(selected.cycleName)}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{formatDate(selected.cycleStartDate, t)} - {formatDate(selected.cycleEndDate, t)}</p>
             </div>
@@ -207,8 +207,8 @@ export function MyAppraisalsView({ data, onAction }: { data: AppraisalWorkspaceD
             <div className="flex flex-col gap-3 border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20 sm:flex-row sm:items-center sm:justify-between">
               <div><p className="text-sm font-bold text-amber-900 dark:text-amber-100">{t('appraisal.myAppraisals.selfNeedsAttention', 'Your self-assessment needs attention')}</p><p className="mt-1 text-sm text-amber-800 dark:text-amber-200"><DueDate value={selected.selfDueDate} /></p></div>
               <div className="flex gap-2">
-                <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('self', selected)}>{t('appraisal.myAppraisals.editDraft', 'Edit draft')}</Button>
-                {selected.selfAssessment ? <Button variant="outline" className="min-h-11 bg-white" onClick={() => onAction('submit-self', selected)}>{t('appraisal.myAppraisals.submit', 'Submit')}</Button> : null}
+                <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('self', selected)}>{t('appraisal.myAppraisals.editDraft', 'Edit draft')}</Button>
+                {selected.selfAssessment ? <Button variant="outline" className="min-h-11 bg-card" onClick={() => onAction('submit-self', selected)}>{t('appraisal.myAppraisals.submit', 'Submit')}</Button> : null}
               </div>
             </div>
           ) : null}
@@ -218,23 +218,23 @@ export function MyAppraisalsView({ data, onAction }: { data: AppraisalWorkspaceD
           </AppraisalSection>
 
           <AppraisalSection title={t('appraisal.myAppraisals.selfAssessmentTitle', 'Self-assessment')} description={t('appraisal.myAppraisals.selfAssessmentDescription', 'Your submitted narrative and evidence remain attached to this review version.')}>
-            {selected.selfAssessment ? <p className="whitespace-pre-wrap text-sm leading-7 text-foreground/80 dark:text-slate-300">{String(selected.selfAssessment)}</p> : <AppraisalEmpty title={t('appraisal.myAppraisals.noSelfAssessmentDraftTitle', 'No self-assessment draft yet')} description={t('appraisal.myAppraisals.noSelfAssessmentDraftDescription', 'Open the draft to capture achievements, challenges, evidence, strengths, and development areas.')} />}
+            {selected.selfAssessment ? <p className="whitespace-pre-wrap text-sm leading-7 text-foreground/80 ">{String(selected.selfAssessment)}</p> : <AppraisalEmpty title={t('appraisal.myAppraisals.noSelfAssessmentDraftTitle', 'No self-assessment draft yet')} description={t('appraisal.myAppraisals.noSelfAssessmentDraftDescription', 'Open the draft to capture achievements, challenges, evidence, strengths, and development areas.')} />}
           </AppraisalSection>
 
           {selected.releasedAt ? (
             <AppraisalSection title={t('appraisal.myAppraisals.finalResultTitle', 'Final review result')} description={t('appraisal.myAppraisals.finalResultDescription', 'Released by the formal workflow. Acknowledgment confirms receipt, not agreement.')}>
-              <div className="grid gap-5 border border-border bg-[#faf9f6] p-5 dark:border-slate-800 dark:bg-slate-900/40">
+              <div className="grid gap-5 border border-border bg-muted/20 p-5  ">
                 <RatingScale value={numberValue(selected.finalRating)} label={String(selected.ratingModelName || t('appraisal.myAppraisals.finalRatingFallback', 'Final rating'))} />
                 {selected.managerComments ? <div><p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">{t('appraisal.myAppraisals.managerSummary', 'Manager summary')}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-7">{String(selected.managerComments)}</p></div> : null}
                 <div className="flex flex-wrap gap-2">
-                  {!['acknowledged', 'discussion_requested', 'disputed'].includes(String(selected.acknowledgmentStatus)) ? <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('acknowledge', selected)}>{t('appraisal.myAppraisals.acknowledgeReceipt', 'Acknowledge receipt')}</Button> : <AppraisalStatusBadge status={selected.acknowledgmentStatus} />}
+                  {!['acknowledged', 'discussion_requested', 'disputed'].includes(String(selected.acknowledgmentStatus)) ? <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('acknowledge', selected)}>{t('appraisal.myAppraisals.acknowledgeReceipt', 'Acknowledge receipt')}</Button> : <AppraisalStatusBadge status={selected.acknowledgmentStatus} />}
                   {!data.appeals.some(item => item.reviewId === selected.id && item.status !== 'closed') ? <Button variant="outline" className="min-h-11" onClick={() => onAction('appeal', selected)}>{t('appraisal.myAppraisals.submitAppeal', 'Submit appeal')}</Button> : null}
                 </div>
               </div>
             </AppraisalSection>
           ) : (
             <AppraisalSection title={t('appraisal.myAppraisals.finalResultTitle', 'Final review result')}>
-              <div className="flex items-center gap-3 border border-border bg-muted/40 p-4 text-sm text-muted-foreground dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+              <div className="flex items-center gap-3 border border-border bg-muted/40 p-4 text-sm text-muted-foreground   ">
                 <LockKeyhole className="h-5 w-5" aria-hidden />
                 {t('appraisal.myAppraisals.finalResultPlaceholder', 'Final rating and manager result remain confidential until the official release stage.')}
               </div>
@@ -254,13 +254,13 @@ export function FeedbackRequestsView({ data, onAction }: { data: AppraisalWorksp
       {pending.length ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {pending.map(item => (
-            <article key={String(item.id)} className="border border-border bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex items-start justify-between gap-3"><div className="grid h-9 w-9 place-items-center rounded-full bg-[#eef3f7] text-[#284a73] dark:bg-blue-950/30 dark:text-blue-200"><MessageSquareText className="h-4 w-4" /></div><AppraisalStatusBadge status={item.status} /></div>
+            <article key={String(item.id)} className="border border-border bg-card p-4  ">
+              <div className="flex items-start justify-between gap-3"><div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary  "><MessageSquareText className="h-4 w-4" /></div><AppraisalStatusBadge status={item.status} /></div>
               <h3 className="mt-4 text-base font-bold">{String(item.employeeName)}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{String(item.cycleName)} - {label(item.reviewerRole)}</p>
               <div className="mt-4"><DueDate value={item.dueDate} /></div>
               {item.isAnonymous ? <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" />{t('appraisal.feedbackRequests.anonymousToEmployee', 'Anonymous to employee')}</p> : null}
-              <Button className="mt-5 min-h-11 w-full bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('peer', item)}>{t('appraisal.feedbackRequests.provideFeedback', 'Provide feedback')}</Button>
+              <Button className="mt-5 min-h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('peer', item)}>{t('appraisal.feedbackRequests.provideFeedback', 'Provide feedback')}</Button>
             </article>
           ))}
         </div>
@@ -276,7 +276,7 @@ export function TeamAppraisalsView({ data, onAction }: { data: AppraisalWorkspac
 function TeamRow({ row, onAction }: { row: Row; onAction: OpenAction }) {
   const { t } = useLocalization();
   return (
-    <tr className="bg-white dark:bg-slate-950">
+    <tr className="bg-card ">
       <td className="px-3 py-4"><p className="font-bold">{String(row.employeeName)}</p><p className="mt-1 text-xs text-muted-foreground">{String(row.employeeNumber)} - {String(row.department || t('appraisal.team.departmentMissing', 'Unassigned'))}</p></td>
       <td className="px-3 py-4"><AppraisalStatusBadge status={row.status} /></td>
       <td className="px-3 py-4 text-xs font-semibold">{row.submittedAt ? t('appraisal.team.status.submitted', 'Submitted') : t('appraisal.team.status.pending', 'Pending')}</td>
@@ -292,7 +292,7 @@ function TeamRow({ row, onAction }: { row: Row; onAction: OpenAction }) {
 function TeamCard({ row, onAction }: { row: Row; onAction: OpenAction }) {
   const { t } = useLocalization();
   return (
-    <article className="border border-border bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+    <article className="border border-border bg-card p-4  ">
       <div className="flex items-start justify-between gap-3"><div><p className="font-bold">{String(row.employeeName)}</p><p className="mt-1 text-xs text-muted-foreground">{String(row.department || t('appraisal.team.departmentMissing', 'Unassigned'))} - {String(row.employeeNumber)}</p></div><AppraisalStatusBadge status={row.status} /></div>
       <div className="mt-4"><AppraisalProgress value={reviewProgress(row)} /></div>
       <div className="mt-4 flex items-center justify-between"><DueDate value={nextDue(row)} /><TeamActions row={row} onAction={onAction} /></div>
@@ -315,7 +315,7 @@ export function CalibrationView({ data, onAction }: { data: AppraisalWorkspaceDa
   const rows = data.calibration;
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 border-b border-border pb-5 dark:border-slate-800 sm:grid-cols-3">
+      <div className="grid gap-4 border-b border-border pb-5  sm:grid-cols-3">
         <AppraisalMetric label={t('appraisal.calibration.readyCases', 'Ready cases')} value={rows.filter(row => row.status === 'awaiting_calibration').length} helper={t('appraisal.calibration.readyCasesHelper', 'Manager assessment complete')} />
         <AppraisalMetric label={t('appraisal.calibration.inReview', 'In review')} value={rows.filter(row => row.status === 'calibration_in_progress').length} helper={t('appraisal.calibration.inReviewHelper', 'Committee work underway')} />
         <AppraisalMetric label={t('appraisal.calibration.finalized', 'Finalized')} value={rows.filter(row => ['awaiting_final_approval', 'ready_for_release'].includes(String(row.status))).length} helper={t('appraisal.calibration.finalizedHelper', 'Calibration decision recorded')} />
@@ -324,10 +324,10 @@ export function CalibrationView({ data, onAction }: { data: AppraisalWorkspaceDa
         {t('appraisal.calibration.guidance', 'Rating distribution is guidance only. This workspace does not force a curve; each adjustment requires a documented decision.')}
       </div>
       {rows.length ? (
-        <div className="overflow-x-auto border-y border-border dark:border-slate-800">
+        <div className="overflow-x-auto border-y border-border ">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead><tr className="bg-muted/40 text-[11px] uppercase tracking-[0.1em] text-muted-foreground dark:bg-slate-900/50">{[t('appraisal.calibration.table.employee', 'Employee'), t('appraisal.calibration.table.department', 'Department'), t('appraisal.calibration.table.calculated', 'Calculated'), t('appraisal.calibration.table.manager', 'Manager'), t('appraisal.calibration.table.previous', 'Previous'), t('appraisal.calibration.table.status', 'Status'), t('appraisal.calibration.table.decision', 'Decision')].map(column => <th key={column} className="px-3 py-3">{column}</th>)}</tr></thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">{rows.map(row => (
+            <thead><tr className="bg-muted/40 text-[11px] uppercase tracking-[0.1em] text-muted-foreground ">{[t('appraisal.calibration.table.employee', 'Employee'), t('appraisal.calibration.table.department', 'Department'), t('appraisal.calibration.table.calculated', 'Calculated'), t('appraisal.calibration.table.manager', 'Manager'), t('appraisal.calibration.table.previous', 'Previous'), t('appraisal.calibration.table.status', 'Status'), t('appraisal.calibration.table.decision', 'Decision')].map(column => <th key={column} className="px-3 py-3">{column}</th>)}</tr></thead>
+            <tbody className="divide-y divide-border ">{rows.map(row => (
               <tr key={String(row.id)}>
                 <td className="px-3 py-4"><p className="font-bold">{String(row.employeeName)}</p><p className="mt-1 text-xs text-muted-foreground">{String(row.jobTitle || t('appraisal.calibration.rowRoleMissing', 'Role not assigned'))}</p></td>
                 <td className="px-3 py-4">{String(row.department || t('appraisal.calibration.rowDepartmentMissing', 'Unassigned'))}</td>
@@ -351,9 +351,9 @@ export function CyclesView({ data, onAction }: { data: AppraisalWorkspaceData; o
   const missingManager = data.populationPreview.filter(item => item.eligibility === 'missing_manager');
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 border-b border-border pb-5 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border pb-5  sm:flex-row sm:items-end sm:justify-between">
         <div><h2 className="text-xl font-bold tracking-[-0.035em]">{t('appraisal.cycles.title', 'Appraisal cycles')}</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{t('appraisal.cycles.description', 'Configure periods, safely generate employee populations, control stage changes, and preserve history.')}</p></div>
-        <Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('create-cycle')}><FilePlus2 className="mr-2 h-4 w-4" />{t('appraisal.cycles.create', 'Create cycle')}</Button>
+        <Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('create-cycle')}><FilePlus2 className="mr-2 h-4 w-4" />{t('appraisal.cycles.create', 'Create cycle')}</Button>
       </div>
       <AppraisalSection title={t('appraisal.cycles.populationReadinessTitle', 'Population readiness preview')} description={t('appraisal.cycles.populationReadinessDescription', "Live employee-master validation for your company scope. Cycle generation applies the selected cycle's inclusion and exclusion rules and skips existing records.")}>
         {data.populationPreview.length ? (
@@ -374,7 +374,7 @@ export function CyclesView({ data, onAction }: { data: AppraisalWorkspaceData; o
           </div>
         ) : <AppraisalEmpty title={t('appraisal.cycles.noEligibleTitle', 'No eligible employees found')} description={t('appraisal.cycles.noEligibleDescription', 'Employee population is read from Employee master data and is never fabricated inside Appraisal.')} />}
       </AppraisalSection>
-      {data.cycles.length ? <div className="divide-y divide-slate-200 border-y border-border dark:divide-slate-800 dark:border-slate-800">{data.cycles.map(cycle => (
+      {data.cycles.length ? <div className="divide-y divide-border border-y border-border  ">{data.cycles.map(cycle => (
         <article key={String(cycle.id)} className="grid gap-4 py-5 lg:grid-cols-[minmax(250px,1fr)_180px_160px_auto] lg:items-center">
           <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">{String(cycle.name)}</h3><AppraisalStatusBadge status={cycle.status} /></div><p className="mt-1 text-sm text-muted-foreground">{label(cycle.reviewType)} - {formatDate(cycle.startDate, t)} - {formatDate(cycle.endDate, t)}</p></div>
           <div><p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">{t('appraisal.cycles.populationLabel', 'Population')}</p><p className="mt-1 text-sm font-bold">{Number(cycle.reviewCount || 0)} {t('appraisal.cycles.reviewsLabel', 'reviews')}</p></div>
@@ -393,22 +393,22 @@ export function TemplatesView({ data, onAction }: { data: AppraisalWorkspaceData
   const { t } = useLocalization();
   return (
     <div className="space-y-8">
-      <AppraisalSection title={t('appraisal.templates.title', 'Review templates')} description={t('appraisal.templates.description', 'Published versions are immutable snapshots for historical appraisals.')} action={<Button className="min-h-11 bg-[#284a73] text-white hover:bg-[#203c5e]" onClick={() => onAction('create-template')}><FilePlus2 className="mr-2 h-4 w-4" />{t('appraisal.templates.newTemplate', 'New template')}</Button>}>
+      <AppraisalSection title={t('appraisal.templates.title', 'Review templates')} description={t('appraisal.templates.description', 'Published versions are immutable snapshots for historical appraisals.')} action={<Button className="min-h-11 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onAction('create-template')}><FilePlus2 className="mr-2 h-4 w-4" />{t('appraisal.templates.newTemplate', 'New template')}</Button>}>
         {data.templates.length ? <div className="grid gap-3 md:grid-cols-2">{data.templates.map(template => (
-          <article key={String(template.id)} className="border border-border bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+          <article key={String(template.id)} className="border border-border bg-card p-4  ">
             <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{String(template.name)}</h3><p className="mt-1 text-xs text-muted-foreground">{t('appraisal.templates.version', 'Version')} {String(template.version)} - {arrayValue(template.sections).length} {t('appraisal.templates.sections', 'sections')}</p></div><AppraisalStatusBadge status={template.versionStatus} /></div>
             <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{stripIdempotency(String(template.description || t('appraisal.templates.templateDescriptionFallback', 'Reusable formal review structure.')))}</p>
-            <div className="mt-4 flex flex-wrap gap-1.5">{arrayValue(template.sections).slice(0, 5).map(section => <span key={String(section.key)} className="border border-border bg-muted/40 px-2 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900">{String(section.title)}</span>)}</div>
+            <div className="mt-4 flex flex-wrap gap-1.5">{arrayValue(template.sections).slice(0, 5).map(section => <span key={String(section.key)} className="border border-border bg-muted/40 px-2 py-1 text-[11px] font-semibold  ">{String(section.title)}</span>)}</div>
           </article>
         ))}</div> : <AppraisalEmpty title={t('appraisal.templates.noTemplatesTitle', 'No review template published')} description={t('appraisal.templates.noTemplatesDescription', 'Publish a structured template before creating a cycle. Historical reviews retain the selected version.')} />}
       </AppraisalSection>
 
       <AppraisalSection title={t('appraisal.templates.ratingModelsTitle', 'Rating models')} description={t('appraisal.templates.ratingModelsDescription', 'Labels, thresholds, guidance, rounding, and missing-response behavior are configuration - not frontend constants.')}>
         {data.ratingModels.length ? <div className="space-y-4">{data.ratingModels.map(model => (
-          <article key={String(model.id)} className="border-y border-border py-4 dark:border-slate-800">
+          <article key={String(model.id)} className="border-y border-border py-4 ">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="font-bold">{String(model.name)}</h3><p className="mt-1 text-sm text-muted-foreground">{label(model.scaleType)} - {String(model.minimumScore)} - {String(model.maximumScore)} - {String(model.roundingDecimals)} {t('appraisal.templates.decimals', 'decimals')}</p></div><AppraisalStatusBadge status={model.status} /></div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{arrayValue(model.levels).map(level => (
-              <div key={String(level.id)} className="border-l-2 border-[#cc7a3b] pl-3"><p className="text-xs font-bold">{String(level.label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(level.minimumScore)} - {String(level.maximumScore)}</p></div>
+              <div key={String(level.id)} className="border-l-2 border-warning pl-3"><p className="text-xs font-bold">{String(level.label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(level.minimumScore)} - {String(level.maximumScore)}</p></div>
             ))}</div>
           </article>
         ))}</div> : <AppraisalEmpty title={t('appraisal.templates.noRatingModelTitle', 'No rating model configured')} description={t('appraisal.templates.noRatingModelDescription', 'Apply the appraisal migration and seed data, or create a rating model through administration.')} />}
@@ -434,7 +434,7 @@ export function ReportsView({ data }: { data: AppraisalWorkspaceData }) {
           {data.analytics.ratingDistribution.some(item => item.count) ? <div className="space-y-3">{data.analytics.ratingDistribution.map(item => (
             <div key={item.label} className="grid grid-cols-[minmax(120px,180px)_1fr_30px] items-center gap-3">
               <span className="truncate text-xs font-semibold">{item.label}</span>
-              <div className="h-3 bg-muted dark:bg-slate-800"><div className="h-full bg-[#284a73]" style={{ width: `${item.count / maxRating * 100}%` }} /></div>
+              <div className="h-3 bg-muted dark:bg-slate-800"><div className="h-full bg-primary" style={{ width: `${item.count / maxRating * 100}%` }} /></div>
               <span className="text-right text-xs font-bold tabular-nums">{item.count}</span>
             </div>
           ))}</div> : <AppraisalEmpty title={t('appraisal.reports.noRatingDistributionTitle', 'No rating distribution available')} description={t('appraisal.reports.noRatingDistributionDescription', 'Ratings are never fabricated. The chart appears after authorized ratings exist.')} />}
@@ -454,9 +454,9 @@ export function AuditHistoryView({ data }: { data: AppraisalWorkspaceData }) {
   const { t } = useLocalization();
   return (
     <AppraisalSection title={t('appraisal.audit.title', 'Appraisal audit history')} description={t('appraisal.audit.description', 'Cycle, population, assessment, rating, calibration, approval, release, and acknowledgment actions are immutable to normal users.')}>
-      {data.timeline.length ? <div className="relative ml-3 border-l border-input pl-6 dark:border-slate-700">{data.timeline.map(item => (
+      {data.timeline.length ? <div className="relative ml-3 border-l border-input pl-6 ">{data.timeline.map(item => (
         <article key={String(item.id)} className="relative pb-6 last:pb-0">
-          <span className="absolute -left-[1.9rem] top-1 grid h-3 w-3 rounded-full border-2 border-white bg-[#cc7a3b] dark:border-slate-950" />
+          <span className="absolute -left-[1.9rem] top-1 grid h-3 w-3 rounded-full border-2 border-background bg-warning dark:border-background" />
           <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between"><h3 className="text-sm font-bold">{label(item.eventType)}</h3><time className="text-xs text-muted-foreground">{formatDateTime(item.createdAt, t)}</time></div>
           <p className="mt-1 text-sm text-muted-foreground">{String(item.reason || t('appraisal.audit.reasonFallback', 'Recorded by the appraisal workflow.'))} - {String(item.actor || t('appraisal.audit.authorizedUser', 'Authorized user'))}</p>
         </article>

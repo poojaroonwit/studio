@@ -66,7 +66,7 @@ export function AppPageTitle({ children, className, ...props }: AppPageTitleProp
 }
 
 
-interface AppPageIntroProps extends ComponentPropsWithoutRef<'div'> {
+interface AppPageIntroProps extends Omit<ComponentPropsWithoutRef<'div'>, 'title'> {
   eyebrow?: ReactNode;
   title: ReactNode;
   description?: ReactNode;

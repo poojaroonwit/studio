@@ -46,6 +46,7 @@ function latestDecisionNote(evidence: unknown): BenefitDecisionNote | null {
 export function BenefitsPage() {
   const [data, setData] = React.useState<Payload | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Plan | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [actionBusy, setActionBusy] = React.useState<string | null>(null);
@@ -55,9 +56,19 @@ export function BenefitsPage() {
 
   const load = React.useCallback(async () => {
     setLoading(true);
-    try { const response = await fetch('/api/ess/benefits', { cache: 'no-store' }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'Unable to load benefits.'); setData(payload.data); }
-    catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to load benefits.'); }
-    finally { setLoading(false); }
+    setLoadError(null);
+    try {
+      const response = await fetch('/api/ess/benefits', { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to load benefits.');
+      setData(payload.data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load benefits.';
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
   React.useEffect(() => { void load(); }, [load]);
 
@@ -92,7 +103,7 @@ export function BenefitsPage() {
   const enrollmentFor = (planId: string) => data?.enrollments.find(item => item.benefitPlanId === planId && !['ended', 'cancelled'].includes(item.status));
   return <main className="min-h-full bg-[hsl(var(--app-page-background,var(--background)))] px-3 py-4 text-foreground sm:px-5 lg:px-7"><div className="mx-auto max-w-[1440px] space-y-4">
     <header className="border-b border-border pb-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Employee self-service</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">My benefits</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Compare available plans, request coverage, and track approval or termination through to the final state.</p></header>
-    {loading ? <p className="py-16 text-center text-sm text-muted-foreground">Loading available benefits…</p> : !data ? <p className="py-16 text-center text-sm text-destructive">Benefits are currently unavailable.</p> : <>
+    {loading ? <p className="py-16 text-center text-sm text-muted-foreground">Loading available benefits…</p> : !data ? <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-5 py-6 text-sm"><p className="font-semibold">Benefits are currently unavailable</p><p className="mt-1 text-muted-foreground">{loadError || 'Unable to load your benefit plans and enrollments.'}</p><Button variant="outline" size="sm" className="mt-4" onClick={() => void load()}>Retry</Button></div> : <>
       <section className="grid gap-px overflow-hidden border-x border-b border-border bg-border sm:grid-cols-3"><Summary icon={ShieldCheckIcon} value={data.plans.length} label="Available plans" /><Summary icon={CheckCircleIcon} value={data.enrollments.filter(item => item.status === 'active').length} label="Active benefits" /><Summary icon={HeartIcon} value={data.enrollments.filter(item => ['pending_approval', 'pending_termination'].includes(item.status)).length} label="Pending review" /></section>
       <section className="mt-8"><div><h2 className="text-lg font-semibold">Available to you</h2><p className="mt-1 text-sm text-muted-foreground">Costs shown are monthly estimates configured by Payroll.</p></div>
         {data.plans.length ? <div className="mt-4 grid gap-4 md:grid-cols-2">{data.plans.map(plan => { const enrollment = enrollmentFor(plan.id); return <article key={plan.id} className="flex flex-col border border-border bg-background p-5"><div className="flex items-start justify-between gap-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary"><HeartIcon className="h-5 w-5" /></div><Badge variant={enrollment?.status === 'active' ? 'success' : 'secondary'}>{enrollment ? enrollment.status.replace(/_/g, ' ') : plan.type.replace(/_/g, ' ')}</Badge></div><h3 className="mt-5 text-lg font-bold">{plan.name}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">{plan.description || 'Coverage details are available from the People team.'}</p><div className="mt-5 grid grid-cols-2 gap-4 border-y border-border py-4"><div><p className="text-xs text-muted-foreground">Your contribution</p><p className="mt-1 font-bold">{money(plan.employeeCost)}<span className="text-xs font-normal text-muted-foreground"> / month</span></p></div><div><p className="text-xs text-muted-foreground">Employer contribution</p><p className="mt-1 font-bold">{money(plan.employerCost)}<span className="text-xs font-normal text-muted-foreground"> / month</span></p></div></div><Button className="mt-5" variant={enrollment ? 'outline' : 'default'} disabled={Boolean(enrollment)} onClick={() => setSelected(plan)}>{enrollment ? `Application ${enrollment.status.replace(/_/g, ' ')}` : 'Apply for this benefit'}</Button></article>; })}</div> : <div className="mt-4 border border-dashed border-border bg-background p-10 text-center"><HeartIcon className="mx-auto h-9 w-9 text-muted-foreground" /><h3 className="mt-3 font-semibold">No plans are open</h3><p className="mt-1 text-sm text-muted-foreground">New benefit plans will appear here when Payroll makes them available.</p></div>}

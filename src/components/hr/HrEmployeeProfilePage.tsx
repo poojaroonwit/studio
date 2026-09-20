@@ -514,6 +514,7 @@ export function HrEmployeeProfilePage({
         ) : (
           <EmployeeOnboardingPanel
             employee={employee}
+            onNavigate={setActiveTab}
             onAccountCreated={(account) => {
               setEmployee((current) =>
                 current
@@ -3431,9 +3432,11 @@ function ProbationMilestone({
 function EmployeeOnboardingPanel({
   employee,
   onAccountCreated,
+  onNavigate,
 }: {
   employee: HrCrudRecord;
   onAccountCreated: (account: SystemAccountResult) => void;
+  onNavigate: (tab: ProfileTab) => void;
 }) {
   const personProfile =
     employee.personProfile && typeof employee.personProfile === "object"
@@ -3463,6 +3466,12 @@ function EmployeeOnboardingPanel({
           description: `${section.complete}/${section.total} required checks complete.`,
           complete: section.missing === 0,
           completedAt: section.missing === 0 ? employee.updatedAt : null,
+          targetTab:
+            section.id === "payroll"
+              ? ("Payroll" as const)
+              : section.id === "compliance"
+                ? ("Documents" as const)
+                : ("Overview" as const),
         }))
     : [];
   const requiredItems = readinessItems.length
@@ -3475,6 +3484,7 @@ function EmployeeOnboardingPanel({
             "Create the employee login and send password setup instructions.",
           complete: Boolean(employee.accountUserId),
           completedAt: employee.accountUserId ? employee.createdAt : null,
+          targetTab: "Overview" as const,
         },
         {
           id: "profile-complete",
@@ -3483,6 +3493,7 @@ function EmployeeOnboardingPanel({
           complete: profileCompletion.required === 100,
           completedAt:
             profileCompletion.required === 100 ? employee.updatedAt : null,
+          targetTab: "Overview" as const,
         },
       ];
   const completedConfiguredTasks = configuredTasks.filter(
@@ -3613,6 +3624,7 @@ function EmployeeOnboardingPanel({
         <OnboardingChecklist
           requiredItems={requiredItems}
           configuredTasks={configuredTasks}
+          onNavigate={onNavigate}
         />
         <ProbationDeadlineCard employee={employee} />
 
@@ -3666,6 +3678,7 @@ function EmployeeOnboardingPanel({
       <OnboardingChecklist
         requiredItems={requiredItems}
         configuredTasks={configuredTasks}
+        onNavigate={onNavigate}
       />
       <ProbationDeadlineCard employee={employee} />
       <div className="rounded-xl border border-border bg-background p-4">
@@ -3925,6 +3938,7 @@ function OnboardingSummary({
 function OnboardingChecklist({
   requiredItems,
   configuredTasks,
+  onNavigate,
 }: {
   requiredItems: Array<{
     id: string;
@@ -3932,8 +3946,10 @@ function OnboardingChecklist({
     description: string;
     complete: boolean;
     completedAt?: unknown;
+    targetTab: ProfileTab;
   }>;
   configuredTasks: EmployeeOnboardingTask[];
+  onNavigate: (tab: ProfileTab) => void;
 }) {
   const items = [
     ...requiredItems,
@@ -3943,6 +3959,7 @@ function OnboardingChecklist({
       description: task.description || "",
       complete: task.status === "completed",
       completedAt: task.completedAt,
+      targetTab: "Onboarding" as const,
     })),
   ];
 
@@ -3963,6 +3980,7 @@ function OnboardingChecklist({
             complete={item.complete}
             completedAt={item.completedAt}
             isLast={index === items.length - 1}
+            onClick={() => onNavigate(item.targetTab)}
           />
         ))}
       </ol>
@@ -3982,12 +4000,14 @@ function OnboardingChecklistItem({
   complete,
   completedAt,
   isLast,
+  onClick,
 }: {
   index: number;
   title: string;
   complete: boolean;
   completedAt?: unknown;
   isLast: boolean;
+  onClick: () => void;
 }) {
   const completedDate = completedAt ? new Date(String(completedAt)) : null;
   const helper = complete
@@ -3995,34 +4015,41 @@ function OnboardingChecklistItem({
     : "Pending";
 
   return (
-    <li className="relative flex items-start gap-3 border-b border-border/60 py-3 last:border-b-0">
+    <li className="relative border-b border-border/60 last:border-b-0">
       {!isLast ? (
         <span
           aria-hidden
-          className="absolute left-[11px] top-8 h-[calc(100%-20px)] w-px bg-border"
+          className="pointer-events-none absolute left-[11px] top-8 h-[calc(100%-20px)] w-px bg-border"
         />
       ) : null}
-      <span
-        className={cn(
-          "relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-          complete
-            ? "bg-blue-500 text-white"
-            : "bg-muted text-muted-foreground",
-        )}
+      <button
+        type="button"
+        onClick={onClick}
+        className="group relative flex w-full items-start gap-3 rounded-md py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label={"Open " + title}
       >
-        {index}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-foreground">{title}</p>
-        <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-          {helper}
-        </p>
-      </div>
-      {complete ? (
-        <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-      ) : (
-        <ArrowRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-      )}
+        <span
+          className={cn(
+            "relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
+            complete
+              ? "bg-blue-500 text-white"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {index}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-medium text-foreground">{title}</span>
+          <span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">
+            {helper}
+          </span>
+        </span>
+        {complete ? (
+          <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+        ) : (
+          <ArrowRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        )}
+      </button>
     </li>
   );
 }

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { buildMobileNavItems } from './MobileBottomNav';
 import { sidebarConfigData } from './SidebarNavConfig';
 
 function hrefToAppPagePath(href: string) {
@@ -10,15 +11,33 @@ function hrefToAppPagePath(href: string) {
   return resolve(process.cwd(), 'src', 'app', ...segments, 'page.tsx');
 }
 
-describe('sidebar route coverage', () => {
-  it('points every local navigation item at an implemented Next.js page', () => {
-    const missingRoutes = sidebarConfigData.flatMap(group =>
-      group.items
-        .map(item => item.href)
-        .filter(href => href.startsWith('/'))
-        .filter(href => !existsSync(hrefToAppPagePath(href))),
-    );
+function missingPageRoutes(hrefs: string[]) {
+  return hrefs
+    .filter(href => href.startsWith('/'))
+    .filter(href => !existsSync(hrefToAppPagePath(href)));
+}
+
+describe('navigation route coverage', () => {
+  it('points every sidebar navigation item at an implemented Next.js page', () => {
+    const hrefs = sidebarConfigData.flatMap(group => group.items.map(item => item.href));
+    const missingRoutes = missingPageRoutes(hrefs);
 
     expect(missingRoutes, `Missing sidebar pages: ${missingRoutes.join(', ')}`).toEqual([]);
+  });
+
+  it('points every mobile navigation item at an implemented Next.js page', () => {
+    const hrefs = buildMobileNavItems({ role: 'admin' }).map(item => item.href);
+    const missingRoutes = missingPageRoutes(hrefs);
+
+    expect(missingRoutes, `Missing mobile pages: ${missingRoutes.join(', ')}`).toEqual([]);
+  });
+
+  it('keeps Hiring reachable for users who can view candidates', () => {
+    const items = buildMobileNavItems({
+      role: 'user',
+      modulePermissions: ['CANDIDATES_VIEW'],
+    });
+
+    expect(items.some(item => item.href === '/applicants')).toBe(true);
   });
 });

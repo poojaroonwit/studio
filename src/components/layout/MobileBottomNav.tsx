@@ -156,7 +156,7 @@ export function buildMobileNavItems(
   const canViewWorkforce = hasAnyPermission(user, ["HR_WORKFORCE_VIEW", "HR_WORKFORCE_MANAGE"]);
   const canViewPayroll = hasAnyPermission(user, ["HR_PAYROLL_VIEW", "HR_PAYROLL_MANAGE"]);
   const canViewExpenses = hasAnyPermission(user, ["EXPENSES_VIEW", "EXPENSES_APPROVE", "EXPENSES_FINANCE"]);
-  const canViewHiring = hasAnyPermission(user, ["applicantS_VIEW", "POSITIONS_VIEW"]);
+  const canViewHiring = hasAnyPermission(user, ["CANDIDATES_VIEW", "POSITIONS_VIEW"]);
 
   const items: Array<MobileNavItem & { show: boolean }> = [
     {

@@ -83,7 +83,7 @@ export function AppLayoutShell({
                   ) : null}
                   <div
                     data-page-content
-                    className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] [&>*]:w-full [&>*]:max-w-none"
+                    className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] [&>*]:w-full [&>*]:max-w-none [&>.container]:!mx-0 [&>.container]:!px-4 sm:[&>.container]:!px-6 lg:[&>.container]:!px-8"
                   >
                     {children}
                   </div>
